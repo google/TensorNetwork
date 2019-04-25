@@ -1,0 +1,62 @@
+# TensorNetwork
+A TensorNetwork wrapper for tensorflow
+
+Note: The following examples assume a TensorFlow v2 interface 
+(in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
+importing tensorflow) but should also work with eager mode 
+(`tf.enable_eager_execution()`).
+
+## Basic Example
+Here, we build a simple 2 node contraction.
+```python
+import tensornetwork
+import tensorflow as tf
+import numpy as np
+
+# Create the network
+net = tensornetwork.TensorNetwork()
+# Add the nodes
+a = net.add_node(np.ones((10,), dtype=np.float32)) 
+# Can use either np.array or tf.Tensor and can even mix them!
+b = net.add_node(tf.ones((10,)))
+edge = net.connect(a[0], b[0])
+final_node = net.contract(edge)
+print(final_node.tensor.numpy()) # Should print 10.0
+```
+
+## Node and Edge names.
+You can optionally name your nodes/edges. This can be useful for debugging, 
+as all error messages will print the name of the broken edge/node.
+```python
+net = tensornetwork.TensorNetwork()
+node = net.add_node(np.eye(2), name="Identity Matrix")
+print("Name of node: {}".format(node.name))
+edge = net.connect(node[0], node[1], name="Trace Edge")
+print("Name of the edge: {}".format(edge.name))
+# Adding name to a contraction will add the name to the new edge created.
+final_result = net.contract(edge, name="Trace Of Identity")
+print("Name of new node after contraction: {}".format(final_result.name))
+```
+## Named axes.
+To make remembering what an axis does easier, you can optionally name a node's axes.
+```python
+net = tensornetwork.TensorNetwork()
+a = net.add_node(np.zeros((2, 2)), axis_names=["alpha", "beta"])
+edge = net.connect(a["beta"], a["alpha"])
+```
+
+## Edge reordering.
+To assert that your result's axes are in the correct order, you can reorder a node at any time during computation.
+```python
+net = tensornetwork.TensorNetwork()
+a = net.add_node(np.zeros((1, 2, 3)))
+e1 = a[0]
+e2 = a[1]
+e3 = a[2]
+a.reorder_edges([e3, e1, e2])
+# If you already know the axis values, you can equivalently do
+# a.reorder_axes([2, 0, 1])
+print(a.tensor.shape) # Should print (3, 1, 2)
+```
+
+TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Authors.
