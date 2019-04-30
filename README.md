@@ -78,6 +78,6 @@ for e in e_con:
     n = net.contract(e) # Contract edges in order
 n.reorder_edges(e_out) # Permute final tensor as necessary
 print(tf.norm(tf.matmul(a,b) - n.tensor))
-
+```
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Authors.
