@@ -59,4 +59,25 @@ a.reorder_edges([e3, e1, e2])
 print(a.tensor.shape) # Should print (3, 1, 2)
 ```
 
+## NCON interface.
+For a more compact specification of a tensor network and its contraction, there is `ncon()`. For example:
+```python
+from tensornetwork_tools import ncon
+a = tf.random_normal((2,2))
+b = tf.random_normal((2,2))
+c = ncon([a,b], [(-1,0),(0,-2)])
+print(tf.norm(tf.matmul(a,b) - c)) # Should be zero
+```
+It is also possible to generate a `TensorNetwork`:
+```python
+from tensornetwork_tools import ncon_network
+a = tf.random_normal((2,2))
+b = tf.random_normal((2,2))
+net, e_con, e_out = ncon_network([a,b], [(-1,0),(0,-2)])
+for e in e_con:
+    n = net.contract(e) # Contract edges in order
+n.reorder_edges(e_out) # Permute final tensor as necessary
+print(tf.norm(tf.matmul(a,b) - n.tensor))
+```
+
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Authors.
