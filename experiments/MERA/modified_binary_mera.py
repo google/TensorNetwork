@@ -228,7 +228,7 @@ def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
                   verbose=0, opt_u=True, opt_vw=True, numpy_update=True):
     """
     ------------------------
-    adapted from Glen Evenbly (c) for www.tensors.net, (v1.1) - last modified 24/1/2019
+    adapted from Glen Evenbly (c) for www.tensors.net, (v1.1)
     ------------------------
     optimization of a scale invariant modified binary MERA tensor network
     Parameters:
