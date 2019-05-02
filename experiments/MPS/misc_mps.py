@@ -1168,6 +1168,6 @@ def compile_decomps(on=True):
         apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_python
 
 # Default to uncompiled
-compile_ncon(False)
-compile_contractions(False)
-compile_decomps(False)
+compile_ncon(True)
+compile_contractions(True)
+compile_decomps(True)
