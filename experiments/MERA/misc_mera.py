@@ -48,4 +48,8 @@ def w_update_svd(wIn):
     st, ut, vt = tf.linalg.svd(tf.reshape(wIn,(shape[0] * shape[1], shape[2])),full_matrices=False)
     return -tf.reshape(ncon.ncon([ut, tf.conj(vt)],[[-1,1],[-2,1]]), shape)    
 
+def w_update_svd_numpy(wIn):
+    shape = wIn.shape
+    ut, st, vt = np.linalg.svd(tf.reshape(wIn,(shape[0] * shape[1], shape[2])),full_matrices=False)
+    return -tf.reshape(ncon.ncon([ut, vt],[[-1,1],[1, -2]]), shape)    
 
