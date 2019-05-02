@@ -567,14 +567,17 @@ def run_ascending_operator_benchmark(filename,
         print('running ascending-operator benchmark for chi = {0} benchmark'.
               format(chi))
         with tf.device(device):
-            wC, vC, uC, rhoAB, rhoBA = initialize_mod_binary_MERA(phys_dim=4, chi=chi, dtype=dtype)
-            shape = uC[-1].shape
-            hab, hba = tf.random_uniform(shape = shape, dtype=dtype),tf.random_uniform(shape = shape, dtype=dtype)
+            w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
+            v = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)                
+            u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
+
+            hab = tf.random_uniform(shape = [chi,chi,chi,chi], dtype=dtype)
+            hba = tf.random_uniform(shape = [chi,chi,chi,chi], dtype=dtype)
             walltimes['warmup'][chi] = benchmark_ascending_operator(
-                hab, hba, wC[-1], vC[-1], uC[-1], num_layers)
+                hab, hba, w, v, u, num_layers)
             print('     warmup took {0} s'.format(walltimes['warmup'][chi]))
             walltimes['profile'][chi] = benchmark_ascending_operator(
-                hab, hba, wC[-1], vC[-1], uC[-1], num_layers)                
+                hab, hba, w, v, u, num_layers)                
             print('     profile took {0} s'.format(walltimes['profile'][chi]))
 
     with open(filename + '.pickle', 'wb') as f:
@@ -591,19 +594,24 @@ def run_descending_operator_benchmark(filename,
         print('running descending-operator benchmark for chi = {0} benchmark'.
               format(chi))
         with tf.device(device):
-            wC, vC, uC, rhoAB, rhoBA = initialize_mod_binary_MERA(phys_dim=4, chi=chi, dtype=dtype)
-            shape = uC[-1].shape            
-            hab, hba = tf.random_uniform(shape = shape, dtype=dtype),tf.random_uniform(shape = shape, dtype=dtype)            
+            w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
+            v = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)            
+            u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
+
+            rhoAB = tf.random_uniform(shape = [chi,chi,chi,chi], dtype=dtype)
+            rhoBA = tf.random_uniform(shape = [chi,chi,chi,chi], dtype=dtype)
+
             walltimes['warmup'][chi] = benchmark_descending_operator(
-                rhoAB, rhoBA, wC[-1], vC[-1], uC[-1], num_layers = num_layers)
+                rhoAB, rhoBA, w, v, u, num_layers = num_layers)
             print('     warmup took {0} s'.format(walltimes['warmup'][chi]))
             walltimes['profile'][chi] = benchmark_descending_operator(
-                rhoAB, rhoBA, wC[-1], vC[-1], uC[-1], num_layers = num_layers)
+                rhoAB, rhoBA, w, v, u, num_layers = num_layers)
             print('     profile took {0} s'.format(walltimes['profile'][chi]))
 
     with open(filename + '.pickle', 'wb') as f:
         pickle.dump(walltimes, f)
     return walltimes
+
 
 def run_naive_optimization_benchmark(filename,
                                       chis=[4, 8, 16, 32],
