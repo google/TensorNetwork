@@ -4,7 +4,8 @@ A TensorNetwork wrapper for tensorflow
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
 importing tensorflow) but should also work with eager mode 
-(`tf.enable_eager_execution()`).
+(`tf.enable_eager_execution()`). The actual library does work 
+under graph mode, but documentation is limited.
 
 ## Basic Example
 Here, we build a simple 2 node contraction.
