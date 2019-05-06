@@ -1,4 +1,6 @@
 # TensorNetwork
+[![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
+
 A TensorNetwork wrapper for tensorflow
 
 Note: The following examples assume a TensorFlow v2 interface 
