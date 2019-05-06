@@ -1,7 +1,11 @@
 # TensorNetwork
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
-A TensorNetwork wrapper for tensorflow
+A tensor network wrapper for TensorFlow.
+## Installation
+```
+pip3 install tensornetwork
+```
 
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
@@ -65,7 +69,7 @@ print(a.tensor.shape) # Should print (3, 1, 2)
 ## NCON interface.
 For a more compact specification of a tensor network and its contraction, there is `ncon()`. For example:
 ```python
-from tensornetwork_tools import ncon
+from tensornetwork import ncon
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
 c = ncon([a,b], [(-1,0),(0,-2)])
@@ -73,7 +77,7 @@ print(tf.norm(tf.matmul(a,b) - c)) # Should be zero
 ```
 It is also possible to generate a `TensorNetwork`:
 ```python
-from tensornetwork_tools import ncon_network
+from tensornetwork import ncon_network
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
 net, e_con, e_out = ncon_network([a,b], [(-1,0),(0,-2)])
@@ -83,4 +87,4 @@ n.reorder_edges(e_out) # Permute final tensor as necessary
 print(tf.norm(tf.matmul(a,b) - n.tensor))
 ```
 
-TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Authors.
+TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
