@@ -1,7 +1,7 @@
 # TensorNetwork
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
-A TensorNetwork wrapper for tensorflow
+A tensor network wrapper for TensorFlow.
 ## Installation
 ```
 pip3 install tensornetwork
