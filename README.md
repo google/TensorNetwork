@@ -2,6 +2,10 @@
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
 A TensorNetwork wrapper for tensorflow
+## Installation
+```
+pip3 install tensornetwork
+```
 
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
