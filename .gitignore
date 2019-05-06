@@ -16,6 +16,8 @@ lib64/
 parts/
 sdist/
 var/
+.pytype/
+.pytest_cache/
 *.egg-info/
 .installed.cfg
 *.egg
