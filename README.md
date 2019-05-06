@@ -17,9 +17,10 @@ under graph mode, but documentation is limited.
 ## Basic Example
 Here, we build a simple 2 node contraction.
 ```python
-import tensornetwork
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+tf.enable_v2_behavior()
+import tensornetwork
 
 # Create the network
 net = tensornetwork.TensorNetwork()
@@ -29,7 +30,7 @@ a = net.add_node(np.ones((10,), dtype=np.float32))
 b = net.add_node(tf.ones((10,)))
 edge = net.connect(a[0], b[0])
 final_node = net.contract(edge)
-print(final_node.tensor.numpy()) # Should print 10.0
+print(final_node.get_tensor().numpy()) # Should print 10.0
 ```
 
 ## Node and Edge names.
@@ -85,7 +86,7 @@ net, e_con, e_out = ncon_network([a,b], [(-1,0),(0,-2)])
 for e in e_con:
     n = net.contract(e) # Contract edges in order
 n.reorder_edges(e_out) # Permute final tensor as necessary
-print(tf.norm(tf.matmul(a,b) - n.tensor))
+print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
