@@ -12,26 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 from setuptools import find_packages, setup
 
-# This reads the __version__ variable from cirq/_version.py
-__version__ = ''
+# This reads the __version__ variable from tensornetwork/version.py
+with open('tensornetwork/version.py') as f:
+  exec(f.read(), globals())
+
 description = ('A high level tensor network API for tensorflow.')
 
+# Reading long Description from README.md file.
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 # Read in requirements
-requirements = open('requirements.txt').readlines()
-requirements = [r.strip() for r in requirements]
+requirements = [r.strip() for requirement in
+                open('requirements.txt').readlines()]
 
 setup(
-    name='tensornetwork',
-    version='0.0.1',
-    url='http://github.com/google/TensorNetwork',
-    author='The TensorNetwork Developers',
-    author_email='chaseriley@googleg.com',
-    python_requires=('>=3.5.0'),
-    install_requires=requirements,
-    license='Apache 2',
-    description=description,
-    packages=['tensornetwork'],
+    name = 'TensorNetwork',
+    version = __version__,
+    url = 'http://github.com/google/TensorNetwork',
+    author = 'The TensorNetwork Developers',
+    author_email =' chaseriley@googleg.com',
+    python_requires = ('>=3.5.0'),
+    install_requires = requirements,
+    license = 'Apache 2',
+    description = description,
+    long_description = long_description,
+    long_description_content_type = "text/markdown",
+    packages = find_packages(),
 )
