@@ -319,30 +319,33 @@ class Edge:
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
 
-  def set_node1(self, node):
+  def set_node1(self, node: Node) -> None:
     try:
       self._node1 = weakref.ref(node)
     except TypeError:
       self._node1 = node
 
-  def set_node2(self, node):
+  def set_node2(self, node: Node) -> None:
     try:
       self._node2 = weakref.ref(node) if node else None
     except TypeError:
       self._node2 = node
 
   @property
-  def node1(self):
-    return self._node1() if self._node1 else None
+  def node1(self) -> Node:
+    val = self._node1()
+    if val is None:
+      raise ValueError("node1 for edge '{}' no longer exists.".format(self))
+    return val
 
   @property
-  def node2(self):
+  def node2(self) -> Optional[Node]:
     return self._node2() if self._node2 else None
   
   
-  def is_dangling(self):
+  def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
-    return self.node2 is None
+    return self._node2 is None
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
