@@ -38,14 +38,13 @@ config.inter_op_parallelism_threads = 1
 tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
-if __name__ == "__main__":
+def optimize_binary_mera(use_gpu=False):
     fname = 'binary_mera_optimization'
     if not os.path.exists(fname):
         os.mkdir(fname)
     os.chdir(fname)
     rootdir = os.getcwd()
 
-    use_gpu = False
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
     for i, device in enumerate(DEVICES):
@@ -60,8 +59,7 @@ if __name__ == "__main__":
         name = 'CPU'
 
     num_trans_layers = 3
-    #chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
-    chis = [4] * num_trans_layers + [6, 6, 6, 6, 6, 6]
+    chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
     numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
                ] + [500, 400, 300, 200, 200, 800]
     noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
@@ -69,7 +67,7 @@ if __name__ == "__main__":
     embeddings = ['a'] * num_trans_layers + ['p'
                                             ] * (len(chis) - num_trans_layers)
     dtype = tf.float64
-    nsteps_ss = 8
+    nsteps_ss = 12
     filename = str(datetime.date.today()
                   ) + '_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}'.format(
                       NUM_THREADS, max(chis), num_trans_layers)
@@ -85,5 +83,62 @@ if __name__ == "__main__":
             opt_u_after=10,
             noises=noises,
             opt_all_layers=opt_all_layers,
+            wC=wC,
+            uC=uC
             filename=filename)
     os.chdir(rootdir)
+
+def load_and_optimize_binary_mera(filename, use_gpu=False):
+    fname = 'binary_mera_optimization'
+    if not os.path.exists(fname):
+        os.mkdir(fname)
+    os.chdir(fname)
+    rootdir = os.getcwd()
+
+
+    DEVICES = tf.contrib.eager.list_devices()
+    print("Available devices:")
+    for i, device in enumerate(DEVICES):
+        print("%d) %s" % (i, device))
+    CPU = '/device:CPU:0'
+    GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
+    if use_gpu:
+        specified_device_type = GPU
+        name = 'GPU'
+    else:
+        specified_device_type = CPU
+        name = 'CPU'
+    with open(filename, 'rb') as f:
+        wC, uC = pickle.load(f)
+        
+    num_trans_layers = 2 #add 2 new layers
+    chis = [wC[-1].shape[2]] * num_trans_layers
+    numiters = [100] * num_trans_layers
+    noises = [0.0] * num_trans_layers
+    opt_all_layers = [True] * num_trans_layers
+    embeddings = ['a'] * num_trans_layers 
+    dtype = tf.float64
+    nsteps_ss = 14
+    filename = str(datetime.date.today()
+                  ) + 'resumed_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}_nss{3}'.format(
+                      NUM_THREADS, max(chis), num_trans_layers + len(wC), nsteps_ss)
+    with tf.device(device):
+        wC, uC, _, _ = bm.run_binary_mera_optimization_TFI(
+            chis=chis,
+            niters=numiters,
+            embeddings=embeddings,
+            dtype=dtype,
+            verbose=1,
+            nsteps_steady_state=nsteps_ss,
+            numpy_update=True,
+            opt_u_after=0,
+            noises=noises,
+            opt_all_layers=opt_all_layers,
+            wC=wC,
+            uC=uC
+            filename=filename)
+    os.chdir(rootdir)
+    
+if __name__ == "__main__":
+    #optimize_binary_mera(use_gpu=False)
+    load_and_optimize_binary_mera(filename, use_gpu=False)
