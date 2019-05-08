@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 NUM_THREADS = 4
 import os
@@ -20,13 +23,12 @@ os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
 
 import sys
 sys.path.append('../../')
-
 import tensorflow as tf
 import copy
 import numpy as np
 import time
 import pickle
-import ncon_tn as ncon
+import ncon
 import binary_mera_lib as bml
 import binary_mera as bm
 import misc_mera
