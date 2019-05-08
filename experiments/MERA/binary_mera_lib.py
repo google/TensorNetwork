@@ -14,14 +14,12 @@
 """
 functions for binary MERA optimization
 """
-import sys
-sys.path.append('../../')
 import tensorflow as tf
 import copy
 import numpy as np
 import time
 import pickle
-import ncon
+import tensornetwork.ncon_interface as ncon
 import misc_mera
 from sys import stdout
 import scipy as sp

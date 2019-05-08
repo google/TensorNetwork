@@ -27,7 +27,7 @@ import copy
 import numpy as np
 import time
 import pickle
-import ncon
+import tensornetwork.ncon_interface as ncon
 import binary_mera_lib as bml
 import misc_mera
 from sys import stdout

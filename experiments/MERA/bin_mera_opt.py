@@ -21,14 +21,12 @@ os.environ['OMP_NUM_THREADS'] = str(NUM_THREADS)
 os.environ["KMP_BLOCKTIME"] = "0"
 os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
 
-import sys
-sys.path.append('../../')
 import tensorflow as tf
 import copy
 import numpy as np
 import time
 import pickle
-import ncon
+import tensornetwork.ncon as ncon
 import binary_mera_lib as bml
 import binary_mera as bm
 import misc_mera
