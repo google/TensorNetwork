@@ -18,8 +18,6 @@ parts of the following code are based on code written by Glen Evenbly (c) for ww
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import sys
-sys.path.append('../../')
 import tensorflow as tf
 import copy
 import numpy as np
