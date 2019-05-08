@@ -33,7 +33,7 @@ import copy
 import numpy as np
 import time
 import pickle
-import ncon as ncon
+import ncon
 import misc_mera
 import modified_binary_mera_lib as mbml
 from sys import stdout
