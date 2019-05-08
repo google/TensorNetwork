@@ -65,6 +65,8 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
                           type of embedding scheme used to embed mera into the next larger bond dimension 
                           entries can be: 'p' or 'pad' for padding with zeros without, if possible, adding new layers 
                                           'a' or 'add' for adding new layer with increased  bond dimension
+                                          'n'          for keeping the MERA as it is (e.g. for resuming optimization)
+                          the first entry will be ignored for the case where no `wC` and `uC` tensors are passed
     dtype:                tensorflow dtype 
     verbose:              int 
                           verbosity flag 
@@ -77,7 +79,7 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
                           optimize disentangler only after `opt_u_after` iterations
     opt_all_layers:       list of bool or `None`
                           if True, optimize all layer; else, optimize only truncating layers; True by default
-    wC, vC:               list of tf.Tensor 
+    wC, uC:               list of tf.Tensor 
                           initial values of isometries and disentanglers
     rho_0:                tf.Tensor 
                           initial value for steady-state density 
@@ -101,11 +103,14 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
         noises = [0.0] * len(chis)
     if not opt_all_layers:
         opt_all_layers = [True] * len(chis)
-
+        
+    init = False
     if wC == 0:
+        init = True
         wC, _, _ = bml.initialize_binary_MERA(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
+        init = True        
         _, uC, _ = bml.initialize_binary_MERA(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
@@ -115,7 +120,8 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
     energies = []
     walltimes = []
-    init = True
+    
+    
     for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
                                                  noises, opt_all_layers):
         if not init:
