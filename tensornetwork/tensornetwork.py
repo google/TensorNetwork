@@ -339,7 +339,7 @@ class Edge:
 
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
-    return self._node2 is None
+    return self.node2 is None
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
