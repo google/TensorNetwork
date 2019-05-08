@@ -23,7 +23,7 @@ import sys
 sys.path.append('../../')
 import tensorflow as tf
 import numpy as np
-import ncon as ncon
+import ncon
 @tf.contrib.eager.defun
 def trace(rho):
     dim = len(rho.shape)//2
