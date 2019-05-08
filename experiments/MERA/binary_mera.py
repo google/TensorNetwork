@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" 
-modified binary MERA optimization
-parts of the following code are based on code written by Glen Evenbly (c) for www.tensors.net, (v1.1) 
-"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -24,33 +21,40 @@ import os
 os.environ['OMP_NUM_THREADS'] = str(NUM_THREADS)
 os.environ["KMP_BLOCKTIME"] = "0"
 os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
+
 import tensorflow as tf
+import copy
 import numpy as np
 import time
 import pickle
 import tensornetwork.ncon_interface as ncon
+import binary_mera_lib as bml
 import misc_mera
-import modified_binary_mera_lib as mbml
 from sys import stdout
 
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
-tf.enable_eager_execution(config=config)
+tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
 
-def run_mod_binary_mera_optimization_TFI(chis=[8, 12, 16],
-                                         niters=[200, 300, 1000],
-                                         embeddings=None,
-                                         dtype=tf.float64,
-                                         verbose=1,
-                                         refsym=True,
-                                         nsteps_steady_state=4,
-                                         opt_u_after=9,
-                                         noise=0.0):
+def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
+                                     niters=[200, 300, 1000],
+                                     embeddings=None,
+                                     dtype=tf.float64,
+                                     verbose=1,
+                                     nsteps_steady_state=4,
+                                     numpy_update=True,
+                                     opt_u_after=40,
+                                     opt_all_layers=None,
+                                     wC=0,
+                                     uC=0,
+                                     rho_0=0,
+                                     noises=None,
+                                     filename=None):
     """
-    modified binary mera optimization
+    binary mera optimization
     Parameters:
     -------------------
     chis:                 list of int 
@@ -58,92 +62,116 @@ def run_mod_binary_mera_optimization_TFI(chis=[8, 12, 16],
     niters:               list of int 
                           number of optimization steps of successive MERA optimizations 
     embeddings:           list of str or None
-                          type of embeddings scheme used to embed mera into the next larger bond dimension 
+                          type of embedding scheme used to embed mera into the next larger bond dimension 
                           entries can be: 'p' or 'pad' for padding with zeros without, if possible, adding new layers 
                                           'a' or 'add' for adding new layer with increased  bond dimension
+                                          'n'          for keeping the MERA as it is (e.g. for resuming optimization)
+                          the first entry will be ignored for the case where no `wC` and `uC` tensors are passed
     dtype:                tensorflow dtype 
     verbose:              int 
                           verbosity flag 
-    refsym:               bool 
-                          if `True`, impose reflection symmetry 
     nsteps_steady_state:  int 
                           number power iteration of steps used to obtain the steady state reduced 
                           density matrix
-    noise:                float 
-                          noise amplitude for initializing new layers and/or padding existing ones
+    numpy_update:         bool 
+                          if `True`, use numpy svd for update
+    opt_u_after:          int 
+                          optimize disentangler only after `opt_u_after` iterations
+    opt_all_layers:       list of bool or `None`
+                          if True, optimize all layer; else, optimize only truncating layers; True by default
+    wC, uC:               list of tf.Tensor 
+                          initial values of isometries and disentanglers
+    rho_0:                tf.Tensor 
+                          initial value for steady-state density 
+    noises:               list of float
+                          noise values for initializing new layers
+
     Returns: 
     --------------------
-    (energies, walltimes, wC, vC, uC)
+    (wC, uC, walltimes, energies)
+    wC, uC:     list of tf.Tensor
+                isometries (wC) and disentanglers (uC)
     energies:   list of tf.Tensor of shape () 
                 energies at iterations steps
     walltimes:  list of float 
                 walltimes per iteration step 
-    wC, vC, uC: list of tf.Tensor
-                isometries (wC, vC) and disentanglers (uC)
     """
 
     if not embeddings:
-        embeddings = ['p'] * len(chi)
-    wC, vC, uC, rhoAB_0, rhoBA_0 = mbml.initialize_mod_binary_MERA(
-        phys_dim=4, chi=chis[0], dtype=dtype)
-    hamAB_0, hamBA_0 = mbml.initialize_TFI_hams(dtype=dtype)
+        embeddings = ['p'] * len(chis)
+    if not noises:
+        noises = [0.0] * len(chis)
+    if not opt_all_layers:
+        opt_all_layers = [True] * len(chis)
+        
+    init = False
+    if wC == 0:
+        init = True
+        wC, _, _ = bml.initialize_binary_MERA(
+            phys_dim=2, chi=chis[0], dtype=dtype)
+    if uC == 0:
+        init = True        
+        _, uC, _ = bml.initialize_binary_MERA(
+            phys_dim=2, chi=chis[0], dtype=dtype)
+    if rho_0 == 0:
+        _, _, rho_0 = bml.initialize_binary_MERA(
+            phys_dim=2, chi=chis[0], dtype=dtype)
+
+    ham_0 = bml.initialize_TFI_hams(dtype=dtype)
     energies = []
     walltimes = []
-    init = True
-    if not ([len(chis), len(niters), len(embeddings)] == [len(chis)] * 3):
-        raise ValueError(
-            '`chis`, `niter` and `embeddings` need to be of same lengths')
-    for chi, niter, which in zip(chis, niters, embeddings):
+    
+    
+    for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
+                                                 noises, opt_all_layers):
         if not init:
             if which in ('a', 'add'):
-                wC, vC, uC = mbml.unlock_layer(wC, vC, uC, noise=noise)
-                wC, vC, uC = mbml.pad_mera_tensors(chi, wC, vC, uC, noise=noise)
+                wC, uC = bml.unlock_layer(wC, uC, noise=noise)
+                wC, uC = bml.pad_mera_tensors(chi, wC, uC, noise=noise)
             elif which in ('p', 'pad'):
-                wC, vC, uC = mbml.pad_mera_tensors(chi, wC, vC, uC, noise=noise)
+                wC, uC = bml.pad_mera_tensors(chi, wC, uC, noise=noise)
 
-        rhoAB_0, rhoBA_0 = misc_mera.pad_tensor(
-            rhoAB_0, [chi, chi, chi, chi]), misc_mera.pad_tensor(
-                rhoBA_0, [chi, chi, chi, chi])
-        wC, vC, uC, rhoAB_0, rhoBA_0, times, es = mbml.optimize_mod_binary_mera(
-            hamAB_0=hamAB_0,
-            hamBA_0=hamBA_0,
-            rhoAB_0=rhoAB_0,
-            rhoBA_0=rhoBA_0,
+        rho_0 = misc_mera.pad_tensor(rho_0, [chi, chi, chi, chi, chi, chi])
+
+        wC, uC, rho_0, times, es = bml.optimize_binary_mera(
+            ham_0=ham_0,
+            #rho_0=rho_0,
             wC=wC,
-            vC=vC,
             uC=uC,
-            verbose=verbose,
             numiter=niter,
-            opt_u=True,
-            opt_vw=True,
-            refsym=refsym,
             nsteps_steady_state=nsteps_steady_state,
-            opt_u_after=opt_u_after)
+            verbose=verbose,
+            opt_u=True,
+            opt_w=True,
+            numpy_update=numpy_update,
+            opt_u_after=opt_u_after,
+            opt_all_layers=opt_all)
         energies.extend(es)
         walltimes.extend(times)
         init = False
-    return energies, walltimes, wC, vC, uC
+        if filename:
+            with open(filename + '.pickle', 'wb') as f:
+                pickle.dump([wC, uC], f)
+    return wC, uC, walltimes, energies
 
 
-def benchmark_ascending_operator(hab, hba, w, v, u, num_layers):
+def benchmark_ascending_operator(ham, w, u, num_layers):
     t1 = time.time()
     for t in range(num_layers):
-        hab, hba = mbml.ascending_super_operator(
-            hab, hba, w, v, u, refsym=False)
+        ham = bml.ascending_super_operator(ham, w, u)
     return time.time() - t1
 
 
-def benchmark_descending_operator(rhoab, rhoba, w, v, u, num_layers):
+def benchmark_descending_operator(rho, w, u, num_layers):
     t1 = time.time()
     for p in range(num_layers):
-        rhoab, rhoba = mbml.descending_super_operator(
-            rhoab, rhoba, w, v, u, refsym=False)
+        rho = bml.descending_super_operator(rho, w, u)
     return time.time() - t1
 
 
 def run_ascending_operator_benchmark(filename,
-                                     chis=[4, 8, 16, 32],
-                                     num_layers=8,
+                                     chis=[4, 6, 8, 10, 12],
+                                     num_layers=1,
                                      dtype=tf.float64,
                                      device=None):
     walltimes = {'warmup': {}, 'profile': {}}
@@ -152,16 +180,14 @@ def run_ascending_operator_benchmark(filename,
               format(chi))
         with tf.device(device):
             w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
-            v = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
             u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-
-            hab = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-            hba = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
+            ham = tf.random_uniform(
+                shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
             walltimes['warmup'][chi] = benchmark_ascending_operator(
-                hab, hba, w, v, u, num_layers)
+                ham, w, u, num_layers)
             print('     warmup took {0} s'.format(walltimes['warmup'][chi]))
             walltimes['profile'][chi] = benchmark_ascending_operator(
-                hab, hba, w, v, u, num_layers)
+                ham, w, u, num_layers)
             print('     profile took {0} s'.format(walltimes['profile'][chi]))
 
     with open(filename + '.pickle', 'wb') as f:
@@ -170,8 +196,8 @@ def run_ascending_operator_benchmark(filename,
 
 
 def run_descending_operator_benchmark(filename,
-                                      chis=[4, 8, 16, 32],
-                                      num_layers=8,
+                                      chis=[4, 6, 8, 10, 12],
+                                      num_layers=1,
                                       dtype=tf.float64,
                                       device=None):
     walltimes = {'warmup': {}, 'profile': {}}
@@ -180,17 +206,14 @@ def run_descending_operator_benchmark(filename,
               format(chi))
         with tf.device(device):
             w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
-            v = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
             u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-
-            rhoAB = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-            rhoBA = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-
+            rho = tf.random_uniform(
+                shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
             walltimes['warmup'][chi] = benchmark_descending_operator(
-                rhoAB, rhoBA, w, v, u, num_layers=num_layers)
+                rho, w, u, num_layers=num_layers)
             print('     warmup took {0} s'.format(walltimes['warmup'][chi]))
             walltimes['profile'][chi] = benchmark_descending_operator(
-                rhoAB, rhoBA, w, v, u, num_layers=num_layers)
+                rho, w, u, num_layers=num_layers)
             print('     profile took {0} s'.format(walltimes['profile'][chi]))
 
     with open(filename + '.pickle', 'wb') as f:
@@ -199,15 +222,15 @@ def run_descending_operator_benchmark(filename,
 
 
 def run_naive_optimization_benchmark(filename,
-                                     chis=[4, 8, 16, 32],
+                                     chis=[4, 6, 8, 10, 12],
                                      dtype=tf.float64,
-                                     numiter=30,
-                                     device=None,
+                                     numiter=10,
+                                     nsteps_steady_state=4,
                                      opt_u=True,
-                                     opt_vw=True,
+                                     opt_w=True,
                                      numpy_update=True,
-                                     refsym=True,
-                                     opt_u_after=9):
+                                     device=None,
+                                     opt_u_after=40):
 
     walltimes = {'profile': {}, 'energies': {}}
     with tf.device(device):
@@ -215,24 +238,22 @@ def run_naive_optimization_benchmark(filename,
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
 
-            wC, vC, uC, rhoAB_0, rhoBA_0 = mbml.initialize_mod_binary_MERA(
-                phys_dim=4, chi=chi, dtype=dtype)
-            hamAB_0, hamBA_0 = mbml.initialize_TFI_hams(dtype=dtype)
-            wC, vC, uC, rhoAB_0, rhoBA_0, runtimes, energies = mbml.optimize_mod_binary_mera(
-                hamAB_0=hamAB_0,
-                hamBA_0=hamBA_0,
-                rhoAB_0=rhoAB_0,
-                rhoBA_0=rhoBA_0,
+            wC, uC, rho_0 = bml.initialize_binary_MERA(
+                phys_dim=2, chi=chi, dtype=dtype)
+            ham_0 = bml.initialize_TFI_hams(dtype=dtype)
+            wC, uC, rho_0, runtimes, energies = optimize_binary_mera(
+                ham_0=ham_0,
+                rho_0=rho_0,
                 wC=wC,
-                vC=vC,
                 uC=uC,
-                verbose=1,
                 numiter=numiter,
-                opt_u=True,
-                opt_vw=True,
+                nsteps_steady_state=nsteps_steady_state,
+                verbose=1,
+                opt_u=opt_u,
+                opt_w=opt_w,
                 numpy_update=numpy_update,
-                refsym=refsym,
                 opt_u_after=opt_u_after)
+
             walltimes['profile'][chi] = runtimes
             walltimes['energies'][chi] = energies
             print('     steps took {0} s'.format(walltimes['profile'][chi]))
@@ -243,29 +264,69 @@ def run_naive_optimization_benchmark(filename,
 
 
 def run_optimization_benchmark(filename,
-                               chis=[4, 8, 16, 32],
-                               numiters=[200, 200, 400, 800],
+                               chis=[4, 8, 10],
+                               numiters=[200, 200, 400],
                                embeddings=None,
                                dtype=tf.float64,
-                               device=None,
-                               refsym=True,
-                               verbose=1):
+                               verbose=1,
+                               nsteps_steady_state=4,
+                               device=None):
+
     walltimes = {}
     with tf.device(device):
-        print('running optimization benchmark')
-        print(' ###########################   hello')
-        energies, runtimes, wC, vC, uC = run_mod_binary_mera_optimization_TFI(
+        print('     running optimization benchmark')
+
+        wC, uC, runtimes, energies = run_binary_mera_optimization_TFI(
             chis=chis,
             niters=numiters,
             embeddings=embeddings,
             dtype=dtype,
             verbose=verbose,
-            refsym=refsym)
+            nsteps_steady_state=nsteps_steady_state,
+            numpy_update=True)
+
         walltimes['profile'] = runtimes
         walltimes['energies'] = energies
         with open(filename + '.pickle', 'wb') as f:
             pickle.dump(walltimes, f)
+        with open(filename + '_tensors.pickle', 'wb') as f:
+            pickle.dump([wC, uC], f)
+
     return walltimes
+
+
+def test_ascending_descending(chi=4, dtype=tf.float64):
+
+    wC, uC, rho_0 = bml.initialize_binary_MERA(phys_dim=2, chi=4, dtype=dtype)
+    for n in range(5):
+        wC.append(copy.copy(wC[-1]))
+        uC.append(copy.copy(uC[-1]))
+    wC, uC, _, _ = run_binary_mera_optimization_TFI(
+        chis=[chi],
+        niters=[10],
+        opt_u_after=0,
+        embeddings=['a'],
+        dtype=dtype,
+        wC=wC,
+        uC=uC)
+    ham_0 = bml.initialize_TFI_hams(dtype)
+    rho = [0 for n in range(len(wC) + 1)]
+    ham = [0 for n in range(len(wC) + 1)]
+    rho[-1] = bml.steady_state_density_matrix(10, rho_0, wC[-1], uC[-1])
+    ham[0] = ham_0
+    print()
+    for p in range(len(rho) - 2, -1, -1):
+        rho[p] = bml.descending_super_operator(rho[p + 1], wC[p], uC[p])
+    for p in range(len(wC)):
+        ham[p + 1] = bml.ascending_super_operator(ham[p], wC[p], uC[p])
+    energies = [
+        ncon.ncon([rho[p], ham[p]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
+        for p in range(len(rho))
+    ]
+    print('following numbers should all be 1/2')
+    print(
+        np.array(
+            [energies[p] / energies[p + 1] for p in range(len(energies) - 1)]))
 
 
 if __name__ == "__main__":
@@ -273,41 +334,42 @@ if __name__ == "__main__":
         pass
 
     else:
-        fname = 'mod_binary_mera_benchmarks'
+        fname = 'binary_mera_benchmarks'
         if not os.path.exists(fname):
             os.mkdir(fname)
         os.chdir(fname)
-        rootdir = os.getcwd()
 
-        # benchmarks = {'ascend' : {'chis' :  [4, 6, 8, 12, 16],
-        #                           'dtype' : tf.float32,
-        #                           'num_layers' : 2},
-        #               'descend' : {'chis' :  [4, 6, 8, 12, 16],
-        #                            'dtype' : tf.float32,
-        #                            'num_layers' : 2},
-        #               'optimize_naive' : {'chis' :  [4, 6, 8],
+        rootdir = os.getcwd()
+        # benchmarks = {'ascend' : {'chis' :  [4, 6, 8, 10],
+        #                           'dtype' : tf.float64,
+        #                           'num_layers' : 1},
+        #               'descend' : {'chis' :  [4, 6, 8, 10],
+        #                            'dtype' : tf.float64,
+        #                            'num_layers' : 1},
+        #               'optimize_naive' : {'chis' :  [4,6,8],
         #                                   'dtype' : tf.float64,
         #                                   'opt_u' : True,
-        #                                   'opt_vw' : True,
+        #                                   'opt_w' : True,
         #                                   'numpy_update' : True,
-        #                                   'refsym' : True,
-        #                                   'numiter' : 5}}
-        benchmarks = {
+        #                                   'numiter' : 2},
+        #               'optimize' : {'chis' :  [4, 6, 8],
+        #                             'numiters' : [400, 400, 400],
+        #                             'embeddings' : ['p', 'a', 'p'],
+        #                             'dtype' : tf.float64}}
+
+        benchmarks = {  # 'optimize_naive' : {'chis' :  [4, 6, 8, 12, 14, 16],
+            #                     'dtype' : tf.float64,
+            #                     'opt_u' : True,
+            #                     'opt_w' : True,
+            #                     'numpy_update' : True,
+            #                     'numiter' : 5},
             'optimize': {
-                'chis': [6, 8, 10, 12],
-                'numiters': [2000, 2000, 2000, 1400],
-                'embeddings': ['p', 'a', 'a', 'p'],
-                'dtype': tf.float64,
-                'refsym': True
+                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
+                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
+                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+                'dtype': tf.float64
             }
         }
-        # benchmarks = {'optimize_naive' : {'chis' :  [16, 32, 40],
-        #                                   'dtype' : tf.float64,
-        #                                   'opt_u' : True,
-        #                                   'opt_vw' : True,
-        #                                   'numpy_update' : True,
-        #                                   'refsym' : True,
-        #                                   'numiter' : 5}}
 
         use_gpu = False
         DEVICES = tf.contrib.eager.list_devices()
@@ -325,7 +387,7 @@ if __name__ == "__main__":
 
         if 'ascend' in benchmarks:
 
-            filename = name + 'modified_binary_mera_ascending_benchmark'
+            filename = name + 'binary_mera_ascending_benchmark'
             for key, val in benchmarks['ascend'].items():
                 if hasattr(val, 'name'):
                     val = val.name
@@ -341,7 +403,7 @@ if __name__ == "__main__":
             os.chdir(rootdir)
 
         if 'descend' in benchmarks:
-            filename = name + 'modified_binary_mera_descending_benchmark'
+            filename = name + 'binary_mera_descending_benchmark'
             for key, val in benchmarks['descend'].items():
                 if hasattr(val, 'name'):
                     val = val.name
@@ -359,7 +421,7 @@ if __name__ == "__main__":
             os.chdir(rootdir)
 
         if 'optimize_naive' in benchmarks:
-            filename = name + 'modified_binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
+            filename = name + 'binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
                 NUM_THREADS)
             keys = sorted(benchmarks['optimize_naive'].keys())
             for key in keys:
@@ -383,9 +445,8 @@ if __name__ == "__main__":
             os.chdir(rootdir)
 
         if 'optimize' in benchmarks:
-            filename = name + 'modified_binary_mera_optimization_benchmark_Nthreads{}'.format(
+            filename = name + 'binary_mera_optimization_benchmark_Nthreads{}'.format(
                 NUM_THREADS)
-
             fname = 'benchmarks_optimize'
             if not os.path.exists(fname):
                 os.mkdir(fname)
@@ -400,7 +461,6 @@ if __name__ == "__main__":
             run_optimization_benchmark(
                 filename,
                 device=specified_device_type,
-                verbose=1,
                 **benchmarks['optimize'])
 
             os.chdir(rootdir)
