@@ -285,9 +285,9 @@ class Edge:
       raise ValueError(
           "node2 and axis2 must either be both None or both not be None")
     self.name = name
-    self.set_node1(node1)
+    self.node1 = node1
     self.axis1 = axis1
-    self.set_node2(node2)
+    self.node2 = node2
     self.axis2 = axis2
 
   def get_nodes(self) -> List[Optional[Node]]:
@@ -309,28 +309,15 @@ class Edge:
     """
     if self.axis1 == old_axis and self.node1 is old_node:
       self.axis1 = new_axis
-      self.set_node1(new_node)
+      self.node1 = new_node
     elif self.axis2 == old_axis and self.node2 is old_node:
       self.axis2 = new_axis
-      self.set_node2(new_node)
+      self.node2 = new_node
     else:
       raise ValueError("Edge '{}' did not contain node '{}' on axis {}. "
                        "node1: '{}', axis1: {}, node2: '{}', axis2: {}".format(
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
-
-  def set_node1(self, node: Node) -> None:
-    try:
-      self._node1 = weakref.ref(node)
-    except TypeError:
-      self._node1 = node
-
-  def set_node2(self, node: Node) -> None:
-    try:
-      self._node2 = weakref.ref(node) if node else None
-    except TypeError:
-      self._node2 = node
-
   @property
   def node1(self) -> Node:
     val = self._node1()
@@ -340,9 +327,16 @@ class Edge:
 
   @property
   def node2(self) -> Optional[Node]:
-    return self._node2() if self._node2 else None
+    return self._node2() if self._node2 else None  
   
-  
+  @node1.setter
+  def node1(self, node: Node) -> None:
+    self._node1 = weakref.ref(node)
+
+  @node2.setter
+  def node2(self, node: Node) -> None:
+    self._node2 = weakref.ref(node) if node else None
+
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
     return self._node2 is None
@@ -534,13 +528,13 @@ class TensorNetwork:
         to_reduce += 1 if tmp_edge.axis1 > axes[0] else 0
         to_reduce += 1 if tmp_edge.axis1 > axes[1] else 0
         tmp_edge.axis1 -= to_reduce
-        tmp_edge.set_node1(new_node)
+        tmp_edge.node1 = new_node
       if tmp_edge.node2 is edge.node1:
         to_reduce = 0
         to_reduce += 1 if tmp_edge.axis2 > axes[0] else 0
         to_reduce += 1 if tmp_edge.axis2 > axes[1] else 0
         tmp_edge.axis2 -= to_reduce
-        tmp_edge.set_node2(new_node)
+        tmp_edge.node2 = new_node
     # Update edges for the new node.
     for i, e in enumerate(node_edges):
       new_node.add_edge(e, i)
