@@ -321,6 +321,19 @@ def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
 
 
 def unlock_layer(wC, vC, uC, noise=0.0):
+    """
+    unlock a layer of the MERA
+    essentially it just copies the last layer of the MERA and adds it as a new layer
+    Parameters:
+    ---------------------
+    wC, vC, uC:   list of tf.Tensor 
+                  the MERA tensors 
+    noise:        float  
+                  noise amplitude in the added layer
+    Returns:
+    (wC, vC, uC): each a list of tf.Tensor 
+                  the new MERA tensors
+    """
     wC.append(copy.copy(wC[-1]))
     vC.append(copy.copy(wC[-1]))    
     uC.append(copy.copy(uC[-1]))    
