@@ -19,8 +19,7 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
-import ncon
-
+import tensornetwork.ncon_interface as ncon
 
 @tf.contrib.eager.defun
 def trace(rho):
