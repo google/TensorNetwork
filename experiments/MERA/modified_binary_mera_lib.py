@@ -209,10 +209,20 @@ def steady_state_density_matrices(nsteps, rhoAB, rhoBA, w_isometry, v_isometry, 
 
 
 
-def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
+def optimize_mod_binary_mera(hamAB_0,
+                             hamBA_0,
+                             rhoAB_0,
+                             rhoBA_0,
                              wC, vC, uC,
-                             numiter=1000, refsym=True, nsteps_steady_state=4,
-                             verbose=0, opt_u=True, opt_vw=True, numpy_update=True, opt_u_after=9):
+                             numiter=1000,
+                             refsym=True,
+                             nsteps_steady_state=8,
+                             verbose=0,
+                             opt_u=True,
+                             opt_vw=True,
+                             numpy_update=True,
+                             opt_all_layers=False,
+                             opt_u_after=9):
     """
     ------------------------
     adapted from Glen Evenbly (c) for www.tensors.net, (v1.1) - last modified 24/1/2019
@@ -238,9 +248,13 @@ def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
                            verbosity flag 
     opt_u, opt_uv:         bool 
                            if False, skip unitary or isometry optimization 
-    numpy_update:        bool
+    numpy_update:          bool
                            if True, use numpy svd to calculate update of disentanglers
-
+    opt_all_layers:        bool
+                           if True, optimize all layers
+                           if False, optimize only truncating layers
+    opt_u_after:           int 
+                           start optimizing disentangler only after `opt_u_after` initial optimization steps
     Returns: 
     -------------------------------
     (wC, vC, uC, rhoAB, rhoBA, run_times, Energies)
@@ -269,6 +283,11 @@ def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
     bias = tf.math.reduce_max(tf.linalg.eigvalsh(tf.reshape(hamAB[0],(chi1 * chi1, chi1 * chi1))))
     hamAB[0] = hamAB[0] - bias * tf.reshape(tf.eye(chi1 * chi1, dtype=dtype), (chi1, chi1, chi1, chi1))
     hamBA[0] = hamBA[0] - bias * tf.reshape(tf.eye(chi1 * chi1, dtype=dtype), (chi1, chi1, chi1, chi1))
+    
+    skip_layer = [misc_mera.skip_layer(w) for w in wC]
+    for p in range(len(wC)):
+        if skip_layer[p]:
+            hamAB[p+1], hamBA[p+1] = ascending_super_operator(hamAB[p],hamBA[p],wC[p],vC[p],uC[p],refsym)            
 
     Energies = []
     run_times = []
@@ -289,6 +308,9 @@ def optimize_mod_binary_mera(hamAB_0, hamBA_0, rhoAB_0, rhoBA_0,
                 stdout.flush()
                 
         for p in range(len(wC)):
+            if (not opt_all_layers) and  skip_layer[p]:
+                continue
+            
             if k >= opt_u_after:
                 uEnv = get_env_disentangler(hamAB[p],hamBA[p],rhoBA[p+1],wC[p],vC[p],uC[p],refsym)
                 if opt_u:
