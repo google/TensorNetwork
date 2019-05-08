@@ -38,12 +38,13 @@ config.inter_op_parallelism_threads = 1
 tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
-def optimize_binary_mera(use_gpu=False):
+def optimize_binary_mera(chis, numiters, noises, opt_all_layers, embeddings, dtype, nsteps_ss, use_gpu=False):
     fname = 'binary_mera_optimization'
+    rootdir = os.getcwd()    
     if not os.path.exists(fname):
         os.mkdir(fname)
     os.chdir(fname)
-    rootdir = os.getcwd()
+    
 
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
@@ -58,19 +59,9 @@ def optimize_binary_mera(use_gpu=False):
         specified_device_type = CPU
         name = 'CPU'
 
-    num_trans_layers = 3
-    chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
-    numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
-               ] + [500, 400, 300, 200, 200, 800]
-    noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
-    opt_all_layers = [True] * len(chis)
-    embeddings = ['a'] * num_trans_layers + ['p'
-                                            ] * (len(chis) - num_trans_layers)
-    dtype = tf.float64
-    nsteps_ss = 12
     filename = str(datetime.date.today()
                   ) + '_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}'.format(
-                      NUM_THREADS, max(chis), num_trans_layers)
+                      NUM_THREADS, max(chis), len(chis))
     with tf.device(device):
         wC, uC, _, _ = bm.run_binary_mera_optimization_TFI(
             chis=chis,
@@ -83,17 +74,20 @@ def optimize_binary_mera(use_gpu=False):
             opt_u_after=10,
             noises=noises,
             opt_all_layers=opt_all_layers,
-            wC=wC,
-            uC=uC
             filename=filename)
     os.chdir(rootdir)
 
-def load_and_optimize_binary_mera(filename, use_gpu=False):
+def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_layers, embeddings, nsteps_ss, use_gpu=False):
+    
+    with open(filename, 'rb') as f:
+        wC, uC = pickle.load(f)
+    
     fname = 'binary_mera_optimization'
+    rootdir = os.getcwd()    
     if not os.path.exists(fname):
         os.mkdir(fname)
     os.chdir(fname)
-    rootdir = os.getcwd()
+
 
 
     DEVICES = tf.contrib.eager.list_devices()
@@ -108,17 +102,9 @@ def load_and_optimize_binary_mera(filename, use_gpu=False):
     else:
         specified_device_type = CPU
         name = 'CPU'
-    with open(filename, 'rb') as f:
-        wC, uC = pickle.load(f)
-        
-    num_trans_layers = 2 #add 2 new layers
-    chis = [wC[-1].shape[2]] * num_trans_layers
-    numiters = [100] * num_trans_layers
-    noises = [0.0] * num_trans_layers
-    opt_all_layers = [True] * num_trans_layers
-    embeddings = ['a'] * num_trans_layers 
-    dtype = tf.float64
-    nsteps_ss = 14
+ 
+    dtype=wC[-1].dtype
+    num_trans_layers = len(chis)
     filename = str(datetime.date.today()
                   ) + 'resumed_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}_nss{3}'.format(
                       NUM_THREADS, max(chis), num_trans_layers + len(wC), nsteps_ss)
@@ -135,10 +121,43 @@ def load_and_optimize_binary_mera(filename, use_gpu=False):
             noises=noises,
             opt_all_layers=opt_all_layers,
             wC=wC,
-            uC=uC
+            uC=uC,
             filename=filename)
     os.chdir(rootdir)
     
 if __name__ == "__main__":
-    #optimize_binary_mera(use_gpu=False)
-    load_and_optimize_binary_mera(filename, use_gpu=False)
+    if start_fresh:
+        num_trans_layers = 8
+        chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
+        numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
+        ] + [500, 400, 300, 200, 200, 800]
+        noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
+        opt_all_layers = [True] * len(chis)
+        embeddings = ['a'] * num_trans_layers + ['p'
+        ] * (len(chis) - num_trans_layers)
+        dtype = tf.float64
+        nsteps_ss = 12
+        optimize_binary_mera(chis=chis,
+                             numiters=numiters,
+                             noises=noises,
+                             opt_all_layers=opt_all_layers,
+                             embeddings=embeddings,
+                             dtype=dtype,
+                             nsteps_ss=nsteps_ss,
+                             use_gpu=False)
+    else:
+        num_add_layers = 4
+        chis = [16] * num_add_layers
+        numiters = [100] * num_add_layers
+        noises = [0] * num_add_layers
+        opt_all_layers = [True]  * num_add_layers
+        embeddings = ['a'] * len(chis)
+        nsteps_ss = 14
+        load_and_optimize_binary_mera(chis=chis,
+                                      numiters=numiters,
+                                      noises=noises,
+                                      opt_all_layers=opt_all_layers,
+                                      embeddings=embeddings,
+                                      nsteps_ss=nsteps_ss,
+                                      use_gpu=False)
+
