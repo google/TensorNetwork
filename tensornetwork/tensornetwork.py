@@ -21,7 +21,7 @@ import collections
 from typing import List, Optional, Union, Text, Tuple
 import numpy as np
 import tensorflow as tf
-import decompositions
+from tensornetwork import decompositions
 
 
 class Node:
