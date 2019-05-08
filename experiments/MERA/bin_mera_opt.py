@@ -40,9 +40,8 @@ config.inter_op_parallelism_threads = 1
 tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
-
 if __name__ == "__main__":
-    fname =  'binary_mera_optimization'            
+    fname = 'binary_mera_optimization'
     if not os.path.exists(fname):
         os.mkdir(fname)
     os.chdir(fname)
@@ -61,31 +60,32 @@ if __name__ == "__main__":
     else:
         specified_device_type = CPU
         name = 'CPU'
-        
+
     num_trans_layers = 3
     #chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
-    chis = [4] * num_trans_layers + [6, 6,6,6,6,6]    
-    numiters = [1000, 1000, 500, 500, 200, 200, 200, 200] + [500, 400, 300, 200, 200, 800]
+    chis = [4] * num_trans_layers + [6, 6, 6, 6, 6, 6]
+    numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
+               ] + [500, 400, 300, 200, 200, 800]
     noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
     opt_all_layers = [True] * len(chis)
-    embeddings = ['a'] * num_trans_layers + ['p'] * (len(chis) - num_trans_layers)
+    embeddings = ['a'] * num_trans_layers + ['p'
+                                            ] * (len(chis) - num_trans_layers)
     dtype = tf.float64
     nsteps_ss = 8
-    filename = str(datetime.date.today())+ '_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}'.format(NUM_THREADS, max(chis), num_trans_layers)
+    filename = str(datetime.date.today()
+                  ) + '_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}'.format(
+                      NUM_THREADS, max(chis), num_trans_layers)
     with tf.device(device):
-        wC, uC, _, _ = bm.run_binary_mera_optimization_TFI(chis=chis,
-                                                           niters=numiters,
-                                                           embeddings=embeddings,
-                                                           dtype=dtype,
-                                                           verbose=1,
-                                                           nsteps_steady_state=nsteps_ss,
-                                                           numpy_update=True,
-                                                           opt_u_after=10,
-                                                           noises=noises,
-                                                           opt_all_layers=opt_all_layers,
-                                                           filename=filename)
-    os.chdir(rootdir)                        
-
-
-
-            
+        wC, uC, _, _ = bm.run_binary_mera_optimization_TFI(
+            chis=chis,
+            niters=numiters,
+            embeddings=embeddings,
+            dtype=dtype,
+            verbose=1,
+            nsteps_steady_state=nsteps_ss,
+            numpy_update=True,
+            opt_u_after=10,
+            noises=noises,
+            opt_all_layers=opt_all_layers,
+            filename=filename)
+    os.chdir(rootdir)
