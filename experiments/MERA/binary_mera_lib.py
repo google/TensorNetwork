@@ -25,7 +25,7 @@ import copy
 import numpy as np
 import time
 import pickle
-import ncon_tn as ncon
+import ncon
 import misc_mera
 from sys import stdout
 import scipy as sp
