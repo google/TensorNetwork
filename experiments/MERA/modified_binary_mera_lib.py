@@ -23,7 +23,7 @@ import copy
 import numpy as np
 import time
 import tensornetwork.ncon_interface as ncon
-import misc_mera
+import experiments.MERA.misc_mera
 from sys import stdout
 
 

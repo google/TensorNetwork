@@ -29,8 +29,8 @@ import numpy as np
 import time
 import pickle
 import tensornetwork.ncon_interface as ncon
-import misc_mera
-import modified_binary_mera_lib as mbml
+import experiments.MERA.misc_mera
+import experiments.MERA.modified_binary_mera_lib as mbml
 from sys import stdout
 
 config = tf.ConfigProto()
