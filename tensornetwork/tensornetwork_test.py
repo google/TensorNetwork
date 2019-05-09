@@ -820,6 +820,14 @@ class NetworkTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       e2.node1
 
+  def test_set_node2(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    e = net.connect(a[0], b[0])
+    e.node2 = None
+    self.assertTrue(e.is_dangling())
+
 if __name__ == "__main__":
   tf.test.main()
 
