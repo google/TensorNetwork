@@ -38,6 +38,18 @@ config.inter_op_parallelism_threads = 1
 tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
+def test_get_envs(chi, dtype=tf.float64):
+    CPU = '/device:CPU:0'
+    GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
+    with tf.device(GPU):
+        rho = tf.random_uniform(shape = [chi]*6, dtype=dtype)
+        ham = tf.random_uniform(shape = [chi]*6, dtype=dtype)        
+        isometry = tf.random_uniform(shape = [chi,chi,chi], dtype=dtype)
+        unitary = tf.random_uniform(shape = [chi,chi,chi,chi], dtype=dtype)        
+        bla = bml.get_env_disentangler(ham, rho, isometry, unitary)
+        bla1 = bml.get_env_isometry(ham, rho, isometry, unitary)
+
+        
 def optimize_binary_mera(chis, numiters, noises, opt_all_layers, embeddings, dtype, nsteps_ss, use_gpu=False):
     fname = 'binary_mera_optimization'
     rootdir = os.getcwd()    
@@ -126,6 +138,7 @@ def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_laye
     os.chdir(rootdir)
     
 if __name__ == "__main__":
+    start_fresh=False
     if start_fresh:
         num_trans_layers = 8
         chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
@@ -146,18 +159,20 @@ if __name__ == "__main__":
                              nsteps_ss=nsteps_ss,
                              use_gpu=False)
     else:
-        num_add_layers = 4
-        chis = [16] * num_add_layers
+        num_add_layers = 2
+        chis = [17, 18] 
         numiters = [100] * num_add_layers
         noises = [0] * num_add_layers
         opt_all_layers = [True]  * num_add_layers
-        embeddings = ['a'] * len(chis)
+        embeddings = ['p', 'p'] * len(chis)
         nsteps_ss = 14
-        load_and_optimize_binary_mera(chis=chis,
+        filename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-07_bin_mera_opt_Nthreads4_chimax16_numtrans8.pickle'
+        load_and_optimize_binary_mera(filename,
+                                      chis=chis,
                                       numiters=numiters,
                                       noises=noises,
                                       opt_all_layers=opt_all_layers,
                                       embeddings=embeddings,
                                       nsteps_ss=nsteps_ss,
-                                      use_gpu=False)
+                                      use_gpu=True)
 

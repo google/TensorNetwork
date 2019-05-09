@@ -21,7 +21,7 @@ import tensorflow as tf
 import numpy as np
 import tensornetwork.ncon_interface as ncon
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def trace(rho):
     dim = len(rho.shape) // 2
     inds = [n + 1 for n in range(dim)]
@@ -29,7 +29,7 @@ def trace(rho):
     return ncon.ncon([rho], [inds + inds])
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def symmetrize(rho):
     dim = len(rho.shape) // 2
     inds_1 = [n for n in range(dim)]
@@ -38,7 +38,7 @@ def symmetrize(rho):
     return 1 / 2 * (rho + tf.conj(tf.transpose(rho, indices)))
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def scalar_product(bottom, top):
     inds = list(range(len(top.shape)))
     return ncon.ncon([tf.conj(bottom), top], [inds, inds])
@@ -56,7 +56,7 @@ def all_same_chi(*tensors):
     return np.all([c == chis[0] for c in chis])
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def u_update_svd(wIn):
     shape = wIn.shape
     st, ut, vt = tf.linalg.svd(
@@ -73,7 +73,7 @@ def u_update_svd_numpy(wIn):
     return -tf.reshape(ncon.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def w_update_svd(wIn):
     shape = wIn.shape
     st, ut, vt = tf.linalg.svd(

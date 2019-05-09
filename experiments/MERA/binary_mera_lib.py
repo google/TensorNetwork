@@ -148,7 +148,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     return alphas, betas[0:-1], gammas[0:-1]
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def ascending_super_operator(ham, isometry, unitary):
     return left_ascending_super_operator(
         ham, isometry, unitary) + right_ascending_super_operator(
@@ -276,7 +276,7 @@ def right_descending_super_operator(rho, isometry, unitary):
     return rho
 
 
-@tf.contrib.eager.defun
+#@tf.contrib.eager.defun
 def descending_super_operator(rho, isometry, unitary):
     rho_1 = right_descending_super_operator(rho, isometry, unitary)
     rho_2 = left_descending_super_operator(rho, isometry, unitary)
@@ -287,7 +287,7 @@ def descending_super_operator(rho, isometry, unitary):
 
 
 @tf.contrib.eager.defun
-def get_env_disentangler(ham, rho, isometry, unitary):
+def get_env_disentangler_1(ham, rho, isometry, unitary):
     inds_1_rho = [17, 14, 11, 19, 12, 13]
     inds_1_wl = [16, -3, 17]
     inds_1_wc = [-4, 15, 14]
@@ -311,7 +311,10 @@ def get_env_disentangler(ham, rho, isometry, unitary):
         inds_1_rho, inds_1_wl, inds_1_wc, inds_1_wr, inds_1_wl_c, inds_1_wc_c,
         inds_1_wr_c, inds_1_ur, inds_1_ul_c, inds_1_ur_c, inds_1_ham
     ])
+    return env_1
 
+@tf.contrib.eager.defun    
+def get_env_disentangler_2(ham, rho, isometry, unitary):
     inds_2_rho = [17, 14, 11, 18, 13, 12]
     inds_2_wl = [16, -3, 17]
     inds_2_wc = [-4, 15, 14]
@@ -336,6 +339,10 @@ def get_env_disentangler(ham, rho, isometry, unitary):
         inds_2_rho, inds_2_wl, inds_2_wc, inds_2_wr, inds_2_wl_c, inds_2_wc_c,
         inds_2_wr_c, inds_2_ur, inds_2_ul_c, inds_2_ur_c, inds_2_ham
     ])
+    return env_2
+
+@tf.contrib.eager.defun    
+def get_env_disentangler_3(ham, rho, isometry, unitary):
 
     inds_3_rho = [11, 18, 17, 12, 13, 14]
     inds_3_wl = [5, 6, 11]
@@ -360,6 +367,10 @@ def get_env_disentangler(ham, rho, isometry, unitary):
         inds_3_rho, inds_3_wl, inds_3_wc, inds_3_wr, inds_3_wl_c, inds_3_wc_c,
         inds_3_wr_c, inds_3_ul, inds_3_ul_c, inds_3_ur_c, inds_3_ham
     ])
+    return env_3
+
+@tf.contrib.eager.defun    
+def get_env_disentangler_4(ham, rho, isometry, unitary):
 
     inds_4_rho = [11, 14, 17, 12, 13, 18]
     inds_4_wl = [8, 9, 11]
@@ -384,12 +395,20 @@ def get_env_disentangler(ham, rho, isometry, unitary):
         inds_4_rho, inds_4_wl, inds_4_wc, inds_4_wr, inds_4_wl_c, inds_4_wc_c,
         inds_4_wr_c, inds_4_ul, inds_4_ul_c, inds_4_ur_c, inds_4_ham
     ])
+    return env_4
 
+
+def get_env_disentangler(ham, rho, isometry, unitary):
+    env_1 = get_env_disentangler_1(ham, rho, isometry, unitary)
+    env_2 = get_env_disentangler_2(ham, rho, isometry, unitary)
+    env_3 = get_env_disentangler_3(ham, rho, isometry, unitary)
+    env_4 = get_env_disentangler_4(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4
 
 
+
 @tf.contrib.eager.defun
-def get_env_isometry(ham, rho, isometry, unitary):
+def get_env_isometry_1(ham, rho, isometry, unitary):
     inds_1_wc = [5, 6, 15]
     inds_1_wr = [13, 12, 16]
 
@@ -417,8 +436,10 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_1_wc, inds_1_wr, inds_1_wl_c, inds_1_wc_c, inds_1_wr_c, inds_1_ul,
         inds_1_ur, inds_1_ul_c, inds_1_ur_c, inds_1_ham, inds_1_rho
     ])
+    return env_1
 
-    #########################
+@tf.contrib.eager.defun
+def get_env_isometry_2(ham, rho, isometry, unitary):
 
     inds_2_wc = [14, 8, 9]
     inds_2_wr = [6, 5, 10]
@@ -447,8 +468,11 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_2_wc, inds_2_wr, inds_2_wl_c, inds_2_wc_c, inds_2_wr_c, inds_2_ul,
         inds_2_ur, inds_2_ul_c, inds_2_ur_c, inds_2_ham, inds_2_rho
     ])
+    return env_2
 
-    #########################
+@tf.contrib.eager.defun
+def get_env_isometry_3(ham, rho, isometry, unitary):
+
     inds_3_wl = [5, 6, 9]
     inds_3_wr = [20, 17, 16]
 
@@ -475,8 +499,11 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_3_wl, inds_3_wr, inds_3_wl_c, inds_3_wc_c, inds_3_wr_c, inds_3_ul,
         inds_3_ur, inds_3_ul_c, inds_3_ur_c, inds_3_ham, inds_3_rho
     ])
+    return env_3
 
-    #########################
+@tf.contrib.eager.defun
+def get_env_isometry_4(ham, rho, isometry, unitary):
+
     inds_4_wl = [16, 17, 19]
     inds_4_wr = [6, 5, 9]
 
@@ -504,8 +531,12 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_4_wl, inds_4_wr, inds_4_wl_c, inds_4_wc_c, inds_4_wr_c, inds_4_ul,
         inds_4_ur, inds_4_ul_c, inds_4_ur_c, inds_4_ham, inds_4_rho
     ])
+    return env_4
 
-    #########################
+
+@tf.contrib.eager.defun
+def get_env_isometry_5(ham, rho, isometry, unitary):
+
     inds_5_wl = [5, 6, 9]
     inds_5_wc = [18, 19, 20]
 
@@ -533,8 +564,11 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_5_wl, inds_5_wc, inds_5_wl_c, inds_5_wc_c, inds_5_wr_c, inds_5_ul,
         inds_5_ur, inds_5_ul_c, inds_5_ur_c, inds_5_ham, inds_5_rho
     ])
+    return env_5
 
-    #########################
+@tf.contrib.eager.defun
+def get_env_isometry_6(ham, rho, isometry, unitary):
+
     inds_6_wl = [12, 13, 15]
     inds_6_wc = [6, 5, 16]
 
@@ -562,11 +596,20 @@ def get_env_isometry(ham, rho, isometry, unitary):
         inds_6_wl, inds_6_wc, inds_6_wl_c, inds_6_wc_c, inds_6_wr_c, inds_6_ul,
         inds_6_ur, inds_6_ul_c, inds_6_ur_c, inds_6_ham, inds_6_rho
     ])
+    return env_6
 
+
+def get_env_isometry(ham, rho, isometry, unitary):
+    env_1 = get_env_isometry_1(ham, rho, isometry, unitary)
+    env_2 = get_env_isometry_2(ham, rho, isometry, unitary)
+    env_3 = get_env_isometry_3(ham, rho, isometry, unitary)
+    env_4 = get_env_isometry_4(ham, rho, isometry, unitary)
+    env_5 = get_env_isometry_5(ham, rho, isometry, unitary)
+    env_6 = get_env_isometry_6(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4 + env_5 + env_6
 
 
-@tf.contrib.eager.defun
+#tf.contrib.eager.defun
 def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
     """
     obtain steady state density matrix of the scale invariant binary MERA
