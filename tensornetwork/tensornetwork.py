@@ -21,6 +21,7 @@ import collections
 from typing import List, Optional, Union, Text, Tuple
 import numpy as np
 import tensorflow as tf
+import weakref
 from tensornetwork import decompositions
 
 
@@ -317,10 +318,28 @@ class Edge:
                        "node1: '{}', axis1: {}, node2: '{}', axis2: {}".format(
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
+  @property
+  def node1(self) -> Node:
+    val = self._node1()
+    if val is None:
+      raise ValueError("node1 for edge '{}' no longer exists.".format(self))
+    return val
 
-  def is_dangling(self):
+  @property
+  def node2(self) -> Optional[Node]:
+    return self._node2() if self._node2 else None  
+  
+  @node1.setter
+  def node1(self, node: Node) -> None:
+    self._node1 = weakref.ref(node)
+
+  @node2.setter
+  def node2(self, node: Node) -> None:
+    self._node2 = weakref.ref(node) if node else None
+
+  def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
-    return self.node2 is None
+    return self._node2 is None
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.

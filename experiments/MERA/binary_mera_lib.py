@@ -598,7 +598,6 @@ def get_env_isometry_6(ham, rho, isometry, unitary):
     ])
     return env_6
 
-@tf.contrib.eager.defun
 def get_env_isometry(ham, rho, isometry, unitary):
     env_1 = get_env_isometry_1(ham, rho, isometry, unitary)
     env_2 = get_env_isometry_2(ham, rho, isometry, unitary)
@@ -609,7 +608,6 @@ def get_env_isometry(ham, rho, isometry, unitary):
     return env_1 + env_2 + env_3 + env_4 + env_5 + env_6
 
 
-#@tf.contrib.eager.defun
 def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
     """
     obtain steady state density matrix of the scale invariant binary MERA
