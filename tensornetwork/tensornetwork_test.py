@@ -791,6 +791,18 @@ class NetworkTest(tf.test.TestCase):
     result = tf.map_fn(build_tensornetwork, tensors, dtype=tf.float32)
     self.assertAllClose(result, tf.ones(5) * 10)
 
+  def test_weakref(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    e = net.connect(a[0], b[0])
+    del a
+    del b
+    net.contract(e)
+    with self.assertRaises(ValueError):
+      e.node1
+
+
 if __name__ == "__main__":
   tf.test.main()
 
