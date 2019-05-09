@@ -815,12 +815,10 @@ class NetworkTest(tf.test.TestCase):
     net.contract(e2)
     # This won't raise an exception since we still have a referance to 'a'.
     e1.node1
-    # This raises an exception since the intermediate tensor when doing
+    # This raises an exception since the intermediate node created when doing
     # `net.contract(e2)` was garbage collected.
     with self.assertRaises(ValueError):
       e2.node1
-
-
 
 if __name__ == "__main__":
   tf.test.main()

@@ -339,7 +339,7 @@ class Edge:
     self._node1 = weakref.ref(node)
 
   @node2.setter
-  def node2(self, node: Node) -> None:
+  def node2(self, node: Optional[Node]) -> None:
     self._node2 = weakref.ref(node) if node else None
 
   def is_dangling(self) -> bool:
