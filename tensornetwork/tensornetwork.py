@@ -289,6 +289,7 @@ class Edge:
     self.axis1 = axis1
     self.node2 = node2
     self.axis2 = axis2
+    self._is_dangling = node2 is None
 
   def get_nodes(self) -> List[Optional[Node]]:
     """Get the nodes of the edge."""
@@ -327,7 +328,11 @@ class Edge:
 
   @property
   def node2(self) -> Optional[Node]:
-    return self._node2() if self._node2 else None  
+    if self._is_dangling:
+      return None
+    if self._node2() is None:
+      raise ValueError("node2 for edge '{}' no longer exists.".format(self))
+    return self._node2()
   
   @node1.setter
   def node1(self, node: Node) -> None:
@@ -339,7 +344,7 @@ class Edge:
 
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
-    return self.node2 is None
+    return self._is_dangling
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.

@@ -801,6 +801,8 @@ class NetworkTest(tf.test.TestCase):
     net.contract(e)
     with self.assertRaises(ValueError):
       e.node1
+    with self.assertRaises(ValueError):
+      e.node2
 
   def test_weakref_complex(self):
     net = tensornetwork.TensorNetwork()
@@ -813,6 +815,8 @@ class NetworkTest(tf.test.TestCase):
     net.contract(e2)
     # This won't raise an exception since we still have a referance to 'a'.
     e1.node1
+    # This raises an exception since the intermediate tensor when doing
+    # `net.contract(e2)` was garbage collected.
     with self.assertRaises(ValueError):
       e2.node1
 
