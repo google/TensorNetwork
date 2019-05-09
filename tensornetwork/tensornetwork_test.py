@@ -825,6 +825,8 @@ class NetworkTest(tf.test.TestCase):
     a = net.add_node(np.eye(2))
     b = net.add_node(np.eye(2))
     e = net.connect(a[0], b[0])
+    # You should never do this, but if you do, we should handle
+    # it gracefully.
     e.node2 = None
     self.assertTrue(e.is_dangling())
 
