@@ -802,6 +802,21 @@ class NetworkTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       e.node1
 
+  def test_weakref_complex(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    c = net.add_node(np.eye(2))
+    e1 = net.connect(a[0], b[0])
+    e2 = net.connect(b[1], c[0])
+    net.contract(e1)
+    net.contract(e2)
+    # This won't raise an exception since we still have a referance to 'a'.
+    e1.node1
+    with self.assertRaises(ValueError):
+      e2.node1
+
+
 
 if __name__ == "__main__":
   tf.test.main()
