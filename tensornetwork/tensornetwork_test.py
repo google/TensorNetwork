@@ -708,6 +708,23 @@ class NetworkTest(tf.test.TestCase):
     self.assertAllClose(f(x, tf.convert_to_tensor(2)), 2.0)
     self.assertAllClose(f(x, tf.convert_to_tensor(3)), 3.0)
 
+  def test_dynamic_network_sizes_contract_between(self):
+
+    @tf.contrib.eager.defun
+    def f(x, n):
+      x_slice = x[..., :n]
+      net = tensornetwork.TensorNetwork()
+      n1 = net.add_node(x_slice)
+      n2 = net.add_node(x_slice)
+      net.connect(n1[0], n2[0])
+      net.connect(n1[1], n2[1])
+      net.connect(n1[2], n2[2])
+      return net.contract_between(n1, n2).get_tensor()
+
+    x = tf.ones((3, 4, 5))
+    self.assertAllClose(f(x, tf.convert_to_tensor(2)), 24.0)
+    self.assertAllClose(f(x, tf.convert_to_tensor(3)), 36.0)
+
   def test_dynamic_network_sizes_flatten_standard(self):
 
     @tf.contrib.eager.defun
