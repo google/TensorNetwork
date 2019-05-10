@@ -44,6 +44,7 @@ def count_dangling(node: tensornetwork.Node) -> int:
   Returns:
     n: Number of dangling edges this node has.
   """
+  # TODO: Simplify this using get_all_nondangling() from #22
   n = 0
   for edge in node.edges:
     if edge.is_dangling():
