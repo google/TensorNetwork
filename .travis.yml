@@ -11,4 +11,3 @@ install:
 script:
   - pytype ./tensornetwork/
   - pytest
-  - python3 setup.py build

@@ -25,7 +25,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # Read in requirements
-requirements = [requirement.strip() for requirement in
+requirements = [r.strip() for requirement in
                 open('requirements.txt').readlines()]
 
 setup(
