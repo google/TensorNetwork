@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright 2019 The TensorNetwork Developers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +26,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # Read in requirements
-requirements = [r.strip() for requirement in
+requirements = [requirement.strip() for requirement in
                 open('requirements.txt').readlines()]
 
 setup(
