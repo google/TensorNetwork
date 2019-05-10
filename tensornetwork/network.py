@@ -221,9 +221,14 @@ class TensorNetwork:
     """Collapse a list of edges shared by two nodes in the network.
 
     Collapses the edges and updates the rest of the network.
+    The nodes that currently share the edges in `edges` must be supplied as
+    `node1` and `node2`. The ordering of `node1` and `node2` must match the
+    axis ordering of `new_node` (as determined by the contraction procedure).
 
     Args:
       edges: The edges to contract.
+      node1: The old node that supplies the first edges of `new_node`.
+      node2: The old node that supplies the last edges of `new_node`.
       new_node: The new node that represents the contraction of the two old
         nodes.
 
@@ -250,7 +255,7 @@ class TensorNetwork:
   
     remaining_edges = []
     for (i, edge) in enumerate(node1_edges):
-      if edge not in edges:  # FIXME: Makes the cost quadratic in # edges
+      if edge not in edges:  # NOTE: Makes the cost quadratic in # edges
         edge.update_axis(
           old_node=node1,
           old_axis=i,
@@ -638,6 +643,10 @@ class TensorNetwork:
         raise ValueError("No edges found between nodes '{}' and '{}' "
                          "and allow_outer_product=False.".format(node1, node2))
 
+    # Collect the axis of each node corresponding to each edge, in order. 
+    # This specifies the contraction for tensordot.
+    # NOTE: node1 is always the left argument to tensordot. The ordering of
+    #       node references in each contraction edge is ignored.
     axes1 = []
     axes2 = []
     for edge in shared_edges:
@@ -651,6 +660,9 @@ class TensorNetwork:
     new_tensor = tensordot2.tensordot(
                     node1.tensor, node2.tensor, [axes1, axes2])
     new_node = self.add_node(new_tensor, name)
+    # The uncontracted axes of node1 (node2) now correspond to the first (last)
+    # axes of new_node. We provide this ordering to _remove_edges() via the
+    # node1 and node2 arguments.
     self._remove_edges(shared_edges, node1, node2, new_node)
     return new_node
 
