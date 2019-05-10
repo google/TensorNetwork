@@ -791,6 +791,45 @@ class NetworkTest(tf.test.TestCase):
     result = tf.map_fn(build_tensornetwork, tensors, dtype=tf.float32)
     self.assertAllClose(result, tf.ones(5) * 10)
 
+  def test_weakref(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    e = net.connect(a[0], b[0])
+    del a
+    del b
+    net.contract(e)
+    with self.assertRaises(ValueError):
+      e.node1
+    with self.assertRaises(ValueError):
+      e.node2
+
+  def test_weakref_complex(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    c = net.add_node(np.eye(2))
+    e1 = net.connect(a[0], b[0])
+    e2 = net.connect(b[1], c[0])
+    net.contract(e1)
+    net.contract(e2)
+    # This won't raise an exception since we still have a referance to 'a'.
+    e1.node1
+    # This raises an exception since the intermediate node created when doing
+    # `net.contract(e2)` was garbage collected.
+    with self.assertRaises(ValueError):
+      e2.node1
+
+  def test_set_node2(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    e = net.connect(a[0], b[0])
+    # You should never do this, but if you do, we should handle
+    # it gracefully.
+    e.node2 = None
+    self.assertTrue(e.is_dangling())
+
 if __name__ == "__main__":
   tf.test.main()
 
