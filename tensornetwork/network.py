@@ -238,6 +238,7 @@ class TensorNetwork:
     node1_edges = node1.edges[:]
     node2_edges = node2.edges[:]
 
+    edges = set(edges)
     nodes_set = set([node1, node2])
     for edge in edges:
       if edge.is_dangling():
