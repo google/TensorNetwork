@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# FIXME: This is a modified version of code from the TensorFlow project.
-#        Legal requirements for including this??
 
 """A modified version of TensorFlow's tensordot operation."""
 
@@ -22,9 +19,9 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
 
 import tensorflow as tf
+
 
 def tensordot(a, b, axes, name=None):
   r"""Tensor contraction of a and b along specified axes.
@@ -64,7 +61,7 @@ def tensordot(a, b, axes, name=None):
       tensor.
   """
 
-  def _tensordot_reshape(a, axes):
+  def _tensordot_reshape(a, axes, flip_default=False):
     """Helper method to perform transpose and reshape for contraction op.
     This method is helpful in reducing `math_ops.tensordot` to `math_ops.matmul`
     using `array_ops.transpose` and `array_ops.reshape`. The method takes a
@@ -76,22 +73,23 @@ def tensordot(a, b, axes, name=None):
       axes: List or `int32` `Tensor` of unique indices specifying valid axes of
        `a`.
     Returns:
-      A tuple `(reshaped_a, free_dims, free_dims_static)` where `reshaped_a` is
+      A tuple `(reshaped_a, free_dims, free_dims_static, flipped)` where `reshaped_a` is
       the tensor `a` reshaped to allow contraction via `matmul`, `free_dims` is
       either a list of integers or an `int32` `Tensor`, depending on whether
       the shape of a is fully specified, and free_dims_static is either a list
       of integers and None values, or None, representing the inferred
-      static shape of the free dimensions
+      static shape of the free dimensions. `flipped` indicates whether
+      `reshaped_a` must be transposed, or not, when calling `matmul`.
     """
     if a.get_shape().is_fully_defined() and isinstance(axes, (list, tuple)):
       shape_a = a.get_shape().as_list()
       axes = [i if i >= 0 else i + len(shape_a) for i in axes]
-      free = [i for i in xrange(len(shape_a)) if i not in axes]
+      free = [i for i in range(len(shape_a)) if i not in axes]
 
       # Determine whether to flip by minimizing the average distance the 
       # indices would have to move under a permutation.
       if len(axes) > 0 and len(free) > 0:
-        flipped = np.mean(axes) < np.mean(free)
+        flipped = bool(np.mean(axes) < np.mean(free))
       else:
         flipped = False
 
@@ -113,12 +111,12 @@ def tensordot(a, b, axes, name=None):
       if a.get_shape().ndims is not None and isinstance(axes, (list, tuple)):
         shape_a = a.get_shape().as_list()
         axes = [i if i >= 0 else i + len(shape_a) for i in axes]
-        free = [i for i in xrange(len(shape_a)) if i not in axes]
+        free = [i for i in range(len(shape_a)) if i not in axes]
 
         # Determine whether to flip by minimizing the average distance the 
         # indices would have to move under a permutation.
         if len(axes) > 0 and len(free) > 0:
-            flipped = np.mean(axes) < np.mean(free)
+            flipped = bool(np.mean(axes) < np.mean(free))
         else:
             flipped = False
 
@@ -129,18 +127,21 @@ def tensordot(a, b, axes, name=None):
         free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
         shape_a = tf.shape(a)
       else:
-        # FIXME: Choose the optimal flipping strategy in this case too!
-        flipped = False
         free_dims_static = None
         shape_a = tf.shape(a)
         rank_a = tf.rank(a)
         axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
         axes = tf.where(axes >= 0, axes, axes + rank_a)
-        free, _ = tf.setdiff1d(range(rank_a), axes)
+        free, _ = tf.setdiff1d(tf.range(rank_a), axes)
+        # Matmul does not accept tensors for its transpose arguments, so fall 
+        # back to the previous, fixed behavior.
+        flipped = flip_default
+
       free_dims = tf.gather(shape_a, free)
       axes_dims = tf.gather(shape_a, axes)
       prod_free_dims = tf.reduce_prod(free_dims)
       prod_axes_dims = tf.reduce_prod(axes_dims)
+
       if flipped:
         perm = tf.concat([axes, free], 0)
         new_shape = tf.stack([prod_axes_dims, prod_free_dims])
@@ -160,8 +161,8 @@ def tensordot(a, b, axes, name=None):
         if axes > a_shape.ndims:
           raise ValueError("'axes' must not be larger than the number of "
                            "dimensions of tensor %s." % a)
-        return (list(xrange(a_shape.ndims - axes, a_shape.ndims)),
-                list(xrange(axes)))
+        return (list(range(a_shape.ndims - axes, a_shape.ndims)),
+                list(range(axes)))
       else:
         rank = tf.rank(a)
         return (range(rank - axes, rank, dtype=tf.int32),
@@ -193,14 +194,17 @@ def tensordot(a, b, axes, name=None):
     a = tf.convert_to_tensor(a, name="a")
     b = tf.convert_to_tensor(b, name="b")
     a_axes, b_axes = _tensordot_axes(a, axes)
-    a_reshape, a_free_dims, a_free_dims_static, a_flip = _tensordot_reshape(a, a_axes)
+    a_reshape, a_free_dims, a_free_dims_static, a_flip = _tensordot_reshape(
+      a, a_axes)
     b_reshape, b_free_dims, b_free_dims_static, b_flip = _tensordot_reshape(
-        b, b_axes)
+      b, b_axes, flip_default=True)
+
     ab_matmul = tf.matmul(
         a_reshape,
         b_reshape,
-        transpose_a=bool(a_flip),
-        transpose_b=bool(not b_flip))
+        transpose_a=a_flip,
+        transpose_b=not b_flip)
+
     if isinstance(a_free_dims, list) and isinstance(b_free_dims, list):
       return tf.reshape(ab_matmul, a_free_dims + b_free_dims, name=name)
     else:
