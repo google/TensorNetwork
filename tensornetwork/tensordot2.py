@@ -165,8 +165,8 @@ def tensordot(a, b, axes, name=None):
                 list(range(axes)))
       else:
         rank = tf.rank(a)
-        return (range(rank - axes, rank, dtype=tf.int32),
-                range(axes, dtype=tf.int32))
+        return (tf.range(rank - axes, rank, dtype=tf.int32),
+                tf.range(axes, dtype=tf.int32))
     elif isinstance(axes, (list, tuple)):
       if len(axes) != 2:
         raise ValueError("'axes' must be an integer or have length 2.")
@@ -183,7 +183,8 @@ def tensordot(a, b, axes, name=None):
 
       # The contraction indices do not need to be permuted.
       # Sort axes to avoid unnecessary permutations of a.
-      a_axes, b_axes = list(zip(*sorted(zip(a_axes, b_axes))))
+      if len(a_axes) > 0:
+        a_axes, b_axes = list(zip(*sorted(zip(a_axes, b_axes))))
 
       return a_axes, b_axes
     else:
