@@ -113,7 +113,7 @@ def tensordot(a, b, axes, name=None):
         axes = [i if i >= 0 else i + len(shape_a) for i in axes]
         free = [i for i in range(len(shape_a)) if i not in axes]
 
-        # Determine whether to flip by minimizing the average distance the 
+        # Determine whether to flip by minimizing the average distance the
         # indices would have to move under a permutation.
         if len(axes) > 0 and len(free) > 0:
             flipped = bool(np.mean(axes) < np.mean(free))
@@ -133,7 +133,7 @@ def tensordot(a, b, axes, name=None):
         axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
         axes = tf.where(axes >= 0, axes, axes + rank_a)
         free, _ = tf.setdiff1d(tf.range(rank_a), axes)
-        # Matmul does not accept tensors for its transpose arguments, so fall 
+        # Matmul does not accept tensors for its transpose arguments, so fall
         # back to the previous, fixed behavior.
         flipped = flip_default
 
