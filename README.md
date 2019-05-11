@@ -3,6 +3,14 @@
 
 
 A tensor network wrapper for TensorFlow.
+
+For an overview of tensor networks please see the following: 
+
+- [Nice artile with pictures](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
+
+- [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
+
+- [A Practical Introduction to Tensor Networks](https://arxiv.org/abs/1306.2164)
 ## Installation
 ```
 pip3 install tensornetwork
