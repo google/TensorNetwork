@@ -23,7 +23,9 @@ import numpy as np
 import tensorflow as tf
 
 from tensornetwork import tensornetwork
-from tensornetwork.contractors import naive
+from tensornetwork.contractors import naive_contractor
+
+naive = naive_contractor.naive
 
 
 class NaiveTest(tf.test.TestCase):

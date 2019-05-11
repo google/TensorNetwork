@@ -1,1 +1,1 @@
-from tensornetwork.contractors.naive import naive
+from tensornetwork.contractors.naive_contractor import naive
