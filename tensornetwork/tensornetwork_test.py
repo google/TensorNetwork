@@ -575,6 +575,7 @@ class NetworkTest(tf.test.TestCase):
     e2 = net2.connect(c[0], a[1])
     e3 = net2.connect(c[1], b[1])
     net2.check_correct()
+    self.assertEqual(net2.edge_order, [e1, e2, e3])
     for edge in [e1, e2, e3]:
       net2.contract(edge)
     result = net2.get_final_node()
@@ -829,6 +830,54 @@ class NetworkTest(tf.test.TestCase):
     # it gracefully.
     e.node2 = None
     self.assertTrue(e.is_dangling())
+
+  def test_edge_in_network(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    edge = net.connect(a[0], b[0])
+    self.assertIn(edge, net)
+
+  def test_edge_not_in_network(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    edge = net.connect(a[0], b[0])
+    net.disconnect(edge)
+    self.assertNotIn(edge, net)
+
+  def test_node_in_network(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    self.assertIn(a, net)
+
+  def test_node_not_in_network(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones((2, 2)))
+    e = net.connect(a[0], a[1])
+    net.contract(e)
+    self.assertNotIn(a, net)
+
+  def test_contract_parallel(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    edge1 = net.connect(a[0], b[0])
+    edge2 = net.connect(a[1], b[1])
+    c = net.contract_parallel(edge1)
+    self.assertNotIn(edge2, net)
+    self.assertAllClose(c.get_tensor(), 2.0)
+
+  def test_get_all_nondangling(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2))
+    b = net.add_node(np.eye(2))
+    edge1 = net.connect(a[0], b[0])
+    c = net.add_node(np.eye(2))
+    d = net.add_node(np.eye(2))
+    edge2 = net.connect(c[0], d[0])
+    edge3 = net.connect(a[1], c[1])
+    self.assertEqual({edge1, edge2, edge3}, net.get_all_nondangling())
 
 if __name__ == "__main__":
   tf.test.main()
