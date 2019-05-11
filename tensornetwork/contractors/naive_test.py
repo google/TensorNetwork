@@ -36,7 +36,7 @@ class NaiveTest(tf.test.TestCase):
     net.connect(a[0], b[1])
     net.connect(b[0], c[1])
     net.connect(c[0], a[1])
-    result = naive.naive(net).get_final_node()
+    result = naive(net).get_final_node()
     self.assertAllClose(result.get_tensor(), 2.0)
 
   def test_passed_edge_order(self):
@@ -47,7 +47,7 @@ class NaiveTest(tf.test.TestCase):
     e1 = net.connect(a[0], b[1])
     e2 = net.connect(b[0], c[1])
     e3 = net.connect(c[0], a[1])
-    result = naive.naive(net, [e3, e1, e2]).get_final_node()
+    result = naive(net, [e3, e1, e2]).get_final_node()
     self.assertAllClose(result.get_tensor(), 2.0)
 
   def test_bad_passed_edges(self):
@@ -59,7 +59,7 @@ class NaiveTest(tf.test.TestCase):
     e2 = net.connect(b[0], c[1])
     _ = net.connect(c[0], a[1])
     with self.assertRaises(ValueError):
-      naive.naive(net, [e1, e2])
+      naive(net, [e1, e2])
 
   def test_precontracted_network(self):
     net = tensornetwork.TensorNetwork()
@@ -71,7 +71,7 @@ class NaiveTest(tf.test.TestCase):
     edge = net.connect(c[0], a[1])
     net.contract(edge)
     with self.assertRaises(ValueError):
-      naive.naive(net)
+      naive(net)
 
 if __name__ == '__main__':
   tf.test.main()

@@ -136,31 +136,3 @@ def sat_count_tn(clauses: List[Tuple[int, int, int]]
     sat_net.connect(edge1, edge2)
   return sat_net
 
-
-def contract_badly(net: tensornetwork.TensorNetwork,
-                   edge_order: Optional[List[tensornetwork.Edge]] = None
-                  ) -> tensornetwork.Node:
-  """Contract the network in a suboptimal way.
-
-  After contraction, the remaining nodes are combined together through an
-  outer_product and the final edge order is determined by `edge_order`.
-
-  Args:
-    net: A TensorNetwork
-    edge_order: The final order of the dangling edges. If None, we assume the
-      final node represents a scalar.
-
-  Returns:
-    The final node.
-  """
-  if edge_order is None:
-    edge_order = []
-  edges = set()
-  for node in net.nodes_set:
-    for edge in node.get_all_edges():
-      if not edge.is_dangling():
-        edges.add(edge)
-  for edge in edges:
-    net.contract(edge)
-  return net.outer_product_final_nodes(edge_order)
-
