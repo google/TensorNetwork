@@ -67,7 +67,8 @@ We also have `contract_between` and `contract_parallel` for your convience.
 ```python
 # Contract all of the edges between a and b.
 net.contract_between(a, b)
-# Contract all of edges that are parallel to edge (parallel means connected to the same nodes).
+# Contract all of edges that are parallel to edge 
+# (parallel means connected to the same nodes).
 net.contract_parallel(edge)
 ```
 
