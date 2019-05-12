@@ -18,12 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import List, Optional
+from typing import Sequence, Optional
 from tensornetwork import tensornetwork
 
 
 def naive(network: tensornetwork.TensorNetwork,
-          edge_order: Optional[List[tensornetwork.Edge]] = None
+          edge_order: Optional[Sequence[tensornetwork.Edge]] = None
          ) -> tensornetwork.TensorNetwork:
   """Contract a TensorNetwork in the order the edges were created.
 

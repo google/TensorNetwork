@@ -65,7 +65,6 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
     clauses. For example, if final_node.get_tensor()[0][1][1] == 1, then the
     assiment (False, True, True) satisfies all clauses.
 
-
   Args:
     clauses: A list of 3 int tuples. Each element in the tuple corresponds to a
       variable in the clause. If that int is negative, that variable is negated
