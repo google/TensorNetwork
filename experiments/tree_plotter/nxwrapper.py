@@ -15,77 +15,99 @@
 """NetworkX wrapper for plotting simple tree-like Tensor Networks.
 
 A simple wrapper that creates a `networkx` graph from the nodes and edges
-of a tensor network. Works only for tensor networks that have a tree-like
-structure: the nodes are arranged to levels and only consecutive levels share
-edges. It currently has various restrictions, for example it supports dangling
-edges only at the top or the bottom level (not in the middle).
+of a tensor network.
+
+Restrictions:
+  Supports only tree tensor networks (with nodes arranged to levels and only
+    consecutive levels share edges).
+  Supports dangling edges only at the top or bottom level (not in the middle).
+  Does not support trace edges or multiple edges between nodes.
 """
-# TODO: More general wrapper with TensorNetwork object as input.
+# TODO: General wrapper with TensorNetwork object as input.
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import google_type_annotations
 from __future__ import print_function
 
+import collections
 import matplotlib
 import networkx as nx
 import numpy as np
-import seaborn as sns
-from typing import List, Optional, Union, Text
+from typing import List, Optional, Union, Text, Dict
 from tensornetwork import tensornetwork
 
 
-def count_dangling(node: tensornetwork.Node) -> int:
-  """Calculates the number of dangling edges of a node.
+def draw_tree(root: Union[tensornetwork.Node, List[tensornetwork.Node],
+                          List[List[tensornetwork.Node]]],
+              axes: matplotlib.axes.Axes,
+              colormap: Union[Text, List[Optional[Text]]] = "red",
+              options: Dict[Text, Union[float, int, List[int], bool]] = dict(),
+              ) -> None:
+  """Plots the tree network graph.
 
   Args:
-    node: TensorNetwork node.
-
-  Returns:
-    n: Number of dangling edges this node has.
+    root: Root node or nodes of the tree to plot.
+      User can specify order of nodes at each level by giving a list of lists.
+    axes: Axes object to use for plotting the tensor network.
+    colormap: Color of nodes. If a list is given a different color is applied
+      to each tree level.
+    options: Dictionary with plotting options.
+      Available options:
+        x_margin: Minimum horizontal distance between nodes in the plot.
+        y_margin: Vertical distance between consecutive tree levels.
+        dangling_size: Size (length) of dangling edges in the plot.
+        dangling_angle: When a node has multiple dangling edges, this defines
+          the angle between them in the plot.
+        sizes: Size of nodes. If a list is given a different size is applied
+          to each tree level.
+        top_to_bottom: If true the root of the tree is at the top.
+        with_labels: If true the names of each node are shown in the plot.
   """
-  # TODO: Simplify this using get_all_nondangling() from #22
-  n = 0
-  for edge in node.edges:
-    if edge.is_dangling():
-      n += 1
-  return n
+  if "with_labels" in options:
+    with_labels = options.pop("with_labels")
+  else:
+    with_labels = True
+  plotter = TreePlotWrapper(root, colormap=colormap, options=options)
+  node_color = [plotter.colors[n] for n in plotter.graph.node]
+  node_size = [plotter.sizes[n] for n in plotter.graph.node]
+  axes.axis("off")
+  nx.draw_networkx(plotter.graph, plotter.pos, with_labels=with_labels,
+                   labels=plotter.labels, ax=axes,
+                   node_color=node_color, node_size=node_size)
 
 
-class PlotWrapper(object):
+class TreePlotWrapper(object):
   """Wraps tree-like TensorNetwork to NetworkX for plotting."""
   # TODO: Consider case with multiple edges between nodes.
   # Problem with the way networkx handles multiple edges between nodes.
   # Should also change nx.Graph() to nx.MultiGraph().
 
   def __init__(self,
-               node_lists: List[List[tensornetwork.Node]],
-               x_margin: float = 1.0,
-               y_margin: float = 1.0,
-               dangling_size: float = 1.0,
-               dangling_angle: float = 1.2,
-               top_to_bottom: bool = True) -> None:
+               root: Union[tensornetwork.Node, List[tensornetwork.Node],
+                                         List[List[tensornetwork.Node]]],
+               colormap: Union[Text, List[Text]] = "red",
+               options: Dict[Text, Union[float, int, List[int], bool]] = dict()
+               ) -> None:
     """Creates NetworkX graph.
 
     Args:
-      node_lists: List with TensorNetwork nodes groupped by level/depth.
-      x_margin: Minimum horizontal distance between nodes in the plot.
-      y_margin: Vertical distance between consecutive tree levels.
-      dangling_size: Size (length) of dangling edges in the plot.
-      dangling_angle: When a node has multiple dangling edges, this defines
-        the angle between them in the plot.
-      top_to_bottom: If true the plot is created from top to bottom from the
-        given levels in node_lists.
+      root: Root node.
+      colormap: Color of nodes.
+      options: Dictionary with plotting options.
+        (see `draw_tree` for more details)
     """
     self.graph = nx.Graph()
-    self.levels = node_lists
+    self.set_options(options)
+    x_margin, y_margin = self.options["x_margin"], self.options["y_margin"]
+    if isinstance(root, list) and isinstance(root[0], list):
+      self.levels = root
+    else:
+      self.levels = self._levels_from_root(root)
 
     self.x_max = (max(len(level) for level in self.levels) + 1) * x_margin
-
-    self.dangling_size, self.dangling_angle = dangling_size, dangling_angle
-    # Default colormap
-    self.colormap = sns.color_palette("deep")
-
+    self.colormap = self._list_by_repetition(colormap, len(self.levels))
+    self.sizemap = self._list_by_repetition(self.options["sizes"],
+                                            len(self.levels))
     self.pos, self.labels = {}, {}
     self.colors, self.sizes = {}, {}
 
@@ -97,54 +119,70 @@ class PlotWrapper(object):
     self.ghost_counter = 0
     self.node_set, self.edge_set = set(), set()
 
-    if top_to_bottom:
-      y = (len(node_lists) - 1) * y_margin
-    else:
-      y = 0
-    for i, line in enumerate(node_lists):
+    y = 0
+    for i, line in enumerate(self.levels):
       self._add_level_of_nodes(line, i, y)
-      y += (1 - 2 * int(top_to_bottom)) * y_margin
+      y += (1 - 2 * int(self.options["top_to_bottom"])) * y_margin
 
-  def draw(self, axes: matplotlib.axes.Axes,
-           with_labels: bool = True) -> None:
-    """Plots the network graph.
-
-    Args:
-      axes: Axes object to use for plotting the tensor network.
-      with_labels: If True, plot node names on nodes.
-    """
-    node_color, node_size = [], []
-    for n in self.graph.node:
-      node_color.append(self.colors[n])
-      node_size.append(self.sizes[n])
-    axes.axis("off")
-    nx.draw_networkx(self.graph, self.pos, with_labels=with_labels,
-                     labels=self.labels, ax=axes,
-                     node_color=node_color, node_size=node_size)
-
-  def set_level_colors(self, color_list: List[Optional[Text]]) -> None:
-    """Sets node color at each level.
+  def set_options(self, options: Dict[Text, Union[float, int,
+                                      List[Optional[int]], bool]]) -> None:
+    """Sets unspecified options to their default values.
 
     Args:
-      color_list: List with color of each layer.
-        If the list contains None, the default value is used for this level.
+      options: Dictionary with plotting options.
     """
-    for i, c in enumerate(color_list):
-      if c is not None:
-        for n in self.levels[i]:
-          self.colors[n] = c
+    self.options = {"x_margin": 1.0, "y_margin": 1.0,
+                    "dangling_size": 0.8, "dangling_angle": 1.2,
+                    "sizes": 1000, "top_to_bottom": True}
+    for k in options.keys():
+      if k in self.options:
+        self.options[k] = options[k]
+      else:
+        raise KeyError("Unknown option.")
 
-  def set_level_sizes(self, size_list: List[Optional[int]]) -> None:
-    """Sets node size at each level.
+  @staticmethod
+  def _list_by_repetition(input: Union[int, Text, List[Union[int, Text]]],
+                          length: int) -> List[Union[int, Text]]:
+    """Creates a list of specific length from an element or  another list."""
+    if isinstance(input, list):
+      return [input[i % len(input)] for i in range(length)]
+    return length * [input]
+
+  @staticmethod
+  def _levels_from_root(root: Union[List, tensornetwork.Node]
+                        ) -> List[List[tensornetwork.Node]]:
+    """Finds tree levels via BFS.
 
     Args:
-      size_list: List with size of each layer.
-        If the list contains None, the default value is used for this level.
+      root: Root or roots of the tree.
+
+    Returns:
+      levels: Lists with the nodes at each tree level from root to leaves.
+        The order of
     """
-    for i, c in enumerate(size_list):
-      if c is not None:
-        for n in self.levels[i]:
-          self.sizes[n] = c
+    if isinstance(root, list):
+      node_lists = [root[:]]
+    elif isinstance(root, tensornetwork.Node):
+      node_lists = [[root]]
+    else:
+      raise ValueError("Root must be either a Node or a list of Nodes.")
+    queue = collections.deque(node_lists[0])
+    marked = set(node_lists[0])
+    while len(queue):
+      node_lists.append([])
+      for parent in node_lists[-2]:
+        assert parent is queue.popleft()
+        for edge in parent.edges:
+          child = None
+          if edge.node1 is not parent:
+            child = edge.node1
+          else:
+            child = edge.node2
+          if child is not None and child not in marked:
+            marked.add(child)
+            node_lists[-1].append(child)
+            queue.append(child)
+    return node_lists[:-1]
 
   def _add_node(self, node: Union[tensornetwork.Node, Text],
                 x: float, y: float, name: Text,
@@ -155,7 +193,7 @@ class PlotWrapper(object):
       node: TensorNetwork node to add (or string for ghost nodes).
       x: Horizontal position of the node in the plot.
       y: Vertical position of the node in the plot.
-      name: Label name. If None the name from TN node is used.
+      name: Label name. If None the name from TensorNetwork node is used.
       color: Node's color in the plot.
       size: Node's size in the plot.
     """
@@ -174,15 +212,13 @@ class PlotWrapper(object):
       top: If true the dangling edges are directed above the node in the plot.
         Otherwise they are directed below.
     """
-    n_dangling = count_dangling(node)
-
+    n_dangling = len(node.edges) - len(node.get_all_nondangling())
     sign = 2 * int(top) - 1
-    phi = np.linspace(self.dangling_angle,
-                      np.pi - self.dangling_angle,
-                      n_dangling + 2)[1:-1]
+    size, angle = self.options["dangling_size"], self.options["dangling_angle"]
+    phi = np.linspace(angle, np.pi - angle, n_dangling + 2)[1:-1]
     for i in range(n_dangling):
-      x = self.pos[node][0] + sign * self.dangling_size * np.cos(phi[i])
-      y = self.pos[node][1] + sign * self.dangling_size * np.sin(phi[i])
+      x = self.pos[node][0] + sign * size * np.cos(phi[i])
+      y = self.pos[node][1] + sign * size * np.sin(phi[i])
       ghost = "ghost{}".format(self.ghost_counter)
       self._add_node(ghost, x, y, name="", color="white", size=0)
       self.ghost_counter += 1
@@ -200,7 +236,7 @@ class PlotWrapper(object):
     x_coords = np.linspace(0.0, self.x_max, len(level) + 2)[1:-1]
     for i, node in enumerate(level):
       self._add_node(node, x_coords[i], y_coordinate, name=node.name,
-                     color=self.colormap[level_ind])
+                     color=self.colormap[level_ind], size=self.sizemap[level_ind])
       flag = True
       for edge in node.edges:
         if edge.is_dangling() and flag:
@@ -208,9 +244,10 @@ class PlotWrapper(object):
           # no matter how many dangling edges this node has
           flag = False
           if level_ind == 0:
-            self._add_dangling_edges(node)
+            self._add_dangling_edges(node, top=self.options["top_to_bottom"])
           elif level_ind == len(self.levels) - 1:
-            self._add_dangling_edges(node, top=False)
+            self._add_dangling_edges(node,
+                                     top=not self.options["top_to_bottom"])
           else:
             raise NotImplementedError(
                 "Only top or bottom nodes can have dangling edges.")
