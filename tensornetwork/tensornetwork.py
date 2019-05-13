@@ -965,7 +965,7 @@ class TensorNetwork:
     if edge.is_dangling():
       raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
     return self.contract_between(edge.node1, edge.node2)
-  
+
   def squeeze(self, edge: Edge) -> Node:
     """Squeezes a dangling edge with unit size.
 
