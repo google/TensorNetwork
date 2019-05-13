@@ -22,9 +22,8 @@ import tensorflow as tf
 import copy
 import numpy as np
 import time
-import tensornetwork.ncon_interface as ncon
-
-import misc_mera
+import tensornetwork as tn
+import experiments.MERA.misc_mera  as misc_mera
 from sys import stdout
 
 
@@ -57,7 +56,7 @@ def ascending_super_operator(hamAB, hamBA, w_isometry, v_isometry, unitary,
                 [4, 5, 10, 6], [1, 3, -4], [7, 6, -2]]
     indList4 = [[3, 6, 2, 5], [2, 1, -3], [3, 1, -1], [5, 4, -4], [6, 4, -2]]
 
-    hamBAout = ncon.ncon([
+    hamBAout = tn.ncon([
         hamAB, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
@@ -66,20 +65,20 @@ def ascending_super_operator(hamAB, hamBA, w_isometry, v_isometry, unitary,
     if refsym:
         hamBAout = hamBAout + tf.transpose(hamBAout, (1, 0, 3, 2))
     else:
-        hamBAout = hamBAout + ncon.ncon([
+        hamBAout = hamBAout + tn.ncon([
             hamAB, w_isometry,
             tf.conj(w_isometry), unitary,
             tf.conj(unitary), v_isometry,
             tf.conj(v_isometry)
         ], indList3)
 
-    hamBAout = hamBAout + ncon.ncon([
+    hamBAout = hamBAout + tn.ncon([
         hamBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
         tf.conj(v_isometry)
     ], indList2)
-    hamABout = ncon.ncon([
+    hamABout = tn.ncon([
         hamBA, v_isometry,
         tf.conj(v_isometry), w_isometry,
         tf.conj(w_isometry)
@@ -103,7 +102,7 @@ def descending_super_operator(rhoAB, rhoBA, w_isometry, v_isometry, unitary,
                 [7, -1, 8, 10], [-4, 6, 4], [-2, 10, 9]]
     indList4 = [[3, 6, 2, 5], [-3, 1, 2], [-1, 1, 3], [-4, 4, 5], [-2, 4, 6]]
 
-    rhoABout = 0.5 * ncon.ncon([
+    rhoABout = 0.5 * tn.ncon([
         rhoBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
@@ -113,21 +112,21 @@ def descending_super_operator(rhoAB, rhoBA, w_isometry, v_isometry, unitary,
     if refsym:
         rhoABout = rhoABout + tf.transpose(rhoABout, (1, 0, 3, 2))
     else:
-        rhoABout = rhoABout + 0.5 * ncon.ncon([
+        rhoABout = rhoABout + 0.5 * tn.ncon([
             rhoBA, w_isometry,
             tf.conj(w_isometry), unitary,
             tf.conj(unitary), v_isometry,
             tf.conj(v_isometry)
         ], indList3)
 
-    rhoBAout = 0.5 * ncon.ncon([
+    rhoBAout = 0.5 * tn.ncon([
         rhoBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
         tf.conj(v_isometry)
     ], indList2)
 
-    rhoBAout = rhoBAout + 0.5 * ncon.ncon([
+    rhoBAout = rhoBAout + 0.5 * tn.ncon([
         rhoAB, v_isometry,
         tf.conj(v_isometry), w_isometry,
         tf.conj(w_isometry)
@@ -146,19 +145,19 @@ def get_env_disentangler(hamAB, hamBA, rhoBA, w, v, u, refsym):
     indList3 = [[7, 8, -2, 10], [3, 4, 2, 9], [1, -3, 2], [1, 5, 3],
                 [-1, 7, 5, 6], [10, -4, 9], [8, 6, 4]]
 
-    uEnv = ncon.ncon(
+    uEnv = tn.ncon(
         [hamAB, rhoBA, w,
          tf.conj(w), tf.conj(u), v,
          tf.conj(v)], indList1)
     if refsym:
         uEnv = uEnv + tf.transpose(uEnv, (1, 0, 3, 2))
     else:
-        uEnv = uEnv + ncon.ncon(
+        uEnv = uEnv + tn.ncon(
             [hamAB, rhoBA, w,
              tf.conj(w), tf.conj(u), v,
              tf.conj(v)], indList3)
 
-    uEnv = uEnv + ncon.ncon(
+    uEnv = uEnv + tn.ncon(
         [hamBA, rhoBA, w,
          tf.conj(w), tf.conj(u), v,
          tf.conj(v)], indList2)
@@ -180,27 +179,27 @@ def get_env_w_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
                 [4, 5, 11, 6], [1, 2, 8], [7, 6, 9]]
     indList4 = [[3, 7, 2, -1], [5, 6, 4, -3], [2, 1, 4], [3, 1, 5], [7, -2, 6]]
 
-    wEnv = ncon.ncon([
+    wEnv = tn.ncon([
         hamAB, rhoBA,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
         tf.conj(v_isometry)
     ], indList1)
-    wEnv = wEnv + ncon.ncon([
+    wEnv = wEnv + tn.ncon([
         hamBA, rhoBA,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
         tf.conj(v_isometry)
     ], indList2)
 
-    wEnv = wEnv + ncon.ncon([
+    wEnv = wEnv + tn.ncon([
         hamAB, rhoBA,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary), v_isometry,
         tf.conj(v_isometry)
     ], indList3)
 
-    wEnv = wEnv + ncon.ncon(
+    wEnv = wEnv + tn.ncon(
         [hamBA, rhoAB, v_isometry,
          tf.conj(v_isometry),
          tf.conj(w_isometry)], indList4)
@@ -220,25 +219,25 @@ def get_env_v_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
                 [7, 11, 8, -2], [7, 9, 5, 6], [10, 6, 4]]
     indList4 = [[7, 5, -1, 4], [6, 3, -3, 2], [7, -2, 6], [4, 1, 2], [5, 1, 3]]
 
-    vEnv = ncon.ncon([
+    vEnv = tn.ncon([
         hamAB, rhoBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary),
         tf.conj(v_isometry)
     ], indList1)
-    vEnv = vEnv + ncon.ncon([
+    vEnv = vEnv + tn.ncon([
         hamBA, rhoBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary),
         tf.conj(v_isometry)
     ], indList2)
-    vEnv = vEnv + ncon.ncon([
+    vEnv = vEnv + tn.ncon([
         hamAB, rhoBA, w_isometry,
         tf.conj(w_isometry), unitary,
         tf.conj(unitary),
         tf.conj(v_isometry)
     ], indList3)
-    vEnv = vEnv + ncon.ncon(
+    vEnv = vEnv + tn.ncon(
         [hamBA, rhoAB,
          tf.conj(v_isometry), w_isometry,
          tf.conj(w_isometry)], indList4)
@@ -253,9 +252,9 @@ def steady_state_density_matrices(nsteps, rhoAB, rhoBA, w_isometry, v_isometry,
         rhoAB, rhoBA = descending_super_operator(rhoAB, rhoBA, w_isometry,
                                                  v_isometry, unitary, refsym)
         rhoAB = 1 / 2 * (rhoAB + tf.conj(tf.transpose(
-            rhoAB, (2, 3, 0, 1)))) / ncon.ncon([rhoAB], [[1, 2, 1, 2]])
+            rhoAB, (2, 3, 0, 1)))) / tn.ncon([rhoAB], [[1, 2, 1, 2]])
         rhoBA = 1 / 2 * (rhoBA + tf.conj(tf.transpose(
-            rhoBA, (2, 3, 0, 1)))) / ncon.ncon([rhoBA], [[1, 2, 1, 2]])
+            rhoBA, (2, 3, 0, 1)))) / tn.ncon([rhoBA], [[1, 2, 1, 2]])
         if refsym:
             rhoAB = 0.5 * rhoAB + 0.5 * tf.transpose(rhoAB, (1, 0, 3, 2))
             rhoBA = 0.5 * rhoBA + 0.5 * tf.transpose(rhoBA, (1, 0, 3, 2))
@@ -363,8 +362,8 @@ def optimize_mod_binary_mera(hamAB_0,
         if verbose > 0:
             if np.mod(k, 10) == 1:
                 Energies.append(
-                    (ncon.ncon([rhoAB[0], hamAB[0]],
-                               [[1, 2, 3, 4], [1, 2, 3, 4]]) + ncon.
+                    (tn.ncon([rhoAB[0], hamAB[0]],
+                               [[1, 2, 3, 4], [1, 2, 3, 4]]) + tn.
                      ncon([rhoBA[0], hamBA[0]], [[1, 2, 3, 4], [1, 2, 3, 4]])) /
                     4 + bias / 2)
                 stdout.write(
