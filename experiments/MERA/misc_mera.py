@@ -19,14 +19,14 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
-import tensornetwork.ncon_interface as ncon
+import tensornetwork as tn
 
 #@tf.contrib.eager.defun
 def trace(rho):
     dim = len(rho.shape) // 2
     inds = [n + 1 for n in range(dim)]
     inds = list(range(dim))
-    return ncon.ncon([rho], [inds + inds])
+    return tn.ncon([rho], [inds + inds])
 
 
 #@tf.contrib.eager.defun
@@ -41,7 +41,7 @@ def symmetrize(rho):
 #@tf.contrib.eager.defun
 def scalar_product(bottom, top):
     inds = list(range(len(top.shape)))
-    return ncon.ncon([tf.conj(bottom), top], [inds, inds])
+    return tn.ncon([tf.conj(bottom), top], [inds, inds])
 
 
 def pad_tensor(tensor, new_shape):
@@ -62,7 +62,7 @@ def u_update_svd(wIn):
     st, ut, vt = tf.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
-    return -tf.reshape(ncon.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
+    return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
 
 
 def u_update_svd_numpy(wIn):
@@ -70,7 +70,7 @@ def u_update_svd_numpy(wIn):
     ut, st, vt = np.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
-    return -tf.reshape(ncon.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
+    return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
 
 #@tf.contrib.eager.defun
@@ -78,14 +78,14 @@ def w_update_svd(wIn):
     shape = wIn.shape
     st, ut, vt = tf.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
-    return -tf.reshape(ncon.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
+    return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
 
 
 def w_update_svd_numpy(wIn):
     shape = wIn.shape
     ut, st, vt = np.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
-    return -tf.reshape(ncon.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
+    return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
 
 def skip_layer(isometry):

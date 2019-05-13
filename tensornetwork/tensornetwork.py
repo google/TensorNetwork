@@ -214,6 +214,10 @@ class Node:
     # Copy to prevent overwriting.
     return self.edges[:]
 
+  def get_all_nondangling(self):
+    """Return the set of nondangling edges connected to this node."""
+    return {edge for edge in self.edges if not edge.is_dangling()}
+
   def set_name(self, name):
     self.name = name
 
@@ -289,6 +293,7 @@ class Edge:
     self.axis1 = axis1
     self.node2 = node2
     self.axis2 = axis2
+    self._is_dangling = node2 is None
 
   def get_nodes(self) -> List[Optional[Node]]:
     """Get the nodes of the edge."""
@@ -327,19 +332,25 @@ class Edge:
 
   @property
   def node2(self) -> Optional[Node]:
-    return self._node2() if self._node2 else None  
+    if self._is_dangling:
+      return None
+    if self._node2() is None:
+      raise ValueError("node2 for edge '{}' no longer exists.".format(self))
+    return self._node2()
   
   @node1.setter
   def node1(self, node: Node) -> None:
     self._node1 = weakref.ref(node)
 
   @node2.setter
-  def node2(self, node: Node) -> None:
+  def node2(self, node: Optional[Node]) -> None:
     self._node2 = weakref.ref(node) if node else None
+    if node is None:
+      self._is_dangling = True
 
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
-    return self._node2 is None
+    return self._is_dangling
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
@@ -368,6 +379,7 @@ class TensorNetwork:
 
   def __init__(self) -> None:
     self.nodes_set = set()
+    self.edge_order = []
     # These increments are only used for generating names.
     self.node_increment = 0
     self.edge_increment = 0
@@ -396,6 +408,7 @@ class TensorNetwork:
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
+    self.edge_order += subnetwork.edge_order
 
   # TODO: Add pytypes once we figure out why it crashes.
   @classmethod
@@ -466,6 +479,7 @@ class TensorNetwork:
     new_edge = Edge(name, node1, axis1_num, node2, axis2_num)
     node1.add_edge(new_edge, axis1_num)
     node2.add_edge(new_edge, axis2_num)
+    self.edge_order.append(new_edge)
     return new_edge
 
   def disconnect(self, edge: Edge, dangling_edge_name_1: Optional[Text] = None,
@@ -494,6 +508,7 @@ class TensorNetwork:
     dangling_edge_2 = Edge(dangling_edge_name_2, node2, edge.axis2)
     node1.add_edge(dangling_edge_1, edge.axis1, True)
     node2.add_edge(dangling_edge_2, edge.axis2, True)
+    self.edge_order.remove(edge)
     return [dangling_edge_1, dangling_edge_2]
 
   def _remove_trace_edge(self, edge: Edge, new_node: Node) -> None:
@@ -706,6 +721,13 @@ class TensorNetwork:
         raise ValueError("This network is not fully contracted. "
                          "Edge '{}' has not been contracted.".format(e))
     return next(iter(self.nodes_set))
+
+  def get_all_nondangling(self):
+    """Return the set of all non-dangling edges."""
+    edges = set()
+    for node in self.nodes_set:
+      edges |= node.get_all_nondangling()
+    return edges
 
   def outer_product_final_nodes(self, edge_order: List[Edge]) -> Node:
     """Get the outer product of the final nodes.
@@ -930,6 +952,20 @@ class TensorNetwork:
                          "and allow_outer_product=False.".format(node1, node2))
     return self.contract(flat_edge, name)
 
+  def contract_parallel(self, edge: Edge) -> Node:
+    """Contract all edges parallel to this edge.
+
+    This method calls `contract_between` with the nodes connected by the edge.
+
+    Args:
+      edge: The edge to contract.
+    Returns:
+      The new node created after contraction.
+    """
+    if edge.is_dangling():
+      raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
+    return self.contract_between(edge.node1, edge.node2)
+
   def split_node(self,
                  node: Node,
                  left_edges: List[Edge],
@@ -1062,3 +1098,27 @@ class TensorNetwork:
                   edge, node, edge.axis1, edge.axis2, i))
     if check_connected:
       self.check_connected()
+
+  def __contains__(self, item):
+    if isinstance(item, Edge):
+      edge = item
+      try:
+        edge.node1
+        edge.node2
+      # If we raise a value error, that means the nodes have been garbage
+      # collected, and thus the edge no longer is in the network.
+      except ValueError:
+        return False
+      else:
+        edge_is_in_network = edge.node1 in self.nodes_set
+        edge_is_in_network &= edge in edge.node1.edges
+        if not edge.is_dangling():
+          edge_is_in_network &= edge.node2 in self.nodes_set
+          edge_is_in_network &= edge in edge.node2.edges
+        return edge_is_in_network
+    elif isinstance(item, Node):
+      return item in self.nodes_set
+    else:
+      raise TypeError("Type '{}' was unexpected. "
+                      "Only 'None' and 'Edge' types are allowed.".format(
+                          type(item)))

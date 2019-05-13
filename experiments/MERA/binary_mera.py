@@ -27,9 +27,9 @@ import copy
 import numpy as np
 import time
 import pickle
-import tensornetwork.ncon_interface as ncon
-import binary_mera_lib as bml
-import misc_mera
+import tensornetwork as tn
+import experiments.MERA.binary_mera_lib as bml
+import experiments.MERA.misc_mera as misc_mera
 from sys import stdout
 
 config = tf.ConfigProto()
@@ -326,7 +326,7 @@ def test_ascending_descending(chi=4, dtype=tf.float64):
     for p in range(len(wC)):
         ham[p + 1] = bml.ascending_super_operator(ham[p], wC[p], uC[p])
     energies = [
-        ncon.ncon([rho[p], ham[p]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
+        tn.ncon([rho[p], ham[p]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
         for p in range(len(rho))
     ]
     print('following numbers should all be 1/2')
