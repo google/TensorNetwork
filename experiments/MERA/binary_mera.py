@@ -121,6 +121,7 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     energies = []
     walltimes = []
     
+    data ={'profile' : {}, 'energies' : {}}
     
     for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
                                                  noises, opt_all_layers):
@@ -148,10 +149,15 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
             opt_all_layers=opt_all)
         energies.extend(es)
         walltimes.extend(times)
+        data['profile'][chi] = walltimes
+        data['energies'][chi] = energies
         init = False
         if filename:
             with open(filename + '.pickle', 'wb') as f:
                 pickle.dump([wC, uC], f)
+            with open('energies_walltimes_' + filename + '.pickle', 'wb') as f:
+                pickle.dump(data, f)
+                
     return wC, uC, walltimes, energies
 
 
