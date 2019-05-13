@@ -739,6 +739,36 @@ class NetworkTest(tf.test.TestCase):
     self.assertAllClose(f(x, tf.convert_to_tensor(2)), tf.ones((2,)) * 12)
     self.assertAllClose(f(x, tf.convert_to_tensor(3)), tf.ones((3,)) * 12)
 
+  def test_squeeze(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones([3, 1, 2]))
+    net.squeeze(a[1])
+    net.check_correct()
+    self.assertAllClose(a.get_tensor(), np.ones([3, 2]))
+    b = net.add_node(np.ones([2, 1, 2, 4]))
+    net.connect(a[1], b[0])
+    net.squeeze(b[1])
+    net.check_correct()
+    self.assertAllClose(a.get_tensor(), np.ones([3, 2]))
+    self.assertAllClose(b.get_tensor(), np.ones([2, 2, 4]))
+
+  def test_squeeze_with_trace_edges(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones([3, 2, 1, 2]))
+    e = net.connect(a[1], a[3])
+    net.squeeze(a[2])
+    net.check_correct()
+    a = net.contract(e)
+    self.assertAllClose(a.get_tensor(), 2 * np.ones(3))
+
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones([3, 1, 2, 2]))
+    e = net.connect(a[2], a[3])
+    net.squeeze(a[1])
+    net.check_correct()
+    a = net.contract(e)
+    self.assertAllClose(a.get_tensor(), 2 * np.ones(3))
+
   def test_split_node(self):
     net = tensornetwork.TensorNetwork()
     a = net.add_node(tf.zeros((2, 3, 4, 5, 6)))
