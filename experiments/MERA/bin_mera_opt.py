@@ -89,9 +89,9 @@ def optimize_binary_mera(chis, numiters, noises, opt_all_layers, embeddings, dty
             filename=filename)
     os.chdir(rootdir)
 
-def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_layers, embeddings, nsteps_ss, use_gpu=False):
+def load_and_optimize_binary_mera(loadname, filename, chis, numiters, noises, opt_all_layers, embeddings, nsteps_ss, use_gpu=False):
     
-    with open(filename, 'rb') as f:
+    with open(loadname, 'rb') as f:
         wC, uC = pickle.load(f)
     
     fname = 'binary_mera_optimization'
@@ -116,10 +116,10 @@ def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_laye
         name = 'CPU'
  
     dtype=wC[-1].dtype
-    num_trans_layers = len(chis)
-    filename = str(datetime.date.today()
-                  ) + 'resumed_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}_nss{3}'.format(
-                      NUM_THREADS, max(chis), num_trans_layers + len(wC), nsteps_ss)
+    num_trans_layers = len(chis) 
+    filename = str(datetime.date.today()) + filename \
+               + 'resumed_bin_mera_opt_Nthreads{0}_chimax{1}_numtrans{2}_nss{3}'.format(
+                   NUM_THREADS, max(chis), num_trans_layers + len(wC), nsteps_ss)
     with tf.device(device):
         wC, uC, _, _ = bm.run_binary_mera_optimization_TFI(
             chis=chis,
@@ -136,43 +136,84 @@ def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_laye
             uC=uC,
             filename=filename)
     os.chdir(rootdir)
+
+
+def get_scaling_dims(loadname, savename, use_gpu=False):
+    
+    with open(loadname, 'rb') as f:
+        wC, uC = pickle.load(f)
+    
+    fname = 'binary_mera_optimization'
+    rootdir = os.getcwd()    
+    if not os.path.exists(fname):
+        os.mkdir(fname)
+    os.chdir(fname)
+    DEVICES = tf.contrib.eager.list_devices()
+    print("Available devices:")
+    for i, device in enumerate(DEVICES):
+        print("%d) %s" % (i, device))
+    CPU = '/device:CPU:0'
+    GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
+    if use_gpu:
+        specified_device_type = GPU
+        name = 'GPU'
+    else:
+        specified_device_type = CPU
+        name = 'CPU'
+ 
+    filename = str(datetime.date.today()) + savename
+
+    scaling_dims = {}
+    with tf.device(device):
+        for n in reversed(range(len(wC))):
+            if not misc_mera.all_same_chi(wC[n]):
+                continue
+            scaling_dims[n] = bml.get_scaling_dimensions(wC[n], uC[n], k=10)
+            print(scaling_dims[n])
+            with open('scdims_chi17_9layers_Nthreads4_nss14.pickle', 'wb') as f:
+                pickle.dump(scaling_dims, f)
     
 if __name__ == "__main__":
-    start_fresh=False
-    if start_fresh:
-        num_trans_layers = 8
-        chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
-        numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
-        ] + [500, 400, 300, 200, 200, 800]
-        noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
-        opt_all_layers = [True] * len(chis)
-        embeddings = ['a'] * num_trans_layers + ['p'
-        ] * (len(chis) - num_trans_layers)
-        dtype = tf.float64
-        nsteps_ss = 12
-        optimize_binary_mera(chis=chis,
-                             numiters=numiters,
-                             noises=noises,
-                             opt_all_layers=opt_all_layers,
-                             embeddings=embeddings,
-                             dtype=dtype,
-                             nsteps_ss=nsteps_ss,
-                             use_gpu=False)
-    else:
-        num_add_layers = 2
-        chis = [17, 18] 
-        numiters = [100] * num_add_layers
-        noises = [0] * num_add_layers
-        opt_all_layers = [True]  * num_add_layers
-        embeddings = ['p', 'p'] * len(chis)
-        nsteps_ss = 14
-        filename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-07_bin_mera_opt_Nthreads4_chimax16_numtrans8.pickle'
-        load_and_optimize_binary_mera(filename,
-                                      chis=chis,
-                                      numiters=numiters,
-                                      noises=noises,
-                                      opt_all_layers=opt_all_layers,
-                                      embeddings=embeddings,
-                                      nsteps_ss=nsteps_ss,
-                                      use_gpu=True)
+    loadname = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14.pickle'
+    get_scaling_dims(loadname=loadname, savename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14',use_gpu=True)
+    # start_fresh=False
+    # if start_fresh:
+    #     num_trans_layers = 8
+    #     chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
+    #     numiters = [1000, 1000, 500, 500, 200, 200, 200, 200
+    #     ] + [500, 400, 300, 200, 200, 800]
+    #     noises = [1E-6] * num_trans_layers + [1E-7, 1E-8, 1E-9, 1E-10, 1E-11, 0.0]
+    #     opt_all_layers = [True] * len(chis)
+    #     embeddings = ['a'] * num_trans_layers + ['p'
+    #     ] * (len(chis) - num_trans_layers)
+    #     dtype = tf.float64
+    #     nsteps_ss = 12
+    #     optimize_binary_mera(chis=chis,
+    #                          numiters=numiters,
+    #                          noises=noises,
+    #                          opt_all_layers=opt_all_layers,
+    #                          embeddings=embeddings,
+    #                          dtype=dtype,
+    #                          nsteps_ss=nsteps_ss,
+    #                          use_gpu=False)
+    # else:
+
+    #     chis = [18, 19, 20]
+    #     num_add_layers = len(chis)        
+    #     numiters = [40, 40, 40] 
+    #     noises = [0] * len(chis)
+    #     opt_all_layers = [True]  * len(chis)
+    #     embeddings = ['p'] * len(chis)
+    #     nsteps_ss = 14
+    #     loadname = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14.pickle'
+    #     #filename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-07_bin_mera_opt_Nthreads4_chimax16_numtrans8.pickle'
+    #     filename = 'resumed_chi_17'
+    #     load_and_optimize_binary_mera(loadname, filename,
+    #                                   chis=chis,
+    #                                   numiters=numiters,
+    #                                   noises=noises,
+    #                                   opt_all_layers=opt_all_layers,
+    #                                   embeddings=embeddings,
+    #                                   nsteps_ss=nsteps_ss,
+    #                                   use_gpu=True)
 
