@@ -117,13 +117,42 @@ def ncon_network(tensors, network, con_order=None, out_order=None):
     tn, edges = _build_network(tensors, network)
 
     if con_order is None:
-        con_order = sorted((k for k in edges.keys() if k >= 0))
+        try:
+            con_order = sorted((k for k in edges.keys() if k >= 0))
+        except TypeError:
+            raise ValueError(
+                "Non-integer edge label(s): {}".format(list(edges.keys())))
+    else:
+        if len(con_order) != len(set(con_order)):
+            raise ValueError(
+                "Duplicate labels in con_order: {}".format(con_order)
+            )
 
     if out_order is None:
-        out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+        try:
+            out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+        except TypeError:
+            raise ValueError(
+                "Non-integer edge label(s): {}".format(list(edges.keys())))
+    else:
+        if len(out_order) != len(set(out_order)):
+            raise ValueError(
+                "Duplicate labels in out_order: {}".format(out_order)
+            )
 
-    con_edges = [edges[k] for k in con_order]
-    out_edges = [edges[k] for k in out_order]
+    try:
+        con_edges = [edges[k] for k in con_order]
+        out_edges = [edges[k] for k in out_order]
+    except KeyError as err:
+        raise ValueError(
+            "Order contained an unknown edge label: {}".format(err.args[0]))
+
+    if len(con_edges) + len(out_edges) != len(edges):
+        raise ValueError(
+            "Edges {} were not included in the contraction and output "
+            "ordering.".format(
+                list(set(edges.keys()) - set(con_order) - set(out_order)))
+            )
 
     for e in con_edges:
         if e.is_dangling():
