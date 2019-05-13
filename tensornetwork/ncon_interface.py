@@ -16,10 +16,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from tensornetwork.tensornetwork import TensorNetwork
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
+import numpy as np
+import tensorflow as tf
+from tensornetwork import tensornetwork
 
 
-def ncon(tensors, network, con_order=None, out_order=None):
+def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+         network: Sequence[Sequence],
+         con_order: Optional[Sequence] = None,
+         out_order: Optional[Sequence] = None) -> tf.Tensor:
   r"""Contracts a list of tensors according to a tensor network specification.
 
     The network is provided as a list of lists, one for each
@@ -83,7 +89,14 @@ def ncon(tensors, network, con_order=None, out_order=None):
   return res_node.tensor
 
 
-def ncon_network(tensors, network, con_order=None, out_order=None):
+def ncon_network(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+         network: Sequence[Sequence],
+         con_order: Optional[Sequence] = None,
+         out_order: Optional[Sequence] = None
+         ) -> Tuple[
+                tensornetwork.TensorNetwork,
+                List[tensornetwork.Edge],
+                List[tensornetwork.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
@@ -162,8 +175,11 @@ def ncon_network(tensors, network, con_order=None, out_order=None):
   return tn, con_edges, out_edges
 
 
-def _build_network(tensors, network):
-  tn = TensorNetwork()
+def _build_network(
+    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    network: Sequence[Sequence]
+    ) -> Tuple[tensornetwork.TensorNetwork, Dict[Any, tensornetwork.Edge]]:
+  tn = tensornetwork.TensorNetwork()
   nodes = []
   edges = {}
   for (i, (tensor, edge_lbls)) in enumerate(zip(tensors, network)):
