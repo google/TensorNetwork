@@ -134,9 +134,8 @@ def load_and_optimize_binary_mera(loadname, filename, chis, numiters, noises, op
             uC=uC,
             filename=filename)
     os.chdir(rootdir)
-
-
 def get_scaling_dims(loadname, savename, use_gpu=False):
+    
     with open(loadname, 'rb') as f:
         wC, uC = pickle.load(f)
     
@@ -154,6 +153,22 @@ def get_scaling_dims(loadname, savename, use_gpu=False):
     if use_gpu:
         specified_device_type = GPU
         name = 'GPU'
+    else:
+        specified_device_type = CPU
+        name = 'CPU'
+ 
+    filename = str(datetime.date.today()) + savename
+
+    scaling_dims = {}
+    with tf.device(device):
+        for n in reversed(range(len(wC))):
+            if not misc_mera.all_same_chi(wC[n]):
+                continue
+            scaling_dims[n] = bml.get_scaling_dimensions(wC[n], uC[n], k=10)
+            print(scaling_dims[n])
+            with open('scdims_chi17_9layers_Nthreads4_nss14.pickle', 'wb') as f:
+                pickle.dump(scaling_dims, f)
+
 if __name__ == "__main__":
     #loadname = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14.pickle'
     #get_scaling_dims(loadname=loadname, savename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14',use_gpu=True)
