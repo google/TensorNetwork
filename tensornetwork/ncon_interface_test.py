@@ -72,7 +72,7 @@ class NconTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       ncon_interface.ncon([a,a], [(0,1),(1,'t')])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a,a], [0,(0,1)])
+      ncon_interface.ncon([a,a], [(0,),(0,1)])
 
   def test_invalid_order(self):
     a = tf.ones((2, 2))
@@ -112,9 +112,9 @@ class NconTest(tf.test.TestCase):
   def test_outer_product(self):
     a = np.array([1,2,3])
     b = np.array([1,2])
-    res = ncon_interface.ncon([a,b], [-1, -2])
+    res = ncon_interface.ncon([a,b], [(-1,), (-2,)])
     self.assertAllClose(res, np.kron(a,b).reshape((3,2)))
-    res = ncon_interface.ncon([a,a,a,a], [0, 0, 1, 1])
+    res = ncon_interface.ncon([a,a,a,a], [(0,), (0,), (1,), (1,)])
     self.assertEqual(res.numpy(), 196)
 
   def test_trace(self):

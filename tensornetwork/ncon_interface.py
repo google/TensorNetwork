@@ -176,12 +176,6 @@ def _build_network(tensors, network):
     nodes = []
     edges = {}
     for (i, (tensor, edge_lbls)) in enumerate(zip(tensors, network)):
-        # Allow single indices to be passed as scalars.
-        try:
-            edge_lbls = list(edge_lbls)
-        except TypeError:
-            edge_lbls = [edge_lbls]
-
         if len(tensor.shape) != len(edge_lbls):
             raise ValueError(
                 "Incorrect number of edge labels specified tensor {}".format(i)
