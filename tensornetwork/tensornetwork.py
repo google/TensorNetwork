@@ -965,6 +965,44 @@ class TensorNetwork:
     if edge.is_dangling():
       raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
     return self.contract_between(edge.node1, edge.node2)
+  
+  def squeeze(self, edge: Edge) -> Node:
+    """Squeezes a dangling edge with unit size.
+
+    Args:
+      edge: Edge
+
+    Returns:
+      node: The node that had the squeezed edge.
+
+    Raises:
+      ValueError: If the given edge is not dangling.
+      ValueError: If the given edge has non-unit size.
+    """
+    if not edge.is_dangling():
+      raise ValueError(
+          "Attempted to squeeze non-dangling edge '{}'.".format(edge))
+
+    node = edge.node1
+    axis = edge.axis1
+    if node.get_dimension(axis) > 1:
+      raise ValueError(
+          "Attempted to squeeze edge '{}' with non-unit size.".format(edge))
+    node.tensor = tf.squeeze(node.tensor, axis=axis)
+    node.edges.pop(axis)
+    trace_edges = set()
+    for e in node.edges[axis:]:
+      if e.node1 is node:
+        if e.node2 is node:
+          if e not in trace_edges:
+            e.axis1 -= int(e.axis1 > axis)
+            e.axis2 -= int(e.axis2 > axis)
+            trace_edges.add(e)
+        else:
+          e.axis1 -= 1
+      else:
+        e.axis2 -= 1
+    return node
 
   def split_node(self,
                  node: Node,
