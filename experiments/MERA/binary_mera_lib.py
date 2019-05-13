@@ -19,8 +19,8 @@ import copy
 import numpy as np
 import time
 import pickle
-import tensornetwork.ncon_interface as ncon
-import experiments.MERA.misc_mera
+import tensornetwork as tn
+import experiments.MERA.misc_mera as misc_mera
 from sys import stdout
 import scipy as sp
 from scipy.sparse.linalg import eigs, LinearOperator
@@ -171,7 +171,7 @@ def left_ascending_super_operator(ham, isometry, unitary):
 
     inds_right_ham = [3, 4, 8, 1, 2, 6]
 
-    hright = ncon.ncon([
+    hright = tn.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -201,7 +201,7 @@ def right_ascending_super_operator(ham, isometry, unitary):
     inds_left_iso_r_c = [17, 15, -3]
     inds_left_ham = [9, 3, 4, 6, 1, 2]
 
-    hleft = ncon.ncon([
+    hleft = tn.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -229,7 +229,7 @@ def left_descending_super_operator(rho, isometry, unitary):
     inds_left_iso_c_c = [17, 14, 15]
     inds_left_iso_r_c = [13, 4, 6]
     inds_left_rho = [2, 7, 5, 3, 15, 6]
-    rho = ncon.ncon([
+    rho = tn.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -260,7 +260,7 @@ def right_descending_super_operator(rho, isometry, unitary):
     inds_right_iso_r_c = [15, 4, 6]
 
     inds_right_rho = [2, 7, 5, 3, 12, 6]
-    rho = ncon.ncon([
+    rho = tn.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -282,7 +282,7 @@ def descending_super_operator(rho, isometry, unitary):
     rho_2 = left_descending_super_operator(rho, isometry, unitary)
     rho = 0.5 * (rho_1 + rho_2)
     rho = misc_mera.symmetrize(rho)
-    rho = rho / ncon.ncon([rho], [[1, 2, 3, 1, 2, 3]])
+    rho = rho / tn.ncon([rho], [[1, 2, 3, 1, 2, 3]])
     return rho
 
 
@@ -300,7 +300,7 @@ def get_env_disentangler_1(ham, rho, isometry, unitary):
     inds_1_ur_c = [4, 7, 5, 10]
     inds_1_ham = [1, 2, 4, -1, -2, 6]
 
-    env_1 = ncon.ncon([
+    env_1 = tn.ncon([
         rho, isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -328,7 +328,7 @@ def get_env_disentangler_2(ham, rho, isometry, unitary):
     inds_2_ur_c = [3, 4, 8, 7]
     inds_2_ham = [9, 3, 4, -2, 1, 2]
 
-    env_2 = ncon.ncon([
+    env_2 = tn.ncon([
         rho, isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -356,7 +356,7 @@ def get_env_disentangler_3(ham, rho, isometry, unitary):
     inds_3_ur_c = [9, -2, 10, 15]
     inds_3_ham = [3, 4, 9, 1, 2, -1]
 
-    env_3 = ncon.ncon([
+    env_3 = tn.ncon([
         rho, isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -384,7 +384,7 @@ def get_env_disentangler_4(ham, rho, isometry, unitary):
     inds_4_ur_c = [1, 2, 3, 19]
     inds_4_ham = [4, 1, 2, 7, -1, -2]
 
-    env_4 = ncon.ncon([
+    env_4 = tn.ncon([
         rho, isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -425,7 +425,7 @@ def get_env_isometry_1(ham, rho, isometry, unitary):
     inds_1_ham = [3, 4, 8, 1, 2, 7]
     inds_1_rho = [-3, 15, 16, 19, 17, 18]
 
-    env_1 = ncon.ncon([
+    env_1 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -457,7 +457,7 @@ def get_env_isometry_2(ham, rho, isometry, unitary):
     inds_2_ham = [17, 3, 4, 15, 1, 2]
     inds_2_rho = [-3, 9, 10, 20, 13, 11]
 
-    env_2 = ncon.ncon([
+    env_2 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -488,7 +488,7 @@ def get_env_isometry_3(ham, rho, isometry, unitary):
 
     inds_3_ham = [3, 4, 12, 1, 2, 18]
     inds_3_rho = [9, -3, 16, 10, 11, 15]
-    env_3 = ncon.ncon([
+    env_3 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -520,7 +520,7 @@ def get_env_isometry_4(ham, rho, isometry, unitary):
     inds_4_ham = [12, 3, 4, 15, 1, 2]
     inds_4_rho = [19, -3, 9, 20, 10, 11]
 
-    env_4 = ncon.ncon([
+    env_4 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -553,7 +553,7 @@ def get_env_isometry_5(ham, rho, isometry, unitary):
     inds_5_ham = [3, 4, 12, 1, 2, 16]
     inds_5_rho = [9, 20, -3, 10, 11, 15]
 
-    env_5 = ncon.ncon([
+    env_5 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -585,7 +585,7 @@ def get_env_isometry_6(ham, rho, isometry, unitary):
     inds_6_ham = [9, 3, 4, 7, 1, 2]
     inds_6_rho = [15, 16, -3, 17, 18, 19]
 
-    env_6 = ncon.ncon([
+    env_6 = tn.ncon([
         isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -632,7 +632,7 @@ def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
             stdout.flush()
         rho_new = descending_super_operator(rho, isometry, unitary)
         rho_new = misc_mera.symmetrize(rho_new)
-        rho_new = rho_new / ncon.ncon([rho_new], [[1, 2, 3, 1, 2, 3]])
+        rho_new = rho_new / tn.ncon([rho_new], [[1, 2, 3, 1, 2, 3]])
         rho = rho_new
     return rho
 
@@ -819,9 +819,9 @@ def initialize_TFI_hams(dtype=tf.float64):
     sX = np.array([[0, 1], [1, 0]]).astype(dtype.as_numpy_dtype)
     sZ = np.array([[1, 0], [0, -1]]).astype(dtype.as_numpy_dtype)
     eye = np.eye(2).astype(dtype.as_numpy_dtype)
-    ham = ncon.ncon([sX, sX, eye],[[-4, -1], [-5, -2], [-6, -3]])+\
-        ncon.ncon([sZ, eye, eye],[[-4, -1], [-5, -2], [-6, -3]])/2+\
-        ncon.ncon([eye, sZ, eye],[[-4, -1], [-5, -2], [-6, -3]])/2
+    ham = tn.ncon([sX, sX, eye],[[-4, -1], [-5, -2], [-6, -3]])+\
+        tn.ncon([sZ, eye, eye],[[-4, -1], [-5, -2], [-6, -3]])/2+\
+        tn.ncon([eye, sZ, eye],[[-4, -1], [-5, -2], [-6, -3]])/2
     return ham
 
 
@@ -916,9 +916,9 @@ def optimize_binary_mera(ham_0,
 
         if verbose > 0:
             if np.mod(k, 10) == 1:
-                Z = ncon.ncon([rho[0]], [[0, 1, 2, 0, 1, 2]])
+                Z = tn.ncon([rho[0]], [[0, 1, 2, 0, 1, 2]])
                 Energies.append(
-                    ((ncon.ncon([rho[0], ham[0]], [[1, 2, 3, 4, 5, 6],
+                    ((tn.ncon([rho[0], ham[0]], [[1, 2, 3, 4, 5, 6],
                                                    [1, 2, 3, 4, 5, 6]])) + bias)
                     / Z)
                 stdout.write(
@@ -1059,9 +1059,9 @@ def optimize_binary_mera_scale_invariant(ham_0,
                 rho_temp = descending_super_operator(rho_temp, wC[p], uC[p])
 
             if np.mod(k, 10) == 1:
-                Z = ncon.ncon([rho_temp], [[0, 1, 2, 0, 1, 2]])
+                Z = tn.ncon([rho_temp], [[0, 1, 2, 0, 1, 2]])
                 Energies.append((
-                    (ncon.ncon([rho_temp, ham_0], [[1, 2, 3, 4, 5, 6],
+                    (tn.ncon([rho_temp, ham_0], [[1, 2, 3, 4, 5, 6],
                                                    [1, 2, 3, 4, 5, 6]])) + bias)
                                 / Z)
                 stdout.write(

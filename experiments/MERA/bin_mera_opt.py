@@ -137,7 +137,7 @@ def load_and_optimize_binary_mera(filename, chis, numiters, noises, opt_all_laye
     os.chdir(rootdir)
     
 if __name__ == "__main__":
-    start_fresh=False
+    start_fresh=True
     if start_fresh:
         num_trans_layers = 8
         chis = [4] * num_trans_layers + [6, 8, 10, 12, 14, 16]
