@@ -28,8 +28,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import pickle
-import tensornetwork.ncon_interface as ncon
-import experiments.MERA.misc_mera
+import experiments.MERA.misc_mera as misc_mera
 import experiments.MERA.modified_binary_mera_lib as mbml
 from sys import stdout
 
@@ -253,7 +252,7 @@ def run_optimization_benchmark(filename,
     walltimes = {}
     with tf.device(device):
         print('running optimization benchmark')
-        print(' ###########################   hello')
+        print(' ###########################')
         energies, runtimes, wC, vC, uC = run_mod_binary_mera_optimization_TFI(
             chis=chis,
             niters=numiters,
