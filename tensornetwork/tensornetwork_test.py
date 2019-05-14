@@ -762,12 +762,24 @@ class NetworkTest(tf.test.TestCase):
     self.assertAllClose(a.get_tensor(), 2 * np.ones(3))
 
     net = tensornetwork.TensorNetwork()
-    a = net.add_node(np.ones([3, 1, 2, 2]))
-    e = net.connect(a[2], a[3])
+    a = net.add_node(np.ones([3, 1, 2, 1, 2, 1]))
+    e = net.connect(a[2], a[4])
+    net.connect(a[3], a[5])
+    net.squeeze(a[3])
     net.squeeze(a[1])
     net.check_correct()
     a = net.contract(e)
     self.assertAllClose(a.get_tensor(), 2 * np.ones(3))
+
+  def test_squeeze_nondangling(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones([3, 1, 2]))
+    b = net.add_node(np.ones([2, 1, 2, 4]))
+    e = net.connect(a[1], b[1])
+    net.squeeze(e)
+    net.check_correct(check_connected=False)
+    self.assertAllClose(a.get_tensor(), np.ones([3, 2]))
+    self.assertAllClose(b.get_tensor(), np.ones([2, 2, 4]))
 
   def test_split_node(self):
     net = tensornetwork.TensorNetwork()
