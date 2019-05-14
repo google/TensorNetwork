@@ -6,7 +6,7 @@ A tensor network wrapper for TensorFlow.
 
 For an overview of tensor networks please see the following: 
 
-- [Nice artile with pictures](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
+- [Nice article with pictures](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
 
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
 
@@ -143,6 +143,6 @@ print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
 
 ## Disclaimer
-This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production enviornment yet.
+This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production environment yet.
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
