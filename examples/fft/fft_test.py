@@ -1,5 +1,5 @@
 # python3
-"""Tests for google3.googlex.rolando.tensornetwork.util."""
+"""Tests for fft."""
 
 from __future__ import absolute_import
 from __future__ import division
