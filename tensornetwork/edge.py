@@ -23,7 +23,7 @@ import numpy as np
 import tensorflow as tf
 import weakref
 from tensornetwork import decompositions
-import Node
+from tensornetwork import node
 
 
 class Edge:
