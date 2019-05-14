@@ -20,7 +20,7 @@ from __future__ import print_function
 import tensorflow as tf
 tf.enable_v2_behavior()
 
-import ttn_1d_uniform as ttn
+from experiments.tree_tensor_network import ttn_1d_uniform
 
 
 if __name__ == "__main__":
@@ -39,10 +39,10 @@ if __name__ == "__main__":
     print("System size:", 2**num_layers)
     print("Bond dimensions:", Ds)
 
-    H = ttn.get_ham_ising(dtype)
-    isos_012 = ttn.random_tree_tn_uniform(Ds, dtype, top_rank=1)
+    H = ttn_1d_uniform.get_ham_ising(dtype)
+    isos_012 = ttn_1d_uniform.random_tree_tn_uniform(Ds, dtype, top_rank=1)
 
-    isos_012 = ttn.opt_tree_energy(
+    isos_012 = ttn_1d_uniform.opt_tree_energy(
         isos_012,
         H,
         num_sweeps,

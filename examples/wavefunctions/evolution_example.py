@@ -20,7 +20,7 @@ from __future__ import print_function
 import tensorflow as tf
 tf.enable_v2_behavior()
 
-import wavefunctions
+from examples.wavefunctions import wavefunctions
 
 
 def ising_hamiltonian(N, dtype):

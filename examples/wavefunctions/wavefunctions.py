@@ -22,7 +22,7 @@ import sys
 import tensorflow as tf
 
 import tensornetwork
-from trotter import trotter_prepare_gates
+from examples.wavefunctions.trotter import trotter_prepare_gates
 
 
 def inner(psi1, psi2):
