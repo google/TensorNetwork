@@ -18,7 +18,7 @@ pip3 install tensornetwork
 
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
-importing tensorflow) but should also work with eager mode 
+importing TensorFlow) but should also work with eager mode 
 (`tf.enable_eager_execution()`). The actual library does work 
 under graph mode, but documentation is limited.
 
@@ -49,7 +49,7 @@ print(final_node.get_tensor().numpy()) # Should print 10.0
 ```
 
 ## Optimized Contractions.
-Usually, it is more computationally effective to flatten parallel edges before contracting them inorder to avoid trace edges.
+Usually, it is more computationally effective to flatten parallel edges before contracting them in order to avoid trace edges.
 ```python
 net = tensornetwork.TensorNetwork()
 a = net.add_node(tf.ones((2, 2, 2)))
@@ -62,7 +62,7 @@ e3 = net.connect(a[2], b[2])
 flattened_edge = net.flatten_edges([e1, e2, e3])
 print(net.contract(flattned_edge).get_tensor().numpy())
 ```
-We also have `contract_between` and `contract_parallel` for your convience. 
+We also have `contract_between` and `contract_parallel` for your convenience. 
 
 ```python
 # Contract all of the edges between a and b.
@@ -153,6 +153,6 @@ python -m examples.wavefunctions.evolution_example
 from the root directory.
 
 ## Disclaimer
-This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production enviornment yet.
+This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production environment yet.
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
