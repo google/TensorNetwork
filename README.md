@@ -143,6 +143,6 @@ print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
 
 ## Disclaimer
-This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production enviornment yet.
+This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production environment yet.
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
