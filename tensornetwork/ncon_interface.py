@@ -11,17 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """NCON interface to TensorNetwork."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from tensornetwork.tensornetwork import TensorNetwork
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
+import numpy as np
+import tensorflow as tf
+from tensornetwork import tensornetwork
 
 
-def ncon(tensors, network, con_order=None, out_order=None):
-    r"""Contracts a list of tensors according to a tensor network specification.
+def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+         network: Sequence[Sequence],
+         con_order: Optional[Sequence] = None,
+         out_order: Optional[Sequence] = None) -> tf.Tensor:
+  r"""Contracts a list of tensors according to a tensor network specification.
 
     The network is provided as a list of lists, one for each
     tensor, specifying labels for the edges connected to that tensor.
@@ -57,36 +62,42 @@ def ncon(tensors, network, con_order=None, out_order=None):
     Returns:
       A `Tensor` resulting from the contraction of the tensor network.
     """
-    tn, con_edges, out_edges = ncon_network(
-        tensors, network, con_order=con_order, out_order=out_order)
+  tn, con_edges, out_edges = ncon_network(
+      tensors, network, con_order=con_order, out_order=out_order)
 
-    # Contract assuming all edges connecting a given pair of nodes are adjacent
-    # in con_order. If this is not the case, the contraction is sub-optimal
-    # so we throw an exception.
-    prev_nodes = []
-    while len(con_edges) > 0:
-        e = con_edges.pop(0)  # pop so that older nodes can be deallocated
-        nodes = e.get_nodes()
+  # Contract assuming all edges connecting a given pair of nodes are adjacent
+  # in con_order. If this is not the case, the contraction is sub-optimal
+  # so we throw an exception.
+  prev_nodes = []
+  while len(con_edges) > 0:
+    e = con_edges.pop(0)  # pop so that older nodes can be deallocated
+    nodes = e.get_nodes()
 
-        nodes_set = set(nodes)
-        if nodes_set != set(prev_nodes):
-            if not nodes_set.issubset(tn.nodes_set):
-                # the node pair was already contracted
-                raise ValueError(
-                    "Edge '{}' is not adjacent to other edges connecting "
-                    "'{}' and '{}' in the contraction order.".format(
-                        e, nodes[0], nodes[1]))
-            tn.contract_between(*nodes, name="con({},{})".format(*nodes))
-            prev_nodes = nodes
+    nodes_set = set(nodes)
+    if nodes_set != set(prev_nodes):
+      if not nodes_set.issubset(tn.nodes_set):
+        # the node pair was already contracted
+        raise ValueError("Edge '{}' is not adjacent to other edges connecting "
+                         "'{}' and '{}' in the contraction order.".format(
+                             e, nodes[0], nodes[1]))
+      tn.contract_between(*nodes, name="con({},{})".format(*nodes))
+      prev_nodes = nodes
 
-    # TODO: More efficient ordering of products based on out_edges
-    res_node = tn.outer_product_final_nodes(out_edges)
+  # TODO: More efficient ordering of products based on out_edges
+  res_node = tn.outer_product_final_nodes(out_edges)
 
-    return res_node.tensor
+  return res_node.tensor
 
 
-def ncon_network(tensors, network, con_order=None, out_order=None):
-    r"""Creates a TensorNetwork from a list of tensors according to `network`.
+def ncon_network(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+         network: Sequence[Sequence],
+         con_order: Optional[Sequence] = None,
+         out_order: Optional[Sequence] = None
+         ) -> Tuple[
+                tensornetwork.TensorNetwork,
+                List[tensornetwork.Edge],
+                List[tensornetwork.Edge]]:
+  r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
     tensor, specifying labels for the edges connected to that tensor.
@@ -111,60 +122,81 @@ def ncon_network(tensors, network, con_order=None, out_order=None):
       con_edges: List of internal `Edge` objects in contraction order.
       out_edges: List of dangling `Edge` objects in output order.
     """
-    if len(tensors) != len(network):
-        raise ValueError('len(tensors) != len(network)')
+  if len(tensors) != len(network):
+    raise ValueError('len(tensors) != len(network)')
 
-    tn, edges = _build_network(tensors, network)
+  tn, edges = _build_network(tensors, network)
 
-    if con_order is None:
-        con_order = sorted((k for k in edges.keys() if k >= 0))
+  if con_order is None:
+    try:
+      con_order = sorted((k for k in edges.keys() if k >= 0))
+    except TypeError:
+      raise ValueError("Non-integer edge label(s): {}".format(
+          list(edges.keys())))
+  else:
+    if len(con_order) != len(set(con_order)):
+      raise ValueError("Duplicate labels in con_order: {}".format(con_order))
 
-    if out_order is None:
-        out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+  if out_order is None:
+    try:
+      out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+    except TypeError:
+      raise ValueError("Non-integer edge label(s): {}".format(
+          list(edges.keys())))
+  else:
+    if len(out_order) != len(set(out_order)):
+      raise ValueError("Duplicate labels in out_order: {}".format(out_order))
 
+  try:
     con_edges = [edges[k] for k in con_order]
     out_edges = [edges[k] for k in out_order]
+  except KeyError as err:
+    raise ValueError("Order contained an unknown edge label: {}".format(
+        err.args[0]))
 
-    for e in con_edges:
-        if e.is_dangling():
-            raise ValueError(
-                "Contraction edge {} appears only once in the network.".format(
-                    str(e)
-                ))
+  if len(con_edges) + len(out_edges) != len(edges):
+    raise ValueError(
+        "Edges {} were not included in the contraction and output "
+        "ordering.".format(
+            list(set(edges.keys()) - set(con_order) - set(out_order))))
 
-    for e in out_edges:
-        if not e.is_dangling():
-            raise ValueError(
-                "Output edge {} appears more than once in the network.".format(
-                    str(e)
-                ))
+  for e in con_edges:
+    if e.is_dangling():
+      raise ValueError(
+          "Contraction edge {} appears only once in the network.".format(
+              str(e)))
 
-    return tn, con_edges, out_edges
+  for e in out_edges:
+    if not e.is_dangling():
+      raise ValueError(
+          "Output edge {} appears more than once in the network.".format(
+              str(e)))
+
+  return tn, con_edges, out_edges
 
 
-def _build_network(tensors, network):
-    tn = TensorNetwork()
-    nodes = []
-    edges = {}
-    for (i, (tensor, edge_lbls)) in enumerate(zip(tensors, network)):
-        if len(tensor.shape) != len(edge_lbls):
-            raise ValueError(
-                "Incorrect number of edge labels specified tensor {}".format(i)
-            )
+def _build_network(
+    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    network: Sequence[Sequence]
+    ) -> Tuple[tensornetwork.TensorNetwork, Dict[Any, tensornetwork.Edge]]:
+  tn = tensornetwork.TensorNetwork()
+  nodes = []
+  edges = {}
+  for (i, (tensor, edge_lbls)) in enumerate(zip(tensors, network)):
+    if len(tensor.shape) != len(edge_lbls):
+      raise ValueError(
+          "Incorrect number of edge labels specified tensor {}".format(i))
 
-        node = tn.add_node(tensor, name="tensor_{}".format(i))
-        nodes.append(node)
+    node = tn.add_node(tensor, name="tensor_{}".format(i))
+    nodes.append(node)
 
-        for (axis_num, edge_lbl) in enumerate(edge_lbls):
-            if edge_lbl not in edges:
-                e = node[axis_num]
-                e.set_name(str(edge_lbl))
-                edges[edge_lbl] = e
-            else:
-                # This will raise an error if the edges are not dangling.
-                e = tn.connect(
-                    edges[edge_lbl],
-                    node[axis_num],
-                    name=str(edge_lbl))
-                edges[edge_lbl] = e
-    return tn, edges
+    for (axis_num, edge_lbl) in enumerate(edge_lbls):
+      if edge_lbl not in edges:
+        e = node[axis_num]
+        e.set_name(str(edge_lbl))
+        edges[edge_lbl] = e
+      else:
+        # This will raise an error if the edges are not dangling.
+        e = tn.connect(edges[edge_lbl], node[axis_num], name=str(edge_lbl))
+        edges[edge_lbl] = e
+  return tn, edges
