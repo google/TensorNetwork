@@ -966,28 +966,36 @@ class TensorNetwork:
       raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
     return self.contract_between(edge.node1, edge.node2)
 
-  def squeeze(self, edge: Edge) -> Node:
-    """Squeezes a dangling edge with unit size.
+  def squeeze(self, edge: Edge) -> Union[Node, Tuple[Node]]:
+    """Squeezes an edge with unit size.
+
+    If the edge is dangling it removes it from its node and updates the
+    corresponding tensor shape. If the edge is non-dangling it disconnects
+    and removes it.
 
     Args:
-      edge: Edge
+      edge: Edge to be squeezed (removed).
 
     Returns:
-      node: The node that had the squeezed edge.
+      node: The node (or nodes) that had the squeezed edge.
 
     Raises:
-      ValueError: If the given edge is not dangling.
       ValueError: If the given edge has non-unit size.
     """
-    if not edge.is_dangling():
-      raise ValueError(
-          "Attempted to squeeze non-dangling edge '{}'.".format(edge))
-
     node = edge.node1
     axis = edge.axis1
     if node.get_dimension(axis) > 1:
       raise ValueError(
           "Attempted to squeeze edge '{}' with non-unit size.".format(edge))
+
+    if not edge.is_dangling():
+      dangling1, dangling2 = self.disconnect(edge)
+      node1 = self.squeeze(dangling1)
+      node2 = self.squeeze(dangling2)
+      if node1 is node2:
+        return node1
+      return node1, node2
+
     node.tensor = tf.squeeze(node.tensor, axis=axis)
     node.edges.pop(axis)
     trace_edges = set()
