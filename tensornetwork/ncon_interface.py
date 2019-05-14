@@ -17,7 +17,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from tensornetwork.tensornetwork import TensorNetwork
+from tensornetwork.network import TensorNetwork
 
 
 def ncon(tensors, network, con_order=None, out_order=None):

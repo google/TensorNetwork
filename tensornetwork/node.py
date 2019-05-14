@@ -61,7 +61,7 @@ class Node:
     """
     self.tensor = tf.convert_to_tensor(tensor)
     self.name = name
-    self.edges = [Edge(edge_name, self, i)
+    self.edges = [edge.Edge(edge_name, self, i)
                   for i, edge_name in enumerate(axis_names)]
     if axis_names is not None:
       self.add_axis_names(axis_names)
@@ -87,7 +87,7 @@ class Node:
     self.axis_names = axis_names[:]
 
   def add_edge(self,
-               edge: "Edge",
+               edge: "edge.Edge",
                axis: Union[int, Text],
                override: bool = False) -> None:
     """Add an edge to the node on the given axis.
@@ -115,7 +115,7 @@ class Node:
   def set_tensor(self, tensor):
     self.tensor = tensor
 
-  def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
+  def reorder_edges(self, edge_order: List["edge.Edge"]) -> "Node":
     """Reorder the edges for this given Node.
 
     This will reorder the node's edges and transpose the underlying tensor
@@ -207,7 +207,7 @@ class Node:
       raise ValueError("Axis must be positive and less than rank of the tensor")
     return tf.shape(self.tensor)[axis_num]
 
-  def get_edge(self, axis: Union[int, Text]) -> "Edge":
+  def get_edge(self, axis: Union[int, Text]) -> "edge.Edge":
     axis_num = self.get_axis_number(axis)
     return self.edges[axis_num]
 
@@ -228,7 +228,7 @@ class Node:
         return True
     return False
 
-  def __getitem__(self, key: Union[int, Text]) -> "Edge":
+  def __getitem__(self, key: Union[int, Text]) -> "edge.Edge":
     return self.get_edge(key)
 
   def __str__(self) -> Text:
