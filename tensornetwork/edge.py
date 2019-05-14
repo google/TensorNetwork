@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Implementation of TensorNetwork structure."""
+"""Implementation of Edge structure."""
 
 from __future__ import absolute_import
 from __future__ import division
