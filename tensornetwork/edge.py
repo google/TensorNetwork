@@ -56,9 +56,9 @@ class Edge:
 
   def __init__(self,
                name: Text,
-               node1: Node,
+               node1: node.Node,
                axis1: int,
-               node2: Optional[Node] = None,
+               node2: Optional[node.Node] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
@@ -87,12 +87,12 @@ class Edge:
     self.axis2 = axis2
     self._is_dangling = node2 is None
 
-  def get_nodes(self) -> List[Optional[Node]]:
+  def get_nodes(self) -> List[Optional[node.Node]]:
     """Get the nodes of the edge."""
     return [self.node1, self.node2]
 
-  def update_axis(self, old_axis: int, old_node: Node, new_axis: int,
-                  new_node: Node) -> None:
+  def update_axis(self, old_axis: int, old_node: node.Node, new_axis: int,
+                  new_node: node.Node) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -116,14 +116,14 @@ class Edge:
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
   @property
-  def node1(self) -> Node:
+  def node1(self) -> node.Node:
     val = self._node1()
     if val is None:
       raise ValueError("node1 for edge '{}' no longer exists.".format(self))
     return val
 
   @property
-  def node2(self) -> Optional[Node]:
+  def node2(self) -> Optional[node.Node]:
     if self._is_dangling:
       return None
     if self._node2() is None:
@@ -131,11 +131,11 @@ class Edge:
     return self._node2()
   
   @node1.setter
-  def node1(self, node: Node) -> None:
+  def node1(self, node: node.Node) -> None:
     self._node1 = weakref.ref(node)
 
   @node2.setter
-  def node2(self, node: Optional[Node]) -> None:
+  def node2(self, node: Optional[node.Node]) -> None:
     self._node2 = weakref.ref(node) if node else None
     if node is None:
       self._is_dangling = True
