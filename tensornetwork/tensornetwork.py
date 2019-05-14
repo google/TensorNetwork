@@ -967,11 +967,11 @@ class TensorNetwork:
     return self.contract_between(edge.node1, edge.node2)
 
   def squeeze(self, edge: Edge) -> Union[Node, Tuple[Node]]:
-    """Squeezes an edge with unit size.
+    """Removes an edge with unit size.
 
     If the edge is dangling it removes it from its node and updates the
-    corresponding tensor shape. If the edge is non-dangling it disconnects
-    and removes it.
+    corresponding tensor. If the edge is non-dangling it disconnects
+    and removes it from both nodes. Works for trace edge too.
 
     Args:
       edge: Edge to be squeezed (removed).
@@ -984,11 +984,19 @@ class TensorNetwork:
     """
     node = edge.node1
     axis = edge.axis1
-    if node.get_dimension(axis) > 1:
+    axis1_size = node.get_tensor().shape.as_list()[axis]
+    if axis1_size is None:
+      raise ValueError(
+          "Attempted to squeeze edge '{}' with None size.".format(edge))
+    elif axis1_size > 1:
       raise ValueError(
           "Attempted to squeeze edge '{}' with non-unit size.".format(edge))
 
     if not edge.is_dangling():
+      axis2_size = edge.node2.get_tensor().shape.as_list()[edge.axis2]
+      if axis1_size != axis2_size:
+        raise ValueError(
+            "Edge '{}' connects node axes with different sizes.".format(edge))
       dangling1, dangling2 = self.disconnect(edge)
       node1 = self.squeeze(dangling1)
       node2 = self.squeeze(dangling2)
