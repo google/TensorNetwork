@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Trotter evolution of exact wavefunctions: Example script."""
+"""Tree Tensor Network for the groundstate of the Transverse Ising chain."""
 
 from __future__ import absolute_import
 from __future__ import division
