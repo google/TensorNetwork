@@ -22,6 +22,7 @@ import numpy as np
 import tensorflow as tf
 from tensornetwork import tensornetwork
 
+
 def ncon(tensors, network, con_order=None, out_order=None):
     r"""Contracts a list of tensors according to a tensor network specification.
 
