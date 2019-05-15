@@ -22,7 +22,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from tensornetwork import tensornetwork
+from tensornetwork import network
 from tensornetwork.contractors import naive_contractor
 
 naive = naive_contractor.naive
@@ -31,7 +31,7 @@ naive = naive_contractor.naive
 class NaiveTest(tf.test.TestCase):
 
   def test_sanity_check(self):
-    net = tensornetwork.TensorNetwork()
+    net = network.TensorNetwork()
     a = net.add_node(np.eye(2))
     b = net.add_node(np.eye(2))
     c = net.add_node(np.eye(2))
@@ -42,7 +42,7 @@ class NaiveTest(tf.test.TestCase):
     self.assertAllClose(result.get_tensor(), 2.0)
 
   def test_passed_edge_order(self):
-    net = tensornetwork.TensorNetwork()
+    net = network.TensorNetwork()
     a = net.add_node(np.eye(2))
     b = net.add_node(np.eye(2))
     c = net.add_node(np.eye(2))
@@ -53,7 +53,7 @@ class NaiveTest(tf.test.TestCase):
     self.assertAllClose(result.get_tensor(), 2.0)
 
   def test_bad_passed_edges(self):
-    net = tensornetwork.TensorNetwork()
+    net = network.TensorNetwork()
     a = net.add_node(np.eye(2))
     b = net.add_node(np.eye(2))
     c = net.add_node(np.eye(2))
@@ -64,7 +64,7 @@ class NaiveTest(tf.test.TestCase):
       naive(net, [e1, e2])
 
   def test_precontracted_network(self):
-    net = tensornetwork.TensorNetwork()
+    net = network.TensorNetwork()
     a = net.add_node(np.eye(2))
     b = net.add_node(np.eye(2))
     c = net.add_node(np.eye(2))
