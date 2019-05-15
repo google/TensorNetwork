@@ -64,7 +64,7 @@ class Edge:
                name: Text,
                node1: get_node(),
                axis1: int,
-               node2: Optionalget_node()] = None,
+               node2: Optional[get_node()] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
