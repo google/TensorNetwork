@@ -19,11 +19,12 @@ from __future__ import print_function
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 import numpy as np
 import tensorflow as tf
-from tensornetwork import tensornetwork
+from tensornetwork import network
+from tensornetwork import network_components
 
 
 def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
-         network: Sequence[Sequence],
+         network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
          out_order: Optional[Sequence] = None) -> tf.Tensor:
   r"""Contracts a list of tensors according to a tensor network specification.
@@ -55,7 +56,8 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
 
     Args:
       tensors: List of `Tensor`s.
-      network: List of lists specifying the tensor network.
+      network_structure: List of lists specifying the tensor network
+          structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
 
@@ -63,7 +65,7 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
       A `Tensor` resulting from the contraction of the tensor network.
     """
   tn, con_edges, out_edges = ncon_network(
-      tensors, network, con_order=con_order, out_order=out_order)
+      tensors, network_structure, con_order=con_order, out_order=out_order)
 
   # Contract assuming all edges connecting a given pair of nodes are adjacent
   # in con_order. If this is not the case, the contraction is sub-optimal
@@ -89,14 +91,15 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
   return res_node.tensor
 
 
-def ncon_network(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
-         network: Sequence[Sequence],
-         con_order: Optional[Sequence] = None,
-         out_order: Optional[Sequence] = None
-         ) -> Tuple[
-                tensornetwork.TensorNetwork,
-                List[tensornetwork.Edge],
-                List[tensornetwork.Edge]]:
+def ncon_network(
+    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    network_structure: Sequence[Sequence],
+    con_order: Optional[Sequence] = None,
+    out_order: Optional[Sequence] = None
+    ) -> Tuple[
+        network.TensorNetwork, 
+        List[network_components.Edge], 
+        List[network_components.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
@@ -112,20 +115,20 @@ def ncon_network(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
     This is used internally by `ncon()`.
 
     Args:
-      tensors: List of `Tensor`s.
-      network: List of lists specifying the tensor network.
+      tensors: List of `tf.Tensor`s.
+      network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
 
     Returns:
-      net: `TensorNetwork` equivalent to `network`.
+      net: `TensorNetwork` with the structure given by `network`.
       con_edges: List of internal `Edge` objects in contraction order.
       out_edges: List of dangling `Edge` objects in output order.
-    """
-  if len(tensors) != len(network):
-    raise ValueError('len(tensors) != len(network)')
+  """
+  if len(tensors) != len(network_structure):
+    raise ValueError('len(tensors) != len(network_structure)')
 
-  tn, edges = _build_network(tensors, network)
+  tn, edges = _build_network(tensors, network_structure)
 
   if con_order is None:
     try:
@@ -177,12 +180,12 @@ def ncon_network(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
 
 def _build_network(
     tensors: Sequence[Union[np.ndarray, tf.Tensor]],
-    network: Sequence[Sequence]
-    ) -> Tuple[tensornetwork.TensorNetwork, Dict[Any, tensornetwork.Edge]]:
-  tn = tensornetwork.TensorNetwork()
+    network_structure: Sequence[Sequence]
+    ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
+  tn = network.TensorNetwork()
   nodes = []
   edges = {}
-  for (i, (tensor, edge_lbls)) in enumerate(zip(tensors, network)):
+  for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
     if len(tensor.shape) != len(edge_lbls):
       raise ValueError(
           "Incorrect number of edge labels specified tensor {}".format(i))
