@@ -34,7 +34,9 @@ class SimpleStochasticTest(tf.test.TestCase):
     a = net.add_node(np.ones([4, 5, 2]))
     b = net.add_node(np.ones([3, 2, 3]))
     e = net.connect(a[2], b[1])
-    self.assertEqual(140, stochastic_contractor.edge_cost(e))
+    cost, shared_edges = stochastic_contractor.edge_cost(e)
+    self.assertEqual(140, cost)
+    self.assertSetEqual({e}, shared_edges)
 
   def test_contraction_sanity(self):
     net = tensornetwork.TensorNetwork()
@@ -45,6 +47,19 @@ class SimpleStochasticTest(tf.test.TestCase):
     net = stochastic_contractor.stochastic(net, 2)
     res = net.get_final_node()
     self.assertAllClose(res.get_tensor(), 6 * np.ones([4, 5]))
+
+  def test_contraction_multiple_edges(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.ones([4, 5, 2]))
+    b = net.add_node(np.ones([3, 2, 3, 5]))
+    c = net.add_node(np.ones([4,]))
+    net.connect(a[2], b[1])
+    net.connect(b[0], b[2])
+    net.connect(a[1], b[3])
+    net.connect(a[0], c[0])
+    net = stochastic_contractor.stochastic(net, 2)
+    res = net.get_final_node()
+    self.assertAllClose(res.get_tensor(), 120)
 
   def test_contraction_disconnected(self):
     net = tensornetwork.TensorNetwork()
@@ -63,6 +78,6 @@ class SimpleStochasticTest(tf.test.TestCase):
     self.assertAllClose(node1.get_tensor(), 6 * np.ones([4, 5]))
     self.assertAllClose(node2.get_tensor(), 4 * np.ones([3, 3]))
 
- 
+
 if __name__ == '__main__':
   tf.test.main()
