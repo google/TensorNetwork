@@ -58,7 +58,7 @@ class Edge:
                name: Text,
                node1: node.Node,
                axis1: int,
-               node2: Optional[node.Node] = None,
+               node2: Optional[Node] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
