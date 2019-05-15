@@ -287,64 +287,204 @@ def right_ascending_super_operator(ham, isometry, unitary):
     return hleft
 
 
-@tf.contrib.eager.defun
-def left_descending_super_operator(rho, isometry, unitary):
-    inds_left_ul = [-1, -2, 8, 9]
-    inds_left_ur = [-3, 12, 10, 11]
-    inds_left_ul_c = [-4, -5, 16, 17]
-    inds_left_ur_c = [-6, 12, 14, 13]
-    inds_left_iso_l = [1, 8, 2]
-    inds_left_iso_c = [9, 10, 7]
-    inds_left_iso_r = [11, 4, 5]
-    inds_left_iso_l_c = [1, 16, 3]
-    inds_left_iso_c_c = [17, 14, 15]
-    inds_left_iso_r_c = [13, 4, 6]
-    inds_left_rho = [2, 7, 5, 3, 15, 6]
-    rho = tn.ncon([
-        isometry, isometry, isometry,
-        tf.conj(isometry),
-        tf.conj(isometry),
-        tf.conj(isometry), unitary, unitary,
-        tf.conj(unitary),
-        tf.conj(unitary), rho
-    ], [
-        inds_left_iso_l, inds_left_iso_c, inds_left_iso_r, inds_left_iso_l_c,
-        inds_left_iso_c_c, inds_left_iso_r_c, inds_left_ul, inds_left_ur,
-        inds_left_ul_c, inds_left_ur_c, inds_left_rho
-    ])
-    return rho
+# @tf.contrib.eager.defun
+# def left_descending_super_operator(rho, isometry, unitary):
+#     inds_left_ul = [-1, -2, 8, 9]
+#     inds_left_ur = [-3, 12, 10, 11]
+#     inds_left_ul_c = [-4, -5, 16, 17]
+#     inds_left_ur_c = [-6, 12, 14, 13]
+#     inds_left_iso_l = [1, 8, 2]
+#     inds_left_iso_c = [9, 10, 7]
+#     inds_left_iso_r = [11, 4, 5]
+#     inds_left_iso_l_c = [1, 16, 3]
+#     inds_left_iso_c_c = [17, 14, 15]
+#     inds_left_iso_r_c = [13, 4, 6]
+#     inds_left_rho = [2, 7, 5, 3, 15, 6]
+#     rho = tn.ncon([
+#         isometry, isometry, isometry,
+#         tf.conj(isometry),
+#         tf.conj(isometry),
+#         tf.conj(isometry), unitary, unitary,
+#         tf.conj(unitary),
+#         tf.conj(unitary), rho
+#     ], [
+#         inds_left_iso_l, inds_left_iso_c, inds_left_iso_r, inds_left_iso_l_c,
+#         inds_left_iso_c_c, inds_left_iso_r_c, inds_left_ul, inds_left_ur,
+#         inds_left_ul_c, inds_left_ur_c, inds_left_rho
+#     ])
+#     return rho
 
 
 @tf.contrib.eager.defun
-def right_descending_super_operator(rho, isometry, unitary):
-    inds_right_ul = [10, -1, 8, 9]
-    inds_right_ur = [-2, -3, 16, 17]
-    inds_right_ul_c = [10, -4, 11, 13]
-    inds_right_ur_c = [-5, -6, 14, 15]
+def left_descending_super_operator(reduced_density, isometry, unitary):
+    net = tn.TensorNetwork()
+    
+    iso_l = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_c = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
+    iso_r = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    
+    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
+    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
+    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    
+    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
 
-    inds_right_iso_l = [1, 8, 2]
-    inds_right_iso_c = [9, 16, 7]
-    inds_right_iso_r = [17, 4, 5]
+    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
+    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    
+    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
+    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    
+    out_order = [un_l[0], un_l[1], un_r[0], un_l_con[0], un_l_con[1], un_r_con[0]]
+    
+    edges={}
+    edges[1] = net.connect(iso_l[0],iso_l_con[0])
+    edges[2] = net.connect(iso_r[1],iso_r_con[1])
+    edges[3] = net.connect(iso_l[2], rho[0])
+    edges[4] = net.connect(iso_l_con[2], rho[3])
+    edges[5] = net.connect(iso_r[2], rho[2])
+    edges[6] = net.connect(iso_r_con[2], rho[5])
+    edges[7] = net.connect(iso_c[1], un_r[2])
+    edges[8] = net.connect(iso_c[2], rho[1])
+    edges[9] = net.connect(un_r[3], iso_r[0])
+    edges[10] = net.connect(iso_c_con[1], un_r_con[2])
+    edges[11]= net.connect(iso_c_con[2], rho[4])
+    edges[12]= net.connect(un_r_con[3], iso_r_con[0])
+    edges[13]= net.connect(un_r[1], un_r_con[1])
+    edges[14]= net.connect(iso_l[1], un_l[2])
+    edges[15]= net.connect(un_l[3], iso_c[0])
+    edges[16]= net.connect(iso_l_con[1], un_l_con[2])
+    edges[17]= net.connect(un_l_con[3], iso_c_con[0])
+    
+    left = net.contract(edges[1])
+    e = net.flatten_edges_between(rho, left)
+    out = net.contract(e)
+    del left, rho
+    
+    right = net.contract(edges[2])
+    e = net.flatten_edges_between(out, right)
+    out = net.contract(e)
+    del right
+    
+    upper = net.contract(edges[7])
+    e = net.flatten_edges_between(out, upper)
+    out = net.contract(e)
+    del upper
 
-    inds_right_iso_l_c = [1, 11, 3]
-    inds_right_iso_c_c = [13, 14, 12]
-    inds_right_iso_r_c = [15, 4, 6]
+    lower = net.contract(edges[10])
+    e = net.flatten_edges_between(out, lower)
+    out = net.contract(e)
+    del lower
 
-    inds_right_rho = [2, 7, 5, 3, 12, 6]
-    rho = tn.ncon([
-        isometry, isometry, isometry,
-        tf.conj(isometry),
-        tf.conj(isometry),
-        tf.conj(isometry), unitary, unitary,
-        tf.conj(unitary),
-        tf.conj(unitary), rho
-    ], [
-        inds_right_iso_l, inds_right_iso_c, inds_right_iso_r,
-        inds_right_iso_l_c, inds_right_iso_c_c, inds_right_iso_r_c,
-        inds_right_ul, inds_right_ur, inds_right_ul_c, inds_right_ur_c,
-        inds_right_rho
-    ])
-    return rho
+    
+    e = net.flatten_edges_between(out, un_l)
+    out = net.contract(e)
+    
+    e = net.flatten_edges_between(out, un_l_con)
+    out = net.contract(e)
+    out.reorder_edges(out_order)
+    return out.get_tensor()
+
+@tf.contrib.eager.defun
+def right_descending_super_operator(reduced_density, isometry, unitary):
+    net = tn.TensorNetwork()
+    
+    iso_l = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_c = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
+    iso_r = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    
+    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
+    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
+    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    
+    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+
+    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
+    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    
+    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
+    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    
+    out_order = [un_l[1], un_r[0], un_r[1], un_l_con[1], un_r_con[0], un_r_con[1]]
+    
+    edges={}
+    edges[1] = net.connect(iso_l[0],iso_l_con[0])
+    edges[2] = net.connect(iso_r[1],iso_r_con[1])
+    edges[3] = net.connect(iso_l[2], rho[0])
+    edges[4] = net.connect(iso_l_con[2], rho[3])
+    edges[5] = net.connect(iso_r[2], rho[2])
+    edges[6] = net.connect(iso_r_con[2], rho[5])
+    edges[7] = net.connect(iso_c[1], un_r[2])
+    edges[8] = net.connect(iso_c[2], rho[1])
+    edges[9] = net.connect(un_r[3], iso_r[0])
+    edges[10] = net.connect(iso_c_con[1], un_r_con[2])
+    edges[11]= net.connect(iso_c_con[2], rho[4])
+    edges[12]= net.connect(un_r_con[3], iso_r_con[0])
+    edges[13]= net.connect(un_l[0], un_l_con[0])
+    edges[14]= net.connect(iso_l[1], un_l[2])
+    edges[15]= net.connect(un_l[3], iso_c[0])
+    edges[16]= net.connect(iso_l_con[1], un_l_con[2])
+    edges[17]= net.connect(un_l_con[3], iso_c_con[0])
+    
+    left = net.contract(edges[1])
+    e = net.flatten_edges_between(rho, left)
+    out = net.contract(e)
+    del left, rho
+    
+    right = net.contract(edges[2])
+    e = net.flatten_edges_between(out, right)
+    out = net.contract(e)
+    del right
+    
+    upper = net.contract(edges[15])
+    e = net.flatten_edges_between(out, upper)
+    out = net.contract(e)
+    del upper
+
+    lower = net.contract(edges[17])
+    e = net.flatten_edges_between(out, lower)
+    out = net.contract(e)
+    del lower
+    
+    e = net.flatten_edges_between(out, un_r)
+    out = net.contract(e)
+    
+    e = net.flatten_edges_between(out, un_r_con)
+    out = net.contract(e)
+    out.reorder_edges(out_order)
+    return out.get_tensor()
+
+
+# @tf.contrib.eager.defun
+# def right_descending_super_operator(rho, isometry, unitary):
+#     inds_right_ul = [10, -1, 8, 9]
+#     inds_right_ur = [-2, -3, 16, 17]
+#     inds_right_ul_c = [10, -4, 11, 13]
+#     inds_right_ur_c = [-5, -6, 14, 15]
+
+#     inds_right_iso_l = [1, 8, 2]
+#     inds_right_iso_c = [9, 16, 7]
+#     inds_right_iso_r = [17, 4, 5]
+
+#     inds_right_iso_l_c = [1, 11, 3]
+#     inds_right_iso_c_c = [13, 14, 12]
+#     inds_right_iso_r_c = [15, 4, 6]
+
+#     inds_right_rho = [2, 7, 5, 3, 12, 6]
+#     rho = tn.ncon([
+#         isometry, isometry, isometry,
+#         tf.conj(isometry),
+#         tf.conj(isometry),
+#         tf.conj(isometry), unitary, unitary,
+#         tf.conj(unitary),
+#         tf.conj(unitary), rho
+#     ], [
+#         inds_right_iso_l, inds_right_iso_c, inds_right_iso_r,
+#         inds_right_iso_l_c, inds_right_iso_c_c, inds_right_iso_r_c,
+#         inds_right_ul, inds_right_ur, inds_right_ul_c, inds_right_ur_c,
+#         inds_right_rho
+#     ])
+#     return rho
 
 
 #@tf.contrib.eager.defun
@@ -526,21 +666,23 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
     out = net.contract(edges[1])
     e = net.flatten_edges_between(out, rho)
     out = net.contract(e)
+    del rho
     
     lower = net.contract(edges[8])
-    upper = net.contract(edges[9])
-    
     e = net.flatten_edges_between(lower, out)
     out = net.contract(e)
+    del lower
     
+    upper = net.contract(edges[9])
     e = net.flatten_edges_between(upper, out)
     out = net.contract(e)    
+    del upper
     
-    center = net.contract_between(un_l,op)
-    center = net.contract_between(center,un_l_con)
-    
-    e = net.flatten_edges_between(center, out)
+    op = net.contract_between(un_l,op)
+    op = net.contract_between(op,un_l_con)
+    e = net.flatten_edges_between(op, out)
     out = net.contract(e)
+    del op
     
     out = net.contract_between(iso_l_con,out)
     out.reorder_edges(out_order)
@@ -596,23 +738,26 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
     edges[20]= net.connect(iso_r_con[2], rho[5])
     
     upper = net.contract(edges[8])
+    op = net.contract_between(un_r,op)
+    op = net.contract_between(op,un_r_con)
+    e = net.flatten_edges_between(op, upper)
+    op = net.contract(e)
+    del upper
+    
     lower = net.contract(edges[9])  
-    
-    center = net.contract_between(un_r,op)
-    center = net.contract_between(center,un_r_con)
-    e = net.flatten_edges_between(center, upper)
-    center = net.contract(e)
-    e = net.flatten_edges_between(center, lower)
-    center = net.contract(e)
-    
+    e = net.flatten_edges_between(op, lower)
+    op = net.contract(e)
+    del lower
 
     left = net.contract(edges[1])
     e = net.flatten_edges_between(left, rho)
     out = net.contract(e)
-
-    e = net.flatten_edges_between(out, center)
+    del rho
+    
+    e = net.flatten_edges_between(out, op)
     out = net.contract(e)
-
+    del op
+    
     e = net.flatten_edges_between(out, iso_l_con)
     out = net.contract(e)
 
@@ -651,20 +796,15 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
     edges[3] = net.connect(iso_l[2], rho[0])
     edges[4] = net.connect(iso_l_con[2], rho[3])
     edges[5] = net.connect(iso_r[2], rho[2])
-    
     edges[6] = net.connect(iso_r_con[2], rho[5])
-    
     edges[7] = net.connect(op[3],un_l[0])
     edges[8] = net.connect(op[4],un_l[1])    
     edges[9] = net.connect(op[0],un_l_con[0])
     edges[10] = net.connect(op[1],un_l_con[1])
-
     edges[11]= net.connect(iso_c_con[1],un_r_con[2])
     edges[12]= net.connect(iso_c_con[2],rho[4])
-    
     edges[13]= net.connect(un_r_con[3],iso_r_con[0])
     edges[14]= net.connect(un_r[3], iso_r[0])
-    
     edges[15]= net.connect(un_r[1], un_r_con[1])
     edges[16]= net.connect(iso_l_con[1], un_l_con[2])
     edges[17]= net.connect(un_l_con[3], iso_c_con[0])
@@ -680,18 +820,19 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
     left = net.contract(edges[2])    
     e = net.flatten_edges_between(out, left)
     out = net.contract(e)
-
+    del left
+    
     lower = net.contract(edges[11])
     e = net.flatten_edges_between(lower, out)
     out = net.contract(e)
+    del lower
     
     out = net.contract_between(out, un_r)
-    
-    center = net.contract_between(un_l,op)
-    center = net.contract_between(center,un_l_con)
-    
-    e = net.flatten_edges_between(center, out)
+    op = net.contract_between(un_l,op)
+    op = net.contract_between(op,un_l_con)
+    e = net.flatten_edges_between(op, out)
     out = net.contract(e)
+    del op
     
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -745,27 +886,29 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
     edges[19]= net.connect(un_r_con[3], iso_r_con[0])
     edges[20]= net.connect(iso_r_con[2], rho[5])
     
-    lower = net.contract(edges[9])  
+
     
-    center = net.contract_between(un_r,op)
-    center = net.contract_between(center,un_r_con)
+    op = net.contract_between(un_r,op)
+    op = net.contract_between(op,un_r_con)
 
     left = net.contract(edges[1])
-    right = net.contract(edges[16])
-    
     e = net.flatten_edges_between(left, rho)
     out = net.contract(e)
+    del left, rho
     
+    right = net.contract(edges[16])
     e = net.flatten_edges_between(right, out)
     out = net.contract(e)    
+    del right
 
+    lower = net.contract(edges[9])      
     e = net.flatten_edges_between(out, lower)
     out = net.contract(e)
-
+    del lower
+    
     e = net.flatten_edges_between(out, un_l)
     out = net.contract(e)
-
-    e = net.flatten_edges_between(out, center)
+    e = net.flatten_edges_between(out, op)
     out = net.contract(e)
     
     out.reorder_edges(out_order)    
@@ -820,25 +963,30 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
     edges[19]= net.connect(un_r_con[3], iso_r_con[0])
     edges[20]= net.connect(iso_r_con[2], rho[5])
     
-    upper = net.contract(edges[8])
-    lower = net.contract(edges[11])    
-    
-    center = net.contract_between(un_l,op)
-    center = net.contract_between(center,un_l_con)
-    
-    e = net.flatten_edges_between(center, upper)
-    center = net.contract(e)
-    
-    e = net.flatten_edges_between(center,  lower)
-    center = net.contract(e)
 
+
+    
+    op = net.contract_between(un_l,op)
+    op = net.contract_between(op,un_l_con)
+    upper = net.contract(edges[8])    
+    e = net.flatten_edges_between(op, upper)
+    op = net.contract(e)
+    del upper
+
+    lower = net.contract(edges[11])    
+    e = net.flatten_edges_between(op,  lower)
+    op = net.contract(e)
+    del lower
+    
     left = net.contract(edges[1])
     e = net.flatten_edges_between(left, rho)
     left = net.contract(e)
-
-    e = net.flatten_edges_between(left, center)
+    del rho
+    
+    e = net.flatten_edges_between(left, op)
     out = net.contract(e)
-
+    del left, op
+    
     e = net.flatten_edges_between(out, iso_r_con)
     out = net.contract(e)
     
@@ -894,25 +1042,31 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
     edges[19]= net.connect(un_r_con[3], iso_r_con[0])
     edges[20]= net.connect(iso_r_con[2], rho[5])
     
-    upper = net.contract(edges[8])
-    lower = net.contract(edges[9])  
+
+
     
-    center = net.contract_between(un_r,op)
-    center = net.contract_between(center,un_r_con)
+    op = net.contract_between(un_r,op)
+    op = net.contract_between(op,un_r_con)
 
     left = net.contract(edges[1])
     e = net.flatten_edges_between(left, rho)
     out = net.contract(e)
+    del left, rho
 
+    lower = net.contract(edges[9])      
     e = net.flatten_edges_between(out, lower)
     out = net.contract(e)
+    del lower
 
+    upper = net.contract(edges[8])    
     e = net.flatten_edges_between(out, upper)
     out = net.contract(e)
-
-    e = net.flatten_edges_between(out, center)
+    del upper
+    
+    e = net.flatten_edges_between(out, op)
     out = net.contract(e)
-
+    del op
+    
     e = net.flatten_edges_between(out, iso_r_con)
     out = net.contract(e)
 
