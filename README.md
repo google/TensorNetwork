@@ -16,6 +16,32 @@ For an overview of tensor networks please see the following:
 pip3 install tensornetwork
 ```
 
+### To install on Docker
+
+This will create a Docker image containing TensorNetwork. It will isolate a TensorNetwork installation from the rest of the system.
+
+0. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
+
+1. Build the docker image for your system:
+```bash
+git clone https://github.com/google/TensorNetwork
+cd TensorNetwork
+docker build -t google/tensornetwork . # This builds the actual image based on latest Ubuntu, and installs TensorNetwork with the needed dependencies.
+```
+
+### To install on Docker for TensorNetwork development
+
+To do your TensorNetwork development in a Docker virtual machine, you can use dev_tools/Dockerfile:
+
+```bash
+git clone https://github.com/google/TensorNetwork
+cd TensorNetwork/dev_tools
+docker build -t google/tensornetwork-dev . # This builds the actual image based on latest Ubuntu, cloning the TensorNetwork tree into it with the needed dependencies.
+docker run -it google/tensornetwork-dev
+```
+
+If you want to contribute changes to TensorNetwork, you will instead want to fork the repository and submit pull requests from your fork.
+
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
 importing TensorFlow) but should also work with eager mode 
