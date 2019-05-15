@@ -20,9 +20,9 @@ pip3 install tensornetwork
 
 This will create a Docker image containing TensorNetwork. It will isolate a TensorNetwork installation from the rest of the system.
 
-0. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
+1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
 
-1. Build the docker image for your system:
+2. Build the docker image for your system:
 ```bash
 git clone https://github.com/google/TensorNetwork
 cd TensorNetwork
