@@ -48,11 +48,15 @@ def edge_cost(edge: tensornetwork.Edge) -> Tuple[int, Set]:
   shared_edges = set()
   for edge in node1.edges:
     if set(edge.get_nodes()) == nodes:
-      shared_dimension *= int(edge.node1.get_tensor().shape[edge.axis1])
       shared_edges.add(edge)
+      edge_size = edge.node1.get_tensor().shape.as_list()[edge.axis1]
+      if edge_size is not None:
+        shared_dimension *= edge_size
 
-  dimension1 = int(np.prod(node1.get_tensor().shape))
-  dimension2 = int(np.prod(node2.get_tensor().shape))
+  dimension1 = np.prod([x for x in node1.get_tensor().shape.as_list()
+                        if x is not None])
+  dimension2 = np.prod([x for x in node2.get_tensor().shape.as_list()
+                        if x is not None])
   prod_dimension = ((dimension1 // shared_dimension) *
                     (dimension2 // shared_dimension))
   cost = prod_dimension - max(dimension1, dimension2)
