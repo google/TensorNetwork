@@ -23,33 +23,17 @@ import numpy as np
 from tensornetwork import tensornetwork
 
 
-def get_random_edge(network: tensornetwork.TensorNetwork) -> tensornetwork.Edge:
-  """Returns a random connected edge.
-  If it finds a trace edge it contracts it.
-  Args:
-    network: Connected TensorNetwork we are trying to contract.
-  Returns:
-    edge: A random connected edge from the network.
-  """
-  node = random.choice(tuple(network.nodes_set))
-  edge = random.choice(node.edges)
-  while edge.is_dangling():
-    edge = random.choice(node.edges)
-  if edge.node1 is edge.node2:
-    # Contract the trace edge and look for a new one
-    network.contract(edge)
-    return get_random_edge(network)
-  return edge
-
-
 def edge_cost(edge: tensornetwork.Edge) -> int:
   """Calculates cost of contracting an edge.
+
   If A and B are the tensors that share the given `edge`, cost is defined as:
   cost = dims(A * B) - max(dims(A), dims(B)), where
   * denotes contraction of all shared edges (`contract_between`) and
   dims(X) is the total dimension of tensor X (product of sizes of all axes).
+
   Args:
     edge: Edge to calculate the cost.
+
   Returns:
     cost: Cost of the given edge.
   """
@@ -71,32 +55,39 @@ def edge_cost(edge: tensornetwork.Edge) -> int:
 
 
 def stochastic(network: tensornetwork.TensorNetwork,
-               max_rejections: int, threshold: int = -1
+               max_rejections: int, threshold: int = 1
               ) -> tensornetwork.TensorNetwork:
   """Contracts a connected network by stochastically picking edges.
+
   Algorithm 2 in page 7 of https://doi.org/10.1371/journal.pone.0208510.
   Cost calculation is slightly modified here.
+
   Args:
     network: Connected TensorNetwork to contract fully.
     max_rejections: Maximum number of rejections before you increase threshold.
     threshold: Initial value for the threshold.
+
   Returns:
     network: TensorNetwork with a single node after fully contracting.
   """
   # TODO: Think about a proper threshold value for our loss.
-  network.check_connected()
   rejections = 0
-
-  while len(network.nodes_set) > 1:
-    edge = get_random_edge(network)
-    cost = edge_cost(edge)
-    if cost <= threshold:
-      network.contract_between(edge.node1, edge.node2)
+  nondangling_edges = network.get_all_nondangling()
+  while nondangling_edges:
+    edge = random.choice(tuple(nondangling_edges))
+    if edge.node1 is edge.node2:
+      network.contract(edge)
+      nondangling_edges.remove(edge)
       rejections = 0
     else:
-      rejections += 1
-      if rejections > max_rejections:
-        threshold += 1
+      cost = edge_cost(edge)
+      if cost <= threshold:
+        network.contract_parallel(edge)
+        nondangling_edges.remove(edge)
         rejections = 0
-
+      else:
+        rejections += 1
+        if rejections > max_rejections:
+          threshold *= 2
+          rejections = 0
   return network
