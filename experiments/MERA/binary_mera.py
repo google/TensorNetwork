@@ -247,7 +247,7 @@ def run_naive_optimization_benchmark(filename,
             wC, uC, rho_0 = bml.initialize_binary_MERA(
                 phys_dim=2, chi=chi, dtype=dtype)
             ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-            wC, uC, rho_0, runtimes, energies = optimize_binary_mera(
+            wC, uC, rho_0, runtimes, energies = bml.optimize_binary_mera(
                 ham_0=ham_0,
                 rho_0=rho_0,
                 wC=wC,
@@ -363,21 +363,21 @@ if __name__ == "__main__":
         #                             'embeddings' : ['p', 'a', 'p'],
         #                             'dtype' : tf.float64}}
 
-        benchmarks = {  # 'optimize_naive' : {'chis' :  [4, 6, 8, 12, 14, 16],
-            #                     'dtype' : tf.float64,
-            #                     'opt_u' : True,
-            #                     'opt_w' : True,
-            #                     'numpy_update' : True,
-            #                     'numiter' : 5},
-            'optimize': {
-                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
-                'dtype': tf.float64
-            }
+        benchmarks = {'optimize_naive' : {'chis' :  [4, 6, 8, 10, 12, 14, 16],
+                                          'dtype' : tf.float64,
+                                          'opt_u' : True,
+                                          'opt_w' : True,
+                                          'numpy_update' : True,
+                                          'numiter' : 5},
+            # 'optimize': {
+            #     'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
+            #     'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
+            #     'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+            #     'dtype': tf.float64
+            # }
         }
 
-        use_gpu = False
+        use_gpu = True
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
         for i, device in enumerate(DEVICES):
