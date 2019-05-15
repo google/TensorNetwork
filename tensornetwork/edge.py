@@ -23,7 +23,14 @@ import numpy as np
 import tensorflow as tf
 import weakref
 from tensornetwork import decompositions
-from tensornetwork import node
+
+
+def get_node():
+  """
+  A function to take care of the circular import issue.
+  """
+  from tensornetwork import node
+  return node.Node
 
 
 class Edge:
@@ -53,12 +60,11 @@ class Edge:
     a trace along the given axis. Once again, the axes must be the same
     dimension.
   """
-
   def __init__(self,
                name: Text,
-               node1: node.Node,
+               node1: get_node(),
                axis1: int,
-               node2: Optional[node.Node] = None,
+               node2: Optionalget_node()] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
@@ -87,12 +93,12 @@ class Edge:
     self.axis2 = axis2
     self._is_dangling = node2 is None
 
-  def get_nodes(self) -> List[Optional[node.Node]]:
+  def get_nodes(self) -> List[Optional[get_node()]]:
     """Get the nodes of the edge."""
     return [self.node1, self.node2]
 
-  def update_axis(self, old_axis: int, old_node: node.Node, new_axis: int,
-                  new_node: node.Node) -> None:
+  def update_axis(self, old_axis: int, old_node: get_node(), new_axis: int,
+                  new_node: get_node()) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -116,14 +122,14 @@ class Edge:
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
   @property
-  def node1(self) -> node.Node:
+  def node1(self) -> get_node():
     val = self._node1()
     if val is None:
       raise ValueError("node1 for edge '{}' no longer exists.".format(self))
     return val
 
   @property
-  def node2(self) -> Optional[node.Node]:
+  def node2(self) -> Optional[get_node()]:
     if self._is_dangling:
       return None
     if self._node2() is None:
@@ -131,11 +137,11 @@ class Edge:
     return self._node2()
   
   @node1.setter
-  def node1(self, node: node.Node) -> None:
+  def node1(self, node: get_node()) -> None:
     self._node1 = weakref.ref(node)
 
   @node2.setter
-  def node2(self, node: Optional[node.Node]) -> None:
+  def node2(self, node: Optional[get_node()]) -> None:
     self._node2 = weakref.ref(node) if node else None
     if node is None:
       self._is_dangling = True
