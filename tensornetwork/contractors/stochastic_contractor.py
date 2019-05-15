@@ -21,9 +21,10 @@ from __future__ import print_function
 import random
 import numpy as np
 from tensornetwork import tensornetwork
+from typing import Tuple, Set
 
 
-def edge_cost(edge: tensornetwork.Edge) -> int:
+def edge_cost(edge: tensornetwork.Edge) -> Tuple[int, Set]:
   """Calculates cost of contracting an edge.
 
   If A and B are the tensors that share the given `edge`, cost is defined as:
@@ -36,29 +37,32 @@ def edge_cost(edge: tensornetwork.Edge) -> int:
 
   Returns:
     cost: Cost of the given edge.
+    shared_edges: Edges that are shared between the nodes connected with
+      the given edge.
   """
   # TODO: Verify whether this loss makes sense.
   node1, node2 = edge.node1, edge.node2
   # Calculate dimension of all shared edges
   nodes = {node1, node2}
   shared_dimension = 1
+  shared_edges = set()
   for edge in node1.edges:
     if set(edge.get_nodes()) == nodes:
       shared_dimension *= int(edge.node1.get_tensor().shape[edge.axis1])
+      shared_edges.add(edge)
 
   dimension1 = int(np.prod(node1.get_tensor().shape))
   dimension2 = int(np.prod(node2.get_tensor().shape))
   prod_dimension = ((dimension1 // shared_dimension) *
                     (dimension2 // shared_dimension))
   cost = prod_dimension - max(dimension1, dimension2)
-  return cost
+  return cost, shared_edges
 
 
 def stochastic(network: tensornetwork.TensorNetwork,
                max_rejections: int, threshold: int = 1
               ) -> tensornetwork.TensorNetwork:
   """Contracts a connected network by stochastically picking edges.
-
   Algorithm 2 in page 7 of https://doi.org/10.1371/journal.pone.0208510.
   Cost calculation is slightly modified here.
 
@@ -80,10 +84,10 @@ def stochastic(network: tensornetwork.TensorNetwork,
       nondangling_edges.remove(edge)
       rejections = 0
     else:
-      cost = edge_cost(edge)
+      cost, shared_edges = edge_cost(edge)
       if cost <= threshold:
         network.contract_parallel(edge)
-        nondangling_edges.remove(edge)
+        nondangling_edges -= shared_edges
         rejections = 0
       else:
         rejections += 1
