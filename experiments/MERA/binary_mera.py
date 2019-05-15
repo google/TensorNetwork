@@ -363,7 +363,7 @@ if __name__ == "__main__":
         #                             'embeddings' : ['p', 'a', 'p'],
         #                             'dtype' : tf.float64}}
 
-        benchmarks = {'optimize_naive' : {'chis' :  [4, 6, 8, 10, 12, 14, 16],
+        benchmarks = {'optimize_naive' : {'chis' :  [18],
                                           'dtype' : tf.float64,
                                           'opt_u' : True,
                                           'opt_w' : True,

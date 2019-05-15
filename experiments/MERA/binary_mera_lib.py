@@ -372,16 +372,13 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
     del upper
 
     lower = net.contract(edges[10])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
 
     
-    e = net.flatten_edges_between(out, un_l)
-    out = net.contract(e)
+    out = net.contract_between(out, un_l)
     
-    e = net.flatten_edges_between(out, un_l_con)
-    out = net.contract(e)
+    out = net.contract_between(out, un_l_con)
     out.reorder_edges(out_order)
     return out.get_tensor()
 
@@ -432,25 +429,20 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     del left, rho
     
     right = net.contract(edges[2])
-    e = net.flatten_edges_between(out, right)
-    out = net.contract(e)
+    out = net.contract_between(out, right)
     del right
     
     upper = net.contract(edges[15])
-    e = net.flatten_edges_between(out, upper)
-    out = net.contract(e)
+    out = net.contract_between(out, upper)
     del upper
 
     lower = net.contract(edges[17])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
     
-    e = net.flatten_edges_between(out, un_r)
-    out = net.contract(e)
+    out = net.contract_between(out, un_r)
     
-    e = net.flatten_edges_between(out, un_r_con)
-    out = net.contract(e)
+    out = net.contract_between(out, un_r_con)
     out.reorder_edges(out_order)
     return out.get_tensor()
 
