@@ -28,59 +28,48 @@ from scipy.sparse.linalg import eigs, LinearOperator
 
 def right_matvec(isometry, unitary, density):
     """
-    sum of left and right descending super-operators. Needed
+    This function computes the sum of the left 
+    and right descending super-operators. Needed
     for calculating scaling dimensions for the binary mera.
-    Parameters: 
-    --------------------------
-    isometry:   tf.Tensor 
-                isometry of the binary mera 
-    unitary:    tf.Tensor 
-                disentanlger of the mera
-    density:    tf.Tensor
-                reduced density matrix
+
+    Args:
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+        density  (tf.Tensor): reduced density matrix
+
     Returns: 
-    --------------------------
-    tf.Tensor
+        tf.Tensor
     """
     left = left_descending_super_operator(density, isometry, unitary)
     right = right_descending_super_operator(density, isometry, unitary)
     return left + right
 
 
-def left_matvec(isometry, unitary, dens):
+def left_matvec(isometry, unitary, density):
     """
-    ascending super-operators. Needed
+    wrapper around ascending_super_operator. Needed
     for calculating scaling dimensions for the binary mera.
-    Parameters: 
-    --------------------------
-    isometry:   tf.Tensor 
-                isometry of the binary mera 
-    unitary:    tf.Tensor 
-                disentanlger of the mera
-    density:    tf.Tensor
-                reduced density matrix
-    Returns: 
-    --------------------------
-    tf.Tensor
-    """
 
-    return ascending_super_operator(dens, isometry, unitary, k=2)
+    Args:
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+        density  (tf.Tensor): reduced density matrix
+
+    Returns: 
+        tf.Tensor
+    """
+    return ascending_super_operator(density, isometry, unitary)
 
 
 def get_scaling_dimensions(isometry, unitary, k=4):
     """
     calculate the scaling dimensions of a binary mera
-    Parameters:
-    ---------------------------
-    isometry:      tf.Tensor
-                   isometry of the mera
-    unitary:       tf.Tensor
-                   disentangler of the mera
-    k:             int 
-                   number of scaling dimensions
+    Args:
+        isometry (tf.Tensor): isometry of the mera
+        unitary  (tf.Tensor): disentangler of the mera
+        k        (int):       number of scaling dimensions
     Returns:
-    ---------------------------
-    tf.Tensor of shape (k,): first k scaling dimensions
+        tf.Tensor of shape (k,): first k scaling dimensions
     """
     chi = isometry.shape[2]
     dtype = isometry.dtype
@@ -95,7 +84,7 @@ def get_scaling_dimensions(isometry, unitary, k=4):
         o1 = left_descending_super_operator(dens, isometry, unitary)
         o2 = right_descending_super_operator(dens, isometry, unitary)
         return np.reshape(
-            np.array(o1 + o2).astype(dtype.as_numpy_dtype), chi**6)
+            np.array(o1 + o2).astype(dtype.as_numpy_dtype), chni**6)
 
     A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv, rmatvec=rmv)
     eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
@@ -107,6 +96,13 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     """
     non-hermitian lanczos method for diagonalizing 
     the super-operator of a binary mera network
+    Args:
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary (tf.Tensor): disentanlger of binary mera
+        N (int): number of scaling dimensions
+        thresh (float): precision of eigensolver
+    Returns:
+        (list,list,list): central, lower and upper diagonal part of the tridiagonal matrix
     """
     chi = isometry.shape[2]
     dtype = isometry.dtype
@@ -150,6 +146,15 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
 
 #@tf.contrib.eager.defun
 def ascending_super_operator(ham, isometry, unitary):
+    """
+    binary mera ascending super opertor
+    Args:
+        ham (tf.Tensor): hamiltonian
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
     return left_ascending_super_operator(
         ham, isometry, unitary) + right_ascending_super_operator(
             ham, isometry, unitary)
