@@ -43,8 +43,14 @@ def symmetrize(rho):
 
 @tf.contrib.eager.defun
 def scalar_product(bottom, top):
-    inds = list(range(len(top.shape)))
-    return tn.ncon([tf.conj(bottom), top], [inds, inds])
+    net = tn.TensorNetwork()
+    b = net.add_node(tf.conj(bottom))
+    t = net.add_node(top)
+    edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
+    out = net.contract_between(b,t)
+    return out.get_tensor()
+    #inds = list(range(len(top.shape)))
+    #return tn.ncon([tf.conj(bottom), top], [inds, inds])
 
 
 def pad_tensor(tensor, new_shape):
