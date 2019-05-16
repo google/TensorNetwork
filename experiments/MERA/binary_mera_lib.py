@@ -227,65 +227,135 @@ def two_site_descending_super_operator(rho, isometry, unitary):
     return out
 
 @tf.contrib.eager.defun
-def left_ascending_super_operator(ham, isometry, unitary):
-    inds_right_ul = [1, 2, 13, 5]
-    inds_right_ur = [6, 9, 7, 16]
-    inds_right_ul_c = [3, 4, 14, 10]
-    inds_right_ur_c = [8, 9, 11, 17]
+def left_ascending_super_operator(hamiltonian, isometry, unitary):
+    net = tn.TensorNetwork()
+    
+    iso_l = net.add_node(isometry)
+    iso_c = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
+    
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
+    
+    op = net.add_node(hamiltonian)
 
-    inds_right_iso_l = [12, 13, -4]
-    inds_right_iso_c = [5, 7, -5]
-    inds_right_iso_r = [16, 15, -6]
-    inds_right_iso_l_c = [12, 14, -1]
-    inds_right_iso_c_c = [10, 11, -2]
-    inds_right_iso_r_c = [17, 15, -3]
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
+    
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
+    
+    out_order = [iso_l_con[2], iso_c_con[2], iso_r_con[2],
+                 iso_l[2], iso_c[2], iso_r[2]]
+    edges = {}
 
-    inds_right_ham = [3, 4, 8, 1, 2, 6]
+    edges[1] = net.connect(iso_l[0], iso_l_con[0])
+    edges[2] = net.connect(iso_r[1], iso_r_con[1])
+    edges[3] = net.connect(un_l[0], op[3])
+    edges[4] = net.connect(un_l[1], op[4])    
+    edges[5] = net.connect(un_l_con[0], op[0])
+    edges[6] = net.connect(un_l_con[1], op[1])
+    edges[7] = net.connect(iso_c_con[1], un_r_con[2])
+    edges[8] = net.connect(iso_c_con[0], un_l_con[3])
+    edges[9] = net.connect(un_r_con[0], op[2])
+    edges[10] = net.connect(iso_c[1], un_r[2])
+    edges[11] = net.connect(un_l[3], iso_c[0])
+    edges[12] = net.connect(un_r[0], op[5])
+    edges[13] = net.connect(un_r[1], un_r_con[1])
+    edges[14] = net.connect(un_r[3], iso_r[0])
+    edges[15] = net.connect(un_r_con[3], iso_r_con[0])
+    edges[16] = net.connect(iso_l[1], un_l[2])
+    edges[17] = net.connect(iso_l_con[1], un_l_con[2])
 
-    hright = tn.ncon([
-        isometry, isometry, isometry,
-        tf.conj(isometry),
-        tf.conj(isometry),
-        tf.conj(isometry), unitary, unitary,
-        tf.conj(unitary),
-        tf.conj(unitary), ham
-    ], [
-        inds_right_iso_l, inds_right_iso_c, inds_right_iso_r,
-        inds_right_iso_l_c, inds_right_iso_c_c, inds_right_iso_r_c,
-        inds_right_ul, inds_right_ur, inds_right_ul_c, inds_right_ur_c,
-        inds_right_ham
-    ])
-    return hright
+    op = net.contract_between(op, un_l)
+    op = net.contract_between(op, un_l_con)
+    
+    lower = net.contract(edges[7])
+    op = net.contract_between(lower, op)
+    del lower
+    
+    upper= net.contract(edges[10])
+    op = net.contract_between(upper, op)
+    del upper
+
+    right = net.contract(edges[2])
+    op = net.contract_between(right, op)
+    del right
+
+    left = net.contract(edges[1])
+    op = net.contract_between(left, op)
+    del left
+
+    op.reorder_edges(out_order)
+    return op.get_tensor()
 
 
 @tf.contrib.eager.defun
-def right_ascending_super_operator(ham, isometry, unitary):
-    inds_left_ul = [8, 6, 13, 7]
-    inds_left_ur = [1, 2, 5, 16]
-    inds_left_ul_c = [8, 9, 14, 10]
-    inds_left_ur_c = [3, 4, 11, 17]
-    inds_left_iso_l = [12, 13, -4]
-    inds_left_iso_c = [7, 5, -5]
-    inds_left_iso_r = [16, 15, -6]
-    inds_left_iso_l_c = [12, 14, -1]
-    inds_left_iso_c_c = [10, 11, -2]
-    inds_left_iso_r_c = [17, 15, -3]
-    inds_left_ham = [9, 3, 4, 6, 1, 2]
+def right_ascending_super_operator(hamiltonian, isometry, unitary):
+    
+    net = tn.TensorNetwork()
+    
+    iso_l = net.add_node(isometry)
+    iso_c = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
+    
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
+    
+    op = net.add_node(hamiltonian)
 
-    hleft = tn.ncon([
-        isometry, isometry, isometry,
-        tf.conj(isometry),
-        tf.conj(isometry),
-        tf.conj(isometry), unitary, unitary,
-        tf.conj(unitary),
-        tf.conj(unitary), ham
-    ], [
-        inds_left_iso_l, inds_left_iso_c, inds_left_iso_r, inds_left_iso_l_c,
-        inds_left_iso_c_c, inds_left_iso_r_c, inds_left_ul, inds_left_ur,
-        inds_left_ul_c, inds_left_ur_c, inds_left_ham
-    ])
-    return hleft
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
+    
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
+    
+    out_order = [iso_l_con[2], iso_c_con[2], iso_r_con[2],
+                 iso_l[2], iso_c[2], iso_r[2]]
+    
+    edges = {}
 
+    edges[1] = net.connect(iso_l[0], iso_l_con[0])
+    edges[2] = net.connect(iso_r[1], iso_r_con[1])
+    edges[3] = net.connect(un_r[0], op[4])
+    edges[4] = net.connect(un_r[1], op[5])    
+    edges[5] = net.connect(un_r_con[0], op[1])
+    edges[6] = net.connect(un_r_con[1], op[2])
+    edges[7] = net.connect(iso_c_con[0], un_l_con[3])
+    edges[8] = net.connect(iso_c_con[1], un_r_con[2])
+    edges[9] = net.connect(un_l_con[1], op[0])
+    edges[10] = net.connect(iso_c[0], un_l[3])
+    edges[11] = net.connect(un_r[2], iso_c[1])
+    edges[12] = net.connect(un_l[1], op[3])
+    edges[13] = net.connect(un_l[0], un_l_con[0])
+    edges[14] = net.connect(un_l[2], iso_l[1])
+    edges[15] = net.connect(un_l_con[2], iso_l_con[1])
+    edges[16] = net.connect(iso_r[0], un_r[3])
+    edges[17] = net.connect(iso_r_con[0], un_r_con[3])
+
+    op = net.contract_between(op, un_r)
+    op = net.contract_between(op, un_r_con)
+    
+    lower = net.contract(edges[7])
+    op = net.contract_between(lower, op)
+    del lower
+    
+    upper= net.contract(edges[10])
+    op = net.contract_between(upper, op)
+    del upper
+
+    right = net.contract(edges[2])
+    op = net.contract_between(right, op)
+    del right
+
+    left = net.contract(edges[1])
+    op = net.contract_between(left, op)
+    del left
+
+    op.reorder_edges(out_order)
+    return op.get_tensor()
 
 
 
@@ -429,7 +499,7 @@ def descending_super_operator(rho, isometry, unitary):
     rho_2 = left_descending_super_operator(rho, isometry, unitary)
     rho = 0.5 * (rho_1 + rho_2)
     rho = misc_mera.symmetrize(rho)
-    rho = rho / tn.ncon([rho], [[1, 2, 3, 1, 2, 3]])
+    rho = rho / misc_mera.trace(rho)
     return rho
 
 
@@ -1223,7 +1293,7 @@ def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
             stdout.flush()
         rho_new = descending_super_operator(rho, isometry, unitary)
         rho_new = misc_mera.symmetrize(rho_new)
-        rho_new = rho_new / tn.ncon([rho_new], [[1, 2, 3, 1, 2, 3]])
+        rho_new = rho_new /misc_mera.trace(rho_new)
         rho = rho_new
     return rho
 
@@ -1400,19 +1470,49 @@ def initialize_binary_MERA(phys_dim, chi, dtype=tf.float64):
 def initialize_TFI_hams(dtype=tf.float64):
     """
     initialize a transverse field ising hamiltonian
-
+    Args:
+      dtype:  tensorflow dtype
     Returns:
-    ------------------
-    (hamBA, hamBA)
-    tuple of tf.Tensors
+      tf.Tensor
     """
-
     sX = np.array([[0, 1], [1, 0]]).astype(dtype.as_numpy_dtype)
     sZ = np.array([[1, 0], [0, -1]]).astype(dtype.as_numpy_dtype)
     eye = np.eye(2).astype(dtype.as_numpy_dtype)
-    ham = tn.ncon([sX, sX, eye],[[-4, -1], [-5, -2], [-6, -3]])+\
-        tn.ncon([sZ, eye, eye],[[-4, -1], [-5, -2], [-6, -3]])/2+\
-        tn.ncon([eye, sZ, eye],[[-4, -1], [-5, -2], [-6, -3]])/2
+    
+    net = tn.TensorNetwork()
+    X1 = net.add_node(sX)
+    X2 = net.add_node(sX)
+    I3 = net.add_node(eye)
+    out_order = [X1[0], X2[0], I3[0], X1[1], X2[1], I3[1]]
+    t1 = net.outer_product(net.outer_product(X1,X2), I3)
+    t1 = t1.reorder_edges(out_order).get_tensor()
+    
+    net = tn.TensorNetwork()
+    Z1 = net.add_node(sZ)
+    I2 = net.add_node(eye)    
+    I3 = net.add_node(eye)
+    out_order = [Z1[0], I2[0], I3[0], Z1[1], I2[1], I3[1]]
+    t2 = net.outer_product(net.outer_product(Z1, I2), I3)
+    t2 = t2.reorder_edges(out_order).get_tensor()/2
+                 
+    net = tn.TensorNetwork()
+    I1 = net.add_node(eye)    
+    Z2 = net.add_node(sZ)
+    I3 = net.add_node(eye)
+    out_order = [I1[0], Z2[0], I3[0], I1[1], Z2[1], I3[1]]
+    t3 = net.outer_product(net.outer_product(I1, Z2), I3)
+    t3 = t3.reorder_edges(out_order).get_tensor()/2
+                 
+    ham = t1 + t2 + t3
+    
+    ####################   equivalent using ncon   ##################
+    # sX = np.array([[0, 1], [1, 0]]).astype(dtype.as_numpy_dtype)
+    # sZ = np.array([[1, 0], [0, -1]]).astype(dtype.as_numpy_dtype)
+    # eye = np.eye(2).astype(dtype.as_numpy_dtype)
+    # ham = tn.ncon([sX, sX, eye],[[-4, -1], [-5, -2], [-6, -3]])+\
+    #     tn.ncon([sZ, eye, eye],[[-4, -1], [-5, -2], [-6, -3]])/2+\
+    #     tn.ncon([eye, sZ, eye],[[-4, -1], [-5, -2], [-6, -3]])/2
+    #################################################################
     return ham
 
 
@@ -1507,11 +1607,12 @@ def optimize_binary_mera(ham_0,
 
         if verbose > 0:
             if np.mod(k, 10) == 1:
-                Z = tn.ncon([rho[0]], [[0, 1, 2, 0, 1, 2]])
-                Energies.append(
-                    ((tn.ncon([rho[0], ham[0]], [[1, 2, 3, 4, 5, 6],
-                                                   [1, 2, 3, 4, 5, 6]])) + bias)
-                    / Z)
+                Z = misc_mera.trace(rho[0])
+                net = tn.TensorNetwork()
+                r = net.add_node(rho[0])
+                h = net.add_node(ham[0])
+                edges = [net.connect(r[n], h[n]) for n in range(6)]
+                Energies.append(net.contract_between(r,h).get_tensor()/Z + bias)
                 stdout.write(
                     '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
                     % (int(k), int(numiter), float(Energies[-1]),
@@ -1650,11 +1751,12 @@ def optimize_binary_mera_scale_invariant(ham_0,
                 rho_temp = descending_super_operator(rho_temp, wC[p], uC[p])
 
             if np.mod(k, 10) == 1:
-                Z = tn.ncon([rho_temp], [[0, 1, 2, 0, 1, 2]])
-                Energies.append((
-                    (tn.ncon([rho_temp, ham_0], [[1, 2, 3, 4, 5, 6],
-                                                   [1, 2, 3, 4, 5, 6]])) + bias)
-                                / Z)
+                Z = misc_mera.trace(rho_temp)
+                net = tn.TensorNetwork()
+                r = net.add_node(rho_temp)
+                h = net.add_node(ham_0)
+                edges = [net.connect(r[n], h[n]) for n in range(6)]
+                Energies.append((net.contract_between(r,h).get_tensor() + bias)/Z)
                 stdout.write(
                     '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
                     % (int(k), int(numiter), float(Energies[-1]),
