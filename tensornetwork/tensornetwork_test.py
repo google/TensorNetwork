@@ -20,7 +20,8 @@ import tensorflow as tf
 # Prepare for TF 2.0 migration
 tf.enable_v2_behavior()
 # pylint: disable=g-import-not-at-top
-from tensornetwork import tensornetwork
+import tensornetwork
+
 
 
 class NetworkTest(tf.test.TestCase):

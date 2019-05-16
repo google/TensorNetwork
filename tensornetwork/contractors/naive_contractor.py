@@ -18,13 +18,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import List, Optional
-from tensornetwork import tensornetwork
+from typing import Sequence, Optional
+from tensornetwork import network
+from tensornetwork import network_components
 
 
-def naive(network: tensornetwork.TensorNetwork,
-          edge_order: Optional[List[tensornetwork.Edge]] = None
-         ) -> tensornetwork.TensorNetwork:
+def naive(network: network.TensorNetwork,
+          edge_order: Optional[Sequence[network_components.Edge]] = None
+         ) -> network.TensorNetwork:
   """Contract a TensorNetwork in the order the edges were created.
 
   This contraction method will usually be very suboptimal unless the edges were
