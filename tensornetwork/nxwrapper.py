@@ -31,15 +31,17 @@ from __future__ import print_function
 
 import collections
 import matplotlib
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from typing import List, Optional, Union, Text, Dict
-from tensornetwork import tensornetwork
+from tensornetwork import network, network_components
 
 
-def draw_tree(root: Union[tensornetwork.Node, List[tensornetwork.Node],
-                          List[List[tensornetwork.Node]]],
-              axes: matplotlib.axes.Axes,
+def draw_tree(root: Union[network_components.Node,
+                          List[network_components.Node],
+                          List[List[network_components.Node]]],
+              axes: matplotlib.axes.Axes = plt.subplot(111),
               colormap: Union[Text, List[Optional[Text]]] = "red",
               options: Dict[Text, Union[float, int, List[int], bool]] = dict(),
               ) -> None:
@@ -83,8 +85,9 @@ class TreePlotWrapper(object):
   # Should also change nx.Graph() to nx.MultiGraph().
 
   def __init__(self,
-               root: Union[tensornetwork.Node, List[tensornetwork.Node],
-                                         List[List[tensornetwork.Node]]],
+               root: Union[network_components.Node,
+                           List[network_components.Node],
+                           List[List[network_components.Node]]],
                colormap: Union[Text, List[Text]] = "red",
                options: Dict[Text, Union[float, int, List[int], bool]] = dict()
                ) -> None:
@@ -149,8 +152,8 @@ class TreePlotWrapper(object):
     return length * [input]
 
   @staticmethod
-  def _levels_from_root(root: Union[List, tensornetwork.Node]
-                        ) -> List[List[tensornetwork.Node]]:
+  def _levels_from_root(root: Union[List, network_components.Node]
+                        ) -> List[List[network_components.Node]]:
     """Finds tree levels via BFS.
 
     Args:
@@ -162,7 +165,7 @@ class TreePlotWrapper(object):
     """
     if isinstance(root, list):
       node_lists = [root[:]]
-    elif isinstance(root, tensornetwork.Node):
+    elif isinstance(root, network_components.Node):
       node_lists = [[root]]
     else:
       raise ValueError("Root must be either a Node or a list of Nodes.")
@@ -184,7 +187,7 @@ class TreePlotWrapper(object):
             queue.append(child)
     return node_lists[:-1]
 
-  def _add_node(self, node: Union[tensornetwork.Node, Text],
+  def _add_node(self, node: Union[network_components.Node, Text],
                 x: float, y: float, name: Text,
                 color: Text = "red", size: int = 1000) -> None:
     """Adds a node in the nx graph.
@@ -204,7 +207,8 @@ class TreePlotWrapper(object):
     self.colors[node] = color
     self.sizes[node] = size
 
-  def _add_dangling_edges(self, node: tensornetwork.Node, top: bool = True) -> None:
+  def _add_dangling_edges(self, node: network_components.Node, top: bool = True
+                         ) -> None:
     """Adds dangling edges in the nx graph by creating ghost nodes.
 
     Args:
@@ -224,8 +228,8 @@ class TreePlotWrapper(object):
       self.ghost_counter += 1
       self.graph.add_edge(node, ghost)
 
-  def _add_level_of_nodes(self, level: List[tensornetwork.Node], level_ind: int,
-                          y_coordinate: float) -> None:
+  def _add_level_of_nodes(self, level: List[network_components.Node],
+                          level_ind: int, y_coordinate: float) -> None:
     """Adds a complete level of nodes in the nx graph.
 
     Args:
