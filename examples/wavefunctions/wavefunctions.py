@@ -21,10 +21,8 @@ from functools import reduce
 import sys
 import tensorflow as tf
 
-# FIXME: Hack to pull in tensornetwork from the parent directory.
-sys.path.insert(0, "../../")
 import tensornetwork
-from trotter import trotter_prepare_gates
+from examples.wavefunctions.trotter import trotter_prepare_gates
 
 
 def inner(psi1, psi2):
@@ -104,6 +102,13 @@ def evolve_trotter_defun(
     euclidean=False,
     callback=None,
     batch_size=1):
+    """Evolve an initial state psi using a trotter decomposition of H.
+    If the evolution is euclidean, the wavefunction will be normalized after
+    each step.
+
+    In this version, `batch_size` steps are "compiled" to a computational graph
+    using `defun`, which greatly decreases overhead. 
+    """
     n_batches, rem = divmod(num_steps, batch_size)
 
     step_size = tf.cast(step_size, psi.dtype)
@@ -141,6 +146,10 @@ def _evolve_trotter_gates_defun(psi, layers, step_size, num_steps,
 
 
 def apply_circuit(psi, layers):
+    """Applies a quantum circuit to a state.
+    The circuit consists of a sequence of layers, with each layer consisting
+    of non-overlapping gates.
+    """
     num_sites = len(psi.shape)
 
     net = tensornetwork.TensorNetwork()
