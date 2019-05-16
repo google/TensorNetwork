@@ -287,32 +287,6 @@ def right_ascending_super_operator(ham, isometry, unitary):
     return hleft
 
 
-# @tf.contrib.eager.defun
-# def left_descending_super_operator(rho, isometry, unitary):
-#     inds_left_ul = [-1, -2, 8, 9]
-#     inds_left_ur = [-3, 12, 10, 11]
-#     inds_left_ul_c = [-4, -5, 16, 17]
-#     inds_left_ur_c = [-6, 12, 14, 13]
-#     inds_left_iso_l = [1, 8, 2]
-#     inds_left_iso_c = [9, 10, 7]
-#     inds_left_iso_r = [11, 4, 5]
-#     inds_left_iso_l_c = [1, 16, 3]
-#     inds_left_iso_c_c = [17, 14, 15]
-#     inds_left_iso_r_c = [13, 4, 6]
-#     inds_left_rho = [2, 7, 5, 3, 15, 6]
-#     rho = tn.ncon([
-#         isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary, unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), rho
-#     ], [
-#         inds_left_iso_l, inds_left_iso_c, inds_left_iso_r, inds_left_iso_l_c,
-#         inds_left_iso_c_c, inds_left_iso_r_c, inds_left_ul, inds_left_ur,
-#         inds_left_ul_c, inds_left_ur_c, inds_left_rho
-#     ])
-#     return rho
 
 
 @tf.contrib.eager.defun
@@ -447,36 +421,6 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-# @tf.contrib.eager.defun
-# def right_descending_super_operator(rho, isometry, unitary):
-#     inds_right_ul = [10, -1, 8, 9]
-#     inds_right_ur = [-2, -3, 16, 17]
-#     inds_right_ul_c = [10, -4, 11, 13]
-#     inds_right_ur_c = [-5, -6, 14, 15]
-
-#     inds_right_iso_l = [1, 8, 2]
-#     inds_right_iso_c = [9, 16, 7]
-#     inds_right_iso_r = [17, 4, 5]
-
-#     inds_right_iso_l_c = [1, 11, 3]
-#     inds_right_iso_c_c = [13, 14, 12]
-#     inds_right_iso_r_c = [15, 4, 6]
-
-#     inds_right_rho = [2, 7, 5, 3, 12, 6]
-#     rho = tn.ncon([
-#         isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary, unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), rho
-#     ], [
-#         inds_right_iso_l, inds_right_iso_c, inds_right_iso_r,
-#         inds_right_iso_l_c, inds_right_iso_c_c, inds_right_iso_r_c,
-#         inds_right_ul, inds_right_ur, inds_right_ul_c, inds_right_ur_c,
-#         inds_right_rho
-#     ])
-#     return rho
 
 
 #@tf.contrib.eager.defun
@@ -563,32 +507,6 @@ def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
 
 
 
-# @tf.contrib.eager.defun
-# def get_env_disentangler_1(ham, rho, isometry, unitary):
-#     inds_1_rho = [17, 14, 11, 19, 12, 13]
-#     inds_1_wl = [16, -3, 17]
-#     inds_1_wc = [-4, 15, 14]
-#     inds_1_wr = [9, 8, 11]
-#     inds_1_wl_c = [16, 18, 19]
-#     inds_1_wc_c = [3, 5, 12]
-#     inds_1_wr_c = [10, 8, 13]
-#     inds_1_ur = [6, 7, 15, 9]
-#     inds_1_ul_c = [1, 2, 18, 3]
-#     inds_1_ur_c = [4, 7, 5, 10]
-#     inds_1_ham = [1, 2, 4, -1, -2, 6]
-
-#     env_1 = tn.ncon([
-#         rho, isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), ham
-#     ], [
-#         inds_1_rho, inds_1_wl, inds_1_wc, inds_1_wr, inds_1_wl_c, inds_1_wc_c,
-#         inds_1_wr_c, inds_1_ur, inds_1_ul_c, inds_1_ur_c, inds_1_ham
-#     ])
-#     return env_1
 
 
 @tf.contrib.eager.defun
@@ -660,33 +578,6 @@ def get_env_disentangler_2(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-# @tf.contrib.eager.defun    
-# def get_env_disentangler_2(ham, rho, isometry, unitary):
-#     inds_2_rho = [17, 14, 11, 18, 13, 12]
-#     inds_2_wl = [16, -3, 17]
-#     inds_2_wc = [-4, 15, 14]
-#     inds_2_wr = [6, 5, 11]
-#     inds_2_wl_c = [16, 19, 18]
-#     inds_2_wc_c = [10, 8, 13]
-#     inds_2_wr_c = [7, 5, 12]
-
-#     inds_2_ur = [1, 2, 15, 6]
-#     inds_2_ul_c = [-1, 9, 19, 10]
-#     inds_2_ur_c = [3, 4, 8, 7]
-#     inds_2_ham = [9, 3, 4, -2, 1, 2]
-
-#     env_2 = tn.ncon([
-#         rho, isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), ham
-#     ], [
-#         inds_2_rho, inds_2_wl, inds_2_wc, inds_2_wr, inds_2_wl_c, inds_2_wc_c,
-#         inds_2_wr_c, inds_2_ur, inds_2_ul_c, inds_2_ur_c, inds_2_ham
-#     ])
-#     return env_2
 
 
 @tf.contrib.eager.defun
@@ -757,33 +648,6 @@ def get_env_disentangler_3(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-# @tf.contrib.eager.defun    
-# def get_env_disentangler_3(ham, rho, isometry, unitary):
-
-#     inds_3_rho = [11, 18, 17, 12, 13, 14]
-#     inds_3_wl = [5, 6, 11]
-#     inds_3_wc = [19, -3, 18]
-#     inds_3_wr = [-4, 16, 17]
-#     inds_3_wl_c = [5, 7, 12]
-#     inds_3_wc_c = [8, 10, 13]
-#     inds_3_wr_c = [15, 16, 14]
-#     inds_3_ul = [1, 2, 6, 19]
-#     inds_3_ul_c = [3, 4, 7, 8]
-#     inds_3_ur_c = [9, -2, 10, 15]
-#     inds_3_ham = [3, 4, 9, 1, 2, -1]
-
-#     env_3 = tn.ncon([
-#         rho, isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), ham
-#     ], [
-#         inds_3_rho, inds_3_wl, inds_3_wc, inds_3_wr, inds_3_wl_c, inds_3_wc_c,
-#         inds_3_wr_c, inds_3_ul, inds_3_ul_c, inds_3_ur_c, inds_3_ham
-#     ])
-#     return env_3
 
 
 
@@ -858,33 +722,6 @@ def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
 
 
 
-# @tf.contrib.eager.defun    
-# def get_env_disentangler_4(ham, rho, isometry, unitary):
-
-#     inds_4_rho = [11, 14, 17, 12, 13, 18]
-#     inds_4_wl = [8, 9, 11]
-#     inds_4_wc = [15, -3, 14]
-#     inds_4_wr = [-4, 16, 17]
-#     inds_4_wl_c = [8, 10, 12]
-#     inds_4_wc_c = [5, 3, 13]
-#     inds_4_wr_c = [19, 16, 18]
-#     inds_4_ul = [6, 7, 9, 15]
-#     inds_4_ul_c = [6, 4, 10, 5]
-#     inds_4_ur_c = [1, 2, 3, 19]
-#     inds_4_ham = [4, 1, 2, 7, -1, -2]
-
-#     env_4 = tn.ncon([
-#         rho, isometry, isometry, isometry,
-#         tf.conj(isometry),
-#         tf.conj(isometry),
-#         tf.conj(isometry), unitary,
-#         tf.conj(unitary),
-#         tf.conj(unitary), ham
-#     ], [
-#         inds_4_rho, inds_4_wl, inds_4_wc, inds_4_wr, inds_4_wl_c, inds_4_wc_c,
-#         inds_4_wr_c, inds_4_ul, inds_4_ul_c, inds_4_ur_c, inds_4_ham
-#     ])
-#     return env_4
 
 
 def get_env_disentangler(ham, rho, isometry, unitary):
