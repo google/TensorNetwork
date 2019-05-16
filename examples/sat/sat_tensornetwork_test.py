@@ -18,7 +18,7 @@ from __future__ import print_function
 import tensorflow as tf
 tf.enable_v2_behavior()
 import tensornetwork
-from experiments.sat import sat_tensornetwork
+from examples.sat import sat_tensornetwork
 
 
 class SATTensorNetworkTest(tf.test.TestCase):
