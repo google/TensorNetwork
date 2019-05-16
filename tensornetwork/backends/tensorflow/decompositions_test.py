@@ -18,7 +18,7 @@ from __future__ import print_function
 import math
 import numpy as np
 import tensorflow as tf
-from tensornetwork import decompositions
+from tensornetwork.backends.tensorflow import decompositions
 
 
 class DecompositionsTest(tf.test.TestCase):
