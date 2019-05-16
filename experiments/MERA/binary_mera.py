@@ -334,7 +334,6 @@ def test_ascending_descending(chi=4, dtype=tf.float64):
         np.array(
             [energies[p] / energies[p + 1] for p in range(len(energies) - 1)]))
 
-
 if __name__ == "__main__":
     if not tf.executing_eagerly():
         pass
@@ -363,21 +362,21 @@ if __name__ == "__main__":
         #                             'embeddings' : ['p', 'a', 'p'],
         #                             'dtype' : tf.float64}}
 
-        benchmarks = {'optimize_naive' : {'chis' :  [18],
-                                          'dtype' : tf.float64,
-                                          'opt_u' : True,
-                                          'opt_w' : True,
-                                          'numpy_update' : True,
-                                          'numiter' : 5},
-            # 'optimize': {
-            #     'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-            #     'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-            #     'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
-            #     'dtype': tf.float64
-            # }
+        benchmarks = {# 'optimize_naive' : {'chis' :  [18],
+                      #                     'dtype' : tf.float64,
+                      #                     'opt_u' : True,
+                      #                     'opt_w' : True,
+                      #                     'numpy_update' : True,
+                      #                     'numiter' : 5},
+            'optimize': {
+                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
+                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
+                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+                'dtype': tf.float64
+            }
         }
 
-        use_gpu = True
+        use_gpu = False
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
         for i, device in enumerate(DEVICES):
