@@ -23,7 +23,7 @@ import numpy as np
 import tensorflow as tf
 import weakref
 from tensornetwork import decompositions
-
+import tensordot2
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -663,7 +663,7 @@ class TensorNetwork:
       raise ValueError("Attempting to contract dangling edge")
     if edge.node1 is edge.node2:
       return self._contract_trace(edge, name)
-    new_tensor = tf.tensordot(edge.node1.tensor, edge.node2.tensor,
+    new_tensor = tensordot2.tensordot(edge.node1.tensor, edge.node2.tensor,
                               [[edge.axis1], [edge.axis2]])
     new_node = self.add_node(new_tensor, name)
     self._remove_edge(edge, new_node)
@@ -688,7 +688,7 @@ class TensorNetwork:
     Returns:
       new_node: A new node. It's shape will be node1.shape + node2.shape
     """
-    new_tensor = tf.tensordot(node1.tensor, node2.tensor, 0)
+    new_tensor = tensordot2.tensordot(node1.tensor, node2.tensor, 0)
     new_node = self.add_node(new_tensor, name)
     additional_axes = len(node1.tensor.shape)
     for i, edge in enumerate(node1.edges):
