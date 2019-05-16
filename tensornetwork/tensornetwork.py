@@ -23,7 +23,8 @@ import numpy as np
 import tensorflow as tf
 import weakref
 from tensornetwork import decompositions
-import tensordot2
+import tensornetwork.tensordot2 as tensordot2
+
 
 class Node:
   """Node for the TensorNetwork graph.
