@@ -79,18 +79,48 @@ def get_scaling_dimensions(isometry, unitary, k=4):
         out = ascending_super_operator(dens, isometry, unitary)
         return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi**6)
 
-    def rmv(vec):
+    def rmv(vec):#actually not neccessary for eigs
         dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
         o1 = left_descending_super_operator(dens, isometry, unitary)
         o2 = right_descending_super_operator(dens, isometry, unitary)
         return np.reshape(
-            np.array(o1 + o2).astype(dtype.as_numpy_dtype), chni**6)
+            np.array(o1 + o2).astype(dtype.as_numpy_dtype), chi**6)
 
     A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv, rmatvec=rmv)
     eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
     scdims = -np.log2(np.abs(eta))
     return scdims - scdims[0]
 
+
+
+def get_scaling_dimensions_2site(isometry, unitary, k=4):
+    """
+    calculate the scaling dimensions of a binary mera
+    using the two-site ascending =operator
+    Args:
+        isometry (tf.Tensor): isometry of the mera
+        unitary  (tf.Tensor): disentangler of the mera
+        k        (int):       number of scaling dimensions
+    Returns:
+        tf.Tensor of shape (k,): first k scaling dimensions
+    """
+    chi = isometry.shape[2]
+    dtype = isometry.dtype
+
+    def lmv(vec):
+        dens = np.reshape(vec, [chi] * 4).astype(dtype.as_numpy_dtype)
+        out = two_site_ascending_super_operator(dens, isometry, unitary)
+        return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi ** 4)
+
+    def rmv(vec):#actually not neccessary for eigs
+        dens = np.reshape(vec, [chi] * 4).astype(dtype.as_numpy_dtype)
+        out = two_site_descending_super_operator(dens, isometry, unitary)        
+        return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi ** 4)
+
+    A = LinearOperator(shape=(chi**4, chi**4), matvec=lmv, rmatvec=rmv)
+    eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
+    scdims = -np.log2(np.abs(eta))
+    return scdims - scdims[0]
 
 def eigs(isometry, unitary, N=10, thresh=1E-6):
     """
@@ -193,7 +223,7 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
     
     out.reorder_edges(out_order)
     out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]        
-    return out
+    return out.get_tensor()
 
 @tf.contrib.eager.defun
 def two_site_descending_super_operator(rho, isometry, unitary):
@@ -229,7 +259,7 @@ def two_site_descending_super_operator(rho, isometry, unitary):
     
     out = out.reorder_edges(out_order)
     out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]    
-    return out
+    return out.get_tensor()
 
 @tf.contrib.eager.defun
 def left_ascending_super_operator(hamiltonian, isometry, unitary):
@@ -497,7 +527,6 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
 
 
 
-
 #@tf.contrib.eager.defun
 def descending_super_operator(rho, isometry, unitary):
     rho_1 = right_descending_super_operator(rho, isometry, unitary)
@@ -577,11 +606,6 @@ def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
     
     out.reorder_edges(out_order)
     return out.get_tensor()
-
-
-
-
-
 
 
 @tf.contrib.eager.defun
@@ -811,22 +835,22 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_c = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
-    iso_r = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_c = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
     
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [iso_l_con[0], un_l[2], rho[0]]
     
@@ -885,22 +909,22 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_c = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
-    iso_r = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
+    iso_c = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
 
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [iso_l_con[0], un_l[2], rho[0]]
     
@@ -960,23 +984,23 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_l = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
-    iso_r = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_l = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
 
 
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [un_l[3], un_r[2], rho[1]]
     
@@ -1032,23 +1056,23 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_l = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
-    iso_r = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_l = net.add_node(isometry)
+    iso_r = net.add_node(isometry)
 
 
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [un_l[3], un_r[2], rho[1]]
     
@@ -1109,23 +1133,23 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_l = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
-    iso_c = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_l = net.add_node(isometry)
+    iso_c = net.add_node(isometry)
 
 
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [un_r[3], iso_r_con[1], rho[2]]
     
@@ -1188,23 +1212,23 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
 
-    iso_l = net.add_node(isometry,axis_names = ['ic_0', 'ic_1', 'ic_2'])
-    iso_c = net.add_node(isometry,axis_names = ['ir_0', 'ir_1', 'ir_2'])
+    iso_l = net.add_node(isometry)
+    iso_c = net.add_node(isometry)
 
 
-    iso_l_con = net.add_node(tf.conj(isometry),axis_names = ['il_c_0', 'il_c_1', 'il_c_2'])
-    iso_c_con = net.add_node(tf.conj(isometry),axis_names = ['ic_c_0', 'ic_c_1', 'ic_c_2'])
-    iso_r_con = net.add_node(tf.conj(isometry),axis_names = ['ir_c_0', 'ir_c_1', 'ir_c_2'])
+    iso_l_con = net.add_node(tf.conj(isometry))
+    iso_c_con = net.add_node(tf.conj(isometry))
+    iso_r_con = net.add_node(tf.conj(isometry))
     
-    op = net.add_node(hamiltonian,axis_names = ['op_0', 'op_1', 'op_2','op_3','op_4','op_5'])
-    rho = net.add_node(reduced_density,axis_names = ['rho_0', 'rho_1', 'rho_2','rho_3','rho_4','rho_5'])
+    op = net.add_node(hamiltonian)
+    rho = net.add_node(reduced_density)
 
     
-    un_l = net.add_node(unitary,axis_names = ['ul_0', 'ul_1', 'ul_2','ul_3'])
-    un_l_con = net.add_node(tf.conj(unitary),axis_names = ['ul_c_0', 'ul_c_1', 'ul_c_2','ul_c_3'])
+    un_l = net.add_node(unitary)
+    un_l_con = net.add_node(tf.conj(unitary))
     
-    un_r = net.add_node(unitary,axis_names = ['ur_0', 'ur_1', 'ur_2','ur_3'])
-    un_r_con = net.add_node(tf.conj(unitary),axis_names = ['ur_c_0', 'ur_c_1', 'ur_c_2','ur_c_3'])
+    un_r = net.add_node(unitary)
+    un_r_con = net.add_node(tf.conj(unitary))
     
     out_order = [un_r[3], iso_r_con[1], rho[2]]
     
