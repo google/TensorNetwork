@@ -29,9 +29,9 @@ class BaseBackend:
     self.name = 'base backend'
 
   def tensordot(
-      self, 
-      a: Tensor, 
-      b: Tensor, 
+      self,
+      a: Tensor,
+      b: Tensor,
       axes: Sequence[Sequence[int]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.
 
@@ -44,11 +44,11 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented tensordot.".format(self.name))
 
-  # We use `Tensor` for the shape type here since the shape could 
+  # We use `Tensor` for the shape type here since the shape could
   # be a tensor.
   def reshape(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
     """Reshape tensor to the given shape.
-    Args: 
+    Args:
       tensor: A tensor.
     Returns:
       The reshaped tensor.
@@ -57,8 +57,7 @@ class BaseBackend:
         "Backend '{}' has not implemented reshape.".format(self.name))
 
   def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
-    """Transpose a tensor to a given permutation.
-
+    """Transpose a tensor according to a given permutation
     Args:
       tensor: A tensor.
       perm: The permutation of the axes.
@@ -135,7 +134,7 @@ class BaseBackend:
     Args:
       tensor: A tensor.
     Returns:
-      The shape of the tensor as a different tensor.
+      The shape of the input tensor returned as another tensor.
     """
     raise NotImplementedError(
       "Backend '{}' has not implemented shape.".format(
@@ -156,7 +155,7 @@ class BaseBackend:
   def diag(self, tensor: Tensor) -> Tensor:
     """Create a diagonal matrix from the given vector tensor."""
     raise NotImplementedError(
-      "Backend '{}' has not implemented sqrt.".format(
+      "Backend '{}' has not implemented diag.".format(
           self.name))
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
@@ -174,5 +173,5 @@ class BaseBackend:
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """Calculate the outer product of the two given tensors."""
     raise NotImplementedError(
-      "Backend '{}' has not implemented trace.".format(
+      "Backend '{}' has not implemented outer_product.".format(
           self.name))
