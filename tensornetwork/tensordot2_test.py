@@ -34,28 +34,109 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python import tf2
-from tensorflow.python.framework import constant_op
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import errors_impl
-from tensorflow.python.framework import test_util
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import math_ops
-
 from tensornetwork import tensordot2
 from absl.testing import parameterized
 import pytest
 
 tf.enable_v2_behavior()
-
 _MAXDIM = 5
 
 
-def _add_test(test, test_name, fn):
-  test_name = "_".join(["test", test_name])
-  if hasattr(test, test_name):
-    raise RuntimeError("Test %s defined more than once" % test_name)
-  setattr(test, test_name, fn)
+class TensordotTest(tf.compat.v1.test.TestCase, parameterized.TestCase):
+
+  def test_invalid_shape(self):
+    a = [[1, 2], [3, 4]]
+    b = [[1, 2], [3, 4], [5, 6]]
+    a_axes = [1]
+    b_axes = [0]
+    # Invalid static shapes.
+    with self.assertRaises(tf.errors.InvalidArgumentError):
+      tensordot2.tensordot(a, b, (a_axes, b_axes))
+    # Invalid dynamic shapes.
+    with tf.compat.v1.Graph().as_default():
+      with self.cached_session() as sess:
+        with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                     "Matrix size-incompatible"):
+          a_ph = tf.compat.v1.placeholder(tf.float32)
+          b_ph = tf.compat.v1.placeholder(tf.float32)
+          axes_ph = tf.compat.v1.placeholder(tf.int32)
+          output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
+          _ = sess.run(
+              [output], feed_dict={
+                  a_ph: a,
+                  b_ph: b,
+                  axes_ph: (a_axes, b_axes)
+              })
+
+  def test_invalid_axes(self):
+    with tf.compat.v1.Graph().as_default():
+      a = [[1, 2], [3, 4]]
+      b = [[1, 2], [3, 4]]
+      # Invalid static axes.
+      for axes_value in -1, 3, [1], [[1]], [[1], [0, 1]]:
+        with self.assertRaises(ValueError):
+          tensordot2.tensordot(a, b, axes_value)
+
+      with self.assertRaises(IndexError):
+        tensordot2.tensordot(a, b, [[0], [7]])
+
+      # Invalid dynamic axes.
+      a_ph = tf.placeholder(tf.float32)
+      b_ph = tf.placeholder(tf.float32)
+      axes_ph = tf.placeholder(tf.int32)
+      output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
+      # Note: We don't support scalar Tensor values for axes.
+      for axes_value in 1, [1], [0, 1], [[1]], [[0, 1]], [[0], [7]]:
+        with self.cached_session() as sess:
+          with self.assertRaises(tf.errors.InvalidArgumentError):
+            _ = sess.run(
+                [output], feed_dict={
+                    a_ph: a,
+                    b_ph: b,
+                    axes_ph: axes_value
+                })
+
+  # Test case for 11950
+  def test_valid_axis(self):
+    for axes_value in [1, 2], [[1], [2]], [[], []], 0:
+      with self.cached_session():
+        np_a = np.ones((3, 3))
+        np_b = np.array([2, 3, 1])[None, None]
+        np_ans = np.tensordot(np_a, np_b, axes_value)
+
+        tf_a = tf.ones((3, 3), dtype=tf.float32)
+        tf_b = tf.constant([2, 3, 1], dtype=tf.float32)[None, None]
+        tf_ans = tensordot2.tensordot(tf_a, tf_b, axes_value)
+
+        self.assertAllEqual(tf_ans.shape, np_ans.shape)
+        self.assertAllEqual(tf_ans, np_ans)
+
+  def test_partial_shape_inference(self):
+    with tf.compat.v1.Graph().as_default():
+      for axes in ([1], [0]), 1:
+        a = tf.placeholder(tf.float32)
+        b = tf.placeholder(tf.float32)
+        output = tensordot2.tensordot(a, b, axes)
+        self.assertEqual(output.get_shape().ndims, None)
+        a.set_shape([None, 2])
+        b.set_shape([2, 3])
+        output = tensordot2.tensordot(a, b, axes)
+        output_shape = output.get_shape()
+        self.assertEqual(output_shape.ndims, 2)
+        output_shape = output_shape.as_list()
+        self.assertEqual(output_shape[0], None)
+        self.assertEqual(output_shape[1], 3)
+        a = tf.placeholder(tf.float32)
+        b = tf.placeholder(tf.float32)
+        a.set_shape([2, 2])
+        b.set_shape([2, None])
+        output = tensordot2.tensordot(a, b, axes)
+        output_shape = output.get_shape()
+        self.assertEqual(output_shape.ndims, 2)
+        output_shape = output_shape.as_list()
+        self.assertEqual(output_shape[0], 2)
+        self.assertEqual(output_shape[1], None)
+
 
 # Select a random subset of size m from [0, 1, ..., n-1].
 def _random_subset(m, n):
@@ -78,102 +159,6 @@ def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
       low=-1.0, high=1.0,
       size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
   return a, b, a_dims, b_dims
-
-
-class TensordotTest(tf.test.TestCase, parameterized.TestCase):
-
-  @test_util.run_v1_only("b/120545219")
-  def test_invalid_shape(self):
-    a = [[1, 2], [3, 4]]
-    b = [[1, 2], [3, 4], [5, 6]]
-    a_axes = [1]
-    b_axes = [0]
-    # Invalid static shapes.
-    with self.assertRaises(ValueError):
-      tensordot2.tensordot(a, b, (a_axes, b_axes))
-    # Invalid dynamic shapes.
-    with self.cached_session() as sess:
-      with self.assertRaisesRegexp(errors_impl.InvalidArgumentError,
-                                   "Matrix size-incompatible"):
-        a_ph = array_ops.placeholder(dtypes.float32)
-        b_ph = array_ops.placeholder(dtypes.float32)
-        axes_ph = array_ops.placeholder(dtypes.int32)
-        output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
-        _ = sess.run(
-            [output], feed_dict={
-                a_ph: a,
-                b_ph: b,
-                axes_ph: (a_axes, b_axes)
-            })
-
-  @test_util.run_v1_only("b/120545219")
-  def test_invalid_axes(self):
-    a = [[1, 2], [3, 4]]
-    b = [[1, 2], [3, 4]]
-    # Invalid static axes.
-    for axes_value in -1, 3, [1], [[1]], [[1], [0, 1]]:
-      with self.assertRaises(ValueError):
-        tensordot2.tensordot(a, b, axes_value)
-
-    with self.assertRaises(IndexError):
-      tensordot2.tensordot(a, b, [[0], [7]])
-
-    # Invalid dynamic axes.
-    a_ph = array_ops.placeholder(dtypes.float32)
-    b_ph = array_ops.placeholder(dtypes.float32)
-    axes_ph = array_ops.placeholder(dtypes.int32)
-    output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
-    # Note: We don't support scalar Tensor values for axes.
-    for axes_value in 1, [1], [0, 1], [[1]], [[0, 1]], [[0], [7]]:
-      with self.cached_session() as sess:
-        with self.assertRaises(errors_impl.InvalidArgumentError):
-          _ = sess.run(
-              [output], feed_dict={
-                  a_ph: a,
-                  b_ph: b,
-                  axes_ph: axes_value
-              })
-
-  # Test case for 11950
-  def test_valid_axis(self):
-    for axes_value in [1, 2], [[1], [2]], [[], []], 0:
-      with self.cached_session():
-        np_a = np.ones((3, 3))
-        np_b = np.array([2, 3, 1])[None, None]
-        np_ans = np.tensordot(np_a, np_b, axes_value)
-
-        tf_a = array_ops.ones((3, 3), dtype=dtypes.float32)
-        tf_b = constant_op.constant([2, 3, 1], dtype=dtypes.float32)[None, None]
-        tf_ans = tensordot2.tensordot(tf_a, tf_b, axes_value)
-
-        self.assertAllEqual(tf_ans.shape, np_ans.shape)
-        self.assertAllEqual(tf_ans, np_ans)
-
-  @test_util.run_v1_only("b/120545219")
-  def test_partial_shape_inference(self):
-    for axes in ([1], [0]), 1:
-      a = array_ops.placeholder(dtypes.float32)
-      b = array_ops.placeholder(dtypes.float32)
-      output = tensordot2.tensordot(a, b, axes)
-      self.assertEqual(output.get_shape().ndims, None)
-      a.set_shape([None, 2])
-      b.set_shape([2, 3])
-      output = tensordot2.tensordot(a, b, axes)
-      output_shape = output.get_shape()
-      self.assertEqual(output_shape.ndims, 2)
-      output_shape = output_shape.as_list()
-      self.assertEqual(output_shape[0], None)
-      self.assertEqual(output_shape[1], 3)
-      a = array_ops.placeholder(dtypes.float32)
-      b = array_ops.placeholder(dtypes.float32)
-      a.set_shape([2, 2])
-      b.set_shape([2, None])
-      output = tensordot2.tensordot(a, b, axes)
-      output_shape = output.get_shape()
-      self.assertEqual(output_shape.ndims, 2)
-      output_shape = output_shape.as_list()
-      self.assertEqual(output_shape[0], 2)
-      self.assertEqual(output_shape[1], None)
 
 @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
 @pytest.mark.parametrize("rank_a_", [1, 2, 3])
@@ -223,4 +208,3 @@ def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
     tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
     np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
     assert tf_ans.shape == np_ans.shape
-
