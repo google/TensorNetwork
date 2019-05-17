@@ -568,7 +568,9 @@ class TensorNetwork:
         shared_edges.add(edge)
     return list(shared_edges)
 
-  def flatten_edges_between(self, node1: Node, node2: Node) -> Optional[Edge]:
+  def flatten_edges_between(
+    self, node1: network_components.Node,
+    node2: network_components.Node) -> Optional[network_components.Edge]:
     """Flatten all of the edges between the given two nodes.
 
     Args:
