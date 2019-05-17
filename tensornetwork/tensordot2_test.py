@@ -35,14 +35,13 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensornetwork import tensordot2
-from absl.testing import parameterized
 import pytest
 
 tf.enable_v2_behavior()
 _MAXDIM = 5
 
 
-class TensordotTest(tf.compat.v1.test.TestCase, parameterized.TestCase):
+class TensordotTest(tf.compat.v1.test.TestCase):
 
   def test_invalid_shape(self):
     a = [[1, 2], [3, 4]]
