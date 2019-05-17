@@ -17,10 +17,14 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-from unittest import mock
 import tensorflow as tf
+import pytest
+from unittest import mock
 # pylint: disable=g-import-not-at-top
 from tensornetwork import network, nxwrapper
+
+matplotlib = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 class TreePlotWrapperTest(tf.test.TestCase):
