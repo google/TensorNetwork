@@ -33,7 +33,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
 import tensorflow as tf
 from tensorflow.python import tf2
 from tensorflow.python.framework import constant_op
@@ -44,6 +43,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
 
 from tensornetwork import tensordot2
+import pytest
 
 _MAXDIM = 5
 
@@ -53,6 +53,28 @@ def _add_test(test, test_name, fn):
   if hasattr(test, test_name):
     raise RuntimeError("Test %s defined more than once" % test_name)
   setattr(test, test_name, fn)
+
+# Select a random subset of size m from [0, 1, ..., n-1].
+def _random_subset(m, n):
+  assert m <= n
+  return (np.random.permutation(n)[:m]).astype(np.int32)
+
+def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
+  a_shape = np.random.randint(1, _MAXDIM + 1, rank_a_)
+  b_shape = np.random.randint(1, _MAXDIM + 1, rank_b_)
+  shared_shape = np.random.randint(1, _MAXDIM + 1, num_dims_)
+  a_dims = _random_subset(num_dims_, rank_a_)
+  b_dims = _random_subset(num_dims_, rank_b_)
+  for i in range(num_dims_):
+    a_shape[a_dims[i]] = shared_shape[i]
+    b_shape[b_dims[i]] = shared_shape[i]
+  a = np.random.uniform(
+      low=-1.0, high=1.0,
+      size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
+  b = np.random.uniform(
+      low=-1.0, high=1.0,
+      size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
+  return a, b, a_dims, b_dims
 
 
 class TensordotTest(tf.test.TestCase):
@@ -150,60 +172,12 @@ class TensordotTest(tf.test.TestCase):
       self.assertEqual(output_shape[0], 2)
       self.assertEqual(output_shape[1], None)
 
-
-def _get_tensordot_tests(dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
-
-  # Select a random subset of size m from [0, 1, ..., n-1].
-  def _random_subset(m, n):
-    assert m <= n
-    return (np.random.permutation(n)[:m]).astype(np.int32)
-
-  def _generate_random_tensors_and_dims():
-    a_shape = np.random.randint(1, _MAXDIM + 1, rank_a_)
-    b_shape = np.random.randint(1, _MAXDIM + 1, rank_b_)
-    shared_shape = np.random.randint(1, _MAXDIM + 1, num_dims_)
-    a_dims = _random_subset(num_dims_, rank_a_)
-    b_dims = _random_subset(num_dims_, rank_b_)
-    for i in range(num_dims_):
-      a_shape[a_dims[i]] = shared_shape[i]
-      b_shape[b_dims[i]] = shared_shape[i]
-    a = np.random.uniform(
-        low=-1.0, high=1.0,
-        size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
-    b = np.random.uniform(
-        low=-1.0, high=1.0,
-        size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
-    return a, b, a_dims, b_dims
-
-  def test_tensordot(self):
-    num_trials = min(30, num_dims_ * num_dims_)
-    if dtype_ == np.float16:
-      tol = 0.05
-    elif dtype_ == np.float32 or dtype_ == np.complex64:
-      tol = 1e-5
-    else:
-      tol = 1e-12
-    for _ in range(num_trials):
-      a_np, b_np, a_dims_np, b_dims_np = _generate_random_tensors_and_dims()
-      np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
-      with self.cached_session(use_gpu=True) as sess:
-        if dynamic_shape_:
-          a = array_ops.placeholder(dtype_)
-          b = array_ops.placeholder(dtype_)
-          axes = array_ops.placeholder(dtypes.int32)
-          c = tensordot2.tensordot(a, b, axes)
-          tf_ans = sess.run(
-              c, feed_dict={
-                  a: a_np,
-                  b: b_np,
-                  axes: (a_dims_np, b_dims_np)
-              })
-        else:
-          tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
-      self.assertAllClose(tf_ans, np_ans, rtol=tol, atol=tol)
-      self.assertAllEqual(tf_ans.shape, np_ans.shape)
-
-  def test_tensordot_scalar_axes(self):
+  @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
+  @pytest.mark.parametrize("rank_a_", [1, 2, 3])
+  @pytest.mark.parametrize("rank_b_", [1, 2, 3])
+  @pytest.mark.parametrize("dynamic_shape_", [False, tf2.enabled()])
+  @pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
+  def tensordot_scalar_axes(self, dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
     if num_dims_ < 1:
       self.skipTest("Not a test")
     if dtype_ == np.float16:
@@ -233,18 +207,37 @@ def _get_tensordot_tests(dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
       self.assertAllClose(tf_ans, np_ans, rtol=tol, atol=tol)
       self.assertAllEqual(tf_ans.shape, np_ans.shape)
 
-  return [test_tensordot, test_tensordot_scalar_axes]
+  @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
+  @pytest.mark.parametrize("rank_a_", [1, 2, 3])
+  @pytest.mark.parametrize("rank_b_", [1, 2, 3])
+  @pytest.mark.parametrize("dynamic_shape_", [False, tf2.enabled()])
+  @pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
+  def tensordot(self, dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
+    num_trials = min(30, num_dims_ * num_dims_)
+    if dtype_ == np.float16:
+      tol = 0.05
+    elif dtype_ == np.float32 or dtype_ == np.complex64:
+      tol = 1e-5
+    else:
+      tol = 1e-12
+    for _ in range(num_trials):
+      a_np, b_np, a_dims_np, b_dims_np = _generate_random_tensors_and_dims(
+          dtype_, rank_a_, rank_b_, num_dims_)
+      np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
+      with self.cached_session(use_gpu=True) as sess:
+        if dynamic_shape_:
+          a = array_ops.placeholder(dtype_)
+          b = array_ops.placeholder(dtype_)
+          axes = array_ops.placeholder(dtypes.int32)
+          c = tensordot2.tensordot(a, b, axes)
+          tf_ans = sess.run(
+              c, feed_dict={
+                  a: a_np,
+                  b: b_np,
+                  axes: (a_dims_np, b_dims_np)
+              })
+        else:
+          tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
+      self.assertAllClose(tf_ans, np_ans, rtol=tol, atol=tol)
+      self.assertAllEqual(tf_ans.shape, np_ans.shape)
 
-
-for dtype in np.float32, np.complex64:
-  for rank_a in 1, 2, 3:
-    for rank_b in 1, 2, 3:
-      for num_dims in range(0, min(rank_a, rank_b) + 1):
-        # TF2 does not support placeholders under eager so we skip it
-        for dynamic_shape in set([False, not tf2.enabled()]):
-          for testcase in _get_tensordot_tests(dtype, rank_a, rank_b,
-                                                num_dims, dynamic_shape):
-            name = "%s_%s_%s_%s_%s_%s" % (testcase.__name__, dtype.__name__,
-                                          rank_a, rank_b, num_dims,
-                                          dynamic_shape)
-            _add_test(TensordotTest, name, testcase)
