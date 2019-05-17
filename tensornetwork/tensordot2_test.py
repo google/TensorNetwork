@@ -43,7 +43,10 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
 
 from tensornetwork import tensordot2
+from absl.testing import parameterized
 import pytest
+
+tf.enable_v2_behavior()
 
 _MAXDIM = 5
 
@@ -77,7 +80,7 @@ def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
   return a, b, a_dims, b_dims
 
 
-class TensordotTest(tf.test.TestCase):
+class TensordotTest(tf.test.TestCase, parameterized.TestCase):
 
   @test_util.run_v1_only("b/120545219")
   def test_invalid_shape(self):
@@ -172,72 +175,52 @@ class TensordotTest(tf.test.TestCase):
       self.assertEqual(output_shape[0], 2)
       self.assertEqual(output_shape[1], None)
 
-  @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
-  @pytest.mark.parametrize("rank_a_", [1, 2, 3])
-  @pytest.mark.parametrize("rank_b_", [1, 2, 3])
-  @pytest.mark.parametrize("dynamic_shape_", [False, tf2.enabled()])
-  @pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
-  def tensordot_scalar_axes(self, dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
-    if num_dims_ < 1:
-      self.skipTest("Not a test")
-    if dtype_ == np.float16:
-      tol = 0.05
-    elif dtype_ == np.float32 or dtype_ == np.complex64:
-      tol = 1e-5
-    else:
-      tol = 1e-12
-    shape = [5] * num_dims_
-    a_np = np.random.uniform(
-        low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
-    b_np = np.random.uniform(
-        low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
-    all_axes = [0, 1]
-    if a_np.ndim > 2:
-      all_axes.append(a_np.ndim - 1)
-    for axes in all_axes:
-      np_ans = np.tensordot(a_np, b_np, axes=axes)
-      with self.cached_session(use_gpu=True) as sess:
-        if dynamic_shape_:
-          a = array_ops.placeholder(dtype_)
-          b = array_ops.placeholder(dtype_)
-          c = tensordot2.tensordot(a, b, axes=axes)
-          tf_ans = sess.run(c, feed_dict={a: a_np, b: b_np})
-        else:
-          tf_ans = tensordot2.tensordot(a_np, b_np, axes=axes)
-      self.assertAllClose(tf_ans, np_ans, rtol=tol, atol=tol)
-      self.assertAllEqual(tf_ans.shape, np_ans.shape)
+@pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
+@pytest.mark.parametrize("rank_a_", [1, 2, 3])
+@pytest.mark.parametrize("rank_b_", [1, 2, 3])
+@pytest.mark.parametrize("num_dims_", [1, 2, 3])
+def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
+  if not (num_dims_ <= min(rank_a_, rank_b_)):
+    pytest.skip("Not a test")
+  if dtype_ == np.float16:
+    tol = 0.05
+  elif dtype_ == np.float32 or dtype_ == np.complex64:
+    tol = 1e-5
+  else:
+    tol = 1e-12
+  shape = [5] * num_dims_
+  a_np = np.random.uniform(
+      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+  b_np = np.random.uniform(
+      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+  all_axes = [0, 1]
+  if a_np.ndim > 2:
+    all_axes.append(a_np.ndim - 1)
+  for axes in all_axes:
+    np_ans = np.tensordot(a_np, b_np, axes=axes)
+    tf_ans = tensordot2.tensordot(a_np, b_np, axes=axes)
+    np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
+    assert tf_ans.shape == np_ans.shape
 
-  @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
-  @pytest.mark.parametrize("rank_a_", [1, 2, 3])
-  @pytest.mark.parametrize("rank_b_", [1, 2, 3])
-  @pytest.mark.parametrize("dynamic_shape_", [False, tf2.enabled()])
-  @pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
-  def tensordot(self, dtype_, rank_a_, rank_b_, num_dims_, dynamic_shape_):
-    num_trials = min(30, num_dims_ * num_dims_)
-    if dtype_ == np.float16:
-      tol = 0.05
-    elif dtype_ == np.float32 or dtype_ == np.complex64:
-      tol = 1e-5
-    else:
-      tol = 1e-12
-    for _ in range(num_trials):
-      a_np, b_np, a_dims_np, b_dims_np = _generate_random_tensors_and_dims(
-          dtype_, rank_a_, rank_b_, num_dims_)
-      np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
-      with self.cached_session(use_gpu=True) as sess:
-        if dynamic_shape_:
-          a = array_ops.placeholder(dtype_)
-          b = array_ops.placeholder(dtype_)
-          axes = array_ops.placeholder(dtypes.int32)
-          c = tensordot2.tensordot(a, b, axes)
-          tf_ans = sess.run(
-              c, feed_dict={
-                  a: a_np,
-                  b: b_np,
-                  axes: (a_dims_np, b_dims_np)
-              })
-        else:
-          tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
-      self.assertAllClose(tf_ans, np_ans, rtol=tol, atol=tol)
-      self.assertAllEqual(tf_ans.shape, np_ans.shape)
+@pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
+@pytest.mark.parametrize("rank_a_", [1, 2, 3])
+@pytest.mark.parametrize("rank_b_", [1, 2, 3])
+@pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
+def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
+  if not (num_dims_ <= min(rank_a_, rank_b_)):
+    pytest.skip("Not a test")
+  num_trials = min(30, num_dims_ * num_dims_)
+  if dtype_ == np.float16:
+    tol = 0.05
+  elif dtype_ == np.float32 or dtype_ == np.complex64:
+    tol = 1e-5
+  else:
+    tol = 1e-12
+  for _ in range(num_trials):
+    a_np, b_np, a_dims_np, b_dims_np = _generate_random_tensors_and_dims(
+        dtype_, rank_a_, rank_b_, num_dims_)
+    np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
+    tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
+    np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
+    assert tf_ans.shape == np_ans.shape
 
