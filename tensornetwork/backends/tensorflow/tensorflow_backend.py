@@ -18,14 +18,16 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 
-
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
 
+
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
+
   def __init__(self):
+    super(TensorFlowBackend, self).__init__()
     try:
       import tensorflow
     except ImportError:
@@ -34,39 +36,36 @@ class TensorFlowBackend(base_backend.BaseBackend):
     self.tf = tensorflow
     self.decompositions = decompositions
     self.name = "tensorflow"
-    
-  def tensordot(self, 
-      a: Tensor,
-      b: Tensor,
-      axes: Sequence[Sequence[int]]):
+
+  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.tf.tensordot(a, b, axes)
-  
+
   def reshape(self, tensor: Tensor, shape: Tensor):
-  	return self.tf.reshape(tensor, shape)
-  
+    return self.tf.reshape(tensor, shape)
+
   def transpose(self, tensor, perm):
-  	return self.tf.transpose(tensor, perm)
-  
-  def svd_decomposition(self, 
+    return self.tf.transpose(tensor, perm)
+
+  def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
-                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-  	return self.decompositions.svd_decomposition(
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    return self.decompositions.svd_decomposition(
         tensor, split_axis, max_singular_values, max_truncation_error)
-  
+
   def concat(self, values: Tensor, axis: int) -> Tensor:
-  	return self.tf.concat(values, axis)
-  
+    return self.tf.concat(values, axis)
+
   def shape(self, tensor: Tensor) -> Tensor:
-  	return self.tf.shape(tensor)
-  
+    return self.tf.shape(tensor)
+
   def prod(self, values: Tensor) -> Tensor:
-  	return self.tf.reduce_prod(values)
-  
+    return self.tf.reduce_prod(values)
+
   def sqrt(self, tensor: Tensor) -> Tensor:
-  	return self.tf.sqrt(tensor)
+    return self.tf.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.diag(tensor)
