@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Implementation of TensorNetwork structure."""
 
 from __future__ import absolute_import
@@ -25,8 +24,8 @@ from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
 
-
 Tensor = Any
+
 
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
@@ -84,10 +83,11 @@ class TensorNetwork:
       new_network.add_subnetwork(network)
     return new_network
 
-  def add_node(self,
-               tensor: Union[np.ndarray, Tensor],
-               name: Optional[Text] = None,
-               axis_names: Optional[List[Text]] = None) -> network_components.Node:
+  def add_node(
+      self,
+      tensor: Union[np.ndarray, Tensor],
+      name: Optional[Text] = None,
+      axis_names: Optional[List[Text]] = None) -> network_components.Node:
     """Create a new node in the network.
 
     Args:
@@ -109,7 +109,9 @@ class TensorNetwork:
     self.nodes_set.add(new_node)
     return new_node
 
-  def connect(self, edge1: network_components.Edge, edge2: network_components.Edge,
+  def connect(self,
+              edge1: network_components.Edge,
+              edge2: network_components.Edge,
               name: Optional[Text] = None) -> network_components.Edge:
     """Join two dangling edges into a new edge.
 
@@ -139,11 +141,11 @@ class TensorNetwork:
     self.edge_order.append(new_edge)
     return new_edge
 
-  def disconnect(
-      self, 
-      edge: network_components.Edge, 
-      dangling_edge_name_1: Optional[Text] = None,
-      dangling_edge_name_2: Optional[Text] = None) -> List[network_components.Edge]:
+  def disconnect(self,
+                 edge: network_components.Edge,
+                 dangling_edge_name_1: Optional[Text] = None,
+                 dangling_edge_name_2: Optional[Text] = None
+                ) -> List[network_components.Edge]:
     """Break a edge into two dangling edges.
 
     Args:
@@ -164,14 +166,17 @@ class TensorNetwork:
     node2 = edge.node2
     dangling_edge_name_1 = self._new_edge_name(dangling_edge_name_1)
     dangling_edge_name_2 = self._new_edge_name(dangling_edge_name_2)
-    dangling_edge_1 = network_components.Edge(dangling_edge_name_1, node1, edge.axis1)
-    dangling_edge_2 = network_components.Edge(dangling_edge_name_2, node2, edge.axis2)
+    dangling_edge_1 = network_components.Edge(dangling_edge_name_1, node1,
+                                              edge.axis1)
+    dangling_edge_2 = network_components.Edge(dangling_edge_name_2, node2,
+                                              edge.axis2)
     node1.add_edge(dangling_edge_1, edge.axis1, True)
     node2.add_edge(dangling_edge_2, edge.axis2, True)
     self.edge_order.remove(edge)
     return [dangling_edge_1, dangling_edge_2]
 
-  def _remove_trace_edge(self, edge: network_components.Edge, new_node: network_components.Node) -> None:
+  def _remove_trace_edge(self, edge: network_components.Edge,
+                         new_node: network_components.Node) -> None:
     """Collapse a trace edge.
 
     Collapses a trace edge and updates the network.
@@ -215,7 +220,8 @@ class TensorNetwork:
       new_node.add_edge(e, i)
     self.nodes_set.remove(edge.node1)
 
-  def _remove_edge(self, edge: network_components.Edge, new_node: network_components.Node) -> None:
+  def _remove_edge(self, edge: network_components.Edge,
+                   new_node: network_components.Node) -> None:
     """Collapse an edge in the network.
 
     Collapses an edge and updates the rest of the network.
@@ -274,7 +280,9 @@ class TensorNetwork:
     self.nodes_set.remove(node1)
     self.nodes_set.remove(node2)
 
-  def _contract_trace(self, edge: network_components.Edge, name: Optional[Text] = None) -> network_components.Node:
+  def _contract_trace(self,
+                      edge: network_components.Edge,
+                      name: Optional[Text] = None) -> network_components.Node:
     """Contract a trace edge connecting in the TensorNetwork.
 
     Args:
@@ -289,7 +297,7 @@ class TensorNetwork:
     """
     if edge.is_dangling():
       raise ValueError("Attempted to contract dangling edge '{}'".format(edge))
-    elif edge.node1 is not edge.node2:
+    if edge.node1 is not edge.node2:
       raise ValueError("Can not take trace of edge '{}'. This edge connects to "
                        "two different nodes: '{}' and '{}".format(
                            edge, edge.node1, edge.node2))
@@ -302,7 +310,8 @@ class TensorNetwork:
     self._remove_trace_edge(edge, new_node)
     return new_node
 
-  def contract(self, edge: network_components.Edge, name: Optional[Text] = None) -> network_components.Node:
+  def contract(self, edge: network_components.Edge,
+               name: Optional[Text] = None) -> network_components.Node:
     """Contract an edge connecting two nodes in the TensorNetwork.
 
     Args:
@@ -324,12 +333,14 @@ class TensorNetwork:
     if edge.node1 is edge.node2:
       return self._contract_trace(edge, name)
     new_tensor = self.backend.tensordot(edge.node1.tensor, edge.node2.tensor,
-                              [[edge.axis1], [edge.axis2]])
+                                        [[edge.axis1], [edge.axis2]])
     new_node = self.add_node(new_tensor, name)
     self._remove_edge(edge, new_node)
     return new_node
 
-  def outer_product(self, node1: network_components.Node, node2: network_components.Node,
+  def outer_product(self,
+                    node1: network_components.Node,
+                    node2: network_components.Node,
                     name: Optional[Text] = None) -> network_components.Node:
     """Calcuates an outer product of the two nodes.
 
@@ -389,8 +400,8 @@ class TensorNetwork:
       edges |= node.get_all_nondangling()
     return edges
 
-  def outer_product_final_nodes(
-      self, edge_order: List[network_components.Edge]) -> network_components.Node:
+  def outer_product_final_nodes(self, edge_order: List[network_components.Edge]
+                               ) -> network_components.Node:
     """Get the outer product of the final nodes.
 
     For example, if after all contractions, there were 3 nodes remaining with
@@ -432,8 +443,9 @@ class TensorNetwork:
     if self.nodes_set != seen_nodes:
       raise ValueError("Non-connected graph")
 
-  def _flatten_trace_edges(self, edges: List[network_components.Edge],
-                           new_edge_name: Optional[Text]) -> network_components.Edge:
+  def _flatten_trace_edges(
+      self, edges: List[network_components.Edge],
+      new_edge_name: Optional[Text]) -> network_components.Edge:
     """Flatten trace edges into single edge.
 
     Args:
@@ -450,10 +462,12 @@ class TensorNetwork:
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
     perm = perm_front + perm_back
-    new_dim = self.backend.prod([self.backend.shape(node.tensor)[e.axis1] for e in edges])
+    new_dim = self.backend.prod(
+        [self.backend.shape(node.tensor)[e.axis1] for e in edges])
     node.reorder_axes(perm)
     unaffected_shape = self.backend.shape(node.tensor)[:len(perm_front)]
-    new_shape = self.backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+    new_shape = self.backend.concat(
+        [unaffected_shape, [new_dim, new_dim]], axis=-1)
     node.tensor = self.backend.reshape(node.tensor, new_shape)
     edge1 = network_components.Edge("TraceFront", node, len(perm_front))
     edge2 = network_components.Edge("TraceBack", node, len(perm_front) + 1)
@@ -462,9 +476,10 @@ class TensorNetwork:
     node.axis_names = None
     return new_edge
 
-  def flatten_edges(self,
-                    edges: List[network_components.Edge],
-                    new_edge_name: Optional[Text] = None) -> network_components.Edge:
+  def flatten_edges(
+      self,
+      edges: List[network_components.Edge],
+      new_edge_name: Optional[Text] = None) -> network_components.Edge:
     """Flatten edges into single edge.
 
     If two nodes have multiple edges connecting them, it may be
@@ -536,12 +551,12 @@ class TensorNetwork:
     # dangling edges.
     if node1 is None or node2 is None:
       return new_dangling_edges[0]
-    return self.connect(new_dangling_edges[0],
-                        new_dangling_edges[1], new_edge_name)
+    return self.connect(new_dangling_edges[0], new_dangling_edges[1],
+                        new_edge_name)
 
   def flatten_edges_between(
-    self, node1: network_components.Node, 
-    node2: network_components.Node) -> Optional[network_components.Edge]:
+      self, node1: network_components.Node,
+      node2: network_components.Node) -> Optional[network_components.Edge]:
     """Flatten all of the edges between the given two nodes.
 
     Args:
@@ -563,8 +578,7 @@ class TensorNetwork:
         shared_edges.add(edge)
     if shared_edges:
       return self.flatten_edges(list(shared_edges))
-    else:
-      return None
+    return None
 
   def flatten_all_edges(self) -> List[network_components.Edge]:
     """Flatten all edges in the network.
@@ -584,11 +598,12 @@ class TensorNetwork:
           flattened_edges.append(flat_edge)
     return flattened_edges
 
-  def contract_between(self,
-                       node1: network_components.Node,
-                       node2: network_components.Node,
-                       name: Optional[Text] = None,
-                       allow_outer_product: bool = False) -> network_components.Node:
+  def contract_between(
+      self,
+      node1: network_components.Node,
+      node2: network_components.Node,
+      name: Optional[Text] = None,
+      allow_outer_product: bool = False) -> network_components.Node:
     """Contract all of the edges between the two given nodes.
 
     Args:
@@ -610,12 +625,12 @@ class TensorNetwork:
     if not flat_edge:
       if allow_outer_product:
         return self.outer_product(node1, node2)
-      else:
-        raise ValueError("No edges found between nodes '{}' and '{}' "
+      raise ValueError("No edges found between nodes '{}' and '{}' "
                          "and allow_outer_product=False.".format(node1, node2))
     return self.contract(flat_edge, name)
 
-  def contract_parallel(self, edge: network_components.Edge) -> network_components.Node:
+  def contract_parallel(
+      self, edge: network_components.Edge) -> network_components.Node:
     """Contract all edges parallel to this edge.
 
     This method calls `contract_between` with the nodes connected by the edge.
@@ -629,13 +644,14 @@ class TensorNetwork:
       raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
     return self.contract_between(edge.node1, edge.node2)
 
-  def split_node(self,
-                 node: network_components.Node,
-                 left_edges: List[network_components.Edge],
-                 right_edges: List[network_components.Edge],
-                 max_singular_values: Optional[int] = None,
-                 max_truncation_err: Optional[float] = None
-                ) -> Tuple[network_components.Node, network_components.Node, Tensor]:
+  def split_node(
+      self,
+      node: network_components.Node,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      max_singular_values: Optional[int] = None,
+      max_truncation_err: Optional[float] = None
+  ) -> Tuple[network_components.Node, network_components.Node, Tensor]:
     """Split a network_components.Node using Singular Value Decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -682,16 +698,15 @@ class TensorNetwork:
     self.nodes_set.remove(node)
     return left_node, right_node, trun_vals
 
-  def split_node_full_svd(self,
-                          node: network_components.Node,
-                          left_edges: List[network_components.Edge],
-                          right_edges: List[network_components.Edge],
-                          max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None
-                         ) -> Tuple[network_components.Node, 
-                                    network_components.Node, 
-                                    network_components.Node, 
-                                    Tensor]:
+  def split_node_full_svd(
+      self,
+      node: network_components.Node,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      max_singular_values: Optional[int] = None,
+      max_truncation_err: Optional[float] = None
+  ) -> Tuple[network_components.Node, network_components.Node,
+             network_components.Node, Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -769,7 +784,9 @@ class TensorNetwork:
     if isinstance(item, network_components.Edge):
       edge = item
       try:
+        # pylint: disable=pointless-statement
         edge.node1
+        # pylint: disable=pointless-statement
         edge.node2
       # If we raise a value error, that means the nodes have been garbage
       # collected, and thus the edge no longer is in the network.

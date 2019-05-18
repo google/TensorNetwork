@@ -19,8 +19,9 @@ from __future__ import print_function
 from tensornetwork.backends.tensorflow import tensorflow_backend
 
 _BACKENDS = {
-	"tensorflow": tensorflow_backend.TensorFlowBackend,
+    "tensorflow": tensorflow_backend.TensorFlowBackend,
 }
 
+
 def get_backend(name):
-	return _BACKENDS[name]()
+  return _BACKENDS[name]()
