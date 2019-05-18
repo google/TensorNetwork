@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Implementation of TensorNetwork structure."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
-import tensorflow as tf
-from typing import List, Optional, Text, Union
+from typing import List, Optional, Text, Union, Any
+from tensornetwork.backends import base_backend
 import weakref
+
+Tensor = Any
+
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -39,10 +40,8 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(self,
-               tensor: Union[np.ndarray, tf.Tensor],
-               name: Text,
-               axis_names: List[Text]) -> None:
+  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
+               backend: base_backend.BaseBackend) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -55,10 +54,12 @@ class Node:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tf.convert_to_tensor(tensor)
+    self.tensor = tensor
     self.name = name
-    self.edges = [Edge(edge_name, self, i)
-                  for i, edge_name in enumerate(axis_names)]
+    self.backend = backend
+    self.edges = [
+        Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
+    ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
@@ -144,7 +145,7 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = tf.transpose(self.tensor, perm=permutation)
+    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -167,7 +168,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = tf.transpose(self.tensor, perm=perm)
+    self.tensor = self.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -201,7 +202,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return tf.shape(self.tensor)[axis_num]
+    return self.backend.shape(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -229,6 +230,7 @@ class Node:
 
   def __str__(self) -> Text:
     return self.name
+
 
 class Edge:
   """Edge for the TensorNetwork graph.
@@ -293,12 +295,8 @@ class Edge:
     """Get the nodes of the edge."""
     return [self.node1, self.node2]
 
-  def update_axis(
-      self, 
-      old_axis: int, 
-      old_node: Node, 
-      new_axis: int,
-      new_node: Node) -> None:
+  def update_axis(self, old_axis: int, old_node: Node, new_axis: int,
+                  new_node: Node) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -321,6 +319,7 @@ class Edge:
                        "node1: '{}', axis1: {}, node2: '{}', axis2: {}".format(
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
+
   @property
   def node1(self) -> Node:
     val = self._node1()
@@ -335,13 +334,15 @@ class Edge:
     if self._node2() is None:
       raise ValueError("node2 for edge '{}' no longer exists.".format(self))
     return self._node2()
-  
+
   @node1.setter
   def node1(self, node: Node) -> None:
+    # pylint: disable=attribute-defined-outside-init
     self._node1 = weakref.ref(node)
 
   @node2.setter
   def node2(self, node: Optional[Node]) -> None:
+    # pylint: disable=attribute-defined-outside-init
     self._node2 = weakref.ref(node) if node else None
     if node is None:
       self._is_dangling = True

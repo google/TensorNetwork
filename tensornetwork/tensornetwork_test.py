@@ -15,13 +15,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import tensornetwork
 import numpy as np
 import tensorflow as tf
-# Prepare for TF 2.0 migration
 tf.enable_v2_behavior()
-# pylint: disable=g-import-not-at-top
-import tensornetwork
-
 
 
 class NetworkTest(tf.test.TestCase):
@@ -265,7 +262,8 @@ class NetworkTest(tf.test.TestCase):
       net.check_connected()
 
   def test_node_get_dim_bad_axis(self):
-    node = tensornetwork.Node(np.eye(2), "a", axis_names=["1", "2"])
+    net = tensornetwork.TensorNetwork()
+    node = net.add_node(np.eye(2), name="a", axis_names=["1", "2"])
     with self.assertRaises(ValueError):
       node.get_dimension(10)
 
@@ -410,7 +408,8 @@ class NetworkTest(tf.test.TestCase):
       net.outer_product_final_nodes([e])
 
   def test_add_axis_names(self):
-    a = tensornetwork.Node(np.eye(2), "A", ["ignore1", "ignore2"])
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2), name="A", axis_names=["ignore1", "ignore2"])
     a.add_axis_names(["a", "b"])
     self.assertEqual(a.axis_names, ["a", "b"])
 
@@ -782,6 +781,7 @@ class NetworkTest(tf.test.TestCase):
     self.assertAllClose(s.get_tensor(), np.diag(np.arange(9, -1, -1)))
 
   def test_batch_usage(self):
+
     def build_tensornetwork(tensors):
       net = tensornetwork.TensorNetwork()
       a = net.add_node(tensors[0])
@@ -802,8 +802,10 @@ class NetworkTest(tf.test.TestCase):
     del b
     net.contract(e)
     with self.assertRaises(ValueError):
+      # pylint: disable=pointless-statement
       e.node1
     with self.assertRaises(ValueError):
+      # pylint: disable=pointless-statement
       e.node2
 
   def test_weakref_complex(self):
@@ -816,10 +818,12 @@ class NetworkTest(tf.test.TestCase):
     net.contract(e1)
     net.contract(e2)
     # This won't raise an exception since we still have a referance to 'a'.
+    # pylint: disable=pointless-statement
     e1.node1
     # This raises an exception since the intermediate node created when doing
     # `net.contract(e2)` was garbage collected.
     with self.assertRaises(ValueError):
+      # pylint: disable=pointless-statement
       e2.node1
 
   def test_set_node2(self):
@@ -880,6 +884,6 @@ class NetworkTest(tf.test.TestCase):
     edge3 = net.connect(a[1], c[1])
     self.assertEqual({edge1, edge2, edge3}, net.get_all_nondangling())
 
+
 if __name__ == "__main__":
   tf.test.main()
-
