@@ -16,17 +16,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
-import numpy as np
-import tensorflow as tf
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Any
 from tensornetwork import network
 from tensornetwork import network_components
 
+Tensor = Any
 
-def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+def ncon(tensors: Sequence[Tensor],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
-         out_order: Optional[Sequence] = None) -> tf.Tensor:
+         out_order: Optional[Sequence] = None) -> Tensor:
   r"""Contracts a list of tensors according to a tensor network specification.
 
     The network is provided as a list of lists, one for each
@@ -42,15 +41,15 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
     For example, matrix multiplication:
 
     ```python
-    A = tf.constant([[1.0, 2.0], [3.0, 4.0]])
-    B = tf.constant([[1.0, 1.0], [0.0, 1.0]])
+    A = np.array([[1.0, 2.0], [3.0, 4.0]])
+    B = np.array([[1.0, 1.0], [0.0, 1.0]])
     ncon([A,B], [(-1, 0), (0, -2)])
     ```
 
     Matrix trace:
 
     ```python
-    A = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+    A = np.array([[1.0, 2.0], [3.0, 4.0]])
     ncon([A], [(0, 0)]) # 5.0
     ```
 
@@ -92,7 +91,7 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
 
 
 def ncon_network(
-    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None
@@ -115,7 +114,7 @@ def ncon_network(
     This is used internally by `ncon()`.
 
     Args:
-      tensors: List of `tf.Tensor`s.
+      tensors: List of `Tensor`s.
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
@@ -179,7 +178,7 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence]
     ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
   tn = network.TensorNetwork()

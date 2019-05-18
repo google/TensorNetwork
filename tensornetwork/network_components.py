@@ -17,10 +17,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
-import tensorflow as tf
-from typing import List, Optional, Text, Union
+from typing import List, Optional, Text, Union, Any
+from tensornetwork.backends import base_backend
 import weakref
+
+
+Tensor = Any
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -40,9 +42,10 @@ class Node:
   """
 
   def __init__(self,
-               tensor: Union[np.ndarray, tf.Tensor],
+               tensor: Tensor,
                name: Text,
-               axis_names: List[Text]) -> None:
+               axis_names: List[Text],
+               backend: base_backend.BaseBackend) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -55,8 +58,9 @@ class Node:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tf.convert_to_tensor(tensor)
+    self.tensor = tensor
     self.name = name
+    self.backend = backend
     self.edges = [Edge(edge_name, self, i)
                   for i, edge_name in enumerate(axis_names)]
     if axis_names is not None:
@@ -144,7 +148,7 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = tf.transpose(self.tensor, perm=permutation)
+    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -167,7 +171,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = tf.transpose(self.tensor, perm=perm)
+    self.tensor = self.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -201,7 +205,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return tf.shape(self.tensor)[axis_num]
+    return self.backend.shape(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -294,7 +298,7 @@ class Edge:
     return [self.node1, self.node2]
 
   def update_axis(
-      self, 
+      self,
       old_axis: int, 
       old_node: Node, 
       new_axis: int,
@@ -335,7 +339,7 @@ class Edge:
     if self._node2() is None:
       raise ValueError("node2 for edge '{}' no longer exists.".format(self))
     return self._node2()
-  
+
   @node1.setter
   def node1(self, node: Node) -> None:
     self._node1 = weakref.ref(node)

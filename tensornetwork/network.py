@@ -18,19 +18,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import List, Optional, Union, Text, Tuple
+from typing import List, Optional, Union, Text, Tuple, Any
 import numpy as np
-import tensorflow as tf
 import weakref
-from tensornetwork import decompositions
+from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork import network_components
-from tensornetwork import network_components
+from tensornetwork.backends import backend_factory
 
+
+Tensor = Any
 
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
   def __init__(self) -> None:
+    # TODO(chaseriley): Allow variable backend and default to global
+    # settings.
+    self.backend = backend_factory.get_backend("tensorflow")
     self.nodes_set = set()
     self.edge_order = []
     # These increments are only used for generating names.
@@ -81,7 +85,7 @@ class TensorNetwork:
     return new_network
 
   def add_node(self,
-               tensor: Union[np.ndarray, tf.Tensor],
+               tensor: Union[np.ndarray, Tensor],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None) -> network_components.Node:
     """Create a new node in the network.
@@ -97,11 +101,11 @@ class TensorNetwork:
     Raises:
       ValueError: If `name` already exists in the network.
     """
-    tensor = tf.convert_to_tensor(tensor)
+    tensor = self.backend.convert_to_tensor(tensor)
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names)
+    new_node = network_components.Node(tensor, name, axis_names, self.backend)
     self.nodes_set.add(new_node)
     return new_node
 
@@ -292,8 +296,8 @@ class TensorNetwork:
     axes = sorted([edge.axis1, edge.axis2])
     dims = len(edge.node1.tensor.shape)
     permutation = sorted(set(range(dims)) - set(axes)) + axes
-    new_tensor = tf.linalg.trace(
-        tf.transpose(edge.node1.tensor, perm=permutation))
+    new_tensor = self.backend.trace(
+        self.backend.transpose(edge.node1.tensor, perm=permutation))
     new_node = self.add_node(new_tensor, name)
     self._remove_trace_edge(edge, new_node)
     return new_node
@@ -319,7 +323,7 @@ class TensorNetwork:
       raise ValueError("Attempting to contract dangling edge")
     if edge.node1 is edge.node2:
       return self._contract_trace(edge, name)
-    new_tensor = tf.tensordot(edge.node1.tensor, edge.node2.tensor,
+    new_tensor = self.backend.tensordot(edge.node1.tensor, edge.node2.tensor,
                               [[edge.axis1], [edge.axis2]])
     new_node = self.add_node(new_tensor, name)
     self._remove_edge(edge, new_node)
@@ -344,7 +348,7 @@ class TensorNetwork:
     Returns:
       new_node: A new node. It's shape will be node1.shape + node2.shape
     """
-    new_tensor = tf.tensordot(node1.tensor, node2.tensor, 0)
+    new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
     new_node = self.add_node(new_tensor, name)
     additional_axes = len(node1.tensor.shape)
     for i, edge in enumerate(node1.edges):
@@ -446,11 +450,11 @@ class TensorNetwork:
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
     perm = perm_front + perm_back
-    new_dim = tf.reduce_prod([tf.shape(node.tensor)[e.axis1] for e in edges])
+    new_dim = self.backend.prod([self.backend.shape(node.tensor)[e.axis1] for e in edges])
     node.reorder_axes(perm)
-    unaffected_shape = tf.shape(node.tensor)[:len(perm_front)]
-    new_shape = tf.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
-    node.tensor = tf.reshape(node.tensor, new_shape)
+    unaffected_shape = self.backend.shape(node.tensor)[:len(perm_front)]
+    new_shape = self.backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+    node.tensor = self.backend.reshape(node.tensor, new_shape)
     edge1 = network_components.Edge("TraceFront", node, len(perm_front))
     edge2 = network_components.Edge("TraceBack", node, len(perm_front) + 1)
     node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
@@ -511,13 +515,13 @@ class TensorNetwork:
         perm_back.append(node.edges.index(edge))
       perm_front = sorted(set(range(len(node.edges))) - set(perm_back))
       node.reorder_axes(perm_front + perm_back)
-      old_tensor_shape = tf.shape(node.tensor)
+      old_tensor_shape = self.backend.shape(node.tensor)
       # Calculate the new axis dimension as a product of the other
       # axes dimensions.
-      flattened_axis_dim = tf.reduce_prod(old_tensor_shape[len(perm_front):])
-      new_tensor_shape = tf.concat(
+      flattened_axis_dim = self.backend.prod(old_tensor_shape[len(perm_front):])
+      new_tensor_shape = self.backend.concat(
           [old_tensor_shape[:len(perm_front)], [flattened_axis_dim]], axis=-1)
-      new_tensor = tf.reshape(node.tensor, new_tensor_shape)
+      new_tensor = self.backend.reshape(node.tensor, new_tensor_shape)
       # Modify the node in place. Currently, this is they only method that
       # modifies a node's tensor.
       node.tensor = new_tensor
@@ -631,7 +635,7 @@ class TensorNetwork:
                  right_edges: List[network_components.Edge],
                  max_singular_values: Optional[int] = None,
                  max_truncation_err: Optional[float] = None
-                ) -> Tuple[network_components.Node, network_components.Node, tf.Tensor]:
+                ) -> Tuple[network_components.Node, network_components.Node, Tensor]:
     """Split a network_components.Node using Singular Value Decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -656,15 +660,15 @@ class TensorNetwork:
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = decompositions.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
-    sqrt_s = tf.sqrt(s)
+    sqrt_s = self.backend.sqrt(s)
     u_s = u * sqrt_s
     # We have to do this since we are doing element-wise multiplication against
     # the first axis of vh. If we don't, it's possible one of the other axes of
     # vh will be the same size as sqrt_s and would multiply across that axis
     # instead, which is bad.
-    sqrt_s_broadcast_shape = tf.concat(
-        [tf.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
-    vh_s = vh * tf.reshape(sqrt_s, sqrt_s_broadcast_shape)
+    sqrt_s_broadcast_shape = self.backend.concat(
+        [self.backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
+    vh_s = vh * self.backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
     left_node = self.add_node(u_s)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
@@ -687,7 +691,7 @@ class TensorNetwork:
                          ) -> Tuple[network_components.Node, 
                                     network_components.Node, 
                                     network_components.Node, 
-                                    tf.Tensor]:
+                                    Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -716,7 +720,7 @@ class TensorNetwork:
     u, s, vh, trun_vals = decompositions.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
     left_node = self.add_node(u)
-    singular_values_node = self.add_node(tf.linalg.diag(s))
+    singular_values_node = self.add_node(self.backend.diag(s))
     right_node = self.add_node(vh)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
