@@ -38,6 +38,20 @@ class SATTensorNetworkTest(tf.test.TestCase):
     count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
     self.assertEqual(count.numpy(), 6)
 
+  def test_dual_clauses(self):
+    net = sat_tensornetwork.sat_count_tn([
+        (1, 2, 3),
+        (1, 2, -3),
+        (1, -2, 3),
+        (1, -2, -3),
+        (-1, 2, 3),
+        (-1, 2, -3),
+        (-1, -2, 3),
+        (-1, -2, -3),
+    ])
+    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
+    self.assertEqual(count.numpy(), 0)
+
   def test_four_variables(self):
     net = sat_tensornetwork.sat_count_tn([
         (1, 2, 3),
@@ -62,16 +76,6 @@ class SATTensorNetworkTest(tf.test.TestCase):
     ])
     count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
     self.assertEqual(count.numpy(), 1)
-
-  def test_unsatisfiable(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 1, 1),
-        (-1, -1, -1)
-    ])
-    count = (tensornetwork.contractors.naive(net)
-            .get_final_node()
-            .get_tensor())
-    self.assertEqual(count.numpy(), 0)
 
   def test_solutions(self):
     net, edge_order = sat_tensornetwork.sat_tn([
