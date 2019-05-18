@@ -265,7 +265,8 @@ class NetworkTest(tf.test.TestCase):
       net.check_connected()
 
   def test_node_get_dim_bad_axis(self):
-    node = tensornetwork.Node(np.eye(2), "a", axis_names=["1", "2"])
+    net = tensornetwork.TensorNetwork()
+    node = net.add_node(np.eye(2), name="a", axis_names=["1", "2"])
     with self.assertRaises(ValueError):
       node.get_dimension(10)
 
@@ -410,7 +411,8 @@ class NetworkTest(tf.test.TestCase):
       net.outer_product_final_nodes([e])
 
   def test_add_axis_names(self):
-    a = tensornetwork.Node(np.eye(2), "A", ["ignore1", "ignore2"])
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.eye(2), name="A", axis_names=["ignore1", "ignore2"])
     a.add_axis_names(["a", "b"])
     self.assertEqual(a.axis_names, ["a", "b"])
 
