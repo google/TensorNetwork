@@ -17,15 +17,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
 from typing import Optional, Tuple
 
 
-def svd_decomposition(tensor: np.ndarray,
+def svd_decomposition(np, # TODO: Typing
+                      tensor: "np.ndarray",
                       split_axis: int,
                       max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None
-                     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                      max_truncation_error: Optional[float] = None,
+                     ) -> Tuple["np.ndarray", "np.ndarray",
+                                "np.ndarray", "np.ndarray"]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
