@@ -16,7 +16,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import List, Optional, Text, Union, Any
+from typing import Any, List, Optional, Text, Tuple, Union
+import numpy as np
 from tensornetwork.backends import base_backend
 import weakref
 
@@ -64,6 +65,10 @@ class Node:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
+
+  def get_rank(self) -> int:
+    """Return rank of tensor represented by self."""
+    return len(self.tensor.shape)
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
@@ -230,6 +235,82 @@ class Node:
 
   def __str__(self) -> Text:
     return self.name
+
+
+class CopyNode(Node):
+  def __init__(self,
+               rank: int,
+               dimension: int,
+               name: Text,
+               axis_names: List[Text],
+               backend: base_backend.BaseBackend) -> None:
+    # TODO: Make this computation lazy, once Node doesn't require tensor
+    # at instatiation.
+    copy_tensor = self.make_copy_tensor(rank, dimension)
+    copy_tensor = backend.convert_to_tensor(copy_tensor)
+    super().__init__(copy_tensor, name, axis_names, backend)
+
+  @staticmethod
+  def make_copy_tensor(rank: int, dimension: int) -> Tensor:
+    shape = (dimension,) * rank
+    copy_tensor = np.zeros(shape)
+    i = np.arange(dimension)
+    copy_tensor[(i,) * rank] = 1
+    return copy_tensor
+
+  def _is_my_trace(self, edge: "Edge") -> bool:
+    return edge.node1 is self and edge.node2 is self
+
+  def _get_partner(self, edge: "Edge") -> (Node, int):
+    if edge.node1 is self:
+        return edge.node2, edge.axis2
+    assert edge.node2 is self
+    return edge.node1, edge.axis1
+
+  def _get_partners(self) -> List[Tuple[Node, int]]:
+    partners = []
+    for edge in self.edges:
+      if edge.is_dangling() or self._is_my_trace(edge):
+        continue
+      partner_node, shared_axis = self._get_partner(edge)
+      partners.append((partner_node, shared_axis))
+    return partners
+
+  _VALID_LETTERS = list('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+
+  def _make_einsum_input_term(self,
+                              node: Node,
+                              shared_axis: int,
+                              next_index: int) -> Tuple[str, int]:
+    indices = []
+    for axis in range(node.get_rank()):
+      if axis == shared_axis:
+        indices.append(0)
+      else:
+        indices.append(next_index)
+        next_index += 1
+    term = "".join(self._VALID_LETTERS[i] for i in indices)
+    return term, next_index
+
+  def _make_einsum_output_term(self, next_index: int) -> str:
+    return "".join(self._VALID_LETTERS[i] for i in range(1, next_index))
+
+  def _make_einsum_expression(self, partners: List[Tuple[Node, int]]) -> str:
+    next_index = 1  # zero is reserved for the shared index
+    einsum_input_terms = []
+    for partner_node, shared_axis in partners:
+      einsum_input_term, next_index = self._make_einsum_input_term(
+              partner_node, shared_axis, next_index)
+      einsum_input_terms.append(einsum_input_term)
+    einsum_output_term = self._make_einsum_output_term(next_index)
+    einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
+    return einsum_expression
+
+  def contract_all_edges(self) -> Tensor:
+    partners = self._get_partners()
+    einsum_expression = self._make_einsum_expression(partners)
+    tensors = [partner.get_tensor() for partner, _ in partners]
+    return self.backend.einsum(einsum_expression, *tensors)
 
 
 class Edge:

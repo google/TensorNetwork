@@ -164,3 +164,8 @@ class BaseBackend:
     """Calculate the outer product of the two given tensors."""
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
+
+  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+    """Calculate sum of products of tensors according to expression."""
+    raise NotImplementedError(
+        "Backend '{}' has not implemented einsum.".format(self.name))

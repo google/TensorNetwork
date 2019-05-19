@@ -78,3 +78,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.tf.tensordot(tensor1, tensor2, 0)
+
+  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+    return self.tf.einsum(expression, *tensors)

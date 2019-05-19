@@ -109,6 +109,39 @@ class TensorNetwork:
     self.nodes_set.add(new_node)
     return new_node
 
+  def add_copy_node(
+      self,
+      rank: int,
+      dimension: int,
+      name: Optional[Text] = None,
+      axis_names: Optional[List[Text]] = None) -> network_components.Node:
+    """Create a new copy node in the network.
+
+    Copy node represents the copy tensor, i.e. tensor C such that
+
+        Cij...k = 1    if i = j = ... = k
+        Cij...k = 0    otherwise
+
+    Args:
+      rank: Number of edges of the copy tensor.
+      dimension: Dimension of each edge.
+      name: The name of the new node. If None, a name will be generated
+        automatically.
+      axis_names: Optional list of strings to name each of the axes.
+
+    Returns:
+      new_node: The new node object.
+    Raises:
+      ValueError: If `name` already exists in the network.
+    """
+    name = self._new_node_name(name)
+    if axis_names is None:
+      axis_names = [self._new_edge_name(None) for _ in range(rank)]
+    new_node = network_components.CopyNode(
+            rank, dimension, name, axis_names, self.backend)
+    self.nodes_set.add(new_node)
+    return new_node
+
   def connect(self,
               edge1: network_components.Edge,
               edge2: network_components.Edge,
