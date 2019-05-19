@@ -18,12 +18,12 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 
-# is this correct?
-from numpy import ndarray as Tensor
+Tensor = Any
 
 
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
+
   def __init__(self):
     try:
       import numpy
@@ -34,38 +34,35 @@ class NumPyBackend(base_backend.BaseBackend):
     self.decompositions = decompositions
     self.name = "numpy"
 
-  def tensordot(self,
-      a: Tensor,
-      b: Tensor,
-      axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-  	return self.np.reshape(tensor, shape.astype(self.np.int))
+    return self.np.reshape(tensor, shape.astype(self.np.int))
 
   def transpose(self, tensor, perm):
-  	return self.np.transpose(tensor, perm)
+    return self.np.transpose(tensor, perm)
 
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
-                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-  	return self.decompositions.svd_decomposition(
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    return self.decompositions.svd_decomposition(
         self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
-  	return self.np.concatenate(values, axis)
+    return self.np.concatenate(values, axis)
 
   def shape(self, tensor: Tensor) -> Tensor:
-  	return tensor.shape
+    return tensor.shape
 
   def prod(self, values: Tensor) -> Tensor:
-  	return self.np.prod(values)
+    return self.np.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
-  	return self.np.sqrt(tensor)
+    return self.np.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
     return self.np.diag(tensor)
