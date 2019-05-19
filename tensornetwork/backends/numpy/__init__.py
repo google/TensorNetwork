@@ -11,19 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from tensornetwork.backends.tensorflow import tensorflow_backend
-from tensornetwork.backends.numpy import numpy_backend
-
-_BACKENDS = {
-    "tensorflow": tensorflow_backend.TensorFlowBackend,
-    "numpy": numpy_backend.NumPyBackend
-}
-
-
-def get_backend(name):
-  return _BACKENDS[name]()
