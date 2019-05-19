@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-NUM_THREADS = 4
+NUM_THREADS = 1
 import os
 os.environ['OMP_NUM_THREADS'] = str(NUM_THREADS)
 os.environ["KMP_BLOCKTIME"] = "0"
@@ -31,7 +31,6 @@ import tensornetwork as tn
 import experiments.MERA.binary_mera_lib as bml
 import experiments.MERA.misc_mera as misc_mera
 from sys import stdout
-
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
@@ -362,21 +361,22 @@ if __name__ == "__main__":
         #                             'embeddings' : ['p', 'a', 'p'],
         #                             'dtype' : tf.float64}}
 
-        benchmarks = {# 'optimize_naive' : {'chis' :  [18],
-                      #                     'dtype' : tf.float64,
-                      #                     'opt_u' : True,
-                      #                     'opt_w' : True,
-                      #                     'numpy_update' : True,
-                      #                     'numiter' : 5},
-            'optimize': {
-                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
-                'dtype': tf.float64
-            }
+        benchmarks = {
+            'optimize_naive' : {'chis' :  [4, 6, 8, 10, 12, 14, 16, 18],
+                                'dtype' : tf.float64,
+                                'opt_u' : True,
+                                'opt_w' : True,
+                                'numpy_update' : True,
+                                'nsteps_steady_state' : 10,
+                                'numiter' : 5}
+            # 'optimize': {
+            #     'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
+            #     'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
+            #     'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+            #     'dtype': tf.float64},
         }
 
-        use_gpu = False
+        use_gpu = True
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
         for i, device in enumerate(DEVICES):
