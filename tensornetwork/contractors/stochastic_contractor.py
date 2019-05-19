@@ -41,10 +41,10 @@ def find_parallel(edge: network_components.Edge
   nodes = {edge.node1, edge.node2}
   parallel_dim = 1
   parallel_edges = set()
-  for edge in edge.node1.edges:
-    if set(edge.get_nodes()) == nodes:
-      parallel_edges.add(edge)
-      edge_size = edge.node1.get_tensor().shape.as_list()[edge.axis1]
+  for e in edge.node1.edges:
+    if set(e.get_nodes()) == nodes:
+      parallel_edges.add(e)
+      edge_size = e.node1.get_tensor().shape.as_list()[e.axis1]
       if edge_size is not None:
         parallel_dim *= edge_size
   return parallel_edges, parallel_dim
