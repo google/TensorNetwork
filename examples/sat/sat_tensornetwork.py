@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """A TensorNetwork for counting 3SAT solutions.
 
 This is an implementation of https://arxiv.org/abs/1105.3201.
@@ -98,8 +97,8 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
   for clause in clauses:
     a, b, c, = clause
     clause_tensor = np.ones((2, 2, 2), dtype=np.int32)
-    clause_tensor[(-np.sign(a) + 1) // 2, (-np.sign(b) + 1) // 2,
-                  (-np.sign(c) + 1) // 2] = 0
+    clause_tensor[(-np.sign(a) + 1) // 2, (-np.sign(b) + 1) // 2, (
+        -np.sign(c) + 1) // 2] = 0
     clause_node = net.add_node(clause_tensor)
 
     # Connect the variable to the clause through a copy tensor.
@@ -112,8 +111,8 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
   return net, var_edges
 
 
-def sat_count_tn(clauses: List[Tuple[int, int, int]]
-                ) -> tensornetwork.TensorNetwork:
+def sat_count_tn(
+    clauses: List[Tuple[int, int, int]]) -> tensornetwork.TensorNetwork:
   """Create a 3SAT Count TensorNetwork.
 
   After full contraction, the final node will be the count of all possible
@@ -134,4 +133,3 @@ def sat_count_tn(clauses: List[Tuple[int, int, int]]
   for edge1, edge2 in zip(var_edges1, var_edges2):
     sat_net.connect(edge1, edge2)
   return sat_net
-

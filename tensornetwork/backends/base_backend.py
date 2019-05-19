@@ -18,21 +18,18 @@ from __future__ import print_function
 
 from typing import Optional, Sequence, Tuple, Any
 
-
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
+
 
 class BaseBackend:
 
   def __init__(self):
     self.name = 'base backend'
 
-  def tensordot(
-      self,
-      a: Tensor,
-      b: Tensor,
-      axes: Sequence[Sequence[int]]) -> Tensor:
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.
 
     Args:
@@ -65,23 +62,24 @@ class BaseBackend:
       The transposed tensor
     """
     raise NotImplementedError(
-      "Backend '{}' has not implemented transpose.".format(self.name))
+        "Backend '{}' has not implemented transpose.".format(self.name))
 
-  def svd_decomposition(self, tensor: Tensor,
+  def svd_decomposition(self,
+                        tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
-                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
-    left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
-    and an effective right (column) index resulting from combining the axes
-    `tensor.shape[split_axis:]`.
+    left (row) index resulting from combining the axes 
+    `tensor.shape[:split_axis]` and an effective right (column) index resulting
+    from combining the axes `tensor.shape[split_axis:]`.
 
-    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
-    `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
-    have shape (6, 4, 5).
+    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+    then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` 
+    would have shape (6, 4, 5).
 
     If `max_singular_values` is set to an integer, the SVD is truncated to keep
     at most this many singular values.
@@ -108,8 +106,8 @@ class BaseBackend:
         matrix.
       max_singular_values: The number of singular values to keep, or `None` to
         keep them all.
-      max_truncation_error: The maximum allowed truncation error or `None` to not
-        do any truncation.
+      max_truncation_error: The maximum allowed truncation error or `None` to 
+        not do any truncation.
 
     Returns:
       u: Left tensor factor.
@@ -119,14 +117,12 @@ class BaseBackend:
               truncation).
     """
     raise NotImplementedError(
-      "Backend '{}' has not implemented svd_decomposition.".format(
-          self.name))
+        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
 
   def concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
-    raise NotImplementedError(
-      "Backend '{}' has not implemented concat.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented concat.".format(
+        self.name))
 
   def shape(self, tensor: Tensor) -> Tensor:
     """Get the shape of a tensor.
@@ -136,42 +132,35 @@ class BaseBackend:
     Returns:
       The shape of the input tensor returned as another tensor.
     """
-    raise NotImplementedError(
-      "Backend '{}' has not implemented shape.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented shape.".format(
+        self.name))
 
   def prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
-    raise NotImplementedError(
-      "Backend '{}' has not implemented prod.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented prod.".format(
+        self.name))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     """Take the square root (element wise) of a given tensor."""
-    raise NotImplementedError(
-      "Backend '{}' has not implemented sqrt.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented sqrt.".format(
+        self.name))
 
   def diag(self, tensor: Tensor) -> Tensor:
     """Create a diagonal matrix from the given vector tensor."""
-    raise NotImplementedError(
-      "Backend '{}' has not implemented diag.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented diag.".format(
+        self.name))
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     """Convert a np.array or a tensor to a tensor type for the backend."""
     raise NotImplementedError(
-      "Backend '{}' has not implemented convert_to_tensor.".format(
-          self.name))
+        "Backend '{}' has not implemented convert_to_tensor.".format(self.name))
 
   def trace(self, tensor: Tensor) -> Tensor:
     """Calculate the trace over the last two axes of the given tensor."""
-    raise NotImplementedError(
-      "Backend '{}' has not implemented trace.".format(
-          self.name))
+    raise NotImplementedError("Backend '{}' has not implemented trace.".format(
+        self.name))
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """Calculate the outer product of the two given tensors."""
     raise NotImplementedError(
-      "Backend '{}' has not implemented outer_product.".format(
-          self.name))
+        "Backend '{}' has not implemented outer_product.".format(self.name))

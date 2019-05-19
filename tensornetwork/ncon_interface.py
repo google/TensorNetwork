@@ -22,6 +22,7 @@ from tensornetwork import network_components
 
 Tensor = Any
 
+
 def ncon(tensors: Sequence[Tensor],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
@@ -70,7 +71,7 @@ def ncon(tensors: Sequence[Tensor],
   # in con_order. If this is not the case, the contraction is sub-optimal
   # so we throw an exception.
   prev_nodes = []
-  while len(con_edges) > 0:
+  while con_edges:
     e = con_edges.pop(0)  # pop so that older nodes can be deallocated
     nodes = e.get_nodes()
 
@@ -94,11 +95,8 @@ def ncon_network(
     tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
-    out_order: Optional[Sequence] = None
-    ) -> Tuple[
-        network.TensorNetwork, 
-        List[network_components.Edge], 
-        List[network_components.Edge]]:
+    out_order: Optional[Sequence] = None) -> Tuple[network.TensorNetwork, List[
+        network_components.Edge], List[network_components.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
@@ -131,7 +129,7 @@ def ncon_network(
 
   if con_order is None:
     try:
-      con_order = sorted((k for k in edges.keys() if k >= 0))
+      con_order = sorted((k for k in edges if k >= 0))
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
@@ -141,7 +139,7 @@ def ncon_network(
 
   if out_order is None:
     try:
-      out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+      out_order = sorted((k for k in edges if k < 0), reverse=True)
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
@@ -178,9 +176,8 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Tensor],
-    network_structure: Sequence[Sequence]
-    ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
+    tensors: Sequence[Tensor], network_structure: Sequence[Sequence]
+) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
   tn = network.TensorNetwork()
   nodes = []
   edges = {}

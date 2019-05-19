@@ -57,6 +57,6 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(vh.shape, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
+
 if __name__ == '__main__':
   tf.test.main()
-

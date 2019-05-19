@@ -10,6 +10,7 @@ import tensornetwork
 class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_basic_graphmode(self):
+    # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       net = tensornetwork.TensorNetwork()
       a = net.add_node(tf.ones(10))
@@ -22,6 +23,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
       self.assertAllClose(final_val, 10.0)
 
   def test_gradient_decent(self):
+    # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       net = tensornetwork.TensorNetwork()
       a = net.add_node(tf.Variable(tf.ones(10)))
@@ -35,6 +37,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
       self.assertAllClose(sess.run(final_tensor), 10.0)
       sess.run(train_op)
       self.assertLess(sess.run(final_tensor), 10.0)
+
 
 if __name__ == '__main__':
   tf.test.main()
