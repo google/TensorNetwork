@@ -17,9 +17,11 @@ from __future__ import division
 from __future__ import print_function
 
 from tensornetwork.backends.tensorflow import tensorflow_backend
+from tensornetwork.backends.numpy import numpy_backend
 
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
+    "numpy": numpy_backend.NumPyBackend
 }
 
 
