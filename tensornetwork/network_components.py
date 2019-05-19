@@ -261,7 +261,7 @@ class CopyNode(Node):
   def _is_my_trace(self, edge: "Edge") -> bool:
     return edge.node1 is self and edge.node2 is self
 
-  def _get_partner(self, edge: "Edge") -> (Node, int):
+  def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
     if edge.node1 is self:
         return edge.node2, edge.axis2
     assert edge.node2 is self

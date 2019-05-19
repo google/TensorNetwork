@@ -114,7 +114,7 @@ class TensorNetwork:
       rank: int,
       dimension: int,
       name: Optional[Text] = None,
-      axis_names: Optional[List[Text]] = None) -> network_components.Node:
+      axis_names: Optional[List[Text]] = None) -> network_components.CopyNode:
     """Create a new copy node in the network.
 
     Copy node represents the copy tensor, i.e. tensor C such that
