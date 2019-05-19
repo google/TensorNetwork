@@ -20,14 +20,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-tf.enable_v2_behavior()
-
 from tensornetwork import network
 from tensornetwork.contractors import stochastic_contractor
+tf.enable_v2_behavior()
 
 
 class StochasticTest(tf.test.TestCase):
-  # TODO: More contraction cases
 
   def test_find_parallel(self):
     net = network.TensorNetwork()
@@ -49,9 +47,9 @@ class StochasticTest(tf.test.TestCase):
     net.connect(b[0], b[2])
     net.connect(a[0], a[4])
     e = a[1]
-    net, node_sizes, node_sizes_none = stochastic_contractor.contract_trace_edges(net)
-    self.assertDictEqual(node_sizes, {e.node1: 30, e.node2: 10})
-    self.assertDictEqual(node_sizes_none, dict())
+    net, sizes, sizes_none = stochastic_contractor.contract_trace_edges(net)
+    self.assertDictEqual(sizes, {e.node1: 30, e.node2: 10})
+    self.assertDictEqual(sizes_none, dict())
 
   def test_contraction_sanity(self):
     net = network.TensorNetwork()
