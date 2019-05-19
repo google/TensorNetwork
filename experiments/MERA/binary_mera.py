@@ -369,9 +369,9 @@ if __name__ == "__main__":
                       #                     'numpy_update' : True,
                       #                     'numiter' : 5},
             'optimize': {
-                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+                'chis': [4, 6, 8, 10, 12, 14, 16, 18],
+                'numiters': [2000, 2000, 2000, 2000, 1000, 1000, 200, 100],
+                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a','a'],
                 'dtype': tf.float64
             }
         }
