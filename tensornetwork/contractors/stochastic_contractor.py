@@ -19,12 +19,13 @@ from __future__ import division
 from __future__ import print_function
 
 import random
-import numpy as np
-from tensornetwork import network, network_components
 from typing import Tuple, Set, Optional, Dict
+from tensornetwork import network
+from tensornetwork import network_components
 
 
-def find_parallel(edge: network_components.Edge) -> Tuple[Set, int]:
+def find_parallel(edge: network_components.Edge
+                 ) -> Tuple[Set[network_components.Edge], int]:
   """Finds all edges shared between the nodes connected with the given edge.
 
   Args:
@@ -36,7 +37,7 @@ def find_parallel(edge: network_components.Edge) -> Tuple[Set, int]:
   """
   if edge.is_dangling():
     raise ValueError(
-             "Cannot find parallel edges for dangling edge {}".format(edge))
+        "Cannot find parallel edges for dangling edge {}".format(edge))
   nodes = {edge.node1, edge.node2}
   parallel_dim = 1
   parallel_edges = set()
@@ -49,7 +50,7 @@ def find_parallel(edge: network_components.Edge) -> Tuple[Set, int]:
   return parallel_edges, parallel_dim
 
 
-def contract_trace_edges(network: network.TensorNetwork, none_value: int = 1
+def contract_trace_edges(net: network.TensorNetwork, none_value: int = 1
                         ) -> Tuple[network.TensorNetwork,
                                    Dict[network_components.Node, int],
                                    Dict[network_components.Node, int]]:
@@ -58,19 +59,19 @@ def contract_trace_edges(network: network.TensorNetwork, none_value: int = 1
   Tensor size is defined as the product of sizes of each of edges (axes).
 
   Args:
-    network: TensorNetwork to contract all the trace edges of.
+    net: TensorNetwork to contract all the trace edges of.
     none_value: The value that None dimensions contribute to the tensor size.
       Unit (default) means that None dimensions are neglected.
 
   Returns:
-    network: Given TensorNetwork with all its trace edges contracted.
+    net: Given TensorNetwork with all its trace edges contracted.
     node_sizes: Map from nodes in the network to their total size.
     node_sizes_none: Map from nodes that have at least one None dimension to
       their size.
   """
   # Keep node sizes in memory for cost calculation
   node_sizes, node_sizes_none = dict(), dict()
-  initial_node_set = set(network.nodes_set)
+  initial_node_set = set(net.nodes_set)
   for node in initial_node_set:
     trace_edges, flag_none, total_dim = set(), False, 1
     new_node = node
@@ -78,7 +79,7 @@ def contract_trace_edges(network: network.TensorNetwork, none_value: int = 1
       if edge.node1 is edge.node2:
         if edge not in trace_edges:
           # Contract trace edge
-          new_node = network.contract(edge)
+          new_node = net.contract(edge)
           trace_edges.add(edge)
       else:
         if dim is None:
@@ -90,10 +91,10 @@ def contract_trace_edges(network: network.TensorNetwork, none_value: int = 1
         node_sizes_none[new_node] = total_dim
       else:
         node_sizes[new_node] = total_dim
-  return network, node_sizes, node_sizes_none
+  return net, node_sizes, node_sizes_none
 
 
-def stochastic(network: network.TensorNetwork,
+def stochastic(net: network.TensorNetwork,
                max_rejections: int, threshold: Optional[int] = None,
                none_value: int = 1) -> network.TensorNetwork:
   """Contracts a connected network by stochastically picking edges.
@@ -106,16 +107,15 @@ def stochastic(network: network.TensorNetwork,
   dims(X) is the total dimension of tensor X (product of sizes of all axes).
 
   Args:
-    network: Connected TensorNetwork to contract fully.
+    net: Connected TensorNetwork to contract fully.
     max_rejections: Maximum number of rejections before you increase threshold.
     threshold: Initial value for the threshold.
     none_value: The value of None dimensions in the cost calculation.
 
   Returns:
-    network: TensorNetwork with a single node after fully contracting.
+    net: TensorNetwork with a single node after fully contracting.
   """
-  network, node_sizes, node_sizes_none = contract_trace_edges(network,
-                                                              none_value)
+  net, node_sizes, node_sizes_none = contract_trace_edges(net, none_value)
   if threshold is None:
     # Set threshold as the maximum tensor size in the network
     # ignoring nodes with None sizes.
@@ -123,7 +123,7 @@ def stochastic(network: network.TensorNetwork,
   node_sizes.update(node_sizes_none)
 
   rejections = 0
-  nondangling_edges = network.get_all_nondangling()
+  nondangling_edges = net.get_all_nondangling()
   while nondangling_edges:
     edge = random.choice(tuple(nondangling_edges))
     shared_edges, shared_dim = find_parallel(edge)
@@ -133,7 +133,7 @@ def stochastic(network: network.TensorNetwork,
     if cost <= threshold:
       node_sizes.pop(edge.node1)
       node_sizes.pop(edge.node2)
-      node_sizes[network.contract_parallel(edge)] = new_dim
+      node_sizes[net.contract_parallel(edge)] = new_dim
       nondangling_edges -= shared_edges
       rejections = 0
     else:
@@ -141,4 +141,4 @@ def stochastic(network: network.TensorNetwork,
       if rejections > max_rejections:
         threshold *= 2
         rejections = 0
-  return network
+  return net
