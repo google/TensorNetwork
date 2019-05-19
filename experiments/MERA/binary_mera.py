@@ -274,6 +274,7 @@ def run_optimization_benchmark(filename,
                                embeddings=None,
                                dtype=tf.float64,
                                verbose=1,
+                               opt_u_after=10,
                                nsteps_steady_state=4,
                                device=None):
 
@@ -288,6 +289,7 @@ def run_optimization_benchmark(filename,
             dtype=dtype,
             verbose=verbose,
             nsteps_steady_state=nsteps_steady_state,
+            opt_u_after=opt_u_after,
             filename=filename,
             numpy_update=True)
         
@@ -372,9 +374,10 @@ if __name__ == "__main__":
             #                     'numiter' : 5}
             'optimize': {
                 'chis': [4, 6, 8, 10, 12, 14, 16, 18],
-                'numiters': [2000, 2000, 2000, 2000, 1000, 1000, 200, 100],
+                'numiters': [2000, 2000, 2000, 2000, 1000, 1000, 200, 200],
                 'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a','a'],
-                'nsteps_steady_state' : 14,                
+                'nsteps_steady_state' : 14,
+                'opt_u_after' : 20,                
                 'dtype': tf.float64
             }
         }
