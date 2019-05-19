@@ -152,7 +152,7 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
         data['energies'][chi] = energies
         init = False
         if filename:
-            with open(filename + '.pickle', 'wb') as f:
+            with open(filename + '_tensors.pickle', 'wb') as f:
                 pickle.dump([wC, uC], f)
             with open('energies_walltimes_' + filename + '.pickle', 'wb') as f:
                 pickle.dump(data, f)
@@ -288,13 +288,15 @@ def run_optimization_benchmark(filename,
             dtype=dtype,
             verbose=verbose,
             nsteps_steady_state=nsteps_steady_state,
+            filename=filename,
             numpy_update=True)
-
+        
         walltimes['profile'] = runtimes
         walltimes['energies'] = energies
         with open(filename + '.pickle', 'wb') as f:
             pickle.dump(walltimes, f)
         with open(filename + '_tensors.pickle', 'wb') as f:
+            print('saving to', filename)            
             pickle.dump([wC, uC], f)
 
     return walltimes
@@ -463,7 +465,6 @@ if __name__ == "__main__":
                     val = val.name
                 filename = filename + '_' + str(key) + str(val)
             filename = filename.replace(' ', '')
-
             run_optimization_benchmark(
                 filename,
                 device=specified_device_type,
