@@ -25,6 +25,7 @@ class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
+    super(NumPyBackend, self).__init__()
     try:
       import numpy
     except ImportError:
