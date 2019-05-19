@@ -196,10 +196,9 @@ if __name__ == "__main__":
                              nsteps_ss=nsteps_ss,
                              use_gpu=False)
     else:
-
-        chis = [18, 19]
+        chis = [18]
         num_add_layers = len(chis)        
-        numiters = [100, 100]
+        numiters = [100]
         noises = [0] * len(chis)
         opt_all_layers = [True]  * len(chis)
         embeddings = ['p'] * len(chis)
