@@ -17,16 +17,17 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Tuple
+from typing import Optional, Any, Tuple
+
+Tensor = Any
 
 
 def svd_decomposition(np, # TODO: Typing
-                      tensor: "np.ndarray",
+                      tensor: Tensor,
                       split_axis: int,
                       max_singular_values: Optional[int] = None,
                       max_truncation_error: Optional[float] = None,
-                     ) -> Tuple["np.ndarray", "np.ndarray",
-                                "np.ndarray", "np.ndarray"]:
+                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -45,7 +46,8 @@ def svd_decomposition(np, # TODO: Typing
     trunc_errs = np.sqrt(np.cumsum(np.square(s[::-1])))
     # We must keep at least this many singular values to ensure the
     # truncation error is <= max_truncation_error.
-    num_sing_vals_err = np.count_nonzero((trunc_errs > max_truncation_error).astype(np.int))
+    num_sing_vals_err = np.count_nonzero(
+        (trunc_errs > max_truncation_error).astype(np.int))
   else:
     num_sing_vals_err = max_singular_values
 
