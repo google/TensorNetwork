@@ -360,20 +360,21 @@ if __name__ == "__main__":
         #                             'numiters' : [400, 400, 400],
         #                             'embeddings' : ['p', 'a', 'p'],
         #                             'dtype' : tf.float64}}
-
         benchmarks = {
-            'optimize_naive' : {'chis' :  [4, 6, 8, 10, 12, 14, 16, 18],
-                                'dtype' : tf.float64,
-                                'opt_u' : True,
-                                'opt_w' : True,
-                                'numpy_update' : True,
-                                'nsteps_steady_state' : 10,
-                                'numiter' : 5}
-            # 'optimize': {
-            #     'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-            #     'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-            #     'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
-            #     'dtype': tf.float64},
+            # 'optimize_naive' : {'chis' :  [4, 6, 8, 10, 12, 14, 16, 18],
+            #                     'dtype' : tf.float64,
+            #                     'opt_u' : True,
+            #                     'opt_w' : True,
+            #                     'numpy_update' : True,
+            #                     'nsteps_steady_state' : 10,
+            #                     'numiter' : 5}
+            'optimize': {
+                'chis': [4, 6, 8, 10, 12, 14, 16, 18],
+                'numiters': [2000, 2000, 2000, 2000, 1000, 1000, 200, 100],
+                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a','a'],
+                'nsteps_steady_state' : 14,                
+                'dtype': tf.float64
+            }
         }
 
         use_gpu = True
