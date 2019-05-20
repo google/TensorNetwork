@@ -18,6 +18,10 @@ from __future__ import print_function
 import tensornetwork
 import pytest
 import numpy as np
+import tensorflow as tf
+
+
+tf.enable_v2_behavior()
 
 # TODO(chaseriley): Remove these and inline the asserts
 def assertEqual(a, b):
