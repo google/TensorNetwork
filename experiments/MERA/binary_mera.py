@@ -117,13 +117,13 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-    energies = []
-    walltimes = []
     
     data ={'profile' : {}, 'energies' : {}}
     
     for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
                                                  noises, opt_all_layers):
+        energies = []
+        walltimes = []
         if not init:
             if which in ('a', 'add'):
                 wC, uC = bml.unlock_layer(wC, uC, noise=noise)
