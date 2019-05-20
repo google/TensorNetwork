@@ -884,6 +884,29 @@ class NetworkTest(tf.test.TestCase):
     edge3 = net.connect(a[1], c[1])
     self.assertEqual({edge1, edge2, edge3}, net.get_all_nondangling())
 
+  def test_copy_tensor(self):
+    net = tensornetwork.TensorNetwork()
+    a = net.add_node(np.array([1, 2, 3], dtype=np.float64))
+    b = net.add_node(np.array([10, 20, 30], dtype=np.float64))
+    c = net.add_node(np.array([5, 6, 7], dtype=np.float64))
+    d = net.add_node(np.array([1, -1, 1], dtype=np.float64))
+    cn = net.add_copy_node(rank=4, dimension=3)
+    edge1 = net.connect(a[0], cn[0])
+    edge2 = net.connect(b[0], cn[1])
+    edge3 = net.connect(c[0], cn[2])
+    edge4 = net.connect(d[0], cn[3])
+
+    result = cn.compute_contracted_tensor()
+    self.assertEqual(result.shape, [])
+    self.assertAllClose(result, 50 - 240 + 630)
+
+    for edge in [edge1, edge2, edge3, edge4]:
+      net.contract(edge)
+    val = net.get_final_node()
+    result = val.get_tensor()
+    self.assertEqual(result.shape, [])
+    self.assertAllClose(result, 50 - 240 + 630)
+
 
 if __name__ == "__main__":
   tf.test.main()
