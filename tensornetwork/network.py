@@ -51,14 +51,16 @@ class TensorNetwork:
     self.node_increment += 1
     return name
 
-  # TODO: Add pytypes once we figure out why it crashes.
-  def add_subnetwork(self, subnetwork) -> None:
+  def add_subnetwork(self, subnetwork: "TensorNetwork") -> None:
     """Add a subnetwork to an existing network.
 
     Args:
       subnetwork: A TensorNetwork object. The nodes and edges of this network
         will be merged into the original network.
     """
+    if subnetwork.backend.name != self.backend.name:
+      raise ValueError("Incompatible backends found: {}, {}".format(
+          self.backend.name, subnetwork.backend.name))
     self.nodes_set |= subnetwork.nodes_set
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
@@ -77,7 +79,11 @@ class TensorNetwork:
       new_network: A new network created by the merging of all of the given
         networks.
     """
-    new_network = cls()
+    backend_types = {net.backend.name for net in networks}
+    if len(backend_types) != 1:
+      raise ValueError("Multiple incompatible backends found: {}".format(
+          list(backend_types)))
+    new_network = cls(backend=networks[0].backend.name)
     for network in networks:
       new_network.add_subnetwork(network)
     return new_network

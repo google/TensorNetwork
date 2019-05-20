@@ -846,3 +846,17 @@ def test_set_default(backend):
   assert tensornetwork.config.default_backend == backend
   net = tensornetwork.TensorNetwork()
   assert net.backend.name == backend
+
+def test_add_subnetwork_incompatible_backends():
+  net1 = tensornetwork.TensorNetwork(backend="numpy")
+  net2 = tensornetwork.TensorNetwork(backend="tensorflow")
+  with pytest.raises(ValueError):
+    net1.add_subnetwork(net2)
+
+def test_merge_networks_incompatible_backends():
+  net1 = tensornetwork.TensorNetwork(backend="numpy")
+  net2 = tensornetwork.TensorNetwork(backend="tensorflow")
+  with pytest.raises(ValueError):
+    tensornetwork.TensorNetwork.merge_networks([net1, net2])
+
+
