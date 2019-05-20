@@ -279,7 +279,8 @@ class CopyNode(Node):
       partners.append((partner_node, shared_axis))
     return partners
 
-  _VALID_LETTERS = list('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+  _VALID_SUBSCRIPTS = list(
+          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 
   def _make_einsum_input_term(self,
                               node: Node,
@@ -292,11 +293,11 @@ class CopyNode(Node):
       else:
         indices.append(next_index)
         next_index += 1
-    term = "".join(self._VALID_LETTERS[i] for i in indices)
+    term = "".join(self._VALID_SUBSCRIPTS[i] for i in indices)
     return term, next_index
 
   def _make_einsum_output_term(self, next_index: int) -> str:
-    return "".join(self._VALID_LETTERS[i] for i in range(1, next_index))
+    return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
   def _make_einsum_expression(self, partners: List[Tuple[Node, int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
