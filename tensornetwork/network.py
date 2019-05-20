@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import List, Optional, Union, Text, Tuple, Any
+from typing import Any, List, Optional, Union, Text, Tuple, Type
 import numpy as np
 import weakref
 from tensornetwork.backends.tensorflow import decompositions
@@ -114,7 +114,8 @@ class TensorNetwork:
       rank: int,
       dimension: int,
       name: Optional[Text] = None,
-      axis_names: Optional[List[Text]] = None) -> network_components.CopyNode:
+      axis_names: Optional[List[Text]] = None,
+      dtype: Type[np.number] = np.float64) -> network_components.CopyNode:
     """Create a new copy node in the network.
 
     Copy node represents the copy tensor, i.e. tensor C such that
@@ -138,7 +139,7 @@ class TensorNetwork:
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
     new_node = network_components.CopyNode(
-            rank, dimension, name, axis_names, self.backend)
+            rank, dimension, name, axis_names, self.backend, dtype)
     self.nodes_set.add(new_node)
     return new_node
 

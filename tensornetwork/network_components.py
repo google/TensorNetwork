@@ -16,7 +16,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, List, Optional, Text, Tuple, Union
+from typing import Any, List, Optional, Text, Tuple, Type, Union
 import numpy as np
 from tensornetwork.backends import base_backend
 import weakref
@@ -243,17 +243,20 @@ class CopyNode(Node):
                dimension: int,
                name: Text,
                axis_names: List[Text],
-               backend: base_backend.BaseBackend) -> None:
+               backend: base_backend.BaseBackend,
+               dtype: Type[np.number] = np.float64) -> None:
     # TODO: Make this computation lazy, once Node doesn't require tensor
     # at instatiation.
-    copy_tensor = self.make_copy_tensor(rank, dimension)
+    copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
     copy_tensor = backend.convert_to_tensor(copy_tensor)
     super().__init__(copy_tensor, name, axis_names, backend)
 
   @staticmethod
-  def make_copy_tensor(rank: int, dimension: int) -> Tensor:
+  def make_copy_tensor(rank: int,
+                       dimension: int,
+                       dtype: Type[np.number]) -> Tensor:
     shape = (dimension,) * rank
-    copy_tensor = np.zeros(shape)
+    copy_tensor = np.zeros(shape, dtype=dtype)
     i = np.arange(dimension)
     copy_tensor[(i,) * rank] = 1
     return copy_tensor
