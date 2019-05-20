@@ -20,7 +20,8 @@ import pytest
 import unittest
 import numpy as np
 
-
+# This is required for the backend test fixture.
+# pylint: disable=locally-disabled, redefined-outer-name
 
 # TODO(chaseriley): Remove these and inline the asserts
 def assertEqual(a, b):
