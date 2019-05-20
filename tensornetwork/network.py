@@ -20,7 +20,6 @@ import collections
 from typing import Any, List, Optional, Union, Text, Tuple, Type
 import numpy as np
 import weakref
-from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
 
@@ -708,7 +707,7 @@ class TensorNetwork:
         values.
     """
     node.reorder_edges(left_edges + right_edges)
-    u, s, vh, trun_vals = decompositions.svd_decomposition(
+    u, s, vh, trun_vals = self.backend.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
     sqrt_s = self.backend.sqrt(s)
     u_s = u * sqrt_s
@@ -766,7 +765,7 @@ class TensorNetwork:
       truncated_singular_values: The vector of truncated singular values.
     """
     node.reorder_edges(left_edges + right_edges)
-    u, s, vh, trun_vals = decompositions.svd_decomposition(
+    u, s, vh, trun_vals = self.backend.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
     left_node = self.add_node(u)
     singular_values_node = self.add_node(self.backend.diag(s))
