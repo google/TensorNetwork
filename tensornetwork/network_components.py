@@ -310,7 +310,8 @@ class CopyNode(Node):
     einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
     return einsum_expression
 
-  def contract_all_edges(self) -> Tensor:
+  def compute_contracted_tensor(self) -> Tensor:
+    """Compute tensor corresponding to contraction of self with neighbors."""
     partners = self._get_partners()
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner, _ in partners]

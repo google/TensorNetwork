@@ -896,7 +896,7 @@ class NetworkTest(tf.test.TestCase):
     edge3 = net.connect(c[0], cn[2])
     edge4 = net.connect(d[0], cn[3])
 
-    result = cn.contract_all_edges()
+    result = cn.compute_contracted_tensor()
     self.assertEqual(result.shape, [])
     self.assertAllClose(result, 50 - 240 + 630)
 
