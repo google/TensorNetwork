@@ -19,9 +19,6 @@ import tensornetwork
 import pytest
 import numpy as np
 
-# This is required for the backend test fixture.
-# pylint: disable=locally-disabled, redefined-outer-name
-
 # TODO(chaseriley): Remove these and inline the asserts
 def assertEqual(a, b):
   assert a == b
@@ -38,8 +35,8 @@ def assertTrue(a):
 def assertFalse(a):
   assert a is False
 
-@pytest.fixture(params=["numpy", "tensorflow"])
-def backend(request):
+@pytest.fixture(name="backend", params=["numpy", "tensorflow"])
+def backend_fixure(request):
     return request.param
 
 
