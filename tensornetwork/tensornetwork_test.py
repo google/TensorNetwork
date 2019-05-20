@@ -17,7 +17,6 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork
 import pytest
-import unittest
 import numpy as np
 
 # This is required for the backend test fixture.

@@ -30,8 +30,6 @@ class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
   def __init__(self, backend: Optional[Text] = None) -> None:
-    # TODO(chaseriley): Allow variable backend and default to global
-    # settings.
     if backend is None:
       backend = config.default_backend
     self.backend = backend_factory.get_backend(backend)
