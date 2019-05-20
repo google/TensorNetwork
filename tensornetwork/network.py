@@ -20,19 +20,21 @@ import collections
 from typing import List, Optional, Union, Text, Tuple, Any
 import numpy as np
 import weakref
+from tensornetwork import config
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
-
 Tensor = Any
 
 
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self) -> None:
+  def __init__(self, backend: Optional[Text] = None) -> None:
     # TODO(chaseriley): Allow variable backend and default to global
     # settings.
-    self.backend = backend_factory.get_backend("tensorflow")
+    if backend is None:
+      backend = config.default_backend
+    self.backend = backend_factory.get_backend(backend)
     self.nodes_set = set()
     self.edge_order = []
     # These increments are only used for generating names.
