@@ -77,3 +77,6 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.np.tensordot(tensor1, tensor2, 0)
+
+  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+    return self.np.einsum(expression, *tensors)
