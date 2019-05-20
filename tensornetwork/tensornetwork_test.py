@@ -859,4 +859,3 @@ def test_merge_networks_incompatible_backends():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork.merge_networks([net1, net2])
 
-
