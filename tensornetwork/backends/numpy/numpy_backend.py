@@ -69,7 +69,7 @@ class NumPyBackend(base_backend.BaseBackend):
     return self.np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return tensor
+    return self.np.asarray(tensor)
 
   def trace(self, tensor: Tensor) -> Tensor:
     # Default np.trace uses first two axes.
