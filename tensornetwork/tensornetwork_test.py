@@ -39,7 +39,8 @@ def assertTrue(a):
 def assertFalse(a):
   assert a is False
 
-@pytest.fixture(name="backend", params=["numpy", "tensorflow"])
+@pytest.fixture(
+  name="backend", params=["numpy", "tensorflow", "jax"])
 def backend_fixure(request):
     return request.param
 
