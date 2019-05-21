@@ -72,10 +72,20 @@ def tensordot(a, b, axes, name=None):
       should_flip: `True` if `contraction_axes` should be moved to the left,
         `False` if they should be moved to the right.
     """
-    # TODO(amilsted): Handle tensor-valued `axes`!
+    # NOTE: This will fail if the arguments contain any Tensors.
     if contraction_axes and free_axes:
       return bool(np.mean(contraction_axes) < np.mean(free_axes))
     return False
+
+  def _tranpose_if_necessary(tensor, perm):
+    """Like transpose(), but avoids creating a new tensor if possible.
+    Although the graph optimizer should kill trivial transposes, it is best not
+    to add them in the first place!
+    """
+    # If perm is tensor-valued, this test will fail and we fall back to tranposing.
+    if perm == list(range(len(perm))):
+      return tensor
+    return tf.transpose(tensor, perm)
 
   def _tensordot_reshape(a, axes, is_right_term=False):
     """Helper method to perform transpose and reshape for contraction op.
@@ -101,6 +111,7 @@ def tensordot(a, b, axes, name=None):
     """
     if a.get_shape().is_fully_defined() and isinstance(axes, (list, tuple)):
       shape_a = a.get_shape().as_list()
+      # NOTE: This will fail if axes contains any tensors
       axes = [i if i >= 0 else i + len(shape_a) for i in axes]
       free = [i for i in range(len(shape_a)) if i not in axes]
       flipped = _tensordot_should_flip(axes, free)
@@ -110,14 +121,7 @@ def tensordot(a, b, axes, name=None):
       prod_axes = int(np.prod([shape_a[i] for i in axes]))
       perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
-
-      # Skip the transpose op if possible. Although the graph optimizer should
-      # kill trivial transposes, it is best not to add them in the first place!
-      # TODO(amilsted): Handle tensor-valued `axes`!
-      if perm == list(range(len(perm))):
-        transposed_a = a
-      else:
-        transposed_a = tf.transpose(a, perm)
+      transposed_a = _tranpose_if_necessary(a, perm)
       # TODO(amilsted): reshape only if needed (see einsum).
       reshaped_a = tf.reshape(transposed_a, new_shape)
       transpose_needed = (not flipped) if is_right_term else flipped
@@ -135,12 +139,7 @@ def tensordot(a, b, axes, name=None):
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
       shape_a = tf.shape(a)
-
-      # TODO(amilsted): Handle tensor-valued `axes`!
-      if perm == list(range(len(perm))):
-        transposed_a = a
-      else:
-        transposed_a = tf.transpose(a, perm)
+      transposed_a = _tranpose_if_necessary(a, perm)
     else:
       free_dims_static = None
       shape_a = tf.shape(a)
@@ -150,8 +149,8 @@ def tensordot(a, b, axes, name=None):
       free, _ = tf.setdiff1d(tf.range(rank_a), axes)
       # Matmul does not accept tensors for its transpose arguments, so fall
       # back to the previous, fixed behavior.
-      # NOTE(ash): With a suitable wrapper for `matmul` using e.g. `case` to
-      #   match transpose arguments to tensor values, we could also avoid
+      # NOTE(amilsted): With a suitable wrapper for `matmul` using e.g. `case`
+      #   to match transpose arguments to tensor values, we could also avoid
       #   unneeded tranposes in this case at the expense of a somewhat more
       #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
@@ -195,14 +194,15 @@ def tensordot(a, b, axes, name=None):
           isinstance(b_axes, tf.compat.integral_types):
         a_axes = [a_axes]
         b_axes = [b_axes]
+      # NOTE: This fails if either a_axes and b_axes are Tensors.
       if len(a_axes) != len(b_axes):
         raise ValueError(
             "Different number of contraction axes 'a' and 'b', %s != %s." %
             (len(a_axes), len(b_axes)))
 
-      # TODO(amilsted): Handle tensor-valued `axes`!
       # The contraction indices do not need to be permuted.
       # Sort axes to avoid unnecessary permutations of a.
+      # NOTE: This fails if either a_axes and b_axes contain Tensors.
       # pylint: disable=len-as-condition
       if len(a_axes) > 0:
         a_axes, b_axes = list(zip(*sorted(zip(a_axes, b_axes))))
