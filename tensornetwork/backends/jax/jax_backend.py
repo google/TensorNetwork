@@ -37,21 +37,5 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     return self.jax.jit(lambda x: x)(tensor)
 
-  # TODO(chaseriley): Remove these two methods once the newest version of
-  # JAX is released.
-  # See:
-  # https://github.com/google/jax/issues/740
-  # https://github.com/google/jax/issues/738
-  def trace(self, tensor: Tensor) -> Tensor:
-    rank = len(tensor.shape)
-    # Default np.trace uses first two axes.
-    return self.np.trace(tensor, axis1=rank - 2, axis2=rank - 1)
-
-  def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    """Calculate the outer product of the two given tensors."""
-    a = self.np.expand_dims(tensor1, 0)
-    b = self.np.expand_dims(tensor2, 0)
-    return self.np.tensordot(a, b, [[0], [0]])
-
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
