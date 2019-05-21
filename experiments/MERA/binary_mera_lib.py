@@ -76,17 +76,23 @@ def get_scaling_dimensions(isometry, unitary, k=4):
 
     def lmv(vec):
         dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
-        out = ascending_super_operator(dens, isometry, unitary)
-        return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi**6)
-
-    def rmv(vec):#actually not neccessary for eigs
-        dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
-        o1 = left_descending_super_operator(dens, isometry, unitary)
-        o2 = right_descending_super_operator(dens, isometry, unitary)
+        o1 = left_ascending_super_operator(dens, isometry, unitary)
+        o2 = right_ascending_super_operator(dens, isometry, unitary)
         return np.reshape(
-            np.array(o1 + o2).astype(dtype.as_numpy_dtype), chi**6)
+            np.array(1/2*(o1 + o2)).astype(dtype.as_numpy_dtype), chi**6)
+        
+        # dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
+        # out = ascending_super_operator(dens, isometry, unitary)
+        # return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi**6)
 
-    A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv, rmatvec=rmv)
+    # def rmv(vec):#actually not neccessary for eigs
+    #     dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
+    #     o1 = left_descending_super_operator(dens, isometry, unitary)
+    #     o2 = right_descending_super_operator(dens, isometry, unitary)
+    #     return np.reshape(
+    #         np.array(o1 + o2).astype(dtype.as_numpy_dtype), chi**6)
+
+    A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv)
     eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
     scdims = -np.log2(np.abs(eta))
     return scdims
