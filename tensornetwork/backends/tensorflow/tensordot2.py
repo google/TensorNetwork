@@ -72,6 +72,7 @@ def tensordot(a, b, axes, name=None):
       should_flip: `True` if `contraction_axes` should be moved to the left,
         `False` if they should be moved to the right.
     """
+    # TODO(amilsted): Handle tensor-valued `axes`!
     if contraction_axes and free_axes:
       return bool(np.mean(contraction_axes) < np.mean(free_axes))
     return False
@@ -87,6 +88,7 @@ def tensordot(a, b, axes, name=None):
       a: `Tensor`.
       axes: List or `int32` `Tensor` of unique indices specifying valid axes of
        `a`.
+      is_right_term: Whether `a` is the right (second) argument to `matmul`.
     Returns:
       A tuple `(reshaped_a, free_dims, free_dims_static, transpose_needed)`
       where `reshaped_a` is the tensor `a` reshaped to allow contraction via
@@ -111,10 +113,12 @@ def tensordot(a, b, axes, name=None):
 
       # Skip the transpose op if possible. Although the graph optimizer should
       # kill trivial transposes, it is best not to add them in the first place!
+      # TODO(amilsted): Handle tensor-valued `axes`!
       if perm == list(range(len(perm))):
         transposed_a = a
       else:
         transposed_a = tf.transpose(a, perm)
+      # TODO(amilsted): reshape only if needed (see einsum).
       reshaped_a = tf.reshape(transposed_a, new_shape)
       transpose_needed = (not flipped) if is_right_term else flipped
       return reshaped_a, free_dims, free_dims, transpose_needed
@@ -146,6 +150,10 @@ def tensordot(a, b, axes, name=None):
       free, _ = tf.setdiff1d(tf.range(rank_a), axes)
       # Matmul does not accept tensors for its transpose arguments, so fall
       # back to the previous, fixed behavior.
+      # NOTE(ash): With a suitable wrapper for `matmul` using e.g. `case` to
+      #   match transpose arguments to tensor values, we could also avoid
+      #   unneeded tranposes in this case at the expense of a somewhat more
+      #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
       perm = tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0)
       transposed_a = tf.transpose(a, perm)
@@ -192,6 +200,7 @@ def tensordot(a, b, axes, name=None):
             "Different number of contraction axes 'a' and 'b', %s != %s." %
             (len(a_axes), len(b_axes)))
 
+      # TODO(amilsted): Handle tensor-valued `axes`!
       # The contraction indices do not need to be permuted.
       # Sort axes to avoid unnecessary permutations of a.
       # pylint: disable=len-as-condition
