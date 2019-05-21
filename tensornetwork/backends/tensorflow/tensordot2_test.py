@@ -26,7 +26,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for tensornetwork.tensordot2.tensordot"""
+"""Tests for tensornetwork.backends.tensorflow.tensordot2"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -34,7 +34,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensornetwork import tensordot2
+from tensornetwork.backends.tensorflow import tensordot2
 import pytest
 
 tf.enable_v2_behavior()

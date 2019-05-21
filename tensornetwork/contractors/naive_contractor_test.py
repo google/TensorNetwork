@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for tensornetwork.contractors.naive."""
-
 
 from __future__ import absolute_import
 from __future__ import division
@@ -74,6 +72,7 @@ class NaiveTest(tf.test.TestCase):
     net.contract(edge)
     with self.assertRaises(ValueError):
       naive(net)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -23,9 +23,7 @@ class FftTest(tf.test.TestCase):
     initial_state[5] = -1
     initial_node = net.add_node(np.array(initial_state).reshape((2,) * n))
 
-    fft_out = fft.add_fft(
-        net,
-        [initial_node[k] for k in range(n)])
+    fft_out = fft.add_fft(net, [initial_node[k] for k in range(n)])
     net.check_correct()
     tensornetwork.contractors.naive(net)
     net.flatten_edges(fft_out)
@@ -33,6 +31,6 @@ class FftTest(tf.test.TestCase):
     expected = np.fft.fft(initial_state, norm="ortho")
     self.assertAllClose(expected, actual)
 
+
 if __name__ == "__main__":
   tf.test.main()
-
