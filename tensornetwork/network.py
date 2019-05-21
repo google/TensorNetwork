@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import Any, List, Optional, Union, Text, Tuple, Type
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Type
 import numpy as np
 import weakref
 from tensornetwork import config
@@ -666,7 +666,9 @@ class TensorNetwork:
       node1: network_components.Node,
       node2: network_components.Node,
       name: Optional[Text] = None,
-      allow_outer_product: bool = False) -> network_components.Node:
+      allow_outer_product: bool = False,
+      output_edge_order: Optional[Sequence[network_components.Edge]] = None,
+      ) -> network_components.Node:
     """Contract all of the edges between the two given nodes.
 
     Args:
@@ -676,6 +678,10 @@ class TensorNetwork:
       allow_outer_product: Optional boolean. If two nodes do not share any edges
         and `allow_outer_product` is set to `True`, then we return the outer
         product of the two nodes. Else, we raise a `ValueError`.
+      output_edge_order: Optional sequence of Edges. When not `None`, must 
+        contain all edges belonging to, but not shared by `node1` and `node2`.
+        The axes of the new node will be permuted (if necessary) to match this
+        ordering of Edges.
 
     Returns:
       new_node: The new node created.
@@ -701,8 +707,7 @@ class TensorNetwork:
 
     # Collect the axis of each node corresponding to each edge, in order. 
     # This specifies the contraction for tensordot.
-    # NOTE: node1 is always the left argument to tensordot. The ordering of
-    #       node references in each contraction edge is ignored.
+    # NOTE: The ordering of node references in each contraction edge is ignored.
     axes1 = []
     axes2 = []
     for edge in shared_edges:
@@ -713,6 +718,27 @@ class TensorNetwork:
         axes1.append(edge.axis2)
         axes2.append(edge.axis1)
 
+    if output_edge_order:
+      # Determine heuristically if output transposition can be minimized by 
+      # flipping the arguments to tensordot.
+      node1_output_axes = []
+      node2_output_axes = []
+      for (i, edge) in enumerate(output_edge_order):
+        # Assume each of these edges is only connected to one of the nodes.
+        # If this isn't the case, the final reorder_edges() will fail.
+        edge_nodes = set(edge.get_nodes())
+        if node1 in edge_nodes:
+          node1_output_axes.append(i)
+        elif node2 in edge_nodes:
+          node2_output_axes.append(i)
+        else:
+          raise ValueError(
+            "Edge '{}' in output_edge_order is not connected to node '{}' or node"
+            " '{}'".format(edge, node1, node2))
+      if np.mean(node1_output_axes) > np.mean(node2_output_axes):
+        node1, node2 = node2, node1
+        axes1, axes2 = axes2, axes1
+
     new_tensor = self.backend.tensordot(
                     node1.tensor, node2.tensor, [axes1, axes2])
     new_node = self.add_node(new_tensor, name)
@@ -720,6 +746,9 @@ class TensorNetwork:
     # axes of new_node. We provide this ordering to _remove_edges() via the
     # node1 and node2 arguments.
     self._remove_edges(shared_edges, node1, node2, new_node)
+
+    if output_edge_order:
+      new_node = new_node.reorder_edges(output_edge_order)
     return new_node
 
   def contract_parallel(
