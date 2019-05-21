@@ -37,6 +37,11 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     return self.jax.jit(lambda x: x)(tensor)
 
+  # TODO(chaseriley): Remove these two methods once the newest version of
+  # JAX is released.
+  # See:
+  # https://github.com/google/jax/issues/740
+  # https://github.com/google/jax/issues/738
   def trace(self, tensor: Tensor) -> Tensor:
     rank = len(tensor.shape)
     # Default np.trace uses first two axes.
