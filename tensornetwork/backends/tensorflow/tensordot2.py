@@ -87,6 +87,16 @@ def tensordot(a, b, axes, name=None):
       return tensor
     return tf.transpose(tensor, perm)
 
+  def _reshape_if_necessary(tensor, new_shape):
+    """Like reshape(), but avoids creating a new tensor if possible.
+    Assumes shapes are both fully specified."""
+    cur_shape = tensor.get_shape().as_list()
+    if (len(new_shape) == len(cur_shape) and
+        all(d0 == d1 for d0, d1 in zip(cur_shape, new_shape))):
+      return tensor
+    else:
+      return tf.reshape(tensor, new_shape)
+
   def _tensordot_reshape(a, axes, is_right_term=False):
     """Helper method to perform transpose and reshape for contraction op.
     This method is helpful in reducing `math_ops.tensordot` to `math_ops.matmul`
@@ -122,8 +132,7 @@ def tensordot(a, b, axes, name=None):
       perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
       transposed_a = _tranpose_if_necessary(a, perm)
-      # TODO(amilsted): reshape only if needed (see einsum).
-      reshaped_a = tf.reshape(transposed_a, new_shape)
+      reshaped_a = _reshape_if_necessary(transposed_a, new_shape)
       transpose_needed = (not flipped) if is_right_term else flipped
       return reshaped_a, free_dims, free_dims, transpose_needed
     if a.get_shape().ndims is not None and isinstance(axes, (list, tuple)):
