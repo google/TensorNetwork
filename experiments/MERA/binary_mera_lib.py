@@ -89,7 +89,7 @@ def get_scaling_dimensions(isometry, unitary, k=4):
     A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv, rmatvec=rmv)
     eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
     scdims = -np.log2(np.abs(eta))
-    return scdims - scdims[0]
+    return scdims
 
 
 
