@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Type
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type
 import numpy as np
 import weakref
 from tensornetwork import config
@@ -261,7 +261,7 @@ class TensorNetwork:
 
   def _remove_edges(
     self,
-    edges: List[network_components.Edge],
+    edges: Set[network_components.Edge],
     node1: network_components.Node,
     node2: network_components.Node,
     new_node: network_components.Node) -> None:
@@ -284,13 +284,12 @@ class TensorNetwork:
     """
     if node1 is node2:
       raise ValueError(
-        "Trace edge '{}' cannot be removed by  _remove_edges().".format(
-          edges[0]))
+        "node1 and node2 are the same ('{}' == '{}'), but trace edges cannot "
+        "be removed by _remove_edges.".format(node1, node2))
 
     node1_edges = node1.edges[:]
     node2_edges = node2.edges[:]
 
-    edges = set(edges)
     nodes_set = set([node1, node2])
     for edge in edges:
       if edge.is_dangling():
@@ -383,7 +382,7 @@ class TensorNetwork:
     new_tensor = self.backend.tensordot(edge.node1.tensor, edge.node2.tensor,
                                         [[edge.axis1], [edge.axis2]])
     new_node = self.add_node(new_tensor, name)
-    self._remove_edges([edge], edge.node1, edge.node2, new_node)
+    self._remove_edges(set([edge]), edge.node1, edge.node2, new_node)
     return new_node
 
   def outer_product(self,
@@ -604,7 +603,7 @@ class TensorNetwork:
 
   def get_shared_edges(
     self, node1: network_components.Node,
-    node2: network_components.Node) -> List[network_components.Edge]:
+    node2: network_components.Node) -> Set[network_components.Edge]:
     """Get all edges shared between two nodes.
 
     Args:
@@ -612,7 +611,7 @@ class TensorNetwork:
       node2: The second node.
 
     Returns:
-      shared_edges: A (possibly empty) list of edges shared by the nodes.
+      shared_edges: A (possibly empty) set of edges shared by the nodes.
     """
     nodes = {node1, node2}
     shared_edges = set()
@@ -622,7 +621,7 @@ class TensorNetwork:
     for edge in node1.edges:
       if set(edge.get_nodes()) == nodes:
         shared_edges.add(edge)
-    return list(shared_edges)
+    return shared_edges
 
   def flatten_edges_between(
     self, node1: network_components.Node,
@@ -640,7 +639,7 @@ class TensorNetwork:
     """
     shared_edges = self.get_shared_edges(node1, node2)
     if shared_edges:
-      return self.flatten_edges(shared_edges)
+      return self.flatten_edges(list(shared_edges))
     return None
 
   def flatten_all_edges(self) -> List[network_components.Edge]:
@@ -724,8 +723,11 @@ class TensorNetwork:
       node1_output_axes = []
       node2_output_axes = []
       for (i, edge) in enumerate(output_edge_order):
-        # Assume each of these edges is only connected to one of the nodes.
-        # If this isn't the case, the final reorder_edges() will fail.
+        if edge in shared_edges:
+          raise ValueError(
+            "Edge '{}' in output_edge_order is shared by the nodes to be "
+            "contracted: '{}' and '{}'.".format(edge, node1, node2)
+          )
         edge_nodes = set(edge.get_nodes())
         if node1 in edge_nodes:
           node1_output_axes.append(i)
@@ -733,8 +735,8 @@ class TensorNetwork:
           node2_output_axes.append(i)
         else:
           raise ValueError(
-            "Edge '{}' in output_edge_order is not connected to node '{}' or node"
-            " '{}'".format(edge, node1, node2))
+            "Edge '{}' in output_edge_order is not connected to node '{}' or "
+            "node '{}'".format(edge, node1, node2))
       if np.mean(node1_output_axes) > np.mean(node2_output_axes):
         node1, node2 = node2, node1
         axes1, axes2 = axes2, axes1
@@ -748,7 +750,7 @@ class TensorNetwork:
     self._remove_edges(shared_edges, node1, node2, new_node)
 
     if output_edge_order:
-      new_node = new_node.reorder_edges(output_edge_order)
+      new_node = new_node.reorder_edges(list(output_edge_order))
     return new_node
 
   def contract_parallel(
