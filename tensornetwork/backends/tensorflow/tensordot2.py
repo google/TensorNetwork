@@ -82,7 +82,7 @@ def tensordot(a, b, axes, name=None):
     Although the graph optimizer should kill trivial transposes, it is best not
     to add them in the first place!
     """
-    # If perm is tensor-valued, this test will fail and we fall back to tranposing.
+    # If perm is tensor-valued, test will fail and we fall back to tranposing.
     if perm == list(range(len(perm))):
       return tensor
     return tf.transpose(tensor, perm)
@@ -94,8 +94,7 @@ def tensordot(a, b, axes, name=None):
     if (len(new_shape) == len(cur_shape) and
         all(d0 == d1 for d0, d1 in zip(cur_shape, new_shape))):
       return tensor
-    else:
-      return tf.reshape(tensor, new_shape)
+    return tf.reshape(tensor, new_shape)
 
   def _tensordot_reshape(a, axes, is_right_term=False):
     """Helper method to perform transpose and reshape for contraction op.
@@ -163,7 +162,8 @@ def tensordot(a, b, axes, name=None):
       #   unneeded tranposes in this case at the expense of a somewhat more
       #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
-      perm = tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0)
+      perm = (
+        tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0))
       transposed_a = tf.transpose(a, perm)
 
     free_dims = tf.gather(shape_a, free)
