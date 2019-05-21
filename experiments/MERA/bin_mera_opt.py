@@ -159,7 +159,7 @@ def get_scaling_dims(loadname, savename, use_gpu=False, k=11):
         specified_device_type = CPU
         name = 'CPU'
  
-    filename = str(datetime.date.today()) + savename
+    filename = savename
     scaling_dims = {}
     # with open(filename, 'rb') as f:
     #     scaling_dims = pickle.load(f)
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     
     #loadname = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14.pickle'
     #get_scaling_dims(loadname=loadname, savename = '/home/martin_ganahl/workspace/TensorNetwork/experiments/MERA/binary_mera_optimization/2019-05-09resumed_bin_mera_opt_Nthreads4_chimax20_numtrans13_nss14',use_gpu=True)
-    get_scaling_dims(loadname=loadname + 'pickle', savename = loadname +'scdims' + 'pickle', use_gpu=True, k=12)
+    get_scaling_dims(loadname=loadname + '.pickle', savename = loadname +str(datetime.date.today()) +'_scdims' + '.pickle', use_gpu=True, k=12)
     
     # start_fresh=False
     # if start_fresh:
