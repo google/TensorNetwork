@@ -678,6 +678,34 @@ def test_contract_between(backend):
   np.testing.assert_allclose(c.get_tensor(), final_val)
   assertEqual(c.name, "New Node")
 
+def test_contract_between_output_order(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a_val = np.random.normal(size=(2, 3, 4, 5))
+  b_val = np.random.normal(size=(3, 5, 4, 2))
+  c_val = np.random.normal(size=(2, 2))
+  a = net.add_node(a_val)
+  b = net.add_node(b_val)
+  c = net.add_node(c_val)
+  net.connect(a[0], b[3])
+  net.connect(b[1], a[3])
+  net.connect(a[1], b[0])
+  with pytest.raises(ValueError):
+    d = net.contract_between(
+      a, b, name="New Node", output_edge_order=[a[2], b[2], a[0]])
+  net.check_correct(check_connected=False)
+  with pytest.raises(ValueError):
+    d = net.contract_between(
+      a, b, name="New Node", output_edge_order=[a[2], b[2], c[0]])
+  net.check_correct(check_connected=False)
+  d = net.contract_between(
+    a, b, name="New Node", output_edge_order=[b[2], a[2]])
+  net.check_correct(check_connected=False)
+  a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
+  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
+  final_val = np.matmul(b_flat, a_flat.T)
+  np.testing.assert_allclose(d.get_tensor(), final_val)
+  assertEqual(d.name, "New Node")
+
 def test_contract_between_outer_product(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a_val = np.random.normal(size=(2, 3, 4))
