@@ -106,7 +106,7 @@ def tensordot(a, b, axes, name=None):
       free_dims = [shape_a[i] for i in free]
       prod_free = int(np.prod([shape_a[i] for i in free]))
       prod_axes = int(np.prod([shape_a[i] for i in axes]))
-      perm = list(axes) + free if flipped else free + list(axes)
+      perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
 
       # Skip the transpose op if possible. Although the graph optimizer should
@@ -123,6 +123,7 @@ def tensordot(a, b, axes, name=None):
       axes = [i if i >= 0 else i + len(shape_a) for i in axes]
       free = [i for i in range(len(shape_a)) if i not in axes]
       flipped = _tensordot_should_flip(axes, free)
+      perm = axes + free if flipped else free + axes
 
       axes_dims = [shape_a[i] for i in axes]
       free_dims = [shape_a[i] for i in free]
@@ -130,6 +131,12 @@ def tensordot(a, b, axes, name=None):
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
       shape_a = tf.shape(a)
+
+      # TODO(amilsted): Handle tensor-valued `axes`!
+      if perm == list(range(len(perm))):
+        transposed_a = a
+      else:
+        transposed_a = tf.transpose(a, perm)
     else:
       free_dims_static = None
       shape_a = tf.shape(a)
@@ -140,6 +147,8 @@ def tensordot(a, b, axes, name=None):
       # Matmul does not accept tensors for its transpose arguments, so fall
       # back to the previous, fixed behavior.
       flipped = is_right_term
+      perm = tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0)
+      transposed_a = tf.transpose(a, perm)
 
     free_dims = tf.gather(shape_a, free)
     axes_dims = tf.gather(shape_a, axes)
@@ -147,12 +156,10 @@ def tensordot(a, b, axes, name=None):
     prod_axes_dims = tf.reduce_prod(axes_dims)
 
     if flipped:
-      perm = tf.concat([axes, free], 0)
       new_shape = tf.stack([prod_axes_dims, prod_free_dims])
     else:
-      perm = tf.concat([free, axes], 0)
       new_shape = tf.stack([prod_free_dims, prod_axes_dims])
-    reshaped_a = tf.reshape(tf.transpose(a, perm), new_shape)
+    reshaped_a = tf.reshape(transposed_a, new_shape)
     transpose_needed = (not flipped) if is_right_term else flipped
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
