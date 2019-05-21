@@ -888,3 +888,7 @@ def test_copy_tensor(backend):
   result = val.get_tensor()
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
+
+def test_bad_backend():
+  with pytest.raises(ValueError):
+    tensornetwork.TensorNetwork("NOT_A_BACKEND")

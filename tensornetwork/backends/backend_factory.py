@@ -28,4 +28,6 @@ _BACKENDS = {
 
 
 def get_backend(name):
+  if name not in _BACKENDS:
+    raise ValueError("Backend {} does not exist".format(name))
   return _BACKENDS[name]()
