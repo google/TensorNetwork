@@ -641,8 +641,7 @@ class TensorNetwork:
     shared_edges = self.get_shared_edges(node1, node2)
     if shared_edges:
       return self.flatten_edges(shared_edges)
-    else:
-      return None
+    return None
 
   def flatten_all_edges(self) -> List[network_components.Edge]:
     """Flatten all edges in the network.
@@ -688,11 +687,10 @@ class TensorNetwork:
     # Trace edges cannot be contracted using tensordot.
     if node1 is node2:
       flat_edge = self.flatten_edges_between(node1, node2)
-      if flat_edge:
-        return self.contract(flat_edge, name)
-      else:
+      if not flat_edge:
         raise ValueError("No trace edges found on contraction of edges between "
                          "node '{}' and itself.".format(node1))
+      return self.contract(flat_edge, name)
 
     shared_edges = self.get_shared_edges(node1, node2)
     if not shared_edges:

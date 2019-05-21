@@ -52,6 +52,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
     with self.assertRaises(tf.errors.InvalidArgumentError):
       tensordot2.tensordot(a, b, (a_axes, b_axes))
     # Invalid dynamic shapes.
+    # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       with self.cached_session() as sess:
         with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
@@ -68,6 +69,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
               })
 
   def test_invalid_axes(self):
+    # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       a = [[1, 2], [3, 4]]
       b = [[1, 2], [3, 4]]
@@ -111,6 +113,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         self.assertAllEqual(tf_ans, np_ans)
 
   def test_partial_shape_inference(self):
+    # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       for axes in ([1], [0]), 1:
         a = tf.placeholder(tf.float32)
@@ -168,7 +171,7 @@ def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
     pytest.skip("Not a test")
   if dtype_ == np.float16:
     tol = 0.05
-  elif dtype_ == np.float32 or dtype_ == np.complex64:
+  elif dtype_ in (np.float32, np.complex64):
     tol = 1e-5
   else:
     tol = 1e-12
@@ -196,7 +199,7 @@ def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
   num_trials = min(30, num_dims_ * num_dims_)
   if dtype_ == np.float16:
     tol = 0.05
-  elif dtype_ == np.float32 or dtype_ == np.complex64:
+  elif dtype_ in (np.float32, np.complex64):
     tol = 1e-5
   else:
     tol = 1e-12
