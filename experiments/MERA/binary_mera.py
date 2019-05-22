@@ -106,14 +106,14 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     init = False
     if wC == 0:
         init = True
-        wC, _, _ = bml.initialize_binary_MERA_random(
+        wC, _, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
         init = True        
-        _, uC, _ = bml.initialize_binary_MERA_random(
+        _, uC, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
-        _, _, rho_0 = bml.initialize_binary_MERA_random(
+        _, _, rho_0 = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
@@ -243,7 +243,7 @@ def run_naive_optimization_benchmark(filename,
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
 
-            wC, uC, rho_0 = bml.initialize_binary_MERA_random(
+            wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
                 phys_dim=2, chi=chi, dtype=dtype)
             ham_0 = bml.initialize_TFI_hams(dtype=dtype)
             wC, uC, rho_0, runtimes, energies = bml.optimize_binary_mera(
@@ -306,7 +306,7 @@ def run_optimization_benchmark(filename,
 
 def test_ascending_descending(chi=4, dtype=tf.float64):
 
-    wC, uC, rho_0 = bml.initialize_binary_MERA_random(phys_dim=2, chi=4, dtype=dtype)
+    wC, uC, rho_0 = bml.initialize_binary_MERA_identities(phys_dim=2, chi=4, dtype=dtype)
     for n in range(5):
         wC.append(copy.copy(wC[-1]))
         uC.append(copy.copy(uC[-1]))
