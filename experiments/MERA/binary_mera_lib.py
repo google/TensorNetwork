@@ -1458,51 +1458,6 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
     return wC, uC
 
 
-def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
-    """
-    initialize a binary MERA network of bond dimension `chi`
-    isometries and disentanglers are initialized with identies
-    
-    Args:
-        phys_dim (int):   Hilbert space dimension of the bottom layer
-        chi (int):        maximum bond dimension
-        dtype (tf.dtype): dtype of the MERA tensors
-
-    Returns:
-        wC, uC (list of tf.Tensor):  the MERA tensors
-        rho (tf.Tensor):             initial reduced density matrix
-    """
-    wC = []
-    uC = []
-    n = 0
-    if chi < phys_dim:
-        raise ValueError(
-            'cannot initialize a MERA with chi < physical dimension!')
-    while True:
-        wC.append(
-            tf.reshape(
-                tf.eye(
-                    min(phys_dim**(2**(n + 1)), chi**2),
-                    min(phys_dim**(2**(n + 1)), chi),
-                    dtype=dtype),
-                (min(phys_dim**(2**n), chi), min(phys_dim**(2**n), chi),
-                 min(phys_dim**(2**(n + 1)), chi))))
-        uC.append(
-            tf.reshape(
-                tf.eye(min(phys_dim**(2**(n + 1)), chi**2), dtype=dtype),
-                (min(phys_dim**(2**n), chi), min(phys_dim**(2**n), chi),
-                 min(phys_dim**(2**n), chi), min(phys_dim**(2**n), chi))))
-        n += 1
-        if misc_mera.all_same_chi(wC[-1]):
-            break
-
-    chi_top = wC[-1].shape[2]
-    rho = tf.reshape(
-        tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
-        (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
-
-    return wC, uC, rho / misc_mera.trace(rho)
-
 def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
     """
     initialize a binary MERA network of bond dimension `chi`
