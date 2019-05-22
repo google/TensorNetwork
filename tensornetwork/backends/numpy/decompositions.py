@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Tuple
-
+import numpy
 Tensor = Any
 
 
@@ -35,7 +35,7 @@ def svd_decomposition(np, # TODO: Typing
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
 
-  tensor = np.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   u, s, v = np.linalg.svd(tensor)
 
   if max_singular_values is None:
@@ -47,7 +47,7 @@ def svd_decomposition(np, # TODO: Typing
     # We must keep at least this many singular values to ensure the
     # truncation error is <= max_truncation_error.
     num_sing_vals_err = np.count_nonzero(
-        (trunc_errs > max_truncation_error).astype(np.int))
+        (trunc_errs > max_truncation_error).astype(np.int32))
   else:
     num_sing_vals_err = max_singular_values
 
@@ -67,7 +67,7 @@ def svd_decomposition(np, # TODO: Typing
   vh = v.conj().T
 
   dim_s = s.shape[0]
-  u = np.reshape(u, np.concatenate([left_dims, [dim_s]], axis=-1))
-  vh = np.reshape(vh, np.concatenate([[dim_s], right_dims], axis=-1))
+  u = np.reshape(u, list(left_dims) + [dim_s])
+  vh = np.reshape(vh, [dim_s] + list(right_dims))
 
   return u, s, vh, s_rest

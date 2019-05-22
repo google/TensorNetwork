@@ -15,19 +15,27 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from tensornetwork.backends.tensorflow import tensorflow_backend
+from typing import Any
 from tensornetwork.backends.numpy import numpy_backend
-from tensornetwork.backends.jax import jax_backend
-
-_BACKENDS = {
-    "tensorflow": tensorflow_backend.TensorFlowBackend,
-    "numpy": numpy_backend.NumPyBackend,
-    "jax": jax_backend.JaxBackend,
-}
+import numpy
+Tensor = Any
 
 
-def get_backend(name):
-  if name not in _BACKENDS:
-    raise ValueError("Backend {} does not exist".format(name))
-  return _BACKENDS[name]()
+class JaxBackend(numpy_backend.NumPyBackend):
+  """See base_backend.BaseBackend for documentation."""
+
+  def __init__(self):
+    super(JaxBackend, self).__init__()
+    try:
+      import jax
+    except ImportError:
+      raise AssertionError("jax is not installed.")
+    self.jax = jax
+    self.np = jax.numpy
+    self.name = "jax"
+
+  def convert_to_tensor(self, tensor: Tensor) -> Tensor:
+    return self.jax.jit(lambda x: x)(tensor)
+
+  def concat(self, values: Tensor, axis: int) -> Tensor:
+    return numpy.concatenate(values, axis)

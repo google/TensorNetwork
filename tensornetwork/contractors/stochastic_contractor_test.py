@@ -28,7 +28,7 @@ tf.enable_v2_behavior()
 class StochasticTest(tf.test.TestCase):
 
   def test_find_parallel(self):
-    net = network.TensorNetwork()
+    net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2, 3]))
     b = net.add_node(np.ones([3, 2, 3, 5]))
     net.connect(a[2], b[1])
@@ -39,7 +39,7 @@ class StochasticTest(tf.test.TestCase):
     self.assertEqual(parallel_dim, 30)
 
   def test_contract_trace_edges(self):
-    net = network.TensorNetwork()
+    net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2, 3, 4]))
     b = net.add_node(np.ones([3, 2, 3, 5]))
     net.connect(a[2], b[1])
@@ -52,7 +52,7 @@ class StochasticTest(tf.test.TestCase):
     self.assertDictEqual(sizes_none, dict())
 
   def test_contraction_sanity(self):
-    net = network.TensorNetwork()
+    net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2]))
     b = net.add_node(np.ones([3, 2, 3]))
     net.connect(a[2], b[1])
@@ -63,7 +63,7 @@ class StochasticTest(tf.test.TestCase):
     self.assertAllClose(res.get_tensor(), 6 * np.ones([4, 5]))
 
   def test_contraction_parallel_edges(self):
-    net = network.TensorNetwork()
+    net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2]))
     b = net.add_node(np.ones([3, 2, 3, 5]))
     c = net.add_node(np.ones([4,]))
@@ -77,7 +77,7 @@ class StochasticTest(tf.test.TestCase):
     self.assertAllClose(res.get_tensor(), 120)
 
   def test_contraction_disconnected(self):
-    net = network.TensorNetwork()
+    net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2]))
     b = net.add_node(np.ones([3, 2, 3]))
     edge1 = a[0]

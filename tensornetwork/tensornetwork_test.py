@@ -39,7 +39,8 @@ def assertTrue(a):
 def assertFalse(a):
   assert a is False
 
-@pytest.fixture(name="backend", params=["numpy", "tensorflow"])
+@pytest.fixture(
+  name="backend", params=["numpy", "tensorflow", "jax"])
 def backend_fixure(request):
     return request.param
 
@@ -531,7 +532,7 @@ def test_flatten_consistent_result(backend):
   flat_result_node = net_flat.contract(final_edge)
   flat_result_node.reorder_edges([a_dangling_flat, b_dangling_flat])
   flat_result = flat_result_node.get_tensor()
-  np.testing.assert_allclose(flat_result, noflat_result)
+  np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
 
 def test_flatten_consistent_tensor(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -548,8 +549,8 @@ def test_flatten_consistent_tensor(backend):
   # Check expected values.
   a_final = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_final = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
-  np.testing.assert_allclose(a.get_tensor(), a_final)
-  np.testing.assert_allclose(b.get_tensor(), b_final)
+  np.testing.assert_allclose(a.get_tensor(), a_final, rtol=1e-6)
+  np.testing.assert_allclose(b.get_tensor(), b_final, rtol=1e-6)
 
 def test_flatten_trace_consistent_result(backend):
   net_noflat = tensornetwork.TensorNetwork(backend=backend)
@@ -569,7 +570,7 @@ def test_flatten_trace_consistent_result(backend):
   e3 = net_flat.connect(a_flat[3], a_flat[5])
   final_edge = net_flat.flatten_edges([e1, e2, e3])
   flat_result = net_flat.contract(final_edge).get_tensor()
-  np.testing.assert_allclose(flat_result, noflat_result)
+  np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
 
 def test_flatten_trace_consistent_tensor(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -675,7 +676,7 @@ def test_contract_between(backend):
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(a_flat, b_flat.T)
-  np.testing.assert_allclose(c.get_tensor(), final_val)
+  np.testing.assert_allclose(c.get_tensor(), final_val, rtol=1e-6)
   assertEqual(c.name, "New Node")
 
 def test_contract_between_output_order(backend):
@@ -780,7 +781,9 @@ def test_split_node_full_svd(backend):
   e2 = a[1]
   _, s, _, _, = net.split_node_full_svd(a, [e1], [e2])
   net.check_correct()
-  np.testing.assert_allclose(s.get_tensor(), np.diag(np.arange(10, 0, -1)))
+  np.testing.assert_allclose(
+      s.get_tensor(), np.diag(np.arange(10, 0, -1)),
+  rtol=1e-5)
 
 def test_weakref(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -913,3 +916,7 @@ def test_copy_tensor(backend):
   result = val.get_tensor()
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
+
+def test_bad_backend():
+  with pytest.raises(ValueError):
+    tensornetwork.TensorNetwork("NOT_A_BACKEND")

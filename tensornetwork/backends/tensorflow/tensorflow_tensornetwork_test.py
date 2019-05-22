@@ -59,7 +59,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.contrib.eager.defun
     def f(x, n):
       x_slice = x[..., :n]
-      net = tensornetwork.TensorNetwork()
+      net = tensornetwork.TensorNetwork(backend="tensorflow")
       n1 = net.add_node(x_slice)
       n2 = net.add_node(x_slice)
       net.connect(n1[0], n2[0])
