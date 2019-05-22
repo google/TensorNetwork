@@ -11,23 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from tensornetwork.backends.tensorflow import tensorflow_backend
-from tensornetwork.backends.numpy import numpy_backend
-from tensornetwork.backends.jax import jax_backend
-
-_BACKENDS = {
-    "tensorflow": tensorflow_backend.TensorFlowBackend,
-    "numpy": numpy_backend.NumPyBackend,
-    "jax": jax_backend.JaxBackend,
-}
-
-
-def get_backend(name):
-  if name not in _BACKENDS:
-    raise ValueError("Backend {} does not exist".format(name))
-  return _BACKENDS[name]()
