@@ -681,9 +681,9 @@ def test_contract_between(backend):
 
 def test_contract_between_output_order(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(2, 3, 4, 5))
-  b_val = np.random.normal(size=(3, 5, 4, 2))
-  c_val = np.random.normal(size=(2, 2))
+  a_val = np.ones((2, 3, 4, 5))
+  b_val = np.ones((3, 5, 4, 2))
+  c_val = np.ones((2, 2))
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   c = net.add_node(c_val)
