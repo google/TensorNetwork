@@ -29,12 +29,9 @@ def add_fft(
   def cz(p: int) -> np.ndarray:
     result = np.eye(4, dtype=np.complex128)
     result[3, 3] = np.exp(-1j * np.pi / 2**p)
-    return result.reshape((2,)*4)
+    return result.reshape((2,) * 4)
 
-  def inline_stitch(
-      targets: List[int],
-      tensor: np.ndarray,
-      name: str):
+  def inline_stitch(targets: List[int], tensor: np.ndarray, name: str):
     """Applies an operation to the targeted axis indices."""
     op_node = net.add_node(tensor, name)
     for k, t in enumerate(targets):
@@ -49,10 +46,9 @@ def add_fft(
   # Mix "n twiddle.
   n = len(state)
   for i in range(n):
-    for j in range(1, i+1):
-      inline_stitch([i-j, i], cz(j), "TWIDDLE_{}_{}".format(j, i))
+    for j in range(1, i + 1):
+      inline_stitch([i - j, i], cz(j), "TWIDDLE_{}_{}".format(j, i))
     inline_stitch([i], hadamard, "MIX_{}".format(i))
 
   # FFT reverses bit order.
   return state[::-1]
-

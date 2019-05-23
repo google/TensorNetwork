@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Implementation of TensorNetwork structure."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from typing import Any, List, Optional, Text, Tuple, Type, Union
 import numpy as np
-import tensorflow as tf
-from typing import List, Optional, Text, Union
+from tensornetwork.backends import base_backend
 import weakref
+
+Tensor = Any
+
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -39,10 +41,8 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(self,
-               tensor: Union[np.ndarray, tf.Tensor],
-               name: Text,
-               axis_names: List[Text]) -> None:
+  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
+               backend: base_backend.BaseBackend) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -55,14 +55,20 @@ class Node:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tf.convert_to_tensor(tensor)
+    self.tensor = tensor
     self.name = name
-    self.edges = [Edge(edge_name, self, i)
-                  for i, edge_name in enumerate(axis_names)]
+    self.backend = backend
+    self.edges = [
+        Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
+    ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
+
+  def get_rank(self) -> int:
+    """Return rank of tensor represented by self."""
+    return len(self.tensor.shape)
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
@@ -144,7 +150,7 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = tf.transpose(self.tensor, perm=permutation)
+    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -167,7 +173,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = tf.transpose(self.tensor, perm=perm)
+    self.tensor = self.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -201,7 +207,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return tf.shape(self.tensor)[axis_num]
+    return self.backend.shape(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -229,6 +235,88 @@ class Node:
 
   def __str__(self) -> Text:
     return self.name
+
+
+class CopyNode(Node):
+  def __init__(self,
+               rank: int,
+               dimension: int,
+               name: Text,
+               axis_names: List[Text],
+               backend: base_backend.BaseBackend,
+               dtype: Type[np.number] = np.float64) -> None:
+    # TODO: Make this computation lazy, once Node doesn't require tensor
+    # at instatiation.
+    copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
+    copy_tensor = backend.convert_to_tensor(copy_tensor)
+    super().__init__(copy_tensor, name, axis_names, backend)
+
+  @staticmethod
+  def make_copy_tensor(rank: int,
+                       dimension: int,
+                       dtype: Type[np.number]) -> Tensor:
+    shape = (dimension,) * rank
+    copy_tensor = np.zeros(shape, dtype=dtype)
+    i = np.arange(dimension)
+    copy_tensor[(i,) * rank] = 1
+    return copy_tensor
+
+  def _is_my_trace(self, edge: "Edge") -> bool:
+    return edge.node1 is self and edge.node2 is self
+
+  def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
+    if edge.node1 is self:
+        return edge.node2, edge.axis2
+    assert edge.node2 is self
+    return edge.node1, edge.axis1
+
+  def _get_partners(self) -> List[Tuple[Node, int]]:
+    partners = []
+    for edge in self.edges:
+      if edge.is_dangling() or self._is_my_trace(edge):
+        continue
+      partner_node, shared_axis = self._get_partner(edge)
+      partners.append((partner_node, shared_axis))
+    return partners
+
+  _VALID_SUBSCRIPTS = list(
+          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+
+  def _make_einsum_input_term(self,
+                              node: Node,
+                              shared_axis: int,
+                              next_index: int) -> Tuple[str, int]:
+    indices = []
+    for axis in range(node.get_rank()):
+      if axis == shared_axis:
+        indices.append(0)
+      else:
+        indices.append(next_index)
+        next_index += 1
+    term = "".join(self._VALID_SUBSCRIPTS[i] for i in indices)
+    return term, next_index
+
+  def _make_einsum_output_term(self, next_index: int) -> str:
+    return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
+
+  def _make_einsum_expression(self, partners: List[Tuple[Node, int]]) -> str:
+    next_index = 1  # zero is reserved for the shared index
+    einsum_input_terms = []
+    for partner_node, shared_axis in partners:
+      einsum_input_term, next_index = self._make_einsum_input_term(
+              partner_node, shared_axis, next_index)
+      einsum_input_terms.append(einsum_input_term)
+    einsum_output_term = self._make_einsum_output_term(next_index)
+    einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
+    return einsum_expression
+
+  def compute_contracted_tensor(self) -> Tensor:
+    """Compute tensor corresponding to contraction of self with neighbors."""
+    partners = self._get_partners()
+    einsum_expression = self._make_einsum_expression(partners)
+    tensors = [partner.get_tensor() for partner, _ in partners]
+    return self.backend.einsum(einsum_expression, *tensors)
+
 
 class Edge:
   """Edge for the TensorNetwork graph.
@@ -293,12 +381,8 @@ class Edge:
     """Get the nodes of the edge."""
     return [self.node1, self.node2]
 
-  def update_axis(
-      self, 
-      old_axis: int, 
-      old_node: Node, 
-      new_axis: int,
-      new_node: Node) -> None:
+  def update_axis(self, old_axis: int, old_node: Node, new_axis: int,
+                  new_node: Node) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -321,6 +405,7 @@ class Edge:
                        "node1: '{}', axis1: {}, node2: '{}', axis2: {}".format(
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
+
   @property
   def node1(self) -> Node:
     val = self._node1()
@@ -335,13 +420,15 @@ class Edge:
     if self._node2() is None:
       raise ValueError("node2 for edge '{}' no longer exists.".format(self))
     return self._node2()
-  
+
   @node1.setter
   def node1(self, node: Node) -> None:
+    # pylint: disable=attribute-defined-outside-init
     self._node1 = weakref.ref(node)
 
   @node2.setter
   def node2(self, node: Optional[Node]) -> None:
+    # pylint: disable=attribute-defined-outside-init
     self._node2 = weakref.ref(node) if node else None
     if node is None:
       self._is_dangling = True
