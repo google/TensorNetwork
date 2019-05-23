@@ -744,9 +744,9 @@ def test_split_node_mixed_order(backend):
 
 def test_split_node_full_svd(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  random_matrix = np.random.normal(size=(10, 10))
-  unitary1, _, unitary2 = np.linalg.svd(random_matrix)
-  singular_values = np.array(range(1, 11), dtype=np.float32)
+  unitary1 = np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2.0)
+  unitary2 = np.array([[0.0, 1.0], [1.0, 0.0]])
+  singular_values = np.array([9.1, 7.5], dtype=np.float32)
   val = np.dot(unitary1, np.dot(np.diag(singular_values), (unitary2.T)))
   a = net.add_node(val)
   e1 = a[0]
@@ -754,8 +754,7 @@ def test_split_node_full_svd(backend):
   _, s, _, _, = net.split_node_full_svd(a, [e1], [e2])
   net.check_correct()
   np.testing.assert_allclose(
-      s.get_tensor(), np.diag(np.arange(10, 0, -1)),
-  rtol=1e-5)
+      s.get_tensor(), np.diag([9.1, 7.5]), rtol=1e-5)
 
 def test_weakref(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
