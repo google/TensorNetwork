@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import Any, List, Optional, Union, Text, Tuple, Type
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type
 import numpy as np
 import weakref
 from tensornetwork import config
@@ -261,7 +261,7 @@ class TensorNetwork:
 
   def _remove_edges(
     self,
-    edges: List[network_components.Edge],
+    edges: Set[network_components.Edge],
     node1: network_components.Node,
     node2: network_components.Node,
     new_node: network_components.Node) -> None:
@@ -284,13 +284,12 @@ class TensorNetwork:
     """
     if node1 is node2:
       raise ValueError(
-        "Trace edge '{}' cannot be removed by  _remove_edges().".format(
-          edges[0]))
+        "node1 and node2 are the same ('{}' == '{}'), but trace edges cannot "
+        "be removed by _remove_edges.".format(node1, node2))
 
     node1_edges = node1.edges[:]
     node2_edges = node2.edges[:]
 
-    edges = set(edges)
     nodes_set = set([node1, node2])
     for edge in edges:
       if edge.is_dangling():
@@ -383,7 +382,7 @@ class TensorNetwork:
     new_tensor = self.backend.tensordot(edge.node1.tensor, edge.node2.tensor,
                                         [[edge.axis1], [edge.axis2]])
     new_node = self.add_node(new_tensor, name)
-    self._remove_edges([edge], edge.node1, edge.node2, new_node)
+    self._remove_edges(set([edge]), edge.node1, edge.node2, new_node)
     return new_node
 
   def outer_product(self,
@@ -604,7 +603,7 @@ class TensorNetwork:
 
   def get_shared_edges(
     self, node1: network_components.Node,
-    node2: network_components.Node) -> List[network_components.Edge]:
+    node2: network_components.Node) -> Set[network_components.Edge]:
     """Get all edges shared between two nodes.
 
     Args:
@@ -612,7 +611,7 @@ class TensorNetwork:
       node2: The second node.
 
     Returns:
-      shared_edges: A (possibly empty) list of edges shared by the nodes.
+      shared_edges: A (possibly empty) set of edges shared by the nodes.
     """
     nodes = {node1, node2}
     shared_edges = set()
@@ -622,7 +621,7 @@ class TensorNetwork:
     for edge in node1.edges:
       if set(edge.get_nodes()) == nodes:
         shared_edges.add(edge)
-    return list(shared_edges)
+    return shared_edges
 
   def flatten_edges_between(
     self, node1: network_components.Node,
@@ -640,7 +639,7 @@ class TensorNetwork:
     """
     shared_edges = self.get_shared_edges(node1, node2)
     if shared_edges:
-      return self.flatten_edges(shared_edges)
+      return self.flatten_edges(list(shared_edges))
     return None
 
   def flatten_all_edges(self) -> List[network_components.Edge]:
@@ -666,7 +665,9 @@ class TensorNetwork:
       node1: network_components.Node,
       node2: network_components.Node,
       name: Optional[Text] = None,
-      allow_outer_product: bool = False) -> network_components.Node:
+      allow_outer_product: bool = False,
+      output_edge_order: Optional[Sequence[network_components.Edge]] = None,
+      ) -> network_components.Node:
     """Contract all of the edges between the two given nodes.
 
     Args:
@@ -676,6 +677,10 @@ class TensorNetwork:
       allow_outer_product: Optional boolean. If two nodes do not share any edges
         and `allow_outer_product` is set to `True`, then we return the outer
         product of the two nodes. Else, we raise a `ValueError`.
+      output_edge_order: Optional sequence of Edges. When not `None`, must 
+        contain all edges belonging to, but not shared by `node1` and `node2`.
+        The axes of the new node will be permuted (if necessary) to match this
+        ordering of Edges.
 
     Returns:
       new_node: The new node created.
@@ -701,8 +706,7 @@ class TensorNetwork:
 
     # Collect the axis of each node corresponding to each edge, in order. 
     # This specifies the contraction for tensordot.
-    # NOTE: node1 is always the left argument to tensordot. The ordering of
-    #       node references in each contraction edge is ignored.
+    # NOTE: The ordering of node references in each contraction edge is ignored.
     axes1 = []
     axes2 = []
     for edge in shared_edges:
@@ -713,6 +717,30 @@ class TensorNetwork:
         axes1.append(edge.axis2)
         axes2.append(edge.axis1)
 
+    if output_edge_order:
+      # Determine heuristically if output transposition can be minimized by 
+      # flipping the arguments to tensordot.
+      node1_output_axes = []
+      node2_output_axes = []
+      for (i, edge) in enumerate(output_edge_order):
+        if edge in shared_edges:
+          raise ValueError(
+            "Edge '{}' in output_edge_order is shared by the nodes to be "
+            "contracted: '{}' and '{}'.".format(edge, node1, node2)
+          )
+        edge_nodes = set(edge.get_nodes())
+        if node1 in edge_nodes:
+          node1_output_axes.append(i)
+        elif node2 in edge_nodes:
+          node2_output_axes.append(i)
+        else:
+          raise ValueError(
+            "Edge '{}' in output_edge_order is not connected to node '{}' or "
+            "node '{}'".format(edge, node1, node2))
+      if np.mean(node1_output_axes) > np.mean(node2_output_axes):
+        node1, node2 = node2, node1
+        axes1, axes2 = axes2, axes1
+
     new_tensor = self.backend.tensordot(
                     node1.tensor, node2.tensor, [axes1, axes2])
     new_node = self.add_node(new_tensor, name)
@@ -720,6 +748,9 @@ class TensorNetwork:
     # axes of new_node. We provide this ordering to _remove_edges() via the
     # node1 and node2 arguments.
     self._remove_edges(shared_edges, node1, node2, new_node)
+
+    if output_edge_order:
+      new_node = new_node.reorder_edges(list(output_edge_order))
     return new_node
 
   def contract_parallel(

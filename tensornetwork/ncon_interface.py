@@ -82,7 +82,15 @@ def ncon(tensors: Sequence[Tensor],
         raise ValueError("Edge '{}' is not adjacent to other edges connecting "
                          "'{}' and '{}' in the contraction order.".format(
                              e, nodes[0], nodes[1]))
-      tn.contract_between(*nodes, name="con({},{})".format(*nodes))
+      if not con_edges and len(tn.nodes_set) == 2:
+        # If this already produces the final output, order the edges 
+        # here to avoid transposes in some cases.
+        tn.contract_between(
+            *nodes,
+            name="con({},{})".format(*nodes),
+            output_edge_order=out_edges)
+      else:
+        tn.contract_between(*nodes, name="con({},{})".format(*nodes))
       prev_nodes = nodes
 
   # TODO: More efficient ordering of products based on out_edges
