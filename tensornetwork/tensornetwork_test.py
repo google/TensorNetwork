@@ -504,8 +504,8 @@ def test_flatten_trace_edges(backend):
 
 def test_flatten_consistent_result(backend):
   net_noflat = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(3, 5, 5, 6))
-  b_val = np.random.normal(size=(5, 6, 4, 5))
+  a_val = np.ones((3, 5, 5, 6))
+  b_val = np.ones((5, 6, 4, 5))
   # Create non flattened example to compare against.
   a_noflat = net_noflat.add_node(a_val)
   b_noflat = net_noflat.add_node(b_val)
@@ -536,8 +536,8 @@ def test_flatten_consistent_result(backend):
 
 def test_flatten_consistent_tensor(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(2, 3, 4, 5))
-  b_val = np.random.normal(size=(3, 5, 4, 2))
+  a_val = np.ones((2, 3, 4, 5))
+  b_val = np.ones((3, 5, 4, 2))
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   e1 = net.connect(a[0], b[3])
@@ -554,7 +554,7 @@ def test_flatten_consistent_tensor(backend):
 
 def test_flatten_trace_consistent_result(backend):
   net_noflat = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(5, 6, 6, 7, 5, 7))
+  a_val = np.ones((5, 6, 6, 7, 5, 7))
   a_noflat = net_noflat.add_node(a_val)
   e1 = net_noflat.connect(a_noflat[0], a_noflat[4])
   e2 = net_noflat.connect(a_noflat[1], a_noflat[2])
@@ -574,7 +574,7 @@ def test_flatten_trace_consistent_result(backend):
 
 def test_flatten_trace_consistent_tensor(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(5, 3, 4, 4, 5))
+  a_val = np.ones((5, 3, 4, 4, 5))
   a = net.add_node(a_val)
   e1 = net.connect(a[0], a[4])
   e2 = net.connect(a[3], a[2])
@@ -660,8 +660,8 @@ def test_flatten_all_edges(backend):
 
 def test_contract_between(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(2, 3, 4, 5))
-  b_val = np.random.normal(size=(3, 5, 4, 2))
+  a_val = np.ones((2, 3, 4, 5))
+  b_val = np.ones((3, 5, 4, 2))
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   net.connect(a[0], b[3])
@@ -681,8 +681,8 @@ def test_contract_between(backend):
 
 def test_contract_between_outer_product(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(2, 3, 4))
-  b_val = np.random.normal(size=(5, 6, 7))
+  a_val = np.ones((2, 3, 4))
+  b_val = np.ones((5, 6, 7))
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   c = net.contract_between(a, b, allow_outer_product=True)
@@ -690,8 +690,8 @@ def test_contract_between_outer_product(backend):
 
 def test_contract_between_no_outer_product(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(2, 3, 4))
-  b_val = np.random.normal(size=(5, 6, 7))
+  a_val = np.ones((2, 3, 4))
+  b_val = np.ones((5, 6, 7))
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   with pytest.raises(ValueError):
@@ -699,7 +699,7 @@ def test_contract_between_no_outer_product(backend):
 
 def test_contract_between_trace_edges(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.random.normal(size=(3, 3))
+  a_val = np.ones((3, 3))
   final_val = np.trace(a_val)
   a = net.add_node(a_val)
   net.connect(a[0], a[1])
