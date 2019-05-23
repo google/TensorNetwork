@@ -31,7 +31,7 @@ requirements = [
 ]
 
 setup(
-    name='TensorNetwork',
+    name='tensornetwork',
     version=__version__,
     url='http://github.com/google/TensorNetwork',
     author='The TensorNetwork Developers',
