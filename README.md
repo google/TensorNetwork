@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
 
-A tensor network wrapper for TensorFlow.
+A tensor network wrapper for TensorFlow, JAX, and Numpy.
 
 For an overview of tensor networks please see the following: 
 
@@ -44,18 +44,19 @@ docker run -it google/tensornetwork-dev
 
 If you want to contribute changes to TensorNetwork, you will instead want to fork the repository and submit pull requests from your fork.
 
-Note: The following examples assume a TensorFlow v2 interface 
-(in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
-importing TensorFlow) but should also work with eager mode 
-(`tf.enable_eager_execution()`). The actual library does work 
-under graph mode, but documentation is limited.
-
 ## Documentation
+
 Currently, the best documentation we have is our publication.
 
 [TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
 
 We plan on getting proper documentation very soon once the API has settled.
+
+Note: The following examples assume a TensorFlow v2 interface 
+(in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
+importing TensorFlow) but should also work with eager mode 
+(`tf.enable_eager_execution()`). The actual library does work 
+under graph mode, but documentation is limited.
 
 ## Basic Example
 Here, we build a simple 2 node contraction.
@@ -170,6 +171,17 @@ n.reorder_edges(e_out) # Permute final tensor as necessary
 print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
 
+## Different backend support.
+Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends. 
+
+To change the default global backend, you can do:
+```python
+tensornetwork.set_default_backend("jax") # numpy, tensorflow
+```
+Or, if you only want to change the backend for a single `TensorNetwork`, you can do:
+```python
+tensornetwork.TensorNetwork(backend="jax")
+```
 ## Advanced examples
 Some more sophisticated examples can be found under `examples/`.
 ### Trotter evolution of a wavefunction
