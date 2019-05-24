@@ -171,8 +171,6 @@ n.reorder_edges(e_out) # Permute final tensor as necessary
 print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
 
-<<<<<<< HEAD
-=======
 ## Different backend support.
 Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends. 
 
@@ -184,7 +182,6 @@ Or, if you only want to change the backend for a single `TensorNetwork`, you can
 ```python
 tensornetwork.TensorNetwork(backend="jax")
 ```
->>>>>>> master
 ## Advanced examples
 Some more sophisticated examples can be found under `examples/`.
 ### Trotter evolution of a wavefunction
