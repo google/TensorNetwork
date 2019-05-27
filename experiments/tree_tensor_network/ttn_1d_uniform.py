@@ -105,12 +105,12 @@ def ascend_op_1site_to_1site(op_1site, iso_012, iso_021):
 
 
 def ascend_op_1site_to_1site_separate(op_1site, iso_012, iso_021):
-    iso_op_1site_R_012, iso_op_1site_L_021 = _ascend_op_1site_to_1site_partial(
-        op_1site, iso_012, iso_021)
+  iso_op_1site_R_012, iso_op_1site_L_021 = _ascend_op_1site_to_1site_partial(
+    op_1site, iso_012, iso_021)
 
-    resL = _complete_partial_ascend(iso_op_1site_L_021, iso_021)
-    resR = _complete_partial_ascend(iso_op_1site_R_012, iso_012)
-    return resL, resR
+  resL = _complete_partial_ascend(iso_op_1site_L_021, iso_021)
+  resR = _complete_partial_ascend(iso_op_1site_R_012, iso_012)
+  return resL, resR
 
 
 def ascend_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
@@ -124,9 +124,9 @@ def ascend_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
 
 
 def ascend_op_2site_to_1site(mpo_2site, iso_012, iso_021):
-    iso_op_2site_012 = _ascend_op_2site_to_1site_partial(
-        mpo_2site, iso_012, iso_021)
-    return _complete_partial_ascend(iso_op_2site_012, iso_012)
+  iso_op_2site_012 = _ascend_op_2site_to_1site_partial(
+    mpo_2site, iso_012, iso_021)
+  return _complete_partial_ascend(iso_op_2site_012, iso_012)
 
 
 def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
@@ -218,45 +218,49 @@ def descend_state_1site(state_1site, iso_012, iso_021):  #χ^4
   return 0.5 * (state_1L + state_1R)
 
 
-def correlation_func_1s_translation_averaged(isos_012, op):
-    if len(op.shape) != 2:
-        raise ValueError("Operator must be a matrix.")
-    states = all_states_1site_graph(isos_012)
-    expval_sq = tf.trace(states[0] @ op)**2
-    twopoints = {}
-    asc_ops = {0: op}
-    for l in range(len(isos_012)):
-        iso_012 = isos_012[l]
-        iso_021 = tf.transpose(iso_021, (0,2,1))
-        # Compute all two-point functions available at this level
-        for (site1, asc_op1) in asc_ops:
-            for (site2, asc_op2) in asc_ops:
-                asc_op12 = ascend_op_2site_to_1site(
-                    ([asc_op1], [asc_op2]),
-                    iso_012,
-                    iso_021)
-                site2 += 2**l
-                twopoints[(site1, site2)] = (
-                    tf.trace(asc_op12 @ states[l+1]) - expval_sq)
-        if l < len(isos_012) - 1:
-            for (site, asc_op) in asc_ops:
-                asc_opL, asc_opR = ascend_op_1site_to_1site_separate(
-                    asc_op, iso_012, iso_021)
-                asc_ops[site] = asc_opL
-                asc_ops[site + 2**l] = asc_opR
-    corr_func = {}
-    for ((site1, site2), val) in twopoints:
-        dist = abs(site1 - site2)
-        try:
-            corr_func[dist].append(val)
-        except KeyError:
-            corr_func[dist] = [val]
-    # Final translation averaging
-    for (dist, vals) in corr_func:
-        corr_func[dist] = sum(vals) / len(vals)
-    dists = sorted(corr_func.keys())
-    print(dists)
-    return corr_func
+def correlations_2pt_1s(isos_012, op):
+  if len(op.shape) != 2:
+    raise ValueError("Operator must be a matrix.")
+  nsites = 2**len(isos_012)
+  states = all_states_1site_graph(isos_012)
+  expval_sq = tf.trace(states[0] @ op)**2
+  twopoints = {}
+  asc_ops = {0: op}
+  for l in range(len(isos_012)):
+    iso_012 = isos_012[l]
+    iso_021 = tf.transpose(iso_012, (0,2,1))
+    # Compute all two-point functions available at this level
+    for (site1, asc_op1) in asc_ops.items():
+      for (site2, asc_op2) in asc_ops.items():
+        asc_op12 = ascend_op_2site_to_1site(
+          ([asc_op1], [asc_op2]),
+          iso_012,
+          iso_021)
+        site2 += 2**l
+        twopoints[(site1, site2)] = (
+          tf.trace(asc_op12 @ states[l+1]) - expval_sq)
+    if l < len(isos_012) - 1:
+      asc_ops_new = {}
+      for (site, asc_op) in asc_ops.items():
+        asc_opL, asc_opR = ascend_op_1site_to_1site_separate(
+          asc_op, iso_012, iso_021)
+        asc_ops_new[site] = asc_opL
+        asc_ops_new[site + 2**l] = asc_opR
+      asc_ops = asc_ops_new
+  corr_func = {}
+  for ((site1, site2), val) in twopoints.items():
+    dist = abs(site1 - site2)
+    try:
+      corr_func[dist].append(val)
+    except KeyError:
+      corr_func[dist] = [val]
+  # Final translation averaging
+  for (dist, vals) in corr_func.items():
+    corr_func[dist] = sum(vals) / len(vals)
+  dists = sorted(corr_func.keys())
+  cf_transl_avg = tf.convert_to_tensor([corr_func[d] for d in dists])
+  cf_1 = tf.convert_to_tensor([twopoints[(0,i)] for i in range(1,nsites)])
+  return cf_transl_avg, cf_1
 
 
 def _descend_energy_env_L(env, iso_021):
