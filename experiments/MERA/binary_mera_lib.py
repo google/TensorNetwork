@@ -1598,7 +1598,6 @@ def optimize_binary_mera(ham_0,
     ham[0] = ham_0
 
     chi1 = ham[0].shape[0]
-
     bias = tf.math.reduce_max(
         tf.linalg.eigvalsh(
             tf.reshape(ham[0], (chi1 * chi1 * chi1, chi1 * chi1 * chi1)))) / 2
