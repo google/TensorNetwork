@@ -21,6 +21,7 @@ import tensorflow as tf
 import numpy as np
 import tensornetwork as tn
 
+
 @tf.contrib.eager.defun
 def trace(rho):
     """
@@ -30,7 +31,7 @@ def trace(rho):
     net = tn.TensorNetwork()
     r = net.add_node(rho)
 
-    edges = [net.connect(r[n], r[n+dim])    for n in range(dim)]
+    edges = [net.connect(r[n], r[n + dim]) for n in range(dim)]
     out = net.contract_parallel(edges[0])
     return out.get_tensor()
 
@@ -65,8 +66,9 @@ def scalar_product(bottom, top):
     b = net.add_node(tf.conj(bottom))
     t = net.add_node(top)
     edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
-    out = net.contract_between(b,t)
+    out = net.contract_between(b, t)
     return out.get_tensor()
+
 
 def pad_tensor(tensor, new_shape):
     """
@@ -85,6 +87,7 @@ def all_same_chi(*tensors):
     chis = [t.shape[n] for t in tensors for n in range(len(t.shape))]
     return np.all([c == chis[0] for c in chis])
 
+
 def u_update_svd(wIn):
     """
     obtain the update to the disentangler using tf.svd
@@ -94,6 +97,7 @@ def u_update_svd(wIn):
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
     return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
+
 
 def u_update_svd_numpy(wIn):
     """
@@ -105,6 +109,7 @@ def u_update_svd_numpy(wIn):
         full_matrices=False)
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
+
 def w_update_svd(wIn):
     """
     obtain the update to the isometry using tf.tensor
@@ -113,6 +118,7 @@ def w_update_svd(wIn):
     st, ut, vt = tf.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
     return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
+
 
 def w_update_svd_numpy(wIn):
     """
