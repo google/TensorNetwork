@@ -86,7 +86,7 @@ def optimize_binary_mera(chis,
             verbose=1,
             nsteps_steady_state=nsteps_ss,
             numpy_update=True,
-            opt_u_after=10,
+            opt_u_after=30,
             noises=noises,
             opt_all_layers=opt_all_layers,
             filename=None)
@@ -189,13 +189,13 @@ def get_scaling_dims(loadname, savename, use_gpu=False, k=11):
 
 
 if __name__ == "__main__":
-    chis = [4]
-    numiters = [1000]
+    chis = [4, 5, 6]
+    numiters = [1000, 1000, 400]
     noises = [1E-6, 1E-6, 1E-6]
     opt_all_layers = [True, True, True]
     embeddings = ['a', 'a', 'a']
     dtype = tf.float64
-    nsteps_ss = 12
+    nsteps_ss = 10
     num_scaling_dims = 11
     wC, uC = optimize_binary_mera(
         chis=chis,
