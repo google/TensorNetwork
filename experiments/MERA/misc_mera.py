@@ -21,18 +21,21 @@ import tensorflow as tf
 import numpy as np
 import tensornetwork as tn
 
-#@tf.contrib.eager.defun
+@tf.contrib.eager.defun
 def trace(rho):
     """
     compute the trace of `rho`
     """
     dim = len(rho.shape) // 2
-    inds = [n + 1 for n in range(dim)]
-    inds = list(range(dim))
-    return tn.ncon([rho], [inds + inds])
+    net = tn.TensorNetwork()
+    r = net.add_node(rho)
+
+    edges = [net.connect(r[n], r[n + dim]) for n in range(dim)]
+    out = net.contract_parallel(edges[0])
+    return out.get_tensor()
 
 
-#@tf.contrib.eager.defun
+@tf.contrib.eager.defun
 def symmetrize(rho):
     """
     impose reflection symmetry on `rho`
@@ -48,7 +51,8 @@ def symmetrize(rho):
     return 1 / 2 * (rho + tf.conj(tf.transpose(rho, indices)))
 
 
-#@tf.contrib.eager.defun
+
+@tf.contrib.eager.defun
 def scalar_product(bottom, top):
     """
     calculate the Hilbert-schmidt inner product between `bottom` and `top'
@@ -58,9 +62,13 @@ def scalar_product(bottom, top):
     Returns:
         tf.Tensor:  the inner product
     """
-    inds = list(range(len(top.shape)))
-    return tn.ncon([tf.conj(bottom), top], [inds, inds])
 
+    net = tn.TensorNetwork()
+    b = net.add_node(tf.conj(bottom))
+    t = net.add_node(top)
+    edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
+    out = net.contract_between(b, t)
+    return out.get_tensor()
 
 def pad_tensor(tensor, new_shape):
     """
@@ -80,7 +88,6 @@ def all_same_chi(*tensors):
     return np.all([c == chis[0] for c in chis])
 
 
-#@tf.contrib.eager.defun
 def u_update_svd(wIn):
     """
     obtain the update to the disentangler using tf.svd
@@ -103,7 +110,6 @@ def u_update_svd_numpy(wIn):
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
 
-#@tf.contrib.eager.defun
 def w_update_svd(wIn):
     """
     obtain the update to the isometry using tf.tensor

@@ -313,7 +313,7 @@ def optimize_mod_binary_mera(hamAB_0,
     -------------------------------
     (wC, vC, uC, rhoAB, rhoBA, run_times, Energies)
     wC, vC, uC:             list of tf.Tensor 
-                            obtimized MERA tensors
+                            optimized MERA tensors
     rhoAB, rhoBA:           tf.Tensor 
                             steady state density matrices at the top layer 
     run_times:              list 
