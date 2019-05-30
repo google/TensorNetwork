@@ -28,7 +28,7 @@ from scipy.sparse.linalg import eigs, LinearOperator
 
 def right_matvec(isometry, unitary, density):
     """
-    This function computes the sum of the left 
+    computes the sum of the left 
     and right descending super-operators. Needed
     for calculating scaling dimensions for the binary mera.
 
@@ -81,17 +81,6 @@ def get_scaling_dimensions(isometry, unitary, k=4):
         return np.reshape(
             np.array(1/2*(o1 + o2)).astype(dtype.as_numpy_dtype), chi**6)
         
-        # dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
-        # out = ascending_super_operator(dens, isometry, unitary)
-        # return np.reshape(np.array(out).astype(dtype.as_numpy_dtype), chi**6)
-
-    # def rmv(vec):#actually not neccessary for eigs
-    #     dens = np.reshape(vec, [chi] * 6).astype(dtype.as_numpy_dtype)
-    #     o1 = left_descending_super_operator(dens, isometry, unitary)
-    #     o2 = right_descending_super_operator(dens, isometry, unitary)
-    #     return np.reshape(
-    #         np.array(o1 + o2).astype(dtype.as_numpy_dtype), chi**6)
-
     A = LinearOperator(shape=(chi**6, chi**6), matvec=lmv)
     eta, U = sp.sparse.linalg.eigs(A, k=k, which='LM')
     scdims = -np.log2(np.abs(eta))
@@ -183,7 +172,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
 #@tf.contrib.eager.defun
 def ascending_super_operator(ham, isometry, unitary):
     """
-    binary mera ascending super opertor
+    binary mera ascending super operator
     Args:
         ham (tf.Tensor): hamiltonian
         isometry (tf.Tensor): isometry of the binary mera 
@@ -197,6 +186,16 @@ def ascending_super_operator(ham, isometry, unitary):
 
 @tf.contrib.eager.defun
 def two_site_ascending_super_operator(operator, isometry, unitary):
+    """
+    binary mera two-site ascending super operator
+    Args:
+        operator (tf.Tensor): hamiltonian
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+
     net = tn.TensorNetwork()
     
     iso_l = net.add_node(isometry)
@@ -233,6 +232,16 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
 
 @tf.contrib.eager.defun
 def two_site_descending_super_operator(rho, isometry, unitary):
+    """
+    binary mera two-site descending super operator
+    Args:
+        rho (tf.Tensor):      hamiltonian
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     net = tn.TensorNetwork()
 
     iso_l = net.add_node(isometry)
@@ -269,6 +278,16 @@ def two_site_descending_super_operator(rho, isometry, unitary):
 
 @tf.contrib.eager.defun
 def left_ascending_super_operator(hamiltonian, isometry, unitary):
+    """
+    binary mera left ascending super operator
+    Args:
+        hamiltonian (tf.Tensor): hamiltonian
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     net = tn.TensorNetwork()
     
     iso_l = net.add_node(isometry)
@@ -334,6 +353,15 @@ def left_ascending_super_operator(hamiltonian, isometry, unitary):
 
 @tf.contrib.eager.defun
 def right_ascending_super_operator(hamiltonian, isometry, unitary):
+    """
+    binary mera right ascending super operator
+    Args:
+        hamiltonian (tf.Tensor): hamiltonian
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
     
     net = tn.TensorNetwork()
     
@@ -402,6 +430,16 @@ def right_ascending_super_operator(hamiltonian, isometry, unitary):
 
 @tf.contrib.eager.defun
 def left_descending_super_operator(reduced_density, isometry, unitary):
+    """
+    binary mera left descending super operator
+    Args:
+        reduced_density (tf.Tensor): reduced density matrix
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     net = tn.TensorNetwork()
     
     iso_l = net.add_node(isometry)
@@ -469,6 +507,16 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
 
 @tf.contrib.eager.defun
 def right_descending_super_operator(reduced_density, isometry, unitary):
+    """
+    binary mera right descending super operator
+    Args:
+        reduced_density (tf.Tensor): reduced density matrix
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     net = tn.TensorNetwork()
     
     iso_l = net.add_node(isometry)
@@ -535,6 +583,16 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
 
 #@tf.contrib.eager.defun
 def descending_super_operator(rho, isometry, unitary):
+    """
+    binary mera descending super operator
+    Args:
+        rho (tf.Tensor): reduced density matrix
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     rho_1 = right_descending_super_operator(rho, isometry, unitary)
     rho_2 = left_descending_super_operator(rho, isometry, unitary)
     rho = 0.5 * (rho_1 + rho_2)
@@ -830,6 +888,18 @@ def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
 
 
 def get_env_disentangler(ham, rho, isometry, unitary):
+    """
+    compute the disentangler environment
+    Args:
+        ham (tf.Tensor): hamiltonian
+        rho (tf.Tensor): reduced density matrix
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
+    
     env_1 = get_env_disentangler_1(ham, rho, isometry, unitary)
     env_2 = get_env_disentangler_2(ham, rho, isometry, unitary)
     env_3 = get_env_disentangler_3(ham, rho, isometry, unitary)
@@ -1295,6 +1365,17 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
 
 
 def get_env_isometry(ham, rho, isometry, unitary):
+    """
+    compute the isometry environment
+    Args:
+        ham (tf.Tensor): hamiltonian
+        rho (tf.Tensor): reduced density matrix
+        isometry (tf.Tensor): isometry of the binary mera 
+        unitary  (tf.Tensor): disentanlger of the mera
+    Returns:
+        tf.Tensor
+    """
+    
     env_1 = get_env_isometry_1(ham, rho, isometry, unitary)
     env_2 = get_env_isometry_2(ham, rho, isometry, unitary)
     env_3 = get_env_isometry_3(ham, rho, isometry, unitary)
@@ -1307,20 +1388,15 @@ def get_env_isometry(ham, rho, isometry, unitary):
 def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
     """
     obtain steady state density matrix of the scale invariant binary MERA
-    Parameters:
-    ------------------------
-    nsteps:     int 
-    rho:        tf.Tensor 
-                reduced density matrix
-    isometry:   tf.Tensor 
-                isometry of the mera
-    unitary:    tf.Tensor 
-                disentangler of the mera
-    verbose:    int 
-                verbosity flag
+    Args:
+        nsteps (int):     number of iteration steps
+        rho (tf.Tensor ): reduced density matrix
+        isometry (tf.Tensor): isometry of the mera
+        unitary (tf.Tensor):  disentangler of the mera
+        verbose (int):        verbosity flag
+
     Returns: 
-    ------------------------
-    tf.Tensor
+        tf.Tensor: steady state of the descending super-operator
     """
     for n in range(nsteps):
         if verbose > 0:
@@ -1359,16 +1435,15 @@ def increase_bond_dimension_by_adding_layers(chi_new, wC, uC, noise=0.0):
     by padding tensors in the last layer with zeros. If the desired `chi_new` cannot
     be obtained from padding, adds layers of Tensors
     the last layer is guaranteed to have uniform bond dimension
-    Parameters:
-    --------------------------------
-    chi_new:         int 
-                     new bond dimenion
-    wC, uC:         list of tf.Tensor 
-                     MERA isometries and disentanglers
+    Args:
+         chi_new (int):  new bond dimenion
+         wC (list):  list of tf.Tensor: MERA isometries
+         uC (list):  list of tf.Tensor: MERA disentanglers
     Returns: 
-    --------------------------------
-    (wC, uC):       list of tf.Tensors
+         wC (list):   list of tf.Tensors of isometries
+         uC (list):   list of tf.Tensors of disentangler
     """
+    
     if misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].shape[2] >= chi_new):
         #nothing to do here
         return wC, uC
@@ -1400,12 +1475,13 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
     the last layer is guaranteed to have uniform bond dimension
     Args:
         chi_new (int):                 new bond dimenion
-        wC, uC ( list of tf.Tensor):   MERA isometries and disentanglers
-
+        wC (list of tf.Tensor):   MERA isometries and disentanglers
+        uC (list of tf.Tensor):   MERA isometries and disentanglers
+        noise (float):            amplitude of uniform noise added to the padded tensors
     Returns: 
-        wC, uC (list of tf.Tensors):   the new MERA tensors
+        wC (list of tf.Tensor):   padded MERA isometries and disentanglers
+        uC (list of tf.Tensor):   padded MERA isometries and disentanglers
     """
-
     all_chis = [t.shape[n] for t in wC for n in range(len(t.shape))]
     if not np.all([c <= chi_new for c in all_chis]):
         #nothing to increase
@@ -1469,8 +1545,9 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
         dtype (tf.dtype): dtype of the MERA tensors
 
     Returns:
-        wC, uC (list of tf.Tensor):  the MERA tensors
-        rho (tf.Tensor):             initial reduced density matrix
+        wC (list of tf.Tensor):  the MERA isometries
+        uC (list of tf.Tensor):  the MERA disentanglers
+        rho (tf.Tensor):         initial reduced density matrix
     """
     wC = []
     uC = []
@@ -1571,25 +1648,26 @@ def optimize_binary_mera(ham_0,
 
     Args:
         ham_0 (tf.Tensor)           bottom-layer Hamiltonian
-        wC, uC (list of tf.Tensor): isometries (wC) and disentanglers (uC) of the MERA, with 
-                                    bottom layers first 
+        wC (list of tf.Tensor):     isometries of the MERA, with bottom layers first 
+        uC (list of tf.Tensor):     disentanglers of the MERA, with bottom layers first 
         rho_0 (tf.Tensor):          initial value for steady-state density matrix
         numiter (int):              number of iteration steps 
-        nsteps_steady_state (int):  number of power-methodf iteration steps for calculating the 
+        nsteps_steady_state (int):  number of power-method iteration steps for calculating the 
                                     steady state density matrices 
-        verbose (int):              verbosity flag 
+        verbose (int):              verbosity flag, if `verbose>0`, print out info  during optimization
         opt_u, opt_uv (bool):       if False, skip unitary or isometry optimization 
         numpy_update (bool):        if True, use numpy svd to calculate update of disentanglers and isometries
         opt_all_layers (bool):      if True, optimize all layers
                                     if False, optimize only truncating layers
         opt_u_after (int):          start optimizing disentangler only after `opt_u_after` initial optimization steps
-        
+        E_exact (float):            the exact ground-state energy (if known); default is the ground-state energy  of teh  
+                                    infinite transverse field Ising model
     Returns: 
-        wC, uC, rho, run_times, Energies
-        wC, uC (list of tf.Tensor):  obtimized MERA tensors
-        rho (tf.Tensor):             steady state density matrices at the top layer 
-        run_times (list of float):   run times per iteration step 
-        Energies (list of float):    energies at each iteration step
+        wC (list of tf.Tensor):     obtimized MERA isometries
+        uC (list of tf.Tensor):     obtimized MERA disentanglers
+        rho (tf.Tensor):            steady state density matrices at the top layer 
+        run_times (list of float):  run times per iteration step 
+        Energies (list of float):   energies at each iteration step
     """
     dtype = ham_0.dtype
 
