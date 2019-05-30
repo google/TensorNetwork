@@ -1153,6 +1153,6 @@ def compile_decomps(on=True):
 
 
 # Default to uncompiled
-compile_ncon(False)
-compile_contractions(False)
-compile_decomps(False)
+compile_ncon(True)
+compile_contractions(True)
+compile_decomps(True)
