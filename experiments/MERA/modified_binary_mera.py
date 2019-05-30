@@ -214,7 +214,7 @@ def run_descending_operator_benchmark(filename,
               key 'warmup' contains warmup (i.e. first run) runtimes
               key 'profile' contains subsequent runtimes
     """
-    
+
     walltimes = {'warmup': {}, 'profile': {}}
     for chi in chis:
         print('running descending-operator benchmark for chi = {0} benchmark'.
@@ -334,7 +334,7 @@ def run_optimization_benchmark(filename,
               key 'energies' list of energies per iteration step
 
     """
-    
+
     walltimes = {}
     with tf.device(device):
         print('running optimization benchmark')
