@@ -37,16 +37,16 @@ class NconTest(tf.test.TestCase):
     result = ncon_interface.ncon([a, a], [(-1, 0), (0, -2)], con_order=[0])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
-    result = ncon_interface.ncon([a, a], [(-1, 0), (0, -2)],
-                                 con_order=[0],
-                                 out_order=[-1, -2])
+    result = ncon_interface.ncon(
+        [a, a], [(-1, 0), (0, -2)], con_order=[0], out_order=[-1, -2])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
   def test_order_spec_noninteger(self):
     a = tf.ones((2, 2))
-    result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
-                                 con_order=['i'],
-                                 out_order=['o1', 'o2'])
+    result = ncon_interface.ncon(
+        [a, a], [('o1', 'i'), ('i', 'o2')],
+        con_order=['i'],
+        out_order=['o1', 'o2'])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
   def test_invalid_network(self):
@@ -71,17 +71,18 @@ class NconTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       ncon_interface.ncon([a, a], [(0, 1), (1, 0)], out_order=[-1])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                          con_order=['i1'],
-                          out_order=[])
+      ncon_interface.ncon(
+          [a, a], [('i1', 'i2'), ('i1', 'i2')], con_order=['i1'], out_order=[])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                          con_order=['i1', 'i2'],
-                          out_order=['i1'])
+      ncon_interface.ncon(
+          [a, a], [('i1', 'i2'), ('i1', 'i2')],
+          con_order=['i1', 'i2'],
+          out_order=['i1'])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                          con_order=['i1', 'i1', 'i2'],
-                          out_order=[])
+      ncon_interface.ncon(
+          [a, a], [('i1', 'i2'), ('i1', 'i2')],
+          con_order=['i1', 'i1', 'i2'],
+          out_order=[])
 
   def test_out_of_order_contraction(self):
     a = tf.ones((2, 2, 2))

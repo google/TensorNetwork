@@ -18,7 +18,7 @@ from __future__ import print_function
 import math
 import numpy as np
 import tensorflow as tf
-from tensornetwork import decompositions
+from tensornetwork.backends.tensorflow import decompositions
 
 
 class DecompositionsTest(tf.test.TestCase):
@@ -57,6 +57,6 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(vh.shape, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
+
 if __name__ == '__main__':
   tf.test.main()
-

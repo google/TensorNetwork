@@ -7,8 +7,11 @@ python:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
+  - pip install -r requirements_backends.txt
+  - pip install pylint
 # command to run tests
 script:
+  - pylint ./tensornetwork/
   - pytype ./tensornetwork/
   - pytest
   - python3 setup.py build
