@@ -88,14 +88,14 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
         noises = [0.0] * len(chis)
     if not opt_all_layers:
         opt_all_layers = [True] * len(chis)
-        
+
     init = False
     if wC == 0:
         init = True
         wC, _, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
-        init = True        
+        init = True
         _, uC, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
@@ -103,9 +103,9 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-    
-    data ={'profile' : {}, 'energies' : {}}
-    
+
+    data = {'profile': {}, 'energies': {}}
+
     for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
                                                  noises, opt_all_layers):
         energies = []
@@ -142,7 +142,7 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
                 pickle.dump([wC, uC], f)
             with open('energies_walltimes_' + filename + '.pickle', 'wb') as f:
                 pickle.dump(data, f)
-                
+
     return wC, uC, walltimes, energies
 
 
@@ -178,7 +178,7 @@ def benchmark_descending_operator(rho, w, u, num_layers):
     Returns:
         runtime (float):  the runtime
     """
-    
+
     t1 = time.time()
     for p in range(num_layers):
         rho = bml.descending_super_operator(rho, w, u)
@@ -203,7 +203,7 @@ def run_ascending_operator_benchmark(filename,
               key 'warmup' contains warmup (i.e. first run) runtimes
               key 'profile' contains subsequent runtimes
     """
-    
+
     walltimes = {'warmup': {}, 'profile': {}}
     for chi in chis:
         print('running ascending-operator benchmark for chi = {0} benchmark'.
@@ -243,7 +243,7 @@ def run_descending_operator_benchmark(filename,
               key 'warmup' contains warmup (i.e. first run) runtimes
               key 'profile' contains subsequent runtimes
     """
-    
+
     walltimes = {'warmup': {}, 'profile': {}}
     for chi in chis:
         print('running descending-operator benchmark for chi = {0} benchmark'.
@@ -378,13 +378,13 @@ def run_optimization_benchmark(filename,
             opt_u_after=opt_u_after,
             filename=filename,
             numpy_update=True)
-        
+
         walltimes['profile'] = runtimes
         walltimes['energies'] = energies
         with open(filename + '.pickle', 'wb') as f:
             pickle.dump(walltimes, f)
         with open(filename + '_tensors.pickle', 'wb') as f:
-            print('saving to', filename)            
+            print('saving to', filename)
             pickle.dump([wC, uC], f)
 
     return walltimes
@@ -394,7 +394,8 @@ def test_ascending_descending(chi=4, dtype=tf.float64):
     """
     test if ascending and descending operations are doing the right thing
     """
-    wC, uC, rho_0 = bml.initialize_binary_MERA_identities(phys_dim=2, chi=4, dtype=dtype)
+    wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
+        phys_dim=2, chi=4, dtype=dtype)
     for n in range(5):
         wC.append(copy.copy(wC[-1]))
         uC.append(copy.copy(uC[-1]))
@@ -425,6 +426,7 @@ def test_ascending_descending(chi=4, dtype=tf.float64):
         np.array(
             [energies[p] / energies[p + 1] for p in range(len(energies) - 1)]))
 
+
 if __name__ == "__main__":
     """
     run benchmarks for a scale-invariant binary MERA optimization
@@ -441,26 +443,36 @@ if __name__ == "__main__":
 
         rootdir = os.getcwd()
         ######## comment out all benchmarks you don't want to run ########
-        benchmarks = {'ascend' : {'chis' :  [4, 6, 8],
-                                  'dtype' : tf.float64,
-                                  'num_layers' : 1},
-                      'descend' : {'chis' :  [4, 6, 8],
-                                   'dtype' : tf.float64,
-                                   'num_layers' : 1},
-                      'optimize_naive' : {'chis' :  [4, 6, 8],
-                                          'dtype' : tf.float64,
-                                          'opt_u' : True,
-                                          'opt_w' : True,
-                                          'numpy_update' : True,
-                                          'nsteps_steady_state' : 10,
-                                          'numiter' : 2},
-                      'optimize' : {'chis' :  [4, 6, 8],
-                                    'numiters' : [400, 400, 400],
-                                    'embeddings' : ['p', 'a', 'p'],
-                                    'nsteps_steady_state' : 10,
-                                    'opt_u_after' : 20,
-                                    'dtype' : tf.float64}}
-        
+        benchmarks = {
+            'ascend': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'num_layers': 1
+            },
+            'descend': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'num_layers': 1
+            },
+            'optimize_naive': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'opt_u': True,
+                'opt_w': True,
+                'numpy_update': True,
+                'nsteps_steady_state': 10,
+                'numiter': 2
+            },
+            'optimize': {
+                'chis': [4, 6, 8],
+                'numiters': [400, 400, 400],
+                'embeddings': ['p', 'a', 'p'],
+                'nsteps_steady_state': 10,
+                'opt_u_after': 20,
+                'dtype': tf.float64
+            }
+        }
+
         use_gpu = False  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
