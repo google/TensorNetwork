@@ -16,17 +16,17 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
-import numpy as np
-import tensorflow as tf
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Any
 from tensornetwork import network
 from tensornetwork import network_components
 
+Tensor = Any
 
-def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+
+def ncon(tensors: Sequence[Tensor],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
-         out_order: Optional[Sequence] = None) -> tf.Tensor:
+         out_order: Optional[Sequence] = None) -> Tensor:
   r"""Contracts a list of tensors according to a tensor network specification.
 
     The network is provided as a list of lists, one for each
@@ -42,15 +42,15 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
     For example, matrix multiplication:
 
     ```python
-    A = tf.constant([[1.0, 2.0], [3.0, 4.0]])
-    B = tf.constant([[1.0, 1.0], [0.0, 1.0]])
+    A = np.array([[1.0, 2.0], [3.0, 4.0]])
+    B = np.array([[1.0, 1.0], [0.0, 1.0]])
     ncon([A,B], [(-1, 0), (0, -2)])
     ```
 
     Matrix trace:
 
     ```python
-    A = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+    A = np.array([[1.0, 2.0], [3.0, 4.0]])
     ncon([A], [(0, 0)]) # 5.0
     ```
 
@@ -71,7 +71,7 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
   # in con_order. If this is not the case, the contraction is sub-optimal
   # so we throw an exception.
   prev_nodes = []
-  while len(con_edges) > 0:
+  while con_edges:
     e = con_edges.pop(0)  # pop so that older nodes can be deallocated
     nodes = e.get_nodes()
 
@@ -82,7 +82,15 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
         raise ValueError("Edge '{}' is not adjacent to other edges connecting "
                          "'{}' and '{}' in the contraction order.".format(
                              e, nodes[0], nodes[1]))
-      tn.contract_between(*nodes, name="con({},{})".format(*nodes))
+      if not con_edges and len(tn.nodes_set) == 2:
+        # If this already produces the final output, order the edges 
+        # here to avoid transposes in some cases.
+        tn.contract_between(
+            *nodes,
+            name="con({},{})".format(*nodes),
+            output_edge_order=out_edges)
+      else:
+        tn.contract_between(*nodes, name="con({},{})".format(*nodes))
       prev_nodes = nodes
 
   # TODO: More efficient ordering of products based on out_edges
@@ -92,14 +100,11 @@ def ncon(tensors: Sequence[Union[np.ndarray, tf.Tensor]],
 
 
 def ncon_network(
-    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
+    tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
-    out_order: Optional[Sequence] = None
-    ) -> Tuple[
-        network.TensorNetwork, 
-        List[network_components.Edge], 
-        List[network_components.Edge]]:
+    out_order: Optional[Sequence] = None) -> Tuple[network.TensorNetwork, List[
+        network_components.Edge], List[network_components.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
@@ -115,7 +120,7 @@ def ncon_network(
     This is used internally by `ncon()`.
 
     Args:
-      tensors: List of `tf.Tensor`s.
+      tensors: List of `Tensor`s.
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
@@ -132,7 +137,7 @@ def ncon_network(
 
   if con_order is None:
     try:
-      con_order = sorted((k for k in edges.keys() if k >= 0))
+      con_order = sorted((k for k in edges if k >= 0))
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
@@ -142,7 +147,7 @@ def ncon_network(
 
   if out_order is None:
     try:
-      out_order = sorted((k for k in edges.keys() if k < 0), reverse=True)
+      out_order = sorted((k for k in edges if k < 0), reverse=True)
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
@@ -179,9 +184,8 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Union[np.ndarray, tf.Tensor]],
-    network_structure: Sequence[Sequence]
-    ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
+    tensors: Sequence[Tensor], network_structure: Sequence[Sequence]
+) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
   tn = network.TensorNetwork()
   nodes = []
   edges = {}

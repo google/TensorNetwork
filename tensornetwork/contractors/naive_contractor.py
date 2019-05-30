@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Naive Network Contraction."""
 
 from __future__ import absolute_import
@@ -23,7 +22,7 @@ from tensornetwork import network
 from tensornetwork import network_components
 
 
-def naive(network: network.TensorNetwork,
+def naive(net: network.TensorNetwork,
           edge_order: Optional[Sequence[network_components.Edge]] = None
          ) -> network.TensorNetwork:
   """Contract a TensorNetwork in the order the edges were created.
@@ -32,9 +31,9 @@ def naive(network: network.TensorNetwork,
   created in a deliberate way.
 
   Args:
-    network: A TensorNetwork.
+    net: A TensorNetwork.
     edge_order: An optional list of edges. Must be equal to all non-dangling
-      edges in the network.
+      edges in the net.
   Returns:
     The given TensorNetwork with all non-dangling edges contracted.
   Raises:
@@ -42,17 +41,17 @@ def naive(network: network.TensorNetwork,
       contracted or flattened.
   """
   if edge_order is None:
-    edge_order = network.edge_order
-  if set(edge_order) != network.get_all_nondangling():
+    edge_order = net.edge_order
+  if set(edge_order) != net.get_all_nondangling():
     raise ValueError("Some non-dangling edges that were orginally created by "
                      "`connect` are no longer in the graph. Please do NOT use"
                      " any edge manipulation methods (contract, flatten, "
                      "split_node, etc) before using the naive contractor.\n"
                      "Original edges missing: {}.\n"
                      "New edges found: {}".format(
-                         set(edge_order) - network.get_all_nondangling(),
-                         network.get_all_nondangling() - set(edge_order)))
+                         set(edge_order) - net.get_all_nondangling(),
+                         net.get_all_nondangling() - set(edge_order)))
   for edge in edge_order:
-    if edge in network:
-      network.contract_parallel(edge)
-  return network
+    if edge in net:
+      net.contract_parallel(edge)
+  return net
