@@ -1716,12 +1716,11 @@ def optimize_binary_mera(ham_0,
                 stdout.write(
                     '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
                     % (int(k), int(numiter), float(Energies[-1]),
-                       float(Energies[-1] + E_exact), int(wC[-1].shape[2]),
+                       float(Energies[-1] - E_exact), int(wC[-1].shape[2]),
                        len(wC)))
                 stdout.flush()
 
         for p in range(len(wC)):
-
             if (not opt_all_layers) and skip_layer[p]:
                 continue
             if k >= opt_u_after:
