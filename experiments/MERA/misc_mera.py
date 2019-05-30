@@ -21,7 +21,6 @@ import tensorflow as tf
 import numpy as np
 import tensornetwork as tn
 
-
 @tf.contrib.eager.defun
 def trace(rho):
     """
@@ -52,6 +51,7 @@ def symmetrize(rho):
     return 1 / 2 * (rho + tf.conj(tf.transpose(rho, indices)))
 
 
+
 @tf.contrib.eager.defun
 def scalar_product(bottom, top):
     """
@@ -62,13 +62,13 @@ def scalar_product(bottom, top):
     Returns:
         tf.Tensor:  the inner product
     """
+
     net = tn.TensorNetwork()
     b = net.add_node(tf.conj(bottom))
     t = net.add_node(top)
     edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
     out = net.contract_between(b, t)
     return out.get_tensor()
-
 
 def pad_tensor(tensor, new_shape):
     """

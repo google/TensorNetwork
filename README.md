@@ -2,11 +2,13 @@
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
 
-A tensor network wrapper for TensorFlow.
+A tensor network wrapper for TensorFlow, JAX, and Numpy.
 
 For an overview of tensor networks please see the following: 
 
-- [Nice artile with pictures](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
+- [Matrices as Tensor Network Diagrams](https://www.math3ma.com/blog/matrices-as-tensor-network-diagrams)
+
+- [Hand-waving and interpretive dance: an introductory course on tensor networks](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
 
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
 
@@ -16,18 +18,45 @@ For an overview of tensor networks please see the following:
 pip3 install tensornetwork
 ```
 
-Note: The following examples assume a TensorFlow v2 interface 
-(in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
-importing tensorflow) but should also work with eager mode 
-(`tf.enable_eager_execution()`). The actual library does work 
-under graph mode, but documentation is limited.
+### To install on Docker
+
+This will create a Docker image containing TensorNetwork. It will isolate a TensorNetwork installation from the rest of the system.
+
+1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
+
+2. Build the docker image for your system:
+```bash
+git clone https://github.com/google/TensorNetwork
+cd TensorNetwork
+docker build -t google/tensornetwork . # This builds the actual image based on latest Ubuntu, and installs TensorNetwork with the needed dependencies.
+```
+
+### To install on Docker for TensorNetwork development
+
+To do your TensorNetwork development in a Docker virtual machine, you can use dev_tools/Dockerfile:
+
+```bash
+git clone https://github.com/google/TensorNetwork
+cd TensorNetwork/dev_tools
+docker build -t google/tensornetwork-dev . # This builds the actual image based on latest Ubuntu, cloning the TensorNetwork tree into it with the needed dependencies.
+docker run -it google/tensornetwork-dev
+```
+
+If you want to contribute changes to TensorNetwork, you will instead want to fork the repository and submit pull requests from your fork.
 
 ## Documentation
+
 Currently, the best documentation we have is our publication.
 
 [TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
 
 We plan on getting proper documentation very soon once the API has settled.
+
+Note: The following examples assume a TensorFlow v2 interface 
+(in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
+importing TensorFlow) but should also work with eager mode 
+(`tf.enable_eager_execution()`). The actual library does work 
+under graph mode, but documentation is limited.
 
 ## Basic Example
 Here, we build a simple 2 node contraction.
@@ -49,7 +78,7 @@ print(final_node.get_tensor().numpy()) # Should print 10.0
 ```
 
 ## Optimized Contractions.
-Usually, it is more computationally effective to flatten parallel edges before contracting them inorder to avoid trace edges.
+Usually, it is more computationally effective to flatten parallel edges before contracting them in order to avoid trace edges.
 ```python
 net = tensornetwork.TensorNetwork()
 a = net.add_node(tf.ones((2, 2, 2)))
@@ -62,7 +91,7 @@ e3 = net.connect(a[2], b[2])
 flattened_edge = net.flatten_edges([e1, e2, e3])
 print(net.contract(flattned_edge).get_tensor().numpy())
 ```
-We also have `contract_between` and `contract_parallel` for your convience. 
+We also have `contract_between` and `contract_parallel` for your convenience. 
 
 ```python
 # Contract all of the edges between a and b.
@@ -141,5 +170,29 @@ for e in e_con:
 n.reorder_edges(e_out) # Permute final tensor as necessary
 print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
 ```
+
+## Different backend support.
+Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends. 
+
+To change the default global backend, you can do:
+```python
+tensornetwork.set_default_backend("jax") # numpy, tensorflow
+```
+Or, if you only want to change the backend for a single `TensorNetwork`, you can do:
+```python
+tensornetwork.TensorNetwork(backend="jax")
+```
+## Advanced examples
+Some more sophisticated examples can be found under `examples/`.
+### Trotter evolution of a wavefunction
+Demonstrates time-evolution of a wavefunction, achieved by applying a quantum circuit
+derived from a Trotter decomposition of the propagator. To run from source, use
+```
+python -m examples.wavefunctions.evolution_example
+```
+from the root directory.
+
+## Disclaimer
+This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production environment yet.
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
