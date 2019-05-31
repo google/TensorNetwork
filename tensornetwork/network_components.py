@@ -118,11 +118,11 @@ class Node:
     self.tensor = tensor
 
   @property
-  def tensor(self):
+  def tensor(self) -> Tensor:
     return self._tensor
 
   @tensor.setter
-  def tensor(self, tensor):
+  def tensor(self, tensor: Tensor) -> Tensor:
     self._tensor = tensor
 
   def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
