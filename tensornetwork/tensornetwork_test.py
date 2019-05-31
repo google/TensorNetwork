@@ -64,7 +64,7 @@ def test_single_contract(backend):
   e = net.connect(a[0], b[0])
   c = net.contract(e)
   net.check_correct()
-  val = c.get_tensor()
+  val = c.tensor
   np.testing.assert_allclose(val, 5.0)
 
 def test_disconnect_edge(backend):
@@ -83,9 +83,9 @@ def test_disconnect_edge(backend):
 def test_set_tensor(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones(2))
-  np.testing.assert_allclose(a.get_tensor(), np.ones(2))
-  a.set_tensor(np.zeros(2))
-  np.testing.assert_allclose(a.get_tensor(), np.zeros(2))
+  np.testing.assert_allclose(a.tensor, np.ones(2))
+  a.tensor = np.zeros(2)
+  np.testing.assert_allclose(a.tensor, np.zeros(2))
 
 def test_has_nondangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -110,7 +110,7 @@ def test_small_matmul(backend):
   edge = net.connect(a[0], b[0], "edge")
   net.check_correct()
   c = net.contract(edge, name="a * b")
-  assertEqual(list(c.get_tensor().shape), [10, 10])
+  assertEqual(list(c.tensor.shape), [10, 10])
   net.check_correct()
 
 def test_direct_trace(backend):
@@ -120,7 +120,7 @@ def test_direct_trace(backend):
   net.check_correct()
   result = net._contract_trace(edge)
   net.check_correct()
-  np.testing.assert_allclose(result.get_tensor(), 10.0)
+  np.testing.assert_allclose(result.tensor, 10.0)
 
 def test_double_trace(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -132,7 +132,7 @@ def test_double_trace(backend):
   net.check_correct()
   val = net._contract_trace(edge2)
   net.check_correct()
-  np.testing.assert_allclose(val.get_tensor(), 100.0)
+  np.testing.assert_allclose(val.tensor, 100.0)
 
 def test_indirect_trace(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -141,7 +141,7 @@ def test_indirect_trace(backend):
   net.check_correct()
   val = net.contract(edge)
   net.check_correct()
-  np.testing.assert_allclose(val.get_tensor(), 10.0)
+  np.testing.assert_allclose(val.tensor, 10.0)
 
 def test_real_physics(backend):
   # Calcuate the expected value in numpy
@@ -161,14 +161,14 @@ def test_real_physics(backend):
   e3 = net.connect(b[1], c[1], "edge3")
   net.check_correct()
   node_result = net.contract(e1)
-  np.testing.assert_allclose(node_result.get_tensor(), contract1)
+  np.testing.assert_allclose(node_result.tensor, contract1)
   net.check_correct()
   node_result = net.contract(e2)
-  np.testing.assert_allclose(node_result.get_tensor(), contract2)
+  np.testing.assert_allclose(node_result.tensor, contract2)
   net.check_correct()
   val = net.contract(e3)
   net.check_correct()
-  np.testing.assert_allclose(val.get_tensor(), final_result)
+  np.testing.assert_allclose(val.tensor, final_result)
 
 def test_real_physics_with_tensors(backend):
   # Calcuate the expected value in numpy
@@ -188,14 +188,14 @@ def test_real_physics_with_tensors(backend):
   e3 = net.connect(b[1], c[1], "edge3")
   net.check_correct()
   node_result = net.contract(e1)
-  np.testing.assert_allclose(node_result.get_tensor(), contract1)
+  np.testing.assert_allclose(node_result.tensor, contract1)
   net.check_correct()
   node_result = net.contract(e2)
-  np.testing.assert_allclose(node_result.get_tensor(), contract2)
+  np.testing.assert_allclose(node_result.tensor, contract2)
   net.check_correct()
   val = net.contract(e3)
   net.check_correct()
-  np.testing.assert_allclose(val.get_tensor(), final_result)
+  np.testing.assert_allclose(val.tensor, final_result)
 
 def test_real_physics_naive_contraction(backend):
   # Calcuate the expected value in numpy
@@ -216,8 +216,8 @@ def test_real_physics_naive_contraction(backend):
   for edge in [e1, e2, e3]:
     net.contract(edge)
   val = net.get_final_node()
-  assertEqual(list(val.get_tensor().shape), [8, 2, 3, 7])
-  np.testing.assert_allclose(val.get_tensor(), final_result)
+  assertEqual(list(val.tensor.shape), [8, 2, 3, 7])
+  np.testing.assert_allclose(val.tensor, final_result)
 
 def test_with_tensors(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -230,7 +230,7 @@ def test_with_tensors(backend):
   net.check_correct()
   val = net.contract(e2)
   net.check_correct()
-  np.testing.assert_allclose(val.get_tensor(), 12.0)
+  np.testing.assert_allclose(val.tensor, 12.0)
 
 def test_contract_dangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -310,7 +310,7 @@ def test_named_axis(backend):
   a = net.add_node(np.eye(2), axis_names=["alpha", "beta"])
   e = net.connect(a["alpha"], a["beta"])
   b = net.contract(e)
-  np.testing.assert_allclose(b.get_tensor(), 2.0)
+  np.testing.assert_allclose(b.tensor, 2.0)
 
 def test_mixed_named_axis(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -321,7 +321,7 @@ def test_mixed_named_axis(backend):
   e2 = net.connect(a[1], b[1])
   net.contract(e1)
   result = net.contract(e2)
-  np.testing.assert_allclose(result.get_tensor(), 12.0)
+  np.testing.assert_allclose(result.tensor, 12.0)
 
 def test_duplicate_name(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -346,10 +346,10 @@ def test_node_edge_ordering(backend):
   e2 = a[0]
   e3 = a[1]
   e4 = a[2]
-  assertEqual(a.get_tensor().shape, (2, 3, 4))
+  assertEqual(a.tensor.shape, (2, 3, 4))
   a.reorder_edges([e4, e2, e3])
   net.check_correct()
-  assertEqual(a.get_tensor().shape, (4, 2, 3))
+  assertEqual(a.tensor.shape, (4, 2, 3))
   assertEqual(e2.axis1, 1)
   assertEqual(e3.axis1, 2)
   assertEqual(e4.axis1, 0)
@@ -384,7 +384,7 @@ def test_complicated_edge_reordering(backend):
   net.contract(e_bd)
   a.reorder_edges([e_ac, e_ab, e_ad])
   net.check_correct()
-  assertEqual(a.get_tensor().shape, (3, 2, 4))
+  assertEqual(a.tensor.shape, (3, 2, 4))
 
 def test_edge_reorder_axis_names(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -394,7 +394,7 @@ def test_edge_reorder_axis_names(backend):
   edge_c = a["c"]
   edge_d = a["d"]
   a.reorder_edges([edge_c, edge_b, edge_d, edge_a])
-  assertEqual(a.get_tensor().shape, (4, 3, 5, 2))
+  assertEqual(a.tensor.shape, (4, 3, 5, 2))
   assertEqual(a.axis_names, ["c", "b", "d", "a"])
 
 def test_outer_product(backend):
@@ -408,8 +408,8 @@ def test_outer_product(backend):
   # Purposely leave b's 3rd axis undefined.
   d = net.outer_product(a, b, name="D")
   net.check_correct()
-  assertEqual(d.get_tensor().shape, (2, 4, 5, 4, 3, 6))
-  np.testing.assert_allclose(d.get_tensor(), np.ones((2, 4, 5, 4, 3, 6)))
+  assertEqual(d.tensor.shape, (2, 4, 5, 4, 3, 6))
+  np.testing.assert_allclose(d.tensor, np.ones((2, 4, 5, 4, 3, 6)))
   assertEqual(d.name, "D")
 
 def test_outer_product_final_nodes(backend):
@@ -418,7 +418,7 @@ def test_outer_product_final_nodes(backend):
   for i in range(1, 5):
     edges.append(net.add_node(np.ones(i))[0])
   final_node = net.outer_product_final_nodes(edges)
-  np.testing.assert_allclose(final_node.get_tensor(), np.ones([1, 2, 3, 4]))
+  np.testing.assert_allclose(final_node.tensor, np.ones([1, 2, 3, 4]))
   assertEqual(final_node.get_all_edges(), edges)
 
 def test_outer_product_final_nodes_not_contracted(backend):
@@ -446,7 +446,7 @@ def test_reorder_axes(backend):
   net.connect(b[2], c[2])
   a.reorder_axes([2, 0, 1])
   net.check_correct()
-  assertEqual(a.get_tensor().shape, (4, 2, 3))
+  assertEqual(a.tensor.shape, (4, 2, 3))
 
 def test_flattening_standard_edges(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -458,8 +458,8 @@ def test_flattening_standard_edges(backend):
   edge_b_1 = b[1]
   edge_b_2 = b[2]
   new_edge = net.flatten_edges([e1, e2], new_edge_name="New Edge")
-  assertEqual(a.get_tensor().shape, (3, 10))
-  assertEqual(b.get_tensor().shape, (3, 4, 10))
+  assertEqual(a.tensor.shape, (3, 10))
+  assertEqual(b.tensor.shape, (3, 4, 10))
   assertEqual(a.edges, [edge_a_1, new_edge])
   assertEqual(b.edges, [edge_b_1, edge_b_2, new_edge])
   net.check_correct()
@@ -472,7 +472,7 @@ def test_flattening_dangling_edges(backend):
   e3 = a[2]
   e4 = a[3]
   flattened_edge = net.flatten_edges([e1, e3], new_edge_name="New Edge")
-  assertEqual(a.get_tensor().shape, (3, 5, 8))
+  assertEqual(a.tensor.shape, (3, 5, 8))
   assertEqual(a.edges, [e2, e4, flattened_edge])
   assertEqual(flattened_edge.name, "New Edge")
   net.check_correct()
@@ -498,7 +498,7 @@ def test_flatten_trace_edges(backend):
   external_2 = net.connect(c[1], a[2])
   new_edge = net.flatten_edges([e1, e2], "New Edge")
   net.check_correct()
-  assertEqual(a.get_tensor().shape, (2, 4, 15, 15))
+  assertEqual(a.tensor.shape, (2, 4, 15, 15))
   assertEqual(a.edges, [external_1, external_2, new_edge, new_edge])
   assertEqual(new_edge.name, "New Edge")
 
@@ -518,7 +518,7 @@ def test_flatten_consistent_result(backend):
     net_noflat.contract(edge)
   noflat_result_node = net_noflat.get_final_node()
   noflat_result_node.reorder_edges([a_dangling_noflat, b_dangling_noflat])
-  noflat_result = noflat_result_node.get_tensor()
+  noflat_result = noflat_result_node.tensor
   # Create network with flattening
   net_flat = tensornetwork.TensorNetwork(backend=backend)
   a_flat = net_flat.add_node(a_val)
@@ -531,7 +531,7 @@ def test_flatten_consistent_result(backend):
   final_edge = net_flat.flatten_edges([e1, e2, e3])
   flat_result_node = net_flat.contract(final_edge)
   flat_result_node.reorder_edges([a_dangling_flat, b_dangling_flat])
-  flat_result = flat_result_node.get_tensor()
+  flat_result = flat_result_node.tensor
   np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
 
 def test_flatten_consistent_tensor(backend):
@@ -549,8 +549,8 @@ def test_flatten_consistent_tensor(backend):
   # Check expected values.
   a_final = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_final = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
-  np.testing.assert_allclose(a.get_tensor(), a_final, rtol=1e-6)
-  np.testing.assert_allclose(b.get_tensor(), b_final, rtol=1e-6)
+  np.testing.assert_allclose(a.tensor, a_final, rtol=1e-6)
+  np.testing.assert_allclose(b.tensor, b_final, rtol=1e-6)
 
 def test_flatten_trace_consistent_result(backend):
   net_noflat = tensornetwork.TensorNetwork(backend=backend)
@@ -561,7 +561,7 @@ def test_flatten_trace_consistent_result(backend):
   e3 = net_noflat.connect(a_noflat[3], a_noflat[5])
   for edge in [e1, e2, e3]:
     net_noflat.contract(edge)
-  noflat_result = net_noflat.get_final_node().get_tensor()
+  noflat_result = net_noflat.get_final_node().tensor
   # Create network with flattening
   net_flat = tensornetwork.TensorNetwork(backend=backend)
   a_flat = net_flat.add_node(a_val)
@@ -569,7 +569,7 @@ def test_flatten_trace_consistent_result(backend):
   e2 = net_flat.connect(a_flat[1], a_flat[2])
   e3 = net_flat.connect(a_flat[3], a_flat[5])
   final_edge = net_flat.flatten_edges([e1, e2, e3])
-  flat_result = net_flat.contract(final_edge).get_tensor()
+  flat_result = net_flat.contract(final_edge).tensor
   np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
 
 def test_flatten_trace_consistent_tensor(backend):
@@ -582,7 +582,7 @@ def test_flatten_trace_consistent_tensor(backend):
   net.check_correct()
   # Check expected values.
   a_final = np.reshape(np.transpose(a_val, (1, 2, 0, 3, 4)), (3, 20, 20))
-  np.testing.assert_allclose(a.get_tensor(), a_final)
+  np.testing.assert_allclose(a.tensor, a_final)
 
 def test_add_subnetwork(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
@@ -601,7 +601,7 @@ def test_add_subnetwork(backend):
   for edge in [e1, e2, e3]:
     net2.contract(edge)
   result = net2.get_final_node()
-  np.testing.assert_allclose(result.get_tensor(), 48.0)
+  np.testing.assert_allclose(result.tensor, 48.0)
 
 def test_merge_networks(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
@@ -619,7 +619,7 @@ def test_merge_networks(backend):
   for edge in [e1, e2, e3]:
     net3.contract(edge)
   result = net3.get_final_node()
-  np.testing.assert_allclose(result.get_tensor(), 48.0)
+  np.testing.assert_allclose(result.tensor, 48.0)
 
 def test_flatten_edges_between(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -630,8 +630,8 @@ def test_flatten_edges_between(backend):
   net.connect(a[2], b[0])
   net.flatten_edges_between(a, b)
   net.check_correct()
-  np.testing.assert_allclose(a.get_tensor(), np.ones((60,)))
-  np.testing.assert_allclose(b.get_tensor(), np.ones((60,)))
+  np.testing.assert_allclose(a.tensor, np.ones((60,)))
+  np.testing.assert_allclose(b.tensor, np.ones((60,)))
 
 def test_flatten_edges_between_no_edges(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -676,7 +676,7 @@ def test_contract_between(backend):
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(a_flat, b_flat.T)
-  np.testing.assert_allclose(c.get_tensor(), final_val, rtol=1e-6)
+  np.testing.assert_allclose(c.tensor, final_val, rtol=1e-6)
   assertEqual(c.name, "New Node")
 
 def test_contract_between_output_order(backend):
@@ -704,7 +704,7 @@ def test_contract_between_output_order(backend):
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(b_flat, a_flat.T)
-  np.testing.assert_allclose(d.get_tensor(), final_val)
+  np.testing.assert_allclose(d.tensor, final_val)
   assertEqual(d.name, "New Node")
 
 def test_contract_between_outer_product(backend):
@@ -714,7 +714,7 @@ def test_contract_between_outer_product(backend):
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   c = net.contract_between(a, b, allow_outer_product=True)
-  assertEqual(c.get_tensor().shape, (2, 3, 4, 5, 6, 7))
+  assertEqual(c.tensor.shape, (2, 3, 4, 5, 6, 7))
 
 def test_contract_between_no_outer_product(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -733,7 +733,7 @@ def test_contract_between_trace_edges(backend):
   net.connect(a[0], a[1])
   b = net.contract_between(a, a)
   net.check_correct()
-  np.testing.assert_allclose(b.get_tensor(), final_val)
+  np.testing.assert_allclose(b.tensor, final_val)
 
 def test_join_dangling(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -753,8 +753,8 @@ def test_split_node(backend):
     right_edges.append(a[i])
   left, right, _ = net.split_node(a, left_edges, right_edges)
   net.check_correct()
-  np.testing.assert_allclose(left.get_tensor(), np.zeros((2, 3, 4, 24)))
-  np.testing.assert_allclose(right.get_tensor(), np.zeros((24, 5, 6)))
+  np.testing.assert_allclose(left.tensor, np.zeros((2, 3, 4, 24)))
+  np.testing.assert_allclose(right.tensor, np.zeros((24, 5, 6)))
 
 def test_split_node_mixed_order(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -767,8 +767,8 @@ def test_split_node_mixed_order(backend):
     right_edges.append(a[i])
   left, right, _ = net.split_node(a, left_edges, right_edges)
   net.check_correct()
-  np.testing.assert_allclose(left.get_tensor(), np.zeros((2, 4, 6, 15)))
-  np.testing.assert_allclose(right.get_tensor(), np.zeros((15, 3, 5)))
+  np.testing.assert_allclose(left.tensor, np.zeros((2, 4, 6, 15)))
+  np.testing.assert_allclose(right.tensor, np.zeros((15, 3, 5)))
 
 def test_split_node_full_svd(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -782,7 +782,7 @@ def test_split_node_full_svd(backend):
   _, s, _, _, = net.split_node_full_svd(a, [e1], [e2])
   net.check_correct()
   np.testing.assert_allclose(
-      s.get_tensor(), np.diag([9.1, 7.5]), rtol=1e-5)
+      s.tensor, np.diag([9.1, 7.5]), rtol=1e-5)
 
 def test_weakref(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -862,7 +862,7 @@ def test_contract_parallel(backend):
   edge2 = net.connect(a[1], b[1])
   c = net.contract_parallel(edge1)
   assertNotIn(edge2, net)
-  np.testing.assert_allclose(c.get_tensor(), 2.0)
+  np.testing.assert_allclose(c.tensor, 2.0)
 
 def test_get_all_nondangling(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -912,7 +912,7 @@ def test_copy_tensor(backend):
   for edge in [edge1, edge2, edge3, edge4]:
     net.contract(edge)
   val = net.get_final_node()
-  result = val.get_tensor()
+  result = val.tensor
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
 
