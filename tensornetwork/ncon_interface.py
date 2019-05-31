@@ -35,7 +35,7 @@ def ncon(tensors: Sequence[Tensor],
     If a contraction order `con_order` and an output order `out_order`
     are both provided, the edge labels can be anything.
     Otherwise (`con_order == None or out_order == None`), the edge labels 
-    must be integers and edges will be contracted in ascending order.
+    must be nonzero integers and edges will be contracted in ascending order.
     Negative integers denote the (dangling) indices of the output tensor,
     which will be in descending order, e.g. [-1,-2,-3,...].
 
@@ -44,14 +44,14 @@ def ncon(tensors: Sequence[Tensor],
     ```python
     A = np.array([[1.0, 2.0], [3.0, 4.0]])
     B = np.array([[1.0, 1.0], [0.0, 1.0]])
-    ncon([A,B], [(-1, 0), (0, -2)])
+    ncon([A,B], [(-1, 1), (1, -2)])
     ```
 
     Matrix trace:
 
     ```python
     A = np.array([[1.0, 2.0], [3.0, 4.0]])
-    ncon([A], [(0, 0)]) # 5.0
+    ncon([A], [(1, 1)]) # 5.0
     ```
 
     Args:
@@ -138,6 +138,9 @@ def ncon_network(
   if con_order is None:
     try:
       con_order = sorted((k for k in edges if k >= 0))
+      if con_order and con_order[0] == 0:
+        raise ValueError("'0' is not a valid edge label when the "
+          "contraction order is not specified separately.")
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
