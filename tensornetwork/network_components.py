@@ -55,7 +55,7 @@ class Node:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tensor
+    self._tensor = tensor
     self.name = name
     self.backend = backend
     self.edges = [
@@ -116,6 +116,14 @@ class Node:
 
   def set_tensor(self, tensor):
     self.tensor = tensor
+
+  @property
+  def tensor(self):
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, tensor):
+    self._tensor = tensor
 
   def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
     """Reorder the edges for this given Node.
