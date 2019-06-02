@@ -916,6 +916,28 @@ def test_copy_tensor(backend):
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
 
+# Include 'tensorflow' (by removing the decorator) once #87 is fixed.
+@pytest.mark.parametrize('backend', ('numpy', 'jax'))
+def test_copy_tensor_parallel_edges(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.diag([1., 2, 3]))
+  b = net.add_node(np.array([10, 20, 30], dtype=np.float64))
+  cn = net.add_copy_node(rank=3, dimension=3)
+  edge1 = net.connect(a[0], cn[0])
+  edge2 = net.connect(a[1], cn[1])
+  edge3 = net.connect(b[0], cn[2])
+
+  result = cn.compute_contracted_tensor()
+  assert list(result.shape) == []
+  np.testing.assert_allclose(result, 10 + 40 + 90)
+
+  for edge in [edge1, edge2, edge3]:
+    net.contract(edge)
+  val = net.get_final_node()
+  result = val.tensor
+  assert list(result.shape) == []
+  np.testing.assert_allclose(result, 10 + 40 + 90)
+
 def test_bad_backend():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork("NOT_A_BACKEND")
