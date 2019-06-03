@@ -279,7 +279,7 @@ class CopyNode(Node):
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
-  def _get_partners(self) -> Dict[Node, Set[int]]:
+  def get_partners(self) -> Dict[Node, Set[int]]:
     partners = {}  # type: Dict[Node, Set[int]]
     for edge in self.edges:
       if edge.is_dangling():
@@ -325,7 +325,7 @@ class CopyNode(Node):
 
   def compute_contracted_tensor(self) -> Tensor:
     """Compute tensor corresponding to contraction of self with neighbors."""
-    partners = self._get_partners()
+    partners = self.get_partners()
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner in partners]
     return self.backend.einsum(einsum_expression, *tensors)
