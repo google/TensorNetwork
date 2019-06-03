@@ -938,6 +938,50 @@ def test_copy_tensor_parallel_edges(backend):
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 10 + 40 + 90)
 
+def test_contract_copy_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.array([1, 2, 3], dtype=np.float64))
+  b = net.add_node(np.array([10, 20, 30], dtype=np.float64))
+  c = net.add_node(np.array([5, 6, 7], dtype=np.float64))
+  d = net.add_node(np.array([1, -1, 1], dtype=np.float64))
+  cn = net.add_copy_node(rank=4, dimension=3)
+  net.connect(a[0], cn[0])
+  net.connect(b[0], cn[1])
+  net.connect(c[0], cn[2])
+  net.connect(d[0], cn[3])
+
+  net.contract_copy_node(cn)
+  val = net.get_final_node()
+  result = val.tensor
+  assert list(result.shape) == []
+  np.testing.assert_allclose(result, 50 - 240 + 630)
+
+def test_contract_copy_node_connected_neighbors(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.array([[1, 2, 3], [10, 20, 30]], dtype=np.float64))
+  assert a.tensor.shape == (2, 3), a.tensor.shape
+  b = net.add_node(np.array([[2, 1, 1], [2, 2, 2]], dtype=np.float64))
+  c = net.add_node(np.array([3, 4, 4], dtype=np.float64))
+  cn = net.add_copy_node(rank=3, dimension=3)
+  net.connect(a[0], b[0])
+  net.connect(a[1], cn[0])
+  net.connect(b[1], cn[1])
+  net.connect(c[0], cn[2])
+
+  n = net.contract_copy_node(cn)
+
+  with pytest.raises(ValueError):
+    val = net.get_final_node()
+  assert len(net.nodes_set) == 1
+  assert len(n.edges) == 2
+  assert n.edges[0] == n.edges[1]
+
+  net.contract_parallel(n.edges[0])
+  val = net.get_final_node()
+  result = val.tensor
+  assert list(result.shape) == []
+  np.testing.assert_allclose(result, 26 + 460)
+
 def test_bad_backend():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork("NOT_A_BACKEND")
