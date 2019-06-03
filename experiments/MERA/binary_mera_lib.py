@@ -1387,11 +1387,10 @@ def unlock_layer(wC, uC, noise=0.0):
     wC.append(copy.copy(wC[-1]))
     uC.append(copy.copy(uC[-1]))
     wC[-1] += tf.cast(tf.random_uniform(
-        shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype)   ,wC[-1].dtype)
+        shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     uC[-1] += tf.cast(tf.random_uniform(
-        shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype)  , wC[-1].dtype)
+        shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     return wC, uC
-
 
 def increase_bond_dimension_by_adding_layers(chi_new, wC, uC, noise=0.0):
     """
@@ -1473,6 +1472,7 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
             tf.random_uniform(shape=wC[n].shape, dtype=wC[n].dtype.real_dtype) * noise, wC[n].dtype)
         uC[n] += tf.cast(
             tf.random_uniform(shape=uC[n].shape, dtype=uC[n].dtype.real_dtype) * noise, uC[n].dtype)
+        
     n = len(wC)
     while not misc_mera.all_same_chi(wC[-1]):
         wC.append(
@@ -1495,10 +1495,10 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
         uC[-1] += tf.cast(tf.random_uniform(
             shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
                           noise, uC[-1].dtype)
+        
         n += 1
 
     return wC, uC
-
 
 def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
     """
@@ -1545,6 +1545,35 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
         (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
 
     return wC, uC, rho / misc_mera.trace(rho)
+
+
+
+def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
+    """
+    initialize a binary MERA network of bond dimension `chi`
+    isometries and disentanglers are initialized with random unitaries (not haar random)
+    
+    Args:
+        phys_dim (int):   Hilbert space dimension of the bottom layer
+        chi (int):        maximum bond dimension
+        dtype (tf.dtype): dtype of the MERA tensors
+
+    Returns:
+        wC (list of tf.Tensor):  the MERA isometries
+        uC (list of tf.Tensor):  the MERA disentanglers
+        rho (tf.Tensor):         initial reduced density matrix
+    """
+    #Fixme: currently, passing tf.complex128 merely initializez imaginary part to 0.0
+    #       make it random
+    wC, uC, rho = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
+    
+    wC = [tf.cast(tf.random_uniform(shape=w.shape, dtype=dtype.real_dtype), dtype) for w in wC]
+    wC = [misc_mera.w_update_svd_numpy(w) for w in wC]
+    
+    uC = [tf.cast(tf.random_uniform(shape=u.shape, dtype=dtype.real_dtype), dtype) for u in uC]
+    uC = [misc_mera.u_update_svd_numpy(u) for u in uC]
+
+    return wC, uC, rho 
 
 
 def initialize_TFI_hams(dtype=tf.float64):
