@@ -390,41 +390,6 @@ def run_optimization_benchmark(filename,
     return walltimes
 
 
-def test_ascending_descending(chi=4, dtype=tf.float64):
-    """
-    test if ascending and descending operations are doing the right thing
-    """
-    wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
-        phys_dim=2, chi=4, dtype=dtype)
-    for n in range(5):
-        wC.append(copy.copy(wC[-1]))
-        uC.append(copy.copy(uC[-1]))
-    wC, uC, _, _ = run_binary_mera_optimization_TFI(
-        chis=[chi],
-        niters=[10],
-        opt_u_after=0,
-        embeddings=['a'],
-        dtype=dtype,
-        wC=wC,
-        uC=uC)
-    ham_0 = bml.initialize_TFI_hams(dtype)
-    rho = [0 for n in range(len(wC) + 1)]
-    ham = [0 for n in range(len(wC) + 1)]
-    rho[-1] = bml.steady_state_density_matrix(10, rho_0, wC[-1], uC[-1])
-    ham[0] = ham_0
-    print()
-    for p in range(len(rho) - 2, -1, -1):
-        rho[p] = bml.descending_super_operator(rho[p + 1], wC[p], uC[p])
-    for p in range(len(wC)):
-        ham[p + 1] = bml.ascending_super_operator(ham[p], wC[p], uC[p])
-    energies = [
-        tn.ncon([rho[p], ham[p]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
-        for p in range(len(rho))
-    ]
-    print('following numbers should all be 1/2')
-    print(
-        np.array(
-            [energies[p] / energies[p + 1] for p in range(len(energies) - 1)]))
 
 
 if __name__ == "__main__":
