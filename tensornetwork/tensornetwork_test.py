@@ -959,7 +959,6 @@ def test_contract_copy_node(backend):
 def test_contract_copy_node_connected_neighbors(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.array([[1, 2, 3], [10, 20, 30]], dtype=np.float64))
-  assert a.tensor.shape == (2, 3), a.tensor.shape
   b = net.add_node(np.array([[2, 1, 1], [2, 2, 2]], dtype=np.float64))
   c = net.add_node(np.array([3, 4, 4], dtype=np.float64))
   cn = net.add_copy_node(rank=3, dimension=3)
