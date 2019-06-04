@@ -33,18 +33,16 @@ def ascending_super_operator(hamAB, hamBA, w_isometry, v_isometry, unitary,
     """
     ascending super operator for a modified binary MERA
     ascends 'hamAB' and 'hamBA' up one layer
-    Parameters:
-    -------------------------
-    hamAB, hamBA:    tf.Tensor
-                     local Hamiltonian terms
-    w_isometry:      tf.Tensor
-    v_isometry:      tf.Tensor
-    unitary:         tf.Tensor
-    refsym:          bool 
-                     if true, enforce reflection symmetry
+    Args:
+        hamAB (tf.Tensor): local Hamiltonian on the A-B lattice
+        hamBA (tf.Tensor): local Hamiltonian on the B-A lattice
+        w_isometry (tf.Tensor): MERA isometry
+        v_isometry (tf.Tensor): MERA isometry
+        unitary (tf.Tensor):    MERQA disentangler
+        refsym (bool):          if true, enforce reflection symmetry
     Returns: 
-    ------------------------
-    (hamABout, hamBAout):  tf.Tensor, tf.Tensor
+        hamABout (tf.Tensor): ascended Hamiltonian on A-B lattice
+        hamBAout (tf.Tensor): ascended Hamiltonian on B-A lattice
 
     """
 
@@ -92,6 +90,16 @@ def descending_super_operator(rhoAB, rhoBA, w_isometry, v_isometry, unitary,
                               refsym):
     """
     descending super operator for a modified binary MERA
+    Args: 
+        rhoAB (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoBA (tf.Tensor):  reduced densit matrix on b-a lattice
+        w_isometry (tf.Tensor):  isometry
+        v_isometry (tf.Tensor):  isometry
+        unitary (tf.Tensor):  disentangler
+        refsym (bool):          if true, enforce reflection symmetry
+    Returns:
+        rhoABout (tf.Tensor): descended reduced density matrix on A-B lattice
+        rhoBAout (tf.Tensor): descended reduced density matrix on B-A lattice
     """
 
     indList1 = [[9, 3, 4, 2], [-3, 5, 4], [-1, 10, 9], [-4, 7, 5, 6],
@@ -137,6 +145,19 @@ def descending_super_operator(rhoAB, rhoBA, w_isometry, v_isometry, unitary,
 
 @tf.contrib.eager.defun
 def get_env_disentangler(hamAB, hamBA, rhoBA, w, v, u, refsym):
+    """
+    get the disentangler environment
+    Args: 
+        hamAB (tf.Tensor): local Hamiltonian on the A-B lattice
+        hamBA (tf.Tensor): local Hamiltonian on the B-A lattice
+        rhoBA (tf.Tensor):  reduced densit matrix on b-a lattice
+        w (tf.Tensor): MERA isometry
+        v (tf.Tensor): MERA isometry
+        u (tf.Tensor): MERA disentangler
+        refsym (bool): if true, enforce reflection symmetry
+    Returns:
+        tf.Tensor
+    """
 
     indList1 = [[7, 8, 10, -1], [4, 3, 9, 2], [10, -3, 9], [7, 5, 4],
                 [8, -2, 5, 6], [1, -4, 2], [1, 6, 3]]
@@ -169,7 +190,18 @@ def get_env_disentangler(hamAB, hamBA, rhoBA, w, v, u, refsym):
 def get_env_w_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
                        unitary):
     """
-    Parameters:
+    get the w-isometry environments
+    Args: 
+        hamAB (tf.Tensor): local Hamiltonian on the A-B lattice
+        hamBA (tf.Tensor): local Hamiltonian on the B-A lattice
+        rhoAB (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoBA (tf.Tensor):  reduced densit matrix on b-a lattice
+        w_isometry (tf.Tensor): MERA isometry
+        v_isometry (tf.Tensor): MERA isometry
+        unitary (tf.Tensor):    MERA disentangler
+
+    Returns:
+        tf.Tensor
     """
     indList1 = [[7, 8, -1, 9], [4, 3, -3, 2], [7, 5, 4], [9, 10, -2, 11],
                 [8, 10, 5, 6], [1, 11, 2], [1, 6, 3]]
@@ -210,6 +242,20 @@ def get_env_w_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
 @tf.contrib.eager.defun
 def get_env_v_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
                        unitary):
+    """
+    get the v-isometry environments
+    Args: 
+        hamAB (tf.Tensor): local Hamiltonian on the A-B lattice
+        hamBA (tf.Tensor): local Hamiltonian on the B-A lattice
+        rhoAB (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoBA (tf.Tensor):  reduced densit matrix on b-a lattice
+        w_isometry (tf.Tensor): MERA isometry
+        v_isometry (tf.Tensor): MERA isometry
+        unitary (tf.Tensor):    MERA disentangler
+
+    Returns:
+        tf.Tensor
+    """
 
     indList1 = [[6, 4, 1, 3], [9, 11, 8, -3], [1, 2, 8], [6, 7, 9],
                 [3, 5, 2, -2], [4, 5, 7, 10], [-1, 10, 11]]
@@ -248,6 +294,20 @@ def get_env_v_isometry(hamAB, hamBA, rhoBA, rhoAB, w_isometry, v_isometry,
 @tf.contrib.eager.defun
 def steady_state_density_matrices(nsteps, rhoAB, rhoBA, w_isometry, v_isometry,
                                   unitary, refsym):
+    """
+    compute the steady-state reduced density matrix of the descending super operator
+    Args: 
+        nsteps (int): number of steps
+        rhoAB (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoBA (tf.Tensor):  reduced densit matrix on b-a lattice
+        w_isometry (tf.Tensor): MERA isometry
+        v_isometry (tf.Tensor): MERA isometry
+        unitary (tf.Tensor):    MERA disentangler
+        refsym (bool): if true, enforce reflection symmetry
+    Returns:
+        tf.Tensor 
+    """
+    
     for n in range(nsteps):
         rhoAB, rhoBA = descending_super_operator(rhoAB, rhoBA, w_isometry,
                                                  v_isometry, unitary, refsym)
@@ -278,48 +338,35 @@ def optimize_mod_binary_mera(hamAB_0,
                              opt_all_layers=False,
                              opt_u_after=9):
     """
-    ------------------------
-    adapted from Glen Evenbly (c) for www.tensors.net, (v1.1) - last modified 24/1/2019
-    ------------------------
     optimization of a scale invariant modified binary MERA tensor network
-    Parameters:
-    ----------------------------
-    hamAB_0, hamBA_0:      tf.Tensor
-                           bottom-layer Hamiltonians in AB and BA sublattices
-    rhoAB_0, rhoBA_0:      tf.Tensor 
-                           initial values for steady-state density matrices
-    wC, vC, uC:            list of tf.Tensor 
-                           isometries (wC, vC) and disentanglers (uC) of the MERA, with 
-                           bottom layers first 
-    numiter:               int 
-                           number of iteration steps 
-    refsym:                bool 
-                           impose reflection symmetry 
-    nsteps_steady_state:   int 
-                           number of power-methodf iteration steps for calculating the 
-                           steady state density matrices 
-    verbose:               int 
-                           verbosity flag 
-    opt_u, opt_uv:         bool 
-                           if False, skip unitary or isometry optimization 
-    numpy_update:          bool
-                           if True, use numpy svd to calculate update of disentanglers
-    opt_all_layers:        bool
-                           if True, optimize all layers
-                           if False, optimize only truncating layers
-    opt_u_after:           int 
-                           start optimizing disentangler only after `opt_u_after` initial optimization steps
+    Args:
+        hamAB_0 (tf.Tensor): bottom-layer Hamiltonians in AB lattices
+        hamBA_0 (tf.Tensor): bottom-layer Hamiltonians in BA lattices
+        rhoAB_0 (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoBA_0 (tf.Tensor):  reduced densit matrix on b-a lattice
+        wC (list of tf.Tensor): isometries of the MERA, with 
+        vC (list of tf.Tensor): isometries of the MERA, with 
+        uC (list of tf.Tensor): disentanglers of the MERA
+        numiter (int):  number of iteration steps 
+        refsym (bool):  if `True`, impose reflection symmetry 
+        nsteps_steady_state (int): number of power-method iteration steps for calculating the 
+                                   steady state density matrices 
+        verbose (int): verbosity flag
+        opt_u (bool):  if `False`, skip disentangler optimization 
+        opt_vw (bool):  if `False`, skip isometry optimization 
+        numpy_update (bool): if `True`, use numpy svd to calculate updates
+        opt_all_layers (bool): if `True`, optimize all layers
+                               if `False`, optimize only truncating layers
+        opt_u_after (int): start optimizing disentangler only after `opt_u_after` initial optimization steps
+
     Returns: 
-    -------------------------------
-    (wC, vC, uC, rhoAB, rhoBA, run_times, Energies)
-    wC, vC, uC:             list of tf.Tensor 
-                            obtimized MERA tensors
-    rhoAB, rhoBA:           tf.Tensor 
-                            steady state density matrices at the top layer 
-    run_times:              list 
-                            run times per iteration step 
-    Energies:               list 
-                            energies at each iteration step
+        wC (list of tf.Tensor): optimized isometries
+        vC (list of tf.Tensor): optimized isometries
+        uC (list of tf.Tensor): optimized disentanglers
+        rhoAB (tf.Tensor):      steady state density matrices on the A-B lattice at the top layer 
+        rhoBA (tf.Tensor):      steady state density matrices on the B-A lattice at the top layer 
+        run_times (list of float): run times per iteration step 
+        Energies (list of float): energies per iteration step 
     """
     dtype = rhoAB_0.dtype
 
@@ -414,18 +461,14 @@ def optimize_mod_binary_mera(hamAB_0,
 
 def unlock_layer(wC, vC, uC, noise=0.0):
     """
-    unlock a layer of the MERA
-    essentially it just copies the last layer of the MERA and adds it as a new layer
-    Parameters:
-    ---------------------
-    wC, vC, uC:   list of tf.Tensor 
-                  the MERA tensors 
-    noise:        float  
-                  noise amplitude in the added layer
+    unlock a layer of a scale invariant MERA
+    Args:
+        wC, vC, uC (list):   MERA tensors
+        noise (float):   amplitude of noise to be added to the new layer
     Returns:
-    (wC, vC, uC): each a list of tf.Tensor 
-                  the new MERA tensors
+       wC, uC (list):    new MERA tensors
     """
+
     wC.append(copy.copy(wC[-1]))
     vC.append(copy.copy(wC[-1]))
     uC.append(copy.copy(uC[-1]))
@@ -445,18 +488,16 @@ def increase_bond_dimension_by_adding_layers(chi_new, wC, vC, uC):
     by padding tensors in the last layer with zeros. If the desired `chi_new` cannot
     be obtained from padding, adds layers of Tensors
     the last layer is guaranteed to have uniform bond dimension
+    Args:
+         chi_new (int):  new bond dimenion
+         wC (list):  list of tf.Tensor: MERA isometries
+         vC (list):  list of tf.Tensor: MERA isometries
+         uC (list):  list of tf.Tensor: MERA disentanglers
+    Returns: 
+         wC (list):   list of tf.Tensors of isometries
+         vC (list):   list of tf.Tensors of isometries
+         uC (list):   list of tf.Tensors of disentangler
 
-    Parameters:
-    --------------------------------
-    chi_new:         int 
-                     new bond dimenion
-    wC, vC, uC:      list of tf.Tensor 
-                     MERA isometries and disentanglers
-
-
-    Returns:         
-    --------------------------------
-    (wC, vC, uC):    list of tf.Tensors
     """
     if misc_mera.all_same_chi(wC[-1], vC[-1],
                               uC[-1]) and (wC[-1].shape[2] >= chi_new):
@@ -487,18 +528,16 @@ def pad_mera_tensors(chi_new, wC, vC, uC, noise=0.0):
     by padding tensors in all layers with zeros. If the desired `chi_new` cannot
     be obtained from padding, adds layers of Tensors
     the last layer is guaranteed to have uniform bond dimension
-
-    Parameters:
-    --------------------------------
-    chi_new:         int 
-                     new bond dimenion
-    wC, vC, uC:      list of tf.Tensor 
-                     MERA isometries and disentanglers
-
-
+    Args:
+        chi_new (int):                 new bond dimenion
+        wC (list of tf.Tensor):   MERA isometries and disentanglers
+        vC (list of tf.Tensor):   MERA isometries and disentanglers
+        uC (list of tf.Tensor):   MERA isometries and disentanglers
+        noise (float):            amplitude of uniform noise added to the padded tensors
     Returns: 
-    --------------------------------
-    (wC, vC, uC):    list of tf.Tensors
+        wC (list of tf.Tensor):   padded MERA isometries and disentanglers
+        vC (list of tf.Tensor):   MERA isometries and disentanglers
+        uC (list of tf.Tensor):   padded MERA isometries and disentanglers
     """
 
     all_chis = [t.shape[n] for t in wC for n in range(len(t.shape))]
@@ -573,11 +612,11 @@ def pad_mera_tensors(chi_new, wC, vC, uC, noise=0.0):
 def initialize_TFI_hams(dtype=tf.float64):
     """
     initialize a transverse field ising hamiltonian
-
+    Args:
+      dtype:  tensorflow dtype
     Returns:
-    ------------------
-    (hamBA, hamBA)
-    tuple of tf.Tensors
+        hamBA (tf.Tensors)
+        hamBA (tf.Tensors)
     """
     sX = np.array([[0, 1], [1, 0]])
     sY = np.array([[0, -1j], [1j, 0]])
@@ -606,19 +645,17 @@ def initialize_TFI_hams(dtype=tf.float64):
 
 def initialize_mod_binary_MERA(phys_dim, chi, dtype=tf.float64):
     """
-    Parameters:
-    -------------------
-    phys_dim:         int 
-                      Hilbert space dimension of the bottom layer
-    chi:              int 
-                      maximum bond dimension
-    dtype:            tensorflow dtype
-                      dtype of the MERA tensors
+    initialize a modified binary MERA network
+    Args:
+        phys_dim (int): Hilbert space dimension of the bottom layer
+        chi (int): maximum bond dimension
+        dtype (tensorflow dtype): dtype of the MERA tensors
     Returns:
-    -------------------
-    (wC, vC, uC, rhoAB, rhoBA)
-    wC, vC, uC:      list of tf.Tensor
-    rhoAB, rhoBA:    tf.Tensor
+        wC (list of tf.Tensor):   padded MERA isometries and disentanglers
+        vC (list of tf.Tensor):   MERA isometries and disentanglers
+        uC (list of tf.Tensor):   padded MERA isometries and disentanglers
+        rhoAB (tf.Tensor):        reduced density on the AB lattice
+        rhoBA (tf.Tensor):        reduced density on the BA lattice
     """
     wC = []
     vC = []
