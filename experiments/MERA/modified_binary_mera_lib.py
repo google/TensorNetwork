@@ -367,7 +367,6 @@ def optimize_mod_binary_mera(hamAB_0,
         rhoBA (tf.Tensor):      steady state density matrices on the B-A lattice at the top layer 
         run_times (list of float): run times per iteration step 
         Energies (list of float): energies per iteration step 
->>>>>>> upstream/master
     """
     dtype = rhoAB_0.dtype
 
