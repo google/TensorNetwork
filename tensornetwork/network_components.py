@@ -16,7 +16,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, List, Optional, Text, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union
 import numpy as np
 from tensornetwork.backends import base_backend
 import weakref
@@ -55,7 +55,7 @@ class Node:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tensor
+    self._tensor = tensor
     self.name = name
     self.backend = backend
     self.edges = [
@@ -116,6 +116,14 @@ class Node:
 
   def set_tensor(self, tensor):
     self.tensor = tensor
+
+  @property
+  def tensor(self) -> Tensor:
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, tensor: Tensor) -> Tensor:
+    self._tensor = tensor
 
   def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
     """Reorder the edges for this given Node.
@@ -266,17 +274,22 @@ class CopyNode(Node):
 
   def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
     if edge.node1 is self:
+        assert edge.axis2 is not None
         return edge.node2, edge.axis2
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
-  def _get_partners(self) -> List[Tuple[Node, int]]:
-    partners = []
+  def get_partners(self) -> Dict[Node, Set[int]]:
+    partners = {}  # type: Dict[Node, Set[int]]
     for edge in self.edges:
-      if edge.is_dangling() or self._is_my_trace(edge):
+      if edge.is_dangling():
+        raise ValueError('Cannot contract copy tensor with dangling edges')
+      if self._is_my_trace(edge):
         continue
       partner_node, shared_axis = self._get_partner(edge)
-      partners.append((partner_node, shared_axis))
+      if partner_node not in partners:
+        partners[partner_node] = set()
+      partners[partner_node].add(shared_axis)
     return partners
 
   _VALID_SUBSCRIPTS = list(
@@ -284,11 +297,11 @@ class CopyNode(Node):
 
   def _make_einsum_input_term(self,
                               node: Node,
-                              shared_axis: int,
+                              shared_axes: Set[int],
                               next_index: int) -> Tuple[str, int]:
     indices = []
     for axis in range(node.get_rank()):
-      if axis == shared_axis:
+      if axis in shared_axes:
         indices.append(0)
       else:
         indices.append(next_index)
@@ -299,12 +312,12 @@ class CopyNode(Node):
   def _make_einsum_output_term(self, next_index: int) -> str:
     return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
-  def _make_einsum_expression(self, partners: List[Tuple[Node, int]]) -> str:
+  def _make_einsum_expression(self, partners: Dict[Node, Set[int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
     einsum_input_terms = []
-    for partner_node, shared_axis in partners:
+    for partner_node, shared_axes in partners.items():
       einsum_input_term, next_index = self._make_einsum_input_term(
-              partner_node, shared_axis, next_index)
+              partner_node, shared_axes, next_index)
       einsum_input_terms.append(einsum_input_term)
     einsum_output_term = self._make_einsum_output_term(next_index)
     einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
@@ -312,9 +325,9 @@ class CopyNode(Node):
 
   def compute_contracted_tensor(self) -> Tensor:
     """Compute tensor corresponding to contraction of self with neighbors."""
-    partners = self._get_partners()
+    partners = self.get_partners()
     einsum_expression = self._make_einsum_expression(partners)
-    tensors = [partner.get_tensor() for partner, _ in partners]
+    tensors = [partner.get_tensor() for partner in partners]
     return self.backend.einsum(einsum_expression, *tensors)
 
 
