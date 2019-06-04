@@ -101,7 +101,6 @@ def run_mod_binary_mera_optimization_TFI(chis=[8, 12, 16],
         wC (list):         isometries wC
         vC (list):         isometries vC
         uC (list):         disentanglers uC
-        
     Raises:
         ValueError if `chis`,`niters` and `embeddings` are of different lengths
     """

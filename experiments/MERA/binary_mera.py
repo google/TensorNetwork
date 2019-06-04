@@ -27,11 +27,10 @@ import copy
 import numpy as np
 import time
 import pickle
-import tensornetwork.ncon_interface as ncon
-import binary_mera_lib as bml
-import misc_mera
+import tensornetwork as tn
+import experiments.MERA.binary_mera_lib as bml
+import experiments.MERA.misc_mera as misc_mera
 from sys import stdout
-
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
@@ -54,45 +53,33 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
                                      noises=None,
                                      filename=None):
     """
-    binary mera optimization
-    Parameters:
-    -------------------
-    chis:                 list of int 
-                          bond dimension of successive MERA simulations 
-    niters:               list of int 
-                          number of optimization steps of successive MERA optimizations 
-    embeddings:           list of str or None
-                          type of embedding scheme used to embed mera into the next larger bond dimension 
-                          entries can be: 'p' or 'pad' for padding with zeros without, if possible, adding new layers 
-                                          'a' or 'add' for adding new layer with increased  bond dimension
-    dtype:                tensorflow dtype 
-    verbose:              int 
-                          verbosity flag 
-    nsteps_steady_state:  int 
-                          number power iteration of steps used to obtain the steady state reduced 
-                          density matrix
-    numpy_update:         bool 
-                          if `True`, use numpy svd for update
-    opt_u_after:          int 
-                          optimize disentangler only after `opt_u_after` iterations
-    opt_all_layers:       list of bool or `None`
-                          if True, optimize all layer; else, optimize only truncating layers; True by default
-    wC, vC:               list of tf.Tensor 
-                          initial values of isometries and disentanglers
-    rho_0:                tf.Tensor 
-                          initial value for steady-state density 
-    noises:               list of float
-                          noise values for initializing new layers
+    optimize a binary mera to approximate the ground-state of the infinite transverse field Ising model
+    Args:
+        chis (list of int):   bond dimension of successive MERA simulations 
+        niters (list of int): number of optimization steps of successive MERA optimizations 
+        embeddings (list of str or None): type of embedding scheme used to embed mera into the next larger bond dimension 
+                                          entries can be: 'p' or 'pad' for padding with zeros without, if possible, adding new layers 
+                                                          'a' or 'add' for adding new layer with increased  bond dimension
+                                                          'n'          for keeping the MERA as it is (e.g. for resuming optimization)
+                                          the first entry will be ignored for the case where no `wC` and `uC` tensors are passed
+        dtype (tensorflow dtype):      dtype
+        verbose (int):                 verbosity flag, if `verbose>0`, print out info  during optimization
+        nsteps_steady_state (int):     number of power-method iteration steps for calculating the 
+                                       steady state density matrices 
+        numpy_update (bool):           if True, use numpy svd to calculate update of disentanglers and isometries
+        opt_u_after (int):             start optimizing disentangler only after `opt_u_after` initial optimization steps
+        opt_all_layers (bool):         if `True`, optimize all layers
+                                       if `False`, only optimize truncating layers
+        wC (list of tf.Tensor or 0.0): initial values for isometries; if `0.0`, initialize with  identities
+        uC (list of tf.Tensor or 0.0): initial values for disentanglers; if `0.0`, initialize with  identities
+        rho_0 (tf.Tensor or 0.0):      initial value for reduced density matrix; if `0.0`, initialize with  identities
+        noises (list of float):        noise values for initializing new layers
 
     Returns: 
-    --------------------
-    (wC, uC, walltimes, energies)
-    wC, uC:     list of tf.Tensor
-                isometries (wC) and disentanglers (uC)
-    energies:   list of tf.Tensor of shape () 
-                energies at iterations steps
-    walltimes:  list of float 
-                walltimes per iteration step 
+        wC (list of tf.Tensor): optimized isometries of the MERA
+        uC (list of tf.Tensor): optimized disentanglers of the MERA
+        energies (list of tf.Tensor): energies per iteration steps
+        walltimes (list of float):    walltimes per iteration step 
     """
 
     if not embeddings:
@@ -102,22 +89,28 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     if not opt_all_layers:
         opt_all_layers = [True] * len(chis)
 
+    init = False
     if wC == 0:
-        wC, _, _ = bml.initialize_binary_MERA(
+        init = True
+        wC, _, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
-        _, uC, _ = bml.initialize_binary_MERA(
+        init = True
+        _, uC, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
-        _, _, rho_0 = bml.initialize_binary_MERA(
+        _, _, rho_0 = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-    energies = []
-    walltimes = []
-    init = True
+
+    data = {'profile': {}, 'energies': {}}
+
     for chi, niter, which, noise, opt_all in zip(chis, niters, embeddings,
                                                  noises, opt_all_layers):
+        energies = []
+        walltimes = []
+
         if not init:
             if which in ('a', 'add'):
                 wC, uC = bml.unlock_layer(wC, uC, noise=noise)
@@ -142,14 +135,31 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
             opt_all_layers=opt_all)
         energies.extend(es)
         walltimes.extend(times)
+        data['profile'][chi] = walltimes
+        data['energies'][chi] = energies
         init = False
         if filename:
-            with open(filename + '.pickle', 'wb') as f:
+            with open(filename + '_tensors.pickle', 'wb') as f:
                 pickle.dump([wC, uC], f)
+            with open('energies_walltimes_' + filename + '.pickle', 'wb') as f:
+                pickle.dump(data, f)
+
     return wC, uC, walltimes, energies
 
 
 def benchmark_ascending_operator(ham, w, u, num_layers):
+    """
+    run benchmark for ascending super operator
+    Args: 
+        rhoab (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoba (tf.Tensor):  reduced densit matrix on b-a lattice
+        w   (tf.Tensor):  isometry
+        v   (tf.Tensor):  isometry
+        u   (tf.Tensor):  disentangler
+        num_layers(int):  number of layers over which to descend the hamiltonian
+    Returns:
+        runtime (float):  the runtime
+    """
     t1 = time.time()
     for t in range(num_layers):
         ham = bml.ascending_super_operator(ham, w, u)
@@ -157,6 +167,18 @@ def benchmark_ascending_operator(ham, w, u, num_layers):
 
 
 def benchmark_descending_operator(rho, w, u, num_layers):
+    """
+    run benchmark for descending super operator
+    Args: 
+        rhoab (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoba (tf.Tensor):  reduced densit matrix on b-a lattice
+        w   (tf.Tensor):  isometry
+        v   (tf.Tensor):  isometry
+        u   (tf.Tensor):  disentangler
+        num_layers(int):  number of layers over which to descend the hamiltonian
+    Returns:
+        runtime (float):  the runtime
+    """
     t1 = time.time()
     for p in range(num_layers):
         rho = bml.descending_super_operator(rho, w, u)
@@ -168,6 +190,21 @@ def run_ascending_operator_benchmark(filename,
                                      num_layers=1,
                                      dtype=tf.float64,
                                      device=None):
+    """
+    run ascending operators benchmarks and save benchmark data in `filename`
+    Args:
+        filename (str):  filename under which results are stored as a pickle file
+        chis (list):  list of bond dimensions for which to run the benchmark
+        num_layers (int): number of layers over which to ascend an operator 
+        dtype (tensorflow dtype): dtype to be used for the benchmark
+        device (str):             device on  which the benchmark should be run
+    Returns: 
+       dict:  dictionary containing the walltimes
+              key 'warmup' contains warmup (i.e. first run) runtimes
+              key 'profile' contains subsequent runtimes
+    """
+
+
     walltimes = {'warmup': {}, 'profile': {}}
     for chi in chis:
         print('running ascending-operator benchmark for chi = {0} benchmark'.
@@ -194,6 +231,20 @@ def run_descending_operator_benchmark(filename,
                                       num_layers=1,
                                       dtype=tf.float64,
                                       device=None):
+    """
+    run descending operators benchmarks and save benchmark data in `filename`
+    Args:
+        filename (str):  filename under which results are stored as a pickle file
+        chis (list):  list of bond dimensions for which to run the benchmark
+        num_layers (int): number of layers over which to descend the reduced density matrix
+        dtype (tensorflow dtype): dtype to be used for the benchmark
+        device (str):             device on  which the benchmark should be run
+    Returns: 
+       dict:  dictionary containing the walltimes
+              key 'warmup' contains warmup (i.e. first run) runtimes
+              key 'profile' contains subsequent runtimes
+    """
+
     walltimes = {'warmup': {}, 'profile': {}}
     for chi in chis:
         print('running descending-operator benchmark for chi = {0} benchmark'.
@@ -225,6 +276,26 @@ def run_naive_optimization_benchmark(filename,
                                      numpy_update=True,
                                      device=None,
                                      opt_u_after=40):
+    """
+    run a naive optimization benchmark, i.e. one without growing bond dimensions by embedding 
+    Args:
+        filename (str):           filename under which results are stored as a pickle file
+        chis (list):              list of bond dimensions for which to run the benchmark
+        dtype (tensorflow dtype): dtype to be used for the benchmark
+        numiter (int):            number of iteration steps 
+        nsteps_steady_state (int):number of iterations steps used to obtain the steady-state 
+                                  reduced density matrix
+        opt_u (bool):             if True, optimize disentangler `u`
+        opt_w (bool):             if True, optimize isometries `w`
+        numpy_update (bool):      if True, use numpy-svd to update tensors
+        device (str or None):     device on  which the benchmark should be run
+        opt_u_after (int):        do not optimize `u` for the first `opt_u_after' steps
+
+    Returns: 
+       dict:  dictionary containing the walltimes and energies
+              key 'profile': list of runtimes
+              key 'energies' list of energies per iteration step
+    """
 
     walltimes = {'profile': {}, 'energies': {}}
     with tf.device(device):
@@ -232,10 +303,10 @@ def run_naive_optimization_benchmark(filename,
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
 
-            wC, uC, rho_0 = bml.initialize_binary_MERA(
+            wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
                 phys_dim=2, chi=chi, dtype=dtype)
             ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-            wC, uC, rho_0, runtimes, energies = optimize_binary_mera(
+            wC, uC, rho_0, runtimes, energies = bml.optimize_binary_mera(
                 ham_0=ham_0,
                 rho_0=rho_0,
                 wC=wC,
@@ -263,8 +334,36 @@ def run_optimization_benchmark(filename,
                                embeddings=None,
                                dtype=tf.float64,
                                verbose=1,
+                               opt_u_after=10,
                                nsteps_steady_state=4,
                                device=None):
+    """
+    run a realistic optimization benchmark, i.e. one with growing bond dimensions by embedding 
+    Args:
+        filename (str):            filename under which results are stored as a pickle file
+        chis (list):               list of bond dimensions. optimization starts with chi[0], then 
+                                   sequentially increases the bond dimension as given chis[n] for n > 0
+        numiters (list):           maximum number of iteration steps per bond dimension
+        embeddings (list or None): list of str of len(chis). elements can be either 'a' or 'p'.
+                                   if embeddings[n]='a': embed the mera from iteration n - 1 by adding 
+                                                         a new  layer of mera-tensors of bond  dimension `chi[n]`
+                                   if embeddings[n]='p': embed the mera from iteration n - 1 by padding tensors
+                                                         with zeros to dimension `chis[n]`; if `chis[n]`
+                                                         can't be obtained from padding, pad tensors to thir maximal dimension
+                                                         and a new layer.
+        dtype (tensorflow dtype):  dtype to be used for the benchmark
+        verbose (int):             verbosity flag; if `verbose > 0`, print out info during simulation
+        opt_u_after (int):         do not optimize `u` for the first `opt_u_after' steps
+        nsteps_steady_state (int): number of iterations steps used to obtain the steady-state 
+                                   reduced density matrix
+        device (str):              device on  which the benchmark should be run
+
+    Returns: 
+       dict:  dictionary containing the walltimes and energies
+              key 'profile': list of runtimes
+              key 'energies' list of energies per iteration step
+
+    """
 
     walltimes = {}
     with tf.device(device):
@@ -277,6 +376,8 @@ def run_optimization_benchmark(filename,
             dtype=dtype,
             verbose=verbose,
             nsteps_steady_state=nsteps_steady_state,
+            opt_u_after=opt_u_after,
+            filename=filename,
             numpy_update=True)
 
         walltimes['profile'] = runtimes
@@ -284,46 +385,19 @@ def run_optimization_benchmark(filename,
         with open(filename + '.pickle', 'wb') as f:
             pickle.dump(walltimes, f)
         with open(filename + '_tensors.pickle', 'wb') as f:
+            print('saving to', filename)
             pickle.dump([wC, uC], f)
 
     return walltimes
 
 
-def test_ascending_descending(chi=4, dtype=tf.float64):
-
-    wC, uC, rho_0 = bml.initialize_binary_MERA(phys_dim=2, chi=4, dtype=dtype)
-    for n in range(5):
-        wC.append(copy.copy(wC[-1]))
-        uC.append(copy.copy(uC[-1]))
-    wC, uC, _, _ = run_binary_mera_optimization_TFI(
-        chis=[chi],
-        niters=[10],
-        opt_u_after=0,
-        embeddings=['a'],
-        dtype=dtype,
-        wC=wC,
-        uC=uC)
-    ham_0 = bml.initialize_TFI_hams(dtype)
-    rho = [0 for n in range(len(wC) + 1)]
-    ham = [0 for n in range(len(wC) + 1)]
-    rho[-1] = bml.steady_state_density_matrix(10, rho_0, wC[-1], uC[-1])
-    ham[0] = ham_0
-    print()
-    for p in range(len(rho) - 2, -1, -1):
-        rho[p] = bml.descending_super_operator(rho[p + 1], wC[p], uC[p])
-    for p in range(len(wC)):
-        ham[p + 1] = bml.ascending_super_operator(ham[p], wC[p], uC[p])
-    energies = [
-        ncon.ncon([rho[p], ham[p]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
-        for p in range(len(rho))
-    ]
-    print('following numbers should all be 1/2')
-    print(
-        np.array(
-            [energies[p] / energies[p + 1] for p in range(len(energies) - 1)]))
 
 
 if __name__ == "__main__":
+    """
+    run benchmarks for a scale-invariant binary MERA optimization
+    benchmark results are stored in disc
+    """
     if not tf.executing_eagerly():
         pass
 
@@ -334,38 +408,39 @@ if __name__ == "__main__":
         os.chdir(fname)
 
         rootdir = os.getcwd()
-        # benchmarks = {'ascend' : {'chis' :  [4, 6, 8, 10],
-        #                           'dtype' : tf.float64,
-        #                           'num_layers' : 1},
-        #               'descend' : {'chis' :  [4, 6, 8, 10],
-        #                            'dtype' : tf.float64,
-        #                            'num_layers' : 1},
-        #               'optimize_naive' : {'chis' :  [4,6,8],
-        #                                   'dtype' : tf.float64,
-        #                                   'opt_u' : True,
-        #                                   'opt_w' : True,
-        #                                   'numpy_update' : True,
-        #                                   'numiter' : 2},
-        #               'optimize' : {'chis' :  [4, 6, 8],
-        #                             'numiters' : [400, 400, 400],
-        #                             'embeddings' : ['p', 'a', 'p'],
-        #                             'dtype' : tf.float64}}
-
-        benchmarks = {  # 'optimize_naive' : {'chis' :  [4, 6, 8, 12, 14, 16],
-            #                     'dtype' : tf.float64,
-            #                     'opt_u' : True,
-            #                     'opt_w' : True,
-            #                     'numpy_update' : True,
-            #                     'numiter' : 5},
+        ######## comment out all benchmarks you don't want to run ########
+        benchmarks = {
+            'ascend': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'num_layers': 1
+            },
+            'descend': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'num_layers': 1
+            },
+            'optimize_naive': {
+                'chis': [4, 6, 8],
+                'dtype': tf.float64,
+                'opt_u': True,
+                'opt_w': True,
+                'numpy_update': True,
+                'nsteps_steady_state': 10,
+                'numiter': 2
+            },
             'optimize': {
-                'chis': [4, 4, 6, 6, 8, 8, 16, 16, 16],
-                'numiters': [2000, 2000, 2000, 2000, 2000, 2000, 200, 200],
-                'embeddings': ['a', 'a', 'a', 'a', 'a', 'a', 'a'],
+                'chis': [4, 6, 8],
+                'numiters': [400, 400, 400],
+                'embeddings': ['p', 'a', 'p'],
+                'nsteps_steady_state': 10,
+                'opt_u_after': 20,
                 'dtype': tf.float64
             }
         }
 
-        use_gpu = False
+        use_gpu = False  #use True when running on GPU
+        #list available devices
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
         for i, device in enumerate(DEVICES):
@@ -380,7 +455,6 @@ if __name__ == "__main__":
             name = 'CPU'
 
         if 'ascend' in benchmarks:
-
             filename = name + 'binary_mera_ascending_benchmark'
             for key, val in benchmarks['ascend'].items():
                 if hasattr(val, 'name'):
@@ -451,7 +525,6 @@ if __name__ == "__main__":
                     val = val.name
                 filename = filename + '_' + str(key) + str(val)
             filename = filename.replace(' ', '')
-
             run_optimization_benchmark(
                 filename,
                 device=specified_device_type,

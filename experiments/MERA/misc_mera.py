@@ -27,10 +27,12 @@ def trace(rho):
     compute the trace of `rho`
     """
     dim = len(rho.shape) // 2
-    inds = [n + 1 for n in range(dim)]
-    inds = list(range(dim))
-    return tn.ncon([rho], [inds + inds])
+    net = tn.TensorNetwork()
+    r = net.add_node(rho)
 
+    edges = [net.connect(r[n], r[n + dim]) for n in range(dim)]
+    out = net.contract_parallel(edges[0])
+    return out.get_tensor()
 
 @tf.contrib.eager.defun
 def symmetrize(rho):
@@ -58,9 +60,13 @@ def scalar_product(bottom, top):
     Returns:
         tf.Tensor:  the inner product
     """
-    inds = list(range(len(top.shape)))
-    return tn.ncon([tf.conj(bottom), top], [inds, inds])
 
+    net = tn.TensorNetwork()
+    b = net.add_node(tf.conj(bottom))
+    t = net.add_node(top)
+    edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
+    out = net.contract_between(b, t)
+    return out.get_tensor()
 
 def pad_tensor(tensor, new_shape):
     """
@@ -100,6 +106,7 @@ def u_update_svd_numpy(wIn):
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
+
 
 def w_update_svd(wIn):
     """
