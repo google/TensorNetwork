@@ -41,8 +41,9 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
-               backend: base_backend.BaseBackend) -> None:
+  def __init__(
+    self, tensor: Tensor, name: Text, axis_names: List[Text],
+    signature: int, backend: base_backend.BaseBackend) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -65,6 +66,7 @@ class Node:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
+    self.signature = signature
 
   def get_rank(self) -> int:
     """Return rank of tensor represented by self."""
@@ -116,6 +118,11 @@ class Node:
 
   def set_tensor(self, tensor):
     self.tensor = tensor
+
+  @property
+  def shape(self):
+    return self.backend.tuple_shape(self._tensor)
+  
 
   @property
   def tensor(self) -> Tensor:
@@ -244,24 +251,30 @@ class Node:
   def __str__(self) -> Text:
     return self.name
 
+  def __lt__(self, other):
+    if not isinstance(other, Node):
+      raise ValueError("Object {} is not a Node type.".format(other))
+    return id(self) < id(other)
+
 
 class CopyNode(Node):
+
   def __init__(self,
                rank: int,
                dimension: int,
                name: Text,
                axis_names: List[Text],
+               signature: int,
                backend: base_backend.BaseBackend,
                dtype: Type[np.number] = np.float64) -> None:
     # TODO: Make this computation lazy, once Node doesn't require tensor
     # at instatiation.
     copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
     copy_tensor = backend.convert_to_tensor(copy_tensor)
-    super().__init__(copy_tensor, name, axis_names, backend)
+    super().__init__(copy_tensor, name, axis_names, signature, backend)
 
   @staticmethod
-  def make_copy_tensor(rank: int,
-                       dimension: int,
+  def make_copy_tensor(rank: int, dimension: int,
                        dtype: Type[np.number]) -> Tensor:
     shape = (dimension,) * rank
     copy_tensor = np.zeros(shape, dtype=dtype)
@@ -274,8 +287,8 @@ class CopyNode(Node):
 
   def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
     if edge.node1 is self:
-        assert edge.axis2 is not None
-        return edge.node2, edge.axis2
+      assert edge.axis2 is not None
+      return edge.node2, edge.axis2
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
@@ -293,11 +306,9 @@ class CopyNode(Node):
     return partners
 
   _VALID_SUBSCRIPTS = list(
-          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 
-  def _make_einsum_input_term(self,
-                              node: Node,
-                              shared_axes: Set[int],
+  def _make_einsum_input_term(self, node: Node, shared_axes: Set[int],
                               next_index: int) -> Tuple[str, int]:
     indices = []
     for axis in range(node.get_rank()):
@@ -317,7 +328,7 @@ class CopyNode(Node):
     einsum_input_terms = []
     for partner_node, shared_axes in partners.items():
       einsum_input_term, next_index = self._make_einsum_input_term(
-              partner_node, shared_axes, next_index)
+          partner_node, shared_axes, next_index)
       einsum_input_terms.append(einsum_input_term)
     einsum_output_term = self._make_einsum_output_term(next_index)
     einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
@@ -450,6 +461,9 @@ class Edge:
     """Whether this edge is a dangling edge."""
     return self._is_dangling
 
+  def is_trace(self) -> bool:
+    return self.node1 is self.node2
+
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
 
@@ -465,7 +479,7 @@ class Edge:
       result = result and self is self.node2[self.axis2]
     return result
 
-  def set_name(self, name):
+  def set_name(self, name: Text) -> None:
     self.name = name
 
   def __str__(self) -> Text:
