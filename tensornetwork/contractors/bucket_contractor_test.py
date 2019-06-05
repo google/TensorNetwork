@@ -20,7 +20,6 @@ from __future__ import print_function
 from typing import Tuple
 
 import numpy as np
-import tensorflow as tf
 
 from tensornetwork import network
 from tensornetwork import network_components
@@ -63,51 +62,46 @@ def add_cnot(net: network.TensorNetwork,
   return control, control[2], target[2]
 
 
-class BucketTest(tf.test.TestCase):
+def test_cnot_gate():
+  net = network.TensorNetwork(backend="numpy")
+  # Prepare input state: |11>
+  q0_in = net.add_node(np.array([0, 1], dtype=np.float64))
+  q1_in = net.add_node(np.array([0, 1], dtype=np.float64))
+  # Prepare output state: |10>
+  q0_out = net.add_node(np.array([0, 1], dtype=np.float64))
+  q1_out = net.add_node(np.array([1, 0], dtype=np.float64))
+  # Build quantum circuit
+  copy_node, q0_t1, q1_t1 = add_cnot(net, q0_in[0], q1_in[0])
+  net.connect(q0_t1, q0_out[0])
+  net.connect(q1_t1, q1_out[0])
+  # Contract the network, first using Bucket Elimination, then once
+  # no more copy tensors are left to exploit, fall back to the naive
+  # contractor.
+  contraction_order = (copy_node,)
+  net = bucket(net, contraction_order)
+  net = naive(net)
+  result = net.get_final_node()
+  # Verify that CNOT has turned |11> into |10>.
+  np.testing.assert_allclose(result.get_tensor(), 1.0)
 
-  def test_cnot_gate(self):
-    net = network.TensorNetwork(backend="tensorflow")
-    # Prepare input state: |11>
-    q0_in = net.add_node(np.array([0, 1], dtype=np.float64))
-    q1_in = net.add_node(np.array([0, 1], dtype=np.float64))
-    # Prepare output state: |10>
-    q0_out = net.add_node(np.array([0, 1], dtype=np.float64))
-    q1_out = net.add_node(np.array([1, 0], dtype=np.float64))
-    # Build quantum circuit
-    copy_node, q0_t1, q1_t1 = add_cnot(net, q0_in[0], q1_in[0])
-    net.connect(q0_t1, q0_out[0])
-    net.connect(q1_t1, q1_out[0])
-    # Contract the network, first using Bucket Elimination, then once
-    # no more copy tensors are left to exploit, fall back to the naive
-    # contractor.
-    contraction_order = (copy_node,)
-    net = bucket(net, contraction_order)
-    net = naive(net)
-    result = net.get_final_node()
-    # Verify that CNOT has turned |11> into |10>.
-    self.assertAllClose(result.get_tensor(), 1.0)
-
-  def test_swap_gate(self):
-    net = network.TensorNetwork(backend="jax")
-    # Prepare input state: 0.6|00> + 0.8|10>
-    q0_in = net.add_node(np.array([0.6, 0.8], dtype=np.float64))
-    q1_in = net.add_node(np.array([1, 0], dtype=np.float64))
-    # Prepare output state: 0.6|00> + 0.8|01>
-    q0_out = net.add_node(np.array([1, 0], dtype=np.float64))
-    q1_out = net.add_node(np.array([0.6, 0.8], dtype=np.float64))
-    # Build quantum circuit: three CNOTs implement a SWAP
-    copy_node_1, q0_t1, q1_t1 = add_cnot(net, q0_in[0], q1_in[0])
-    copy_node_2, q1_t2, q0_t2 = add_cnot(net, q1_t1, q0_t1)
-    copy_node_3, q0_t3, q1_t3 = add_cnot(net, q0_t2, q1_t2)
-    net.connect(q0_t3, q0_out[0])
-    net.connect(q1_t3, q1_out[0])
-    # Contract the network, first Bucket Elimination, then naive to complete.
-    contraction_order = (copy_node_1, copy_node_2, copy_node_3)
-    net = bucket(net, contraction_order)
-    net = naive(net)
-    result = net.get_final_node()
-    # Verify that SWAP has turned |10> into |01> and kept |00> unchanged.
-    self.assertAllClose(result.get_tensor(), 1.0)
-
-if __name__ == '__main__':
-  tf.test.main()
+def test_swap_gate():
+  net = network.TensorNetwork(backend="jax")
+  # Prepare input state: 0.6|00> + 0.8|10>
+  q0_in = net.add_node(np.array([0.6, 0.8], dtype=np.float64))
+  q1_in = net.add_node(np.array([1, 0], dtype=np.float64))
+  # Prepare output state: 0.6|00> + 0.8|01>
+  q0_out = net.add_node(np.array([1, 0], dtype=np.float64))
+  q1_out = net.add_node(np.array([0.6, 0.8], dtype=np.float64))
+  # Build quantum circuit: three CNOTs implement a SWAP
+  copy_node_1, q0_t1, q1_t1 = add_cnot(net, q0_in[0], q1_in[0])
+  copy_node_2, q1_t2, q0_t2 = add_cnot(net, q1_t1, q0_t1)
+  copy_node_3, q0_t3, q1_t3 = add_cnot(net, q0_t2, q1_t2)
+  net.connect(q0_t3, q0_out[0])
+  net.connect(q1_t3, q1_out[0])
+  # Contract the network, first Bucket Elimination, then naive to complete.
+  contraction_order = (copy_node_1, copy_node_2, copy_node_3)
+  net = bucket(net, contraction_order)
+  net = naive(net)
+  result = net.get_final_node()
+  # Verify that SWAP has turned |10> into |01> and kept |00> unchanged.
+  np.testing.assert_allclose(result.get_tensor(), 1.0)
