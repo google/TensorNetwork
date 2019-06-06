@@ -89,7 +89,7 @@ e2 = net.connect(b[1], a[1])
 e3 = net.connect(a[2], b[2])
 
 flattened_edge = net.flatten_edges([e1, e2, e3])
-print(net.contract(flattned_edge).get_tensor().numpy())
+print(net.contract(flattened_edge).get_tensor().numpy())
 ```
 We also have `contract_between` and `contract_parallel` for your convenience. 
 
