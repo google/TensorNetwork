@@ -22,7 +22,7 @@ pip3 install tensornetwork
 
 This will create a Docker image containing TensorNetwork. It will isolate a TensorNetwork installation from the rest of the system.
 
-1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
+1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host system.
 
 2. Build the docker image for your system:
 ```bash
@@ -106,7 +106,7 @@ You can split a node by doing a singular value decomposition.
 ```python
 # This will return two nodes and a tensor of the truncation error.
 # The two nodes are the unitary matricies multiplied by the square root of the
-# singluar values.
+# singular values.
 # The `left_edges` are the edges that will end up on the `u_s` node, and `right_edges`
 # will be on the `vh_s` node.
 u_s, vh_s, trun_error = net.split_node(node, left_edges, right_edges)
