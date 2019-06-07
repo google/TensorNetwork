@@ -16,15 +16,29 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensorflow as tf
-tf.enable_v2_behavior()
 
 from experiments.tree_tensor_network import ttn_1d_uniform
 
 if __name__ == "__main__":
+  backend = "tensorflow"  # "numpy" and "jax" are also supported!
+
+  if backend == "tensorflow":
+    import tensorflow as tf
+    tf.enable_v2_behavior()
+    dtype = tf.float64
+  elif backend == "jax":
+    from jax.config import config
+    config.update("jax_enable_x64", True)
+    import jax.numpy as np
+    dtype = np.float64
+  elif backend == "numpy":
+    import numpy as np
+    dtype = np.float64
+
+  ttn_1d_uniform.set_backend(backend)
+
   num_layers = 6
   max_bond_dim = 16
-  dtype = tf.complex128
   build_graphs = True
 
   num_sweeps = 1000

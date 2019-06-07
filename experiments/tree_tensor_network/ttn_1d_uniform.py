@@ -20,12 +20,128 @@ import sys
 import copy
 import math
 import time
-import numpy as np
-import scipy.linalg as spla
-
-import tensorflow as tf
-
 import tensornetwork
+
+
+def _set_backend(backend):
+  tensornetwork.set_default_backend(backend)
+  # TODO(amilsted): Do this differently. It's awful!
+  global np
+  global random_normal_mat
+  global conj
+  global adjoint
+  global build
+  global trace
+  global transpose
+  global reshape
+  global convert_to_tensor
+  global device
+  global cast
+  global zeros_like
+  global where
+  global reduce_max
+  global to_real
+  global eye
+  global diag
+  global sqrt
+  global matmul
+  global norm
+  global svd
+  global eigh
+  global eigvalsh
+  global to_numpy
+
+  if backend == "tensorflow":
+    import numpy as np
+    import scipy.linalg as spla
+    import tensorflow as tf
+    def random_normal_mat(D1, D2, dtype):
+      if dtype.is_complex:
+        A = tf.complex(
+          tf.random_normal((D1, D2), dtype=dtype.real_dtype),
+          tf.random_normal((D1, D2), dtype=dtype.real_dtype)) / math.sqrt(2)
+      else:
+        A = tf.random_normal((D1, D2), dtype=dtype)
+      return A
+    conj = tf.conj
+    adjoint = tf.linalg.adjoint
+    build = tf.contrib.eager.defun
+    trace = tf.trace
+    transpose = tf.transpose
+    reshape = tf.reshape
+    convert_to_tensor = tf.convert_to_tensor
+    device = tf.device
+    cast = tf.cast
+    zeros_like = tf.zeros_like
+    where = tf.where
+    reduce_max = tf.reduce_max
+    def to_real(x): return tf.cast(x, x.dtype.real_dtype)
+    eye = tf.eye
+    diag = tf.diag
+    sqrt = tf.sqrt
+    matmul = tf.matmul
+    norm = tf.norm
+    svd = tf.svd
+    svd_np = spla.svd
+    eigh = tf.linalg.eigh
+    eigvalsh = tf.linalg.eigvalsh
+    def to_numpy(x): return x.numpy()
+  elif backend == "numpy" or backend == "jax":
+    if backend == "numpy":
+      import numpy as np
+      np_nojax = np
+      import scipy.linalg as spla
+    else:
+      import numpy as np_nojax
+      import jax.numpy as np
+      import scipy.linalg as spla
+    import contextlib
+    def random_normal_mat(D1, D2, dtype):
+      if np_nojax.dtype(dtype).kind == 'c':
+        A = (np_nojax.random.randn(D1,D2) + 1.j * np_nojax.random.randn(D1,D2)) / math.sqrt(2)
+        A = np.asarray(A, dtype)
+      else:
+        A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
+      return A
+    conj = np.conj
+    adjoint = lambda x: np.conj(np.transpose(x))
+    if backend == "jax":
+      from jax import jit
+      build = jit
+    else: 
+      build = lambda x: x
+    trace = np.trace
+    transpose = np.transpose
+    reshape = np.reshape
+    convert_to_tensor = np.array
+    device = lambda x: contextlib.suppress()
+    cast = np.asarray
+    zeros_like = np.zeros_like
+    where = np.where
+    reduce_max = np.amax
+    to_real = np.real
+    eye = np.eye
+    diag = np.diag
+    sqrt = np.sqrt
+    def matmul(a, b, adjoint_b=False):
+      if adjoint_b:
+        return np.matmul(a, adjoint(b))
+      return np.matmul(a, b)
+    norm = np.linalg.norm
+    def svd(x):
+      u, s, vh = np.linalg.svd(x, full_matrices=False)
+      return s, u, adjoint(vh)
+    svd_np = spla.svd
+    eigh = np.linalg.eigh
+    eigvalsh = np.linalg.eigvalsh
+    def to_numpy(x): return np.asarray(x)
+  else:
+    raise ValueError("Unsupported backend: {}".format(backend))
+
+
+_set_backend("numpy")
+
+
 """
 Index ordering conventions:
 
@@ -60,7 +176,7 @@ def _complete_partial_ascend(iso_op, iso):
   """Complete a partial operator ascension performed by `_ascend_partial()`.
     This contracts with the conjugated isometry.
     Cost: D^4."""
-  return tensornetwork.ncon([tf.conj(iso), iso_op], [(-1, 0, 1), (-2, 0, 1)])
+  return tensornetwork.ncon([conj(iso), iso_op], [(-1, 0, 1), (-2, 0, 1)])
 
 
 def _ascend_op_2site_to_1site_partial(mpo_2site, iso_012, iso_021):
@@ -140,12 +256,12 @@ def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
 
   M = len(op2L)
 
-  iso_021_conj = tf.conj(iso_021)
+  iso_021_conj = conj(iso_021)
   op_asc_R = []
   for m in range(M):
     op_asc_R.append(_ascend(op2R[m], iso_021, iso_021_conj))
 
-  iso_012_conj = tf.conj(iso_012)
+  iso_012_conj = conj(iso_012)
   op_asc_L = []
   for m in range(M):
     op_asc_L.append(_ascend(op2L[m], iso_012, iso_012_conj))
@@ -159,7 +275,7 @@ def ascend_op_local(op_1site, mpo_2site, iso_012, iso_021):
   return op_1site, mpo_2site
 
 
-ascend_op_local_graph = tf.contrib.eager.defun(ascend_op_local)
+ascend_op_local_graph = build(ascend_op_local)
 
 
 def ascend_op_local_top(op_1site, mpo_2site, iso_012, iso_021):
@@ -168,7 +284,7 @@ def ascend_op_local_top(op_1site, mpo_2site, iso_012, iso_021):
   return op_1site
 
 
-ascend_op_local_top_graph = tf.contrib.eager.defun(ascend_op_local_top)
+ascend_op_local_top_graph = build(ascend_op_local_top)
 
 
 def ascend_op_local_many(op_1site, mpo_2site, isos):
@@ -192,7 +308,7 @@ def ascend_uniform_MPO_to_top(mpo_tensor_dense, isos_012):
     # NOTE: There is no attempt to be economical with transpose here!
     mpo_tensor_dense = tensornetwork.ncon(
         [isos_012[l],
-         tf.conj(isos_012[l]), mpo_tensor_dense, mpo_tensor_dense],
+         conj(isos_012[l]), mpo_tensor_dense, mpo_tensor_dense],
         [(-4, 2, 0), (-3, 3, 4), (1, -2, 4, 0), (-1, 1, 3, 2)])
   op = tensornetwork.ncon([mpo_tensor_dense], [(0, 0, -1, -2)])
   return op
@@ -204,7 +320,7 @@ def descend_state_1site_R(state_1site, iso_012):  #χ^4
     if `iso` has 021 ordering, this is a descent to the left.
     """
   return tensornetwork.ncon(
-      [iso_012, state_1site, tf.conj(iso_012)], [(1, 2, -1), (1, 0),
+      [iso_012, state_1site, conj(iso_012)], [(1, 2, -1), (1, 0),
                                                  (0, 2, -2)])
 
 
@@ -223,12 +339,12 @@ def correlations_2pt_1s(isos_012, op):
     raise ValueError("Operator must be a matrix.")
   nsites = 2**len(isos_012)
   states = all_states_1site_graph(isos_012)
-  expval_sq = tf.trace(states[0] @ op)**2
+  expval_sq = trace(states[0] @ op)**2
   twopoints = {}
   asc_ops = {0: op}
   for l in range(len(isos_012)):
     iso_012 = isos_012[l]
-    iso_021 = tf.transpose(iso_012, (0,2,1))
+    iso_021 = transpose(iso_012, (0,2,1))
     # Compute all two-point functions available at this level
     for (site1, asc_op1) in asc_ops.items():
       for (site2, asc_op2) in asc_ops.items():
@@ -238,7 +354,7 @@ def correlations_2pt_1s(isos_012, op):
           iso_021)
         site2 += 2**l
         twopoints[(site1, site2)] = (
-          tf.trace(asc_op12 @ states[l+1]) - expval_sq)
+          trace(asc_op12 @ states[l+1]) - expval_sq)
     if l < len(isos_012) - 1:
       asc_ops_new = {}
       for (site, asc_op) in asc_ops.items():
@@ -258,8 +374,8 @@ def correlations_2pt_1s(isos_012, op):
   for (dist, vals) in corr_func.items():
     corr_func[dist] = sum(vals) / len(vals)
   dists = sorted(corr_func.keys())
-  cf_transl_avg = tf.convert_to_tensor([corr_func[d] for d in dists])
-  cf_1 = tf.convert_to_tensor([twopoints[(0,i)] for i in range(1,nsites)])
+  cf_transl_avg = convert_to_tensor([corr_func[d] for d in dists])
+  cf_1 = convert_to_tensor([twopoints[(0,i)] for i in range(1,nsites)])
   return cf_transl_avg, cf_1
 
 
@@ -277,14 +393,14 @@ def _mpo_with_state(iso_012, iso_021, h_mpo_2site, state_1site):
 
   envL = [
       tensornetwork.ncon(
-          [state_1site, iso_021, h, tf.conj(iso_012)],
+          [state_1site, iso_021, h, conj(iso_012)],
           [(0, 2), (0, -1, 1), (3, 1), (2, 3, -2)])  # one transpose required
       for h in h2L
   ]
 
   envR = [
       tensornetwork.ncon(
-          [state_1site, iso_012, h, tf.conj(iso_021)],
+          [state_1site, iso_012, h, conj(iso_021)],
           [(0, 2), (0, -1, 1), (3, 1), (2, 3, -2)])  # one transpose required
       for h in h2R
   ]
@@ -384,10 +500,10 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
 
 
 def opt_energy_env_1site(iso_012, h_op_1site, h_mpo_2site, state_1site):
-  iso_021 = tf.transpose(iso_012, (0, 2, 1))
+  iso_021 = transpose(iso_012, (0, 2, 1))
   terms_012, terms_021 = _ascend_op_to_1site_partial(h_op_1site, h_mpo_2site,
                                                      iso_012, iso_021)
-  terms = terms_012 + tf.transpose(terms_021, (0, 2, 1))
+  terms = terms_012 + transpose(terms_021, (0, 2, 1))
   env = tensornetwork.ncon([state_1site, terms], [(0, -1), (0, -2, -3)])
   return env
 
@@ -408,34 +524,36 @@ def opt_energy_env(isos_012,
     env = env1 + env2
 
   if envsq_dtype is not None:
-    env = tf.cast(env, envsq_dtype)
+    env = cast(env, envsq_dtype)
 
-  env_sq = tensornetwork.ncon([env, tf.conj(env)], [(-1, 0, 1), (-2, 0, 1)])
+  env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 0, 1), (-2, 0, 1)])
   return env, env_sq
 
 
+opt_energy_env_graph = build(opt_energy_env)
+
+
 def _uinv_decomp(X_sq, cutoff=0.0, decomp_mode="eigh", decomp_device=None):
-  with tf.device(decomp_device):
+  with device(decomp_device):
     if decomp_mode == "svd":
       # hermitian, positive matrix, so eigvals = singular values
-      e, v, _ = tf.svd(X_sq)
+      e, v, _ = svd(X_sq)
     elif decomp_mode == "eigh":
-      e, v = tf.linalg.eigh(X_sq)
-      e = tf.cast(e,
-                  e.dtype.real_dtype)  # The values here should be real anyway
+      e, v = eigh(X_sq)
+      e = to_real(e)  # The values here should be real anyway
     else:
       raise ValueError("Invalid decomp_mode: {}".format(decomp_mode))
 
     # NOTE: Negative values are always due to precision problems.
     # NOTE: Inaccuracies here mean the final tensor is not exactly isometric!
-    e_pinvsqrt = tf.where(e <= cutoff, tf.zeros_like(e), 1 / tf.sqrt(e))
+    e_pinvsqrt = where(e <= cutoff, zeros_like(e), 1 / sqrt(e))
 
-    e_pinvsqrt_mat = tf.diag(tf.cast(e_pinvsqrt, v.dtype))
-    X_uinv = tf.matmul(v @ e_pinvsqrt_mat, v, adjoint_b=True)
+    e_pinvsqrt_mat = diag(cast(e_pinvsqrt, v.dtype))
+    X_uinv = matmul(v @ e_pinvsqrt_mat, v, adjoint_b=True)
   return X_uinv, e
 
 
-_uinv_decomp_graph = tf.contrib.eager.defun(_uinv_decomp)
+_uinv_decomp_graph = build(_uinv_decomp)
 
 
 def _energy_expval_env(isos_012, h_op_1site, h_mpo_2site, states_1site_above):
@@ -451,47 +569,44 @@ def _energy_expval_env(isos_012, h_op_1site, h_mpo_2site, states_1site_above):
     # NOTE: There are *two* environments for each Ham. term spanning two
     #       isometries. To get the correct energy we must divide env2 by 2.
   nsites = 2**(len(isos_012) - 1)
-  return tensornetwork.ncon([tf.conj(isos_012[0]), env], [(0, 1, 2),
+  return tensornetwork.ncon([conj(isos_012[0]), env], [(0, 1, 2),
                                                           (0, 1, 2)]) * nsites
-
-
-opt_energy_env_graph = tf.contrib.eager.defun(opt_energy_env)
 
 
 def _iso_from_svd(u, vh):
   return tensornetwork.ncon([u, vh], [(-1, 0), (0, -2, -3)])
 
 
-_iso_from_svd_graph = tf.contrib.eager.defun(_iso_from_svd)
+_iso_from_svd_graph = build(_iso_from_svd)
 
 
 def _iso_from_uinv(env, env_uinv):
   return tensornetwork.ncon([env_uinv, env], [(-1, 0), (0, -2, -3)])
 
 
-_iso_from_uinv_graph = tf.contrib.eager.defun(_iso_from_uinv)
+_iso_from_uinv_graph = build(_iso_from_uinv)
 
 
 def _iso_from_svd_decomp(env, decomp_device=None):
-  with tf.device(decomp_device):
-    env_r = tf.reshape(env, (env.shape[0], -1))
-    s, u, v = tf.svd(env_r)
-    vh = tf.linalg.adjoint(v)
-    vh = tf.reshape(vh, (vh.shape[0], env.shape[1], env.shape[2]))
+  with device(decomp_device):
+    env_r = reshape(env, (env.shape[0], -1))
+    s, u, v = svd(env_r)
+    vh = adjoint(v)
+    vh = reshape(vh, (vh.shape[0], env.shape[1], env.shape[2]))
     return u, s, vh
 
 
-_iso_from_svd_decomp_graph = tf.contrib.eager.defun(_iso_from_svd_decomp)
+_iso_from_svd_decomp_graph = build(_iso_from_svd_decomp)
 
 
 def _iso_from_svd_decomp_scipy(env):
-  env = env.numpy()
+  env = to_numpy(env)
   env_r = env.reshape((env.shape[0], -1))
-  u, s, vh = spla.svd(env_r, full_matrices=False)
-  u = tf.convert_to_tensor(u)
-  s = tf.convert_to_tensor(s)
+  u, s, vh = svd_np(env_r, full_matrices=False)
+  u = convert_to_tensor(u)
+  s = convert_to_tensor(s)
   vh = vh.reshape((vh.shape[0], env.shape[1], env.shape[2]))
-  vh = tf.convert_to_tensor(vh)
+  vh = convert_to_tensor(vh)
   return u, s, vh
 
 
@@ -547,13 +662,13 @@ def opt_energy_layer_once(isos_012,
       iso_012_new = _iso_from_uinv(env, env_uinv)
 
   if envsq_dtype is not None:
-    iso_012_new = tf.cast(iso_012_new, dtype)
+    iso_012_new = cast(iso_012_new, dtype)
   t_decomp = time.time() - t0
 
   return iso_012_new, s, t_env, t_decomp
 
 
-opt_energy_layer_once_graph = tf.contrib.eager.defun(opt_energy_layer_once)
+opt_energy_layer_once_graph = build(opt_energy_layer_once)
 
 
 def opt_energy_layer(isos_012,
@@ -601,24 +716,24 @@ def opt_energy_layer(isos_012,
 
 
 def all_states_1site(isos_012):
-  states = [tf.eye(isos_012[-1].shape[0], dtype=isos_012[0][0].dtype)]
+  states = [eye(isos_012[-1].shape[0], dtype=isos_012[0][0].dtype)]
   for l in reversed(range(len(isos_012))):
-    iso_021 = tf.transpose(isos_012[l], (0, 2, 1))
+    iso_021 = transpose(isos_012[l], (0, 2, 1))
     states.insert(0, descend_state_1site(states[0], isos_012[l], iso_021))
   return states
 
 
-all_states_1site_graph = tf.contrib.eager.defun(all_states_1site)
+all_states_1site_graph = build(all_states_1site)
 
 
 def entanglement_specs_1site(isos_012):
   specs = []
-  state = tf.eye(isos_012[-1].shape[0], dtype=isos_012[0][0].dtype)
+  state = eye(isos_012[-1].shape[0], dtype=isos_012[0][0].dtype)
   for l in reversed(range(len(isos_012))):
-    iso_021 = tf.transpose(isos_012[l], (0, 2, 1))
+    iso_021 = transpose(isos_012[l], (0, 2, 1))
     state = descend_state_1site(state, isos_012[l], iso_021)
-    e = tf.linalg.eigvalsh(state)
-    e = tf.cast(e, e.dtype.real_dtype)
+    e = eigvalsh(state)
+    e = to_real(e)
     specs.insert(0, e)
   return specs
 
@@ -626,7 +741,7 @@ def entanglement_specs_1site(isos_012):
 def entropies_from_specs(specs):
   entropies = []
   for (i, spec) in enumerate(specs):
-    spec = spec.numpy()
+    spec = to_numpy(spec)
     x = spec * np.log2(spec)
     x[np.isnan(x)] = 0.0  # ignore zero or negative eigenvalues
     S = -np.sum(x)
@@ -634,17 +749,10 @@ def entropies_from_specs(specs):
   return entropies
 
 
-def random_isometry(D1, D2, dtype=tf.complex64):
+def random_isometry(D1, D2, dtype):
   assert D1 <= D2
-  if dtype.is_complex:
-    A = tf.complex(
-        tf.random_normal((D1, D2), dtype=dtype.real_dtype),
-        tf.random_normal((D1, D2), dtype=dtype.real_dtype)) / math.sqrt(2)
-  else:
-    A = tf.random_normal((D1, D2), dtype=dtype)
-
-  A_inv, _ = _uinv_decomp(tf.matmul(A, A, adjoint_b=True))
-
+  A = random_normal_mat(D1, D2, dtype)
+  A_inv, _ = _uinv_decomp(matmul(A, A, adjoint_b=True))
   return A_inv @ A
 
 
@@ -654,10 +762,10 @@ def random_tree_tn_uniform(Ds, dtype, top_rank=1):
   isos = []
   for j in range(num_layers):
     if Ds[j + 1] == Ds[j]**2:
-      iso = tf.eye(Ds[j + 1], dtype=dtype)
+      iso = eye(Ds[j + 1], dtype=dtype)
     else:
       iso = random_isometry(Ds[j + 1], Ds[j]**2, dtype)
-    iso = tf.reshape(iso, (Ds[j + 1], Ds[j], Ds[j]))
+    iso = reshape(iso, (Ds[j + 1], Ds[j], Ds[j]))
     isos.append(iso)
   return isos
 
@@ -676,28 +784,23 @@ def expand_bonds(isos, new_Ds, new_top_rank=None):
   for i in range(len(isos)):
     # Absorb dimension-expanding isometries on indices as needed
     if old_Ds[i + 1] != new_Ds[i + 1]:
-      v = random_isometry(old_Ds[i + 1], new_Ds[i + 1], dtype=isos_new[i].dtype)
+      v = random_isometry(old_Ds[i + 1], new_Ds[i + 1], isos_new[i].dtype)
       isos_new[i] = tensornetwork.ncon([v, isos_new[i]], [(0, -1), (0, -2, -3)])
       if i + 1 < len(isos):
         isos_new[i + 1] = tensornetwork.ncon(
-            [tf.conj(v), tf.conj(v), isos_new[i + 1]], [(0, -2), (1, -3),
+            [conj(v), conj(v), isos_new[i + 1]], [(0, -2), (1, -3),
                                                         (-1, 0, 1)])
   return isos_new
 
 
 def random_herm(D, dtype):
-  if dtype.is_complex:
-    h = tf.complex(
-        tf.random_normal((D, D), dtype=dtype.real_dtype),
-        tf.random_normal((D, D), dtype=dtype.real_dtype))
-  else:
-    h = tf.random_normal((D, D), dtype=dtype)
-  return 0.5 * (h + tf.linalg.adjoint(h))
+  h = random_normal_mat(D, D, dtype)
+  return 0.5 * (h + adjoint(h))
 
 
 def check_iso(iso):
-  sq = tensornetwork.ncon([iso, tf.conj(iso)], [(-1, 0, 1), (-2, 0, 1)])
-  return tf.norm(sq - tf.eye(sq.shape[0], dtype=sq.dtype))
+  sq = tensornetwork.ncon([iso, conj(iso)], [(-1, 0, 1), (-2, 0, 1)])
+  return norm(sq - eye(sq.shape[0], dtype=sq.dtype))
 
 
 def shift_ham(H, shift="auto"):
@@ -706,19 +809,19 @@ def shift_ham(H, shift="auto"):
   dtype = h1.dtype
 
   if shift == "auto":
-    e1 = tf.reduce_max(tf.cast(tf.linalg.eigvalsh(h1), dtype.real_dtype))
+    e1 = reduce_max(to_real(eigvalsh(h1)))
 
     h2 = sum([
         tensornetwork.ncon([hl, hr], [(-1, -3), (-2, -4)])
         for (hl, hr) in zip(h2L, h2R)
     ])
-    h2 = tf.reshape(h2, (D**2, D**2))
-    e2 = tf.reduce_max(tf.cast(tf.linalg.eigvalsh(h2), dtype.real_dtype))
+    h2 = reshape(h2, (D**2, D**2))
+    e2 = reduce_max(to_real(eigvalsh(h2)))
 
-    shift = tf.cast(e1 + e2, dtype)
+    shift = cast(e1 + e2, dtype)
 
   if shift != 0.0:
-    H = (h1 - shift * tf.eye(D, dtype=dtype), (h2L, h2R))
+    H = (h1 - shift * eye(D, dtype=dtype), (h2L, h2R))
 
   return H, shift
 
@@ -728,7 +831,7 @@ def _full_ham_top(H):
   D = h1.shape[0]
   dtype = h1.dtype
 
-  E = tf.eye(D, dtype=dtype)
+  E = eye(D, dtype=dtype)
 
   fullH = tensornetwork.ncon([h1, E], [(-1, -3), (-2, -4)])
   fullH += tensornetwork.ncon([E, h1], [(-1, -3), (-2, -4)])
@@ -737,7 +840,7 @@ def _full_ham_top(H):
   for (hl, hr) in zip(h2R, h2L):
     fullH += tensornetwork.ncon([hl, hr], [(-1, -3), (-2, -4)])
 
-  return tf.reshape(fullH, (D**2, D**2))
+  return reshape(fullH, (D**2, D**2))
 
 
 def _dense_ham_term(H):
@@ -745,7 +848,7 @@ def _dense_ham_term(H):
   D = h1.shape[0]
   dtype = h1.dtype
 
-  E = tf.eye(D, dtype=dtype)
+  E = eye(D, dtype=dtype)
 
   h = tensornetwork.ncon([h1, E], [(-1, -3), (-2, -4)])
   for (hl, hr) in zip(h2L, h2R):
@@ -755,7 +858,7 @@ def _dense_ham_term(H):
 
 
 def isos_with_transposes(isos_012):
-  return list(zip(isos_012, [tf.transpose(w, (0, 2, 1)) for w in isos_012]))
+  return list(zip(isos_012, [transpose(w, (0, 2, 1)) for w in isos_012]))
 
 
 def opt_tree_energy(isos_012,
@@ -804,7 +907,7 @@ def opt_tree_energy(isos_012,
     Returns:
         isos_012: The optimized tensors of the tree tensor network.
     """
-  with tf.device(decomp_device):
+  with device(decomp_device):
     H, shift = shift_ham(H, ham_shift)
   print("Hamiltonian shift:", shift)
 
@@ -817,9 +920,9 @@ def opt_tree_energy(isos_012,
     if shp[0] == shp[1] * shp[2]:
       if graphed:
         H = ascend_op_local_graph(*H, isos_012[l],
-                                  tf.transpose(isos_012[l], (0, 2, 1)))
+                                  transpose(isos_012[l], (0, 2, 1)))
       else:
-        H = ascend_op_local(*H, isos_012[l], tf.transpose(
+        H = ascend_op_local(*H, isos_012[l], transpose(
             isos_012[l], (0, 2, 1)))
       bottom = l + 1
     else:
@@ -857,27 +960,27 @@ def opt_tree_energy(isos_012,
       if l < L - 1:
         if graphed:
           Hl = ascend_op_local_graph(*Hl, isos_012[l],
-                                     tf.transpose(isos_012[l], (0, 2, 1)))
+                                     transpose(isos_012[l], (0, 2, 1)))
         else:
           Hl = ascend_op_local(*Hl, isos_012[l],
-                               tf.transpose(isos_012[l], (0, 2, 1)))
+                               transpose(isos_012[l], (0, 2, 1)))
 
     if graphed:
       H_top = ascend_op_local_top_graph(*Hl, isos_012[-1],
-                                        tf.transpose(isos_012[-1], (0, 2, 1)))
+                                        transpose(isos_012[-1], (0, 2, 1)))
     else:
       H_top = ascend_op_local_top(*Hl, isos_012[-1],
-                                  tf.transpose(isos_012[-1], (0, 2, 1)))
-    en = tf.trace(H_top) / (2**L) + shift * H_top.shape[0]
+                                  transpose(isos_012[-1], (0, 2, 1)))
+    en = trace(H_top) / (2**L) + shift * H_top.shape[0]
 
     tes_sweep = tes_sweep / (L + 1 - bottom)
     tds_sweep = tds_sweep / (L + 1 - bottom)
 
     if verbose > 0:
-      minsv = np.min([sv.numpy().min() for sv in svs[bottom:]])
+      minsv = np.min([to_numpy(sv).min() for sv in svs[bottom:]])
       print("sweeps: {}, energy density: {}, min_sv: {}, run-time: {}".format(
           j,
-          en.numpy().real, minsv,
+          to_numpy(en).real, minsv,
           time.time() - t0))
 
     if callback is not None:
@@ -899,15 +1002,15 @@ def tree_energy_expval_check(isos_012, H):
     en = _energy_expval_env(isos_012[l:], *Hl, states[l + 1:])
     ens.append(en / (2**L))
     if l < L - 1:
-      Hl = ascend_op_local(*Hl, isos_012[l], tf.transpose(
+      Hl = ascend_op_local(*Hl, isos_012[l], transpose(
           isos_012[l], (0, 2, 1)))
 
   H_top = ascend_op_local_top(*Hl, isos_012[-1],
-                              tf.transpose(isos_012[-1], (0, 2, 1)))
-  en = tf.trace(H_top)
+                              transpose(isos_012[-1], (0, 2, 1)))
+  en = trace(H_top)
   ens.append(en / (2**L))
 
-  return tf.convert_to_tensor(ens)
+  return convert_to_tensor(ens)
 
 
 def descend_full_state_pure(isos_012):
@@ -918,7 +1021,7 @@ def descend_full_state_pure(isos_012):
   nisos = []
 
   iso_top = isos_012[-1]
-  iso_top = tf.reshape(iso_top, iso_top.shape[1:])
+  iso_top = reshape(iso_top, iso_top.shape[1:])
 
   niso = tree.add_node(
       iso_top,
@@ -947,8 +1050,8 @@ def descend_full_state_pure(isos_012):
 
 
 def get_ham_ising(dtype):
-  X = tf.convert_to_tensor([[0.0, 1.0], [1.0, 0.0]], dtype=dtype)
-  Z = tf.convert_to_tensor([[1.0, 0.0], [0.0, -1.0]], dtype=dtype)
+  X = convert_to_tensor([[0.0, 1.0], [1.0, 0.0]], dtype=dtype)
+  Z = convert_to_tensor([[1.0, 0.0], [0.0, -1.0]], dtype=dtype)
   h_mpo_2site = ([-X], [X])
   h1 = -Z
   return h1, h_mpo_2site
@@ -970,10 +1073,10 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
   h2 = [-J * mp(U, k) for k in range(1, q)], [mp(U, q - k) for k in range(1, q)]
   h1 = -h * sum(mp(V, k) for k in range(1, q))
 
-  h1 = tf.convert_to_tensor(h1, dtype=dtype)
+  h1 = convert_to_tensor(h1, dtype=dtype)
   h2 = (
-      [tf.convert_to_tensor(h, dtype=dtype) for h in h2[0]],
-      [tf.convert_to_tensor(h, dtype=dtype) for h in h2[1]],
+      [convert_to_tensor(h, dtype=dtype) for h in h2[0]],
+      [convert_to_tensor(h, dtype=dtype) for h in h2[1]],
   )
 
   return h1, h2
@@ -992,11 +1095,34 @@ def get_ham_ising_tube(dtype, Ly, lam=-3.044):
       for i in range(Ly)
   ]
 
-  Xcol = [tf.convert_to_tensor(Xc, dtype=dtype) for Xc in Xcol]
-  Zcol = [tf.convert_to_tensor(Zc, dtype=dtype) for Zc in Zcol]
+  Xcol = [convert_to_tensor(Xc, dtype=dtype) for Xc in Xcol]
+  Zcol = [convert_to_tensor(Zc, dtype=dtype) for Zc in Zcol]
 
   h1 = lam * sum(Zcol) - sum(Xcol[i] @ Xcol[(i + 1) % Ly] for i in range(Ly))
 
   h_mpo_2site = ([-Xc for Xc in Xcol], Xcol)
 
   return h1, h_mpo_2site
+
+
+def set_backend(backend):
+  _set_backend(backend)
+
+  global ascend_op_local_graph
+  global ascend_op_local_top_graph
+  global opt_energy_layer_once_graph
+  global _uinv_decomp_graph
+  global opt_energy_env_graph
+  global _iso_from_svd_graph
+  global _iso_from_uinv_graph
+  global _iso_from_svd_decomp_graph
+  global all_states_1site_graph
+  ascend_op_local_graph = build(ascend_op_local)
+  ascend_op_local_top_graph = build(ascend_op_local_top)
+  opt_energy_layer_once_graph = build(opt_energy_layer_once)
+  _uinv_decomp_graph = build(_uinv_decomp)
+  opt_energy_env_graph = build(opt_energy_env)
+  _iso_from_svd_graph = build(_iso_from_svd)
+  _iso_from_uinv_graph = build(_iso_from_uinv)
+  _iso_from_svd_decomp_graph = build(_iso_from_svd_decomp)
+  all_states_1site_graph = build(all_states_1site)
