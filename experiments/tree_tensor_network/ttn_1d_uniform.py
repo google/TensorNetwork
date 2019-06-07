@@ -992,6 +992,18 @@ def opt_tree_energy(isos_012,
   return isos_012
 
 
+def top_hamiltonian(isos_012, H):
+  L = len(isos_012)
+  for l in range(L - 1):
+    H = ascend_op_local(
+      *H, isos_012[l], transpose(isos_012[l], (0, 2, 1)))
+
+  H = ascend_op_local_top(
+    *H, isos_012[-1], transpose(isos_012[-1], (0, 2, 1)))
+  
+  return H
+
+
 def tree_energy_expval_check(isos_012, H):
   L = len(isos_012)
   states = all_states_1site(isos_012)
