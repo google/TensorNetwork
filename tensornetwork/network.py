@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
+# pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
 import weakref
