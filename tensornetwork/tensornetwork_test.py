@@ -984,3 +984,22 @@ def test_contract_copy_node_connected_neighbors(backend):
 def test_bad_backend():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork("NOT_A_BACKEND")
+
+def test_remove_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"])
+  b = net.add_node(np.ones((2, 2)))
+  c = net.add_node(np.ones((2, 2)))
+  net.connect(a["test"], b[0])
+  net.connect(a[1], c[0])
+  broken_edges = net.remove_node(a)
+  assert "test" in broken_edges
+  assert broken_edges["test"] is b[0]
+  assert "names" in broken_edges
+  assert broken_edges["names"] is c[0]
+  assert "ignore" not in broken_edges
+  assert 0 in broken_edges
+  assert 1 in broken_edges
+  assert 2 not in broken_edges
+  assert broken_edges[0] is b[0]
+  assert broken_edges[1] is c[0]
