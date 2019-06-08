@@ -993,6 +993,7 @@ def test_remove_node(backend):
   net.connect(a["test"], b[0])
   net.connect(a[1], c[0])
   broken_edges = net.remove_node(a)
+  assert a not in net
   assert "test" in broken_edges
   assert broken_edges["test"] is b[0]
   assert "names" in broken_edges

@@ -935,6 +935,7 @@ class TensorNetwork:
         new_broken_edge = edge1 if edge1.node1 is not node else edge2
         broken_edges[i] = new_broken_edge
         broken_edges[name] = new_broken_edge
+    self.nodes_set.remove(node)
     return broken_edges
 
 
