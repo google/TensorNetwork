@@ -8,6 +8,9 @@ For an overview of tensor networks please see the following:
 
 - [Matrices as Tensor Network Diagrams](https://www.math3ma.com/blog/matrices-as-tensor-network-diagrams)
 
+
+- [Crash Course in Tensor Networks (video)](https://www.youtube.com/watch?v=YN2YBB0viKo)
+
 - [Hand-waving and interpretive dance: an introductory course on tensor networks](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
 
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
@@ -22,7 +25,7 @@ pip3 install tensornetwork
 
 This will create a Docker image containing TensorNetwork. It will isolate a TensorNetwork installation from the rest of the system.
 
-1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host sytem.
+1. [Install Docker](https://docs.docker.com/install/#supported-platforms) on your host system.
 
 2. Build the docker image for your system:
 ```bash
@@ -89,7 +92,7 @@ e2 = net.connect(b[1], a[1])
 e3 = net.connect(a[2], b[2])
 
 flattened_edge = net.flatten_edges([e1, e2, e3])
-print(net.contract(flattned_edge).get_tensor().numpy())
+print(net.contract(flattened_edge).get_tensor().numpy())
 ```
 We also have `contract_between` and `contract_parallel` for your convenience. 
 
@@ -106,7 +109,7 @@ You can split a node by doing a singular value decomposition.
 ```python
 # This will return two nodes and a tensor of the truncation error.
 # The two nodes are the unitary matricies multiplied by the square root of the
-# singluar values.
+# singular values.
 # The `left_edges` are the edges that will end up on the `u_s` node, and `right_edges`
 # will be on the `vh_s` node.
 u_s, vh_s, trun_error = net.split_node(node, left_edges, right_edges)
