@@ -8,6 +8,9 @@ For an overview of tensor networks please see the following:
 
 - [Matrices as Tensor Network Diagrams](https://www.math3ma.com/blog/matrices-as-tensor-network-diagrams)
 
+
+- [Crash Course in Tensor Networks (video)](https://www.youtube.com/watch?v=YN2YBB0viKo)
+
 - [Hand-waving and interpretive dance: an introductory course on tensor networks](https://iopscience.iop.org/article/10.1088/1751-8121/aa6dc3)
 
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
