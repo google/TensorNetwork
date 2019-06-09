@@ -1004,3 +1004,17 @@ def test_remove_node(backend):
   assert 2 not in broken_edges
   assert broken_edges[0] is b[0]
   assert broken_edges[1] is c[0]
+
+def test_remove_node_trace_edge(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)))
+  b = net.add_node(np.ones(2))
+  net.connect(a[0], b[0])
+  net.connect(a[1], a[2])
+  broken_edges = net.remove_node(a)
+  assert 0 in broken_edges
+  assert 1 not in broken_edges
+  assert 2 not in broken_edges
+  assert broken_edges[0] is b[0]
+
+  
