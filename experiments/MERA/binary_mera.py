@@ -110,6 +110,7 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
                                                  noises, opt_all_layers):
         energies = []
         walltimes = []
+
         if not init:
             if which in ('a', 'add'):
                 wC, uC = bml.unlock_layer(wC, uC, noise=noise)
@@ -388,6 +389,9 @@ def run_optimization_benchmark(filename,
             pickle.dump([wC, uC], f)
 
     return walltimes
+
+
+
 
 
 if __name__ == "__main__":

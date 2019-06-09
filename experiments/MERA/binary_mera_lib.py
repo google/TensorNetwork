@@ -1548,6 +1548,7 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
     return wC, uC, rho / misc_mera.trace(rho)
 
 
+
 def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
     """
     initialize a binary MERA network of bond dimension `chi`

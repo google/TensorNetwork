@@ -34,7 +34,6 @@ def trace(rho):
     out = net.contract_parallel(edges[0])
     return out.get_tensor()
 
-
 @tf.contrib.eager.defun
 def symmetrize(rho):
     """
@@ -49,7 +48,6 @@ def symmetrize(rho):
     inds_2 = [n + dim for n in range(dim)]
     indices = inds_2 + inds_1
     return 1 / 2 * (rho + tf.conj(tf.transpose(rho, indices)))
-
 
 
 @tf.contrib.eager.defun
@@ -119,7 +117,6 @@ def w_update_svd(wIn):
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
     return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
 
-
 def w_update_svd_numpy(wIn):
     """
     obtain the update to the isometry using numpy svd
@@ -129,9 +126,9 @@ def w_update_svd_numpy(wIn):
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
-
 def skip_layer(isometry):
     if isometry.shape[2] >= (isometry.shape[0] * isometry.shape[1]):
         return True
     else:
         return False
+

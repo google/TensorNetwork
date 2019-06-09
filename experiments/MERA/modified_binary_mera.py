@@ -381,9 +381,9 @@ if __name__ == "__main__":
         #                                   'numiter' : 5}}
         benchmarks = {
             'optimize': {
-                'chis': [6, 8, 10, 12],
-                'numiters': [2000, 2000, 2000, 1400],
-                'embeddings': ['p', 'a', 'a', 'p'],
+                'chis': [4,6],
+                'numiters': [2000, 2000],
+                'embeddings': ['p', 'a'],
                 'dtype': tf.float64,
                 'refsym': True
             }
