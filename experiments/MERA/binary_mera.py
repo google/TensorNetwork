@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-NUM_THREADS = 4
+NUM_THREADS = 1
 import os
 os.environ['OMP_NUM_THREADS'] = str(NUM_THREADS)
 os.environ["KMP_BLOCKTIME"] = "0"
@@ -24,6 +24,7 @@ os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
 
 import tensorflow as tf
 import copy
+import datetime
 import numpy as np
 import time
 import pickle
@@ -497,20 +498,20 @@ if __name__ == "__main__":
                 'dtype': tf.float64,
                 'num_layers': 10
             },
-            'u_env': {
+            'u_env1': {
                 'chis': [10],
                 'dtype': tf.float64,
                 'num_steps': 100
             },
             
-            'optimize_naive_1': {
-                'chis': [16],
+            'optimize_naive': {
+                'chis': [12, 14, 16],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
                 'numpy_update': True,
                 'nsteps_steady_state': 10,
-                'numiter': 10
+                'numiter': 20
             },
             'optimize_1': {
                 'chis': [4, 6, 8],
@@ -521,7 +522,8 @@ if __name__ == "__main__":
                 'dtype': tf.float64
             }
         }
-
+        date = datetime.date
+        today = str(date.today())
         use_gpu = True  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
@@ -532,10 +534,10 @@ if __name__ == "__main__":
         GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
         if use_gpu:
             specified_device_type = GPU
-            name = 'GPU'
+            name = today + 'GPU'
         else:
             specified_device_type = CPU
-            name = 'CPU'
+            name = today + 'CPU'
 
         if 'ascend' in benchmarks:
             filename = name + 'binary_mera_ascending_benchmark'
