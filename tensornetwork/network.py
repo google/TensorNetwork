@@ -924,10 +924,10 @@ class TensorNetwork:
       node: The node to be removed.
 
     Returns:
-      broken_edges_by_name: A Dictionary mapping `node`'s axis names 
+      broken_edges_by_name: A Dictionary mapping `node`'s axis names to
         the newly broken edges.
-      broken_edges_by_axis: A Dictionary mapping `node`'s integer axis 
-        values to the newly broken edges.
+      broken_edges_by_axis: A Dictionary mapping `node`'s axis numbers
+        to the newly broken edges.
 
     Raises:
       ValueError: If the node isn't in the network.
