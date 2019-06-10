@@ -34,7 +34,7 @@ from sys import stdout
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
-tf.enable_eager_execution()
+tf.enable_eager_execution(config)
 tf.enable_v2_behavior()
 
 
