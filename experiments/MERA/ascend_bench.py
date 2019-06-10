@@ -2,25 +2,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-NUM_THREADS = 4
-import os
-os.environ['OMP_NUM_THREADS'] = str(NUM_THREADS)
-os.environ["KMP_BLOCKTIME"] = "0"
-os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
-
 import tensorflow as tf
-import copy
-import numpy as np
 import time
-import pickle
 import tensornetwork as tn
-import experiments.MERA.binary_mera_lib as bml
-import experiments.MERA.misc_mera as misc_mera
+import numpy as np
 from sys import stdout
-config = tf.ConfigProto()
-config.intra_op_parallelism_threads = NUM_THREADS
-config.inter_op_parallelism_threads = 1
-tf.enable_eager_execution(config)
+tf.enable_eager_execution()
 tf.enable_v2_behavior()
 
 @tf.contrib.eager.defun
@@ -191,104 +178,35 @@ def ascending_super_operator(ham, isometry, unitary):
         ham, isometry, unitary) + right_ascending_super_operator(
             ham, isometry, unitary)
 
-def benchmark_ascending_operator(ham, w, u, num_layers):
-    """
-    run benchmark for ascending super operator
-    Args: 
-        rhoab (tf.Tensor):  reduced densit matrix on a-b lattice
-        rhoba (tf.Tensor):  reduced densit matrix on b-a lattice
-        w   (tf.Tensor):  isometry
-        v   (tf.Tensor):  isometry
-        u   (tf.Tensor):  disentangler
-        num_layers(int):  number of layers over which to descend the hamiltonian
-    Returns:
-        runtime (float):  the runtime
-    """
-    walltimes = []
-    for t in range(num_layers):
-        t1 = time.time()        
-        ham = bml.ascending_super_operator(ham, w, u)
-        walltimes.append(time.time() - t1)
-    return walltimes
-
-
-
-def run_ascending_operator_benchmark(chis=[4, 6, 8, 10, 12],
-                                     num_layers=1,
-                                     dtype=tf.float64,
-                                     device=None):
-    """
-    run ascending operators benchmarks and save benchmark data in `filename`
-    Args:
-        chis (list):  list of bond dimensions for which to run the benchmark
-        num_layers (int): number of layers over which to ascend an operator 
-        dtype (tensorflow dtype): dtype to be used for the benchmark
-        device (str):             device on  which the benchmark should be run
-    Returns: 
-       dict:  dictionary containing the walltimes
-              key 'warmup' contains warmup (i.e. first run) runtimes
-              key 'profile' contains subsequent runtimes
-    """
-
-    walltimes = {}
-    for chi in chis:
-        print('running ascending-operator benchmark for chi = {0} benchmark'.
-              format(chi))
-        with tf.device(device):
-            w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
-            u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
-            ham = tf.random_uniform(
-                shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
-            walltimes[chi] = benchmark_ascending_operator(
-                ham, w, u, num_layers)
-            print('wallties for chi {0}:  {1}'.format(chi, walltimes[chi]))
-
-    return walltimes
-
 if __name__ == "__main__":
     """
     run benchmarks for a scale-invariant binary MERA optimization
     benchmark results are stored in disc
     """
-    if not tf.executing_eagerly():
-        pass
-
+    use_gpu = True  #use True when running on GPU
+    #list available devices
+    DEVICES = tf.contrib.eager.list_devices()
+    print("Available devices:")
+    for i, device in enumerate(DEVICES):
+        print("%d) %s" % (i, device))
+    CPU = '/device:CPU:0'
+    GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
+    if use_gpu:
+        specified_device_type = GPU
+        name = 'GPU'
     else:
-        benchmarks = {
-            'ascend': {
-                'chis': [6],
-                'dtype': tf.float64,
-                'num_layers': 100
-            },
-        }
-        use_gpu = False  #use True when running on GPU
-        #list available devices
-        DEVICES = tf.contrib.eager.list_devices()
-        print("Available devices:")
-        for i, device in enumerate(DEVICES):
-            print("%d) %s" % (i, device))
-        CPU = '/device:CPU:0'
-        GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
-        if use_gpu:
-            specified_device_type = GPU
-            name = 'GPU'
-        else:
-            specified_device_type = CPU
-            name = 'CPU'
+        specified_device_type = CPU
+        name = 'CPU'
+    chi = 16
+    dtype = tf.float64
+    with tf.device(specified_device_type):        
+        w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
+        u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
+        ham = tf.random_uniform(
+            shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
 
-        if 'ascend' in benchmarks:
-            filename = name + 'binary_mera_ascending_benchmark'
-            for key, val in benchmarks['ascend'].items():
-                if hasattr(val, 'name'):
-                    val = val.name
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
+        for t in range(100):
+            t1 = time.time()        
+            ascending_super_operator(ham, w, u)
+            print(time.time() - t1)
 
-            fname = 'ascending_benchmarks'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-            os.chdir(fname)
-            run_ascending_operator_benchmark(
-                device=specified_device_type, **benchmarks['ascend'])
-
-            
