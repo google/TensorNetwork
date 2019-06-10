@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import time
-import tensornetwork as tn
+import ncon_martin as ncon
 import numpy as np
 from sys import stdout
 tf.enable_eager_execution()
@@ -26,7 +26,7 @@ def left_ascending_super_operator(ham, isometry, unitary):
 
     inds_right_ham = [3, 4, 8, 1, 2, 6]
 
-    hright = tn.ncon([
+    hright = ncon.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
@@ -56,7 +56,7 @@ def right_ascending_super_operator(ham, isometry, unitary):
     inds_left_iso_r_c = [17, 15, -3]
     inds_left_ham = [9, 3, 4, 6, 1, 2]
 
-    hleft = tn.ncon([
+    hleft = ncon.ncon([
         isometry, isometry, isometry,
         tf.conj(isometry),
         tf.conj(isometry),
