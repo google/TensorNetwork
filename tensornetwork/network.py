@@ -922,22 +922,26 @@ class TensorNetwork:
       node: The node to be removed.
 
     Returns:
-      A dictonary mapping name/index to the new broken edge.
+      broken_edges_by_name: A Dictionary mapping `node`'s axis names 
+        the newly broken edges.
+      broken_edges_by_axis: A Dictionary mapping `node`'s integer axis 
+        values to the newly broken edges.
 
     Raises:
       ValueError: If the node isn't in the network.
     """
     if node not in self:
       raise ValueError("Node '{}' is not in the network.".format(node))
-    broken_edges = {}
+    broken_edges_by_name = {}
+    broken_edges_by_axis = {}
     for i, name in enumerate(node.axis_names):
       if not node[i].is_dangling() and not node[i].is_trace():
         edge1, edge2 = self.disconnect(node[i])
         new_broken_edge = edge1 if edge1.node1 is not node else edge2
-        broken_edges[i] = new_broken_edge
-        broken_edges[name] = new_broken_edge
+        broken_edges_by_axis[i] = new_broken_edge
+        broken_edges_by_name[name] = new_broken_edge
     self.nodes_set.remove(node)
-    return broken_edges
+    return broken_edges_by_name, broken_edges_by_axis
 
 
   def check_correct(self, check_connected: bool = True) -> None:
