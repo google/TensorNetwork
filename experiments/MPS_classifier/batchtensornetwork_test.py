@@ -16,16 +16,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import batchtensornetwork
 import pytest
 import numpy as np
 import tensorflow as tf
+from experiments.MPS_classifier import batchtensornetwork
 
 tf.enable_v2_behavior()
 
 
 @pytest.fixture(
-  name="backend", params=["numpy", "tensorflow"])
+  name="backend", params=["numpy", "tensorflow", "jax"])
 def backend_fixure(request):
     return request.param
 
