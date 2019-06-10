@@ -17,7 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
-from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type
+# pylint: disable=line-too-long
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
 import weakref
 from tensornetwork import config
@@ -912,6 +913,38 @@ class TensorNetwork:
     self.connect(singular_values_node[1], right_node[0])
     self.nodes_set.remove(node)
     return left_node, singular_values_node, right_node, trun_vals
+
+  def remove_node(self, node: network_components.Node
+    ) -> Tuple[
+      Dict[Text, network_components.Edge],
+      Dict[int, network_components.Edge]]:
+    """Remove a node from the network.
+
+    Args:
+      node: The node to be removed.
+
+    Returns:
+      broken_edges_by_name: A Dictionary mapping `node`'s axis names 
+        the newly broken edges.
+      broken_edges_by_axis: A Dictionary mapping `node`'s integer axis 
+        values to the newly broken edges.
+
+    Raises:
+      ValueError: If the node isn't in the network.
+    """
+    if node not in self:
+      raise ValueError("Node '{}' is not in the network.".format(node))
+    broken_edges_by_name = {}
+    broken_edges_by_axis = {}
+    for i, name in enumerate(node.axis_names):
+      if not node[i].is_dangling() and not node[i].is_trace():
+        edge1, edge2 = self.disconnect(node[i])
+        new_broken_edge = edge1 if edge1.node1 is not node else edge2
+        broken_edges_by_axis[i] = new_broken_edge
+        broken_edges_by_name[name] = new_broken_edge
+    self.nodes_set.remove(node)
+    return broken_edges_by_name, broken_edges_by_axis
+
 
   def check_correct(self, check_connected: bool = True) -> None:
     """Check that the network is structured correctly.
