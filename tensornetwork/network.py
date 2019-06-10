@@ -915,7 +915,9 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.Node
-    ) -> Dict[Union[int, Text], network_components.Edge]:
+    ) -> Tuple[
+      Dict[Text, network_components.Edge],
+      Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
