@@ -34,7 +34,7 @@ from sys import stdout
 config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
-tf.enable_eager_execution(config)
+tf.enable_eager_execution()
 tf.enable_v2_behavior()
 
 
@@ -92,14 +92,14 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     init = False
     if wC == 0:
         init = True
-        wC, _, _ = bml.initialize_binary_MERA_identities(
+        wC, _, _ = bml.initialize_binary_MERA_random(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
         init = True
-        _, uC, _ = bml.initialize_binary_MERA_identities(
+        _, uC, _ = bml.initialize_binary_MERA_random(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
-        _, _, rho_0 = bml.initialize_binary_MERA_identities(
+        _, _, rho_0 = bml.initialize_binary_MERA_random(
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
@@ -147,6 +147,71 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     return wC, uC, walltimes, energies
 
 
+def benchmark_u_env(rho, ham, w, u, num_steps):
+    """
+    run benchmark for ascending super operator
+    Args: 
+        rhoab (tf.Tensor):  reduced densit matrix on a-b lattice
+        rhoba (tf.Tensor):  reduced densit matrix on b-a lattice
+        w   (tf.Tensor):  isometry
+        v   (tf.Tensor):  isometry
+        u   (tf.Tensor):  disentangler
+        num_layers(int):  number of layers over which to descend the hamiltonian
+    Returns:
+        runtime (float):  the runtime
+    """
+    walltimes = []
+    for t in range(num_steps):
+        t1 = time.time()
+        uEnv = bml.get_env_disentangler(ham, rho, w, u)
+        del uEnv
+        walltimes.append(time.time() - t1)
+    return walltimes
+
+def run_u_env_benchmark(filename,
+                        chis=[4, 6, 8, 10, 12],
+                        num_steps=10,
+                        dtype=tf.float64,
+                        device=None):
+    """
+    run descending operators benchmarks and save benchmark data in `filename`
+    Args:
+        filename (str):  filename under which results are stored as a pickle file
+        chis (list):  list of bond dimensions for which to run the benchmark
+        num_layers (int): number of layers over which to descend the reduced density matrix
+        dtype (tensorflow dtype): dtype to be used for the benchmark
+        device (str):             device on  which the benchmark should be run
+    Returns: 
+       dict:  dictionary containing the walltimes
+              key 'warmup' contains warmup (i.e. first run) runtimes
+              key 'profile' contains subsequent runtimes
+    """
+
+    walltimes = {'warmup': {}, 'profile': {}}
+    for chi in chis:
+        print('running u-env benchmark for chi = {0} benchmark'.
+              format(chi))
+        with tf.device(device):
+            w = tf.random_uniform(shape=[chi, chi, chi], dtype=dtype)
+            u = tf.random_uniform(shape=[chi, chi, chi, chi], dtype=dtype)
+            rho = tf.random_uniform(
+                shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
+            ham = tf.random_uniform(
+                shape=[chi, chi, chi, chi, chi, chi], dtype=dtype)
+            
+            walltimes['warmup'][chi] = benchmark_u_env(
+                rho, ham, w, u, num_steps)
+            print('     warmup took {0} s'.format(walltimes['warmup'][chi]))
+            walltimes['profile'][chi] = benchmark_u_env(
+                rho, ham, w, u, num_steps)
+            print('     profile took {0} s'.format(walltimes['profile'][chi]))
+
+    with open(filename + '.pickle', 'wb') as f:
+        pickle.dump(walltimes, f)
+    return walltimes
+
+
+
 def benchmark_ascending_operator(ham, w, u, num_layers):
     """
     run benchmark for ascending super operator
@@ -160,10 +225,12 @@ def benchmark_ascending_operator(ham, w, u, num_layers):
     Returns:
         runtime (float):  the runtime
     """
-    t1 = time.time()
+    walltimes = []
     for t in range(num_layers):
+        t1 = time.time()        
         ham = bml.ascending_super_operator(ham, w, u)
-    return time.time() - t1
+        walltimes.append(time.time() - t1)
+    return walltimes
 
 
 def benchmark_descending_operator(rho, w, u, num_layers):
@@ -180,10 +247,12 @@ def benchmark_descending_operator(rho, w, u, num_layers):
         runtime (float):  the runtime
     """
 
-    t1 = time.time()
+    walltimes = []
     for p in range(num_layers):
+        t1 = time.time()        
         rho = bml.descending_super_operator(rho, w, u)
-    return time.time() - t1
+        walltimes.append(time.time() - t1)
+    return walltimes
 
 
 def run_ascending_operator_benchmark(filename,
@@ -275,7 +344,7 @@ def run_naive_optimization_benchmark(filename,
                                      opt_w=True,
                                      numpy_update=True,
                                      device=None,
-                                     opt_u_after=40):
+                                     opt_u_after=0):
     """
     run a naive optimization benchmark, i.e. one without growing bond dimensions by embedding 
     Args:
@@ -313,15 +382,22 @@ def run_naive_optimization_benchmark(filename,
                 uC=uC,
                 numiter=numiter,
                 nsteps_steady_state=nsteps_steady_state,
-                verbose=1,
+                verbose=0,
                 opt_u=opt_u,
                 opt_w=opt_w,
+                opt_all_layers=True,
                 numpy_update=numpy_update,
                 opt_u_after=opt_u_after)
 
             walltimes['profile'][chi] = runtimes
             walltimes['energies'][chi] = energies
-            print('     steps took {0} s'.format(walltimes['profile'][chi]))
+            print()
+            print('runtimes, D={0}'.format(chi))
+            print()
+            for k, i in walltimes['profile'][chi].items():
+                print(k, i)
+            
+            #print('     steps took {0} s'.format(walltimes['profile'][chi]))
             with open(filename + '.pickle', 'wb') as f:
                 pickle.dump(walltimes, f)
 
@@ -411,26 +487,32 @@ if __name__ == "__main__":
         rootdir = os.getcwd()
         ######## comment out all benchmarks you don't want to run ########
         benchmarks = {
-            'ascend': {
-                'chis': [4, 6, 8],
+            'ascend1': {
+                'chis': [16],
                 'dtype': tf.float64,
-                'num_layers': 1
+                'num_layers': 10
             },
-            'descend': {
-                'chis': [4, 6, 8],
+            'descend1': {
+                'chis': [16],
                 'dtype': tf.float64,
-                'num_layers': 1
+                'num_layers': 10
             },
-            'optimize_naive': {
-                'chis': [4, 6, 8],
+            'u_env': {
+                'chis': [10],
+                'dtype': tf.float64,
+                'num_steps': 100
+            },
+            
+            'optimize_naive_1': {
+                'chis': [16],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
                 'numpy_update': True,
                 'nsteps_steady_state': 10,
-                'numiter': 2
+                'numiter': 10
             },
-            'optimize': {
+            'optimize_1': {
                 'chis': [4, 6, 8],
                 'numiters': [400, 400, 400],
                 'embeddings': ['p', 'a', 'p'],
@@ -440,7 +522,7 @@ if __name__ == "__main__":
             }
         }
 
-        use_gpu = False  #use True when running on GPU
+        use_gpu = True  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
@@ -469,6 +551,22 @@ if __name__ == "__main__":
             os.chdir(fname)
             run_ascending_operator_benchmark(
                 filename, device=specified_device_type, **benchmarks['ascend'])
+            os.chdir(rootdir)
+            
+        if 'u_env' in benchmarks:
+            filename = name + 'binary_mera_u_env_benchmark'
+            for key, val in benchmarks['u_env'].items():
+                if hasattr(val, 'name'):
+                    val = val.name
+                filename = filename + '_' + str(key) + str(val)
+            filename = filename.replace(' ', '')
+
+            fname = 'u_env_benchmarks'
+            if not os.path.exists(fname):
+                os.mkdir(fname)
+            os.chdir(fname)
+            run_u_env_benchmark(filename,
+                                device=specified_device_type, **benchmarks['u_env'])
             os.chdir(rootdir)
 
         if 'descend' in benchmarks:

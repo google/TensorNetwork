@@ -169,7 +169,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     return alphas, betas[0:-1], gammas[0:-1]
 
 
-#@tf.contrib.eager.defun
+@tf.contrib.eager.defun
 def ascending_super_operator(ham, isometry, unitary):
     """
     binary mera ascending super operator
@@ -588,7 +588,7 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-#@tf.contrib.eager.defun
+@tf.contrib.eager.defun
 def descending_super_operator(rho, isometry, unitary):
     """
     binary mera descending super operator
@@ -874,7 +874,7 @@ def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
     out.reorder_edges(out_order)
     return out.get_tensor()
 
-
+@tf.contrib.eager.defun
 def get_env_disentangler(ham, rho, isometry, unitary):
     """
     compute the disentangler environment
@@ -1329,7 +1329,7 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
     out.reorder_edges(out_order)
     return out.get_tensor()
 
-
+@tf.contrib.eager.defun
 def get_env_isometry(ham, rho, isometry, unitary):
     """
     compute the isometry environment
@@ -1350,7 +1350,7 @@ def get_env_isometry(ham, rho, isometry, unitary):
     env_6 = get_env_isometry_6(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4 + env_5 + env_6
 
-
+@tf.contrib.eager.defun
 def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
     """
     obtain steady state density matrix of the scale invariant binary MERA
@@ -1636,7 +1636,7 @@ def optimize_binary_mera(ham_0,
                          opt_u=True,
                          opt_w=True,
                          numpy_update=True,
-                         opt_all_layers=False,
+                         opt_all_layers=True,
                          opt_u_after=40,
                          E_exact=-4 / np.pi):
     """
@@ -1686,7 +1686,7 @@ def optimize_binary_mera(ham_0,
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
 
     Energies = []
-    run_times = []
+    run_times = {'env_u' : [], 'env_w' : [], 'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
 
     if rho_0 == 0:
         chi_max = wC[-1].shape[2]
@@ -1696,13 +1696,18 @@ def optimize_binary_mera(ham_0,
 
     for k in range(numiter):
         t1 = time.time()
+        t_init = t1
         rho_0 = steady_state_density_matrix(nsteps_steady_state, rho_0, wC[-1],
                                             uC[-1])
+        run_times['steady_state'].append(time.time() - t1)
+
         rho[-1] = rho_0
+        t1 = time.time()        
         for p in range(len(rho) - 2, -1, -1):
             rho[p] = descending_super_operator(rho[p + 1], wC[p], uC[p])
+        run_times['descend'].append(time.time() - t1)            
 
-        if verbose > 0:
+        if verbose == 0:
             if np.mod(k, 10) == 1:
                 Z = misc_mera.trace(rho[0])
                 net = tn.TensorNetwork()
@@ -1717,29 +1722,44 @@ def optimize_binary_mera(ham_0,
                        float(Energies[-1] - E_exact), int(wC[-1].shape[2]),
                        len(wC)))
                 stdout.flush()
-
+        run_times['ascend'].append(0)                                
         for p in range(len(wC)):
             if (not opt_all_layers) and skip_layer[p]:
                 continue
             if k >= opt_u_after:
+                t1 = time.time()
                 uEnv = get_env_disentangler(ham[p], rho[p + 1], wC[p], uC[p])
+                run_times['env_u'].append(time.time() - t1)                                
                 if opt_u:
                     if numpy_update:
+                        t1 = time.time()                        
                         uC[p] = misc_mera.u_update_svd_numpy(uEnv)
+                        print('calling misc_mera took', time.time() - t1)                        
                     else:
+                        print('doing tf of ', uEnv.shape)
                         uC[p] = misc_mera.u_update_svd(uEnv)
-
+                
+            t1 = time.time()
             wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])
+            run_times['env_w'].append(time.time() - t1)                                            
             if opt_w:
+                t1 = time.time()                
                 if numpy_update:
                     wC[p] = misc_mera.w_update_svd_numpy(wEnv)
                 else:
                     wC[p] = misc_mera.w_update_svd(wEnv)
+                run_times['svd_env_w'].append(time.time() - t1)                    
 
+            t1 = time.time()                
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
+            run_times['ascend'][-1] += (time.time() - t1)                                
 
-        run_times.append(time.time() - t1)
-        if verbose > 2:
-            print('time per iteration: ', run_times[-1])
+        run_times['total'].append(time.time() - t_init)
+        if verbose == 1:
+            print('time per iteration: ', run_times['total'][-1])
+        if verbose == 2:
+            print('runtimes')
+            for k, i in run_times.items():
+                print(k, i)
 
     return wC, uC, rho[-1], run_times, Energies

@@ -26,7 +26,7 @@ def trace(rho):
     """
     compute the trace of `rho`
     """
-    dim = len(rho.shape) // 2
+    dim = len(rho.get_shape()) // 2
     net = tn.TensorNetwork()
     r = net.add_node(rho)
 
@@ -43,7 +43,7 @@ def symmetrize(rho):
     Returns:
         tf.Tensor:  the symmetrized version of `rho`
     """
-    dim = len(rho.shape) // 2
+    dim = len(rho.get_shape()) // 2
     inds_1 = [n for n in range(dim)]
     inds_2 = [n + dim for n in range(dim)]
     indices = inds_2 + inds_1
@@ -64,7 +64,7 @@ def scalar_product(bottom, top):
     net = tn.TensorNetwork()
     b = net.add_node(tf.conj(bottom))
     t = net.add_node(top)
-    edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
+    edges = [net.connect(b[n], t[n]) for n in range(len(bottom.get_shape()))]
     out = net.contract_between(b, t)
     return out.get_tensor()
 
@@ -72,9 +72,9 @@ def pad_tensor(tensor, new_shape):
     """
     pad `tensor` with zeros to shape `new_shape`
     """
-    paddings = np.zeros((len(tensor.shape), 2)).astype(np.int32)
+    paddings = np.zeros((len(tensor.get_shape()), 2)).astype(np.int32)
     for n in range(len(new_shape)):
-        paddings[n, 1] = max(new_shape[n] - tensor.shape[n], 0)
+        paddings[n, 1] = max(new_shape[n] - tensor.get_shape()[n], 0)
     return tf.pad(tensor, paddings)
 
 
@@ -82,37 +82,37 @@ def all_same_chi(*tensors):
     """
     test if all input arguments have the same bond dimension
     """
-    chis = [t.shape[n] for t in tensors for n in range(len(t.shape))]
+    chis = [t.get_shape()[n] for t in tensors for n in range(len(t.get_shape()))]
     return np.all([c == chis[0] for c in chis])
 
-
+@tf.contrib.eager.defun
 def u_update_svd(wIn):
     """
     obtain the update to the disentangler using tf.svd
     """
-    shape = wIn.shape
+    shape = tf.shape(wIn)
     st, ut, vt = tf.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
     return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
 
-
+#@tf.contrib.eager.defun
 def u_update_svd_numpy(wIn):
     """
     obtain the update to the disentangler using numpy svd
     """
-    shape = wIn.shape
+    shape = tf.shape(wIn)
     ut, st, vt = np.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2] * shape[3])),
         full_matrices=False)
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
-
+@tf.contrib.eager.defun
 def w_update_svd(wIn):
     """
     obtain the update to the isometry using tf.tensor
     """
-    shape = wIn.shape
+    shape = wIn.get_shape()
     st, ut, vt = tf.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
     return -tf.reshape(tn.ncon([ut, tf.conj(vt)], [[-1, 1], [-2, 1]]), shape)
@@ -121,13 +121,13 @@ def w_update_svd_numpy(wIn):
     """
     obtain the update to the isometry using numpy svd
     """
-    shape = wIn.shape
+    shape = wIn.get_shape()
     ut, st, vt = np.linalg.svd(
         tf.reshape(wIn, (shape[0] * shape[1], shape[2])), full_matrices=False)
     return -tf.reshape(tn.ncon([ut, vt], [[-1, 1], [1, -2]]), shape)
 
 def skip_layer(isometry):
-    if isometry.shape[2] >= (isometry.shape[0] * isometry.shape[1]):
+    if isometry.get_shape()[2] >= (isometry.get_shape()[0] * isometry.get_shape()[1]):
         return True
     else:
         return False
