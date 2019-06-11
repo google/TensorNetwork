@@ -89,7 +89,7 @@ if __name__ == "__main__":
     run benchmarks for a scale-invariant binary MERA optimization
     benchmark results are stored in disc
     """
-    use_gpu = False  #use True when running on GPU
+    use_gpu = True  #use True when running on GPU
     #list available devices
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     else:
         specified_device_type = CPU
         name = 'CPU'
-    chi = 6
+    chi = 16
     dtype = tf.float64
     with tf.device(specified_device_type):
         

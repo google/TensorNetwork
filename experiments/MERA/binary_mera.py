@@ -505,7 +505,7 @@ if __name__ == "__main__":
             },
             
             'optimize_naive': {
-                'chis': [12, 14, 16],
+                'chis': [4, 6, 8, 10, 12, 14, 16],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
