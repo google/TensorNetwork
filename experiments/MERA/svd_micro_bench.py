@@ -58,7 +58,8 @@ if __name__ == "__main__":
         tensor = tf.random_uniform(shape=[D,D,D,D], dtype=tf.float64,minval=-0.5,maxval=0.5)
         for _ in range(100):
             t1 = time.time()
-            u,s,v = np.linalg.svd(tf.reshape(tensor,(D*D,D*D)), full_matrices=False)
-            out = -tf.reshape(tn.ncon([u,v],[[-1,1],[1,-2]]),(D,D,D,D))
+            #u,s,v = np.linalg.svd(tf.reshape(tensor,(D*D,D*D)), full_matrices=False)
+            #tensor = -tf.reshape(tn.ncon([u,v],[[-1,1],[1,-2]]),(D,D,D,D))
+            tensor = misc_mera.u_update_svd_numpy(tensor)
             print(time.time()-t1)
         
