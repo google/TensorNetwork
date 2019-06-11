@@ -49,19 +49,15 @@ If you want to contribute changes to TensorNetwork, you will instead want to for
 
 ## Documentation
 
-Currently, the best documentation we have is our publication.
+For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
-[TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
-
-We plan on getting proper documentation very soon once the API has settled.
-
+## Basic Example
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
 importing TensorFlow) but should also work with eager mode 
 (`tf.enable_eager_execution()`). The actual library does work 
 under graph mode, but documentation is limited.
 
-## Basic Example
 Here, we build a simple 2 node contraction.
 ```python
 import numpy as np
