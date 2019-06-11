@@ -27,6 +27,7 @@ def _set_backend(backend):
   tensornetwork.set_default_backend(backend)
   # TODO(amilsted): Do this differently. It's awful!
   global np
+  global dtype_is_complex
   global random_normal_mat
   global conj
   global adjoint
@@ -47,6 +48,7 @@ def _set_backend(backend):
   global matmul
   global norm
   global svd
+  global svd_np
   global eigh
   global eigvalsh
   global to_numpy
@@ -55,6 +57,7 @@ def _set_backend(backend):
     import numpy as np
     import scipy.linalg as spla
     import tensorflow as tf
+    def dtype_is_complex(dtype): return dtype.is_complex
     def random_normal_mat(D1, D2, dtype):
       if dtype.is_complex:
         A = tf.complex(
@@ -96,9 +99,11 @@ def _set_backend(backend):
       import jax.numpy as np
       import scipy.linalg as spla
     import contextlib
+    def dtype_is_complex(dtype): return np_nojax.dtype(dtype).kind == 'c'
     def random_normal_mat(D1, D2, dtype):
-      if np_nojax.dtype(dtype).kind == 'c':
-        A = (np_nojax.random.randn(D1,D2) + 1.j * np_nojax.random.randn(D1,D2)) / math.sqrt(2)
+      if dtype_is_complex(dtype):
+        A = (np_nojax.random.randn(D1,D2) +
+             1.j * np_nojax.random.randn(D1,D2)) / math.sqrt(2)
         A = np.asarray(A, dtype)
       else:
         A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
@@ -1082,8 +1087,54 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
 
   mp = np.linalg.matrix_power
 
-  h2 = [-J * mp(U, k) for k in range(1, q)], [mp(U, q - k) for k in range(1, q)]
+  if dtype_is_complex(dtype):
+    h2 = ([-J * mp(U, k) for k in range(1, q)],
+          [mp(U, q - k) for k in range(1, q)])
+  else:
+    # The straightforward way to build the Hamiltonian results in complex
+    # matrices in the MPO. The dense Hamiltonian is, however, real.
+    # To make the MPO real, we first build the dense 2-site term, then
+    # use an SVD to split it back into a real MPO.
+    h2_dense = sum(np.tensordot(-J * mp(U, k), mp(U, q-k), axes=((),()))
+                for k in range(1,q))
+    realness = np.linalg.norm(h2_dense - h2_dense.real)
+    if realness > 1e-12:
+      raise ValueError(
+        "2-site term was not real. Realness = {}".format(realness))
+    u, s, vh = svd_np(h2_dense.real.reshape((q**2, q**2)), full_matrices=False)
+    mpo_rank = np.count_nonzero(s.round(decimals=12))
+    if mpo_rank != q - 1:
+      raise ValueError(
+        "Error performing SVD of 2-site term. {} != {}-1".format(mpo_rank, q))
+    h2 = ([s[i] * u[:,i].reshape(q,q) for i in range(q-1)],
+          [vh[i,:].reshape(q,q) for i in range(q-1)])
+
   h1 = -h * sum(mp(V, k) for k in range(1, q))
+
+  h1 = convert_to_tensor(h1, dtype=dtype)
+  h2 = (
+      [convert_to_tensor(h, dtype=dtype) for h in h2[0]],
+      [convert_to_tensor(h, dtype=dtype) for h in h2[1]],
+  )
+
+  return h1, h2
+
+
+def get_ham_potts_real(dtype, q, J=1.0, h=1.0):
+  U, V, om = weylops(q)
+
+  mp = np.linalg.matrix_power
+
+  # The straightforward way to build the Hamiltonian results in complex
+  # matrices in the MPO. The dense Hamiltonian is, however, real.
+  # To make the MPO real, we first build the dense Hamiltonian, then
+  # use an SVD to split it back into a real MPO.
+  h2_dense = sum(np.tensordot(-J * mp(U, k), mp(U, q-k), axes=((),())) for k in range(1,q))
+  print("realness: ", np.linalg.norm(h2_dense - h2_dense.real))
+  u, s, vh = svd_np(h2_dense.real.reshape((q**2, q**2)), full_matrices=False)
+  print("MPO rank == q-1: ", np.count_nonzero(s.round(decimals=12)) == q - 1)
+  h2 = ([s[i] * u[:,i].reshape(q,q) for i in range(q-1)], [vh[i,:].reshape(q,q) for i in range(q-1)])
+  h1 = -h * sum(mp(V, k) for k in range(1,q))
 
   h1 = convert_to_tensor(h1, dtype=dtype)
   h2 = (
