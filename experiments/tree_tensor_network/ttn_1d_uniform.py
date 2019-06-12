@@ -1120,31 +1120,6 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
   return h1, h2
 
 
-def get_ham_potts_real(dtype, q, J=1.0, h=1.0):
-  U, V, om = weylops(q)
-
-  mp = np.linalg.matrix_power
-
-  # The straightforward way to build the Hamiltonian results in complex
-  # matrices in the MPO. The dense Hamiltonian is, however, real.
-  # To make the MPO real, we first build the dense Hamiltonian, then
-  # use an SVD to split it back into a real MPO.
-  h2_dense = sum(np.tensordot(-J * mp(U, k), mp(U, q-k), axes=((),())) for k in range(1,q))
-  print("realness: ", np.linalg.norm(h2_dense - h2_dense.real))
-  u, s, vh = svd_np(h2_dense.real.reshape((q**2, q**2)), full_matrices=False)
-  print("MPO rank == q-1: ", np.count_nonzero(s.round(decimals=12)) == q - 1)
-  h2 = ([s[i] * u[:,i].reshape(q,q) for i in range(q-1)], [vh[i,:].reshape(q,q) for i in range(q-1)])
-  h1 = -h * sum(mp(V, k) for k in range(1,q))
-
-  h1 = convert_to_tensor(h1, dtype=dtype)
-  h2 = (
-      [convert_to_tensor(h, dtype=dtype) for h in h2[0]],
-      [convert_to_tensor(h, dtype=dtype) for h in h2[1]],
-  )
-
-  return h1, h2
-
-
 def get_ham_ising_tube(dtype, Ly, lam=-3.044):
   X = np.array([[0.0, 1.0], [1.0, 0.0]])
   Z = np.array([[1.0, 0.0], [0.0, -1.0]])
