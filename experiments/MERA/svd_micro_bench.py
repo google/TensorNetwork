@@ -41,7 +41,7 @@ tf.enable_v2_behavior()
 if __name__ == "__main__":
     """
     """
-    use_gpu = False  #use True when running on GPU
+    use_gpu = True  #use True when running on GPU
     #list available devices
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
@@ -54,12 +54,15 @@ if __name__ == "__main__":
     else:
         specified_device_type = CPU
     D=16
+    #tens = np.load('16uEnv16uEnv16uEnv16.npy')
+    tens = np.load('2uEnv2uEnv2uEnv2.npy')    
     with tf.device(device):
-        tensor = tf.random_uniform(shape=[D,D,D,D], dtype=tf.float64,minval=-0.5,maxval=0.5)
+        #tensor = tf.random_uniform(shape=[D,D,D,D], dtype=tf.float64,minval=-0.5,maxval=0.5)
+        tensor = tf.convert_to_tensor(tens)
         for _ in range(100):
             t1 = time.time()
             #u,s,v = np.linalg.svd(tf.reshape(tensor,(D*D,D*D)), full_matrices=False)
             #tensor = -tf.reshape(tn.ncon([u,v],[[-1,1],[1,-2]]),(D,D,D,D))
-            tensor = misc_mera.u_update_svd_numpy(tensor)
+            out = misc_mera.u_update_svd_numpy(tensor)
             print(time.time()-t1)
         
