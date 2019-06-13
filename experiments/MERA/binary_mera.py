@@ -524,7 +524,7 @@ if __name__ == "__main__":
         }
         date = datetime.date
         today = str(date.today())
-        use_gpu = True  #use True when running on GPU
+        use_gpu = False  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
