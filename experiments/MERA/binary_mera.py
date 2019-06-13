@@ -93,14 +93,14 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
     init = False
     if wC == 0:
         init = True
-        wC, _, _ = bml.initialize_binary_MERA_random(
+        wC, _, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if uC == 0:
         init = True
-        _, uC, _ = bml.initialize_binary_MERA_random(
+        _, uC, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
-        _, _, rho_0 = bml.initialize_binary_MERA_random(
+        _, _, rho_0 = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
 
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
@@ -524,7 +524,7 @@ if __name__ == "__main__":
         }
         date = datetime.date
         today = str(date.today())
-        use_gpu = True  #use True when running on GPU
+        use_gpu = False  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")

@@ -71,7 +71,7 @@ def get_scaling_dimensions(isometry, unitary, k=4):
     Returns:
         tf.Tensor of shape (k,): first k scaling dimensions
     """
-    chi = isometry.shape[2]
+    chi = isometry.get_shape()[2]
     dtype = isometry.dtype
 
     def lmv(vec):
@@ -98,7 +98,7 @@ def get_scaling_dimensions_2site(isometry, unitary, k=4):
     Returns:
         tf.Tensor of shape (k,): first k scaling dimensions
     """
-    chi = isometry.shape[2]
+    chi = isometry.get_shape()[2]
     dtype = isometry.dtype
 
     def lmv(vec):
@@ -129,7 +129,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     Returns:
         (list,list,list): central, lower and upper diagonal part of the tridiagonal matrix
     """
-    chi = isometry.shape[2]
+    chi = isometry.get_shape()[2]
     dtype = isometry.dtype
     q_j = tf.random_uniform(shape=[chi, chi, chi, chi, chi, chi], dtype=dtype.real_dtype)
     q_j = misc_mera.symmetrize(q_j)
@@ -228,7 +228,7 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
     out = net.contract_between(right, out)
 
     out.reorder_edges(out_order)
-    out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]
+    out.axis_names = [out[n].name for n in range(len(out.get_tensor().get_shape()))]
     return out.get_tensor()
 
 
@@ -275,7 +275,7 @@ def two_site_descending_super_operator(rho, isometry, unitary):
     out = net.contract_between(temp, un_con)
 
     out = out.reorder_edges(out_order)
-    out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]
+    out.axis_names = [out[n].name for n in range(len(out.get_tensor().get_shape()))]
     return out.get_tensor()
 
 
@@ -1387,9 +1387,9 @@ def unlock_layer(wC, uC, noise=0.0):
     wC.append(copy.copy(wC[-1]))
     uC.append(copy.copy(uC[-1]))
     wC[-1] += tf.cast(tf.random_uniform(
-        shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
+        shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     uC[-1] += tf.cast(tf.random_uniform(
-        shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
+        shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     return wC, uC
 
 
@@ -1410,22 +1410,22 @@ def increase_bond_dimension_by_adding_layers(chi_new, wC, uC, noise=0.0):
          uC (list):   list of tf.Tensors of disentangler
     """
 
-    if misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].shape[2] >= chi_new):
+    if misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].get_shape()[2] >= chi_new):
         #nothing to do here
         return wC, uC
-    elif misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].shape[2] < chi_new):
-        chi = min(chi_new, wC[-1].shape[0] * wC[-1].shape[1])
+    elif misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].get_shape()[2] < chi_new):
+        chi = min(chi_new, wC[-1].get_shape()[0] * wC[-1].get_shape()[1])
         wC[-1] = misc_mera.pad_tensor(wC[-1],
-                                      [wC[-1].shape[0], wC[-1].shape[1], chi])
+                                      [wC[-1].get_shape()[0], wC[-1].get_shape()[1], chi])
         wC_temp = copy.deepcopy(wC[-1])
         uC_temp = copy.deepcopy(uC[-1])
         wC.append(misc_mera.pad_tensor(wC_temp, [chi, chi, chi]))
         uC.append(misc_mera.pad_tensor(uC_temp, [chi, chi, chi, chi]))
         wC[-1] += (tf.random_uniform(
-            shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
+            shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
                    noise)
         uC[-1] += (tf.random_uniform(
-            shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
+            shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
                    noise)
         return increase_bond_dimension_by_adding_layers(chi_new, wC, uC)
 
@@ -1448,12 +1448,12 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
         wC (list of tf.Tensor):   padded MERA isometries and disentanglers
         uC (list of tf.Tensor):   padded MERA isometries and disentanglers
     """
-    all_chis = [t.shape[n] for t in wC for n in range(len(t.shape))]
+    all_chis = [t.get_shape()[n] for t in wC for n in range(len(t.get_shape()))]
     if not np.all([c <= chi_new for c in all_chis]):
         #nothing to increase
         return wC, uC
 
-    chi_0 = wC[0].shape[0]
+    chi_0 = wC[0].get_shape()[0]
     wC[0] = misc_mera.pad_tensor(wC[0], [chi_0, chi_0, min(chi_new, chi_0**2)])
 
     for n in range(1, len(wC)):
@@ -1470,9 +1470,9 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
         ])
 
         wC[n] += tf.cast(
-            tf.random_uniform(shape=wC[n].shape, dtype=wC[n].dtype.real_dtype) * noise, wC[n].dtype)
+            tf.random_uniform(shape=wC[n].get_shape(), dtype=wC[n].dtype.real_dtype) * noise, wC[n].dtype)
         uC[n] += tf.cast(
-            tf.random_uniform(shape=uC[n].shape, dtype=uC[n].dtype.real_dtype) * noise, uC[n].dtype)
+            tf.random_uniform(shape=uC[n].get_shape(), dtype=uC[n].dtype.real_dtype) * noise, uC[n].dtype)
         
     n = len(wC)
     while not misc_mera.all_same_chi(wC[-1]):
@@ -1491,10 +1491,10 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
             ]))
 
         wC[-1] += tf.cast(tf.random_uniform(
-            shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
+            shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
                           noise, wC[-1].dtype)
         uC[-1] += tf.cast(tf.random_uniform(
-            shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
+            shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
                           noise, uC[-1].dtype)
         
         n += 1
@@ -1540,7 +1540,7 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
         if misc_mera.all_same_chi(wC[-1]):
             break
 
-    chi_top = wC[-1].shape[2]
+    chi_top = tf.shape(wC[-1])[2]#.get_shape()[2]
     rho = tf.reshape(
         tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
         (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
@@ -1568,10 +1568,10 @@ def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
     #       make it random
     wC, uC, rho = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
     
-    wC = [tf.cast(tf.random_uniform(shape=w.shape, dtype=dtype.real_dtype), dtype) for w in wC]
+    wC = [tf.cast(tf.random_uniform(shape=w.get_shape(), dtype=dtype.real_dtype), dtype) for w in wC]
     wC = [misc_mera.w_update_svd_numpy(w) for w in wC]
     
-    uC = [tf.cast(tf.random_uniform(shape=u.shape, dtype=dtype.real_dtype), dtype) for u in uC]
+    uC = [tf.cast(tf.random_uniform(shape=u.get_shape(), dtype=dtype.real_dtype), dtype) for u in uC]
     uC = [misc_mera.u_update_svd_numpy(u) for u in uC]
 
     return wC, uC, rho 
@@ -1671,7 +1671,7 @@ def optimize_binary_mera(ham_0,
     rho = [0 for x in range(len(wC) + 1)]
     ham[0] = ham_0
 
-    chi1 = ham[0].shape[0]
+    chi1 = ham[0].get_shape()[0]
     bias = tf.cast(tf.math.reduce_max(
         tf.cast(tf.linalg.eigvalsh(
             tf.reshape(ham[0], (chi1 * chi1 * chi1, chi1 * chi1 * chi1))),tf.float64)) / 2,dtype)
@@ -1690,7 +1690,7 @@ def optimize_binary_mera(ham_0,
                  'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
 
     if rho_0 == 0:
-        chi_max = wC[-1].shape[2]
+        chi_max = wC[-1].get_shape()[2]
         rho_0 = tf.reshape(
             tf.eye(chi_max**3, dtype=dtype),
             (chi_max, chi_max, chi_max, chi_max, chi_max, chi_max))
@@ -1720,7 +1720,7 @@ def optimize_binary_mera(ham_0,
                 stdout.write(
                     '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
                     % (int(k), int(numiter), float(Energies[-1]),
-                       float(Energies[-1] - E_exact), int(wC[-1].shape[2]),
+                       float(Energies[-1] - E_exact), int(wC[-1].get_shape()[2]),
                        len(wC)))
                 stdout.flush()
         run_times['ascend'].append(0)
