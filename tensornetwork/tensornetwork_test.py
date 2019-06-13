@@ -1017,4 +1017,9 @@ def test_remove_node_trace_edge(backend):
   assert 2 not in broken_edges
   assert broken_edges[0] is b[0]
 
-  
+
+def test_self_connected_edge(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  with pytest.raises(ValueError):
+    net.connect(a[0], a[0])
