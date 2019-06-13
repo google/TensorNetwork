@@ -984,3 +984,42 @@ def test_contract_copy_node_connected_neighbors(backend):
 def test_bad_backend():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork("NOT_A_BACKEND")
+
+def test_remove_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"])
+  b = net.add_node(np.ones((2, 2)))
+  c = net.add_node(np.ones((2, 2)))
+  net.connect(a["test"], b[0])
+  net.connect(a[1], c[0])
+  broken_edges_name, broken_edges_axis = net.remove_node(a)
+  assert a not in net
+  assert "test" in broken_edges_name
+  assert broken_edges_name["test"] is b[0]
+  assert "names" in broken_edges_name
+  assert broken_edges_name["names"] is c[0]
+  assert "ignore" not in broken_edges_name
+  assert 0 in broken_edges_axis
+  assert 1 in broken_edges_axis
+  assert 2 not in broken_edges_axis
+  assert broken_edges_axis[0] is b[0]
+  assert broken_edges_axis[1] is c[0]
+
+def test_remove_node_trace_edge(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)))
+  b = net.add_node(np.ones(2))
+  net.connect(a[0], b[0])
+  net.connect(a[1], a[2])
+  _, broken_edges = net.remove_node(a)
+  assert 0 in broken_edges
+  assert 1 not in broken_edges
+  assert 2 not in broken_edges
+  assert broken_edges[0] is b[0]
+
+
+def test_self_connected_edge(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  with pytest.raises(ValueError):
+    net.connect(a[0], a[0])

@@ -450,6 +450,9 @@ class Edge:
     """Whether this edge is a dangling edge."""
     return self._is_dangling
 
+  def is_trace(self) -> bool:
+    return self.node1 is self.node2
+
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
 
