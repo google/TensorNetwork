@@ -131,7 +131,6 @@ def optimize_binary_mera_graphed_TFI(device,
            np.eye(chi1 * chi1 * chi1),(chi1, chi1, chi1, chi1, chi1, chi1))
     
         for k in range(numiter):
-            
             if (verbose == 1) and (np.mod(k, 10) == 1):
                 Z = ncon.ncon([rhos[0]],[1,2,3,1,2,3])
                 energy = ncon.ncon([hams[0],rhos[0]],[[1,2,3,4,5,6],[4,5,6,1,2,3]])
@@ -185,18 +184,15 @@ def optimize_binary_mera_graphed_TFI(device,
                 t2 = time.time()                                    
                 hams[p + 1] = sess.run(ascend_ham_op,feed_dict={ham_ph : hams[p], w_ph : wC[p], u_ph: uC[p]})
                 run_times['ascend'][-1] += (time.time() - t2)
-                
+            run_times['total'].append(time.time() - t1)                
     return wC, uC, rhos[-1], run_times, Energies
 
 def run_naive_optimization_benchmark(filename,
-                                     chis=[4, 6, 8, 10, 12],
+                                     chis,
                                      dtype=tf.float64,
                                      numiter=30,
                                      nsteps_steady_state=20,
-                                     opt_u=True,
-                                     opt_w=True,
-                                     device=None,
-                                     opt_u_after=0):
+                                     device=None):
     """
     run a naive optimization benchmark, i.e. one without growing bond dimensions by embedding 
     Args:
@@ -206,10 +202,7 @@ def run_naive_optimization_benchmark(filename,
         numiter (int):            number of iteration steps 
         nsteps_steady_state (int):number of iterations steps used to obtain the steady-state 
                                   reduced density matrix
-        opt_u (bool):             if True, optimize disentangler `u`
-        opt_w (bool):             if True, optimize isometries `w`
         device (str or None):     device on  which the benchmark should be run
-        opt_u_after (int):        do not optimize `u` for the first `opt_u_after' steps
 
     Returns: 
        dict:  dictionary containing the walltimes and energies
@@ -222,23 +215,14 @@ def run_naive_optimization_benchmark(filename,
         for chi in chis:
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
-
-            wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
-                phys_dim=2, chi=chi, dtype=dtype)
-            ham_0 = bml.initialize_TFI_hams(dtype=dtype)
-            wC, uC, rho_0, runtimes, energies = bml.optimize_binary_mera(
-                ham_0=ham_0,
-                rho_0=rho_0,
-                wC=wC,
-                uC=uC,
+            wC, uC, rho_0, runtimes, energies = optimize_binary_mera_graphed_TFI(
+                device=device,
+                chi=chi,
+                dtype=dtype,
                 numiter=numiter,
                 nsteps_steady_state=nsteps_steady_state,
                 verbose=0,
-                opt_u=opt_u,
-                opt_w=opt_w,
-                opt_all_layers=True,
-                numpy_update=numpy_update,
-                opt_u_after=opt_u_after)
+                opt_u_after=0)
 
             walltimes['profile'][chi] = runtimes
             walltimes['energies'][chi] = energies
@@ -255,230 +239,64 @@ def run_naive_optimization_benchmark(filename,
     return walltimes
 
 
-def run_optimization_benchmark(filename,
-                               chis=[4, 8, 10],
-                               numiters=[200, 200, 400],
-                               embeddings=None,
-                               dtype=tf.float64,
-                               verbose=1,
-                               opt_u_after=10,
-                               nsteps_steady_state=4,
-                               device=None):
-    """
-    run a realistic optimization benchmark, i.e. one with growing bond dimensions by embedding 
-    Args:
-        filename (str):            filename under which results are stored as a pickle file
-        chis (list):               list of bond dimensions. optimization starts with chi[0], then 
-                                   sequentially increases the bond dimension as given chis[n] for n > 0
-        numiters (list):           maximum number of iteration steps per bond dimension
-        embeddings (list or None): list of str of len(chis). elements can be either 'a' or 'p'.
-                                   if embeddings[n]='a': embed the mera from iteration n - 1 by adding 
-                                                         a new  layer of mera-tensors of bond  dimension `chi[n]`
-                                   if embeddings[n]='p': embed the mera from iteration n - 1 by padding tensors
-                                                         with zeros to dimension `chis[n]`; if `chis[n]`
-                                                         can't be obtained from padding, pad tensors to thir maximal dimension
-                                                         and a new layer.
-        dtype (tensorflow dtype):  dtype to be used for the benchmark
-        verbose (int):             verbosity flag; if `verbose > 0`, print out info during simulation
-        opt_u_after (int):         do not optimize `u` for the first `opt_u_after' steps
-        nsteps_steady_state (int): number of iterations steps used to obtain the steady-state 
-                                   reduced density matrix
-        device (str):              device on  which the benchmark should be run
-
-    Returns: 
-       dict:  dictionary containing the walltimes and energies
-              key 'profile': list of runtimes
-              key 'energies' list of energies per iteration step
-
-    """
-
-    walltimes = {}
-    with tf.device(device):
-        print('     running optimization benchmark')
-
-        wC, uC, runtimes, energies = run_binary_mera_optimization_TFI(
-            chis=chis,
-            niters=numiters,
-            embeddings=embeddings,
-            dtype=dtype,
-            verbose=verbose,
-            nsteps_steady_state=nsteps_steady_state,
-            opt_u_after=opt_u_after,
-            filename=filename,
-            numpy_update=True)
-
-        walltimes['profile'] = runtimes
-        walltimes['energies'] = energies
-        with open(filename + '.pickle', 'wb') as f:
-            pickle.dump(walltimes, f)
-        with open(filename + '_tensors.pickle', 'wb') as f:
-            print('saving to', filename)
-            pickle.dump([wC, uC], f)
-
-    return walltimes
-
-
-
-
 
 if __name__ == "__main__":
     """
     run benchmarks for a scale-invariant binary MERA optimization
     benchmark results are stored in disc
     """
-    if not tf.executing_eagerly():
-        pass
+    fname = 'binary_mera_benchmarks'
+    if not os.path.exists(fname):
+        os.mkdir(fname)
+    os.chdir(fname)
 
+    rootdir = os.getcwd()
+    ######## comment out all benchmarks you don't want to run ########
+    benchmarks = {
+        'optimize_naive': {
+            'chis': [4, 6],
+            'dtype': tf.float64,
+            'nsteps_steady_state': 10,
+            'numiter': 40
+        }
+    }
+    date = datetime.date
+    today = str(date.today())
+    use_gpu = False  #use True when running on GPU
+    #list available devices
+    DEVICES = tf.contrib.eager.list_devices()
+    print("Available devices:")
+    for i, device in enumerate(DEVICES):
+        print("%d) %s" % (i, device))
+    CPU = '/device:CPU:0'
+    GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
+    if use_gpu:
+        specified_device_type = GPU
+        name = today + 'GPU'
     else:
-        fname = 'binary_mera_benchmarks'
+        specified_device_type = CPU
+        name = today + 'CPU'
+
+    if 'optimize_naive' in benchmarks:
+        filename = name + 'graphed_binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
+            NUM_THREADS)
+        keys = sorted(benchmarks['optimize_naive'].keys())
+        for key in keys:
+            val = benchmarks['optimize_naive'][key]
+            if hasattr(val, 'name'):
+                val = val.name
+
+            filename = filename + '_' + str(key) + str(val)
+        filename = filename.replace(' ', '')
+
+        fname = 'benchmarks_optimize_naive'
         if not os.path.exists(fname):
             os.mkdir(fname)
+
         os.chdir(fname)
+        run_naive_optimization_benchmark(
+            filename,
+            **benchmarks['optimize_naive'],
+            device=specified_device_type)
+        os.chdir(rootdir)
 
-        rootdir = os.getcwd()
-        ######## comment out all benchmarks you don't want to run ########
-        benchmarks = {
-            'ascend1': {
-                'chis': [16],
-                'dtype': tf.float64,
-                'num_layers': 10
-            },
-            'descend1': {
-                'chis': [16],
-                'dtype': tf.float64,
-                'num_layers': 10
-            },
-            'u_env1': {
-                'chis': [10],
-                'dtype': tf.float64,
-                'num_steps': 100
-            },
-            
-            'optimize_naive': {
-                'chis': [4, 6, 8, 10, 12, 14, 16],
-                'dtype': tf.float64,
-                'opt_u': True,
-                'opt_w': True,
-                'numpy_update': True,
-                'nsteps_steady_state': 10,
-                'numiter': 20
-            },
-            'optimize_1': {
-                'chis': [4, 6, 8],
-                'numiters': [400, 400, 400],
-                'embeddings': ['p', 'a', 'p'],
-                'nsteps_steady_state': 10,
-                'opt_u_after': 20,
-                'dtype': tf.float64
-            }
-        }
-        date = datetime.date
-        today = str(date.today())
-        use_gpu = False  #use True when running on GPU
-        #list available devices
-        DEVICES = tf.contrib.eager.list_devices()
-        print("Available devices:")
-        for i, device in enumerate(DEVICES):
-            print("%d) %s" % (i, device))
-        CPU = '/device:CPU:0'
-        GPU = '/job:localhost/replica:0/task:0/device:GPU:0'
-        if use_gpu:
-            specified_device_type = GPU
-            name = today + 'GPU'
-        else:
-            specified_device_type = CPU
-            name = today + 'CPU'
-
-        if 'ascend' in benchmarks:
-            filename = name + 'binary_mera_ascending_benchmark'
-            for key, val in benchmarks['ascend'].items():
-                if hasattr(val, 'name'):
-                    val = val.name
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
-
-            fname = 'ascending_benchmarks'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-            os.chdir(fname)
-            run_ascending_operator_benchmark(
-                filename, device=specified_device_type, **benchmarks['ascend'])
-            os.chdir(rootdir)
-            
-        if 'u_env' in benchmarks:
-            filename = name + 'binary_mera_u_env_benchmark'
-            for key, val in benchmarks['u_env'].items():
-                if hasattr(val, 'name'):
-                    val = val.name
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
-
-            fname = 'u_env_benchmarks'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-            os.chdir(fname)
-            run_u_env_benchmark(filename,
-                                device=specified_device_type, **benchmarks['u_env'])
-            os.chdir(rootdir)
-
-        if 'descend' in benchmarks:
-            filename = name + 'binary_mera_descending_benchmark'
-            for key, val in benchmarks['descend'].items():
-                if hasattr(val, 'name'):
-                    val = val.name
-
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
-
-            fname = 'descending_benchmarks'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-            os.chdir(fname)
-
-            run_descending_operator_benchmark(
-                filename, device=specified_device_type, **benchmarks['descend'])
-            os.chdir(rootdir)
-
-        if 'optimize_naive' in benchmarks:
-            filename = name + 'binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
-                NUM_THREADS)
-            keys = sorted(benchmarks['optimize_naive'].keys())
-            for key in keys:
-                val = benchmarks['optimize_naive'][key]
-                if hasattr(val, 'name'):
-                    val = val.name
-
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
-
-            fname = 'benchmarks_optimize_naive'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-
-            os.chdir(fname)
-            run_naive_optimization_benchmark(
-                filename,
-                **benchmarks['optimize_naive'],
-                opt_u_after=0,
-                device=specified_device_type)
-            os.chdir(rootdir)
-
-        if 'optimize' in benchmarks:
-            filename = name + 'binary_mera_optimization_benchmark_Nthreads{}'.format(
-                NUM_THREADS)
-            fname = 'benchmarks_optimize'
-            if not os.path.exists(fname):
-                os.mkdir(fname)
-            os.chdir(fname)
-
-            for key, val in benchmarks['optimize'].items():
-                if hasattr(val, 'name'):
-                    val = val.name
-                filename = filename + '_' + str(key) + str(val)
-            filename = filename.replace(' ', '')
-            run_optimization_benchmark(
-                filename,
-                device=specified_device_type,
-                **benchmarks['optimize'])
-
-            os.chdir(rootdir)
