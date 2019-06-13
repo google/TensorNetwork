@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 
-import classifier
 import tensorflow as tf
 import time
 from typing import Tuple, Optional
