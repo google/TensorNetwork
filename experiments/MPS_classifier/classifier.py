@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """TensorNetwork implementation of MPS image classfier.
+
 The idea of using Matrix Product States for image classification was introduced
 by Stoudenmire and Schwab in arXiv:1605.05775. This codes provides a
 TensorNetwork / TensorFlow implementation of this idea. The implementation
@@ -23,6 +24,7 @@ code the forward (prediction) part of the algorithm which is equivalent to
 calculating the inner product between the data vector and the MPS vector.
 More details can be found in the paper `TensorNetwork for Machine Learning` and
 the implementation was inspired by jemisjoky/TorchMPS.
+
 This file contains MatrixProductState and Environment classes which are
 described in their definitions. The first defines the forward pass we need in
 order to train and predict, while the latter is used as a utility to perform
@@ -43,6 +45,7 @@ from typing import Tuple, List, Optional
 def random_initializer(d_phys: int, d_bond: int, std: float = 1e-3,
                        boundary: bool = False) -> np.ndarray:
   """Initializes MPS tensors randomly and close to identity matrices.
+
   Args:
     d_phys: Physical dimension of MPS.
     d_bond: Bond dimension of MPS.
@@ -52,6 +55,7 @@ def random_initializer(d_phys: int, d_bond: int, std: float = 1e-3,
     Note that d_phys given in this function does not have to be the actual
     MPS physical dimension (eg. it can also be n_labels to initialize there
     label MPS tensor).
+
   Returns:
     tensor: Random numpy array with shape described above.
   """
@@ -66,6 +70,7 @@ def random_initializer(d_phys: int, d_bond: int, std: float = 1e-3,
 
 class Environment:
   """MatrixProductState environments.
+
   Perform the core calculation required for the inner product by building the
   relevant TensorNetwork. An environment consists of a boundary vector of shape
   (d_phys, d_bond) and the MPS matrices of shape (d_phys, d_bond, d_bond).
@@ -97,9 +102,11 @@ class Environment:
                                List[tensornetwork.Node],
                                Tuple[tensornetwork.Node]]:
     """Creates TensorNetwork with MPS and data.
+  
     Args:
       data: Tensor of input data of shape (n_batch, n_sites, d_phys).
       data0: Tensor of input data at the boundary of shape (n_batch, d_phys).
+  
     Returns:
       net: TensorNetwork object containing the nodes.
       var_nodes: List of the two MPS nodes.
@@ -147,6 +154,7 @@ class Environment:
 
 class MatrixProductState:
   """MPS classifier prediction graph.
+
   Contains the MPS tensors which are our variational parameters and
   methods that define the forward pass. These methods are used by `training.py`
   to fit data using automatic differentation and can also be used for
@@ -180,9 +188,12 @@ class MatrixProductState:
 
   def flx(self, data: tf.Tensor) -> tf.Tensor:
     """Calculates prediction given by contracting input data with MPS.
+  
     This is equivalent to the "forward pass" of a neural network.
+  
     Args:
       data: Tensor with input data of shape (n_batch, n_sites, d_phys).
+  
     Returns:
       flx: Prediction (value of the function f^l(x)) with
         shape (n_batch, n_labels).
@@ -193,9 +204,11 @@ class MatrixProductState:
 
   def loss(self, data: tf.Tensor, labels: tf.Tensor) -> Tuple[tf.Tensor]:
     """Calculates loss in a batch of (data, labels).
+
     Args:
       data: Tensor with input data of shape (n_batch, n_sites, d_phys).
       labels: Tensor with the corresponding labels of shape (n_batch, n_labels).
+
     Returns:
       loss: Loss of the given batch.
       logits: flx prediction as returned from self.flx method.
