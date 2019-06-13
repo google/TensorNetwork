@@ -20,8 +20,9 @@ from __future__ import print_function
 
 import classifier
 import tensorflow as tf
-from typing import Tuple, Optional
 import time
+from typing import Tuple, Optional
+from experiments.MPS_classifier import classifier
 
 
 def run_step(mps: classifier.MatrixProductState, optimizer,
