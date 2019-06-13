@@ -505,13 +505,13 @@ if __name__ == "__main__":
             },
             
             'optimize_naive': {
-                'chis': [4, 6, 8, 10, 12, 14, 16],
+                'chis': [16],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
                 'numpy_update': True,
                 'nsteps_steady_state': 10,
-                'numiter': 20
+                'numiter': 100
             },
             'optimize_1': {
                 'chis': [4, 6, 8],
