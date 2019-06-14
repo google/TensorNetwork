@@ -65,10 +65,19 @@ class Node:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
+    self.signature = -1
 
   def get_rank(self) -> int:
     """Return rank of tensor represented by self."""
     return len(self.tensor.shape)
+
+  def set_signature(self, signature: int) -> None:
+    """Set the signature for the node.
+
+    Signatures are numbers that uniquely identify a node inside of a
+    TensorNetwork.
+    """
+    self.signature = signature
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
