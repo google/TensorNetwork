@@ -1024,8 +1024,8 @@ def test_self_connected_edge(backend):
     net.connect(a[0], a[0])
 
 def test_subnetwork_signatures(backend):
-  net1 = tensornetwork.TensorNetwork()
-  net2 = tensornetwork.TensorNetwork()
+  net1 = tensornetwork.TensorNetwork(backend=backend)
+  net2 = tensornetwork.TensorNetwork(backend=backend)
   a = net1.add_node(np.eye(2))
   assert a.signature == 1
   b = net2.add_node(np.eye(2))
