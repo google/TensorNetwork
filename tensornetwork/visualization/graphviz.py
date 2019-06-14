@@ -71,4 +71,3 @@ def to_graphviz(
             str(edge.node2.signature),
             label=edge_label)
   return graph
-
