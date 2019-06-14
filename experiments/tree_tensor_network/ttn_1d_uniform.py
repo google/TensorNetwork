@@ -46,6 +46,7 @@ def _set_backend(backend):
   global diag
   global sqrt
   global matmul
+  global tensordot
   global norm
   global svd
   global svd_np
@@ -83,6 +84,7 @@ def _set_backend(backend):
     diag = tf.diag
     sqrt = tf.sqrt
     matmul = tf.matmul
+    tensordot = tf.tensordot
     norm = tf.norm
     svd = tf.svd
     svd_np = spla.svd
@@ -132,6 +134,7 @@ def _set_backend(backend):
       if adjoint_b:
         return np.matmul(a, adjoint(b))
       return np.matmul(a, b)
+    tensordot = np.tensordot
     norm = np.linalg.norm
     def svd(x):
       u, s, vh = np.linalg.svd(x, full_matrices=False)
@@ -1118,6 +1121,72 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
   )
 
   return h1, h2
+
+
+def get_ham_heis_su3_2box(dtype):
+  import scipy.io as sio
+  su3_20 = sio.loadmat("experiments/tree_tensor_network/su3_20.mat")
+  h2_dense = sum(np.tensordot(S, S, axes=((),()))
+              for (k, S) in su3_20.items())
+  realness = np.linalg.norm(h2_dense - h2_dense.real)
+  if realness > 1e-12:
+    raise ValueError(
+      "2-site term was not real. Realness = {}".format(realness))
+  u, s, vh = svd_np(h2_dense.real.reshape((6**2, 6**2)), full_matrices=False)
+  mpo_rank = np.count_nonzero(s.round(decimals=12))
+  if mpo_rank != 8:
+    raise ValueError(
+      "Error performing SVD of 2-site term. {} != {}".format(mpo_rank, 8))
+  h2 = ([s[i] * u[:,i].reshape(6,6) for i in range(8)],
+        [vh[i,:].reshape(6,6) for i in range(8)])
+  h2 = (
+      [convert_to_tensor(h, dtype=dtype) for h in h2[0]],
+      [convert_to_tensor(h, dtype=dtype) for h in h2[1]],
+  )
+  h1 = zeros_like(h2[0][0])
+  return h1, h2
+
+
+def kron_td(a, b):
+  """Computes the Kronecker product of two matrices using tensordot."""
+  if len(a.shape) != 2 or len(b.shape) != 2:
+    raise ValueError("Only implemented for matrices.")
+  ab = tensordot(a, b, 0)
+  ab = transpose(ab, (0,2,1,3))
+  return reshape(ab, (a.shape[0] * b.shape[0], a.shape[1] * b.shape[1]))
+
+
+def block_ham(h1, h2, sites_per_block):
+  """Creates a 'blocked' Hamiltonian from an input Hamiltonian."""
+  d = h1.shape[0]
+  dtype = h1.dtype
+  E = eye(d, dtype=dtype)
+
+  h1_blk = None
+  for i in range(sites_per_block):
+    h1_term = h1 if i == 0 else E
+    for j in range(1, sites_per_block):
+      h1_term = kron_td(h1_term, h1 if i == j else E)
+    if h1_blk is not None:
+      h1_blk += h1_term
+    else:
+      h1_blk = h1_term
+
+  h2_dense = sum(kron_td(h2[0][i], h2[1][i]) for i in range(len(h2[0])))
+  for i in range(sites_per_block - 1):
+    h1_term = h2_dense if i == 0 else E
+    j = 2 if i == 0 else 1
+    while j < sites_per_block:
+      h1_term = kron_td(h1_term, h2_dense if i == j else E)
+      j += 2 if i == j else 1
+    h1_blk += h1_term
+  del(h2_dense)
+
+  E_big = eye(d**(sites_per_block - 1), dtype=dtype)
+  h2_0 = [kron_td(E_big, h) for h in h2[0]]
+  h2_1 = [kron_td(h, E_big) for h in h2[1]]
+
+  return h1_blk, (h2_0, h2_1)
 
 
 def get_ham_ising_tube(dtype, Ly, lam=-3.044):
