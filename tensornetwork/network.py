@@ -165,8 +165,12 @@ class TensorNetwork:
     Returns:
       new_edge: A new edge created by joining the two dangling edges together.
     Raises:
-      ValueError: If either edge1 or edge2 is not a dangling edge.
+      ValueError: If either edge1 or edge2 is not a dangling edge or if edge1
+        and edge2 are the same edge.
     """
+    if edge1 is edge2:
+      raise ValueError(
+        "Cannot connect and edge '{}' to itself.".format(edge1))
     for edge in [edge1, edge2]:
       if not edge.is_dangling():
         raise ValueError("Edge '{}' is not a dangling edge. "
