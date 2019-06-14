@@ -99,7 +99,7 @@ def optimize_binary_mera_graphed_TFI(device,
             rho_ph=tf.placeholder(dtype=dtype, shape=[None,None,None,None,None,None],name='rho')
             
             
-            wC_op, uC_op, rho_op = bml.initialize_binary_MERA_identities(2,chi,dtype)#initialization
+            wC_op, uC_op, rhos_op = bml.initialize_binary_MERA_identities(2,chi,dtype)#initialization
             ham_op = bml.initialize_TFI_hams(dtype=dtype)
             
             ascend_ham_op = bml.ascending_super_operator(ham_ph, w_ph, u_ph) #ascending operation
@@ -119,7 +119,7 @@ def optimize_binary_mera_graphed_TFI(device,
     
     with tf.Session(graph=graph, config=config) as sess:
         sess.run(init_op)
-        wC, uC, rho_0 = sess.run([wC_op,uC_op, rho_op])
+        wC, uC, rho_0 = sess.run([wC_op,uC_op, rhos_op[-1]])
         ham = sess.run(ham_op)
         hams = [0 for x in range(len(wC) + 1)]
         rhos = [0 for x in range(len(wC) + 1)]
