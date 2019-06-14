@@ -1501,6 +1501,7 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
 
     return wC, uC
 
+
 def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
     """
     initialize a binary MERA network of bond dimension `chi`
@@ -1540,12 +1541,20 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
         if misc_mera.all_same_chi(wC[-1]):
             break
 
-    chi_top = tf.shape(wC[-1])[2]#.get_shape()[2]
-    rho = tf.reshape(
+    rhos = [0 for _ in range(len(wC) + 1)]
+    for n in reversed(range(len(wC))):
+        chi_top = tf.shape(wC[n])[2]
+        rhos[n + 1] = tf.reshape(
+            tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
+            (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
+        rhos[n + 1] /= misc_mera.trace(rhos[n + 1])
+    chi_top = tf.shape(wC[0])[0]
+    rhos[0] = tf.reshape(
         tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
         (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
-
-    return wC, uC, rho / misc_mera.trace(rho)
+    rhos[0] /= misc_mera.trace(rhos[0])
+        
+    return wC, uC, rhos
 
 
 
@@ -1566,7 +1575,7 @@ def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
     """
     #Fixme: currently, passing tf.complex128 merely initializez imaginary part to 0.0
     #       make it random
-    wC, uC, rho = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
+    wC, uC, rhos = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
     
     wC = [tf.cast(tf.random_uniform(shape=w.get_shape(), dtype=dtype.real_dtype), dtype) for w in wC]
     wC = [misc_mera.w_update_svd_numpy(w) for w in wC]
@@ -1574,7 +1583,7 @@ def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
     uC = [tf.cast(tf.random_uniform(shape=u.get_shape(), dtype=dtype.real_dtype), dtype) for u in uC]
     uC = [misc_mera.u_update_svd_numpy(u) for u in uC]
 
-    return wC, uC, rho 
+    return wC, uC, rhos 
 
 
 def initialize_TFI_hams(dtype=tf.float64):
@@ -1696,8 +1705,8 @@ def optimize_binary_mera(ham_0,
             (chi_max, chi_max, chi_max, chi_max, chi_max, chi_max))
 
     for k in range(numiter):
+        t_init = time.time()
         t1 = time.time()
-        t_init = t1
         rho_0 = steady_state_density_matrix(nsteps_steady_state, rho_0, wC[-1],
                                             uC[-1])
         run_times['steady_state'].append(time.time() - t1)
