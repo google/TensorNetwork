@@ -41,15 +41,15 @@ class TensorNetwork:
     self.edge_increment = 0
 
   def _new_edge_name(self, name: Optional[Text]) -> Text:
+    self.edge_increment += 1
     if name is None:
       name = "__Edge_{}".format(self.edge_increment)
-    self.edge_increment += 1
     return name
 
   def _new_node_name(self, name: Optional[Text]) -> Text:
+    self.node_increment += 1
     if name is None:
       name = "__Node_{}".format(self.node_increment)
-    self.node_increment += 1
     return name
 
   def add_subnetwork(self, subnetwork: "TensorNetwork") -> None:
@@ -63,6 +63,8 @@ class TensorNetwork:
       raise ValueError("Incompatible backends found: {}, {}".format(
           self.backend.name, subnetwork.backend.name))
     self.nodes_set |= subnetwork.nodes_set
+    for node in subnetwork.nodes_set:
+      node.set_signature(node.signature + self.node_increment)
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
@@ -112,6 +114,7 @@ class TensorNetwork:
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
     new_node = network_components.Node(tensor, name, axis_names, self.backend)
+    new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
 
@@ -146,6 +149,7 @@ class TensorNetwork:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
     new_node = network_components.CopyNode(
             rank, dimension, name, axis_names, self.backend, dtype)
+    new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
 
