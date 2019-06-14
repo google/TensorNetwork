@@ -1763,18 +1763,14 @@ def optimize_binary_mera(ham_0,
                                          run_times['env4_u'][-1] + \
                                          run_times['env1_u'][-1]
                 uEnv = uEnv_1 + uEnv_2 + uEnv_3 + uEnv_4
-                #if opt_u:
-                t1 = time.time()                                            
-                #if numpy_update:
-                uC[p] = misc_mera.u_update_svd_numpy(uEnv)
-                s_string = [str(s) for s in uEnv.get_shape()]
-                print(s_string)
-                np.save('uEnv'.join(s_string),np.array(uEnv))
-                #    else:
-                #        uC[p] = misc_mera.u_update_svd(uEnv)
-                bla = (time.time() - t1)                                                                        
-                run_times['svd_env_u'][-1] += bla
-                print(bla)
+                if opt_u:
+                    t1 = time.time()                                            
+                    if numpy_update:
+                        uC[p] = misc_mera.u_update_svd_numpy(uEnv)
+                    else:
+                        uC[p] = misc_mera.u_update_svd(uEnv)
+                run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
+
             t1 = time.time()
             wEnv_1 = get_env_isometry_1(ham[p], rho[p + 1], wC[p], uC[p])
             run_times['env1_w'][-1] += (time.time() - t1)
