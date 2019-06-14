@@ -100,9 +100,9 @@ def run_binary_mera_optimization_TFI(chis=[4, 6, 8],
         _, uC, _ = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
     if rho_0 == 0:
-        _, _, rho_0 = bml.initialize_binary_MERA_identities(
+        _, _, rhos = bml.initialize_binary_MERA_identities(
             phys_dim=2, chi=chis[0], dtype=dtype)
-
+        rho_0 = rhos[-1]
     ham_0 = bml.initialize_TFI_hams(dtype=dtype)
 
     data = {'profile': {}, 'energies': {}}
@@ -373,8 +373,9 @@ def run_naive_optimization_benchmark(filename,
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
 
-            wC, uC, rho_0 = bml.initialize_binary_MERA_identities(
+            wC, uC, rhos = bml.initialize_binary_MERA_identities(
                 phys_dim=2, chi=chi, dtype=dtype)
+            rho_0 = rhos[-1]
             ham_0 = bml.initialize_TFI_hams(dtype=dtype)
             wC, uC, rho_0, runtimes, energies = bml.optimize_binary_mera(
                 ham_0=ham_0,
@@ -505,7 +506,7 @@ if __name__ == "__main__":
             },
             
             'optimize_naive': {
-                'chis': [16],
+                'chis': [4],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
