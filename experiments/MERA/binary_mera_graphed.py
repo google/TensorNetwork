@@ -191,7 +191,7 @@ def run_naive_optimization_benchmark(filename,
                                      chis,
                                      dtype=tf.float64,
                                      numiter=30,
-                                     nsteps_steady_state=20,
+                                     nsteps_steady_state=10,
                                      device=None):
     """
     run a naive optimization benchmark, i.e. one without growing bond dimensions by embedding 
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     ######## comment out all benchmarks you don't want to run ########
     benchmarks = {
         'optimize_naive': {
-            'chis': [4, 6],
+            'chis': [4, 6,  8, 10, 12, 14, 16],
             'dtype': tf.float64,
             'nsteps_steady_state': 10,
             'numiter': 40
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     }
     date = datetime.date
     today = str(date.today())
-    use_gpu = False  #use True when running on GPU
+    use_gpu = True #use True when running on GPU
     #list available devices
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
