@@ -44,7 +44,7 @@ def to_graphviz(
   if graph is None:
     graph = graphviz.Graph('G', engine=engine)
   for node in net.nodes_set:
-    if not node.name.startswith("__") or include_all_names
+    if not node.name.startswith("__") or include_all_names:
       label = node.name
     else:
       label = ""
