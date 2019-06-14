@@ -24,7 +24,7 @@ from tensornetwork import network
 def to_graphviz(
     net: network.TensorNetwork, 
     graph: Optional[graphviz.Graph] = None,
-    include_all_names: bool=False,
+    include_all_names: bool = False,
     engine: Text = "neato"
   ) -> graphviz.Graph:
   """Create a graphviz Graph that is isomorphic to the given TensorNetwork.
@@ -36,6 +36,7 @@ def to_graphviz(
     include_all_names: Whether to include all of the names in the graph.
       If False, all names starting with '__' (which are almost always just
       the default generated names) will be dropped to reduce clutter.
+    engine: The graphviz engine to use. Only applicable if `graph` is None.
 
   Returns:
     The `graphviz.Graph` object.
@@ -43,31 +44,35 @@ def to_graphviz(
   if graph is None:
     graph = graphviz.Graph('G', engine=engine)
   for node in net.nodes_set:
-    label = node.name if node.name[:2] != "__" or include_all_names else ""
+    if not node.name.startswith("__") or include_all_names
+      label = node.name
+    else:
+      label = ""
     graph.node(str(node.signature), label=label)
   seen_edges = set()
   for node in net.nodes_set:
     for i, edge in enumerate(node.edges):
-      if edge not in seen_edges:
-        seen_edges.add(edge)
-        if edge.name[:2] != "__" or include_all_names:
-          edge_label = edge.name
-        else:
-          edge_label = ""
-        if edge.is_dangling():
-          # We need to create an invisible node for the dangling edge 
-          # to connect to.
-          graph.node(
-              "{}_{}".format(node.signature, i), 
-              label="",
-               _attributes={"style":"invis"})
-          graph.edge(
-              "{}_{}".format(node.signature, i), 
-              str(node.signature),
-              label=edge_label)
-        else:
-          graph.edge(
-            str(edge.node1.signature),
-            str(edge.node2.signature),
+      if edge in seen_edges:
+        continue
+      seen_edges.add(edge)
+      if not edge.name.startswith("__") or include_all_names:
+        edge_label = edge.name
+      else:
+        edge_label = ""
+      if edge.is_dangling():
+        # We need to create an invisible node for the dangling edge 
+        # to connect to.
+        graph.node(
+            "{}_{}".format(node.signature, i), 
+            label="",
+             _attributes={"style":"invis"})
+        graph.edge(
+            "{}_{}".format(node.signature, i), 
+            str(node.signature),
             label=edge_label)
+      else:
+        graph.edge(
+          str(edge.node1.signature),
+          str(edge.node2.signature),
+          label=edge_label)
   return graph

@@ -72,7 +72,11 @@ class Node:
     return len(self.tensor.shape)
 
   def set_signature(self, signature: int) -> None:
-    """Set the signature for the node."""
+    """Set the signature for the node.
+
+    Signatures are numbers that uniquely identify a node inside of a
+    TensorNetwork.
+    """
     self.signature = signature
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
