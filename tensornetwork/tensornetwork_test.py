@@ -1022,3 +1022,13 @@ def test_self_connected_edge(backend):
   a = net.add_node(np.eye(2))
   with pytest.raises(ValueError):
     net.connect(a[0], a[0])
+
+def test_subnetwork_signatures(backend):
+  net1 = tensornetwork.TensorNetwork()
+  net2 = tensornetwork.TensorNetwork()
+  a = net1.add_node(np.eye(2))
+  assert a.signature == 1
+  b = net2.add_node(np.eye(2))
+  assert b.signature == 1
+  net1.add_subnetwork(net2)
+  assert b.signature == 2
