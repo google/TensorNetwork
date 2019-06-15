@@ -84,13 +84,9 @@ class ShellBackend(base_backend.BaseBackend):
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     expr_list = expression.split(",")
     expr_list[-1], res = expr_list[-1].split("->")
-    shape = []
-    for char in res:
-      i, ind = self._find_char(expr_list, char)
-      shape.append(tensors[i][ind])
-    return tuple(shape)
+    return tuple(self._find_char(expr_list, char, tensors) for char in res)
 
-  def _find_char(self, expr_list: List[str], char: str):
+  def _find_char(self, expr_list, char, tensors):
     """Finds character in einsum tensor expression.
 
     Args:
@@ -105,4 +101,4 @@ class ShellBackend(base_backend.BaseBackend):
     for i, expr in enumerate(expr_list):
       ind = expr.find(char)
       if ind != -1:
-        return i, ind
+        return tensors[i][ind]
