@@ -27,6 +27,7 @@ class ShellBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
+    super(ShellBackend, self).__init__()
     self.name = "shell"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
@@ -102,3 +103,5 @@ class ShellBackend(base_backend.BaseBackend):
       ind = expr.find(char)
       if ind != -1:
         return tensors[i][ind]
+    raise ValueError("Einsum output expression contains letters not given"
+                     "in input.")
