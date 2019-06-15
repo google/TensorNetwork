@@ -58,7 +58,7 @@ def w_update_svd(isometry):
 
 
 
-def optimize_binary_mera_graphed_TFI(device,
+def optimize_binary_mera_feed_dict_TFI(device,
                                      chi=4,
                                      dtype=tf.float64,
                                      numiter=1000,
@@ -215,7 +215,7 @@ def run_naive_optimization_benchmark(filename,
         for chi in chis:
             print('running naive optimization benchmark for chi = {0}'.format(
                 chi))
-            wC, uC, rho_0, runtimes, energies = optimize_binary_mera_graphed_TFI(
+            wC, uC, rho_0, runtimes, energies = optimize_binary_mera_feed_dict_TFI(
                 device=device,
                 chi=chi,
                 dtype=dtype,
@@ -278,7 +278,7 @@ if __name__ == "__main__":
         name = today + 'CPU'
 
     if 'optimize_naive' in benchmarks:
-        filename = name + 'graphed_binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
+        filename = name + 'feed_dict_binary_mera_naive_optimization_benchmark_Nthreads{}'.format(
             NUM_THREADS)
         keys = sorted(benchmarks['optimize_naive'].keys())
         for key in keys:
