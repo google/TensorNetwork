@@ -38,26 +38,6 @@ config = tf.ConfigProto()
 config.intra_op_parallelism_threads = NUM_THREADS
 config.inter_op_parallelism_threads = 1
 
-def u_update_svd(disentangler):
-    """
-    obtain the update to the disentangler using numpy svd
-    """
-    shape = disentangler.shape
-    ut, st, vt = np.linalg.svd(
-        np.reshape(disentangler, (shape[0] * shape[1], shape[2] * shape[3])),
-        full_matrices=False)
-    return -np.reshape(ut.dot(vt), shape)
-def w_update_svd(isometry):
-    """
-    obtain the update to the isometry using numpy svd
-    """
-    shape = isometry.shape
-    ut, st, vt = np.linalg.svd(
-        np.reshape(isometry, (shape[0] * shape[1], shape[2])), full_matrices=False)
-    return -np.reshape(ut.dot(vt),shape)
-
-
-
 def optimize_binary_mera_graphed_TFI(device,
                                      chi=4,
                                      dtype=tf.float64,
@@ -86,106 +66,134 @@ def optimize_binary_mera_graphed_TFI(device,
         run_times (list of float):  run times per iteration step 
         Energies (list of float):   energies at each iteration step
     """
-    
     graph = tf.Graph()
-
-
+    phys_dim = 2
     with graph.as_default():
         with tf.device(device):
-            #placeholders for feeding MERA tensors
-            w_ph = tf.placeholder(dtype=dtype, shape=[None,None,None],name='w')
-            u_ph=tf.placeholder(dtype=dtype, shape=[None,None,None,None],name='u')
-            ham_ph=tf.placeholder(dtype=dtype, shape=[None,None,None,None,None,None],name='ham')
-            rho_ph=tf.placeholder(dtype=dtype, shape=[None,None,None,None,None,None],name='rho')
-            
-            
-            wC_op, uC_op, rhos_op = bml.initialize_binary_MERA_identities(2,chi,dtype)#initialization
-            ham_op = bml.initialize_TFI_hams(dtype=dtype)
-            
-            ascend_ham_op = bml.ascending_super_operator(ham_ph, w_ph, u_ph) #ascending operation
-            descend_rho_op = bml.descending_super_operator(rho_ph, w_ph, u_ph)#descending operation
-            rho_ss_op = bml.steady_state_density_matrix(nsteps_steady_state, rho_ph,w_ph, u_ph)#steady-state operation
-            
-            u_env_op = bml.get_env_disentangler(ham_ph, rho_ph, w_ph, u_ph)
-            w_env_op = bml.get_env_isometry(ham_ph, rho_ph, w_ph, u_ph)
-            
-            init_op = tf.global_variables_initializer()#initializer (not really needed unless random init is called)
-
-            
-    Energies = []
-    run_times = {'env_u' : [], 'env_w' : [],
-                 'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [],
-                 'ascend' : [], 'descend' : [], 'total' : []}
+            ###################################################################################################                
+            #define variables for all objects
+            #we use more Variables than usually neccessary 
+            #the reason is that we want to time certain operations
+            wC_op, uC_op, rhos_op = bml.initialize_binary_MERA_identities(phys_dim,chi,dtype)#initialization
+            wC =  [tf.Variable(wC_op[n],name='wC_{0}'.format(n)) for n in range(len(wC_op))] 
+            uC =  [tf.Variable(uC_op[n], name = 'uC_{0}'.format(n)) for n in range(len(uC_op))]
+            u_envs = [tf.Variable(uC_op[n], name = 'u_env_{0}'.format(n)) for n in range(len(uC_op))]
+            w_envs = [tf.Variable(wC_op[n], name = 'w_env_{0}'.format(n)) for n in range(len(wC_op))]
+            u_updates = [tf.Variable(uC_op[n], name = 'u_update_{0}'.format(n)) for n in range(len(uC_op))]
+            w_updates = [tf.Variable(wC_op[n], name = 'w_update_{0}'.format(n)) for n in range(len(wC_op))]
     
-    with tf.Session(graph=graph, config=config) as sess:
+            rhos = [tf.Variable(rhos_op[n], name='rho_{0}'.format(n)) for n in range(len(rhos_op))]
+            hams = [bml.initialize_TFI_hams(dtype=dtype)] 
+            chi1 = tf.shape(hams[0])[0]
+            bias = tf.Variable(tf.cast(tf.math.reduce_max(
+                    tf.cast(tf.linalg.eigvalsh(
+                        tf.reshape(hams[0], (chi1 * chi1 * chi1, chi1 * chi1 * chi1))),dtype)) / 2,dtype),name='bias')
+    
+            hams[0] = tf.Variable(hams[0] - bias.initialized_value() * tf.reshape(
+                tf.eye(chi1 * chi1 * chi1, dtype=dtype),
+                (chi1, chi1, chi1, chi1, chi1, chi1)), name='ham_0')
+    
+            for n in range(len(wC)):
+                hams.append(tf.Variable(bml.ascending_super_operator(hams[-1].initialized_value(), 
+                                                                     wC[n].initialized_value(), 
+                                                                     uC[n].initialized_value()),
+                                            name='ham_{0}'.format(n+1)))
+            ############################    done creating variables     #######################################
+            
+            #an op for checking the energy   
+            energy = tn.ncon([hams[0].initialized_value(),rhos[0].initialized_value()],
+                     [[1,2,3,4,5,6],[4,5,6,1,2,3]])/tn.ncon([rhos[0].initialized_value()],[[1,2,3,1,2,3]])+\
+                    bias.initialized_value()
+            
+            init_op = tf.global_variables_initializer()
+    
+            descend_ops = [bml.descending_super_operator(rhos[p+1], wC[p], uC[p])
+                           for p in range(len(rhos)-1)]
+            ascend_ops = [bml.ascending_super_operator(hams[p], wC[p], uC[p])
+                          for p in range(len(hams)-1)]
+           
+            rho_ss_op = bml.steady_state_density_matrix(nsteps_steady_state, rhos[-1],wC[-1], uC[-1])
+            assign_rhos = [tf.assign(rhos[n], descend_ops[n]) for n in range(len(rhos)-1)]
+            assign_rhos.append(tf.assign(rhos[-1], rho_ss_op))
+            assign_hams = [hams[0]] + [tf.assign(hams[n+1], ascend_ops[n]) for n in range(len(hams)-1)]
+            assign_u_envs = [tf.assign(u_envs[p], bml.get_env_disentangler(hams[p], rhos[p+1], wC[p], uC[p]))
+                               for p in range(len(uC))]
+            assign_w_envs = [tf.assign(w_envs[p], bml.get_env_isometry(hams[p], rhos[p+1], wC[p], uC[p]))
+                                      for p in range(len(wC))]
+            assign_u_updates = [tf.assign(u_updates[n], misc_mera.u_update_svd(u_envs[n]))
+                                for n in range(len(uC))]
+            assign_w_updates = [tf.assign(w_updates[n], misc_mera.w_update_svd(w_envs[n]))
+                                for n in range(len(w_envs))]
+            assign_us = [tf.assign(uC[n], u_updates[n]) for n in range(len(uC))]
+            assign_ws = [tf.assign(wC[n], w_updates[n]) for n in range(len(wC))]
+            
+    with tf.Session(graph=graph,config=config) as sess:
+        Energies = []
+        run_times = {'env_u' : [], 'env_w' : [],
+                     'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [],
+                     'ascend' : [], 'descend' : [], 'total' : []}
+        
         sess.run(init_op)
-        wC, uC, rho_0 = sess.run([wC_op,uC_op, rhos_op[-1]])
-        ham = sess.run(ham_op)
-        hams = [0 for x in range(len(wC) + 1)]
-        rhos = [0 for x in range(len(wC) + 1)]
-
-        hams[0] = ham
-        chi1 = ham[0].shape[0]
-        bias = np.max(np.linalg.eigvalsh(np.reshape(hams[0], (chi1 * chi1 * chi1, chi1 * chi1 * chi1)))) / 2
-        hams[0] = hams[0] - bias * np.reshape(
-           np.eye(chi1 * chi1 * chi1),(chi1, chi1, chi1, chi1, chi1, chi1))
-    
         for k in range(numiter):
-            if (verbose == 1) and (np.mod(k, 10) == 1):
-                Z = ncon.ncon([rhos[0]],[1,2,3,1,2,3])
-                energy = ncon.ncon([hams[0],rhos[0]],[[1,2,3,4,5,6],[4,5,6,1,2,3]])
-                Energies.append(energy / Z + bias)
+            if (k % 10 == 0) and (verbose == 1):
+                
+                Energies.append(sess.run(energy))
                 stdout.write(
-                    '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
+                    '\r     Iteration: %i of %i: E = %.8f, err = %.16f'
                     % (int(k), int(numiter), float(Energies[-1]),
-                       float(Energies[-1] - E_exact), int(np.shape(wC[-1])[2]),
-                       len(wC)))
+                       float(Energies[-1] - E_exact)))
                 stdout.flush()
-            t1 = time.time()            
-            #obtain the steady state rho
-            t2 = time.time()
-            rho_0 = sess.run(rho_ss_op,feed_dict={rho_ph:rho_0, w_ph: wC[-1], u_ph : uC[-1]})
-            run_times['steady_state'].append(time.time() - t2)
-            
-            rhos[-1] = rho_0      
-            #get all other rhos
-            t2 = time.time()
-            for p in range(len(rhos) - 2, -1, -1):
-                rhos[p] = sess.run(descend_rho_op,feed_dict = {rho_ph: rhos[p + 1], w_ph : wC[p], u_ph : uC[p]})
-            run_times['descend'].append(time.time() - t2)                
 
-
+                
+            run_times['descend'].append(0)
             run_times['ascend'].append(0)
             run_times['svd_env_u'].append(0)
             run_times['svd_env_w'].append(0)
             run_times['env_u'].append(0)
             run_times['env_w'].append(0)
-            
-            for p in range(len(wC)): 
-                #order of updates can be changed 
-                if k >= opt_u_after:
-                    
-                    t2 = time.time()
-                    uEnv = sess.run(u_env_op,feed_dict={ham_ph:hams[p],rho_ph:rhos[p+1], w_ph : wC[p], u_ph : uC[p]})
-                    run_times['env_u'][-1] += (time.time() - t2)
-                    
-                    t2 = time.time()
-                    uC[p] = u_update_svd(uEnv)
-                    run_times['svd_env_u'][-1] += (time.time() - t2)
-
-                t2 = time.time()                    
-                wEnv = sess.run(w_env_op,feed_dict={ham_ph:hams[p],rho_ph:rhos[p+1], w_ph : wC[p], u_ph : uC[p]})
-                run_times['env_w'][-1] += (time.time() - t2)
                 
-                t2 = time.time()                                    
-                wC[p] = w_update_svd(wEnv)
-                run_times['svd_env_w'][-1] += (time.time() - t2)
+            tinit = time.time()            
+            #obtain the steady state rho
+            t2 =  time.time()
+            sess.run(assign_rhos[-1].op)
+            run_times['steady_state'].append(time.time() - t2)
+            
+                        
+            for p in reversed(range(len(rhos) - 1)):
+                t2 =  time.time()                
+                sess.run(assign_rhos[p].op)
+                run_times['descend'][-1] += (time.time() - t2)                  
 
-                t2 = time.time()                                    
-                hams[p + 1] = sess.run(ascend_ham_op,feed_dict={ham_ph : hams[p], w_ph : wC[p], u_ph: uC[p]})
-                run_times['ascend'][-1] += (time.time() - t2)
-            run_times['total'].append(time.time() - t1)                
-    return wC, uC, rhos[-1], run_times, Energies
+            for p in range(len(wC)): 
+                #order of updates can be changed
+                
+                if k >= opt_u_after:
+                    t2 =  time.time()                
+                    sess.run(assign_u_envs[p].op)    #obtain environment and assign to a Variable
+                    run_times['env_u'][-1] += (time.time() - t2)
+
+                    t2 =  time.time()                
+                    sess.run(assign_u_updates[p].op) #obtain update by svd of the env and assign to a Variable
+                    run_times['svd_env_u'][-1] += (time.time() - t2)
+                    
+                    sess.run(assign_us[p].op)        #assign the calculated update to the uC[p] tf.Variable
+
+                t2 =  time.time()
+                sess.run(assign_w_envs[p].op)        #obtain environment and assign to the variable
+                run_times['env_w'][-1] += (time.time() - t2)
+
+                t2 =  time.time()
+                sess.run(assign_w_updates[p].op)     #obtain update by svd of the env and assign to a Variable
+                run_times['svd_env_w'][-1] += (time.time() - t2)
+                
+                sess.run(assign_ws[p].op)            #assign the calculated update to the wC[p] tf.Variable
+                
+                t2 =  time.time()                
+                sess.run(assign_hams[p + 1].op)      #calculate and assign the new Hamiltonians in layer p+1
+                run_times['ascend'][-1] += (time.time() - t2)                                
+            run_times['total'].append(time.time() - tinit)
+            
+    return wC, uC, rhos[-1], run_times, Energies            
 
 def run_naive_optimization_benchmark(filename,
                                      chis,
@@ -221,7 +229,7 @@ def run_naive_optimization_benchmark(filename,
                 dtype=dtype,
                 numiter=numiter,
                 nsteps_steady_state=nsteps_steady_state,
-                verbose=0,
+                verbose=1,
                 opt_u_after=0)
 
             walltimes['profile'][chi] = runtimes
@@ -262,7 +270,7 @@ if __name__ == "__main__":
     }
     date = datetime.date
     today = str(date.today())
-    use_gpu = True #use True when running on GPU
+    use_gpu = False #use True when running on GPU
     #list available devices
     DEVICES = tf.contrib.eager.list_devices()
     print("Available devices:")
@@ -300,3 +308,4 @@ if __name__ == "__main__":
             device=specified_device_type)
         os.chdir(rootdir)
 
+p
