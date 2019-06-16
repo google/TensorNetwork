@@ -1735,14 +1735,12 @@ def optimize_binary_mera(ham_0,
         run_times['ascend'].append(0)
         run_times['svd_env_u'].append(0)
         run_times['svd_env_w'].append(0)
-        run_times['env_w'].append(0)
         run_times['env1_w'].append(0)
         run_times['env2_w'].append(0)
         run_times['env3_w'].append(0)
         run_times['env4_w'].append(0)
         run_times['env5_w'].append(0)
         run_times['env6_w'].append(0)        
-        run_times['env_u'].append(0)
         run_times['env1_u'].append(0)
         run_times['env2_u'].append(0)
         run_times['env3_u'].append(0)
@@ -1767,10 +1765,6 @@ def optimize_binary_mera(ham_0,
                 t1 = time.time()            
                 uEnv_4 = get_env_disentangler_4(ham[p], rho[p + 1], wC[p], uC[p])
                 run_times['env4_u'][-1] += (time.time() - t1)
-                run_times['env_u'][-1] = run_times['env1_u'][-1] + \
-                                         run_times['env2_u'][-1] + \
-                                         run_times['env4_u'][-1] + \
-                                         run_times['env1_u'][-1]
                 uEnv = uEnv_1 + uEnv_2 + uEnv_3 + uEnv_4
                 if opt_u:
                     t1 = time.time()                                            
@@ -1778,7 +1772,7 @@ def optimize_binary_mera(ham_0,
                         uC[p] = misc_mera.u_update_svd_numpy(uEnv)
                     else:
                         uC[p] = misc_mera.u_update_svd(uEnv)
-                run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
+                    run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
 
             t1 = time.time()
             wEnv_1 = get_env_isometry_1(ham[p], rho[p + 1], wC[p], uC[p])
@@ -1799,12 +1793,6 @@ def optimize_binary_mera(ham_0,
             wEnv_6 = get_env_isometry_6(ham[p], rho[p + 1], wC[p], uC[p])
             run_times['env6_w'][-1] += (time.time() - t1)
             wEnv = wEnv_1 + wEnv_2 + wEnv_3 + wEnv_4 + wEnv_5 + wEnv_6
-            run_times['env_w'][-1] = run_times['env1_w'][-1] + \
-                                     run_times['env2_w'][-1] + \
-                                     run_times['env3_w'][-1] + \
-                                     run_times['env4_w'][-1] + \
-                                     run_times['env5_w'][-1] + \
-                                     run_times['env6_w'][-1] 
             #t1 = time.time()
             #wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])                        
             #run_times['env_w'][-1] += (time.time() - t1)                                            
@@ -1818,7 +1806,19 @@ def optimize_binary_mera(ham_0,
 
             t1 = time.time()                
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
-            run_times['ascend'][-1] += (time.time() - t1)                                
+            run_times['ascend'][-1] += (time.time() - t1)
+
+            
+        run_times['env_u'].append(run_times['env1_u'][-1] + \
+            run_times['env2_u'][-1] + \
+            run_times['env4_u'][-1] + \
+            run_times['env1_u'][-1])
+        run_times['env_w'].append(run_times['env1_w'][-1] + \
+                                  run_times['env2_w'][-1] + \
+                                  run_times['env3_w'][-1] + \
+                                  run_times['env4_w'][-1] + \
+                                  run_times['env5_w'][-1] + \
+                                  run_times['env6_w'][-1])
 
         run_times['total'].append(time.time() - t_init)
         if verbose == 1:
