@@ -15,8 +15,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Sequence, Tuple, List
+
+import functools
+import operator
 from tensornetwork.backends import base_backend
+from typing import Optional, Sequence, Tuple, List
 
 # Treat tensors as tuples that carry the real tensor's shape.
 # Conversion from tensor to tuple will happen somewhere else?
@@ -56,16 +59,14 @@ class ShellBackend(base_backend.BaseBackend):
     raise NotImplementedError("SVD shape cannot be calculated without"
                               "explicit tensor values.")
 
-  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
-    # Does not work when axis < 0
-    concat_dim = len(values) * values[0][axis]
-    return values[0][:axis] + (concat_dim,) + values[0][axis + 1:]
+  def shape_concat(self, values: Sequence[Tensor]) -> Tensor:
+    return functools.reduce(operator.concat, values)
 
   def shape(self, tensor: Tensor) -> Tensor:
     return tensor
 
-  def prod(self, values: Tensor) -> Tensor:
-    return values
+  def shape_prod(self, values: Tensor) -> Tensor:
+    return functools.reduce(operator.mul, values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return tensor

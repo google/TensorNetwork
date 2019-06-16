@@ -45,11 +45,17 @@ def test_transpose():
   shape = bkd.transpose((5, 3, 2), [0, 2, 1])
   assert shape == (5, 2, 3)
 
-def test_concat():
+def test_shape_concat():
   bkd = shell_backend.ShellBackend()
-  values = [(5, 3, 2), (5, 3, 2), (5, 3, 2)]
-  shape = bkd.concat(values, axis=2)
-  assert shape == (5, 3, 6)
+  values = [(5, 3, 2), (4, 6), (2,)]
+  shape = bkd.shape_concat(values)
+  assert shape == (5, 3, 2, 4, 6, 2)
+
+def test_shape_prod():
+  bkd = shell_backend.ShellBackend()
+  values = (5, 3, 2)
+  shape = bkd.shape_prod(values)
+  assert shape == 30
 
 def test_trace():
   bkd = shell_backend.ShellBackend()
@@ -77,7 +83,7 @@ def test_einsum():
   c = bkd.einsum(expr, a.shape, b.shape)
   assert c == np.einsum(expr, a, b).shape
 
-def test_einsum_three_tensors():
+def test_einsum_three():
   bkd = shell_backend.ShellBackend()
   a = np.ones((6, 4, 3, 10, 8))
   b = np.ones((6, 7, 4, 10, 5))
