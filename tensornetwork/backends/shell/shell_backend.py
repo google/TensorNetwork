@@ -59,13 +59,13 @@ class ShellBackend(base_backend.BaseBackend):
     raise NotImplementedError("SVD shape cannot be calculated without"
                               "explicit tensor values.")
 
-  def shape_concat(self, values: Sequence[Tensor]) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor]) -> Sequence:
     return functools.reduce(operator.concat, values)
 
   def shape(self, tensor: Tensor) -> Tensor:
     return tensor
 
-  def shape_prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> int:
     return functools.reduce(operator.mul, values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
