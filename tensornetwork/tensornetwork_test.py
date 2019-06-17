@@ -43,6 +43,7 @@ def assertTrue(a):
 def assertFalse(a):
   assert a is False
 
+
 def test_sanity_check(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   net.add_node(np.eye(2), "a")
@@ -1009,6 +1010,7 @@ def test_copy_tensor_parallel_edges(backend):
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 10 + 40 + 90)
 
+
 def test_contract_copy_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.array([1, 2, 3], dtype=np.float64))
@@ -1026,6 +1028,7 @@ def test_contract_copy_node(backend):
   result = val.tensor
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
+
 
 def test_contract_copy_node_connected_neighbors(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -1052,9 +1055,11 @@ def test_contract_copy_node_connected_neighbors(backend):
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 26 + 460)
 
+
 def test_bad_backend():
   with pytest.raises(ValueError):
     tensornetwork.TensorNetwork("NOT_A_BACKEND")
+
 
 def test_remove_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -1076,6 +1081,7 @@ def test_remove_node(backend):
   assert broken_edges_axis[0] is b[0]
   assert broken_edges_axis[1] is c[0]
 
+
 def test_remove_node_trace_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
@@ -1088,11 +1094,13 @@ def test_remove_node_trace_edge(backend):
   assert 2 not in broken_edges
   assert broken_edges[0] is b[0]
 
+
 def test_self_connected_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
   with pytest.raises(ValueError):
     net.connect(a[0], a[0])
+
 
 def test_subnetwork_signatures(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
@@ -1104,6 +1112,7 @@ def test_subnetwork_signatures(backend):
   net1.add_subnetwork(net2)
   assert b.signature == 2
 
+
 def test_edges_signatures(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2,) * 5))
@@ -1113,9 +1122,10 @@ def test_edges_signatures(backend):
     assert b[i].signature == -1
   for i, index in enumerate({1, 3, 4}):
     edge = net.connect(a[index], b[index])
-    # Add 11 to account for the the original 10 
+    # Add 11 to account for the the original 10
     # edges and the 1 indexing.
     assert edge.signature == i + 11
+
 
 def test_get_parallel_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
