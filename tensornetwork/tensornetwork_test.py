@@ -1094,4 +1094,44 @@ def test_remove_node_trace_edge(backend):
   assert 2 not in broken_edges
   assert broken_edges[0] is b[0]
 
-  
+def test_self_connected_edge(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  with pytest.raises(ValueError):
+    net.connect(a[0], a[0])
+
+def test_subnetwork_signatures(backend):
+  net1 = tensornetwork.TensorNetwork(backend=backend)
+  net2 = tensornetwork.TensorNetwork(backend=backend)
+  a = net1.add_node(np.eye(2))
+  assert a.signature == 1
+  b = net2.add_node(np.eye(2))
+  assert b.signature == 1
+  net1.add_subnetwork(net2)
+  assert b.signature == 2
+
+def test_edges_signatures(backend):
+  net = tensornetwork.TensorNetwork()
+  a = net.add_node(np.ones((2,) * 5))
+  b = net.add_node(np.ones((2,) * 5))
+  for i in range(5):
+    assert a[i].signature == -1
+    assert b[i].signature == -1
+  for i, index in enumerate({1, 3, 4}):
+    edge = net.connect(a[index], b[index])
+    # Add 11 to account for the the original 10 
+    # edges and the 1 indexing.
+    assert edge.signature == i + 11
+
+def test_get_parallel_edge(backend):
+  net = tensornetwork.TensorNetwork()
+  a = net.add_node(np.ones((2,) * 5))
+  b = net.add_node(np.ones((2,) * 5))
+  edges = set()
+  for i in {0, 1, 3}:
+    edges.add(net.connect(a[i], b[i]))
+  # sort by edge signature
+  a = sorted(list(edges))[0]
+  assert net.get_parallel_edges(a) == edges
+
+

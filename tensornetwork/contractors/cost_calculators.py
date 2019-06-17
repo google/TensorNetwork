@@ -41,8 +41,6 @@ def cost_contract_between(
     return sys.maxsize
   contracted_dimensions = 1
   shared_edge_found = False
-  import pdb
-  pdb.set_trace()
   for edge in node1.edges:
     if set(edge.get_nodes()) == {node1, node2}:
       shared_edge_found = True
@@ -53,3 +51,6 @@ def cost_contract_between(
   # We take the square as we have to discount the contracted axes twice.
   cost = np.prod(node1.shape + node2.shape) // (contracted_dimensions)**2
   return cost
+
+def cost_contract_parallel(edge: network_components.Edge) -> int:
+  return cost_contract_between(edge.node1, edge.node2)

@@ -41,15 +41,15 @@ class TensorNetwork:
     self.edge_increment = 0
 
   def _new_edge_name(self, name: Optional[Text]) -> Text:
+    self.edge_increment += 1
     if name is None:
       name = "__Edge_{}".format(self.edge_increment)
-    self.edge_increment += 1
     return name
 
   def _new_node_name(self, name: Optional[Text]) -> Text:
+    self.node_increment += 1
     if name is None:
       name = "__Node_{}".format(self.node_increment)
-    self.node_increment += 1
     return name
 
   def add_subnetwork(self, subnetwork: "TensorNetwork") -> None:
@@ -63,6 +63,8 @@ class TensorNetwork:
       raise ValueError("Incompatible backends found: {}, {}".format(
           self.backend.name, subnetwork.backend.name))
     self.nodes_set |= subnetwork.nodes_set
+    for node in subnetwork.nodes_set:
+      node.set_signature(node.signature + self.node_increment)
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
@@ -111,8 +113,8 @@ class TensorNetwork:
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(
-      tensor, name, axis_names, self.node_increment, self.backend)
+    new_node = network_components.Node(tensor, name, axis_names, self.backend)
+    new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
 
@@ -146,8 +148,8 @@ class TensorNetwork:
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
     new_node = network_components.CopyNode(
-      rank, dimension, name, axis_names, self.node_increment, 
-      self.backend, dtype)
+            rank, dimension, name, axis_names, self.backend, dtype)
+    new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
 
@@ -165,8 +167,21 @@ class TensorNetwork:
     Returns:
       new_edge: A new edge created by joining the two dangling edges together.
     Raises:
-      ValueError: If either edge1 or edge2 is not a dangling edge.
+      ValueError: If either edge1 or edge2 is not a dangling edge or if edge1
+        and edge2 are the same edge.
     """
+    if edge1 is edge2:
+      raise ValueError(
+        "Cannot connect and edge '{}' to itself.".format(edge1))
+    if edge1.dimension != edge2.dimension:
+      raise ValueError("Cannot connect edges of unequal dimension. "
+                       "Dimension of edge '{}': {}, "
+                       "Dimension of edge '{}': {}.".format(
+                            edge1,
+                            edge1.dimension,
+                            edge2,
+                            edge2.dimension
+                        ))
     for edge in [edge1, edge2]:
       if not edge.is_dangling():
         raise ValueError("Edge '{}' is not a dangling edge. "
@@ -178,6 +193,7 @@ class TensorNetwork:
     axis2_num = node2.get_axis_number(edge2.axis1)
     name = self._new_edge_name(name)
     new_edge = network_components.Edge(name, node1, axis1_num, node2, axis2_num)
+    new_edge.set_signature(self.edge_increment)
     node1.add_edge(new_edge, axis1_num)
     node2.add_edge(new_edge, axis2_num)
     self.edge_order.append(new_edge)
@@ -628,6 +644,7 @@ class TensorNetwork:
       node.tensor = new_tensor
       # This Edge is required for the connect call later.
       edge = network_components.Edge(new_edge_name, node, len(perm_front))
+      # Do not set the signature of 'edge' since it is dangling.
       node.edges = node.edges[:len(perm_front)] + [edge]
       new_dangling_edges.append(edge)
       # TODO: Allow renaming of the new axis.
@@ -661,6 +678,20 @@ class TensorNetwork:
       if set(edge.get_nodes()) == nodes:
         shared_edges.add(edge)
     return shared_edges
+
+  def get_parallel_edges(
+      self, 
+      edge: network_components.Edge) -> Set[network_components.Edge]:
+    """Get all of the edge parallel to the given edge.
+
+    Args:
+      edge: The given edge.
+
+    Returns:
+      All of the edges parallel to the given edge (including the given edge).
+  """
+    return self.get_shared_edges(edge.node1, edge.node2)
+
 
   def flatten_edges_between(self, node1: network_components.Node,
                             node2: network_components.Node

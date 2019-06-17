@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Greedy Contraction."""
+"""Cost Calculator Tests."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -27,7 +27,7 @@ def test_cost_contract_between(backend):
   net = network.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 3, 4, 5)))
   b = net.add_node(np.ones((7, 3, 9, 5)))
-  net.connect(a[0], b[0])
+  net.connect(a[1], b[1])
   net.connect(a[3], b[3])
   cost = cost_calculators.cost_contract_between(a, b)
   assert cost == 2 * 7 * 4 * 9
@@ -39,3 +39,13 @@ def test_cost_contract_between_no_shared_edges(backend):
   b = net.add_node(np.ones((7, 3, 9, 5)))
   with pytest.raises(ValueError):
     cost_calculators.cost_contract_between(a, b)
+
+
+def test_cost_contract_parallel(backend):
+  net = network.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 3, 4, 5)))
+  b = net.add_node(np.ones((7, 3, 9, 5)))
+  net.connect(a[1], b[1])
+  edge = net.connect(a[3], b[3])
+  cost = cost_calculators.cost_contract_parallel(edge)
+  assert cost == 2 * 7 * 4 * 9

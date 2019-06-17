@@ -43,7 +43,7 @@ class Node:
 
   def __init__(
     self, tensor: Tensor, name: Text, axis_names: List[Text],
-    signature: int, backend: base_backend.BaseBackend) -> None:
+    backend: base_backend.BaseBackend) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -51,6 +51,7 @@ class Node:
         either a numpy array or a tensorflow tensor.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
+      backend: An Backend object.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
@@ -66,11 +67,19 @@ class Node:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
-    self.signature = signature
+    self.signature = -1
 
   def get_rank(self) -> int:
     """Return rank of tensor represented by self."""
     return len(self.tensor.shape)
+
+  def set_signature(self, signature: int) -> None:
+    """Set the signature for the node.
+
+    Signatures are numbers that uniquely identify a node inside of a
+    TensorNetwork.
+    """
+    self.signature = signature
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
@@ -264,14 +273,13 @@ class CopyNode(Node):
                dimension: int,
                name: Text,
                axis_names: List[Text],
-               signature: int,
                backend: base_backend.BaseBackend,
                dtype: Type[np.number] = np.float64) -> None:
     # TODO: Make this computation lazy, once Node doesn't require tensor
     # at instatiation.
     copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
     copy_tensor = backend.convert_to_tensor(copy_tensor)
-    super().__init__(copy_tensor, name, axis_names, signature, backend)
+    super().__init__(copy_tensor, name, axis_names, backend)
 
   @staticmethod
   def make_copy_tensor(rank: int, dimension: int,
@@ -400,6 +408,13 @@ class Edge:
     self.node2 = node2
     self.axis2 = axis2
     self._is_dangling = node2 is None
+    self.signature = -1
+
+  def set_signature(self, signature: int) -> None:
+    if self.is_dangling():
+      raise ValueError(
+        "Do not set a signature for dangling edge '{}'.".format(self))
+    self.signature = signature
 
   def get_nodes(self) -> List[Optional[Node]]:
     """Get the nodes of the edge."""
@@ -457,6 +472,10 @@ class Edge:
     if node is None:
       self._is_dangling = True
 
+  @property
+  def dimension(self):
+    return self.node1.shape[self.axis1]
+
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
     return self._is_dangling
@@ -481,6 +500,11 @@ class Edge:
 
   def set_name(self, name: Text) -> None:
     self.name = name
+
+  def __lt__(self, other):
+    if not isinstance(other, Edge):
+      raise TypeError("Cannot compare 'Edge' with type {}".format(type(Edge)))
+    return self.signature < other.signature
 
   def __str__(self) -> Text:
     return self.name

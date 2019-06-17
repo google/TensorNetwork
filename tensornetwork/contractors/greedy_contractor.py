@@ -20,54 +20,32 @@ from __future__ import print_function
 from typing import List, Optional, Tuple
 from tensornetwork import network
 from tensornetwork import network_components
+from tensornetwork.contractors import cost_calculators 
+
+cost_contract_parallel = cost_calculators.cost_contract_parallel
+
 
 def greedy(net: network.TensorNetwork) -> network.TensorNetwork:
   """Contract the lowest cost pair of nodes first.
   
   Args:
-    net: The TensorNetwork to contract
+    net: The TensorNetwork to contract.
   Returns:
     The contracted TensorNetwork.
   """
-  # First, contract all of the trace edges.
   edges = net.get_all_nondangling()
+  # First, contract all of the trace edges.
   for edge in edges:
     if edge in net and edge.is_trace():
       net.contract_parallel(edge)
-  edges = net.flatten_all_edges()
+  # Get the edges again.
+  edges = net.get_all_nondangling()
+  while edges:
+    edge = min(edges, key=lambda x: (cost_contract_parallel(x), x))
+    net.contract_parallel(edge)
+    edges = net.get_all_nondangling()
+  return net
 
 
-def _siftdown(heap: List[Tuple[int, network_components.Node]], startpos, pos):
-  newitem = heap[pos]
-  # Follow the path to the root, moving parents down until finding a place
-  # newitem fits.
-  while pos > startpos:
-    parentpos = (pos - 1) >> 1
-    parent = heap[parentpos]
-    if newitem < parent:
-      heap[pos] = parent
-      pos = parentpos
-      continue
-    break
-  heap[pos] = newitem
 
 
-def _siftup(heap, pos):
-  endpos = len(heap)
-  startpos = pos
-  newitem = heap[pos]
-  # Bubble up the smaller child until hitting a leaf.
-  childpos = 2 * pos + 1  # Leftmost child position.
-  while childpos < endpos:
-    # Set childpos to index of smaller child.
-    rightpos = childpos + 1
-    if rightpos < endpos and not heap[childpos] < heap[rightpos]:
-      childpos = rightpos
-    # Move the smaller child up.
-    heap[pos] = heap[childpos]
-    pos = childpos
-    childpos = 2 * pos + 1
-  # The leaf at pos is empty now. Put newitem there, and bubble it up
-  # to its final resting place (by sifting its parents down).
-  heap[pos] = newitem
-  _siftdown(heap, startpos, pos)
