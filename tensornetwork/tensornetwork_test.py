@@ -43,12 +43,6 @@ def assertTrue(a):
 def assertFalse(a):
   assert a is False
 
-
-@pytest.fixture(name="backend", params=["numpy", "tensorflow", "jax"])
-def backend_fixure(request):
-  return request.param
-
-
 def test_sanity_check(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   net.add_node(np.eye(2), "a")
