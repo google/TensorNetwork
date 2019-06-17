@@ -1012,6 +1012,11 @@ def top_hamiltonian(isos_012, H):
   return H
 
 
+def top_eigen(isos_012, H):
+  Htop = top_hamiltonian(isos_012, H)
+  return eigh(Htop)
+
+
 def tree_energy_expval_check(isos_012, H):
   L = len(isos_012)
   states = all_states_1site(isos_012)
