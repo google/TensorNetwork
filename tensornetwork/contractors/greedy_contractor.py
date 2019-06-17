@@ -45,7 +45,3 @@ def greedy(net: network.TensorNetwork) -> network.TensorNetwork:
     net.contract_parallel(edge)
     edges = net.get_all_nondangling()
   return net
-
-
-
-
