@@ -1111,7 +1111,7 @@ def test_subnetwork_signatures(backend):
   assert b.signature == 2
 
 def test_edges_signatures(backend):
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2,) * 5))
   b = net.add_node(np.ones((2,) * 5))
   for i in range(5):
@@ -1124,7 +1124,7 @@ def test_edges_signatures(backend):
     assert edge.signature == i + 11
 
 def test_get_parallel_edge(backend):
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2,) * 5))
   b = net.add_node(np.ones((2,) * 5))
   edges = set()
@@ -1133,5 +1133,3 @@ def test_get_parallel_edge(backend):
   # sort by edge signature
   a = sorted(list(edges))[0]
   assert net.get_parallel_edges(a) == edges
-
-

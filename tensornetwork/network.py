@@ -719,7 +719,6 @@ class TensorNetwork:
       A list of all the flattened edges. If there was only one edge between 
       two given nodes, that original edge is included in this list.
     """
-    nodes = list(self.nodes_set)
     flattened_edges = []
     for edge in self.get_all_nondangling():
       if edge in self:
