@@ -1017,6 +1017,21 @@ def top_eigen(isos_012, H):
   return eigh(Htop)
 
 
+def project_tree(isos_012, top_iso):
+  isos_012_proj = isos_012[:]
+  isos_012_proj[-1] = tensornetwork.ncon(
+    [top_iso, isos_012_proj[-1]],
+    [(-1, 1), (1, -2, -3)])
+  return isos_012_proj
+
+
+def pure_tree(isos_012, top_purestate):
+  if len(top_purestate.shape) != 1:
+    raise ValueError("top_purestate was not a vector!")
+  top_iso = reshape(top_purestate, (1, top_purestate.shape[0]))
+  return project_tree(isos_012, top_iso)
+
+
 def tree_energy_expval_check(isos_012, H):
   L = len(isos_012)
   states = all_states_1site(isos_012)
