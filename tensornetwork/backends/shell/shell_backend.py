@@ -46,14 +46,14 @@ class ShellBackend(base_backend.BaseBackend):
     # Does not work when axis < 0
     gen_a = (x for i, x in enumerate(a.shape) if i not in axes[0])
     gen_b = (x for i, x in enumerate(b.shape) if i not in axes[1])
-    return ShellTensor(self._concat_generators(gen_a, gen_b))
+    return ShellTensor(tuple(self._concat_generators(gen_a, gen_b)))
 
   def _concat_generators(self, *gen):
     """Concatenates Python generators."""
     for g in gen:
       yield from g
 
-  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
+  def reshape(self, tensor: Tensor, shape: Sequence[Any]) -> Tensor:
     tensor = tensor.reshape(shape)
     return tensor
 
@@ -81,7 +81,7 @@ class ShellBackend(base_backend.BaseBackend):
   def shape(self, tensor: Tensor) -> Tuple:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> int:
+  def prod(self, values: Sequence[Any]) -> int:
     return functools.reduce(operator.mul, values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
