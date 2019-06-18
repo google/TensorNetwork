@@ -17,17 +17,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import sys
-sys.path.append('../')
 from sys import stdout
 import numpy as np
 import tensorflow as tf
-import ncon as ncon_tn
+from tensornetwork import ncon as ncon_tn
 import copy
 import functools as fct
 import tensornetwork as tn
 from scipy.sparse.linalg import LinearOperator, lgmres, eigs
-ncon_python = ncon_tn.ncon
-ncon_compiled = tf.contrib.eager.defun(ncon_tn.ncon)
+ncon_python = ncon_tn
+ncon_compiled = tf.contrib.eager.defun(ncon_tn)
 
 
 def transfer_op_python(As, Bs, direction, x):
