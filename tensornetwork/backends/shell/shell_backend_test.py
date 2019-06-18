@@ -15,79 +15,38 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
-from tensornetwork.backends.shell import shell_backend
+from tensornetwork.tensornetwork_test import *
 
 
-def test_tensordot_matmul():
-  bkd = shell_backend.ShellBackend()
-  a = np.ones((6, 4, 3, 10))
-  b = np.ones((6, 4, 10, 5))
-  axes = [[3], [2]]
-  c = bkd.tensordot(a.shape, b.shape, axes=axes)
-  assert c == np.tensordot(a, b, axes=axes).shape
+def get_shape(a):
+  if isinstance(a, int) or isinstance(a, float):
+    return tuple()
+  else:
+    return a.shape
 
-def test_tensordot():
-  bkd = shell_backend.ShellBackend()
-  a = np.ones((6, 4, 3, 10))
-  b = np.ones((4, 6, 10, 5))
-  axes = [[0, 1, 3], [1, 0, 2]]
-  c = bkd.tensordot(a.shape, b.shape, axes=axes)
-  assert c == np.tensordot(a, b, axes=axes).shape
+def assertShapesEqual(a, b, rtol=1e-8):
+  assert get_shape(a) == get_shape(b)
 
-def test_reshape():
-  bkd = shell_backend.ShellBackend()
-  shape = bkd.reshape((5, 6), (5, 3, 2))
-  assert shape == (5, 3, 2)
+# Override np.testing to check only shapes and not values
+np.testing.assert_allclose = assertShapesEqual
 
-def test_transpose():
-  bkd = shell_backend.ShellBackend()
-  shape = bkd.transpose((5, 3, 2), [0, 2, 1])
-  assert shape == (5, 2, 3)
 
-def test_shape_concat():
-  bkd = shell_backend.ShellBackend()
-  values = [(5, 3, 2), (4, 6), (2,)]
-  shape = bkd.shape_concat(values)
-  assert shape == (5, 3, 2, 4, 6, 2)
+@pytest.fixture(
+  name="backend", params=["shell"])
+def backend_fixure(request):
+    return request.param
 
-def test_shape_prod():
-  bkd = shell_backend.ShellBackend()
-  values = (5, 3, 2)
-  shape = bkd.shape_prod(values)
-  assert shape == 30
+# Disable SVD tests since this is not implemented in shell backend
+def test_split_node(backend):
+  pass
 
-def test_trace():
-  bkd = shell_backend.ShellBackend()
-  shape = bkd.trace((5, 3, 6, 2, 2))
-  assert shape == (5, 3, 6)
+def test_split_node_mixed_order(backend):
+  pass
 
-def test_outer_product():
-  bkd = shell_backend.ShellBackend()
-  shape = bkd.outer_product((5, 2, 3), (6, 2, 4))
-  assert shape == (5, 2, 3, 6, 2, 4)
+def test_split_node_full_svd(backend):
+  pass
 
-def test_einsum_batch():
-  bkd = shell_backend.ShellBackend()
-  a = np.ones((6, 4, 3, 10))
-  b = np.ones((6, 4, 10, 5))
-  expr = "abij,abjk->abik"
-  c = bkd.einsum(expr, a.shape, b.shape)
-  assert c == np.einsum(expr, a, b).shape
-
-def test_einsum():
-  bkd = shell_backend.ShellBackend()
-  a = np.ones((6, 4, 3, 10, 8))
-  b = np.ones((6, 7, 4, 10, 5))
-  expr = "abicj,akbcl->kilj"
-  c = bkd.einsum(expr, a.shape, b.shape)
-  assert c == np.einsum(expr, a, b).shape
-
-def test_einsum_three():
-  bkd = shell_backend.ShellBackend()
-  a = np.ones((6, 4, 3, 10, 8))
-  b = np.ones((6, 7, 4, 10, 5))
-  c = np.ones((5, 3))
-  expr = "abicj,akbcl,li->jk"
-  s = bkd.einsum(expr, a.shape, b.shape, c.shape)
-  assert s == np.einsum(expr, a, b, c).shape
+# Redefine this specific test to get rid of decorator from `tensornetwork_test`
+cache_copy_tensor_parallel_edges = test_copy_tensor_parallel_edges
+def test_copy_tensor_parallel_edges(backend):
+  cache_copy_tensor_parallel_edges(backend)

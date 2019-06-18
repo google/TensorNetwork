@@ -19,11 +19,19 @@ from __future__ import print_function
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List
+from typing import Optional, Sequence, Tuple, List, Any
 
-# Treat tensors as tuples that carry the real tensor's shape.
-# Conversion from tensor to tuple will happen somewhere else?
-Tensor = Tuple
+
+class ShellTensor:
+  def __init__(self, shape: Tuple):
+    self.shape = shape
+
+  def reshape(self, new_shape: Tuple):
+    self.shape = new_shape
+    return self
+
+
+Tensor = "ShellTensor"
 
 
 class ShellBackend(base_backend.BaseBackend):
@@ -33,22 +41,26 @@ class ShellBackend(base_backend.BaseBackend):
     super(ShellBackend, self).__init__()
     self.name = "shell"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     # Does not work when axis < 0
-    gen_a = (x for i, x in enumerate(a) if i not in axes[0])
-    gen_b = (x for i, x in enumerate(b) if i not in axes[1])
-    return tuple(self._concat_generators(gen_a, gen_b))
+    gen_a = (x for i, x in enumerate(a.shape) if i not in axes[0])
+    gen_b = (x for i, x in enumerate(b.shape) if i not in axes[1])
+    return ShellTensor(self._concat_generators(gen_a, gen_b))
 
   def _concat_generators(self, *gen):
     """Concatenates Python generators."""
     for g in gen:
       yield from g
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
-    return shape
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
+    tensor = tensor.reshape(shape)
+    return tensor
 
-  def transpose(self, tensor, perm):
-    return tuple(tensor[i] for i in perm)
+  def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
+    shape = tuple(tensor.shape[i] for i in perm)
+    tensor = tensor.reshape(shape)
+    return tensor
 
   def svd_decomposition(self,
                         tensor: Tensor,
@@ -59,36 +71,45 @@ class ShellBackend(base_backend.BaseBackend):
     raise NotImplementedError("SVD shape cannot be calculated without"
                               "explicit tensor values.")
 
-  def shape_concat(self, values: Sequence[Tensor]) -> Sequence:
-    return functools.reduce(operator.concat, values)
+  def concat(self, values: Sequence[Any], axis: int) -> Sequence:
+    if axis != -1:
+      raise NotImplementedError("Concat is implemented only for shape "
+                                "calculations.")
+    tuple_values = (tuple(v) for v in values)
+    return functools.reduce(operator.concat, tuple_values)
 
-  def shape(self, tensor: Tensor) -> Tensor:
-    return tensor
+  def shape(self, tensor: Tensor) -> Tuple:
+    return tensor.shape
 
-  def shape_prod(self, values: Tensor) -> int:
+  def prod(self, values: Tensor) -> int:
     return functools.reduce(operator.mul, values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return tensor
 
   def diag(self, tensor: Tensor) -> Tensor:
-    return (3 - len(tensor)) * tensor
+    shape = tensor.shape
+    new_tensor = ShellTensor((3 - len(shape)) * shape)
+    return new_tensor
 
-  def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return tensor
+  def convert_to_tensor(self, tensor: Any) -> Tensor:
+    shell_tensor = ShellTensor(tuple(tensor.shape))
+    return shell_tensor
 
   def trace(self, tensor: Tensor) -> Tensor:
-    return tensor[:-2]
+    return ShellTensor(tensor.shape[:-2])
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return tensor1 + tensor2
+    return ShellTensor(tensor1.shape + tensor2.shape)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     expr_list = expression.split(",")
     expr_list[-1], res = expr_list[-1].split("->")
-    return tuple(self._find_char(expr_list, char, tensors) for char in res)
+    shape = tuple(self._find_char(expr_list, char, tensors) for char in res)
+    return ShellTensor(shape)
 
-  def _find_char(self, expr_list, char, tensors):
+  def _find_char(self, expr_list: List[str], char: str,
+                 tensors: Sequence[Tensor]) -> int:
     """Finds character in einsum tensor expression.
 
     Args:
@@ -97,12 +118,12 @@ class ShellBackend(base_backend.BaseBackend):
         einsum component.
 
     Returns:
-      i: Index of the tensor that has `char` components.
-      ind: Index of `char` in the i-th expression string.
+      size: Size of the axis that corresponds to this einsum expression
+        character.
     """
     for i, expr in enumerate(expr_list):
       ind = expr.find(char)
       if ind != -1:
-        return tensors[i][ind]
+        return tensors[i].shape[ind]
     raise ValueError("Einsum output expression contains letters not given"
                      "in input.")
