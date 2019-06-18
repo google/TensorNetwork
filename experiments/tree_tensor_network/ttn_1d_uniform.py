@@ -53,6 +53,7 @@ def _set_backend(backend):
   global eigh
   global eigvalsh
   global to_numpy
+  global executing_eagerly
 
   if backend == "tensorflow":
     import numpy as np
@@ -91,6 +92,7 @@ def _set_backend(backend):
     eigh = tf.linalg.eigh
     eigvalsh = tf.linalg.eigvalsh
     def to_numpy(x): return x.numpy()
+    executing_eagerly = tf.executing_eagerly
   elif backend == "numpy" or backend == "jax":
     if backend == "numpy":
       import numpy as np
@@ -143,6 +145,7 @@ def _set_backend(backend):
     eigh = np.linalg.eigh
     eigvalsh = np.linalg.eigvalsh
     def to_numpy(x): return np.asarray(x)
+    executing_eagerly = lambda: False
   else:
     raise ValueError("Unsupported backend: {}".format(backend))
 
@@ -643,6 +646,11 @@ def opt_energy_layer_once(isos_012,
         h_mpo_2site,
         states_1site_above,
         envsq_dtype=envsq_dtype)
+
+  if executing_eagerly():
+    # FIXME: Hack to ensure values are ready
+    test = to_numpy(env_sq[0,0])
+
   t_env = time.time() - t0
 
   t0 = time.time()
@@ -671,6 +679,11 @@ def opt_energy_layer_once(isos_012,
 
   if envsq_dtype is not None:
     iso_012_new = cast(iso_012_new, dtype)
+
+  if executing_eagerly():
+    # FIXME: Hack to ensure values are ready
+    test = to_numpy(iso_012_new[0,0,0])
+
   t_decomp = time.time() - t0
 
   return iso_012_new, s, t_env, t_decomp
