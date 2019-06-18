@@ -240,6 +240,15 @@ def ascend_op_1site_to_1site_separate(op_1site, iso_012, iso_021):
   return resL, resR
 
 
+def ascend_op_1site_to_1site_R(op_1site, iso_012):
+  return _complete_partial_ascend(_ascend_partial(op_1site, iso_012), iso_012)
+
+
+def ascend_op_1site_to_1site_L(op_1site, iso_012):
+  iso_021 = transpose(iso_012, (0,2,1))
+  return _complete_partial_ascend(_ascend_partial(op_1site, iso_021), iso_021)
+
+
 def ascend_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
   terms_012, iso_op_1site_L_021 = _ascend_op_to_1site_partial(
       op_1site, mpo_2site, iso_012, iso_021)
@@ -1043,6 +1052,89 @@ def pure_tree(isos_012, top_purestate):
     raise ValueError("top_purestate was not a vector!")
   top_iso = reshape(top_purestate, (1, top_purestate.shape[0]))
   return project_tree(isos_012, top_iso)
+
+
+def top_translation(isos_012):
+  d = isos_012[0].shape[1]
+  E2 = eye(d**2, dtype=isos_012[0].dtype)
+  # Ordering: mpo_left, mpo_right, phys_bottom, phys_top
+  translation_tensor = reshape(E2, (d,d,d,d))
+  return ascend_uniform_MPO_to_top(translation_tensor, isos_012)
+
+
+def top_global_product_op(op, isos_012):
+  d = op.shape[0]
+  Mop = reshape(op, (1, 1, d, d))
+  return ascend_uniform_MPO_to_top(Mop, isos_012)
+
+
+def top_localop_1site(op, n, isos_012):
+  L = len(isos_012)
+  for l in range(L):
+    if n % 2 == 0:
+      op = ascend_op_1site_to_1site_L(op, isos_012[l])
+    else:
+      op = ascend_op_1site_to_1site_R(op, isos_012[l])
+    n = n // 2
+  return op
+
+
+def top_localop_2site(op, n, isos_012):
+  L = len(isos_012)
+  N = 2**L
+  np1 = n + 1  # site number of neighbor
+  for l in range(L):
+    xn = n // 2
+    xnp1 = np1 // 2
+    if n == np1:
+      # After the ops merge, this is a 1-site op ascension.
+      # Never occurs on the first iteration.
+      if n % 2 == 0:
+        op = ascend_op_1site_to_1site_L(op, isos_012[l])
+      else:
+        op = ascend_op_1site_to_1site_R(op, isos_012[l])
+    elif (xn % 2 == 0) != (xnp1 % 2 == 0): 
+      # If we are still following different paths
+      if l == L-1: #catch the outside case
+        op = ascend_op_2site_to_1site(
+          reflect_mpo_2site(op), isos_012[l], transpose(isos_012[l], (0,2,1)))
+      else:
+        op = ascend_op_2site_to_2site(
+          op, isos_012[l], transpose(isos_012[l], (0,2,1)))
+    else:  # if the paths merge
+      op = ascend_op_2site_to_1site(
+        op, isos_012[l], transpose(isos_012[l], (0,2,1)))
+    n = xn
+    np1 = xnp1
+  return op
+
+
+def top_local_ham(H, n, isos_012):
+  h1, h2 = H
+  h1 = top_localop_1site(h1, n, isos_012)
+  h2 = top_localop_2site(h2, n, isos_012)
+  return (h1, h2)
+
+
+def top_ham_all_terms(H, isos_012):
+  N = 2**len(isos_012)
+  Htop_terms = []
+  for n in range(N):
+    Htop_terms.append(top_local_ham(H, n, isos_012))
+  return Htop_terms
+
+
+def top_ham_modes(H, isos_012, ns):
+  Htop_terms = top_ham_all_terms(H, isos_012)
+  N = len(Htop_terms)
+  Hns = []
+  for n in ns:
+    Hn = sum(
+      np.exp(1.j * n * j * 2*np.pi / N) * h1 + 
+      np.exp(1.j * n * (j + 0.5) * 2*np.pi / N) * h2 
+      for (j, (h1,h2)) in enumerate(Htop_terms))
+    Hns.append(Hn)
+  return Hns
 
 
 def tree_energy_expval_check(isos_012, H):
