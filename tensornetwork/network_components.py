@@ -130,9 +130,8 @@ class Node:
 
   @property
   def shape(self):
-    return self.backend.tuple_shape(self._tensor)
+    return self.backend.shape_tuple(self._tensor)
   
-
   @property
   def tensor(self) -> Tensor:
     return self._tensor

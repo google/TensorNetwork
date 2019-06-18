@@ -135,16 +135,17 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented shape.".format(
         self.name))
 
-  def tuple_shape(self, tensor: Tensor) -> Tensor:
-    """Get the shape of a tensor.
+  def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    """Get the shape of a tensor as a tuple of integers.
 
     Args:
       tensor: A tensor.
+
     Returns:
-      The shape of the input tensor returned as another tensor.
+      The shape of the input tensor returned as a tuple of ints.
     """
     raise NotImplementedError(
-          "Backend '{}' has not implemented tuple_shape.".format(
+          "Backend '{}' has not implemented shape_tuple.".format(
               self.name)
       )
 
