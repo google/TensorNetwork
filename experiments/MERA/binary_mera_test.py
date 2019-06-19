@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-functions for binary MERA optimization
 """
 import tensorflow as tf
 import numpy as np
