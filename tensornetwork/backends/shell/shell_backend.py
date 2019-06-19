@@ -93,7 +93,7 @@ class ShellBackend(base_backend.BaseBackend):
     new_shape = shape[:axis] + (concat_size,) + shape[axis + 1:]
     return ShellTensor(new_shape)
 
-  def concat_shape(self, values) -> Tuple:
+  def concat_shape(self, values) -> Sequence:
     tuple_values = (tuple(v) for v in values)
     return functools.reduce(operator.concat, tuple_values)
 
