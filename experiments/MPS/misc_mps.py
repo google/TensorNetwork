@@ -25,11 +25,10 @@ import copy
 import functools as fct
 import tensornetwork as tn
 from scipy.sparse.linalg import LinearOperator, lgmres, eigs
-ncon_python = ncon_tn
-ncon_compiled = tf.contrib.eager.defun(ncon_tn)
+ncon_defuned = tf.contrib.eager.defun(ncon_tn)
 
 
-def transfer_op_python(As, Bs, direction, x):
+def transfer_op(As, Bs, direction, x):
   """
     (mixed) transfer operator for a list of mps tensors
 
@@ -60,10 +59,10 @@ def transfer_op_python(As, Bs, direction, x):
   return x
 
 
-transfer_op_compiled = tf.contrib.eager.defun(transfer_op_python)
+transfer_op_defuned = tf.contrib.eager.defun(transfer_op)
 
 
-def add_layer_python(B, mps_tensor, mpo, conj_mps_tensor, direction):
+def add_layer(B, mps_tensor, mpo, conj_mps_tensor, direction):
   """
     adds an mps-mpo-mps layer to a left or right block "E"; used in dmrg to calculate the left and right
     environments
@@ -96,7 +95,7 @@ def add_layer_python(B, mps_tensor, mpo, conj_mps_tensor, direction):
         [[1, 4, 3], [-1, 2, 1], [-3, 3, 5, 2], [-2, 5, 4]])
 
 
-add_layer_compiled = tf.contrib.eager.defun(add_layer_python)
+add_layer_defuned = tf.contrib.eager.defun(add_layer)
 
 
 def one_minus_pseudo_unitcell_transfer_op(direction, mps, left_dominant,
@@ -363,7 +362,7 @@ def HA_product(L, mpo, R, mps):
               [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
 
 
-def prepare_tensor_QR_python(tensor, direction):
+def prepare_tensor_QR(tensor, direction):
   """
     prepares an mps tensor using svd decomposition 
     Parameters:
@@ -406,10 +405,10 @@ def prepare_tensor_QR_python(tensor, direction):
     return tf.transpose(tf.conj(r)), out, Z
 
 
-prepare_tensor_QR_compiled = tf.contrib.eager.defun(prepare_tensor_QR_python)
+prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR)
 
 
-def prepare_tensor_SVD_python(tensor, direction):
+def prepare_tensor_SVD(tensor, direction):
   """
     prepares an mps tensor using svd decomposition 
     Parameters:
@@ -451,10 +450,10 @@ def prepare_tensor_SVD_python(tensor, direction):
     return u, s, out, Z
 
 
-prepare_tensor_SVD_compiled = tf.contrib.eager.defun(prepare_tensor_SVD_python)
+prepare_tensor_SVD_defuned = tf.contrib.eager.defun(prepare_tensor_SVD)
 
 
-def apply_2site_schmidt_canonical_python(op,
+def apply_2site_schmidt_canonical(op,
                                          L0,
                                          G1,
                                          L1,
@@ -536,11 +535,11 @@ def apply_2site_schmidt_canonical_python(op,
   return G1_new, L1_new, G2_new, nrm, trunc_err
 
 
-apply_2site_schmidt_canonical_compiled = tf.contrib.eager.defun(
-    apply_2site_schmidt_canonical_python)
+apply_2site_schmidt_canonical_defuned = tf.contrib.eager.defun(
+    apply_2site_schmidt_canonical)
 
 
-def apply_2site_generic_python(op,
+def apply_2site_generic(op,
                                A1,
                                A2,
                                max_bond_dim=None,
@@ -586,8 +585,8 @@ def apply_2site_generic_python(op,
   return nA1_new.tensor, nC.tensor, nA2_new.tensor, trunc_err
 
 
-apply_2site_generic_compiled = tf.contrib.eager.defun(
-    apply_2site_generic_python)
+apply_2site_generic_defuned = tf.contrib.eager.defun(
+    apply_2site_generic)
 
 
 @tf.contrib.eager.defun
@@ -599,34 +598,20 @@ def TMeigs_power_method(tensors,
   """
     calculate the left and right dominant eigenvector of the MPS-unit-cell transfer operator
     using the power method
-
-    Parameters:
-    ------------------------------
-    tensors:       list of tf.Tensor
-                   mps tensors
-    direction:     int or str
-
-                   if direction in (1,'l','left')   return the left dominant EV
-                   if direction in (-1,'r','right') return the right dominant EV
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    nmax:          int
-                   max number of iterations
-
+    Args:
+        tensors (list of tf.Tensor): mps tensors
+        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                if direction in (-1,'r','right') return the right dominant EV
+        init (tf.Tensor):       initial guess for the eigenvector
+        precision (float):      desired precision of the dominant eigenvalue
+        nmax (int):             max number of iterations      
     Returns:
-    ------------------------------
-    (eta,x,nit,diff):
-    eta:  tf.Tensor
-          the eigenvalue
-    x:    tf.Tensor
-          the dominant eigenvector (in matrix form)
-    nit:  tf.Tensor
-          number of iterations
-    diff: tf.Tensor 
-          final precision
+        eta (tf.Tensor):        the eigenvalue
+        x (tf.Tensor):          the dominant eigenvector (in matrix form)
+        nit (tf.Tensor):        number of iterations
+        diff (tf.Tensor):       final precision
     """
+  
   As = [t for t in tensors]  #won't compile without this
   if not np.all(As[0].dtype == t.dtype for t in As):
     raise TypeError('TMeigs_power_method: all As have to have the same dtype')
@@ -668,42 +653,29 @@ def TMeigs(tensors,
            nmax=1000,
            numeig=1,
            which='LR'):
-  """
-    calculate the left and right dominant eigenvector of the MPS-unit-cell transfer operator;
-
-    # FIXME: This will only work in eager mode.
-
-    Parameters:
-    ------------------------------
-    tensors:       list of tf.Tensor
-                   mps tensors
-    direction:     int or str
-
-                   if direction in (1,'l','left')   return the left dominant EV
-                   if direction in (-1,'r','right') return the right dominant EV
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    ncv:           int
-                   number of Krylov vectors
-    nmax:          int
-                   max number of iterations
-    numeig:        int
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    which:         str
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
-                   can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
-
-    Returns:
-    ------------------------------
-    (eta,x):
-    eta: float
-         the eigenvalue
-    x:   tf.tensor
-         the dominant eigenvector (in matrix form)
     """
+    calculate the left or right dominant eigenvector of the MPS-unit-cell transfer operator using sparse 
+    method.
+    Notes: - Currently  only works in eager mode.
+           - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
+             to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
+    Args:
+        tensors (list of tf.Tensor): mps tensors
+        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                if direction in (-1,'r','right') return the right dominant EV
+        init (tf.Tensor):       initial guess for the eigenvector
+        precision (float):      desired precision of the dominant eigenvalue
+        ncv(int):               number of Krylov vectors
+        nmax (int):             max number of iterations
+        numeig (int):           hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        which (str):            hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
+                                can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
+    Returns:
+        eta (tf.Tensor):        the eigenvalue
+        x (tf.Tensor):          the dominant eigenvector (in matrix form)
+    """
+  #FIXME: add a tensorflow native eigs
 
   if not np.all(tensors[0].dtype == t.dtype for t in tensors):
     raise TypeError('TMeigs: all tensors have to have the same dtype')
@@ -769,20 +741,18 @@ def initialize_mps_tensors_numpy(initializer_function,
                                  minval=-0.1,
                                  maxval=0.1):
   """
-    return a list of numpy tensors initialized with `initializer_function`
+  return a list of numpy tensors initialized with `initializer_function`
+  
+    Args:
+        initializer_function (callable):      an initializer function
+                                             this function will be called as 
+                                             `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
+        D (list of int):                      bond dimensions of the MPS
+        d (list of int):                      physical dimensions of the MPS
+        dtype (tf dtype):                     dtype of the tensors
+    Returns:
+        list of np.ndarray:  the mps tensors
 
-    Parameters:
-    ----------------------------
-    initializer_function:      callable
-                               an initializer function
-                               this function will be called as 
-                               `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
-    D:                         list of int
-                               bond dimensions of the MPS
-    d:                         list of int 
-                               physical dimensions of the MPS
-    dtype:                     tf-dtype
-                               dtype of the tensors
     """
   N = len(d)
   Ds = [1]
@@ -813,21 +783,19 @@ def initialize_mps_tensors_numpy(initializer_function,
 
 def initialize_mps_tensors(initializer_function, D, d, dtype, *args, **kwargs):
   """
-    return a list of mps tensors initialized with `initializer_function`
+  return a list of numpy tensors initialized with `initializer_function`
+  
+    Args:
+        initializer_function (callable):      an initializer function
+                                             this function will be called as 
+                                             `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
+        D (list of int):                      bond dimensions of the MPS
+        d (list of int):                      physical dimensions of the MPS
+        dtype (tf dtype):                     dtype of the tensors
+        *args, **kwargs:                      parameters passed to `initializer_function`
+    Returns:
+        list of tf.Tensor:  the mps tensors
 
-    Parameters:
-    ----------------------------
-    initializer_function:      callable
-                               an initializer function
-                               this function will be called as 
-                               `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
-    D:                         list of int
-                               bond dimensions of the MPS
-    d:                         list of int 
-                               physical dimensions of the MPS
-    dtype:                     tf-dtype
-                               dtype of the tensors
-    *args,**kwargs:            additional arguments and key-word arguments to `initializer_function`
     """
   if np.issubdtype(dtype.as_numpy_dtype, np.floating):
     return [
@@ -861,33 +829,20 @@ def restore_helper(tensors,
                    numeig=1,
                    pinv=1E-30):
   """
-    Helper function for putting InfiniteMPSCentralGauge into central form
-
-
-    Parameters:
-    ------------------------------
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    ncv:           int
-                   number of Krylov vectors
-    nmax:          int
-                   max number of iterations
-    numeig:        int
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    pinv:          float
-                   pseudoinverse cutoff
-
+    Helper function for putting InfiniteMPSCentralGauge into central form using TMeigs
+    Args:
+        init (tf.tensor):     initial guess for the eigenvector
+        precision (float):    desired precision of the dominant eigenvalue
+        ncv (int):            number of Krylov vectors
+        nmax (int):           max number of iterations
+        numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                              to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        pinv (float):         pseudoinverse cutoff
     Returns:
-    ----------------------------------
-    (As,mat,connector,right_mat)
-
-    As:         list of tf.Tensors
-    mat:        tf.Tensor 
-    connector:  tf.Tensor 
-    right_mat:  tf.Tensor 
+        As (list of tf.Tensors):  the mps matrices
+        mat (tf.Tensor):          center matrix
+        connector (tf.Tensor):    connector matrix
+        right_mat (tf.Tensor):    right boundary matrix
     """
   As = copy.copy(tensors)  #[t for t in tensors] #won't compile without this
 
@@ -905,7 +860,7 @@ def restore_helper(tensors,
       numeig=numeig)
 
   sqrteta = tf.cast(tf.sqrt(tf.real(eta)), dtype)
-  As[0] /= sqrteta
+  As[0] /= sqrtetap
 
   l = l / tf.trace(l)
   l = (l + tf.conj(tf.transpose(l))) / 2.0
@@ -980,28 +935,20 @@ def restore_helper_power_method(tensors,
                                 nmax=100000,
                                 pinv=1E-30):
   """
-    Helper function for putting InfiniteMPSCentralGauge into central form using
-    the power method
-
-    Parameters:
-    ------------------------------
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    nmax:          int
-                   max number of iterations
-    pinv:          float
-                   pseudoinverse cutoff
-
+    Helper function for putting InfiniteMPSCentralGauge into central form using TMeigs_power_method
+    Args:
+        init (tf.tensor):     initial guess for the eigenvector
+        precision (float):    desired precision of the dominant eigenvalue
+        ncv (int):            number of Krylov vectors
+        nmax (int):           max number of iterations
+        numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                              to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        pinv (float):         pseudoinverse cutoff
     Returns:
-    ----------------------------------
-    (As,mat,connector,right_mat)
-
-    As:         list of tf.Tensors
-    mat:        tf.Tensor 
-    connector:  tf.Tensor 
-    right_mat:  tf.Tensor 
+        As (list of tf.Tensors):  the mps matrices
+        mat (tf.Tensor):          center matrix
+        connector (tf.Tensor):    connector matrix
+        right_mat (tf.Tensor):    right boundary matrix
     """
 
   As = copy.copy(tensors)  #[t for t in tensors] #won't compile without this
@@ -1119,19 +1066,18 @@ def restore_helper_power_method(tensors,
 def compile_ncon(on=True):
   global ncon
   if on:
-    ncon = ncon_compiled
+    ncon = ncon_defuned
   else:
-    ncon = ncon_python
+    ncon = ncon_tn
 
 
 def compile_contractions(on=True):
   global transfer_op, add_layer
   if on:
-    transfer_op = transfer_op_compiled
-    add_layer = add_layer_compiled
+    transfer_op = transfer_op_defuned
+    add_layer = add_layer_defuned
   else:
-    transfer_op = transfer_op_python
-    add_layer = add_layer_python
+    pass
 
 
 def compile_decomps(on=True):
@@ -1140,18 +1086,14 @@ def compile_decomps(on=True):
   global apply_2site_generic
   global apply_2site_schmidt_canonical
   if on:
-    prepare_tensor_QR = prepare_tensor_QR_compiled
-    prepare_tensor_SVD = prepare_tensor_SVD_compiled
-    apply_2site_generic = apply_2site_generic_compiled
-    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_compiled
+    prepare_tensor_QR = prepare_tensor_QR_defuned
+    prepare_tensor_SVD = prepare_tensor_SVD_defuned
+    apply_2site_generic = apply_2site_generic_defuned
+    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_defuned
   else:
-    prepare_tensor_QR = prepare_tensor_QR_python
-    prepare_tensor_SVD = prepare_tensor_SVD_python
-    apply_2site_generic = apply_2site_generic_python
-    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_python
+    pass
 
-
-# Default to uncompiled
+# Default to defuned
 compile_ncon(True)
 compile_contractions(True)
 compile_decomps(True)
