@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import sys
 import time
-from tensornetwork import ncon
+import tensornetwork as tn
 import numpy as np
 import tensorflow as tf
 import experiments.MPS.Lanczos as LZ
@@ -39,11 +39,11 @@ class MPSSimulationBase:
                   Hamiltonian in MPO format
         name: str
                   the name of the simulation
-        lb:       np.ndarray of shape (D,D,M), or None
+        lb:       tf. Tensor of shape (D,D,M), or None
                   the left environment; 
                   lb has to have shape (mps[0].shape[0],mps[0].shape[0],mpo[0].shape[0])
                   if None, obc are assumed, and lb=ones((mps[0].shape[0],mps[0].shape[0],mpo[0].shape[0]))
-        rb:       np.ndcarray of shape (D,D,M), or None
+        rb:       tf.Tensor of shape (D,D,M), or None
                   the right environment
                   rb has to have shape (mps[-1].shape[1],mps[-1].shape[1],mpo[-1].shape[1])
                   if None, obc are assumed, and rb=ones((mps[-1].shape[1],mps[-1].shape[1],mpo[-1].shape[1]))
@@ -266,9 +266,9 @@ class DMRGUnitCellEngine(MPSSimulationBase):
     Ml, Mc, dl, dlp = mpol.shape
     Mc, Mr, dr, drp = mpor.shape
     mpo = tf.reshape(
-        ncon.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
+        tn.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
         [Ml, Mr, dl * dr, dlp * drp])
-    initial = ncon.ncon(
+    initial = tn.ncon(
         [self.mps[self.mps.pos - 1], self.mps.mat, self.mps[self.mps.pos]],
         [[-1, -2, 1], [1, 2], [2, -3, -4]])
     Dl, dl, dr, Dr = initial.shape
@@ -307,7 +307,7 @@ class DMRGUnitCellEngine(MPSSimulationBase):
     if verbose > 1:
       print("")
 
-    Z = np.sqrt(ncon.ncon([S, S], [[1], [1]]))
+    Z = np.sqrt(tn.ncon([S, S], [[1], [1]]))
     self.mps.mat = S.diag() / Z
 
     self.mps[self.mps.pos - 1] = U.split([merge_data[0],
@@ -351,11 +351,11 @@ class DMRGUnitCellEngine(MPSSimulationBase):
 
     if sweep_dir in (-1, 'r', 'right'):
       #NOTE (martin) don't use get_tensor here
-      initial = ncon.ncon([self.mps.mat, self.mps[site]],
+      initial = tn.ncon([self.mps.mat, self.mps[site]],
                           [[-1, 1], [1, -2, -3]])
     elif sweep_dir in (1, 'l', 'left'):
       #NOTE (martin) don't use get_tensor here
-      initial = ncon.ncon([self.mps[site], self.mps.mat],
+      initial = tn.ncon([self.mps[site], self.mps.mat],
                           [[-1, -2, 1], [1, -3]])
 
     if self.walltime_log:
@@ -559,7 +559,7 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
         mps,
         mpo,
         left_dominant=tf.diag(tf.ones(mps.D[-1], dtype=mps.dtype)),
-        right_dominant=ncon.ncon([mps.mat, tf.conj(mps.mat)],
+        right_dominant=tn.ncon([mps.mat, tf.conj(mps.mat)],
                                  [[-1, 1], [-2, 1]]),
         precision=precision,
         nmax=nmax)
@@ -577,12 +577,12 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
         rmps,
         mpo,
         right_dominant=tf.diag(tf.ones(mps.D[0], dtype=mps.dtype)),
-        left_dominant=ncon.ncon([mps.mat, tf.conj(mps.mat)],
+        left_dominant=tn.ncon([mps.mat, tf.conj(mps.mat)],
                                 [[1, -1], [1, -2]]),
         precision=precision,
         nmax=nmax)
 
-    left_dominant = ncon.ncon([mps.mat, tf.conj(mps.mat)], [[1, -1], [1, -2]])
+    left_dominant = tn.ncon([mps.mat, tf.conj(mps.mat)], [[1, -1], [1, -2]])
     out = mps.unitcell_transfer_op('l', left_dominant)
 
     super().__init__(mps=mps, mpo=mpo, lb=lb, rb=rb, name=name)
@@ -596,13 +596,13 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
     new_rb = self.right_envs[sites - 1]
     centermatrix = self.mps.mat
     self.mps.position(len(self.mps))  #move centermatrix to the right
-    new_center_matrix = ncon.ncon([self.mps.mat, self.mps.connector],
+    new_center_matrix = tn.ncon([self.mps.mat, self.mps.connector],
                                   [[-1, 1], [1, -2]])
 
     self.mps.pos = sites
     self.mps.mat = centermatrix
     self.mps.position(0)
-    new_center_matrix = ncon.ncon([new_center_matrix, self.mps.mat],
+    new_center_matrix = tn.ncon([new_center_matrix, self.mps.mat],
                                   [[-1, 1], [1, -2]])
     tensors = [self.mps[n] for n in range(sites, len(self.mps))
               ] + [self.mps[n] for n in range(sites)]

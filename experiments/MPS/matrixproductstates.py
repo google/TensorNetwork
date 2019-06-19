@@ -1628,7 +1628,10 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
                                 pinv=1E-30,
                                 restore_form=True,
                                 name=None):
+    """
+    return the right-orthogonal form of the mps
 
+    """
     if restore_form:
       self.restore_form(
           init=init,
