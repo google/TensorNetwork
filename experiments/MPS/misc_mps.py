@@ -16,8 +16,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import sys
-from sys import stdout
 import numpy as np
 import tensorflow as tf
 from tensornetwork import ncon as ncon_tn
