@@ -33,7 +33,9 @@ def kron(a, b):
 
 
 class MPOBase:
-
+  """
+  Base class for MPOs
+  """
   def __init__(self, tensors, name=None):
     self.name = None
     self._tensors = tensors
@@ -76,23 +78,21 @@ class MPOBase:
     raise NotImplementedError()
 
   def get_2site_gate(self, site1, site2, tau):
-    tau = tf.convert_to_tensor(tau)
     """
-        calculate the unitary two-site gates exp(tau*H(m,n))
-        Parameters:
-        --------------------------------------
-        site1,site2: int
-                     lattice sites for which to calculate the gate
-        tau:         float or complex
-                     time-increment
-        Returns:
-        --------------------------------------------------
-        A two-site gate "Gate" between sites m and n by summing up  (morally, for m<n)
-        h=\sum_s kron(mpo[m][-1,s,:,:],mpo[n][s,0,:,:]) and exponentiating the result:
-        Gate=scipy.linalg..expm(tau*h); 
-        Gate is a rank-4 tensor with shape (dm,dn,dm,dn), with
-        dm, dn the local hilbert space dimension at site m and n, respectively
-        """
+    calculate the unitary two-site gate exp(tau*H(m,n))
+    routine takes MPO tensors at `site1` and `site2` and constructs local 
+    two-site operators from them
+    Args
+        site1,site2 (int):       lattice sites for which to calculate the gate
+        tau (float or complex):  time-increment
+    Returns:
+        tf.Tensor:   A two-site gate "Gate" between sites m and n by summing up  (morally, for m<n)
+                     h=\sum_s kron(mpo[m][-1,s,:,:],mpo[n][s,0,:,:]) and exponentiating the result:
+                     Gate=scipy.linalg..expm(tau*h); 
+                     Gate is a rank-4 tensor with shape (dm,dn,dm,dn), with
+                     dm, dn the local hilbert space dimension at site m and n, respectively
+    """
+    tau = tf.convert_to_tensor(tau)    
     if site2 < site1:
       d1 = self[site2].shape[2]
       d2 = self[site1].shape[2]
@@ -112,7 +112,10 @@ class MPOBase:
 
 
 class InfiniteMPO(MPOBase):
-
+  """
+  Base class for implementation of infinite MPOs; the user should implement 
+  specific infinite MPOs by deriving from InfiniteMPO
+  """
   def __init__(self, tensors, name=None):
     super().__init__(tensors=tensors, name=name)
     if not (self.D[0] == self.D[-1]):
@@ -120,6 +123,16 @@ class InfiniteMPO(MPOBase):
           'InfiniteMPO: left and right MPO ancillary dimension do not match')
 
   def get_boundary_vector(self, side):
+    """
+    return a boundary vector that can be contracted with the left-most or right-most mpo tensor
+    Args:
+        side (str):  the side for which to return the boundary vector
+    Returns:
+        if side == 'l' or 'left': 
+        tf.Tensor of shape (self.D[0],) with entries [0, 0, ..., 1]
+        if side == 'r' or 'right': 
+        tf.Tensor of shape (self.D[-1],) with entries [1, 0, ..., 0]
+    """
     if side.lower() in ('l', 'left'):
       v = tf.zeros([self.D[0]], dtype=self.dtype)
       v.numpy()[-1] = 1.0
@@ -131,6 +144,16 @@ class InfiniteMPO(MPOBase):
       return v
 
   def get_boundary_mpo(self, side):
+    """
+    return left or right boundary mpo
+    Args:
+        side (str):  the side for which to return the boundary vector
+    Returns:
+        if side == 'l' or 'left': 
+        tf.Tensor of shape (self.D[1], self.d[0],  self.d[0]) 
+        if side == 'r' or 'right': 
+        tf.Tensor of shape (self.D[-2], self.d[-1],  self.d[-1]) 
+    """
     if side.lower() in ('l', 'left'):
       out = copy.deepcopy(self._tensors[-1][-1, :, :, :])
       out.numpy()[0, :, :] *= 0.0
@@ -163,23 +186,20 @@ class InfiniteMPO(MPOBase):
 
   def get_2site_hamiltonian(self, site1, site2):
     """
-        obtain a two-site Hamiltonian H_{mn} from MPO
-        Parameters:
-        --------------------------------------
-        site1,site2: int
-                     lattice sites for which to calculate the Hamiltonian
-        Returns:
-        --------------------------------------------------
+    obtain a two-site Hamiltonian H_{mn} from MPO
+    Args:
+        site1,site2 (int): lattice sites for which to calculate the Hamiltonian
+    Returns:
         tf.Tensor of shape (d1,d2,d3,d4)
-        A two-site Hamiltonian between sites ```site1``` and ```site2``` by summing up  
+        A two-site Hamiltonian between sites `site1` and `site2` by summing up  
         (for site1<site2, and site1!=0, site2!=0)
 
         \sum_s={0}^{M-1} kron(mpo[m][-1,s,:,:],mpo[n][s,0,:,:])
 
         the returned tf.Tensor is a rank-4 tensor with shape (dsite1,dsite2,dsite1,dsite2), with
-        dsite1, dsite2 the local hilbert space dimension at sites ```site1``` and ```site2```, respectively,
-        
-        """
+        dsite1, dsite2 the local hilbert space dimension at sites `site1` and `site2`, respectively,
+      
+    """
     mpo1, mpo2 = self.get_2site_mpo(site1, site2)
     if site2 < site1:
       nl = site2
@@ -206,6 +226,10 @@ class InfiniteMPO(MPOBase):
 
 
 class FiniteMPO(MPOBase):
+  """
+  Base class for implementation of finite MPOs; the user should implement 
+  specific finite MPOs by deriving from FiniteMPO
+  """
 
   def __init__(self, tensors, name=None):
     super().__init__(tensors=tensors, name=name)
@@ -230,23 +254,21 @@ class FiniteMPO(MPOBase):
 
   def get_2site_hamiltonian(self, site1, site2):
     """
-        obtain a two-site Hamiltonian H_{mn} from MPO
-        Parameters:
-        --------------------------------------
-        site1,site2: int
-                     lattice sites for which to calculate the Hamiltonian
-        Returns:
-        --------------------------------------------------
+    obtain a two-site Hamiltonian H_{mn} from MPO
+    Args:
+        site1,site2 (int): lattice sites for which to calculate the Hamiltonian
+    Returns:
         tf.Tensor of shape (d1,d2,d3,d4)
-        A two-site Hamiltonian between sites ```site1``` and ```site2``` by summing up  
+        A two-site Hamiltonian between sites `site1` and `site2` by summing up  
         (for site1<site2, and site1!=0, site2!=0)
-        h=kron(mpo[m][-1,s=0,:,:]/2,mpo[n][s=0,0,:,:])+
-          \sum_s={1}^{M-2} kron(mpo[m][-1,s,:,:],mpo[n][s,0,:,:])+
-          kron(mpo[m][-1,s=M-1,:,:],mpo[n][s=M-1,0,:,:])+
+
+        \sum_s={0}^{M-1} kron(mpo[m][-1,s,:,:],mpo[n][s,0,:,:])
+
         the returned tf.Tensor is a rank-4 tensor with shape (dsite1,dsite2,dsite1,dsite2), with
-        dsite1, dsite2 the local hilbert space dimension at sites ```site1``` and ```site2```, respectively,
-        
-        """
+        dsite1, dsite2 the local hilbert space dimension at sites `site1` and `site2`, respectively,
+      
+    """
+
     mpo1, mpo2 = self.get_2site_mpo(site1, site2)
     if site2 < site1:
       nl = site2
@@ -285,11 +307,20 @@ class FiniteMPO(MPOBase):
 
 class FiniteXXZ(FiniteMPO):
   """
-    the famous Heisenberg Hamiltonian, the one we all know and love (almost as much as TFI)!
-    """
+  the famous Heisenberg Hamiltonian, the one we all know and love (almost as much as the TFI)!
+  """
 
   def __init__(self, Jz, Jxy, Bz, dtype):
-
+    """
+    returns the MPO of the XXZ model
+    Args:
+        Jz (np.ndarray or tf.Tensor):  the Sz*Sz coupling strength between nearest neighbor lattice sites
+        Jxy (np.ndarray or tf.Tensor): the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor lattice sites
+        Bz (np.ndarray or tf.Tensor):  magnetic field on each lattice site
+        dtype (tf-dtype or numpy dtype): the dtype of the MPO
+    Returns:
+        FiniteXXZ:   the mpo of the finite XXZ model
+    """
     if hasattr(dtype, 'as_numpy_dtype'):
       dtype = dtype.as_numpy_dtype
     self.Jz = Jz
@@ -363,10 +394,20 @@ class FiniteXXZ(FiniteMPO):
 
 class InfiniteXXZ(InfiniteMPO):
   """
-    the famous Heisenberg Hamiltonian, the one we all know and love (almost as much as TFI)!
+    the famous Heisenberg Hamiltonian, the one we all know and love (almost as much as the TFI)!
     """
 
   def __init__(self, Jz, Jxy, Bz, dtype):
+    """
+    returns the MPO of the infinite XXZ model
+    Args:
+        Jz (np.ndarray or tf.Tensor):  the Sz*Sz coupling strength between nearest neighbor lattice sites
+        Jxy (np.ndarray or tf.Tensor): the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor lattice sites
+        Bz (np.ndarray or tf.Tensor):  magnetic field on each lattice site
+        dtype (tf-dtype or numpy dtype): the dtype of the MPO
+    Returns:
+        InfiniteXXZ:   the mpo of the infinite XXZ model
+    """
 
     if hasattr(dtype, 'as_numpy_dtype'):
       dtype = dtype.as_numpy_dtype
@@ -420,6 +461,15 @@ class FiniteTFI(FiniteMPO):
     """
 
   def __init__(self, Jx, Bz, dtype=tf.float64):
+    """
+    returns the MPO of the finite TFI model
+    Args:
+        Jx (np.ndarray or tf.Tensor):  the Sx*Sx coupling strength between nearest neighbor lattice sites
+        Bz (np.ndarray or tf.Tensor):  magnetic field on each lattice site
+        dtype (tf-dtype or numpy dtype): the dtype of the MPO
+    Returns:
+        FiniteXXZ:   the mpo of the infinite TFI model
+    """
 
     if hasattr(dtype, 'as_numpy_dtype'):
       dtype = dtype.as_numpy_dtype
@@ -473,8 +523,17 @@ class InfiniteTFI(InfiniteMPO):
     the good old transverse field Ising model
     convention: sigma_z=diag([-1,1])
     """
-
   def __init__(self, Jx, Bz, dtype=tf.float64):
+    """
+    returns the MPO of the infinite TFI model
+    Args:
+        Jx (np.ndarray or tf.Tensor):  the Sx*Sx coupling strength between nearest neighbor lattice sites
+        Bz (np.ndarray or tf.Tensor):  magnetic field on each lattice site
+        dtype (tf-dtype or numpy dtype): the dtype of the MPO
+    Returns:
+        InfiniteXXZ:   the mpo of the infinite TFI model
+    """
+    
     if hasattr(dtype, 'as_numpy_dtype'):
       dtype = dtype.as_numpy_dtype
 
