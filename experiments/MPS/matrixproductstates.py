@@ -38,9 +38,16 @@ def _float_res(dtype):
   return np.finfo(dtype.as_numpy_dtype).resolution
 
 
-def orthonormalization(A, which='l'):
-  """The deviation from left or right orthonormalization of an MPS tensor
-    """
+def orthonormalization(A, which):
+  """
+  The deviation from left or right orthonormalization of an MPS tensor
+  Args:
+      A (tf.Tensor):  mps tensor
+      which (str):    can take values in ('l','left','r','right)
+                      which  orthonormalization to be checked
+  Returns:
+      tf.Tensor:     the deviation from left or right orthogonality of `A`
+  """
   if which in ('l', 'left', 1):
     eye = tf.eye(tf.cast(tf.shape(A)[2], tf.int32), dtype=A.dtype)
     M = misc_mps.ncon([A, tf.conj(A)], [[1, 2, -1], [1, 2, -2]])
@@ -171,19 +178,31 @@ class AbstractMPSUnitCell:
     raise NotImplementedError()
 
   def get_tensor(self, n):
-    """MPS tensor for site n, compatible with get_env_...().
-        An MPS tensor always has 3 dimensions, although some may have size 1.
-        """
+    """
+    MPS tensor for site n, compatible with get_env_...().
+    An MPS tensor always has 3 dimensions, although some may have size 1.
+    Args:
+        n (int): site
+    Returns:
+        tf.Tensor
+    """
     raise NotImplementedError()
 
   def set_tensor(self, n, tensor):
-    """Sets MPS tensor for site n (need not be implemented)"""
+    """
+    Sets MPS tensor for site n (need not be implemented)
+    Args:
+        n (int): site
+        tensor (tf.Tensor):  mps-tensor
+    """
     raise NotImplementedError()
 
   @property
   def num_sites(self):
-    """Number of sites.
-        For an Infinite MPS, this is the number of sites in the unit cell."""
+    """
+    Number of sites.
+    For an Infinite MPS, this is the number of sites in the unit cell.
+    """
     raise NotImplementedError()
 
   def __len__(self):
@@ -596,39 +615,27 @@ class AbstractInfiniteMPS(AbstractMPSUnitCell):
              numeig=1,
              which='LR'):
     """
-        calculate the left and right dominant eigenvector of the MPS-unit-cell transfer operator;
-
-        # FIXME: This will only work in eager mode.
-
-        Parameters:
-        ------------------------------
-        direction:     int or str
-
-                       if direction in (1,'l','left')   return the left dominant EV
-                       if direction in (-1,'r','right') return the right dominant EV
-        init:          tf.tensor
-                       initial guess for the eigenvector
-        precision:     float
-                       desired precision of the dominant eigenvalue
-        ncv:           int
-                       number of Krylov vectors
-        nmax:          int
-                       max number of iterations
-        numeig:        int
-                       hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                       to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-        which:         str
-                       hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
-                       can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
-
-        Returns:
-        ------------------------------
-        (eta,x):
-        eta: float
-             the eigenvalue
-        x:   tf.tensor
-             the dominant eigenvector (in matrix form)
-        """
+    calculate the left or right dominant eigenvector of the MPS-unit-cell transfer operator using sparse 
+    method.
+    Notes: - Currently  only works in eager mode.
+           - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
+             to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
+    Args:
+        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                if direction in (-1,'r','right') return the right dominant EV
+    init (tf.Tensor):           initial guess for the eigenvector
+    precision (float):          desired precision of the dominant eigenvalue
+    ncv(int):                   number of Krylov vectors
+    nmax (int):                 max number of iterations
+    numeig (int):               hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+    which (str):                hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
+                                can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
+    Returns:
+        eta (tf.Tensor):        the eigenvalue
+        x (tf.Tensor):          the dominant eigenvector (in matrix form)
+    """
+    #FIXME: add graph-mode execution
     tensors = [self.get_tensor(n) for n in range(len(self))]
     return misc_mps.TMeigs(
         tensors=tensors,
