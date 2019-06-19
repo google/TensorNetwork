@@ -53,12 +53,12 @@ class ShellBackend(base_backend.BaseBackend):
       yield from g
 
   def reshape(self, tensor: Tensor, shape: Sequence[int]) -> Tensor:
-    tensor = tensor.reshape(shape)
+    tensor = tensor.reshape(tuple(shape))
     return tensor
 
   def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
     shape = tuple(tensor.shape[i] for i in perm)
-    tensor = tensor.reshape(shape)
+    tensor = tensor.reshape(tuple(shape))
     return tensor
 
   def svd_decomposition(self,
@@ -67,9 +67,23 @@ class ShellBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    # TODO
-    raise NotImplementedError("SVD shape cannot be calculated without"
-                              "explicit tensor values.")
+    if max_truncation_error is not None:
+      raise NotImplementedError("SVD with truncation shape cannot be "
+                                "calculated without explicit tensor values.")
+    left_dims = tensor.shape[:split_axis]
+    right_dims = tensor.shape[split_axis:]
+    dim_s0 = min(functools.reduce(operator.mul, left_dims),
+                 functools.reduce(operator.mul, right_dims))
+    if max_singular_values is not None:
+      dim_s = min(dim_s0, max_singular_values)
+    else:
+      dim_s = dim_s0
+
+    u = ShellTensor(left_dims + (dim_s,))
+    vh = ShellTensor((dim_s,) + right_dims)
+    s = ShellTensor((dim_s,))
+    s_rest = ShellTensor((dim_s0 - dim_s,))
+    return u, s, vh, s_rest
 
   def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
@@ -79,7 +93,7 @@ class ShellBackend(base_backend.BaseBackend):
     new_shape = shape[:axis] + (concat_size,) + shape[axis + 1:]
     return ShellTensor(new_shape)
 
-  def concat_shape(self, values) -> Sequence:
+  def concat_shape(self, values) -> Tuple:
     tuple_values = (tuple(v) for v in values)
     return functools.reduce(operator.concat, tuple_values)
 

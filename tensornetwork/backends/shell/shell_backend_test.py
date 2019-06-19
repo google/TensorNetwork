@@ -44,8 +44,20 @@ def test_transpose():
   assertBackendsAgree("transpose", args)
 
 def test_svd_decomposition():
-  # TODO
-  pass
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().svd_decomposition(tensor, 3)
+  sh_res = shell_backend.ShellBackend().svd_decomposition(tensor, 3)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
+
+def test_svd_decomposition_with_max_values():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().svd_decomposition(
+               tensor, 3, max_singular_values=5)
+  sh_res = shell_backend.ShellBackend().svd_decomposition(
+               tensor, 3, max_singular_values=5)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
 
 def test_concat():
   args = {"values": [np.ones([3, 2, 5]), np.zeros([3, 2, 5]),
@@ -56,8 +68,9 @@ def test_concat():
   assertBackendsAgree("concat", args)
 
 def test_concat_shape():
-  # TODO
-  pass
+  shapes = [(5, 2), (3,), (4, 6)]
+  result = shell_backend.ShellBackend().concat_shape(shapes)
+  assert result == (5, 2, 3, 4, 6)
 
 def test_shape():
   tensor = np.ones([3, 5, 2])
