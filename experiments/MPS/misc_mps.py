@@ -32,19 +32,13 @@ def transfer_op(As, Bs, direction, x):
   """
     (mixed) transfer operator for a list of mps tensors
 
-    Parameters:
-    ----------------------
-    As,Bs:        list of tf.Tensor
-                  the mps tensors (Bs are on the conjugated side)
-    direction:    int or str 
-                  can be (1,'l','left') or (-1,'r','right) for left or right 
-                  operation
-    x:            tf.Tensor 
-                  input matrix
+    Args:
+        As,Bs (list of tf.Tensor):     the mps tensors (Bs are on the conjugated side)
+        direction (int or str):        can be (1,'l','left') or (-1,'r','right) for left or right 
+                                       transfer operation
+        x (tf.Tensor):                 input matrix
     Returns:
-    ----------------------
-    tf.Tensor:  the evolved matrix
-
+        tf.Tensor:  the evolved matrix
     """
 
   if direction in ('l', 'left', 1):
@@ -66,23 +60,19 @@ def add_layer(B, mps_tensor, mpo, conj_mps_tensor, direction):
   """
     adds an mps-mpo-mps layer to a left or right block "E"; used in dmrg to calculate the left and right
     environments
-    Parameters:
-    ---------------------------
-    B:               Tensor object  
-                     a tensor of shape (D1,D1',M1) (for direction>0) or (D2,D2',M2) (for direction>0)
-    mps_tensor:      Tensor object of shape =(Dl,Dr,d)
-    mpo_tensor:      Tensor object of shape = (Ml,Mr,d,d')
-    conj_mps_tensor: Tensor object of shape =(Dl',Dr',d')
-                     the mps tensor on the conjugated side
-                     this tensor will be complex conjugated inside the routine; usually, the user will like to pass 
-                     the unconjugated tensor
-    direction:       int or str
-                     direction in (1,'l','left'): add a layer to the right of ```B```
-                     direction in (-1,'r','right'): add a layer to the left of ```B```
-    Return:
-    -----------------
-    Tensor of shape (Dr,Dr',Mr) for direction in (1,'l','left')
-    Tensor of shape (Dl,Dl',Ml) for direction in (-1,'r','right')
+    Args
+        B (tf.Tensor):               a tensor of shape (D1,D1',M1) (for direction>0) or (D2,D2',M2) (for direction>0)
+        mps_tensor (tf.Tensor):      tensor of shape =(Dl,Dr,d)
+        mpo_tensor (tf.Tensor):      tensor of shape = (Ml,Mr,d,d')
+        conj_mps_tensor (tf.Tensor): tensor of shape =(Dl',Dr',d')
+                                     the mps tensor on the conjugated side
+                                     this tensor is complex-conjugated inside the routine; usually, the user will like to pass 
+                                     the unconjugated tensor
+        direction (int or str):      direction in (1,'l','left'): add a layer to the right of `B`
+                                     direction in (-1,'r','right'): add a layer to the left of `B`
+    Returns:
+        tf.Tensor of shape (Dr,Dr',Mr) for direction in (1,'l','left')
+        tf.Tensor of shape (Dl,Dl',Ml) for direction in (-1,'r','right')
     """
   if direction in ('l', 'left', 1):
     return ncon(
@@ -102,23 +92,18 @@ def one_minus_pseudo_unitcell_transfer_op(direction, mps, left_dominant,
                                           right_dominant, vector):
   """
     calculates action of 11-Transfer-Operator +|r)(l|
-    Parameters:
-    ---------------------------
-    direction:  int or str 
-                if (1,'l','left'): do left multiplication
-                if (-1,'r','right'): do right multiplication
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    left_dominant:  tf.tensor of shape (mps.D[0],mps.D[0])
-                    left dominant eigenvector of the unit-cell transfer operator of mps
-    right_dominant: tf.tensor of shape (mps.D[-1],mps.D[-1])
-                    right dominant eigenvector of the unit-cell transfer operator of mps
-    vector:         tf.tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
-                    the input vector
-    Returns
-    ---------------------------
-    np.ndarray of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
-
+    Args:
+        direction (int or str):          if (1,'l','left'): do left multiplication
+                                         if (-1,'r','right'): do right multiplication
+        mps (InfiniteMPSCentralGauge):   an infinite mps
+        left_dominant (tf.Tensor):       tensor of shape (mps.D[0],mps.D[0])
+                                         left dominant eigenvector of the unit-cell transfer operator of mps
+        right_dominant (tf.Tensor):      tensor of shape (mps.D[-1],mps.D[-1])
+                                         right dominant eigenvector of the unit-cell transfer operator of mps
+        vector (tf.Tensor):              tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
+                                         the input vector
+    Returns:
+        tf.Tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
     """
 
   if direction in (1, 'l', 'left'):
@@ -144,6 +129,23 @@ def LGMRES_solver(mps,
                   precision=1e-10,
                   nmax=2000,
                   **kwargs):
+  """
+  see Appendix of arXiv:1801.02219 for details of this
+  This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+  and back to tf.Tensor for each application of the sparse matrix vector product.
+  This is not optimal and will be improved in a future version
+  Args:
+      mps (InfiniteMPSCentralGauge):   an infinite mps
+      direction (int or str):          if (1,'l','left'): do left multiplication
+                                       if (-1,'r','right'): do right multiplication
+      left_dominant (tf.Tensor):       tensor of shape (mps.D[0],mps.D[0])
+                                       left dominant eigenvector of the unit-cell transfer operator of mps
+      right_dominant (tf.Tensor):      tensor of shape (mps.D[-1],mps.D[-1])
+                                       right dominant eigenvector of the unit-cell transfer operator of mps
+      inhom (tf.Tensor):               vector of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
+  Returns:
+      tf.Tensor
+  """
   #mps.D[0] has to be mps.D[-1], so no distincion between direction='l' or direction='r' has to be made here
   if not tf.equal(mps.D[0], mps.D[-1]):
     raise ValueError(
@@ -172,30 +174,26 @@ def compute_steady_state_Hamiltonian_GMRES(direction,
                                            nmax=1000):
   """
     calculates the left or right Hamiltonain environment of an infinite MPS-MPO-MPS network
-    Parameters:
-    ---------------------------
-    direction:  int or str 
-                if (1,'l','left'): obtain left environment
-                if (-1,'r','right'): obtain right environment
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    mpo:        MPO object
-    left_dominant:  tf.tensor of shape (mps.D[0],mps.D[0])
-                    left dominant eigenvvector of the unit-cell transfer operator of mps
-    right_dominant: tf.tensor of shape (mps.D[-1],mps.D[-1])
-                    right dominant eigenvvector of the unit-cell transfer operator of mps
-    precision: float
-               deisred precision of the environments
-    nmax:      int
-               maximum iteration numner
+    This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+    and back to tf.Tensor for each application of the sparse matrix vector product.
+    This is not optimal and will be improved in a future version
 
+    Args:
+        direction (int or str):        if (1,'l','left'): obtain left environment
+                                       if (-1,'r','right'): obtain right environment
+        mps (InfiniteMPSCentralGauge): an infinite mps
+        mpo (InfiniteMPO):             the mpo
+        left_dominant (tf.tensor):     tensor of shape (mps.D[0],mps.D[0])
+                                       left dominant eigenvvector of the unit-cell transfer operator of mps
+        right_dominant (tf.Tensor):    tensor of shape (mps.D[-1],mps.D[-1])
+                                       right dominant eigenvvector of the unit-cell transfer operator of mps
+        precision (float):             desired precision of the environments
+        nmax (int):                    maximum iteration numner
     Returns
-    ---------------------------
-    (H,h)
-    H:    tf.tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
-          Hamiltonian environment
-    h:    tf.tensor of shape (1)
-          average energy per unitcell 
+        H (tf.Tensor):   tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
+                         Hamiltonian environment
+        h (tf.Tensor):   tensor of shape (1)
+                         average energy per unitcell 
     """
 
   dummy1 = mpo.get_boundary_vector('l')
@@ -272,38 +270,31 @@ def compute_Hamiltonian_environments(mps,
                                      numeig=6,
                                      pinv=1E-30):
   """
-    calculates the Hamiltonain environments of an infinite MPS-MPO-MPS network
-    Parameters:
-    ---------------------------
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    mpo:        MPO object
-    precision: float
-               deisred precision of the environments
-    precision_canonize: float
-                        deisred precision for mps canonization
-    nmax:      int
-               maximum iteration numner
-    nmax_canonize:      int
-                        maximum iteration number in TMeigs during canonization
-    ncv:       int
-               number of krylov vectors in TMeigs during canonization
-    numeig:    int
-               number of eigenvectors targeted by sparse soler in TMeigs during canonization
-    pinv:      float 
-               pseudo inverse threshold during canonization
+    calculates the Hamiltonian environments of an infinite MPS-MPO-MPS network
+    This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+    and back to tf.Tensor for each application of the sparse matrix vector product.
+    This is not optimal and will be improved in a future version
+
+    Args:
+        mps (InfiniteMPSCentralGauge):    an infinite mps
+        mpo (InfiniteMPO):                an infinite mpo
+        precision (float):                desired precision of the environments
+        precision_canonize (float):       desired precision for mps canonization
+        nmax (int):                       maximum iteration numner
+        nmax_canonize (int):              maximum iteration number in TMeigs during canonization
+        ncv (int):                        number of krylov vectors in TMeigs during canonization
+        numeig (int):                     number of eigenvectors targeted by sparse soler in TMeigs during canonization
+        pinv (float):                     pseudo inverse threshold during canonization
 
     Returns:
-    --------------------
-    (lb,rb,hl,hr)
-    lb:      tf.tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
-             left Hamiltonian environment, including coupling of unit-cell to the left environment
-    rb:      tf.tensor of shape (mps.D[-1],mps.D[-1],mpo.D[-1])
-             right Hamiltonian environment, including coupling of unit-cell to the right environment
-    hl:     tf.tensor of shape(1)
-            average energy per left unitcell 
-    hr:     tf.tensor of shape(1)
-            average energy per right unitcell 
+        lb (tf.Tensor):  tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
+                         left Hamiltonian environment, including coupling of unit-cell to the left environment
+        rb (tf.Tensor):  tensor of shape (mps.D[-1],mps.D[-1],mpo.D[-1])
+                         right Hamiltonian environment, including coupling of unit-cell to the right environment
+        hl (tf.Tensor):  tensor of shape(1)
+                         average energy per left unitcell 
+        hr (tf.Tensor):  tensor of shape(1)
+                         average energy per right unitcell 
     NOTE:  hl and hr do not have to be identical
     """
 
@@ -341,48 +332,39 @@ def compute_Hamiltonian_environments(mps,
 
 
 def HA_product(L, mpo, R, mps):
-  """
+    """
     the local matrix vector product of the DMRG optimization
-    Parameters:
-    --------------------
-    L:    tf.Tensor
-          left environment of the local sites
-    mpo:  tf.Tensor
-          local mpo tensor
-    R:    tf.Tensor
-          right environment of the local sites
-    mps: tf.Tensor
-         local mps tensor
+    Args:
+        L (tf.Tensor):    left environment of the local sites
+        mpo (tf.Tensor):  local mpo tensor
+        R (tf.Tensor):    right environment of the local sites
+        mps (tf.Tensor):  local mps tensor
     Returns:
-    ------------------
-    tf.Tensor:   result of the local contraction
-    
+        tf.Tensor:   result of the local contraction
     """
   return ncon([L, mps, mpo, R],
               [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
 
 
 def prepare_tensor_QR(tensor, direction):
-  """
+    """
     prepares an mps tensor using svd decomposition 
-    Parameters:
-    ---------------------
-    tensor: tf.Tensors of shape(D1,D2,d)
-            an mps tensor
-    direction: int
-               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
-
+    Args
+        tensor (tf.Tensors): tensor of shape(D1,D2,d)
+                             an mps tensor
+    direction (int):         if `int` > 0 returns left orthogonal decomposition, 
+                             if `int` < 0 returns right orthogonal decomposition
     Returns:
-    ----------------------------
-    direction>0:     out,s,v
-                     out: a left isometric tf.Tensor of dimension (D1,D,d)
-                     s  : the singular values of length D
-                     v  : a right isometric tf.Tensor of dimension (D,D2)
-    direction<0:     u,s,out
-                     u  : a left isometric tf.Tensor of dimension (D1,D)
-                     s  : the singular values of length D
-                     out: a right isometric tf.Tensor of dimension (D,D2,d)
-
+        if direction>0:     
+        (out,s,v)
+         out (tf.Tensor): a left isometric tf.Tensor of dimension (D1,D,d)
+         s (tf.Tensor):   the singular values of length D
+         v (tf.Tensor):   a right isometric tf.Tensor of dimension (D,D2)
+        if direction<0:     
+        (u,s,out)
+        u (tf.Tensor):    a left isometric tf.Tensor of dimension (D1,D)
+        s (tf.Tensor):    the singular values of length D
+        out (tf.Tensor):  a right isometric tf.Tensor of dimension (D,D2,d)
     """
   l1, d, l2 = tf.unstack(tf.shape(tensor))
   if direction in ('l', 'left', 1):
@@ -409,25 +391,24 @@ prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR)
 
 
 def prepare_tensor_SVD(tensor, direction):
-  """
+    """
     prepares an mps tensor using svd decomposition 
-    Parameters:
-    ---------------------
-    tensor: tf.Tensors of shape(D1,D2,d)
-            an mps tensor
-    direction: int
-               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
+    Args:
+        tensor (tf.Tensors):  tensor of shape(D1,D2,d)
+                              an mps tensor
+        direction (int):      if `int` > 0: returns left orthogonal decomposition, 
+                              if `int` < 0: returns right orthogonal decomposition
 
     Returns:
-    ----------------------------
-    direction>0: out,s,v
-                 out: a left isometric tf.Tensor of dimension (D1,D,d)
-                 s  : the singular values of length D
-                 v  : a right isometric tf.Tensor of dimension (D,D2)
-    direction<0: u,s,out
-                 u  : a left isometric tf.Tensor of dimension (D1,D)
-                 s  : the singular values of length D
-                 out: a right isometric tf.Tensor of dimension (D,D2,d)
+        if direction>0: (out,s,v) with
+        out (tf.Tensor): a left isometric tf.Tensor of dimension (D1,D,d)
+        s (tf.Tensor):   the singular values of length D
+        v (tf.Tensor):   a right isometric tf.Tensor of dimension (D,D2)
+
+        if direction<0: (u,s,out) with
+        u (tf.Tensor):   a left isometric tf.Tensor of dimension (D1,D)
+        s (tf.Tensor):   the singular values of length D
+        out (tf.Tensor): a right isometric tf.Tensor of dimension (D,D2,d)
     """
   l1, d, l2 = tf.unstack(tf.shape(tensor))
 
