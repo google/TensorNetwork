@@ -859,7 +859,7 @@ def restore_helper(tensors,
         numeig=numeig)
 
     sqrteta = tf.cast(tf.sqrt(tf.real(eta)), dtype)
-    As[0] /= sqrtetap
+    As[0] /= sqrteta
 
     l = l / tf.trace(l)
     l = (l + tf.conj(tf.transpose(l))) / 2.0
