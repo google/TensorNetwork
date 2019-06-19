@@ -1025,7 +1025,6 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
     self.mat = centermatrix
     self.connector = connector
     self._right_mat = right_mat
-    #self.position(0)
     super().__init__(name=name)
 
   @property
@@ -1393,8 +1392,8 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
         numeig=numeig, precision=precision, power_method=power_method)
     return out
 
-  def cycle(self, shift_by):
-    """Cycle the sites in the unit cell.
+  def roll(self, shift_by):
+    """Rol the sites in the unit cell.
         Moves sites to the left by `shift_by`, i.e. site `n` becomes site 
         `n - shift_by`.
         """
@@ -1545,8 +1544,8 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
     N = self.num_sites
 
     if n + 1 >= N:
-      # Sadly, we have to cycle sites to avoid the connector matrix.
-      self.cycle(1)
+      # Sadly, we have to roll sites to avoid the connector matrix.
+      self.roll(1)
       n -= 1
       cycled = True
     else:
@@ -1581,7 +1580,7 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
 
     if cycled:
       # Move sites back to where they were!
-      self.cycle(N - 1)
+      self.roll(N - 1)
 
     return trunc_err
 
