@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-functions for binary MERA optimization
+unittests
 """
 import tensorflow as tf
 import tensornetwork as tn
@@ -33,7 +33,6 @@ def test_TMeigs_float(direction):
                               direction=direction)
     out = misc_mps.transfer_op(tensors,tensors,direction,x)
     np.testing.assert_allclose(out, eta * x)
-
 
 
 @pytest.mark.parametrize("direction", ['l', 'r'])
@@ -73,6 +72,20 @@ def test_iDMRG(dtype):
     e = idmrg.run_one_site(Nsweeps=100,verbose=1,ncv=100)
     assert(np.abs(-np.log(2) + 0.25 - e) < 5E-4)
 
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])        
+def test_DMRG(dtype):
+    N, D, d = 10, 32, 2
+    mps = MPS.FiniteMPSCentralGauge.random([d]*N,[D]*(N-1),dtype=dtype)
+    mps.position(0)
+    mps.position(len(mps))
+    mps.position(0)
+    mps.normalize()
+    mpo = MPO.FiniteXXZ(Jz=np.ones([N-1]),Jxy=np.ones([N-1]),Bz=np.zeros([N]),dtype=dtype)
+    dmrg = DMRG.FiniteDMRGEngine(mps,mpo)
+    e = dmrg.run_one_site(verbose=1,Nsweeps=10,ncv=10,delta=1E-10)
+    Eexact = -4.2580352072
+    assert(np.abs(Eexact - e) < 5E-4)
+    
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
 def test_mps_position(dtype):
     N, D, d = 4, 10, 2
