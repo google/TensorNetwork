@@ -16,16 +16,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import sys
-import warnings
-import copy
 import numpy as np
-import scipy as sp
 import tensorflow as tf
-
 from experiments.MPS import misc_mps
 from experiments.MPS import tensornetwork_tools as tnt
-
 
 def is_mps_tensor(tensor):
     return tf.equal(tf.rank(tensor), 3)
