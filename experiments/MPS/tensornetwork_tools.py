@@ -24,7 +24,7 @@ from tensornetwork import ncon, ncon_network
 
 
 def svd_tensor(t, left_axes, right_axes, nsv_max=None, auto_trunc_max_err=0.0):
-  """Computes the singular value decomposition (SVD) of a tensor.
+    """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
     left (row) index resulting from combining the `left_axes` of the input
@@ -69,41 +69,41 @@ def svd_tensor(t, left_axes, right_axes, nsv_max=None, auto_trunc_max_err=0.0):
       s_rest: Vector of discarded singular values (length zero if no 
               truncation).
     """
-  t_shp = tf.shape(t)
-  left_dims = [t_shp[i] for i in left_axes]
-  right_dims = [t_shp[i] for i in right_axes]
+    t_shp = tf.shape(t)
+    left_dims = [t_shp[i] for i in left_axes]
+    right_dims = [t_shp[i] for i in right_axes]
 
-  t_t = tf.transpose(t, (*left_axes, *right_axes))
-  t_tr = tf.reshape(t_t, (np.prod(left_dims), np.prod(right_dims)))
-  s, u, v = tf.svd(t_tr)
+    t_t = tf.transpose(t, (*left_axes, *right_axes))
+    t_tr = tf.reshape(t_t, (np.prod(left_dims), np.prod(right_dims)))
+    s, u, v = tf.svd(t_tr)
 
-  if nsv_max is None:
-    nsv_max = tf.size(s, out_type=tf.int64)
-  else:
-    nsv_max = tf.cast(nsv_max, tf.int64)
+    if nsv_max is None:
+        nsv_max = tf.size(s, out_type=tf.int64)
+    else:
+        nsv_max = tf.cast(nsv_max, tf.int64)
 
-  # Cumulative norms of singular values in ascending order.
-  trunc_errs = tf.sqrt(tf.cumsum(tf.square(s), reverse=True))
-  # We must keep at least this many singular values to ensure the
-  # truncation error is <= auto_trunc_max_err.
-  nsv_err = tf.count_nonzero(trunc_errs > auto_trunc_max_err)
+    # Cumulative norms of singular values in ascending order.
+    trunc_errs = tf.sqrt(tf.cumsum(tf.square(s), reverse=True))
+    # We must keep at least this many singular values to ensure the
+    # truncation error is <= auto_trunc_max_err.
+    nsv_err = tf.count_nonzero(trunc_errs > auto_trunc_max_err)
 
-  nsv_keep = tf.minimum(nsv_max, nsv_err)
+    nsv_keep = tf.minimum(nsv_max, nsv_err)
 
-  # tf.svd() always returns the singular values as a vector of real.
-  # Generally, however, we want to contract s with Tensors of the original
-  # input type. To make this easy, cast here!
-  s = tf.cast(s, t.dtype)
+    # tf.svd() always returns the singular values as a vector of real.
+    # Generally, however, we want to contract s with Tensors of the original
+    # input type. To make this easy, cast here!
+    s = tf.cast(s, t.dtype)
 
-  s_rest = s[nsv_keep:]
-  s = s[:nsv_keep]
-  u = u[:, :nsv_keep]
-  v = v[:, :nsv_keep]
+    s_rest = s[nsv_keep:]
+    s = s[:nsv_keep]
+    u = u[:, :nsv_keep]
+    v = v[:, :nsv_keep]
 
-  vh = tf.linalg.adjoint(v)
+    vh = tf.linalg.adjoint(v)
 
-  dim_s = tf.shape(s)[0]  # must use tf.shape (not s.shape) to compile
-  u = tf.reshape(u, (*left_dims, dim_s))
-  vh = tf.reshape(vh, (dim_s, *right_dims))
+    dim_s = tf.shape(s)[0]  # must use tf.shape (not s.shape) to compile
+    u = tf.reshape(u, (*left_dims, dim_s))
+    vh = tf.reshape(vh, (dim_s, *right_dims))
 
-  return u, s, vh, s_rest
+    return u, s, vh, s_rest
