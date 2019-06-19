@@ -628,26 +628,26 @@ class AbstractInfiniteMPS(AbstractMPSUnitCell):
                numeig=1,
                which='LR'):
         """
-    calculate the left or right dominant eigenvector of the MPS-unit-cell transfer operator using sparse 
-    method.
-    Notes: - Currently  only works in eager mode.
-           - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
-             to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
-    Args:
-        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
-                                if direction in (-1,'r','right') return the right dominant EV
-    init (tf.Tensor):           initial guess for the eigenvector
-    precision (float):          desired precision of the dominant eigenvalue
-    ncv(int):                   number of Krylov vectors
-    nmax (int):                 max number of iterations
-    numeig (int):               hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                                to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    which (str):                hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
-                                can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
-    Returns:
-        eta (tf.Tensor):        the eigenvalue
-        x (tf.Tensor):          the dominant eigenvector (in matrix form)
-    """
+        calculate the left or right dominant eigenvector of the MPS-unit-cell transfer operator using sparse 
+        method.
+        Notes: - Currently  only works in eager mode.
+               - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
+                 to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
+        Args:
+            direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                    if direction in (-1,'r','right') return the right dominant EV
+        init (tf.Tensor):           initial guess for the eigenvector
+        precision (float):          desired precision of the dominant eigenvalue
+        ncv(int):                   number of Krylov vectors
+        nmax (int):                 max number of iterations
+        numeig (int):               hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                    to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        which (str):                hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
+                                    can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
+        Returns:
+            eta (tf.Tensor):        the eigenvalue
+            x (tf.Tensor):          the dominant eigenvector (in matrix form)
+        """
         #FIXME: add graph-mode execution
         tensors = [self.get_tensor(n) for n in range(len(self))]
         return misc_mps.TMeigs(
@@ -677,23 +677,24 @@ class MPSUnitCell_Generic(AbstractMPSUnitCell):
                *args,
                **kwargs):
         """
-        creates a random MPS; tensors are initialized using initializer_function
-        Parameters:
-        d:    list of int
-              the physical Hilbert space dimension on each site
-        D:    list of int of len(d)+1
-              the bond dimensions of the MPS
-        name: str or None
-              name of the MPS
-        dtype: tensorflow dtype object
-               the datatype of the MPS
-        initializer_functions: callable
-                               initialization function;
-        *args,**kwargs: further arguments to initializer_function
+        Creates a random finite MPS. Tensors are initialized using 
+        initializer_function.
+
+        Args:
+            d: list of int
+                the physical Hilbert space dimension on each site
+            D: list of int of len(d) - 1
+                the bond dimensions of the MPS
+            name: str or None
+                name of the MPS
+            dtype: tensorflow dtype object
+                the datatype of the MPS
+            initializer_functions: callable
+                initialization function;
+            *args,**kwargs: further arguments passed to initializer_function
 
         Returns:
-        an initialized MPS object
-        
+            mps: An initialized MPS object.
         """
         if not len(d) == (len(D) - 1):
             raise ValueError('MPSUnitCell_Generic.random: len(d)! = len(D)-1!')
@@ -750,23 +751,24 @@ class FiniteMPS_Generic(MPSUnitCell_Generic, AbstractFiniteMPS):
                *args,
                **kwargs):
         """
-        creates a random MPS; tensors are initialized using initializer_function
-        Parameters:
-        d:    list of int
-              the physical Hilbert space dimension on each site
-        D:    list of int of len(d)+1
-              the bond dimensions of the MPS
-        name: str or None
-              name of the MPS
-        dtype: tensorflow dtype object
-               the datatype of the MPS
-        initializer_functions: callable
-                               initialization function;
-        *args,**kwargs: further arguments to initializer_function
+        Creates a random finite MPS. Tensors are initialized using 
+        initializer_function.
+
+        Args:
+            d: list of int
+                the physical Hilbert space dimension on each site
+            D: list of int of len(d) - 1
+                the bond dimensions of the MPS
+            name: str or None
+                name of the MPS
+            dtype: tensorflow dtype object
+                the datatype of the MPS
+            initializer_functions: callable
+                initialization function;
+            *args,**kwargs: further arguments passed to initializer_function
 
         Returns:
-        an initialized MPS object
-        
+            mps: An initialized MPS object.
         """
 
         if not len(d) == (len(D) + 1):
@@ -781,22 +783,34 @@ class FiniteMPS_Generic(MPSUnitCell_Generic, AbstractFiniteMPS):
             name=name)
 
     def norm(self):
+        """
+        return the norm of the centermatrix
+        """
         r = self.get_env_right(-1)
         return tf.sqrt(r[0, 0])
 
     def normalize(self):
+        """
+        normalize the centermatrix
+        """
         nrm = self.norm()
         # FIXME: Keep norms of all tensors similar.
         self.tensors[0] = tf.divide(self.tensors[0], nrm)
         return nrm
 
     def get_env_left(self, n):
+        """
+        get left environment of site `n`
+        """
         l = tf.ones(shape=(1, 1), dtype=self.dtype)
         for n in range(n):
             l = self.transfer_op(n, 'l', l)
         return l
 
     def get_env_right(self, n):
+        """
+        get right environment of site `n`
+        """
         r = tf.ones(shape=(1, 1), dtype=self.dtype)
         for n in reversed(range(n + 1, self.num_sites)):
             r = self.transfer_op(n, 'r', r)
@@ -804,7 +818,6 @@ class FiniteMPS_Generic(MPSUnitCell_Generic, AbstractFiniteMPS):
 
 
 class InfiniteMPS_Generic(MPSUnitCell_Generic, AbstractInfiniteMPS):
-
     def __init__(self, tensors, name=None):
         super().__init__(tensors, name=name)
 
@@ -1017,6 +1030,10 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
         initializes an MPSUnitCellCentralGauge from a list of tensors.
         mps.pos is set to len(tensors)
         connector, centralmatrix and right_mat are all set to identity matrices
+        Args:
+            tensors (list of tf.Tensor): list of mps tensors
+        Returns:
+            MPSUnitCellCentralGauge
         """
         dtype = tensors[0].dtype
         D_end = tensors[-1].shape[2]
@@ -1041,6 +1058,19 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
                  right_mat,
                  position,
                  name=None):
+        """
+        initializes an MPSUnitCellCentralGauge .
+        Args:
+            tensors (list of tf.Tensor): list of mps tensors
+            centermatrix (tf.Tensor):    initial center matrix 
+            connector (tf.Tensor):       connector matrix
+            right_mat (tf.Tensor):       right matrix used for efficient calculation of observables
+            position (int):              initial position of the center-matrix
+            name (str):                  a name for the MPS
+        Returns:
+            MPSUnitCellCentralGauge
+        """
+        
         self._tensors = tensors
         self.pos = position
         self.mat = centermatrix
@@ -1088,8 +1118,8 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
 
     def get_tensor(self, n):
         """
-        get_tensor returns an mps tensors, possibly contracted with the center 
-        matrix. By convention, the center matrix is contracted if n == self.pos
+        `get_tensor(n)` returns an mps tensors, possibly contracted with the center matrix and or the connector
+        By convention, the center matrix is contracted if n == self.pos
         The connector is always absorbed at the right end of the mps.
         """
         N = self.num_sites
@@ -1136,6 +1166,7 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
     # TODO: Provide optimal get_envs_left and get_envs_right.
     def get_env_left(self, site):
         """
+        compute the left environment of site `site`
         """
         if site >= len(self) or site < 0:
             raise IndexError(
@@ -1151,6 +1182,10 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
             return l
 
     def get_env_right(self, site):
+        """
+        compute the right environment of site `site`
+        """
+        
         site = site % len(self)
         if site >= len(self) or site < 0:
             raise IndexError(
@@ -1171,6 +1206,9 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
             return r
 
     def norm(self):
+        """
+        return the norm of the center matrix
+        """
         return tf.sqrt(
             misc_mps.ncon([self.centermatrix,
                            tf.conj(self.centermatrix)], [[0, 1], [0, 1]]))
@@ -1214,11 +1252,10 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
         position(bond,schmidt_thresh = 1E-16):
         shifts the center site of the MPS to "bond".
         bond n is the bond to the *left* of site n.
-        Parameters:
-        ---------------------------------
-        bond: int
-              the bond onto which to put the center matrix
-
+        Args:
+            bond (int):  the bond onto which to put the center matrix
+        Returns:
+            None
         """
         if bond > self.pos:
             self._tensors[self.pos] = misc_mps.ncon(
@@ -1250,9 +1287,14 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
         self.pos = bond
 
     @staticmethod
-    def ortho_deviation(tensor, which='l'):
+    def ortho_deviation(tensor, which):
         """
         returns the deviation from left or right orthonormalization of the MPS tensors
+        Args:
+            which (str):  can take values in ('l','left','r','right')
+                          determines which orthogonality should be tested
+        Returns:
+            tf.Tensor:   the deviation of orthogonality over all tensor entries
         """
         return orthonormalization(tensor, which)
 
@@ -1272,12 +1314,10 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
 
         NOTE: Only works in eager mode.
 
-        Parameters:
-        thresh:    float
-                   threshold for allowed deviation from orthogonality
+        Args:
+            thresh (float):  threshold for allowed deviation from orthogonality
         Returns:
-        ---------------------
-        bool
+            bool
         """
         pos = self.pos
         self.position(self.num_sites)
@@ -1302,9 +1342,13 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
     @classmethod
     def from_tensors(cls, tensors, name=None):
         """
-        initializes a FiniteMPSCentralGauge from a list of tensors.
+        initializes an FiniteMPSCentralGauge from a list of tensors.
         mps.pos is set to len(tensors)
         connector, centralmatrix and right_mat are all set to identity matrices
+        Args:
+            tensors (list of tf.Tensor): list of mps tensors
+        Returns:
+            MPSUnitCellCentralGauge
         """
         dtype = tensors[0].dtype
         D_end = tensors[-1].shape[2]
@@ -1319,7 +1363,17 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
         return mps
 
     def __init__(self, tensors, centermatrix, position, name=None):
-
+        """
+        initializes a FiniteMPSCentralGauge .
+        Args:
+            tensors (list of tf.Tensor): list of mps tensors
+            centermatrix (tf.Tensor):    initial center matrix 
+            position (int):              initial position of the center-matrix
+            name (str):                  a name for the MPS
+        Returns:
+            FiniteMPSCentralGauge
+        """
+    
         if not (np.all([tensors[0].dtype == t.dtype for t in tensors])):
             raise TypeError(
                 'FiniteMPSCentralGauge.__init__: tensors need to have same types'
@@ -1339,7 +1393,10 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
     def canonize(self, name=None):
         """
         bring mps into canonical form, i.e. brings it into Gamma,Lambda form; 
-
+        Args:
+            name (str, optional):   a name for the canonized MPS
+        Returns:
+            FiniteMPS_Schmidt:      canonical form of the MPS
         """
         Lambdas, Gammas = [], []
 
@@ -1523,29 +1580,17 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
                      pinv=1E-30):
         """
         bring the MPS into Schmidt canonical form; normalizes the state
-
-        Parameters:
-        ------------------------------
-        init:          tf.tensor
-                       initial guess for the eigenvector
-        precision:     float
-                       desired precision of the dominant eigenvalue
-        power_method:  bool
-                       use power-method instead of sparse solver
-        ncv:           int
-                       number of Krylov vectors
-        nmax:          int
-                       max number of iterations
-        numeig:        int
-                       hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                       to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-        pinv:          float
-                       pseudoinverse cutoff
-
-
+        Args:
+            init (tf.tensor):     initial guess for the eigenvector
+            precision (float):    desired precision of the dominant eigenvalue
+            power_method (bool):  use power-method instead of sparse solver
+            ncv (int):            number of Krylov vectors
+            nmax (int):           max number of iterations
+            numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                  to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+            pinv (float):         pseudoinverse cutoff
         Returns:
-        ----------------------------------
-        None
+            None
         """
 
         self.position(0)
@@ -1626,6 +1671,24 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
                                  pinv=1E-30,
                                  restore_form=True,
                                  name=None):
+        """
+        return the left-orthogonal form of the mps by shifting center-matrix to 
+        the right end of the MPS and contracting `connector` and `centermatrix` into 
+        the mps
+        Args:
+            init (tf.tensor):     initial guess for the eigenvector
+            precision (float):    desired precision of the dominant eigenvalue
+            power_method (bool):  use power-method instead of sparse solver
+            ncv (int):            number of Krylov vectors
+            nmax (int):           max number of iterations
+            numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                  to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+            pinv (float):         pseudoinverse cutoff
+            restore_form (bool):  if `True`, restore form prior to shifting center-matrix
+        Returns:
+            InfiniteMPSCentralGauge in left-orthogonal form
+        """
+        
         if restore_form:
             self.restore_form(
                 init=init,
@@ -1660,9 +1723,22 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
                                   restore_form=True,
                                   name=None):
         """
-    return the right-orthogonal form of the mps
-
-    """
+        return the right-orthogonal form of the mps by shifting center-matrix to 
+        the left end of the MPS and contracting `connector` and `centermatrix` into 
+        the mps
+        Args:
+            init (tf.tensor):     initial guess for the eigenvector
+            precision (float):    desired precision of the dominant eigenvalue
+            power_method (bool):  use power-method instead of sparse solver
+            ncv (int):            number of Krylov vectors
+            nmax (int):           max number of iterations
+            numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                  to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+            pinv (float):         pseudoinverse cutoff
+            restore_form (bool):  if `True`, restore form prior to shifting center-matrix
+        Returns:
+            InfiniteMPSCentralGauge in right-orthogonal form
+        """
         if restore_form:
             self.restore_form(
                 init=init,
