@@ -30,8 +30,7 @@ class ShellTensor:
     self.shape = new_shape
     return self
 
-
-Tensor = "ShellTensor"
+Tensor = ShellTensor
 
 
 class ShellBackend(base_backend.BaseBackend):
@@ -53,7 +52,7 @@ class ShellBackend(base_backend.BaseBackend):
     for g in gen:
       yield from g
 
-  def reshape(self, tensor: Tensor, shape: Sequence[Any]) -> Tensor:
+  def reshape(self, tensor: Tensor, shape: Sequence[int]) -> Tensor:
     tensor = tensor.reshape(shape)
     return tensor
 
@@ -68,21 +67,34 @@ class ShellBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    # TODO
     raise NotImplementedError("SVD shape cannot be calculated without"
                               "explicit tensor values.")
 
-  def concat(self, values: Sequence[Any], axis: int) -> Sequence:
-    if axis != -1:
-      raise NotImplementedError("Concat is implemented only for shape "
-                                "calculations.")
+  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
+    shape = values[0].shape
+    if axis < 0:
+      axis += len(shape)
+    concat_size = sum(v.shape[axis] for v in values)
+    new_shape = shape[:axis] + (concat_size,) + shape[axis + 1:]
+    return ShellTensor(new_shape)
+
+  def concat_shape(self, values) -> Sequence:
     tuple_values = (tuple(v) for v in values)
     return functools.reduce(operator.concat, tuple_values)
 
   def shape(self, tensor: Tensor) -> Tuple:
     return tensor.shape
 
-  def prod(self, values: Sequence[Any]) -> int:
-    return functools.reduce(operator.mul, values)
+  def prod(self, values: Tensor) -> int:
+    # This is different from the BaseBackend prod!
+    # prod calculates the product of tensor elements and cannot implemented
+    # for shell tensors
+    # This returns the product of sizes instead
+    return self.shape_prod(values.shape)
+
+  def shape_prod(self, shape: Sequence[int]) -> int:
+    return functools.reduce(operator.mul, shape)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return tensor

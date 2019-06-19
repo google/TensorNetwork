@@ -17,38 +17,81 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import inspect
 import numpy as np
-import pytest
-from tensornetwork import tensornetwork_test
+from tensornetwork.backends.shell import shell_backend
+from tensornetwork.backends.numpy import numpy_backend
 
-shell_tests = list(dir(tensornetwork_test))
-# Skip SVD tests because it is not implemented in shell backend
-shell_tests.remove("test_split_node")
-shell_tests.remove("test_split_node_mixed_order")
-shell_tests.remove("test_split_node_full_svd")
-shell_tests.remove("test_copy_tensor_parallel_edges")
 
-def get_shape(a):
-  if isinstance(a, (int, float)):
-    return tuple()
-  return a.shape
+def assertBackendsAgree(f, args):
+  np_result = getattr(numpy_backend.NumPyBackend(), f)(**args)
+  sh_result = getattr(shell_backend.ShellBackend(), f)(**args)
+  assert np_result.shape == sh_result.shape
 
-def assertShapesEqual(a, b, rtol=1e-8, atol=1e-8):
-  assert get_shape(a) == get_shape(b)
 
-@pytest.fixture(
-  name="backend", params=["shell"])
-def backend_fixure(request):
-    return request.param
+def test_tensordot():
+  args = {}
+  args["a"] = np.ones([3, 5, 2])
+  args["b"] = np.ones([2, 3])
+  args["axes"] = [[0, 2], [1, 0]]
+  assertBackendsAgree("tensordot", args)
 
-# Override np.testing to test only shapes
-np.testing.assert_allclose = assertShapesEqual
+def test_reshape():
+  args = {"tensor": np.ones([3, 5, 2]), "shape": np.array([3, 10])}
+  assertBackendsAgree("reshape", args)
 
-# Reimplement copy tensor parallel edge test to ignore decorator
-def test_copy_tensor_parallel_edges(backend):
-  tensornetwork_test.test_copy_tensor_parallel_edges(backend)
+def test_transpose():
+  args = {"tensor": np.ones([3, 5, 2]), "perm": [0, 2, 1]}
+  assertBackendsAgree("transpose", args)
 
-for attr in shell_tests:
-  if attr[:4] == "test":
-    globals()[attr] = getattr(tensornetwork_test, attr)
+def test_svd_decomposition():
+  # TODO
+  pass
+
+def test_concat():
+  args = {"values": [np.ones([3, 2, 5]), np.zeros([3, 2, 5]),
+                     np.ones([3, 3, 5])]}
+  args["axis"] = 1
+  assertBackendsAgree("concat", args)
+  args["axis"] = -2
+  assertBackendsAgree("concat", args)
+
+def test_concat_shape():
+  # TODO
+  pass
+
+def test_shape():
+  tensor = np.ones([3, 5, 2])
+  np_result = numpy_backend.NumPyBackend().shape(tensor)
+  sh_result = shell_backend.ShellBackend().shape(tensor)
+  assert np_result == sh_result
+
+def test_prod():
+  result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))
+  assert result == 30
+
+def test_sqrt():
+  args = {"tensor": np.ones([3, 5, 2])}
+  assertBackendsAgree("sqrt", args)
+
+def test_diag():
+  args = {"tensor": np.ones(10)}
+  assertBackendsAgree("diag", args)
+
+def test_convert_to_tensor():
+  args = {"tensor": np.ones([3, 5, 2])}
+  assertBackendsAgree("convert_to_tensor", args)
+
+def test_trace():
+  args = {"tensor": np.ones([3, 5, 4, 4])}
+  assertBackendsAgree("trace", args)
+
+def test_outer_product():
+  args = {"tensor1": np.ones([3, 5]), "tensor2": np.ones([4, 6])}
+  assertBackendsAgree("outer_product", args)
+
+def test_einsum():
+  expression = "ab,bc->ac"
+  tensor1, tensor2 = np.ones([5, 3]), np.ones([3, 6])
+  np_result = numpy_backend.NumPyBackend().einsum(expression, tensor1, tensor2)
+  sh_result = shell_backend.ShellBackend().einsum(expression, tensor1, tensor2)
+  assert np_result.shape == sh_result.shape
