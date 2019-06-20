@@ -135,6 +135,20 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented shape.".format(
         self.name))
 
+  def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    """Get the shape of a tensor as a tuple of integers.
+
+    Args:
+      tensor: A tensor.
+
+    Returns:
+      The shape of the input tensor returned as a tuple of ints.
+    """
+    raise NotImplementedError(
+          "Backend '{}' has not implemented shape_tuple.".format(
+              self.name)
+      )
+
   def prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
