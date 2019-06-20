@@ -65,6 +65,7 @@ class TensorNetwork:
     self.nodes_set |= subnetwork.nodes_set
     for node in subnetwork.nodes_set:
       node.set_signature(node.signature + self.node_increment)
+      node.network = self
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
@@ -72,7 +73,7 @@ class TensorNetwork:
 
   # TODO: Add pytypes once we figure out why it crashes.
   @classmethod
-  def merge_networks(cls, networks):
+  def merge_networks(cls, networks: List["TensorNetwork"]) -> "TensorNetwork":
     """Merge several networks into a single network.
 
     Args:

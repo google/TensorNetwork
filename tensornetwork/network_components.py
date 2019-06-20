@@ -63,7 +63,6 @@ class Node:
     self._tensor = tensor
     self.name = name
     self.network = network
-    self.backend = network.backend
     self.edges = [
         Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
@@ -134,7 +133,7 @@ class Node:
 
   @property
   def shape(self):
-    return self.backend.shape_tuple(self._tensor)
+    return self.network.backend.shape_tuple(self._tensor)
   
   @property
   def tensor(self) -> Tensor:
@@ -177,7 +176,8 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
+    self.tensor = self.network.backend.transpose(
+        self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -200,7 +200,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = self.backend.transpose(self.tensor, perm=perm)
+    self.tensor = self.network.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -219,7 +219,7 @@ class Node:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
           axis, self))
 
-  def get_dimension(self, axis: Union[Text, int]) -> int:
+  def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension on the given axis.
 
     Args:
@@ -234,7 +234,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return self.backend.shape(self.tensor)[axis_num]
+    return self.network.backend.shape_tuple(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -272,7 +272,7 @@ class Node:
     if not isinstance(other, Node):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
     if other.network is not self.network:
-      raise ValueError("Cannot use '@' on two nodes in different networks.")
+      raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
 
 class CopyNode(Node):
@@ -356,7 +356,7 @@ class CopyNode(Node):
     partners = self.get_partners()
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner in partners]
-    return self.backend.einsum(einsum_expression, *tensors)
+    return self.network.backend.einsum(einsum_expression, *tensors)
 
 
 class Edge:
