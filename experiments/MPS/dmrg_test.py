@@ -25,34 +25,30 @@ import numpy as np
 
 tf.enable_v2_behavior()
 
+
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
 def test_iDMRG(dtype):
-    N, D, d = 2, 10, 2
-    imps = MPS.InfiniteMPSCentralGauge.random(
-        d=[2] * N, D=[D] * (N + 1), dtype=dtype, minval=-0.5, maxval=0.5)
-    impo = MPO.InfiniteXXZ(
-        Jz=1.0 * np.ones([N]), Jxy=np.ones([N]), Bz=np.zeros([N]), dtype=dtype)
-    idmrg = DMRG.InfiniteDMRGEngine(imps, impo)
-    e = idmrg.run_one_site(Nsweeps=100, verbose=1, ncv=100)
-    assert (np.abs(-np.log(2) + 0.25 - e) < 5E-4)
+  N, D, d = 2, 10, 2
+  imps = MPS.InfiniteMPSCentralGauge.random(
+      d=[2] * N, D=[D] * (N + 1), dtype=dtype, minval=-0.5, maxval=0.5)
+  impo = MPO.InfiniteXXZ(
+      Jz=1.0 * np.ones([N]), Jxy=np.ones([N]), Bz=np.zeros([N]), dtype=dtype)
+  idmrg = DMRG.InfiniteDMRGEngine(imps, impo)
+  e = idmrg.run_one_site(Nsweeps=100, verbose=1, ncv=100)
+  assert (np.abs(-np.log(2) + 0.25 - e) < 5E-4)
 
 
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
 def test_DMRG(dtype):
-    N, D, d = 10, 32, 2
-    mps = MPS.FiniteMPSCentralGauge.random([d] * N, [D] * (N - 1), dtype=dtype)
-    mps.position(0)
-    mps.position(len(mps))
-    mps.position(0)
-    mps.normalize()
-    mpo = MPO.FiniteXXZ(
-        Jz=np.ones([N - 1]),
-        Jxy=np.ones([N - 1]),
-        Bz=np.zeros([N]),
-        dtype=dtype)
-    dmrg = DMRG.FiniteDMRGEngine(mps, mpo)
-    e = dmrg.run_one_site(verbose=1, Nsweeps=10, ncv=10, delta=1E-10)
-    Eexact = -4.2580352072
-    assert (np.abs(Eexact - e) < 5E-4)
-
-
+  N, D, d = 10, 32, 2
+  mps = MPS.FiniteMPSCentralGauge.random([d] * N, [D] * (N - 1), dtype=dtype)
+  mps.position(0)
+  mps.position(len(mps))
+  mps.position(0)
+  mps.normalize()
+  mpo = MPO.FiniteXXZ(
+      Jz=np.ones([N - 1]), Jxy=np.ones([N - 1]), Bz=np.zeros([N]), dtype=dtype)
+  dmrg = DMRG.FiniteDMRGEngine(mps, mpo)
+  e = dmrg.run_one_site(verbose=1, Nsweeps=10, ncv=10, delta=1E-10)
+  Eexact = -4.2580352072
+  assert (np.abs(Eexact - e) < 5E-4)
