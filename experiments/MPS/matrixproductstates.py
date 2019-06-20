@@ -18,10 +18,18 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
+import tensornetwork as tn
 from experiments.MPS import misc_mps
 from experiments.MPS import tensornetwork_tools as tnt
 
 def is_mps_tensor(tensor):
+    """
+    test if `tensor` is of rank 3
+    Args: 
+        tensor (tf.Tensor)
+    Returns:
+        tf.Tensor of dtype bool: True if `tensor` is of rank 3, `False` otherwise
+    """
     return tf.equal(tf.rank(tensor), 3)
 
 
@@ -34,14 +42,14 @@ def _float_res(dtype):
 
 def orthonormalization(A, which):
     """
-  The deviation from left or right orthonormalization of an MPS tensor
-  Args:
-      A (tf.Tensor):  mps tensor
-      which (str):    can take values in ('l','left','r','right)
+    The deviation from left or right orthonormalization of an MPS tensor
+    Args:
+        A (tf.Tensor):  mps tensor
+        which (str):    can take values in ('l','left','r','right)
                       which  orthonormalization to be checked
-  Returns:
-      tf.Tensor:     the deviation from left or right orthogonality of `A`
-  """
+    Returns:
+        tf.Tensor:     the deviation from left or right orthogonality of `A`
+    """
     if which in ('l', 'left', 1):
         eye = tf.eye(tf.cast(tf.shape(A)[2], tf.int32), dtype=A.dtype)
         M = misc_mps.ncon([A, tf.conj(A)], [[1, 2, -1], [1, 2, -2]])
@@ -230,10 +238,10 @@ class AbstractMPSUnitCell:
         Returns the environments as a dictionary, indexed by site number.
 
         Args:
-          sites: list of site numbers for which the environments should be 
-            calculated.
+            sites: list of site numbers for which the environments should be 
+                   calculated.
         Returns:
-          rs: dictionary mapping site numbers (int) to right environments
+            rs: dictionary mapping site numbers (int) to right environments (tf.Tensor)
         """
         # NOTE: This default implementation is not necessarily optimal for all
         #       descendant classes.
@@ -254,10 +262,10 @@ class AbstractMPSUnitCell:
         Returns the environments as a dictionary, indexed by site number.
 
         Args:
-          sites: list of site numbers for which the environments should be 
-            calculated.
+            sites: list of site numbers for which the environments should be 
+                   calculated.
         Returns:
-          ls: dictionary mapping site numbers (int) to left environments
+            ls:   dictionary mapping site numbers (int) to left environments (tf.Tensor)
         """
         # NOTE: This default implementation is not necessarily optimal for all
         #       descendant classes.
@@ -277,6 +285,9 @@ class AbstractMPSUnitCell:
         """Applies the 1-site transfer operator, acting left or right, to x.
         x is assumed to have the form of a left or right environment, for
         direction `left` or `right`, respectively.
+        Args:
+            site (int):    the site at which the transfer operator should be applied
+            x (tf.Tensor of shape (D, D)): the environment to be transfered
         """
         A = self.get_tensor(site)
         return misc_mps.transfer_op([A], [A], direction=direction, x=x)
@@ -289,7 +300,7 @@ class AbstractMPSUnitCell:
         raise NotImplementedError()
 
     def _check_env(self, tol=None):
-        """Test that environments returned by get_env_...().
+        """Test environments returned by get_env_...().
         They must be compatible with the transfer operator.
         NOTE: This only works in eager mode.
         """
@@ -312,7 +323,7 @@ class AbstractMPSUnitCell:
                 print("r:", n, diff)
 
     def _check_envs(self, tol=None):
-        """Test that environments returned by get_envs_...().
+        """Test environments returned by get_envs_...().
         They must be compatible with the transfer operator.
         NOTE: This only works in eager mode.
         """
@@ -339,24 +350,25 @@ class AbstractMPSUnitCell:
     def expval_1site(self, op, n):
         """Expectation value of a single-site operator on site n.
         NOTE: Assumes the state is normalized!
+        Args: 
+            opt (tf.Tensor):   the operator for which the expectation value should be calculated
+            n (int):           the site at which the expectation value should be calculated
+        Returns:
+            tf.Tensor:         the expectation value
         """
         return self.expvals_1site([op], [n])[0]
 
     def expvals_1site(self, ops, sites):
         """
-        Expectation value of list of single-site operators on sites.
+        Expectation value of list of single-site operators at `sites`.
         NOTE: Assumes the state is normalized!
 
-        Parameters
-        --------------------------
-        ops:    list of tf.tensor
-                local operators to be measure
-        sites:  list of int 
-                sites where the operators live
-                ```sites``` can be in any order and have any number of sites appear arbitrarily often
+        Args:
+            ops (list of tf.Tensor):  local operators to be measure
+            sites (list of int):      sites where the operators live
+                                      `sites` can be in any order and have any number of sites appear arbitrarily often
         Returns:
-        --------------------------             
-        a list of measurements, in the same order as sites were passed
+             list of tf.Tensor:       a list of measurements, in the same order as `sites` were passed
         """
         sites = [s % self.num_sites for s in sites]
         if not len(ops) == len(sites):
@@ -378,7 +390,14 @@ class AbstractMPSUnitCell:
         return tf.convert_to_tensor(res)
 
     def schmidt_spec_cut(self, n):
-        """Schmidt spectrum for the cut between sites n and n+1."""
+        """
+        Schmidt spectrum for the cut between sites n and n+1.
+        Args:
+            n (int):   the position of the cut
+        Returns:
+            tf.Tensor of shape (self.D[n]):  the Schmidt-values of the cut across `n`
+        """
+
         l = self.get_env_left(n + 1)
         r = self.get_env_right(n)
         lr = tf.transpose(l) @ r
@@ -387,33 +406,77 @@ class AbstractMPSUnitCell:
         schmidt_sq = tf.divide(schmidt_sq, tf.reduce_sum(schmidt_sq))
         return tf.sqrt(schmidt_sq)
 
-    def correlator_1site(self, op1, op2, n1, n2_max):
+    def correlator_1site(self, op1, op2, site1, sites2):
         """Correlation function, site `n1` to `range(n1, n2_max+1)`.
         Currently this is the full 2-point function (not the "connected" 
         correlator).
         NOTE: Assumes the state is normalized!
         """
+
         N = self.num_sites
-        if n1 < 0 or n1 >= N:
+        if site1 < 0:
             raise ValueError(
-                "Site n1 out of range: {} not between 0 and {}.".format(n1, N))
-        ls = self.get_envs_left([n1])
-        rs = self.get_envs_right([n % N for n in range(n1 + 1, n2_max + 1)])
+                "Site site1 out of range: {} not between 0 and {}.".format(site1, N))
+        sites2 = np.array(sites2)
 
-        A = self.get_tensor(n1)
-        l = misc_mps.ncon([ls[n1], A, op1, tf.conj(A)], [(0, 1), (0, 2, -1),
-                                                         (3, 2), (1, 3, -2)])
         c = []
-        for n in range(n1 + 1, n2_max + 1):
-            r = rs[n % N]
-            A = self.get_tensor(n % N)
-            res = misc_mps.ncon([l, A, op2, r, tf.conj(A)], [(1, 3), (1, 0, 2),
-                                                             (4, 0), (2, 5),
-                                                             (3, 4, 5)])
-            c.append(res)
+        
+        left_sites = sorted(sites2[sites2 < site1])
+        rs = self.get_envs_right([site1])        
+        if len(left_sites) > 0:
+            left_sites_mod = list(set([n % N for n in left_sites]))
+    
+            ls = self.get_envs_left(left_sites_mod)
+    
+    
+            A = self.get_tensor(site1)
+            r = tn.ncon([A, tf.conj(A), op1, rs[site1]], [(-1 , 2, 1), (-2, 3, 4), (3, 2), (1, 4)])
+    
+            n1 = np.min(left_sites)
+            for n in range(site1 - 1, n1 - 1, -1):
+                if n in left_sites:
+                    l = ls[n % N]
+                    A = self.get_tensor(n % N)
+                    res = tn.ncon([l, A, op2, tf.conj(A), r],
+                                  [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
+                    c.append(res)
+                if n > n1:
+                    r = self.transfer_op(n % N, 'right', r)
+    
+            c = list(reversed(c))
+            
+            
 
-            if n < n2_max:
-                l = self.transfer_op(n % N, 'left', l)
+        ls = self.get_envs_left([site1])
+
+        if site1 in sites2:
+            A = self.get_tensor(site1)
+            op = tn.ncon([op2, op1], [[-1, 1], [1, -2]])
+            res = tn.ncon([ls[site1], A, op, tf.conj(A), rs[site1]],
+                            [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
+            c.append(res)
+            
+        right_sites = sites2[sites2 > site1]
+        if len(right_sites) > 0:        
+            right_sites_mod = list(set([n % N for n in right_sites]))
+                
+            rs = self.get_envs_right(right_sites_mod)
+    
+            A = self.get_tensor(site1)
+            l = tn.ncon([ls[site1], A, op1, tf.conj(A)], [(0, 1), (0, 2, -1), (3, 2),
+                                                          (1, 3, -2)])
+    
+            n2 = np.max(right_sites)
+            for n in range(site1 + 1, n2 + 1):
+                if n in right_sites:
+                    r = rs[n % N]
+                    A = self.get_tensor(n % N)
+                    res = tn.ncon([l, A, op2, tf.conj(A), r],
+                                    [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
+                    c.append(res)
+    
+                if n < n2:
+                    l = self.transfer_op(n % N, 'left', l)
 
         return tf.convert_to_tensor(c)
 
