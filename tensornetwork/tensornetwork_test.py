@@ -1155,20 +1155,10 @@ def test_at_operator(backend):
   assert isinstance(c, tensornetwork.Node)
   np.testing.assert_allclose(c.tensor, 2.0)
 
-def test_at_operator_type_error(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((2,)))
-  b = net.add_node(np.ones((2,)))
-  e = net.connect(a[0], b[0])
-  with pytest.raises(TypeError):
-    a @ e
-
 def test_at_operator_out_of_network(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
   net2 = tensornetwork.TensorNetwork(backend=backend)
   a = net1.add_node(np.ones((2,)))
   b = net2.add_node(np.ones((2,)))
   with pytest.raises(ValueError):
-    a @ b
-
-
+    a = a @ b
