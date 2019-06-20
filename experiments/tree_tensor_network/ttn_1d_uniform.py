@@ -23,136 +23,6 @@ import time
 import tensornetwork
 
 
-def _set_backend(backend):
-  tensornetwork.set_default_backend(backend)
-  # TODO(amilsted): Do this differently. It's awful!
-  global np
-  global dtype_is_complex
-  global random_normal_mat
-  global conj
-  global adjoint
-  global build
-  global trace
-  global transpose
-  global reshape
-  global convert_to_tensor
-  global device
-  global cast
-  global zeros_like
-  global where
-  global reduce_max
-  global to_real
-  global eye
-  global diag
-  global sqrt
-  global matmul
-  global tensordot
-  global norm
-  global svd
-  global svd_np
-  global eigh
-  global eigvalsh
-  global to_numpy
-  global executing_eagerly
-
-  if backend == "tensorflow":
-    import numpy as np
-    import scipy.linalg as spla
-    import tensorflow as tf
-    def dtype_is_complex(dtype): return dtype.is_complex
-    def random_normal_mat(D1, D2, dtype):
-      if dtype.is_complex:
-        A = tf.complex(
-          tf.random_normal((D1, D2), dtype=dtype.real_dtype),
-          tf.random_normal((D1, D2), dtype=dtype.real_dtype)) / math.sqrt(2)
-      else:
-        A = tf.random_normal((D1, D2), dtype=dtype)
-      return A
-    conj = tf.conj
-    adjoint = tf.linalg.adjoint
-    build = tf.contrib.eager.defun
-    trace = tf.trace
-    transpose = tf.transpose
-    reshape = tf.reshape
-    convert_to_tensor = tf.convert_to_tensor
-    device = tf.device
-    cast = tf.cast
-    zeros_like = tf.zeros_like
-    where = tf.where
-    reduce_max = tf.reduce_max
-    def to_real(x): return tf.cast(x, x.dtype.real_dtype)
-    eye = tf.eye
-    diag = tf.diag
-    sqrt = tf.sqrt
-    matmul = tf.matmul
-    tensordot = tf.tensordot
-    norm = tf.norm
-    svd = tf.svd
-    svd_np = spla.svd
-    eigh = tf.linalg.eigh
-    eigvalsh = tf.linalg.eigvalsh
-    def to_numpy(x): return x.numpy()
-    executing_eagerly = tf.executing_eagerly
-  elif backend == "numpy" or backend == "jax":
-    if backend == "numpy":
-      import numpy as np
-      np_nojax = np
-      import scipy.linalg as spla
-    else:
-      import numpy as np_nojax
-      import jax.numpy as np
-      import scipy.linalg as spla
-    import contextlib
-    def dtype_is_complex(dtype): return np_nojax.dtype(dtype).kind == 'c'
-    def random_normal_mat(D1, D2, dtype):
-      if dtype_is_complex(dtype):
-        A = (np_nojax.random.randn(D1,D2) +
-             1.j * np_nojax.random.randn(D1,D2)) / math.sqrt(2)
-        A = np.asarray(A, dtype)
-      else:
-        A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
-      return A
-    conj = np.conj
-    adjoint = lambda x: np.conj(np.transpose(x))
-    if backend == "jax":
-      from jax import jit
-      build = jit
-    else: 
-      build = lambda x: x
-    trace = np.trace
-    transpose = np.transpose
-    reshape = np.reshape
-    convert_to_tensor = np.array
-    device = lambda x: contextlib.suppress()
-    cast = np.asarray
-    zeros_like = np.zeros_like
-    where = np.where
-    reduce_max = np.amax
-    to_real = np.real
-    eye = np.eye
-    diag = np.diag
-    sqrt = np.sqrt
-    def matmul(a, b, adjoint_b=False):
-      if adjoint_b:
-        return np.matmul(a, adjoint(b))
-      return np.matmul(a, b)
-    tensordot = np.tensordot
-    norm = np.linalg.norm
-    def svd(x):
-      u, s, vh = np.linalg.svd(x, full_matrices=False)
-      return s, u, adjoint(vh)
-    svd_np = spla.svd
-    eigh = np.linalg.eigh
-    eigvalsh = np.linalg.eigvalsh
-    def to_numpy(x): return np.asarray(x)
-    executing_eagerly = lambda: False
-  else:
-    raise ValueError("Unsupported backend: {}".format(backend))
-
-
-_set_backend("numpy")
-
-
 """
 Index ordering conventions:
 
@@ -173,6 +43,11 @@ iso_021:
  / \
 2   1
 """
+
+
+def build(x):
+  """Dummy function for building a python function into a graph."""
+  return x
 
 
 def _ascend_partial(op, iso):
@@ -1338,7 +1213,130 @@ def get_ham_ising_tube(dtype, Ly, lam=-3.044):
 
 
 def set_backend(backend):
-  _set_backend(backend)
+  tensornetwork.set_default_backend(backend)
+  # TODO(amilsted): Do this differently. It's awful!
+  global np
+  global dtype_is_complex
+  global random_normal_mat
+  global conj
+  global adjoint
+  global build
+  global trace
+  global transpose
+  global reshape
+  global convert_to_tensor
+  global device
+  global cast
+  global zeros_like
+  global where
+  global reduce_max
+  global to_real
+  global eye
+  global diag
+  global sqrt
+  global matmul
+  global tensordot
+  global norm
+  global svd
+  global svd_np
+  global eigh
+  global eigvalsh
+  global to_numpy
+  global executing_eagerly
+
+  if backend == "tensorflow":
+    import numpy as np
+    import scipy.linalg as spla
+    import tensorflow as tf
+    def dtype_is_complex(dtype): return dtype.is_complex
+    def random_normal_mat(D1, D2, dtype):
+      if dtype.is_complex:
+        A = tf.complex(
+          tf.random_normal((D1, D2), dtype=dtype.real_dtype),
+          tf.random_normal((D1, D2), dtype=dtype.real_dtype)) / math.sqrt(2)
+      else:
+        A = tf.random_normal((D1, D2), dtype=dtype)
+      return A
+    conj = tf.conj
+    adjoint = tf.linalg.adjoint
+    build = tf.contrib.eager.defun
+    trace = tf.trace
+    transpose = tf.transpose
+    reshape = tf.reshape
+    convert_to_tensor = tf.convert_to_tensor
+    device = tf.device
+    cast = tf.cast
+    zeros_like = tf.zeros_like
+    where = tf.where
+    reduce_max = tf.reduce_max
+    def to_real(x): return tf.cast(x, x.dtype.real_dtype)
+    eye = tf.eye
+    diag = tf.diag
+    sqrt = tf.sqrt
+    matmul = tf.matmul
+    tensordot = tf.tensordot
+    norm = tf.norm
+    svd = tf.svd
+    svd_np = spla.svd
+    eigh = tf.linalg.eigh
+    eigvalsh = tf.linalg.eigvalsh
+    def to_numpy(x): return x.numpy()
+    executing_eagerly = tf.executing_eagerly
+  elif backend == "numpy" or backend == "jax":
+    if backend == "numpy":
+      import numpy as np
+      np_nojax = np
+      import scipy.linalg as spla
+    else:
+      import numpy as np_nojax
+      import jax.numpy as np
+      import scipy.linalg as spla
+    import contextlib
+    def dtype_is_complex(dtype): return np_nojax.dtype(dtype).kind == 'c'
+    def random_normal_mat(D1, D2, dtype):
+      if dtype_is_complex(dtype):
+        A = (np_nojax.random.randn(D1,D2) +
+             1.j * np_nojax.random.randn(D1,D2)) / math.sqrt(2)
+        A = np.asarray(A, dtype)
+      else:
+        A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
+      return A
+    conj = np.conj
+    adjoint = lambda x: np.conj(np.transpose(x))
+    if backend == "jax":
+      from jax import jit
+      build = jit
+    else: 
+      build = lambda x: x
+    trace = np.trace
+    transpose = np.transpose
+    reshape = np.reshape
+    convert_to_tensor = np.array
+    device = lambda x: contextlib.suppress()
+    cast = np.asarray
+    zeros_like = np.zeros_like
+    where = np.where
+    reduce_max = np.amax
+    to_real = np.real
+    eye = np.eye
+    diag = np.diag
+    sqrt = np.sqrt
+    def matmul(a, b, adjoint_b=False):
+      if adjoint_b:
+        return np.matmul(a, adjoint(b))
+      return np.matmul(a, b)
+    tensordot = np.tensordot
+    norm = np.linalg.norm
+    def svd(x):
+      u, s, vh = np.linalg.svd(x, full_matrices=False)
+      return s, u, adjoint(vh)
+    svd_np = spla.svd
+    eigh = np.linalg.eigh
+    eigvalsh = np.linalg.eigvalsh
+    def to_numpy(x): return np.asarray(x)
+    executing_eagerly = lambda: False
+  else:
+    raise ValueError("Unsupported backend: {}".format(backend))
 
   global ascend_op_local_graph
   global ascend_op_local_top_graph
