@@ -16,14 +16,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import sys
-sys.path.append('../')
 from tensorflow.contrib.solvers.python.ops import util
 from tensorflow.python.framework import constant_op
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.framework import dtypes
 
-import ncon as ncon
+from tensornetwork import ncon
 import numpy as np
 import time
 import tensorflow as tf

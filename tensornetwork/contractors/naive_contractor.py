@@ -41,16 +41,11 @@ def naive(net: network.TensorNetwork,
       contracted or flattened.
   """
   if edge_order is None:
-    edge_order = net.edge_order
+    edge_order = sorted(net.get_all_nondangling())
   if set(edge_order) != net.get_all_nondangling():
-    raise ValueError("Some non-dangling edges that were orginally created by "
-                     "`connect` are no longer in the graph. Please do NOT use"
-                     " any edge manipulation methods (contract, flatten, "
-                     "split_node, etc) before using the naive contractor.\n"
-                     "Original edges missing: {}.\n"
-                     "New edges found: {}".format(
-                         set(edge_order) - net.get_all_nondangling(),
-                         net.get_all_nondangling() - set(edge_order)))
+    raise ValueError("Set of passed edges does not match expected set."
+                     "Given: {}\nExpected: {}".format(
+                          edge_order, net.get_all_nondangling()))
   for edge in edge_order:
     if edge in net:
       net.contract_parallel(edge)

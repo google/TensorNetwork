@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Stochastic Network Contraction."""
 
 from __future__ import absolute_import
@@ -50,10 +49,10 @@ def find_parallel(edge: network_components.Edge
   return parallel_edges, parallel_dim
 
 
-def contract_trace_edges(net: network.TensorNetwork, none_value: int = 1
-                        ) -> Tuple[network.TensorNetwork,
-                                   Dict[network_components.Node, int],
-                                   Dict[network_components.Node, int]]:
+def contract_trace_edges(
+    net: network.TensorNetwork, none_value: int = 1
+) -> Tuple[network.TensorNetwork, Dict[network_components.Node, int],
+           Dict[network_components.Node, int]]:
   """Contracts trace edges and calculate tensor sizes for every node.
 
   Tensor size is defined as the product of sizes of each of edges (axes).
@@ -95,7 +94,8 @@ def contract_trace_edges(net: network.TensorNetwork, none_value: int = 1
 
 
 def stochastic(net: network.TensorNetwork,
-               max_rejections: int, threshold: Optional[int] = None,
+               max_rejections: int,
+               threshold: Optional[int] = None,
                none_value: int = 1) -> network.TensorNetwork:
   """Contracts a connected network by stochastically picking edges.
 
