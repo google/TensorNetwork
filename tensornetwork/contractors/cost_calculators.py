@@ -60,4 +60,12 @@ def cost_contract_between(
   return cost
 
 def cost_contract_parallel(edge: network_components.Edge) -> int:
+  """Calculate the memory cost of running `contract_parallel on given edge.
+
+  Args:
+    edge: The edge
+
+  Returns:
+    The memory required to store the resulting tensor.
+  """
   return cost_contract_between(edge.node1, edge.node2)
