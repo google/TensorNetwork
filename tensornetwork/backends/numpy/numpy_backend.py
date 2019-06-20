@@ -59,6 +59,9 @@ class NumPyBackend(base_backend.BaseBackend):
   def shape(self, tensor: Tensor) -> Tensor:
     return tensor.shape
 
+  def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return tensor.shape
+
   def prod(self, values: Tensor) -> Tensor:
     return self.np.prod(values)
 
