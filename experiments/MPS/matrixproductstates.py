@@ -637,15 +637,13 @@ class AbstractInfiniteMPS(AbstractMPSUnitCell):
     def unitcell_transfer_op(self, direction, x):
         """
         Compute action of the unit-cell transfer operator on ```x```
-        Parameters:
-
-        direction:     int or str
-                       if direction in (1,'l','left'): left-multiply x
-                       if direction in (-1,'r','right'): right-multiply x
-        x:             tf.tensor of shape (mps.D[0],mps.D[0]) or  (mps.D[-1],mps.D[-1])
+        Args:
+            direction (int or str):    if direction in (1,'l','left'): left-multiply x
+                                       if direction in (-1,'r','right'): right-multiply x
+            x (tf.Tensor):             tensor of shape (mps.D[0],mps.D[0]) or  (mps.D[-1],mps.D[-1])
+                                       the left/right environment that should be transfered across the mps
         Returns:
-
-        tf.tensors of same shape as ```x```
+            tf.Tensor of same shape as `x`
         """
         if tf.executing_eagerly():
             if direction in ('l', 'left', 1):
@@ -695,16 +693,16 @@ class AbstractInfiniteMPS(AbstractMPSUnitCell):
                - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
                  to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
         Args:
-            direction (int or str): if direction in (1,'l','left')   return the left dominant EV
-                                    if direction in (-1,'r','right') return the right dominant EV
-        init (tf.Tensor):           initial guess for the eigenvector
-        precision (float):          desired precision of the dominant eigenvalue
-        ncv(int):                   number of Krylov vectors
-        nmax (int):                 max number of iterations
-        numeig (int):               hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                                    to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-        which (str):                hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
-                                    can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
+            direction (int or str):     if direction in (1,'l','left')   return the left dominant EV
+                                        if direction in (-1,'r','right') return the right dominant EV
+            init (tf.Tensor):           initial guess for the eigenvector
+            precision (float):          desired precision of the dominant eigenvalue
+            ncv(int):                   number of Krylov vectors
+            nmax (int):                 max number of iterations
+            numeig (int):               hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                        to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+            which (str):                hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
+                                        can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
         Returns:
             eta (tf.Tensor):        the eigenvalue
             x (tf.Tensor):          the dominant eigenvector (in matrix form)
