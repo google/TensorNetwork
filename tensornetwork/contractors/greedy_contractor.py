@@ -30,6 +30,7 @@ def greedy(net: network.TensorNetwork) -> network.TensorNetwork:
   
   Args:
     net: The TensorNetwork to contract.
+
   Returns:
     The contracted TensorNetwork.
   """
