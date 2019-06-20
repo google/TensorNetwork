@@ -16,16 +16,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import sys
-sys.path.append('../')
 import time
-import ncon as ncon
+from tensornetwork import ncon
 import numpy as np
 import tensorflow as tf
-import Lanczos as LZ
+import experiments.MPS.Lanczos as LZ
 from sys import stdout
-import misc_mps
+from experiments.MPS import misc_mps
 import functools as fct
-from matrixproductstates import InfiniteMPSCentralGauge, FiniteMPSCentralGauge
+from experiments.MPS.matrixproductstates import InfiniteMPSCentralGauge, FiniteMPSCentralGauge
 
 
 class MPSSimulationBase:
