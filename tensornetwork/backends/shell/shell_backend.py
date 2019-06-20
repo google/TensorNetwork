@@ -100,6 +100,9 @@ class ShellBackend(base_backend.BaseBackend):
   def shape(self, tensor: Tensor) -> Tuple:
     return tensor.shape
 
+  def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return tensor.shape
+
   def prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!
     # prod calculates the product of tensor elements and cannot implemented

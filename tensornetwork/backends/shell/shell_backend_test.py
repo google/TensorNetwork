@@ -78,6 +78,12 @@ def test_shape():
   sh_result = shell_backend.ShellBackend().shape(tensor)
   assert np_result == sh_result
 
+def test_shape_tuple():
+  tensor = np.ones([3, 5, 2])
+  np_result = numpy_backend.NumPyBackend().shape_tuple(tensor)
+  sh_result = shell_backend.ShellBackend().shape_tuple(tensor)
+  assert np_result == sh_result
+
 def test_prod():
   result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))
   assert result == 30
