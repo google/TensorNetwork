@@ -407,10 +407,16 @@ class AbstractMPSUnitCell:
         return tf.sqrt(schmidt_sq)
 
     def correlator_1site(self, op1, op2, site1, sites2):
-        """Correlation function, site `n1` to `range(n1, n2_max+1)`.
-        Currently this is the full 2-point function (not the "connected" 
-        correlator).
-        NOTE: Assumes the state is normalized!
+        """
+        Compute expectation values <op1,op2> for all pairs (site1, n2) with n2 from `sites2`
+        if site1 == n2, op2 will be applied first
+        Args:
+            op1, op2 (tf.Tensor):  local operators to be measured
+            site1 (int):           the sites of op1
+            sites2 (list of int):  the sites of op2
+        Returns:
+            c (tf.Tensor):   the measurements of the same order as `sites`
+                             i.e.  c[n] = <"op1(site1)" "op2(sites2[n])"> (abusing notation, op1 and op2 are not callable)
         """
 
         N = self.num_sites
@@ -444,8 +450,6 @@ class AbstractMPSUnitCell:
                     r = self.transfer_op(n % N, 'right', r)
     
             c = list(reversed(c))
-            
-            
 
         ls = self.get_envs_left([site1])
 
