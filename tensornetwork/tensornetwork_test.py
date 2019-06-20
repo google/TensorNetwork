@@ -1137,3 +1137,12 @@ def test_get_parallel_edge(backend):
   # sort by edge signature
   a = sorted(list(edges))[0]
   assert net.get_parallel_edges(a) == edges
+
+def test_at_operator(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2,)))
+  b = net.add_node(np.ones((2,)))
+  net.connect(a[0], b[0])
+  c = a @ b
+  assert isinstance(c, tensornetwork.Node)
+  np.testing.assert_allclose(c.tensor, 2.0)
