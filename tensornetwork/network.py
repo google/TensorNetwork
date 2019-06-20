@@ -64,13 +64,14 @@ class TensorNetwork:
     self.nodes_set |= subnetwork.nodes_set
     for node in subnetwork.nodes_set:
       node.set_signature(node.signature + self.node_increment)
+      node.network = self
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
 
   # TODO: Add pytypes once we figure out why it crashes.
   @classmethod
-  def merge_networks(cls, networks):
+  def merge_networks(cls, networks: List["TensorNetwork"]) -> "TensorNetwork":
     """Merge several networks into a single network.
 
     Args:
@@ -111,7 +112,7 @@ class TensorNetwork:
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names, self.backend)
+    new_node = network_components.Node(tensor, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
@@ -146,7 +147,7 @@ class TensorNetwork:
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
     new_node = network_components.CopyNode(
-            rank, dimension, name, axis_names, self.backend, dtype)
+            rank, dimension, name, axis_names, self, dtype)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
