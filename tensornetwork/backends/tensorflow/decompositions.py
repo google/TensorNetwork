@@ -16,15 +16,17 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensorflow as tf
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
+
+Tensor = Any
 
 
-def svd_decomposition(tensor: tf.Tensor,
+def svd_decomposition(tf: Any,
+                      tensor: Tensor,
                       split_axis: int,
                       max_singular_values: Optional[int] = None,
                       max_truncation_error: Optional[float] = None
-                     ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
+                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective
@@ -56,6 +58,7 @@ def svd_decomposition(tensor: tf.Tensor,
   Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
 
   Args:
+    tf: The tensorflow module.
     tensor: A tensor to be decomposed.
     split_axis: Where to split the tensor's axes before flattening into a
       matrix.
@@ -77,7 +80,7 @@ def svd_decomposition(tensor: tf.Tensor,
   tensor = tf.reshape(tensor,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
-  s, u, v = tf.svd(tensor)
+  s, u, v = tf.linalg.svd(tensor)
 
   if max_singular_values is None:
     max_singular_values = tf.size(s, out_type=tf.int64)
@@ -89,7 +92,7 @@ def svd_decomposition(tensor: tf.Tensor,
     trunc_errs = tf.sqrt(tf.cumsum(tf.square(s), reverse=True))
     # We must keep at least this many singular values to ensure the
     # truncation error is <= max_truncation_error.
-    num_sing_vals_err = tf.count_nonzero(
+    num_sing_vals_err = tf.math.count_nonzero(
         tf.cast(trunc_errs > max_truncation_error, dtype=tf.int32))
   else:
     num_sing_vals_err = max_singular_values
