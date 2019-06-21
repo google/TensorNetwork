@@ -435,7 +435,7 @@ class AbstractMPSUnitCell:
       ls = self.get_envs_left(left_sites_mod)
 
       A = self.get_tensor(site1)
-      r = tn.ncon([A, tf.conj(A), op1, rs[site1]], [(-1, 2, 1), (-2, 3, 4),
+      r = misc_mps.ncon([A, tf.conj(A), op1, rs[site1]], [(-1, 2, 1), (-2, 3, 4),
                                                     (3, 2), (1, 4)])
 
       n1 = np.min(left_sites)
@@ -443,7 +443,7 @@ class AbstractMPSUnitCell:
         if n in left_sites:
           l = ls[n % N]
           A = self.get_tensor(n % N)
-          res = tn.ncon([l, A, op2, tf.conj(A), r],
+          res = misc_mps.ncon([l, A, op2, tf.conj(A), r],
                         [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
           c.append(res)
         if n > n1:
@@ -455,8 +455,8 @@ class AbstractMPSUnitCell:
 
     if site1 in sites2:
       A = self.get_tensor(site1)
-      op = tn.ncon([op2, op1], [[-1, 1], [1, -2]])
-      res = tn.ncon([ls[site1], A, op, tf.conj(A), rs[site1]],
+      op = misc_mps.ncon([op2, op1], [[-1, 1], [1, -2]])
+      res = misc_mps.ncon([ls[site1], A, op, tf.conj(A), rs[site1]],
                     [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
       c.append(res)
 
@@ -467,7 +467,7 @@ class AbstractMPSUnitCell:
       rs = self.get_envs_right(right_sites_mod)
 
       A = self.get_tensor(site1)
-      l = tn.ncon([ls[site1], A, op1, tf.conj(A)], [(0, 1), (0, 2, -1), (3, 2),
+      l = misc_mps.ncon([ls[site1], A, op1, tf.conj(A)], [(0, 1), (0, 2, -1), (3, 2),
                                                     (1, 3, -2)])
 
       n2 = np.max(right_sites)
@@ -475,7 +475,7 @@ class AbstractMPSUnitCell:
         if n in right_sites:
           r = rs[n % N]
           A = self.get_tensor(n % N)
-          res = tn.ncon([l, A, op2, tf.conj(A), r],
+          res = misc_mps.ncon([l, A, op2, tf.conj(A), r],
                         [[1, 4], [1, 2, 5], [3, 2], [4, 3, 6], [5, 6]])
           c.append(res)
 
@@ -1776,7 +1776,7 @@ class InfiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractInfiniteMPS):
             restore_form (bool):  if `True`, restore form prior to shifting center-matrix
         Returns:
             InfiniteMPSCentralGauge in right-orthogonal form
-        """
+    """
     if restore_form:
       self.restore_form(
           init=init,

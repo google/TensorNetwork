@@ -266,11 +266,11 @@ class DMRGUnitCellEngine(MPSSimulationBase):
     Ml, Mc, dl, dlp = mpol.shape
     Mc, Mr, dr, drp = mpor.shape
     mpo = tf.reshape(
-        misc_mps.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
-        [Ml, Mr, dl * dr, dlp * drp])
+      misc_mps.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
+      [Ml, Mr, dl * dr, dlp * drp])
     initial = misc_mps.ncon(
-        [self.mps[self.mps.pos - 1], self.mps.mat, self.mps[self.mps.pos]],
-        [[-1, -2, 1], [1, 2], [2, -3, -4]])
+      [self.mps[self.mps.pos - 1], self.mps.mat, self.mps[self.mps.pos]],
+      [[-1, -2, 1], [1, 2], [2, -3, -4]])
     Dl, dl, dr, Dr = initial.shape
     tf.reshape(initial, [Dl, dl * dr, Dr])
     if self.walltime_log:
@@ -357,7 +357,6 @@ class DMRGUnitCellEngine(MPSSimulationBase):
       #NOTE (martin) don't use get_tensor here
       initial = misc_mps.ncon([self.mps[site], self.mps.mat],
                               [[-1, -2, 1], [1, -3]])
-
     if self.walltime_log:
       t1 = time.time()
     nit, vecs, alpha, beta = LZ.do_lanczos(
@@ -584,6 +583,7 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
 
     left_dominant = misc_mps.ncon([mps.mat, tf.conj(mps.mat)],
                                   [[1, -1], [1, -2]])
+
     out = mps.unitcell_transfer_op('l', left_dominant)
 
     super().__init__(mps=mps, mpo=mpo, lb=lb, rb=rb, name=name)
