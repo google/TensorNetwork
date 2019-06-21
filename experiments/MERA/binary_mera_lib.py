@@ -486,18 +486,18 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
     edges[17] = net.connect(un_l_con[3], iso_c_con[0])
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(rho, left)
-    out = net.contract(e)
+    out = net.contract_between(rho, left)
+    #out = net.contract(e)
     del left, rho
 
     right = net.contract(edges[2])
-    e = net.flatten_edges_between(out, right)
-    out = net.contract(e)
+    out = net.contract_between(out, right)
+    #out = net.contract(e)
     del right
 
     upper = net.contract(edges[7])
-    e = net.flatten_edges_between(out, upper)
-    out = net.contract(e)
+    out = net.contract_between(out, upper)
+    #out = net.contract(e)
     del upper
 
     lower = net.contract(edges[10])
@@ -565,8 +565,8 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     edges[17] = net.connect(un_l_con[3], iso_c_con[0])
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(rho, left)
-    out = net.contract(e)
+    out = net.contract_between(rho, left)
+    #out = net.contract(e)
     del left, rho
 
     right = net.contract(edges[2])
@@ -940,24 +940,20 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
     edges[20] = net.connect(iso_l_con[1], un_l_con[2])
 
     out = net.contract(edges[1])
-    e = net.flatten_edges_between(out, rho)
-    out = net.contract(e)
+    out = net.contract_between(out, rho)
     del rho
 
     lower = net.contract(edges[8])
-    e = net.flatten_edges_between(lower, out)
-    out = net.contract(e)
+    out = net.contract_between(lower, out)
     del lower
 
     upper = net.contract(edges[9])
-    e = net.flatten_edges_between(upper, out)
-    out = net.contract(e)
+    out = net.contract_between(upper, out)
     del upper
 
     op = net.contract_between(un_l, op)
     op = net.contract_between(op, un_l_con)
-    e = net.flatten_edges_between(op, out)
-    out = net.contract(e)
+    out = net.contract_between(op, out)
     del op
 
     out = net.contract_between(iso_l_con, out)
@@ -1014,26 +1010,21 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
     upper = net.contract(edges[8])
     op = net.contract_between(un_r, op)
     op = net.contract_between(op, un_r_con)
-    e = net.flatten_edges_between(op, upper)
-    op = net.contract(e)
+    op = net.contract_between(op, upper)
     del upper
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(op, lower)
-    op = net.contract(e)
+    op = net.contract_between(op, lower)
     del lower
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del rho
 
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, op)
     del op
 
-    e = net.flatten_edges_between(out, iso_l_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_l_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1085,17 +1076,14 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
     edges[20] = net.connect(op[5], un_r[0])
 
     out = net.contract(edges[1])
-    e = net.flatten_edges_between(out, rho)
-    out = net.contract(e)
+    out = net.contract_between(out, rho)
 
     left = net.contract(edges[2])
-    e = net.flatten_edges_between(out, left)
-    out = net.contract(e)
+    out = net.contract_between(out, left)
     del left
 
     lower = net.contract(edges[11])
-    e = net.flatten_edges_between(lower, out)
-    out = net.contract(e)
+    out = net.contract_between(lower, out)
     del lower
 
     out = net.contract_between(out, un_r)
@@ -1158,24 +1146,19 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(op, un_r_con)
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del left, rho
 
     right = net.contract(edges[16])
-    e = net.flatten_edges_between(right, out)
-    out = net.contract(e)
+    out = net.contract_between(right, out)
     del right
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
 
-    e = net.flatten_edges_between(out, un_l)
-    out = net.contract(e)
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, un_l)
+    out = net.contract_between(out, op)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1230,26 +1213,21 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(un_l, op)
     op = net.contract_between(op, un_l_con)
     upper = net.contract(edges[8])
-    e = net.flatten_edges_between(op, upper)
-    op = net.contract(e)
+    op = net.contract_between(op, upper)
     del upper
 
     lower = net.contract(edges[11])
-    e = net.flatten_edges_between(op, lower)
-    op = net.contract(e)
+    op = net.contract_between(op, lower)
     del lower
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    left = net.contract(e)
+    left = net.contract_between(left, rho)
     del rho
 
-    e = net.flatten_edges_between(left, op)
-    out = net.contract(e)
+    out = net.contract_between(left, op)
     del left, op
 
-    e = net.flatten_edges_between(out, iso_r_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_r_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1305,26 +1283,21 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(op, un_r_con)
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del left, rho
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
 
     upper = net.contract(edges[8])
-    e = net.flatten_edges_between(out, upper)
-    out = net.contract(e)
+    out = net.contract_between(out, upper)
     del upper
 
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, op)
     del op
 
-    e = net.flatten_edges_between(out, iso_r_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_r_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
