@@ -20,7 +20,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 
 
 # TODO(chaseriley): Remove these and inline the asserts
@@ -638,12 +638,15 @@ def test_add_subnetwork(backend):
   e1 = net1.connect(a[0], b[0])
   c = net2.add_node(np.eye(2) * 4)
   net2.add_subnetwork(net1)
-  assertIn(a, net2.nodes_set)
-  assertIn(b, net2.nodes_set)
+  assert a in net2
+  assert b in net2
+  assert c in net2
+  assert a.network is net2
+  assert b.network is net2
+  assert c.network is net2
   e2 = net2.connect(c[0], a[1])
   e3 = net2.connect(c[1], b[1])
   net2.check_correct()
-  assertEqual(net2.edge_order, [e1, e2, e3])
   for edge in [e1, e2, e3]:
     net2.contract(edge)
   result = net2.get_final_node()
@@ -658,8 +661,12 @@ def test_merge_networks(backend):
   e1 = net1.connect(a[0], b[0])
   c = net2.add_node(np.eye(2) * 4)
   net3 = tensornetwork.TensorNetwork.merge_networks([net1, net2])
-  assertIn(a, net3.nodes_set)
-  assertIn(b, net3.nodes_set)
+  assert a in net3
+  assert b in net3
+  assert c in net3
+  assert a.network is net3
+  assert b.network is net3
+  assert c.network is net3
   e2 = net3.connect(c[0], a[1])
   e3 = net3.connect(c[1], b[1])
   net3.check_correct()
@@ -1137,3 +1144,34 @@ def test_get_parallel_edge(backend):
   # sort by edge signature
   a = sorted(list(edges))[0]
   assert net.get_parallel_edges(a) == edges
+
+
+def test_at_operator(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2,)))
+  b = net.add_node(np.ones((2,)))
+  net.connect(a[0], b[0])
+  c = a @ b
+  assert isinstance(c, tensornetwork.Node)
+  np.testing.assert_allclose(c.tensor, 2.0)
+
+
+def test_at_operator_out_of_network(backend):
+  net1 = tensornetwork.TensorNetwork(backend=backend)
+  net2 = tensornetwork.TensorNetwork(backend=backend)
+  a = net1.add_node(np.ones((2,)))
+  b = net2.add_node(np.ones((2,)))
+  with pytest.raises(ValueError):
+    a = a @ b
+
+
+def test_edge_sorting(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  b = net.add_node(np.eye(2))
+  c = net.add_node(np.eye(2))
+  e1 = net.connect(a[0], b[1])
+  e2 = net.connect(b[0], c[1])
+  e3 = net.connect(c[0], a[1])
+  sorted_edges = sorted([e2, e3, e1])
+  assert sorted_edges == [e1, e2, e3]

@@ -120,6 +120,7 @@ def do_lanczos_compiled(L, mpo, R, initial_state, ncv, delta, reortho=False):
 
     Hxn = tn.ncon([L, xn, mpo, R],
                     [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
+                  [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
     #alpha=tn.ncon([tf.conj(xn),Hxn],[[1,2,3],[1,2,3]])
     # alpha = tn.ncon([
     #     tf.reshape(tf.conj(xn), [xn.shape[0] * xn.shape[1] * xn.shape[2]]),
@@ -140,8 +141,8 @@ def do_lanczos_compiled(L, mpo, R, initial_state, ncv, delta, reortho=False):
   ls = initialize_state(initial_state)
   n_final, ls_final = tf.while_loop(cond, do_lanczos_step, (0, ls))
   #note that self.vecs[0] is a zeros tensors (used for the first iteration); krylov vectors start at index 1
-  return n_final, ls_final.krylov_vectors.stack()[
-      1:, :, :, :], ls_final.alpha.stack(), ls_final.beta.stack()[2:]
+  return n_final, ls_final.krylov_vectors.stack(
+  )[1:, :, :, :], ls_final.alpha.stack(), ls_final.beta.stack()[2:]
 
 
 def do_lanczos_uncompiled(L, mpo, R, initial_state, ncv, delta, reortho=False):
@@ -237,7 +238,7 @@ def do_lanczos_uncompiled(L, mpo, R, initial_state, ncv, delta, reortho=False):
       orthogonalize(n - 1, lanstate.krylov_vectors, xn)
 
     Hxn = tn.ncon([L, xn, mpo, R],
-                    [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
+                  [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
     #alpha=tn.ncon([tf.conj(xn),Hxn],[[1,2,3],[1,2,3]])
     alpha = tn.ncon([tf.conj(xn), Hxn], [[1, 2, 3], [1, 2, 3]])
     # alpha = tn.ncon([
@@ -258,8 +259,8 @@ def do_lanczos_uncompiled(L, mpo, R, initial_state, ncv, delta, reortho=False):
   ls = initialize_state(initial_state)
   n_final, ls_final = tf.while_loop(cond, do_lanczos_step, (0, ls))
   #note that self.vecs[0] is a zeros tensors (used for the first iteration); krylov vectors start at index 1
-  return n_final, ls_final.krylov_vectors.stack()[
-      1:, :, :, :], ls_final.alpha.stack(), ls_final.beta.stack()[2:]
+  return n_final, ls_final.krylov_vectors.stack(
+  )[1:, :, :, :], ls_final.alpha.stack(), ls_final.beta.stack()[2:]
 
 
 @tf.contrib.eager.defun
@@ -291,7 +292,7 @@ def do_lanczos_simple(L, mpo, R, initial_state, ncv, delta):
     xn = tf.math.divide(xn, beta)
     vecs[n + 1] = xn
     Hxn = tn.ncon([L, xn, mpo, R],
-                    [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
+                  [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
     alpha = tn.ncon([
         tf.reshape(tf.conj(xn), [xn.shape[0] * xn.shape[1] * xn.shape[2]]),
         tf.reshape(Hxn, [Hxn.shape[0] * Hxn.shape[1] * Hxn.shape[2]])
@@ -338,6 +339,7 @@ def do_lanczos_simple_tensorarray(L, mpo, R, initial_state, ncv, delta):
     vecs = vecs.write(n + 1, xn)  #[n+1]=xn
     Hxn = tn.ncon([L, xn, mpo, R],
                     [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
+                  [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
     alpha = tn.ncon([
         tf.reshape(tf.conj(xn), [xn.shape[0] * xn.shape[1] * xn.shape[2]]),
         tf.reshape(Hxn, [Hxn.shape[0] * Hxn.shape[1] * Hxn.shape[2]])
@@ -437,8 +439,8 @@ class LanczosEngine:
               [tf.conj(xn), xn],
               [range(len(xn.shape)), range(len(xn.shape))]))
       if tf.cond(
-          tf.less(tf.abs(knval), tf.abs(self.delta)), lambda: True,
-          lambda: False):
+          tf.less(tf.abs(knval),
+                  tf.abs(self.delta)), lambda: True, lambda: False):
         break
       kn.append(knval)
       xn = xn / kn[-1]
@@ -453,8 +455,8 @@ class LanczosEngine:
       Hxn = self.matvec(xn)
       epsn.append(
           tn.ncon([tf.conj(xn), Hxn],
-                    [range(len(xn.shape)),
-                     range(len(Hxn.shape))]))
+                  [range(len(xn.shape)),
+                   range(len(Hxn.shape))]))
       if ((it % self.Ndiag) == 0) & (len(epsn) >= 1):
         #diagonalize the effective Hamiltonian
 
@@ -487,8 +489,8 @@ class LanczosEngine:
         state += self.vecs[n1] * u[n1, n2]
       states.append(state / tf.sqrt(
           tn.ncon([tf.conj(state), state],
-                    [range(len(state.shape)),
-                     range(len(state.shape))])))
+                  [range(len(state.shape)),
+                   range(len(state.shape))])))
     return eta[0], states[0], converged
 
 

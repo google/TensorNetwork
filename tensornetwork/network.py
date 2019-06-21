@@ -35,7 +35,6 @@ class TensorNetwork:
       backend = config.default_backend
     self.backend = backend_factory.get_backend(backend)
     self.nodes_set = set()
-    self.edge_order = []
     # These increments are only used for generating names.
     self.node_increment = 0
     self.edge_increment = 0
@@ -65,14 +64,14 @@ class TensorNetwork:
     self.nodes_set |= subnetwork.nodes_set
     for node in subnetwork.nodes_set:
       node.set_signature(node.signature + self.node_increment)
+      node.network = self
     # Add increment for namings.
     self.node_increment += subnetwork.node_increment
     self.edge_increment += subnetwork.edge_increment
-    self.edge_order += subnetwork.edge_order
 
   # TODO: Add pytypes once we figure out why it crashes.
   @classmethod
-  def merge_networks(cls, networks):
+  def merge_networks(cls, networks: List["TensorNetwork"]) -> "TensorNetwork":
     """Merge several networks into a single network.
 
     Args:
@@ -113,7 +112,7 @@ class TensorNetwork:
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names, self.backend)
+    new_node = network_components.Node(tensor, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
@@ -148,7 +147,7 @@ class TensorNetwork:
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
     new_node = network_components.CopyNode(
-            rank, dimension, name, axis_names, self.backend, dtype)
+            rank, dimension, name, axis_names, self, dtype)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
@@ -196,7 +195,6 @@ class TensorNetwork:
     new_edge.set_signature(self.edge_increment)
     node1.add_edge(new_edge, axis1_num)
     node2.add_edge(new_edge, axis2_num)
-    self.edge_order.append(new_edge)
     return new_edge
 
   def disconnect(self,
@@ -230,7 +228,6 @@ class TensorNetwork:
                                               edge.axis2)
     node1.add_edge(dangling_edge_1, edge.axis1, True)
     node2.add_edge(dangling_edge_2, edge.axis2, True)
-    self.edge_order.remove(edge)
     return [dangling_edge_1, dangling_edge_2]
 
   def _remove_trace_edge(self, edge: network_components.Edge,
@@ -423,7 +420,6 @@ class TensorNetwork:
     for partner in partners:
         for edge in partner.edges:
             if edge.node1 is copy_node or edge.node2 is copy_node:
-                self.edge_order.remove(edge)
                 continue
             old_axis = edge.axis1 if edge.node1 is partner else edge.axis2
             edge.update_axis(

@@ -266,11 +266,11 @@ class DMRGUnitCellEngine(MPSSimulationBase):
     Ml, Mc, dl, dlp = mpol.shape
     Mc, Mr, dr, drp = mpor.shape
     mpo = tf.reshape(
-        tn.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
-        [Ml, Mr, dl * dr, dlp * drp])
-    initial = tn.ncon(
-        [self.mps[self.mps.pos - 1], self.mps.mat, self.mps[self.mps.pos]],
-        [[-1, -2, 1], [1, 2], [2, -3, -4]])
+      misc_mps.ncon([mpol, mpor], [[-1, 1, -3, -5], [1, -2, -4, -6]]),
+      [Ml, Mr, dl * dr, dlp * drp])
+    initial = misc_mps.ncon(
+      [self.mps[self.mps.pos - 1], self.mps.mat, self.mps[self.mps.pos]],
+      [[-1, -2, 1], [1, 2], [2, -3, -4]])
     Dl, dl, dr, Dr = initial.shape
     tf.reshape(initial, [Dl, dl * dr, Dr])
     if self.walltime_log:
@@ -307,7 +307,7 @@ class DMRGUnitCellEngine(MPSSimulationBase):
     if verbose > 1:
       print("")
 
-    Z = np.sqrt(tn.ncon([S, S], [[1], [1]]))
+    Z = np.sqrt(misc_mps.ncon([S, S], [[1], [1]]))
     self.mps.mat = S.diag() / Z
 
     self.mps[self.mps.pos - 1] = U.split([merge_data[0],
@@ -351,13 +351,12 @@ class DMRGUnitCellEngine(MPSSimulationBase):
 
     if sweep_dir in (-1, 'r', 'right'):
       #NOTE (martin) don't use get_tensor here
-      initial = tn.ncon([self.mps.mat, self.mps[site]],
-                          [[-1, 1], [1, -2, -3]])
+      initial = misc_mps.ncon([self.mps.mat, self.mps[site]],
+                              [[-1, 1], [1, -2, -3]])
     elif sweep_dir in (1, 'l', 'left'):
       #NOTE (martin) don't use get_tensor here
-      initial = tn.ncon([self.mps[site], self.mps.mat],
-                          [[-1, -2, 1], [1, -3]])
-
+      initial = misc_mps.ncon([self.mps[site], self.mps.mat],
+                              [[-1, -2, 1], [1, -3]])
     if self.walltime_log:
       t1 = time.time()
     nit, vecs, alpha, beta = LZ.do_lanczos(
@@ -559,8 +558,8 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
         mps,
         mpo,
         left_dominant=tf.diag(tf.ones(mps.D[-1], dtype=mps.dtype)),
-        right_dominant=tn.ncon([mps.mat, tf.conj(mps.mat)],
-                                 [[-1, 1], [-2, 1]]),
+        right_dominant=misc_mps.ncon([mps.mat, tf.conj(mps.mat)],
+                                     [[-1, 1], [-2, 1]]),
         precision=precision,
         nmax=nmax)
 
@@ -577,12 +576,14 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
         rmps,
         mpo,
         right_dominant=tf.diag(tf.ones(mps.D[0], dtype=mps.dtype)),
-        left_dominant=tn.ncon([mps.mat, tf.conj(mps.mat)],
-                                [[1, -1], [1, -2]]),
+        left_dominant=misc_mps.ncon([mps.mat, tf.conj(mps.mat)],
+                                    [[1, -1], [1, -2]]),
         precision=precision,
         nmax=nmax)
 
-    left_dominant = tn.ncon([mps.mat, tf.conj(mps.mat)], [[1, -1], [1, -2]])
+    left_dominant = misc_mps.ncon([mps.mat, tf.conj(mps.mat)],
+                                  [[1, -1], [1, -2]])
+
     out = mps.unitcell_transfer_op('l', left_dominant)
 
     super().__init__(mps=mps, mpo=mpo, lb=lb, rb=rb, name=name)
@@ -596,14 +597,14 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
     new_rb = self.right_envs[sites - 1]
     centermatrix = self.mps.mat
     self.mps.position(len(self.mps))  #move centermatrix to the right
-    new_center_matrix = tn.ncon([self.mps.mat, self.mps.connector],
-                                  [[-1, 1], [1, -2]])
+    new_center_matrix = misc_mps.ncon([self.mps.mat, self.mps.connector],
+                                      [[-1, 1], [1, -2]])
 
     self.mps.pos = sites
     self.mps.mat = centermatrix
     self.mps.position(0)
-    new_center_matrix = tn.ncon([new_center_matrix, self.mps.mat],
-                                  [[-1, 1], [1, -2]])
+    new_center_matrix = misc_mps.ncon([new_center_matrix, self.mps.mat],
+                                      [[-1, 1], [1, -2]])
     tensors = [self.mps[n] for n in range(sites, len(self.mps))
               ] + [self.mps[n] for n in range(sites)]
     self.mps._tensors = tensors
@@ -636,11 +637,12 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
           deltaEta=deltaEta)
 
       self.shift_unitcell(sites=len(self.mps) // 2)
+      energy = e - eold
       if verbose > 0:
         stdout.write(
             "\rSS-IDMRG  it=%i/%i, energy per unit-cell E/N=%.16f+%.16f" %
-            (self._idmrg_it, Nsweeps, np.real((e - eold) / len(self.mps)),
-             np.imag((e - eold) / len(self.mps))))
+            (self._idmrg_it, Nsweeps, np.real(
+                (energy) / len(self.mps)), np.imag((e - eold) / len(self.mps))))
         stdout.flush()
         if verbose > 1:
           print('')
@@ -649,3 +651,4 @@ class InfiniteDMRGEngine(DMRGUnitCellEngine):
       if self._idmrg_it > Nsweeps:
         converged = True
         break
+    return energy / len(self.mps)

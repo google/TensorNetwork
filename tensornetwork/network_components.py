@@ -17,12 +17,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union
+import typing
 import numpy as np
 from tensornetwork.backends import base_backend
 import weakref
 
 Tensor = Any
-
+# This is required because of the circular dependancy between
+# network_components.py and network.py types.
+TensorNetwork = Any
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -43,7 +46,7 @@ class Node:
 
   def __init__(
     self, tensor: Tensor, name: Text, axis_names: List[Text],
-    backend: base_backend.BaseBackend) -> None:
+    network: TensorNetwork) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -51,7 +54,7 @@ class Node:
         either a numpy array or a tensorflow tensor.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
-      backend: An Backend object.
+      network: The TensorNetwork this Node belongs to.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
@@ -59,7 +62,7 @@ class Node:
     """
     self._tensor = tensor
     self.name = name
-    self.backend = backend
+    self.network = network
     self.edges = [
         Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
@@ -130,7 +133,7 @@ class Node:
 
   @property
   def shape(self):
-    return self.backend.shape_tuple(self._tensor)
+    return self.network.backend.shape_tuple(self._tensor)
   
   @property
   def tensor(self) -> Tensor:
@@ -173,7 +176,8 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
+    self.tensor = self.network.backend.transpose(
+        self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -196,7 +200,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = self.backend.transpose(self.tensor, perm=perm)
+    self.tensor = self.network.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -215,7 +219,7 @@ class Node:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
           axis, self))
 
-  def get_dimension(self, axis: Union[Text, int]) -> int:
+  def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension on the given axis.
 
     Args:
@@ -230,7 +234,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return self.backend.shape(self.tensor)[axis_num]
+    return self.network.backend.shape_tuple(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -264,6 +268,12 @@ class Node:
       raise ValueError("Object {} is not a Node type.".format(other))
     return id(self) < id(other)
 
+  def __matmul__(self, other: "Node") -> "Node":
+    if not isinstance(other, Node):
+      raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
+    if other.network is not self.network:
+      raise ValueError("Cannot use '@' on nodes in different networks.")
+    return self.network.contract_between(self, other)
 
 class CopyNode(Node):
 
@@ -272,13 +282,13 @@ class CopyNode(Node):
                dimension: int,
                name: Text,
                axis_names: List[Text],
-               backend: base_backend.BaseBackend,
+               network: TensorNetwork,
                dtype: Type[np.number] = np.float64) -> None:
     # TODO: Make this computation lazy, once Node doesn't require tensor
     # at instatiation.
     copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
-    copy_tensor = backend.convert_to_tensor(copy_tensor)
-    super().__init__(copy_tensor, name, axis_names, backend)
+    copy_tensor = network.backend.convert_to_tensor(copy_tensor)
+    super().__init__(copy_tensor, name, axis_names, network)
 
   @staticmethod
   def make_copy_tensor(rank: int, dimension: int,
@@ -346,7 +356,7 @@ class CopyNode(Node):
     partners = self.get_partners()
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner in partners]
-    return self.backend.einsum(einsum_expression, *tensors)
+    return self.network.backend.einsum(einsum_expression, *tensors)
 
 
 class Edge:
