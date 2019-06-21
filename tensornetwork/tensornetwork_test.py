@@ -647,7 +647,6 @@ def test_add_subnetwork(backend):
   e2 = net2.connect(c[0], a[1])
   e3 = net2.connect(c[1], b[1])
   net2.check_correct()
-  assertEqual(net2.edge_order, [e1, e2, e3])
   for edge in [e1, e2, e3]:
     net2.contract(edge)
   result = net2.get_final_node()
@@ -1146,6 +1145,7 @@ def test_get_parallel_edge(backend):
   a = sorted(list(edges))[0]
   assert net.get_parallel_edges(a) == edges
 
+
 def test_at_operator(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2,)))
@@ -1155,6 +1155,7 @@ def test_at_operator(backend):
   assert isinstance(c, tensornetwork.Node)
   np.testing.assert_allclose(c.tensor, 2.0)
 
+
 def test_at_operator_out_of_network(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
   net2 = tensornetwork.TensorNetwork(backend=backend)
@@ -1162,3 +1163,16 @@ def test_at_operator_out_of_network(backend):
   b = net2.add_node(np.ones((2,)))
   with pytest.raises(ValueError):
     a = a @ b
+
+
+def test_edge_sorting(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  b = net.add_node(np.eye(2))
+  c = net.add_node(np.eye(2))
+  e1 = net.connect(a[0], b[1])
+  e2 = net.connect(b[0], c[1])
+  e3 = net.connect(c[0], a[1])
+  sorted_edges = sorted([e2, e3, e1])
+  assert sorted_edges == [e1, e2, e3]
+
