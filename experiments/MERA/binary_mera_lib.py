@@ -431,7 +431,6 @@ def right_ascending_super_operator(hamiltonian, isometry, unitary):
     op.reorder_edges(out_order)
     return op.get_tensor()
 
-
 @tf.contrib.eager.defun
 def left_descending_super_operator(reduced_density, isometry, unitary):
     """
@@ -486,18 +485,18 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
     edges[17] = net.connect(un_l_con[3], iso_c_con[0])
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(rho, left)
-    out = net.contract(e)
+    out = net.contract_between(rho, left)
+    #out = net.contract(e)
     del left, rho
 
     right = net.contract(edges[2])
-    e = net.flatten_edges_between(out, right)
-    out = net.contract(e)
+    out = net.contract_between(out, right)
+    #out = net.contract(e)
     del right
 
     upper = net.contract(edges[7])
-    e = net.flatten_edges_between(out, upper)
-    out = net.contract(e)
+    out = net.contract_between(out, upper)
+    #out = net.contract(e)
     del upper
 
     lower = net.contract(edges[10])
@@ -565,8 +564,8 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     edges[17] = net.connect(un_l_con[3], iso_c_con[0])
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(rho, left)
-    out = net.contract(e)
+    out = net.contract_between(rho, left)
+    #out = net.contract(e)
     del left, rho
 
     right = net.contract(edges[2])
@@ -874,6 +873,7 @@ def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
     out.reorder_edges(out_order)
     return out.get_tensor()
 
+
 @tf.contrib.eager.defun
 def get_env_disentangler(ham, rho, isometry, unitary):
     """
@@ -892,7 +892,6 @@ def get_env_disentangler(ham, rho, isometry, unitary):
     env_3 = get_env_disentangler_3(ham, rho, isometry, unitary)
     env_4 = get_env_disentangler_4(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4
-
 
 @tf.contrib.eager.defun
 def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
@@ -940,24 +939,20 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
     edges[20] = net.connect(iso_l_con[1], un_l_con[2])
 
     out = net.contract(edges[1])
-    e = net.flatten_edges_between(out, rho)
-    out = net.contract(e)
+    out = net.contract_between(out, rho)
     del rho
 
     lower = net.contract(edges[8])
-    e = net.flatten_edges_between(lower, out)
-    out = net.contract(e)
+    out = net.contract_between(lower, out)
     del lower
 
     upper = net.contract(edges[9])
-    e = net.flatten_edges_between(upper, out)
-    out = net.contract(e)
+    out = net.contract_between(upper, out)
     del upper
 
     op = net.contract_between(un_l, op)
     op = net.contract_between(op, un_l_con)
-    e = net.flatten_edges_between(op, out)
-    out = net.contract(e)
+    out = net.contract_between(op, out)
     del op
 
     out = net.contract_between(iso_l_con, out)
@@ -1014,26 +1009,21 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
     upper = net.contract(edges[8])
     op = net.contract_between(un_r, op)
     op = net.contract_between(op, un_r_con)
-    e = net.flatten_edges_between(op, upper)
-    op = net.contract(e)
+    op = net.contract_between(op, upper)
     del upper
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(op, lower)
-    op = net.contract(e)
+    op = net.contract_between(op, lower)
     del lower
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del rho
 
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, op)
     del op
 
-    e = net.flatten_edges_between(out, iso_l_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_l_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1085,17 +1075,14 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
     edges[20] = net.connect(op[5], un_r[0])
 
     out = net.contract(edges[1])
-    e = net.flatten_edges_between(out, rho)
-    out = net.contract(e)
+    out = net.contract_between(out, rho)
 
     left = net.contract(edges[2])
-    e = net.flatten_edges_between(out, left)
-    out = net.contract(e)
+    out = net.contract_between(out, left)
     del left
 
     lower = net.contract(edges[11])
-    e = net.flatten_edges_between(lower, out)
-    out = net.contract(e)
+    out = net.contract_between(lower, out)
     del lower
 
     out = net.contract_between(out, un_r)
@@ -1158,24 +1145,19 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(op, un_r_con)
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del left, rho
 
     right = net.contract(edges[16])
-    e = net.flatten_edges_between(right, out)
-    out = net.contract(e)
+    out = net.contract_between(right, out)
     del right
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
 
-    e = net.flatten_edges_between(out, un_l)
-    out = net.contract(e)
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, un_l)
+    out = net.contract_between(out, op)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1230,26 +1212,21 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(un_l, op)
     op = net.contract_between(op, un_l_con)
     upper = net.contract(edges[8])
-    e = net.flatten_edges_between(op, upper)
-    op = net.contract(e)
+    op = net.contract_between(op, upper)
     del upper
 
     lower = net.contract(edges[11])
-    e = net.flatten_edges_between(op, lower)
-    op = net.contract(e)
+    op = net.contract_between(op, lower)
     del lower
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    left = net.contract(e)
+    left = net.contract_between(left, rho)
     del rho
 
-    e = net.flatten_edges_between(left, op)
-    out = net.contract(e)
+    out = net.contract_between(left, op)
     del left, op
 
-    e = net.flatten_edges_between(out, iso_r_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_r_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
@@ -1305,29 +1282,25 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
     op = net.contract_between(op, un_r_con)
 
     left = net.contract(edges[1])
-    e = net.flatten_edges_between(left, rho)
-    out = net.contract(e)
+    out = net.contract_between(left, rho)
     del left, rho
 
     lower = net.contract(edges[9])
-    e = net.flatten_edges_between(out, lower)
-    out = net.contract(e)
+    out = net.contract_between(out, lower)
     del lower
 
     upper = net.contract(edges[8])
-    e = net.flatten_edges_between(out, upper)
-    out = net.contract(e)
+    out = net.contract_between(out, upper)
     del upper
 
-    e = net.flatten_edges_between(out, op)
-    out = net.contract(e)
+    out = net.contract_between(out, op)
     del op
 
-    e = net.flatten_edges_between(out, iso_r_con)
-    out = net.contract(e)
+    out = net.contract_between(out, iso_r_con)
 
     out.reorder_edges(out_order)
     return out.get_tensor()
+
 
 @tf.contrib.eager.defun
 def get_env_isometry(ham, rho, isometry, unitary):
@@ -1695,8 +1668,9 @@ def optimize_binary_mera(ham_0,
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
 
     Energies = []
-    run_times = {'env_u' : [], 'env1_u' : [],'env2_u' : [],'env3_u' : [],'env4_u' : [], 'env1_w' : [],'env2_w' : [],'env3_w' : [],'env4_w' : [],'env5_w' : [],'env6_w' : [],'env_w' : [],
-                 'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
+    # run_times = {'env_u' : [], 'env1_u' : [],'env2_u' : [],'env3_u' : [],'env4_u' : [], 'env1_w' : [],'env2_w' : [],'env3_w' : [],'env4_w' : [],'env5_w' : [],'env6_w' : [],'env_w' : [],
+    #              'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
+    run_times = {'env_u' : [], 'env_w' : [], 'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
 
     if rho_0 == 0:
         chi_max = wC[-1].get_shape()[2]
@@ -1709,15 +1683,17 @@ def optimize_binary_mera(ham_0,
         t1 = time.time()
         rho_0 = steady_state_density_matrix(nsteps_steady_state, rho_0, wC[-1],
                                             uC[-1])
+        dummy = rho_0[0]
         run_times['steady_state'].append(time.time() - t1)
 
         rho[-1] = rho_0
         t1 = time.time()        
         for p in range(len(rho) - 2, -1, -1):
             rho[p] = descending_super_operator(rho[p + 1], wC[p], uC[p])
+        dummy = rho[0][0]
         run_times['descend'].append(time.time() - t1)            
 
-        if verbose == 0:
+        if verbose == 1:
             if np.mod(k, 10) == 1:
                 Z = misc_mera.trace(rho[0])
                 net = tn.TensorNetwork()
@@ -1735,95 +1711,109 @@ def optimize_binary_mera(ham_0,
         run_times['ascend'].append(0)
         run_times['svd_env_u'].append(0)
         run_times['svd_env_w'].append(0)
-        run_times['env1_w'].append(0)
-        run_times['env2_w'].append(0)
-        run_times['env3_w'].append(0)
-        run_times['env4_w'].append(0)
-        run_times['env5_w'].append(0)
-        run_times['env6_w'].append(0)        
-        run_times['env1_u'].append(0)
-        run_times['env2_u'].append(0)
-        run_times['env3_u'].append(0)
-        run_times['env4_u'].append(0)
+        run_times['env_u'].append(0)        
+        run_times['env_w'].append(0)
+        # run_times['env1_w'].append(0)
+        # run_times['env2_w'].append(0)
+        # run_times['env3_w'].append(0)
+        # run_times['env4_w'].append(0)
+        # run_times['env5_w'].append(0)
+        # run_times['env6_w'].append(0)        
+        # run_times['env1_u'].append(0)
+        # run_times['env2_u'].append(0)
+        # run_times['env3_u'].append(0)
+        # run_times['env4_u'].append(0)
         
         for p in range(len(wC)):
             if (not opt_all_layers) and skip_layer[p]:
                 continue
             if k >= opt_u_after:
-                #t1 = time.time()
-                #uEnv = get_env_disentangler(ham[p], rho[p + 1], wC[p], uC[p])
-                #run_times['env_u'][-1] += (time.time() - t1)                                                
                 t1 = time.time()
-                uEnv_1 = get_env_disentangler_1(ham[p], rho[p + 1], wC[p], uC[p])
-                run_times['env1_u'][-1] += (time.time() - t1)
-                t1 = time.time()            
-                uEnv_2 = get_env_disentangler_2(ham[p], rho[p + 1], wC[p], uC[p])
-                run_times['env2_u'][-1] += (time.time() - t1)
-                t1 = time.time()            
-                uEnv_3 = get_env_disentangler_3(ham[p], rho[p + 1], wC[p], uC[p])
-                run_times['env3_u'][-1] += (time.time() - t1)
-                t1 = time.time()            
-                uEnv_4 = get_env_disentangler_4(ham[p], rho[p + 1], wC[p], uC[p])
-                run_times['env4_u'][-1] += (time.time() - t1)
-                uEnv = uEnv_1 + uEnv_2 + uEnv_3 + uEnv_4
+                uEnv = get_env_disentangler(ham[p], rho[p + 1], wC[p], uC[p])
+                dummy = uEnv[0]
+                run_times['env_u'][-1] += (time.time() - t1)
+                
+                # t1 = time.time()
+                # uEnv_1 = get_env_disentangler_1(ham[p], rho[p + 1], wC[p], uC[p])
+                # dummy = uEnv_1[0]                
+                # run_times['env1_u'][-1] += (time.time() - t1)
+                
+                # t1 = time.time()            
+                # uEnv_2 = get_env_disentangler_2(ham[p], rho[p + 1], wC[p], uC[p])
+                # dummy = uEnv_2[0]                                
+                # run_times['env2_u'][-1] += (time.time() - t1)
+                # t1 = time.time()            
+                # uEnv_3 = get_env_disentangler_3(ham[p], rho[p + 1], wC[p], uC[p])
+                # dummy = uEnv_3[0]                                                
+                # run_times['env3_u'][-1] += (time.time() - t1)
+                # t1 = time.time()
+                # uEnv_4 = get_env_disentangler_4(ham[p], rho[p + 1], wC[p], uC[p])
+                # dummy = uEnv_4[0]
+                # run_times['env4_u'][-1] += (time.time() - t1)
+                # uEnv = uEnv_1 + uEnv_2 + uEnv_3 + uEnv_4
                 if opt_u:
                     t1 = time.time()                                            
                     if numpy_update:
                         uC[p] = misc_mera.u_update_svd_numpy(uEnv)
                     else:
                         uC[p] = misc_mera.u_update_svd(uEnv)
+                    dummy = uC[p][0]                        
                     run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
 
+            # t1 = time.time()
+            # wEnv_1 = get_env_isometry_1(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env1_w'][-1] += (time.time() - t1)
+            # t1 = time.time()            
+            # wEnv_2 = get_env_isometry_2(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env2_w'][-1] += (time.time() - t1)
+            # t1 = time.time()            
+            # wEnv_3 = get_env_isometry_3(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env3_w'][-1] += (time.time() - t1)
+            # t1 = time.time()            
+            # wEnv_4 = get_env_isometry_4(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env4_w'][-1] += (time.time() - t1)
+            # t1 = time.time()            
+            # wEnv_5 = get_env_isometry_5(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env5_w'][-1] += (time.time() - t1)
+            # t1 = time.time()            
+            # wEnv_6 = get_env_isometry_6(ham[p], rho[p + 1], wC[p], uC[p])
+            # run_times['env6_w'][-1] += (time.time() - t1)
+            # wEnv = wEnv_1 + wEnv_2 + wEnv_3 + wEnv_4 + wEnv_5 + wEnv_6
+            
             t1 = time.time()
-            wEnv_1 = get_env_isometry_1(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env1_w'][-1] += (time.time() - t1)
-            t1 = time.time()            
-            wEnv_2 = get_env_isometry_2(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env2_w'][-1] += (time.time() - t1)
-            t1 = time.time()            
-            wEnv_3 = get_env_isometry_3(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env3_w'][-1] += (time.time() - t1)
-            t1 = time.time()            
-            wEnv_4 = get_env_isometry_4(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env4_w'][-1] += (time.time() - t1)
-            t1 = time.time()            
-            wEnv_5 = get_env_isometry_5(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env5_w'][-1] += (time.time() - t1)
-            t1 = time.time()            
-            wEnv_6 = get_env_isometry_6(ham[p], rho[p + 1], wC[p], uC[p])
-            run_times['env6_w'][-1] += (time.time() - t1)
-            wEnv = wEnv_1 + wEnv_2 + wEnv_3 + wEnv_4 + wEnv_5 + wEnv_6
-            #t1 = time.time()
-            #wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])                        
-            #run_times['env_w'][-1] += (time.time() - t1)                                            
+            wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])
+            dummy = wEnv[0]
+            run_times['env_w'][-1] += (time.time() - t1)
+            
             if opt_w:
                 t1 = time.time()                
                 if numpy_update:
                     wC[p] = misc_mera.w_update_svd_numpy(wEnv)
                 else:
                     wC[p] = misc_mera.w_update_svd(wEnv)
+                dummy = wC[p][0]
                 run_times['svd_env_w'][-1] += (time.time() - t1)                    
 
             t1 = time.time()                
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
+            dummy = ham[p + 1][0]            
             run_times['ascend'][-1] += (time.time() - t1)
 
             
-        run_times['env_u'].append(run_times['env1_u'][-1] + \
-            run_times['env2_u'][-1] + \
-            run_times['env4_u'][-1] + \
-            run_times['env1_u'][-1])
-        run_times['env_w'].append(run_times['env1_w'][-1] + \
-                                  run_times['env2_w'][-1] + \
-                                  run_times['env3_w'][-1] + \
-                                  run_times['env4_w'][-1] + \
-                                  run_times['env5_w'][-1] + \
-                                  run_times['env6_w'][-1])
-
+        # run_times['env_u'].append(run_times['env1_u'][-1] + \
+        #     run_times['env2_u'][-1] + \
+        #     run_times['env4_u'][-1] + \
+        #     run_times['env1_u'][-1])
+        # run_times['env_w'].append(run_times['env1_w'][-1] + \
+        #                           run_times['env2_w'][-1] + \
+        #                           run_times['env3_w'][-1] + \
+        #                           run_times['env4_w'][-1] + \
+        #                           run_times['env5_w'][-1] + \
+        #                           run_times['env6_w'][-1])
         run_times['total'].append(time.time() - t_init)
-        if verbose == 1:
-            print('time per iteration: ', run_times['total'][-1])
         if verbose == 2:
+            print('time per iteration: ', run_times['total'][-1])
+        if verbose == 3:
             print('runtimes')
             for k, i in run_times.items():
                 print(k, i)
