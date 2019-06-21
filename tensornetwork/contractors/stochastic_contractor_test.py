@@ -21,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 from tensornetwork import network
 from tensornetwork.contractors import stochastic_contractor
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 
 
 class StochasticTest(tf.test.TestCase):

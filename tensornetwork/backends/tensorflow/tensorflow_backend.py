@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
+from tensornetwork.backends.tensorflow import decompositions
 
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -32,11 +33,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
       import tensorflow
     except ImportError:
       raise AssertionError("tensorflow is not installed.")
-    from tensornetwork.backends.tensorflow import decompositions
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
     self.tf = tensorflow
-    self.decompositions = decompositions
     self.name = "tensorflow"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
@@ -54,8 +53,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(
-        tensor, split_axis, max_singular_values, max_truncation_error)
+    return decompositions.svd_decomposition(
+        self.tf, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
@@ -79,7 +78,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.convert_to_tensor(tensor)
 
   def trace(self, tensor: Tensor) -> Tensor:
-    return self.tf.trace(tensor)
+    return self.tf.linalg.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.tensordot2.tensordot(tensor1, tensor2, 0)

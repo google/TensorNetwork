@@ -37,7 +37,7 @@ import tensorflow as tf
 from tensornetwork.backends.tensorflow import tensordot2
 import pytest
 
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 _MAXDIM = 5
 
 
@@ -82,9 +82,9 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         tensordot2.tensordot(a, b, [[0], [7]])
 
       # Invalid dynamic axes.
-      a_ph = tf.placeholder(tf.float32)
-      b_ph = tf.placeholder(tf.float32)
-      axes_ph = tf.placeholder(tf.int32)
+      a_ph = tf.compat.v1.placeholder(tf.float32)
+      b_ph = tf.compat.v1.placeholder(tf.float32)
+      axes_ph = tf.compat.v1.placeholder(tf.int32)
       output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
       # Note: We don't support scalar Tensor values for axes.
       for axes_value in 1, [1], [0, 1], [[1]], [[0, 1]], [[0], [7]]:
@@ -116,8 +116,8 @@ class TensordotTest(tf.compat.v1.test.TestCase):
     # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       for axes in ([1], [0]), 1:
-        a = tf.placeholder(tf.float32)
-        b = tf.placeholder(tf.float32)
+        a = tf.compat.v1.placeholder(tf.float32)
+        b = tf.compat.v1.placeholder(tf.float32)
         output = tensordot2.tensordot(a, b, axes)
         self.assertEqual(output.get_shape().ndims, None)
         a.set_shape([None, 2])
@@ -128,8 +128,8 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         output_shape = output_shape.as_list()
         self.assertEqual(output_shape[0], None)
         self.assertEqual(output_shape[1], 3)
-        a = tf.placeholder(tf.float32)
-        b = tf.placeholder(tf.float32)
+        a = tf.compat.v1.placeholder(tf.float32)
+        b = tf.compat.v1.placeholder(tf.float32)
         a.set_shape([2, 2])
         b.set_shape([2, None])
         output = tensordot2.tensordot(a, b, axes)

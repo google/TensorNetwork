@@ -25,7 +25,7 @@ class DecompositionsTest(tf.test.TestCase):
 
   def test_expected_shapes(self):
     val = tf.zeros((2, 3, 4, 5))
-    u, s, vh, _ = decompositions.svd_decomposition(val, 2)
+    u, s, vh, _ = decompositions.svd_decomposition(tf, val, 2)
     self.assertEqual(u.shape, (2, 3, 6))
     self.assertEqual(s.shape, (6,))
     self.assertAllClose(s, np.zeros(6))
@@ -37,7 +37,7 @@ class DecompositionsTest(tf.test.TestCase):
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, trun = decompositions.svd_decomposition(
-        val, 1, max_singular_values=7)
+        tf, val, 1, max_singular_values=7)
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
@@ -50,7 +50,7 @@ class DecompositionsTest(tf.test.TestCase):
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, trun = decompositions.svd_decomposition(
-        val, 1, max_truncation_error=math.sqrt(5.1))
+        tf, val, 1, max_truncation_error=math.sqrt(5.1))
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
