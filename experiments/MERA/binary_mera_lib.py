@@ -1683,14 +1683,16 @@ def optimize_binary_mera(ham_0,
         t1 = time.time()
         rho_0 = steady_state_density_matrix(nsteps_steady_state, rho_0, wC[-1],
                                             uC[-1])
-        dummy = rho_0[0]
+        dummy = rho_0[0,0,0,0,0,0] + 1
+        print(dummy)
         run_times['steady_state'].append(time.time() - t1)
 
         rho[-1] = rho_0
         t1 = time.time()        
         for p in range(len(rho) - 2, -1, -1):
             rho[p] = descending_super_operator(rho[p + 1], wC[p], uC[p])
-        dummy = rho[0][0]
+        dummy = rho[0][0,0,0,0,0,0] + 1
+        print(dummy)
         run_times['descend'].append(time.time() - t1)            
 
         if verbose == 1:
@@ -1730,7 +1732,8 @@ def optimize_binary_mera(ham_0,
             if k >= opt_u_after:
                 t1 = time.time()
                 uEnv = get_env_disentangler(ham[p], rho[p + 1], wC[p], uC[p])
-                dummy = uEnv[0]
+                dummy = uEnv[0,0,0,0] + 1
+                print(dummy)
                 run_times['env_u'][-1] += (time.time() - t1)
                 
                 # t1 = time.time()
@@ -1757,7 +1760,8 @@ def optimize_binary_mera(ham_0,
                         uC[p] = misc_mera.u_update_svd_numpy(uEnv)
                     else:
                         uC[p] = misc_mera.u_update_svd(uEnv)
-                    dummy = uC[p][0]                        
+                    dummy = uC[p][0,0,0,0] + 1
+                    print(dummy)
                     run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
 
             # t1 = time.time()
@@ -1782,7 +1786,8 @@ def optimize_binary_mera(ham_0,
             
             t1 = time.time()
             wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])
-            dummy = wEnv[0]
+            dummy = wEnv[0,0,0] + 1
+            print(dummy)            
             run_times['env_w'][-1] += (time.time() - t1)
             
             if opt_w:
@@ -1791,12 +1796,14 @@ def optimize_binary_mera(ham_0,
                     wC[p] = misc_mera.w_update_svd_numpy(wEnv)
                 else:
                     wC[p] = misc_mera.w_update_svd(wEnv)
-                dummy = wC[p][0]
+                dummy = wC[p][0,0,0] + 1
+                print(dummy)            
                 run_times['svd_env_w'][-1] += (time.time() - t1)                    
 
             t1 = time.time()                
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
-            dummy = ham[p + 1][0]            
+            dummy = ham[p + 1][0,0,0,0,0,0] + 1
+            print(dummy)            
             run_times['ascend'][-1] += (time.time() - t1)
 
             

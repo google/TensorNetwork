@@ -506,13 +506,13 @@ if __name__ == "__main__":
             },
             
             'optimize_naive': {
-                'chis': [4],
+                'chis': [4, 6, 8, 10, 12, 14, 16],
                 'dtype': tf.float64,
                 'opt_u': True,
                 'opt_w': True,
                 'numpy_update': True,
                 'nsteps_steady_state': 10,
-                'numiter': 100
+                'numiter': 20
             },
             'optimize_1': {
                 'chis': [4, 6, 8],
@@ -525,7 +525,7 @@ if __name__ == "__main__":
         }
         date = datetime.date
         today = str(date.today())
-        use_gpu = False  #use True when running on GPU
+        use_gpu = True  #use True when running on GPU
         #list available devices
         DEVICES = tf.contrib.eager.list_devices()
         print("Available devices:")
