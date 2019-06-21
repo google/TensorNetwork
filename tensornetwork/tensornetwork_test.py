@@ -20,7 +20,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 
 
 # TODO(chaseriley): Remove these and inline the asserts

@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 import tensornetwork
 
 
@@ -31,17 +31,17 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
       b = net.add_node(tf.ones(10))
       e = net.connect(a[0], b[0])
       final_tensor = net.contract(e).get_tensor()
-      opt = tf.train.GradientDescentOptimizer(0.001)
+      opt = tf.compat.v1.train.GradientDescentOptimizer(0.001)
       train_op = opt.minimize(final_tensor)
       sess = tf.compat.v1.Session()
-      sess.run(tf.global_variables_initializer())
+      sess.run(tf.compat.v1.global_variables_initializer())
       self.assertAllClose(sess.run(final_tensor), 10.0)
       sess.run(train_op)
       self.assertLess(sess.run(final_tensor), 10.0)
 
   def test_dynamic_network_sizes(self):
 
-    @tf.contrib.eager.defun
+    @tf.function
     def f(x, n):
       x_slice = x[:n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -56,7 +56,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_contract_between(self):
 
-    @tf.contrib.eager.defun
+    @tf.function
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -73,7 +73,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_flatten_standard(self):
 
-    @tf.contrib.eager.defun
+    @tf.function
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -90,7 +90,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_flatten_trace(self):
 
-    @tf.contrib.eager.defun
+    @tf.function
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
