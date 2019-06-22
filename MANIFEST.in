@@ -1,1 +1,3 @@
 include requirements.txt
+recursive-exclude examples *
+recursive-exclude experiments *
