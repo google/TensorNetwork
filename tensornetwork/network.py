@@ -845,6 +845,22 @@ class TensorNetwork:
     U * sqrt(S) and the right node's tensor will be sqrt(S) * (V*) where V* is
     the adjoint of V.
 
+    The singular value decomposition is truncated if `max_singular_values` or
+    `max_truncation_err`.
+
+    The truncation error is the norm of the vector of truncated singular
+    values. If only `max_truncation_err` is set, as many singular values will
+    be truncated as possible while maintaining:
+    `norm(truncated_singular_values) <= max_truncation_err`.
+
+    If only `max_singular_values` is set, the number of singular values kept
+    will be `min(max_singular_values, number_of_singular_values)`, so that
+    `max(0, number_of_singular_values - max_singular_values)` are truncated.
+
+    If both `max_truncation_err` and `max_singular_values` are set,
+    `max_singular_values` takes priority: The truncation error may be larger
+    than `max_truncation_err` if required to satisfy `max_singular_values`.
+
     Args:
       node: The node you want to split.
       left_edges: The edges you want connected to the new left node.
@@ -898,6 +914,22 @@ class TensorNetwork:
     The left most node will be U tensor of the SVD, the middle node is
     the diagonal matrix of the singular values, ordered largest to smallest,
     and the right most node will be the V* tensor of the SVD.
+
+    The singular value decomposition is truncated if `max_singular_values` or
+    `max_truncation_err`.
+
+    The truncation error is the norm of the vector of truncated singular
+    values. If only `max_truncation_err` is set, as many singular values will
+    be truncated as possible while maintaining:
+    `norm(truncated_singular_values) <= max_truncation_err`.
+
+    If only `max_singular_values` is set, the number of singular values kept
+    will be `min(max_singular_values, number_of_singular_values)`, so that
+    `max(0, number_of_singular_values - max_singular_values)` are truncated.
+
+    If both `max_truncation_err` and `max_singular_values` are set,
+    `max_singular_values` takes priority: The truncation error may be larger
+    than `max_truncation_err` if required to satisfy `max_singular_values`.
 
     Args:
       node: The node you want to split.
