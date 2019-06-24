@@ -846,9 +846,9 @@ class TensorNetwork:
     the adjoint of V.
 
     The singular value decomposition is truncated if `max_singular_values` or
-    `max_truncation_err`.
+    `max_truncation_err` is not `None`.
 
-    The truncation error is the norm of the vector of truncated singular
+    The truncation error is the 2-norm of the vector of truncated singular
     values. If only `max_truncation_err` is set, as many singular values will
     be truncated as possible while maintaining:
     `norm(truncated_singular_values) <= max_truncation_err`.
@@ -916,9 +916,9 @@ class TensorNetwork:
     and the right most node will be the V* tensor of the SVD.
 
     The singular value decomposition is truncated if `max_singular_values` or
-    `max_truncation_err`.
+    `max_truncation_err` is not `None`.
 
-    The truncation error is the norm of the vector of truncated singular
+    The truncation error is the 2-norm of the vector of truncated singular
     values. If only `max_truncation_err` is set, as many singular values will
     be truncated as possible while maintaining:
     `norm(truncated_singular_values) <= max_truncation_err`.
