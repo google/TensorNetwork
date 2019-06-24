@@ -54,6 +54,12 @@ def ncon(tensors: Sequence[Tensor],
     ncon([A], [(1, 1)]) # 5.0
     ```
 
+    Note: The reason `0` is not allowed as an edge label without manually
+    specifying the contraction order is to maintain compatibility with the
+    [original NCON implementation](https://arxiv.org/abs/1402.0939). However,
+    the use of `0` in `con_order` to denote outer products is not (currently) 
+    supported in this implementation.
+
     Args:
       tensors: List of `Tensor`s.
       network_structure: List of lists specifying the tensor network
