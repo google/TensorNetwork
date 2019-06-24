@@ -16,13 +16,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, List, Optional, Text, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union
+import typing
 import numpy as np
 from tensornetwork.backends import base_backend
 import weakref
 
 Tensor = Any
-
+# This is required because of the circular dependancy between
+# network_components.py and network.py types.
+TensorNetwork = Any
 
 class Node:
   """Node for the TensorNetwork graph.
@@ -41,8 +44,9 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
-               backend: base_backend.BaseBackend) -> None:
+  def __init__(
+    self, tensor: Tensor, name: Text, axis_names: List[Text],
+    network: TensorNetwork) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -50,14 +54,15 @@ class Node:
         either a numpy array or a tensorflow tensor.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
+      network: The TensorNetwork this Node belongs to.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.tensor = tensor
+    self._tensor = tensor
     self.name = name
-    self.backend = backend
+    self.network = network
     self.edges = [
         Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
@@ -65,10 +70,19 @@ class Node:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
+    self.signature = -1
 
   def get_rank(self) -> int:
     """Return rank of tensor represented by self."""
     return len(self.tensor.shape)
+
+  def set_signature(self, signature: int) -> None:
+    """Set the signature for the node.
+
+    Signatures are numbers that uniquely identify a node inside of a
+    TensorNetwork.
+    """
+    self.signature = signature
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
@@ -117,6 +131,18 @@ class Node:
   def set_tensor(self, tensor):
     self.tensor = tensor
 
+  @property
+  def shape(self):
+    return self.network.backend.shape_tuple(self._tensor)
+  
+  @property
+  def tensor(self) -> Tensor:
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, tensor: Tensor) -> Tensor:
+    self._tensor = tensor
+
   def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
     """Reorder the edges for this given Node.
 
@@ -150,7 +176,8 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = self.backend.transpose(self.tensor, perm=permutation)
+    self.tensor = self.network.backend.transpose(
+        self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -173,7 +200,7 @@ class Node:
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
-    self.tensor = self.backend.transpose(self.tensor, perm=perm)
+    self.tensor = self.network.backend.transpose(self.tensor, perm=perm)
     tmp_edges = []
     for i, position in enumerate(perm):
       edge = self.edges[position]
@@ -192,7 +219,7 @@ class Node:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
           axis, self))
 
-  def get_dimension(self, axis: Union[Text, int]) -> int:
+  def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension on the given axis.
 
     Args:
@@ -207,7 +234,7 @@ class Node:
     axis_num = self.get_axis_number(axis)
     if axis_num < 0 or axis_num >= len(self.tensor.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return self.backend.shape(self.tensor)[axis_num]
+    return self.network.backend.shape_tuple(self.tensor)[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -236,24 +263,35 @@ class Node:
   def __str__(self) -> Text:
     return self.name
 
+  def __lt__(self, other):
+    if not isinstance(other, Node):
+      raise ValueError("Object {} is not a Node type.".format(other))
+    return id(self) < id(other)
+
+  def __matmul__(self, other: "Node") -> "Node":
+    if not isinstance(other, Node):
+      raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
+    if other.network is not self.network:
+      raise ValueError("Cannot use '@' on nodes in different networks.")
+    return self.network.contract_between(self, other)
 
 class CopyNode(Node):
+
   def __init__(self,
                rank: int,
                dimension: int,
                name: Text,
                axis_names: List[Text],
-               backend: base_backend.BaseBackend,
+               network: TensorNetwork,
                dtype: Type[np.number] = np.float64) -> None:
     # TODO: Make this computation lazy, once Node doesn't require tensor
     # at instatiation.
     copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
-    copy_tensor = backend.convert_to_tensor(copy_tensor)
-    super().__init__(copy_tensor, name, axis_names, backend)
+    copy_tensor = network.backend.convert_to_tensor(copy_tensor)
+    super().__init__(copy_tensor, name, axis_names, network)
 
   @staticmethod
-  def make_copy_tensor(rank: int,
-                       dimension: int,
+  def make_copy_tensor(rank: int, dimension: int,
                        dtype: Type[np.number]) -> Tensor:
     shape = (dimension,) * rank
     copy_tensor = np.zeros(shape, dtype=dtype)
@@ -266,29 +304,32 @@ class CopyNode(Node):
 
   def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
     if edge.node1 is self:
-        return edge.node2, edge.axis2
+      assert edge.axis2 is not None
+      return edge.node2, edge.axis2
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
-  def _get_partners(self) -> List[Tuple[Node, int]]:
-    partners = []
+  def get_partners(self) -> Dict[Node, Set[int]]:
+    partners = {}  # type: Dict[Node, Set[int]]
     for edge in self.edges:
-      if edge.is_dangling() or self._is_my_trace(edge):
+      if edge.is_dangling():
+        raise ValueError('Cannot contract copy tensor with dangling edges')
+      if self._is_my_trace(edge):
         continue
       partner_node, shared_axis = self._get_partner(edge)
-      partners.append((partner_node, shared_axis))
+      if partner_node not in partners:
+        partners[partner_node] = set()
+      partners[partner_node].add(shared_axis)
     return partners
 
   _VALID_SUBSCRIPTS = list(
-          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 
-  def _make_einsum_input_term(self,
-                              node: Node,
-                              shared_axis: int,
+  def _make_einsum_input_term(self, node: Node, shared_axes: Set[int],
                               next_index: int) -> Tuple[str, int]:
     indices = []
     for axis in range(node.get_rank()):
-      if axis == shared_axis:
+      if axis in shared_axes:
         indices.append(0)
       else:
         indices.append(next_index)
@@ -299,12 +340,12 @@ class CopyNode(Node):
   def _make_einsum_output_term(self, next_index: int) -> str:
     return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
-  def _make_einsum_expression(self, partners: List[Tuple[Node, int]]) -> str:
+  def _make_einsum_expression(self, partners: Dict[Node, Set[int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
     einsum_input_terms = []
-    for partner_node, shared_axis in partners:
+    for partner_node, shared_axes in partners.items():
       einsum_input_term, next_index = self._make_einsum_input_term(
-              partner_node, shared_axis, next_index)
+          partner_node, shared_axes, next_index)
       einsum_input_terms.append(einsum_input_term)
     einsum_output_term = self._make_einsum_output_term(next_index)
     einsum_expression = ",".join(einsum_input_terms) + "->" + einsum_output_term
@@ -312,10 +353,10 @@ class CopyNode(Node):
 
   def compute_contracted_tensor(self) -> Tensor:
     """Compute tensor corresponding to contraction of self with neighbors."""
-    partners = self._get_partners()
+    partners = self.get_partners()
     einsum_expression = self._make_einsum_expression(partners)
-    tensors = [partner.get_tensor() for partner, _ in partners]
-    return self.backend.einsum(einsum_expression, *tensors)
+    tensors = [partner.get_tensor() for partner in partners]
+    return self.network.backend.einsum(einsum_expression, *tensors)
 
 
 class Edge:
@@ -376,6 +417,13 @@ class Edge:
     self.node2 = node2
     self.axis2 = axis2
     self._is_dangling = node2 is None
+    self.signature = -1
+
+  def set_signature(self, signature: int) -> None:
+    if self.is_dangling():
+      raise ValueError(
+        "Do not set a signature for dangling edge '{}'.".format(self))
+    self.signature = signature
 
   def get_nodes(self) -> List[Optional[Node]]:
     """Get the nodes of the edge."""
@@ -433,9 +481,16 @@ class Edge:
     if node is None:
       self._is_dangling = True
 
+  @property
+  def dimension(self):
+    return self.node1.shape[self.axis1]
+
   def is_dangling(self) -> bool:
     """Whether this edge is a dangling edge."""
     return self._is_dangling
+
+  def is_trace(self) -> bool:
+    return self.node1 is self.node2
 
   def is_being_used(self):
     """Whether the nodes this edge points to also use this edge.
@@ -452,8 +507,13 @@ class Edge:
       result = result and self is self.node2[self.axis2]
     return result
 
-  def set_name(self, name):
+  def set_name(self, name: Text) -> None:
     self.name = name
+
+  def __lt__(self, other):
+    if not isinstance(other, Edge):
+      raise TypeError("Cannot compare 'Edge' with type {}".format(type(Edge)))
+    return self.signature < other.signature
 
   def __str__(self) -> Text:
     return self.name

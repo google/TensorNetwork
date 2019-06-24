@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for tensornetwork.contractors.stochastic_contractor."""
 
 from __future__ import absolute_import
@@ -22,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 from tensornetwork import network
 from tensornetwork.contractors import stochastic_contractor
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 
 
 class StochasticTest(tf.test.TestCase):
@@ -66,7 +65,9 @@ class StochasticTest(tf.test.TestCase):
     net = network.TensorNetwork(backend="tensorflow")
     a = net.add_node(np.ones([4, 5, 2]))
     b = net.add_node(np.ones([3, 2, 3, 5]))
-    c = net.add_node(np.ones([4,]))
+    c = net.add_node(np.ones([
+        4,
+    ]))
     net.connect(a[2], b[1])
     net.connect(b[0], b[2])
     net.connect(a[1], b[3])
@@ -92,6 +93,7 @@ class StochasticTest(tf.test.TestCase):
     node1, node2 = edge1.node1, edge2.node1
     self.assertAllClose(node1.get_tensor(), 6 * np.ones([4, 5]))
     self.assertAllClose(node2.get_tensor(), 4 * np.ones([3, 3]))
+
 
 if __name__ == '__main__':
   tf.test.main()

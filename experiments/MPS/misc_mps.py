@@ -16,37 +16,27 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import sys
-sys.path.append('../')
-from sys import stdout
 import numpy as np
 import tensorflow as tf
-import ncon as ncon_tn
+from tensornetwork import ncon as ncon_tn
 import copy
 import functools as fct
 import tensornetwork as tn
 from scipy.sparse.linalg import LinearOperator, lgmres, eigs
-ncon_python = ncon_tn.ncon
-ncon_compiled = tf.contrib.eager.defun(ncon_tn.ncon)
+ncon_defuned = tf.contrib.eager.defun(ncon_tn)
 
 
-def transfer_op_python(As, Bs, direction, x):
+def transfer_op(As, Bs, direction, x):
   """
     (mixed) transfer operator for a list of mps tensors
 
-    Parameters:
-    ----------------------
-    As,Bs:        list of tf.Tensor
-                  the mps tensors (Bs are on the conjugated side)
-    direction:    int or str 
-                  can be (1,'l','left') or (-1,'r','right) for left or right 
-                  operation
-    x:            tf.Tensor 
-                  input matrix
+    Args:
+        As,Bs (list of tf.Tensor):     the mps tensors (Bs are on the conjugated side)
+        direction (int or str):        can be (1,'l','left') or (-1,'r','right) for left or right 
+                                       transfer operation
+        x (tf.Tensor):                 input matrix
     Returns:
-    ----------------------
-    tf.Tensor:  the evolved matrix
-
+        tf.Tensor:  the evolved matrix
     """
 
   if direction in ('l', 'left', 1):
@@ -61,30 +51,26 @@ def transfer_op_python(As, Bs, direction, x):
   return x
 
 
-transfer_op_compiled = tf.contrib.eager.defun(transfer_op_python)
+transfer_op_defuned = tf.contrib.eager.defun(transfer_op)
 
 
-def add_layer_python(B, mps_tensor, mpo, conj_mps_tensor, direction):
+def add_layer(B, mps_tensor, mpo, conj_mps_tensor, direction):
   """
     adds an mps-mpo-mps layer to a left or right block "E"; used in dmrg to calculate the left and right
     environments
-    Parameters:
-    ---------------------------
-    B:               Tensor object  
-                     a tensor of shape (D1,D1',M1) (for direction>0) or (D2,D2',M2) (for direction>0)
-    mps_tensor:      Tensor object of shape =(Dl,Dr,d)
-    mpo_tensor:      Tensor object of shape = (Ml,Mr,d,d')
-    conj_mps_tensor: Tensor object of shape =(Dl',Dr',d')
-                     the mps tensor on the conjugated side
-                     this tensor will be complex conjugated inside the routine; usually, the user will like to pass 
-                     the unconjugated tensor
-    direction:       int or str
-                     direction in (1,'l','left'): add a layer to the right of ```B```
-                     direction in (-1,'r','right'): add a layer to the left of ```B```
-    Return:
-    -----------------
-    Tensor of shape (Dr,Dr',Mr) for direction in (1,'l','left')
-    Tensor of shape (Dl,Dl',Ml) for direction in (-1,'r','right')
+    Args
+        B (tf.Tensor):               a tensor of shape (D1,D1',M1) (for direction>0) or (D2,D2',M2) (for direction>0)
+        mps_tensor (tf.Tensor):      tensor of shape =(Dl,Dr,d)
+        mpo_tensor (tf.Tensor):      tensor of shape = (Ml,Mr,d,d')
+        conj_mps_tensor (tf.Tensor): tensor of shape =(Dl',Dr',d')
+                                     the mps tensor on the conjugated side
+                                     this tensor is complex-conjugated inside the routine; usually, the user will like to pass 
+                                     the unconjugated tensor
+        direction (int or str):      direction in (1,'l','left'): add a layer to the right of `B`
+                                     direction in (-1,'r','right'): add a layer to the left of `B`
+    Returns:
+        tf.Tensor of shape (Dr,Dr',Mr) for direction in (1,'l','left')
+        tf.Tensor of shape (Dl,Dl',Ml) for direction in (-1,'r','right')
     """
   if direction in ('l', 'left', 1):
     return ncon(
@@ -97,30 +83,25 @@ def add_layer_python(B, mps_tensor, mpo, conj_mps_tensor, direction):
         [[1, 4, 3], [-1, 2, 1], [-3, 3, 5, 2], [-2, 5, 4]])
 
 
-add_layer_compiled = tf.contrib.eager.defun(add_layer_python)
+add_layer_defuned = tf.contrib.eager.defun(add_layer)
 
 
 def one_minus_pseudo_unitcell_transfer_op(direction, mps, left_dominant,
                                           right_dominant, vector):
   """
     calculates action of 11-Transfer-Operator +|r)(l|
-    Parameters:
-    ---------------------------
-    direction:  int or str 
-                if (1,'l','left'): do left multiplication
-                if (-1,'r','right'): do right multiplication
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    left_dominant:  tf.tensor of shape (mps.D[0],mps.D[0])
-                    left dominant eigenvector of the unit-cell transfer operator of mps
-    right_dominant: tf.tensor of shape (mps.D[-1],mps.D[-1])
-                    right dominant eigenvector of the unit-cell transfer operator of mps
-    vector:         tf.tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
-                    the input vector
-    Returns
-    ---------------------------
-    np.ndarray of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
-
+    Args:
+        direction (int or str):          if (1,'l','left'): do left multiplication
+                                         if (-1,'r','right'): do right multiplication
+        mps (InfiniteMPSCentralGauge):   an infinite mps
+        left_dominant (tf.Tensor):       tensor of shape (mps.D[0],mps.D[0])
+                                         left dominant eigenvector of the unit-cell transfer operator of mps
+        right_dominant (tf.Tensor):      tensor of shape (mps.D[-1],mps.D[-1])
+                                         right dominant eigenvector of the unit-cell transfer operator of mps
+        vector (tf.Tensor):              tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
+                                         the input vector
+    Returns:
+        tf.Tensor of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
     """
 
   if direction in (1, 'l', 'left'):
@@ -146,6 +127,23 @@ def LGMRES_solver(mps,
                   precision=1e-10,
                   nmax=2000,
                   **kwargs):
+  """
+    see Appendix of arXiv:1801.02219 for details of this
+    This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+    and back to tf.Tensor for each application of the sparse matrix vector product.
+    This is not optimal and will be improved in a future version
+    Args:
+        mps (InfiniteMPSCentralGauge):   an infinite mps
+        direction (int or str):          if (1,'l','left'): do left multiplication
+                                         if (-1,'r','right'): do right multiplication
+        left_dominant (tf.Tensor):       tensor of shape (mps.D[0],mps.D[0])
+                                         left dominant eigenvector of the unit-cell transfer operator of mps
+        right_dominant (tf.Tensor):      tensor of shape (mps.D[-1],mps.D[-1])
+                                         right dominant eigenvector of the unit-cell transfer operator of mps
+        inhom (tf.Tensor):               vector of shape (mps.D[0]*mps.D[0]) or (mps.D[-1]*mps.D[-1])
+    Returns:
+        tf.Tensor
+    """
   #mps.D[0] has to be mps.D[-1], so no distincion between direction='l' or direction='r' has to be made here
   if not tf.equal(mps.D[0], mps.D[-1]):
     raise ValueError(
@@ -155,10 +153,9 @@ def LGMRES_solver(mps,
   mv = fct.partial(one_minus_pseudo_unitcell_transfer_op,
                    *[direction, mps, left_dominant, right_dominant])
 
-  LOP = LinearOperator(
-      (int(mps.D[0])**2, int(mps.D[-1])**2),
-      matvec=mv,
-      dtype=mps.dtype.as_numpy_dtype)
+  LOP = LinearOperator((int(mps.D[0])**2, int(mps.D[-1])**2),
+                       matvec=mv,
+                       dtype=mps.dtype.as_numpy_dtype)
   out, info = lgmres(
       A=LOP, b=inhom_numpy, x0=x0_numpy, tol=precision, maxiter=nmax, **kwargs)
 
@@ -174,30 +171,26 @@ def compute_steady_state_Hamiltonian_GMRES(direction,
                                            nmax=1000):
   """
     calculates the left or right Hamiltonain environment of an infinite MPS-MPO-MPS network
-    Parameters:
-    ---------------------------
-    direction:  int or str 
-                if (1,'l','left'): obtain left environment
-                if (-1,'r','right'): obtain right environment
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    mpo:        MPO object
-    left_dominant:  tf.tensor of shape (mps.D[0],mps.D[0])
-                    left dominant eigenvvector of the unit-cell transfer operator of mps
-    right_dominant: tf.tensor of shape (mps.D[-1],mps.D[-1])
-                    right dominant eigenvvector of the unit-cell transfer operator of mps
-    precision: float
-               deisred precision of the environments
-    nmax:      int
-               maximum iteration numner
+    This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+    and back to tf.Tensor for each application of the sparse matrix vector product.
+    This is not optimal and will be improved in a future version
 
+    Args:
+        direction (int or str):        if (1,'l','left'): obtain left environment
+                                       if (-1,'r','right'): obtain right environment
+        mps (InfiniteMPSCentralGauge): an infinite mps
+        mpo (InfiniteMPO):             the mpo
+        left_dominant (tf.tensor):     tensor of shape (mps.D[0],mps.D[0])
+                                       left dominant eigenvvector of the unit-cell transfer operator of mps
+        right_dominant (tf.Tensor):    tensor of shape (mps.D[-1],mps.D[-1])
+                                       right dominant eigenvvector of the unit-cell transfer operator of mps
+        precision (float):             desired precision of the environments
+        nmax (int):                    maximum iteration numner
     Returns
-    ---------------------------
-    (H,h)
-    H:    tf.tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
-          Hamiltonian environment
-    h:    tf.tensor of shape (1)
-          average energy per unitcell 
+        H (tf.Tensor):   tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
+                         Hamiltonian environment
+        h (tf.Tensor):   tensor of shape (1)
+                         average energy per unitcell 
     """
 
   dummy1 = mpo.get_boundary_vector('l')
@@ -274,38 +267,31 @@ def compute_Hamiltonian_environments(mps,
                                      numeig=6,
                                      pinv=1E-30):
   """
-    calculates the Hamiltonain environments of an infinite MPS-MPO-MPS network
-    Parameters:
-    ---------------------------
-    mps:        InfiniteMPSCentralGauge object
-                an infinite mps
-    mpo:        MPO object
-    precision: float
-               deisred precision of the environments
-    precision_canonize: float
-                        deisred precision for mps canonization
-    nmax:      int
-               maximum iteration numner
-    nmax_canonize:      int
-                        maximum iteration number in TMeigs during canonization
-    ncv:       int
-               number of krylov vectors in TMeigs during canonization
-    numeig:    int
-               number of eigenvectors targeted by sparse soler in TMeigs during canonization
-    pinv:      float 
-               pseudo inverse threshold during canonization
+    calculates the Hamiltonian environments of an infinite MPS-MPO-MPS network
+    This routine uses scipy's sparse.lgmres module. tf.Tensors are mapped to numpy 
+    and back to tf.Tensor for each application of the sparse matrix vector product.
+    This is not optimal and will be improved in a future version
+
+    Args:
+        mps (InfiniteMPSCentralGauge):    an infinite mps
+        mpo (InfiniteMPO):                an infinite mpo
+        precision (float):                desired precision of the environments
+        precision_canonize (float):       desired precision for mps canonization
+        nmax (int):                       maximum iteration numner
+        nmax_canonize (int):              maximum iteration number in TMeigs during canonization
+        ncv (int):                        number of krylov vectors in TMeigs during canonization
+        numeig (int):                     number of eigenvectors targeted by sparse soler in TMeigs during canonization
+        pinv (float):                     pseudo inverse threshold during canonization
 
     Returns:
-    --------------------
-    (lb,rb,hl,hr)
-    lb:      tf.tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
-             left Hamiltonian environment, including coupling of unit-cell to the left environment
-    rb:      tf.tensor of shape (mps.D[-1],mps.D[-1],mpo.D[-1])
-             right Hamiltonian environment, including coupling of unit-cell to the right environment
-    hl:     tf.tensor of shape(1)
-            average energy per left unitcell 
-    hr:     tf.tensor of shape(1)
-            average energy per right unitcell 
+        lb (tf.Tensor):  tensor of shape (mps.D[0],mps.D[0],mpo.D[0])
+                         left Hamiltonian environment, including coupling of unit-cell to the left environment
+        rb (tf.Tensor):  tensor of shape (mps.D[-1],mps.D[-1],mpo.D[-1])
+                         right Hamiltonian environment, including coupling of unit-cell to the right environment
+        hl (tf.Tensor):  tensor of shape(1)
+                         average energy per left unitcell 
+        hr (tf.Tensor):  tensor of shape(1)
+                         average energy per right unitcell 
     NOTE:  hl and hr do not have to be identical
     """
 
@@ -345,46 +331,37 @@ def compute_Hamiltonian_environments(mps,
 def HA_product(L, mpo, R, mps):
   """
     the local matrix vector product of the DMRG optimization
-    Parameters:
-    --------------------
-    L:    tf.Tensor
-          left environment of the local sites
-    mpo:  tf.Tensor
-          local mpo tensor
-    R:    tf.Tensor
-          right environment of the local sites
-    mps: tf.Tensor
-         local mps tensor
+    Args:
+        L (tf.Tensor):    left environment of the local sites
+        mpo (tf.Tensor):  local mpo tensor
+        R (tf.Tensor):    right environment of the local sites
+        mps (tf.Tensor):  local mps tensor
     Returns:
-    ------------------
-    tf.Tensor:   result of the local contraction
-    
+        tf.Tensor:   result of the local contraction
     """
   return ncon([L, mps, mpo, R],
               [[1, -1, 2], [1, 3, 4], [2, 5, -2, 3], [4, -3, 5]])
 
 
-def prepare_tensor_QR_python(tensor, direction):
+def prepare_tensor_QR(tensor, direction):
   """
     prepares an mps tensor using svd decomposition 
-    Parameters:
-    ---------------------
-    tensor: tf.Tensors of shape(D1,D2,d)
-            an mps tensor
-    direction: int
-               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
-
+    Args
+        tensor (tf.Tensors): tensor of shape(D1,D2,d)
+                             an mps tensor
+    direction (int):         if `int` > 0 returns left orthogonal decomposition, 
+                             if `int` < 0 returns right orthogonal decomposition
     Returns:
-    ----------------------------
-    direction>0:     out,s,v
-                     out: a left isometric tf.Tensor of dimension (D1,D,d)
-                     s  : the singular values of length D
-                     v  : a right isometric tf.Tensor of dimension (D,D2)
-    direction<0:     u,s,out
-                     u  : a left isometric tf.Tensor of dimension (D1,D)
-                     s  : the singular values of length D
-                     out: a right isometric tf.Tensor of dimension (D,D2,d)
-
+        if direction>0:     
+        (out,s,v)
+         out (tf.Tensor): a left isometric tf.Tensor of dimension (D1,D,d)
+         s (tf.Tensor):   the singular values of length D
+         v (tf.Tensor):   a right isometric tf.Tensor of dimension (D,D2)
+        if direction<0:     
+        (u,s,out)
+        u (tf.Tensor):    a left isometric tf.Tensor of dimension (D1,D)
+        s (tf.Tensor):    the singular values of length D
+        out (tf.Tensor):  a right isometric tf.Tensor of dimension (D,D2,d)
     """
   l1, d, l2 = tf.unstack(tf.shape(tensor))
   if direction in ('l', 'left', 1):
@@ -407,29 +384,28 @@ def prepare_tensor_QR_python(tensor, direction):
     return tf.transpose(tf.conj(r)), out, Z
 
 
-prepare_tensor_QR_compiled = tf.contrib.eager.defun(prepare_tensor_QR_python)
+prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR)
 
 
-def prepare_tensor_SVD_python(tensor, direction):
+def prepare_tensor_SVD(tensor, direction):
   """
     prepares an mps tensor using svd decomposition 
-    Parameters:
-    ---------------------
-    tensor: tf.Tensors of shape(D1,D2,d)
-            an mps tensor
-    direction: int
-               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
+    Args:
+        tensor (tf.Tensors):  tensor of shape(D1,D2,d)
+                              an mps tensor
+        direction (int):      if `int` > 0: returns left orthogonal decomposition, 
+                              if `int` < 0: returns right orthogonal decomposition
 
     Returns:
-    ----------------------------
-    direction>0: out,s,v
-                 out: a left isometric tf.Tensor of dimension (D1,D,d)
-                 s  : the singular values of length D
-                 v  : a right isometric tf.Tensor of dimension (D,D2)
-    direction<0: u,s,out
-                 u  : a left isometric tf.Tensor of dimension (D1,D)
-                 s  : the singular values of length D
-                 out: a right isometric tf.Tensor of dimension (D,D2,d)
+        if direction>0: (out,s,v) with
+        out (tf.Tensor): a left isometric tf.Tensor of dimension (D1,D,d)
+        s (tf.Tensor):   the singular values of length D
+        v (tf.Tensor):   a right isometric tf.Tensor of dimension (D,D2)
+
+        if direction<0: (u,s,out) with
+        u (tf.Tensor):   a left isometric tf.Tensor of dimension (D1,D)
+        s (tf.Tensor):   the singular values of length D
+        out (tf.Tensor): a right isometric tf.Tensor of dimension (D,D2,d)
     """
   l1, d, l2 = tf.unstack(tf.shape(tensor))
 
@@ -452,21 +428,22 @@ def prepare_tensor_SVD_python(tensor, direction):
     return u, s, out, Z
 
 
-prepare_tensor_SVD_compiled = tf.contrib.eager.defun(prepare_tensor_SVD_python)
+prepare_tensor_SVD_defuned = tf.contrib.eager.defun(prepare_tensor_SVD)
 
 
-def apply_2site_schmidt_canonical_python(op,
-                                         L0,
-                                         G1,
-                                         L1,
-                                         G2,
-                                         L2,
-                                         max_bond_dim=None,
-                                         auto_trunc_max_err=0.0):
-  """Applies a two-site local operator to an MPS.
-    Takes Lambda and Gamma tensors (Schmidt canonical form)
-    and returns new ones, as well as the new norm of the state.
-    """
+def apply_2site_schmidt_canonical(op,
+                                  L0,
+                                  G1,
+                                  L1,
+                                  G2,
+                                  L2,
+                                  max_bond_dim=None,
+                                  auto_trunc_max_err=0.0):
+  """
+  Applies a two-site local operator to an MPS.
+  Takes Lambda and Gamma tensors (Schmidt canonical form)
+  and returns new ones, as well as the new norm of the state.
+  """
   if tf.executing_eagerly():
     # FIXME: Not ideal, but these ops are very costly at compile time
     op_shp = tf.shape(op)
@@ -537,15 +514,11 @@ def apply_2site_schmidt_canonical_python(op,
   return G1_new, L1_new, G2_new, nrm, trunc_err
 
 
-apply_2site_schmidt_canonical_compiled = tf.contrib.eager.defun(
-    apply_2site_schmidt_canonical_python)
+apply_2site_schmidt_canonical_defuned = tf.contrib.eager.defun(
+    apply_2site_schmidt_canonical)
 
 
-def apply_2site_generic_python(op,
-                               A1,
-                               A2,
-                               max_bond_dim=None,
-                               auto_trunc_max_err=0.0):
+def apply_2site_generic(op, A1, A2, max_bond_dim=None, auto_trunc_max_err=0.0):
   """Applies a two-site local operator to an MPS.
     Takes two MPS site tensors and returns new ones, with a center matrix.
     """
@@ -587,8 +560,7 @@ def apply_2site_generic_python(op,
   return nA1_new.tensor, nC.tensor, nA2_new.tensor, trunc_err
 
 
-apply_2site_generic_compiled = tf.contrib.eager.defun(
-    apply_2site_generic_python)
+apply_2site_generic_defuned = tf.contrib.eager.defun(apply_2site_generic)
 
 
 @tf.contrib.eager.defun
@@ -600,34 +572,20 @@ def TMeigs_power_method(tensors,
   """
     calculate the left and right dominant eigenvector of the MPS-unit-cell transfer operator
     using the power method
-
-    Parameters:
-    ------------------------------
-    tensors:       list of tf.Tensor
-                   mps tensors
-    direction:     int or str
-
-                   if direction in (1,'l','left')   return the left dominant EV
-                   if direction in (-1,'r','right') return the right dominant EV
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    nmax:          int
-                   max number of iterations
-
+    Args:
+        tensors (list of tf.Tensor): mps tensors
+        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                if direction in (-1,'r','right') return the right dominant EV
+        init (tf.Tensor):       initial guess for the eigenvector
+        precision (float):      desired precision of the dominant eigenvalue
+        nmax (int):             max number of iterations      
     Returns:
-    ------------------------------
-    (eta,x,nit,diff):
-    eta:  tf.Tensor
-          the eigenvalue
-    x:    tf.Tensor
-          the dominant eigenvector (in matrix form)
-    nit:  tf.Tensor
-          number of iterations
-    diff: tf.Tensor 
-          final precision
+        eta (tf.Tensor):        the eigenvalue
+        x (tf.Tensor):          the dominant eigenvector (in matrix form)
+        nit (tf.Tensor):        number of iterations
+        diff (tf.Tensor):       final precision
     """
+
   As = [t for t in tensors]  #won't compile without this
   if not np.all(As[0].dtype == t.dtype for t in As):
     raise TypeError('TMeigs_power_method: all As have to have the same dtype')
@@ -653,7 +611,10 @@ def TMeigs_power_method(tensors,
     return tf.less(tf.cast(precision, dtype.real_dtype), diff)
 
   def cond(n, eta, state, diff):
-    return tf.cond(tf.less(0, n),lambda: tf.cond(tf.less(n, nmax),lambda: stopping_criterion(n, eta, state, diff),lambda: False),lambda: True)
+    return tf.cond(
+        tf.less(0, n), lambda: tf.cond(
+            tf.less(n, nmax), lambda: stopping_criterion(n, eta, state, diff),
+            lambda: False), lambda: True)
 
   n_final, eta, state_final, diff = tf.while_loop(
       cond, do_step,
@@ -670,41 +631,28 @@ def TMeigs(tensors,
            numeig=1,
            which='LR'):
   """
-    calculate the left and right dominant eigenvector of the MPS-unit-cell transfer operator;
-
-    # FIXME: This will only work in eager mode.
-
-    Parameters:
-    ------------------------------
-    tensors:       list of tf.Tensor
-                   mps tensors
-    direction:     int or str
-
-                   if direction in (1,'l','left')   return the left dominant EV
-                   if direction in (-1,'r','right') return the right dominant EV
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    ncv:           int
-                   number of Krylov vectors
-    nmax:          int
-                   max number of iterations
-    numeig:        int
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    which:         str
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
-                   can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
-
+    calculate the left or right dominant eigenvector of the MPS-unit-cell transfer operator using sparse 
+    method.
+    Notes: - Currently  only works in eager mode.
+           - the implementation uses scipy's sparse module (eigs). tf.Tensor are mapped to numpy arrays and back
+             to tf.Tensor for each call to matrix-vector product. This is not optimal and will be fixed at some alter stage
+    Args:
+        tensors (list of tf.Tensor): mps tensors
+        direction (int or str): if direction in (1,'l','left')   return the left dominant EV
+                                if direction in (-1,'r','right') return the right dominant EV
+        init (tf.Tensor):       initial guess for the eigenvector
+        precision (float):      desired precision of the dominant eigenvalue
+        ncv(int):               number of Krylov vectors
+        nmax (int):             max number of iterations
+        numeig (int):           hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                                to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        which (str):            hyperparameter, passed to scipy.sparse.linalg.eigs; which eigen-vector to target
+                                can be ('LM','LA,'SA','LR'), refer to scipy.sparse.linalg.eigs documentation for details
     Returns:
-    ------------------------------
-    (eta,x):
-    eta: float
-         the eigenvalue
-    x:   tf.tensor
-         the dominant eigenvector (in matrix form)
+        eta (tf.Tensor):        the eigenvalue
+        x (tf.Tensor):          the dominant eigenvector (in matrix form)
     """
+  #FIXME: add a tensorflow native eigs
 
   if not np.all(tensors[0].dtype == t.dtype for t in tensors):
     raise TypeError('TMeigs: all tensors have to have the same dtype')
@@ -723,8 +671,9 @@ def TMeigs(tensors,
     out = transfer_op(tensors, tensors, direction, x).numpy()
     return out.reshape(out.shape[0] * out.shape[1])
 
-  LOP = LinearOperator(
-      (Dl * Dl, Dr * Dr), matvec=mv, dtype=dtype.as_numpy_dtype)
+  LOP = LinearOperator((Dl * Dl, Dr * Dr),
+                       matvec=mv,
+                       dtype=dtype.as_numpy_dtype)
   if numeig >= LOP.shape[0] - 1:
     warnings.warn(
         'TMeigs: numeig+1 ({0}) > dimension of transfer operator ({1}) changing value to numeig={2}'
@@ -771,19 +720,17 @@ def initialize_mps_tensors_numpy(initializer_function,
                                  maxval=0.1):
   """
     return a list of numpy tensors initialized with `initializer_function`
+  
+    Args:
+        initializer_function (callable):      an initializer function
+                                             this function will be called as 
+                                             `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
+        D (list of int):                      bond dimensions of the MPS
+        d (list of int):                      physical dimensions of the MPS
+        dtype (tf dtype):                     dtype of the tensors
+    Returns:
+        list of np.ndarray:  the mps tensors
 
-    Parameters:
-    ----------------------------
-    initializer_function:      callable
-                               an initializer function
-                               this function will be called as 
-                               `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
-    D:                         list of int
-                               bond dimensions of the MPS
-    d:                         list of int 
-                               physical dimensions of the MPS
-    dtype:                     tf-dtype
-                               dtype of the tensors
     """
   N = len(d)
   Ds = [1]
@@ -806,29 +753,27 @@ def initialize_mps_tensors_numpy(initializer_function,
   elif np.issubdtype(dtype, np.complexfloating):
     return [
         initializer_function([Ds[n], d[n], Ds[n + 1]]).astype(dtype) *
-        (maxval - minval) + minval +
-        1.0j * initializer_function([Ds[n], d[n], Ds[n + 1]]).astype(dtype) *
-        (maxval - minval) + minval for n in range(len(d))
+        (maxval - minval) + minval + 1.0j * initializer_function(
+            [Ds[n], d[n], Ds[n + 1]]).astype(dtype) * (maxval - minval) + minval
+        for n in range(len(d))
     ]
 
 
 def initialize_mps_tensors(initializer_function, D, d, dtype, *args, **kwargs):
   """
-    return a list of mps tensors initialized with `initializer_function`
-
-    Parameters:
-    ----------------------------
-    initializer_function:      callable
-                               an initializer function
-                               this function will be called as 
-                               `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
-    D:                         list of int
-                               bond dimensions of the MPS
-    d:                         list of int 
-                               physical dimensions of the MPS
-    dtype:                     tf-dtype
-                               dtype of the tensors
-    *args,**kwargs:            additional arguments and key-word arguments to `initializer_function`
+    return a list of numpy tensors initialized with `initializer_function`
+    
+      Args:
+          initializer_function (callable):      an initializer function
+                                               this function will be called as 
+                                               `initializer_function(shape=[D[n-1], d[n], D[n], dtyper=dtype, *args, **kwargs])`
+          D (list of int):                      bond dimensions of the MPS
+          d (list of int):                      physical dimensions of the MPS
+          dtype (tf dtype):                     dtype of the tensors
+          *args, **kwargs:                      parameters passed to `initializer_function`
+      Returns:
+          list of tf.Tensor:  the mps tensors
+    
     """
   if np.issubdtype(dtype.as_numpy_dtype, np.floating):
     return [
@@ -862,33 +807,20 @@ def restore_helper(tensors,
                    numeig=1,
                    pinv=1E-30):
   """
-    Helper function for putting InfiniteMPSCentralGauge into central form
-
-
-    Parameters:
-    ------------------------------
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    ncv:           int
-                   number of Krylov vectors
-    nmax:          int
-                   max number of iterations
-    numeig:        int
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    pinv:          float
-                   pseudoinverse cutoff
-
+    Helper function for putting InfiniteMPSCentralGauge into central form using TMeigs
+    Args:
+        init (tf.tensor):     initial guess for the eigenvector
+        precision (float):    desired precision of the dominant eigenvalue
+        ncv (int):            number of Krylov vectors
+        nmax (int):           max number of iterations
+        numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                              to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        pinv (float):         pseudoinverse cutoff
     Returns:
-    ----------------------------------
-    (As,mat,connector,right_mat)
-
-    As:         list of tf.Tensors
-    mat:        tf.Tensor 
-    connector:  tf.Tensor 
-    right_mat:  tf.Tensor 
+        As (list of tf.Tensors):  the mps matrices
+        mat (tf.Tensor):          center matrix
+        connector (tf.Tensor):    connector matrix
+        right_mat (tf.Tensor):    right boundary matrix
     """
   As = copy.copy(tensors)  #[t for t in tensors] #won't compile without this
 
@@ -981,28 +913,20 @@ def restore_helper_power_method(tensors,
                                 nmax=100000,
                                 pinv=1E-30):
   """
-    Helper function for putting InfiniteMPSCentralGauge into central form using
-    the power method
-
-    Parameters:
-    ------------------------------
-    init:          tf.tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    nmax:          int
-                   max number of iterations
-    pinv:          float
-                   pseudoinverse cutoff
-
+    Helper function for putting InfiniteMPSCentralGauge into central form using TMeigs_power_method
+    Args:
+        init (tf.tensor):     initial guess for the eigenvector
+        precision (float):    desired precision of the dominant eigenvalue
+        ncv (int):            number of Krylov vectors
+        nmax (int):           max number of iterations
+        numeig (int):         hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                              to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+        pinv (float):         pseudoinverse cutoff
     Returns:
-    ----------------------------------
-    (As,mat,connector,right_mat)
-
-    As:         list of tf.Tensors
-    mat:        tf.Tensor 
-    connector:  tf.Tensor 
-    right_mat:  tf.Tensor 
+        As (list of tf.Tensors):  the mps matrices
+        mat (tf.Tensor):          center matrix
+        connector (tf.Tensor):    connector matrix
+        right_mat (tf.Tensor):    right boundary matrix
     """
 
   As = copy.copy(tensors)  #[t for t in tensors] #won't compile without this
@@ -1049,7 +973,10 @@ def restore_helper_power_method(tensors,
     return tf.less(tf.cast(precision, dtype.real_dtype), diff)
 
   def cond(n, eta, state, diff):
-    return tf.cond(tf.less(0,n),lambda: tf.cond(tf.less(n,nmax),lambda: stopping_criterion(n,eta,state,diff),lambda:False),lambda:True)
+    return tf.cond(
+        tf.less(0, n), lambda: tf.cond(
+            tf.less(n, nmax), lambda: stopping_criterion(n, eta, state, diff),
+            lambda: False), lambda: True)
 
   _, eta, l, _ = tf.while_loop(
       cond, do_step_left,
@@ -1120,19 +1047,18 @@ def restore_helper_power_method(tensors,
 def compile_ncon(on=True):
   global ncon
   if on:
-    ncon = ncon_compiled
+    ncon = ncon_defuned
   else:
-    ncon = ncon_python
+    ncon = ncon_tn
 
 
 def compile_contractions(on=True):
   global transfer_op, add_layer
   if on:
-    transfer_op = transfer_op_compiled
-    add_layer = add_layer_compiled
+    transfer_op = transfer_op_defuned
+    add_layer = add_layer_defuned
   else:
-    transfer_op = transfer_op_python
-    add_layer = add_layer_python
+    pass
 
 
 def compile_decomps(on=True):
@@ -1141,18 +1067,15 @@ def compile_decomps(on=True):
   global apply_2site_generic
   global apply_2site_schmidt_canonical
   if on:
-    prepare_tensor_QR = prepare_tensor_QR_compiled
-    prepare_tensor_SVD = prepare_tensor_SVD_compiled
-    apply_2site_generic = apply_2site_generic_compiled
-    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_compiled
+    prepare_tensor_QR = prepare_tensor_QR_defuned
+    prepare_tensor_SVD = prepare_tensor_SVD_defuned
+    apply_2site_generic = apply_2site_generic_defuned
+    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_defuned
   else:
-    prepare_tensor_QR = prepare_tensor_QR_python
-    prepare_tensor_SVD = prepare_tensor_SVD_python
-    apply_2site_generic = apply_2site_generic_python
-    apply_2site_schmidt_canonical = apply_2site_schmidt_canonical_python
+    pass
 
 
-# Default to uncompiled
+# Default to defuned
 compile_ncon(True)
 compile_contractions(True)
 compile_decomps(True)
