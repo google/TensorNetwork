@@ -90,7 +90,7 @@ def mps_from_dense(psi, max_bond_dim=None, auto_trunc_max_err=0.0):
     # prep for SVD by folding the previous singular values back into psiR
     Lm1 = tf.diag(s_prev)
     psiR = misc_mps.ncon([Lm1, psiR],
-                         [(-1, 0), (0, *range(-2, -sites_remaining - 1, -1))])
+                         [(-1, 1), (1, *range(-2, -sites_remaining - 1, -1))])
 
     U, s, psiR, s_rest = tnt.svd_tensor(
         psiR, [0, 1],
@@ -100,7 +100,7 @@ def mps_from_dense(psi, max_bond_dim=None, auto_trunc_max_err=0.0):
 
     # turn U into a Gamma using the previous inverse singular values
     Lm1_i = tf.diag(tf.reciprocal(s_prev))
-    G = misc_mps.ncon([Lm1_i, U], [(-1, 0), (0, -2, -3)])
+    G = misc_mps.ncon([Lm1_i, U], [(-1, 1), (1, -2, -3)])
 
     Gs.append(G)
     Ls.append(tf.diag(s))
@@ -382,9 +382,9 @@ class AbstractMPSUnitCell:
       r = right_envs[sites[n]]
       l = left_envs[sites[n]]
       A = self.get_tensor(sites[n])
-      expval = misc_mps.ncon([l, A, op, r, tf.conj(A)], [(1, 3), (1, 0, 2),
-                                                         (4, 0), (2, 5),
-                                                         (3, 4, 5)])
+      expval = misc_mps.ncon([l, A, op, r, tf.conj(A)], [(2, 4), (2, 1, 3),
+                                                         (5, 1), (3, 6),
+                                                         (4, 5, 6)])
       res.append(expval)
 
     return tf.convert_to_tensor(res)
@@ -467,8 +467,8 @@ class AbstractMPSUnitCell:
       rs = self.get_envs_right(right_sites_mod)
 
       A = self.get_tensor(site1)
-      l = misc_mps.ncon([ls[site1], A, op1, tf.conj(A)], [(0, 1), (0, 2, -1), (3, 2),
-                                                    (1, 3, -2)])
+      l = misc_mps.ncon([ls[site1], A, op1, tf.conj(A)], [(1, 2), (1, 3, -1), (4, 3),
+                                                    (2, 4, -2)])
 
       n2 = np.max(right_sites)
       for n in range(site1 + 1, n2 + 1):
@@ -583,7 +583,7 @@ class AbstractFiniteMPS(AbstractMPSUnitCell):
                           con_order=['ri'])
       psi = tf.reshape(psi, (D[0], physdim, D[j + 1]))
 
-    psi = misc_mps.ncon([psi], [(0, -1, 0)])
+    psi = misc_mps.ncon([psi], [(1, -1, 1)])
     psi = tf.reshape(psi, self.d)
 
     return psi
@@ -1259,7 +1259,7 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
         """
     return tf.sqrt(
         misc_mps.ncon(
-            [self.centermatrix, tf.conj(self.centermatrix)], [[0, 1], [0, 1]]))
+            [self.centermatrix, tf.conj(self.centermatrix)], [[1, 2], [1, 2]]))
 
   def normalize(self):
     """
