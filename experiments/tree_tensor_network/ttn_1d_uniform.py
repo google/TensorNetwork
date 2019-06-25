@@ -55,14 +55,18 @@ def _ascend_partial(op, iso):
     For 012 (021) index ordering, this is equivalent to ascending from the
     physical right (left).
     Cost: D^4."""
-  return tensornetwork.ncon([iso, op], [(-1, -2, 0), (-3, 0)])
+  return tensornetwork.ncon([iso, op], [(-1, -2, 1), (-3, 1)])
 
 
 def _complete_partial_ascend(iso_op, iso):
   """Complete a partial operator ascension performed by `_ascend_partial()`.
     This contracts with the conjugated isometry.
     Cost: D^4."""
+<<<<<<< HEAD
   return tensornetwork.ncon([conj(iso), iso_op], [(-1, 0, 1), (-2, 0, 1)])
+=======
+  return tensornetwork.ncon([tf.conj(iso), iso_op], [(-1, 1, 2), (-2, 1, 2)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
 
 
 def _ascend_op_2site_to_1site_partial(mpo_2site, iso_012, iso_021):
@@ -73,8 +77,8 @@ def _ascend_op_2site_to_1site_partial(mpo_2site, iso_012, iso_021):
   terms = []
   for m in range(M):
     # permute result to 012 order: M mild transposes
-    iso_op_mpo_L_012 = tensornetwork.ncon([iso_021, op2L[m]], [(-1, -3, 0),
-                                                               (-2, 0)])
+    iso_op_mpo_L_012 = tensornetwork.ncon([iso_021, op2L[m]], [(-1, -3, 1),
+                                                               (-2, 1)])
 
     terms.append(_ascend_partial(op2R[m], iso_op_mpo_L_012))
   iso_op_2site_012 = sum(terms)
@@ -143,8 +147,8 @@ def ascend_op_2site_to_1site(mpo_2site, iso_012, iso_021):
 def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
 
   def _ascend(op, iso, iso_conj):
-    return tensornetwork.ncon([iso_conj, op, iso], [(-1, 2, 0), (0, 1),
-                                                    (-2, 2, 1)])
+    return tensornetwork.ncon([iso_conj, op, iso], [(-1, 3, 1), (1, 2),
+                                                    (-2, 3, 2)])
 
   op2L, op2R = mpo_2site
   dtype = iso_012.dtype
@@ -203,9 +207,15 @@ def ascend_uniform_MPO_to_top(mpo_tensor_dense, isos_012):
     # NOTE: There is no attempt to be economical with transpose here!
     mpo_tensor_dense = tensornetwork.ncon(
         [isos_012[l],
+<<<<<<< HEAD
          conj(isos_012[l]), mpo_tensor_dense, mpo_tensor_dense],
         [(-4, 2, 0), (-3, 3, 4), (1, -2, 4, 0), (-1, 1, 3, 2)])
   op = tensornetwork.ncon([mpo_tensor_dense], [(0, 0, -1, -2)])
+=======
+         tf.conj(isos_012[l]), mpo_tensor_dense, mpo_tensor_dense],
+        [(-4, 3, 1), (-3, 4, 5), (2, -2, 5, 1), (-1, 2, 4, 3)])
+  op = tensornetwork.ncon([mpo_tensor_dense], [(1, 1, -1, -2)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
   return op
 
 
@@ -215,8 +225,13 @@ def descend_state_1site_R(state_1site, iso_012):  #χ^4
     if `iso` has 021 ordering, this is a descent to the left.
     """
   return tensornetwork.ncon(
+<<<<<<< HEAD
       [iso_012, state_1site, conj(iso_012)], [(1, 2, -1), (1, 0),
                                                  (0, 2, -2)])
+=======
+      [iso_012, state_1site, tf.conj(iso_012)], [(2, 3, -1), (2, 1),
+                                                 (1, 3, -2)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
 
 
 def descend_state_1site_L(state_1site, iso_021):  #χ^4
@@ -288,15 +303,25 @@ def _mpo_with_state(iso_012, iso_021, h_mpo_2site, state_1site):
 
   envL = [
       tensornetwork.ncon(
+<<<<<<< HEAD
           [state_1site, iso_021, h, conj(iso_012)],
           [(0, 2), (0, -1, 1), (3, 1), (2, 3, -2)])  # one transpose required
+=======
+          [state_1site, iso_021, h, tf.conj(iso_012)],
+          [(1, 3), (1, -1, 2), (4, 2), (3, 4, -2)])  # one transpose required
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
       for h in h2L
   ]
 
   envR = [
       tensornetwork.ncon(
+<<<<<<< HEAD
           [state_1site, iso_012, h, conj(iso_021)],
           [(0, 2), (0, -1, 1), (3, 1), (2, 3, -2)])  # one transpose required
+=======
+          [state_1site, iso_012, h, tf.conj(iso_021)],
+          [(1, 3), (1, -1, 2), (4, 2), (3, 4, -2)])  # one transpose required
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
       for h in h2R
   ]
 
@@ -331,10 +356,10 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
   # hamiltonian with isometry opposite the gap
   h2L, h2R = h_mpo_2site
   iso_h2R_012 = [
-      tensornetwork.ncon([iso_021, h], [(-1, -3, 0), (-2, 0)]) for h in h2R
+      tensornetwork.ncon([iso_021, h], [(-1, -3, 1), (-2, 1)]) for h in h2R
   ]  # transpose to 012
   iso_h2L_012 = [
-      tensornetwork.ncon([iso_012, h], [(-1, -2, 0), (-3, 0)]) for h in h2L
+      tensornetwork.ncon([iso_012, h], [(-1, -2, 1), (-3, 1)]) for h in h2L
   ]
 
   def _compute_env(lvl, reflect=False):
@@ -363,11 +388,11 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
 
     # contract with the hamiltonian + isometry opposite the gap
     envL = sum(
-        tensornetwork.ncon([eL, ihR], [(0, -1), (0, -2, -3)])
+        tensornetwork.ncon([eL, ihR], [(1, -1), (1, -2, -3)])
         for eL, ihR in zip(envL, iso_h2_R))
 
     envR = sum(
-        tensornetwork.ncon([eR, ihL], [(0, -1), (0, -2, -3)])
+        tensornetwork.ncon([eR, ihL], [(1, -1), (1, -2, -3)])
         for eR, ihL in zip(envR, iso_h2_L))
 
     # weight each term according to the number of occurrences
@@ -398,8 +423,13 @@ def opt_energy_env_1site(iso_012, h_op_1site, h_mpo_2site, state_1site):
   iso_021 = transpose(iso_012, (0, 2, 1))
   terms_012, terms_021 = _ascend_op_to_1site_partial(h_op_1site, h_mpo_2site,
                                                      iso_012, iso_021)
+<<<<<<< HEAD
   terms = terms_012 + transpose(terms_021, (0, 2, 1))
   env = tensornetwork.ncon([state_1site, terms], [(0, -1), (0, -2, -3)])
+=======
+  terms = terms_012 + tf.transpose(terms_021, (0, 2, 1))
+  env = tensornetwork.ncon([state_1site, terms], [(1, -1), (1, -2, -3)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
   return env
 
 
@@ -421,7 +451,11 @@ def opt_energy_env(isos_012,
   if envsq_dtype is not None:
     env = cast(env, envsq_dtype)
 
+<<<<<<< HEAD
   env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 0, 1), (-2, 0, 1)])
+=======
+  env_sq = tensornetwork.ncon([env, tf.conj(env)], [(-1, 1, 2), (-2, 1, 2)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
   return env, env_sq
 
 
@@ -464,19 +498,24 @@ def _energy_expval_env(isos_012, h_op_1site, h_mpo_2site, states_1site_above):
     # NOTE: There are *two* environments for each Ham. term spanning two
     #       isometries. To get the correct energy we must divide env2 by 2.
   nsites = 2**(len(isos_012) - 1)
+<<<<<<< HEAD
   return tensornetwork.ncon([conj(isos_012[0]), env], [(0, 1, 2),
                                                           (0, 1, 2)]) * nsites
+=======
+  return tensornetwork.ncon([tf.conj(isos_012[0]), env], [(1, 2, 3),
+                                                          (1, 2, 3)]) * nsites
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
 
 
 def _iso_from_svd(u, vh):
-  return tensornetwork.ncon([u, vh], [(-1, 0), (0, -2, -3)])
+  return tensornetwork.ncon([u, vh], [(-1, 1), (1, -2, -3)])
 
 
 _iso_from_svd_graph = build(_iso_from_svd)
 
 
 def _iso_from_uinv(env, env_uinv):
-  return tensornetwork.ncon([env_uinv, env], [(-1, 0), (0, -2, -3)])
+  return tensornetwork.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
 
 
 _iso_from_uinv_graph = build(_iso_from_uinv)
@@ -689,12 +728,21 @@ def expand_bonds(isos, new_Ds, new_top_rank=None):
   for i in range(len(isos)):
     # Absorb dimension-expanding isometries on indices as needed
     if old_Ds[i + 1] != new_Ds[i + 1]:
+<<<<<<< HEAD
       v = random_isometry(old_Ds[i + 1], new_Ds[i + 1], isos_new[i].dtype)
       isos_new[i] = tensornetwork.ncon([v, isos_new[i]], [(0, -1), (0, -2, -3)])
       if i + 1 < len(isos):
         isos_new[i + 1] = tensornetwork.ncon(
             [conj(v), conj(v), isos_new[i + 1]], [(0, -2), (1, -3),
                                                         (-1, 0, 1)])
+=======
+      v = random_isometry(old_Ds[i + 1], new_Ds[i + 1], dtype=isos_new[i].dtype)
+      isos_new[i] = tensornetwork.ncon([v, isos_new[i]], [(1, -1), (1, -2, -3)])
+      if i + 1 < len(isos):
+        isos_new[i + 1] = tensornetwork.ncon(
+            [tf.conj(v), tf.conj(v), isos_new[i + 1]], [(1, -2), (2, -3),
+                                                        (-1, 1, 2)])
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
   return isos_new
 
 
@@ -704,8 +752,13 @@ def random_herm(D, dtype):
 
 
 def check_iso(iso):
+<<<<<<< HEAD
   sq = tensornetwork.ncon([iso, conj(iso)], [(-1, 0, 1), (-2, 0, 1)])
   return norm(sq - eye(sq.shape[0], dtype=sq.dtype))
+=======
+  sq = tensornetwork.ncon([iso, tf.conj(iso)], [(-1, 1, 2), (-2, 1, 2)])
+  return tf.norm(sq - tf.eye(sq.shape[0], dtype=sq.dtype))
+>>>>>>> 0c1964fbcb1dacd4b0997f1b8fa27443f91baf2e
 
 
 def shift_ham(H, shift="auto"):
