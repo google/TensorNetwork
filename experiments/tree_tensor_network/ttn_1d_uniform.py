@@ -65,7 +65,7 @@ def _complete_partial_ascend(iso_op, iso):
   return tensornetwork.ncon([conj(iso), iso_op], [(-1, 1, 2), (-2, 1, 2)])
 
 
-def _ascend_op_2site_to_1site_partial(mpo_2site, iso_012, iso_021):
+def _ascend_op_2site_to_1site_partial(mpo_2site, iso_021):
   """Ascend a 2-site MPO operator through a single isometry.
     Produces a 1-site operator after completion via
     `_complete_partial_ascend()`.
@@ -93,8 +93,7 @@ def _ascend_op_1site_to_1site_partial(op_1site, iso_012, iso_021):
 
 
 def _ascend_op_to_1site_partial(op_1site, mpo_2site, iso_012, iso_021):
-  iso_op_2site_012 = _ascend_op_2site_to_1site_partial(mpo_2site, iso_012,
-                                                       iso_021)
+  iso_op_2site_012 = _ascend_op_2site_to_1site_partial(mpo_2site, iso_021)
   iso_op_1site_R_012, iso_op_1site_L_021 = _ascend_op_1site_to_1site_partial(
       op_1site, iso_012, iso_021)
   return iso_op_2site_012 + iso_op_1site_R_012, iso_op_1site_L_021
@@ -139,8 +138,7 @@ def ascend_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
 
 
 def ascend_op_2site_to_1site(mpo_2site, iso_012, iso_021):
-  iso_op_2site_012 = _ascend_op_2site_to_1site_partial(
-    mpo_2site, iso_012, iso_021)
+  iso_op_2site_012 = _ascend_op_2site_to_1site_partial(mpo_2site, iso_021)
   return _complete_partial_ascend(iso_op_2site_012, iso_012)
 
 
@@ -1217,7 +1215,7 @@ def get_ham_ising_tube(dtype, Ly, lam=-3.044):
 
 def set_backend(backend):
   tensornetwork.set_default_backend(backend)
-  # TODO(amilsted): Do this differently. It's awful!
+  # TODO(amilsted): Do this differently. It's kind of awful!
   global np
   global dtype_is_complex
   global random_normal_mat
