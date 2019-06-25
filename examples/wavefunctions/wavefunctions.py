@@ -100,11 +100,11 @@ def expval(psi, op, n1):
   net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
 
   n_op_psi = net.contract_between(n_op, n_psi)
-  
+
   n_psi_conj = net.add_node(tf.conj(psi))
   for i in range(len(site_edges)):
     net.connect(site_edges[i], n_psi_conj[i])
-  
+
   res = net.contract_between(n_psi_conj, n_op_psi)
 
   return res.tensor
