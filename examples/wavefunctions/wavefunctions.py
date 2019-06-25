@@ -30,7 +30,7 @@ def inner(psi1, psi2):
   return tf.reduce_sum(tf.conj(psi1) * psi2)
 
 
-def apply_op(psi, op, n1, maintain_site_ordering=True):
+def apply_op(psi, op, n1):
   """Apply a k-local operator, acting on sites n1 to n1 + k-1, to a state.
     """
   net = tensornetwork.TensorNetwork()
@@ -40,8 +40,7 @@ def apply_op(psi, op, n1, maintain_site_ordering=True):
   net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
 
   n_res = net.contract_between(n_op, n_psi)
-  if maintain_site_ordering:
-    n_res.reorder_edges(site_edges)
+  n_res.reorder_edges(site_edges)
 
   return n_res.tensor
 
@@ -60,8 +59,21 @@ def expval(psi, op, n1):
     The operator and state must both be shaped according to the site tensor
     product decomposition.
     """
-  op_psi = apply_op(psi, op, n1, maintain_site_ordering=False)
-  return inner(psi, op_psi)
+  net = tensornetwork.TensorNetwork()
+  n_psi = net.add_node(psi)
+  site_edges = n_psi.get_all_edges()
+
+  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
+
+  n_op_psi = net.contract_between(n_op, n_psi)
+  
+  n_psi_conj = net.add_node(tf.conj(psi))
+  for i in range(len(site_edges)):
+    net.connect(site_edges[i], n_psi_conj[i])
+  
+  res = net.contract_between(n_psi_conj, n_op_psi)
+
+  return res.tensor
 
 
 def evolve_trotter(psi, H, step_size, num_steps, euclidean=False,
