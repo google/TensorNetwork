@@ -22,7 +22,7 @@ Nodes are one of the basic building blocks of a tensor network. They represent a
 
 Edges
 -----
-Edges describe different computations of the underlying tensors in the tensor network. Each edge points to which axes of the tensors to do the computation. There are 3 basic kinds of edges in a tensor network:
+Edges describe different contractions of the underlying tensors in the tensor network. The edges are associated to the tensor axes involved in the contraction. There are 3 basic kinds of edges in a tensor network:
 
 **Standard Edges**
 
