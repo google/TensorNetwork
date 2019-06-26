@@ -45,4 +45,4 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #
 html_theme = 'sphinx_rtd_theme'
 master_doc = 'index'
-
+default_role = 'py:obj'
