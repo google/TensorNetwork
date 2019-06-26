@@ -30,7 +30,7 @@ Standard edges are like any other edge you would find in an undirected graph. Th
 
 **Trace Edges**
 
-Trace edges connect a node to itself. To contract this type of edge, you take a trace of the matrix created by the two given axes.
+Trace edges connect a node to itself. Contracting this type of edge means taking the trace of the matrix formed by the two associated axes.
 
 **Dangling Edge**
 
