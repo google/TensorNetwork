@@ -26,7 +26,7 @@ Edges describe different contractions of the underlying tensors in the tensor ne
 
 **Standard Edges**
 
-Standard edges are like any other edge you would find in an undirected graph. They connect 2 different nodes and define a dot product among the given vector spaces. In numpy terms, this edge defines a tensordot operation over the given axes.
+Standard edges are like any other edge you would find in an undirected graph. They connect 2 different nodes and represent a dot product between the associated vector spaces. In numpy terms, this edge defines a tensordot operation over the given axes.
 
 **Trace Edges**
 
