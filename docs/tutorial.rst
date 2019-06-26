@@ -93,7 +93,7 @@ This example code calculates the dot product of two vectors.
 
 Optimized Contractions
 ----------------------
-During computation, it’s very common for two nodes to have multiple edges connecting each other. If only one of the edges are contracted at a time, then all of the remaining edges become trace edges. This is usually very bad for computation, as the new node will allocate significantly more memory than required. Also, since trace edges only sum the diagonal of the underlying matrix, all of the other values calculated during the first contraction are useless. During contraction, it always more efficent to contract all of these edges at the same time.
+At intermediate states of a computation, it’s very common for two nodes to have multiple edges connecting them. If only one of those edges is contracted, then all of the remaining edges become trace edges. This is usually very inefficient, as the new node will allocate significantly more memory than is ultimately required. Since trace edges only sum the diagonal of the underlying matrix, all of the other values calculated during the first contraction are useless. It is always more efficient to contract all of these edges simultaneously.
 
 The methods `contract_between` or `contract_parallel` will do this for you automatically. You should see huge speedups when comparing these methods against contracting one edge at a time.
 
