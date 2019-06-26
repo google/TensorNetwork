@@ -55,7 +55,7 @@ Dangling edges are edges that only have one side point to a node, where as the o
 
 Connecting Dangling Edges 
 -------------------------
-One common paradigm in building quantum circuits is to add computation based on edges rather than nodes. That is, it’s very common to want to connect two dangling edges rather than trying to keep track of node axes.
+One common paradigm in building quantum circuits, for example, is to add computation based on edges rather than nodes. That is, it’s very common to want to connect two dangling edges rather than trying to keep track of node axes.
 
 In this example, we have a single qubit quantum circuit where we apply a Hadamard operation several times. We connect the dangling edge of the qubit to the Hadamard operation and return the resulting “output” edge.
 
