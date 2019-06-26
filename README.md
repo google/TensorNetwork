@@ -16,6 +16,17 @@ For an overview of tensor networks please see the following:
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
 
 - [A Practical Introduction to Tensor Networks](https://arxiv.org/abs/1306.2164)
+
+More information can be found in our TensorNetwork papers:
+
+- [TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
+
+- [TensorNetwork on TensorFlow: A Spin Chain Application Using Tree Tensor Networks](https://arxiv.org/abs/1905.01331)
+
+- [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
+
+The code for reproducing the results of these papers can be found in the [experiments](https://github.com/google/TensorNetwork/tree/master/experiments) directory.
+
 ## Installation
 ```
 pip3 install tensornetwork
