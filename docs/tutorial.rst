@@ -34,7 +34,7 @@ Trace edges connect a node to itself. To contract this type of edge, you take a 
 
 **Dangling Edge**
 
-Dangling edges are edges that only have one side point to a node, where as the other side is left “dangling”. These edges represent output axes or intermediate axes that have yet to be connected to other dangling edges. These edges are automatically created when adding a node to the network.
+Dangling edges are edges that only have one side point to a node, with the other side left “dangling”. These edges can represent output axes, or they can represent intermediate axes that have yet to be connected to other dangling edges. These edges are automatically created when adding a node to the network.
 
 .. code-block:: python
 
