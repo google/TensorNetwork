@@ -34,11 +34,11 @@ class Node:
   for a node represents the rank of that tensor.
 
   For example:
-  O : No edges means this node represents a scalar value.
-  -O : A single edge means this node is a vector.
-  -O-: Two edges represents a matrix.
-  -O- : Three edges are tensor of rank 3, etc.
-   |
+
+  * No edges means this node represents a scalar value.
+  * A single edge means this node is a vector.
+  * Two edges represents a matrix.
+  * Three edges are tensor of rank 3, etc.
 
   Each node can have an arbitrary rank/number of edges, each of which can have
   an arbitrary dimension.
@@ -154,7 +154,7 @@ class Node:
         ordering.
 
     Returns:
-      self: This node post reordering.
+      This node post reordering.
 
     Raises:
       ValueError: If either the list of edges is not the same as expected or if
@@ -195,7 +195,7 @@ class Node:
       perm: Permutation of the dimensions of the node's tensor.
 
     Returns:
-      self: This node post reordering.
+      This node post reordering.
     """
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
@@ -226,7 +226,7 @@ class Node:
       axis: The axis of the underlying tensor.
 
     Returns:
-      dimension: The dimension of the given axis.
+      The dimension of the given axis.
 
     Raises:
       ValueError: if axis isn't an int or if axis is too large or small.
@@ -500,7 +500,7 @@ class Edge:
     edge is actually being used by the given nodes.
 
     Returns:
-      bool: Whether this edge is actually being used.
+      Whether this edge is actually being used.
     """
     result = self is self.node1[self.axis1]
     if self.node2 is not None:
