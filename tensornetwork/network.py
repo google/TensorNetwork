@@ -458,7 +458,7 @@ class TensorNetwork:
       name: Optional name to give the new node created.
 
     Returns:
-      A new node. It's shape will be node1.shape + node2.shape
+      A new node. Its shape will be node1.shape + node2.shape
     """
     new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
     new_node = self.add_node(new_tensor, name)
@@ -683,7 +683,7 @@ class TensorNetwork:
   def get_parallel_edges(
       self, 
       edge: network_components.Edge) -> Set[network_components.Edge]:
-    """Get all of the edge parallel to the given `edge`.
+    """Get all of the edges parallel to the given `edge`.
 
     Args:
       edge: The given edge.
@@ -849,8 +849,8 @@ class TensorNetwork:
     Let M be the matrix created by flattening left_edges and right_edges into
     2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
     :math:`M`. This will split the network into 2 nodes. The left node's 
-    tensor will be :math:`U * \\sqrt{S}` and the right node's tensor will be 
-    :math:`\\sqrt{S} * V^*` where :math:`V^*` is
+    tensor will be :math:`U \\sqrt{S}` and the right node's tensor will be 
+    :math:`\\sqrt{S} V^*` where :math:`V^*` is
     the adjoint of :math:`V`.
 
     The singular value decomposition is truncated if `max_singular_values` or
@@ -880,11 +880,12 @@ class TensorNetwork:
       A tuple containing:
         left_node: 
           A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`U \\sqrt{S}`
         right_node: 
           A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`\\sqrt{S} V^*`
         truncated_singular_values: 
-          A vector of the dropped smallest singular
-          values.
+          The vector of truncated singular values.
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
@@ -953,18 +954,18 @@ class TensorNetwork:
       max_truncation_err: The maximum allowed truncation error.
 
     Returns:
-    A tuple containing:
-      left_node: 
-        The new left node created. Its underlying tensor is the same
-        as the U tensor from the SVD.
-      singular_values_node: 
-        The new node representing the diagonal matrix of
-        singular values.
-      right_node: 
-        The new right node created. Its underlying tensor is the same
-        as the V* tensor from the SVD.
-      truncated_singular_values: 
-        The vector of truncated singular values.
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`U`
+        singular_values_node: 
+          A new node that has 2 edges connecting `left_node` and `right_node`.
+          It's underlying tensor is :math:`S`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`V^*`
+        truncated_singular_values: 
+          The vector of truncated singular values.
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(

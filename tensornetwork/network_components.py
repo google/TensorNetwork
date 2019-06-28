@@ -35,10 +35,10 @@ class Node:
 
   For example:
 
-  * No edges means this node represents a scalar value.
-  * A single edge means this node is a vector.
-  * Two edges represents a matrix.
-  * Three edges are tensor of rank 3, etc.
+  * A node with no edges means this node represents a scalar value.
+  * A node with a single edge means this node is a vector.
+  * A node with two edges represents a matrix.
+  * A node with three edges is a tensor of rank 3, etc.
 
   Each node can have an arbitrary rank/number of edges, each of which can have
   an arbitrary dimension.
