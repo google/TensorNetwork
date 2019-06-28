@@ -16,6 +16,17 @@ For an overview of tensor networks please see the following:
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
 
 - [A Practical Introduction to Tensor Networks](https://arxiv.org/abs/1306.2164)
+
+More information can be found in our TensorNetwork papers:
+
+- [TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
+
+- [TensorNetwork on TensorFlow: A Spin Chain Application Using Tree Tensor Networks](https://arxiv.org/abs/1905.01331)
+
+- [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
+
+The code for reproducing the results of these papers can be found in the [experiments](https://github.com/google/TensorNetwork/tree/master/experiments) directory.
+
 ## Installation
 ```
 pip3 install tensornetwork
@@ -155,7 +166,7 @@ For a more compact specification of a tensor network and its contraction, there 
 from tensornetwork import ncon
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
-c = ncon([a,b], [(-1,0),(0,-2)])
+c = ncon([a,b], [(-1,1),(1,-2)])
 print(tf.norm(tf.matmul(a,b) - c)) # Should be zero
 ```
 It is also possible to generate a `TensorNetwork`:
@@ -163,7 +174,7 @@ It is also possible to generate a `TensorNetwork`:
 from tensornetwork import ncon_network
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
-net, e_con, e_out = ncon_network([a,b], [(-1,0),(0,-2)])
+net, e_con, e_out = ncon_network([a,b], [(-1,1),(1,-2)])
 for e in e_con:
     n = net.contract(e) # Contract edges in order
 n.reorder_edges(e_out) # Permute final tensor as necessary

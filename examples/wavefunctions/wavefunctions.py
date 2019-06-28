@@ -26,13 +26,36 @@ from examples.wavefunctions.trotter import trotter_prepare_gates
 
 def inner(psi1, psi2):
   """Computes the inner product <psi1|psi2>.
-    """
+
+    Args:
+      psi1: A tensor representing the first wavefunction.
+      psi2: A tensor representing the second wavefunction.
+
+    Returns:
+      inner_product: The vector inner product.
+  """
   return tf.reduce_sum(tf.conj(psi1) * psi2)
 
 
-def apply_op(psi, op, n1, maintain_site_ordering=True):
-  """Apply a k-local operator, acting on sites n1 to n1 + k-1, to a state.
-    """
+def apply_op(psi, op, n1):
+  """Apply a local operator to a wavefunction.
+
+    The number of dimensions of the tensor representing the wavefunction `psi`
+    is taken to be the number of lattice sites `N`.
+
+    The operator acts nontrivially on sites `n1` to `n1 + k - 1` of psi, where
+    `0 <= n1 < N`, and is expected to have `2*k` dimensions.
+    The first `k` dimensions represent the output and the last `k` dimensions
+    represent the input, to be contracted with `psi`.
+
+    Args:
+      psi: An `N`-dimensional tensor representing the wavefunction.
+      op: Tensor with `2 * k` dimensions. The operator to apply.
+      n1: The number of the leftmost site at which to apply the operator.
+
+    Returns:
+      psi_final: The result of applying `op` to `psi`.
+  """
   net = tensornetwork.TensorNetwork()
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
@@ -40,8 +63,7 @@ def apply_op(psi, op, n1, maintain_site_ordering=True):
   net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
 
   n_res = net.contract_between(n_op, n_psi)
-  if maintain_site_ordering:
-    n_res.reorder_edges(site_edges)
+  n_res.reorder_edges(site_edges)
 
   return n_res.tensor
 
@@ -57,19 +79,56 @@ def _apply_op_network(net, site_edges, op, n1):
 
 def expval(psi, op, n1):
   """Expectation value of a k-local operator, acting on sites n1 to n1 + k-1.
-    The operator and state must both be shaped according to the site tensor
-    product decomposition.
-    """
-  op_psi = apply_op(psi, op, n1, maintain_site_ordering=False)
-  return inner(psi, op_psi)
+
+    In braket notation: <psi|op(n1)|psi>
+
+    The number of dimensions of the tensor representing the wavefunction `psi`
+    is taken to be the number of lattice sites `N`.
+
+    Args:
+      psi: An `N`-dimensional tensor representing the wavefunction.
+      op: Tensor with `2 * k` dimensions. The operator to apply.
+      n1: The number of the leftmost site at which to apply the operator.
+
+    Returns:
+      expval: The expectation value.
+  """
+  net = tensornetwork.TensorNetwork()
+  n_psi = net.add_node(psi)
+  site_edges = n_psi.get_all_edges()
+
+  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
+
+  n_op_psi = net.contract_between(n_op, n_psi)
+
+  n_psi_conj = net.add_node(tf.conj(psi))
+  for i in range(len(site_edges)):
+    net.connect(site_edges[i], n_psi_conj[i])
+
+  res = net.contract_between(n_psi_conj, n_op_psi)
+
+  return res.tensor
 
 
 def evolve_trotter(psi, H, step_size, num_steps, euclidean=False,
                    callback=None):
-  """Evolve an initial state psi using a trotter decomposition of H.
+  """Evolve an initial wavefunction psi using a trotter decomposition of H.
+
     If the evolution is euclidean, the wavefunction will be normalized after
     each step.
-    """
+
+    Args:
+      psi: An `N`-dimensional tensor representing the initial wavefunction.
+      H: A list of `N-1` tensors representing nearest-neighbor operators.
+      step_size: The trotter step size.
+      num_steps: The number of trotter steps to take.
+      euclidean: If `True`, evolve in Euclidean (imaginary) time.
+      callback: Optional callback function for monitoring the evolution.
+
+    Returns:
+      psi_t: The final wavefunction.
+      t: The final time.
+  """
   num_sites = len(psi.shape)
   layers = trotter_prepare_gates(H, step_size, num_sites, euclidean)
   return _evolve_trotter_gates(
@@ -82,7 +141,7 @@ def _evolve_trotter_gates(psi,
                           num_steps,
                           euclidean=False,
                           callback=None):
-  """Evolve an initial state psi via gates specified in `layers`.
+  """Evolve an initial wavefunction psi via gates specified in `layers`.
     If the evolution is euclidean, the wavefunction will be normalized after
     each step.
     """
@@ -105,13 +164,27 @@ def evolve_trotter_defun(psi,
                          euclidean=False,
                          callback=None,
                          batch_size=1):
-  """Evolve an initial state psi using a trotter decomposition of H.
+  """Evolve an initial wavefunction psi using a trotter decomposition of H.
+
     If the evolution is euclidean, the wavefunction will be normalized after
     each step.
 
     In this version, `batch_size` steps are "compiled" to a computational graph
     using `defun`, which greatly decreases overhead. 
-    """
+
+    Args:
+      psi: An `N`-dimensional tensor representing the initial wavefunction.
+      H: A list of `N-1` tensors representing nearest-neighbor operators.
+      step_size: The trotter step size.
+      num_steps: The number of trotter steps to take.
+      euclidean: If `True`, evolve in Euclidean (imaginary) time.
+      callback: Optional callback function for monitoring the evolution.
+      batch_size: The number of steps to unroll in the computational graph.
+
+    Returns:
+      psi_t: The final wavefunction.
+      t: The final time.
+  """
   n_batches, rem = divmod(num_steps, batch_size)
 
   step_size = tf.cast(step_size, psi.dtype)
@@ -147,10 +220,21 @@ def _evolve_trotter_gates_defun(psi,
 
 
 def apply_circuit(psi, layers):
-  """Applies a quantum circuit to a state.
+  """Applies a quantum circuit to a wavefunction.
+
     The circuit consists of a sequence of layers, with each layer consisting
     of non-overlapping gates.
-    """
+
+    Args:
+      psi: An `N`-dimensional tensor representing the initial wavefunction.
+      layers: A sequence of layers. Each layer is a sequence of gates, with
+        each index of a layer corresponding to a site in `psi`. The `i`th gate
+        of a layer acts on sites `i` to `i + k - 1`, where `k` is the range of
+        the gate. Gates may not overlap within a layer.
+
+    Returns:
+      psi_t: The final wavefunction.
+  """
   num_sites = len(psi.shape)
 
   net = tensornetwork.TensorNetwork()
