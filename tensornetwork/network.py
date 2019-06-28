@@ -960,7 +960,7 @@ class TensorNetwork:
           Its underlying tensor is :math:`U`
         singular_values_node: 
           A new node that has 2 edges connecting `left_node` and `right_node`.
-          It's underlying tensor is :math:`S`
+          Its underlying tensor is :math:`S`
         right_node: 
           A new node created that connects to all of the `right_edges`.
           Its underlying tensor is :math:`V^*`
