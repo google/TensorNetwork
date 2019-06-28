@@ -78,8 +78,7 @@ class TensorNetwork:
       networks: An iterable of TensorNetworks.
 
     Returns:
-      new_network: A new network created by the merging of all of the given
-        networks.
+      A new network created by the merging of all of the given networks.
     """
     backend_types = {net.backend.name for net in networks}
     if len(backend_types) != 1:
@@ -104,7 +103,8 @@ class TensorNetwork:
       axis_names: Optional list of strings to name each of the axes.
 
     Returns:
-      new_node: The new node object.
+      The new node object.
+
     Raises:
       ValueError: If `name` already exists in the network.
     """
@@ -126,10 +126,9 @@ class TensorNetwork:
                    ) -> network_components.CopyNode:
     """Create a new copy node in the network.
 
-    Copy node represents the copy tensor, i.e. tensor C such that
-
-        Cij...k = 1    if i = j = ... = k
-        Cij...k = 0    otherwise
+    Copy node represents the copy tensor, i.e. tensor :math:`C` such that
+    :math:`C_{ij...k} = 1` if :math:`i = j = ... = k` and 
+    :math:`C_{ij...k}= 0` otherwise.
 
     Args:
       rank: Number of edges of the copy tensor.
@@ -139,7 +138,8 @@ class TensorNetwork:
       axis_names: Optional list of strings to name each of the axes.
 
     Returns:
-      new_node: The new node object.
+      The new node object.
+
     Raises:
       ValueError: If `name` already exists in the network.
     """
@@ -164,7 +164,8 @@ class TensorNetwork:
       name: Optional name to give the new edge.
 
     Returns:
-      new_edge: A new edge created by joining the two dangling edges together.
+      A new edge created by joining the two dangling edges together.
+
     Raises:
       ValueError: If either edge1 or edge2 is not a dangling edge or if edge1
         and edge2 are the same edge.
@@ -210,8 +211,7 @@ class TensorNetwork:
       dangling_edge_name_2: Optional name to give the new dangling edge 2.
 
     Returns:
-      dangling_edge_1: A new dangling edge.
-      dangling_edge_2: A new dangling edge.
+      A tuple of the two new dangling edges.
 
     Raises:
       ValueError: If input edge is a dangling one.
@@ -235,12 +235,14 @@ class TensorNetwork:
     """Collapse a trace edge.
 
     Collapses a trace edge and updates the network.
+
     Args:
       edge: The edge to contract.
       new_node: The new node created after contraction.
 
     Returns:
-      node: The node that had the contracted edge.
+      The node that had the contracted edge.
+
     Raises:
       ValueError: If edge is not a trace edge.
     """
@@ -350,7 +352,8 @@ class TensorNetwork:
         generated.
 
     Returns:
-      new_node: The new node created after the contraction.
+      The new node created after the contraction.
+
     Raise:
       ValueError: When edge is a dangling edge.
     """
@@ -378,7 +381,7 @@ class TensorNetwork:
       name: Name of the new node created.
 
     Returns:
-      new_node: The new node created after the contraction.
+      The new node created after the contraction.
 
     Raises:
       ValueError: When edge is a dangling edge or if it already has been
@@ -455,7 +458,7 @@ class TensorNetwork:
       name: Optional name to give the new node created.
 
     Returns:
-      new_node: A new node. It's shape will be node1.shape + node2.shape
+      A new node. Its shape will be node1.shape + node2.shape
     """
     new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
     new_node = self.add_node(new_tensor, name)
@@ -474,10 +477,11 @@ class TensorNetwork:
   def get_final_node(self) -> network_components.Node:
     """Get the final node of a fully contracted network.
 
-    Note: The network must already be fully contracted.
+    Note: The network must already be fully contracted to a single node.
 
     Returns:
-      final_node: The final node in the network.
+      The final node in the network.
+
     Raises:
       ValueError: If this network has more than 1 remaining node or if any of
         the remaining edges are dangling.
@@ -503,14 +507,15 @@ class TensorNetwork:
     """Get the outer product of the final nodes.
 
     For example, if after all contractions, there were 3 nodes remaining with
-    shapes (2, 3), (4, 5, 6), and (7) respectively, the newly returned node
-    will have shape (2, 3, 4, 5, 6, 7).
+    shapes :math:`(2, 3)`, :math:`(4, 5, 6)`, and :math:`(7)`
+    respectively, the newly returned node will have shape 
+    :math:`(2, 3, 4, 5, 6, 7)`.
 
     Args:
       edge_order: Edge order for the final node.
 
     Returns:
-      final_node: The outer product of the remaining nodes.
+      The outer product of the remaining nodes.
 
     Raises:
       ValueError: If any of the remaining nodes are not fully contracted.
@@ -551,7 +556,7 @@ class TensorNetwork:
       new_edge_name: Optional name of the new edge created.
 
     Returns:
-      new_edge: The new edge that represents the flattening of the given edges.
+      The new edge that represents the flattening of the given edges.
     """
     node = edges[0].node1  # We are in the trace case, so this is the only node.
     # Flatten all of the edge's axes into a a single list.
@@ -592,7 +597,7 @@ class TensorNetwork:
       new_edge_name: Optional name to give to the newly created edge.
 
     Returns:
-      new_edge: The new flattened edge.
+      The new flattened edge.
 
     Raises:
       ValueError: If edges is an empty list.
@@ -663,7 +668,7 @@ class TensorNetwork:
       node2: The second node.
 
     Returns:
-      shared_edges: A (possibly empty) set of edges shared by the nodes.
+      A (possibly empty) `set` of `Edge`s shared by the nodes.
     """
     nodes = {node1, node2}
     shared_edges = set()
@@ -678,13 +683,14 @@ class TensorNetwork:
   def get_parallel_edges(
       self, 
       edge: network_components.Edge) -> Set[network_components.Edge]:
-    """Get all of the edge parallel to the given edge.
+    """Get all of the edges parallel to the given `edge`.
 
     Args:
       edge: The given edge.
 
     Returns:
-      All of the edges parallel to the given edge (including the given edge).
+      A `set` of all of the edges parallel to the given edge 
+      (including the given edge).
   """
     return self.get_shared_edges(edge.node1, edge.node2)
 
@@ -699,7 +705,7 @@ class TensorNetwork:
       node2: The second node.
 
     Returns:
-      new_edge: The flattened edge. If there was only one edge between the two
+      The flattened `Edge` object. If there was only one edge between the two
         nodes, then the original edge is returned. If there where no edges
         between the nodes, a None is returned.
     """
@@ -745,7 +751,7 @@ class TensorNetwork:
         ordering of Edges.
 
     Returns:
-      new_node: The new node created.
+      The new node created.
 
     Raises:
       ValueError: If no edges are found between node1 and node2 and
@@ -822,6 +828,7 @@ class TensorNetwork:
 
     Args:
       edge: The edge to contract.
+
     Returns:
       The new node created after contraction.
     """
@@ -840,10 +847,11 @@ class TensorNetwork:
     """Split a network_components.Node using Singular Value Decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
-    2 axes. Let U S V* = M be the Singular Value Decomposition of M.
-    This will split the network into 2 nodes. The left node's tensor will be
-    U * sqrt(S) and the right node's tensor will be sqrt(S) * (V*) where V* is
-    the adjoint of V.
+    2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
+    :math:`M`. This will split the network into 2 nodes. The left node's 
+    tensor will be :math:`U \\sqrt{S}` and the right node's tensor will be 
+    :math:`\\sqrt{S} V^*` where :math:`V^*` is
+    the adjoint of :math:`V`.
 
     The singular value decomposition is truncated if `max_singular_values` or
     `max_truncation_err` is not `None`.
@@ -869,10 +877,15 @@ class TensorNetwork:
       max_truncation_err: The maximum allowed truncation error.
 
     Returns:
-      left_node: A new node created that connects to all of the `left_edges`.
-      right_node: A new node created that connects to all of the `right_edges`.
-      truncated_singular_values: A vector of the dropped smallest singular
-        values.
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`U \\sqrt{S}`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`\\sqrt{S} V^*`
+        truncated_singular_values: 
+          The vector of truncated singular values.
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
@@ -910,10 +923,12 @@ class TensorNetwork:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
-    2 axes. Let U S V* = M be the Singular Value Decomposition of M.
-    The left most node will be U tensor of the SVD, the middle node is
+    2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
+    :math:`M`.
+
+    The left most node will be :math:`U` tensor of the SVD, the middle node is
     the diagonal matrix of the singular values, ordered largest to smallest,
-    and the right most node will be the V* tensor of the SVD.
+    and the right most node will be the :math:`V*` tensor of the SVD.
 
     The singular value decomposition is truncated if `max_singular_values` or
     `max_truncation_err` is not `None`.
@@ -939,13 +954,18 @@ class TensorNetwork:
       max_truncation_err: The maximum allowed truncation error.
 
     Returns:
-      left_node: The new left node created. Its underlying tensor is the same
-        as the U tensor from the SVD.
-      singular_values_node: The new node representing the diagonal matrix of
-        singular values.
-      right_node: The new right node created. Its underlying tensor is the same
-        as the V* tensor from the SVD.
-      truncated_singular_values: The vector of truncated singular values.
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`U`
+        singular_values_node: 
+          A new node that has 2 edges connecting `left_node` and `right_node`.
+          Its underlying tensor is :math:`S`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`V^*`
+        truncated_singular_values: 
+          The vector of truncated singular values.
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
