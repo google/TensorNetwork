@@ -514,7 +514,8 @@ def opt_energy_layer_once(isos_012,
                           graphed=False,
                           decomp_mode="eigh",
                           decomp_device=None,
-                          envsq_dtype=None):
+                          envsq_dtype=None,
+                          timing=False):
   dtype = isos_012[0].dtype
 
   t0 = time.time()
@@ -533,8 +534,8 @@ def opt_energy_layer_once(isos_012,
         states_1site_above,
         envsq_dtype=envsq_dtype)
 
-  if executing_eagerly():
-    # FIXME: Hack to ensure values are ready
+  if timing and executing_eagerly():
+    # Hack to ensure values on GPU are ready. Only works for TensorFlow.
     test = to_numpy(env_sq[0,0])
 
   t_env = time.time() - t0
@@ -566,13 +567,16 @@ def opt_energy_layer_once(isos_012,
   if envsq_dtype is not None:
     iso_012_new = cast(iso_012_new, dtype)
 
-  if executing_eagerly():
-    # FIXME: Hack to ensure values are ready
+  if timing and executing_eagerly():
+    # Hack to ensure values on GPU are ready. Only works for TensorFlow.
     test = to_numpy(iso_012_new[0,0,0])
 
   t_decomp = time.time() - t0
 
-  return iso_012_new, s, t_env, t_decomp
+  if timing:
+    return iso_012_new, s, t_env, t_decomp
+  else:
+    return iso_012_new, s
 
 
 opt_energy_layer_once_graph = build(opt_energy_layer_once)
@@ -587,7 +591,8 @@ def opt_energy_layer(isos_012,
                      decomp_mode="eigh",
                      decomp_device=None,
                      envsq_dtype=None,
-                     graph_level=None):
+                     graph_level=None,
+                     timing=False):
   shp = isos_012[0].shape
   if shp[0] == shp[1] * shp[2]:  # unitary, nothing to optimise
     return isos_012[0]
@@ -597,7 +602,9 @@ def opt_energy_layer(isos_012,
   tes, tds = 0.0, 0.0
   for _ in range(itr):
     if graph_level == "sweep":
-      iso_012, s, _, _ = opt_energy_layer_once_graph(
+      if timing:
+        raise ValueError("Timing data not available with graph_level 'sweep'")
+      iso_012, s = opt_energy_layer_once_graph(
           isos_012,
           h_op_1site,
           h_mpo_2site,
@@ -605,9 +612,10 @@ def opt_energy_layer(isos_012,
           graphed=False,
           decomp_mode=decomp_mode,
           decomp_device=decomp_device,
-          envsq_dtype=envsq_dtype)
+          envsq_dtype=envsq_dtype,
+          timing=False)
     else:
-      iso_012, s, te, td = opt_energy_layer_once(
+      res = opt_energy_layer_once(
           isos_012,
           h_op_1site,
           h_mpo_2site,
@@ -615,11 +623,18 @@ def opt_energy_layer(isos_012,
           graphed=graphed,
           decomp_mode=decomp_mode,
           decomp_device=decomp_device,
-          envsq_dtype=envsq_dtype)
-      tes += te
-      tds += td
+          envsq_dtype=envsq_dtype,
+          timing=timing)
+      iso_012, s = res[:2]
+      if timing:
+        te, td = res[2:]
+        tes += te
+        tds += td
 
-  return iso_012, s, tes / itr, tds / itr
+  if timing:
+    return iso_012, s, tes / itr, tds / itr
+  else:
+    return iso_012, s
 
 
 def all_states_1site(isos_012):
@@ -777,7 +792,8 @@ def opt_tree_energy(isos_012,
                     decomp_device=None,
                     envsq_dtype=None,
                     ham_shift="auto",
-                    callback=None):
+                    callback=None,
+                    time_layer_updates=False):
   """Variationally minimize the energy of a binary tree tensor network.
 
     Spatial uniformity is assumed: The tree tensor network consists of a single
@@ -809,7 +825,10 @@ def opt_tree_energy(isos_012,
         ham_shift: Amount by which to shift the energies of the local 
                    Hamiltonian term. A small positive value typically improves
                    convergence.
-        callback: A function to be called after each sweep. Takes 7 arguments.
+        callback: A function to be called after each sweep.
+        time_layer_updates: Boolean. Whether to collect timing data for layer
+          updates, split into computation of environments and matrix
+          decompositions. The data is supplied only to the callback function.
     Returns:
         isos_012: The optimized tensors of the tree tensor network.
     """
@@ -849,7 +868,7 @@ def opt_tree_energy(isos_012,
     for l in range(bottom, L):
       if verbose > 1:
         print("Optimizing level {}".format(l))
-      isos_012[l], s, tes, tds = opt_energy_layer(
+      res = opt_energy_layer(
           isos_012[l:],
           *Hl,
           states[l + 1:],
@@ -857,11 +876,15 @@ def opt_tree_energy(isos_012,
           graphed=graphed,
           decomp_mode=decomp_mode,
           decomp_device=decomp_device,
-          envsq_dtype=envsq_dtype)
+          envsq_dtype=envsq_dtype,
+          timing=time_layer_updates)
+      isos_012[l], s = res[:2]
       svs[l] = s
 
-      tes_sweep += tes
-      tds_sweep += tds
+      if time_layer_updates:
+        tes, tds = res[2:]
+        tes_sweep += tes
+        tds_sweep += tds
 
       if l < L - 1:
         if graphed:
@@ -890,8 +913,13 @@ def opt_tree_energy(isos_012,
           time.time() - t0))
 
     if callback is not None:
-      stop_request = callback(isos_012, svs, j, en,
-                              time.time() - t0, tes_sweep, tds_sweep)
+      stop_request = callback(isos_012=isos_012,
+                              decomp_singular_values=svs,
+                              sweep_num=j,
+                              energy=en,
+                              time_sweep=time.time() - t0,
+                              time_env=tes_sweep,
+                              time_decomp=tds_sweep)
       if stop_request:
         break
 
@@ -1214,8 +1242,15 @@ def get_ham_ising_tube(dtype, Ly, lam=-3.044):
 
 
 def set_backend(backend):
+  """Sets the backend to use for tree tensor network computations.
+
+  A backend must be set after importing the module.
+
+  Args:
+    backend: Possible values are "tensorflow", "jax", and "numpy".
+  """
   tensornetwork.set_default_backend(backend)
-  # TODO(amilsted): Do this differently. It's kind of awful!
+
   global np
   global dtype_is_complex
   global random_normal_mat
@@ -1260,7 +1295,7 @@ def set_backend(backend):
       return A
     conj = tf.conj
     adjoint = tf.linalg.adjoint
-    build = tf.contrib.eager.defun
+    def build(f): return tf.contrib.eager.defun(f, autograph=False)
     trace = tf.trace
     transpose = tf.transpose
     reshape = tf.reshape
@@ -1303,17 +1338,17 @@ def set_backend(backend):
         A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
       return A
     conj = np.conj
-    adjoint = lambda x: np.conj(np.transpose(x))
+    def adjoint(x): return np.conj(np.transpose(x))
     if backend == "jax":
       from jax import jit
       build = jit
     else: 
-      build = lambda x: x
+      def build(x): return x
     trace = np.trace
     transpose = np.transpose
     reshape = np.reshape
     convert_to_tensor = np.array
-    device = lambda x: contextlib.suppress()
+    def device(x): return contextlib.suppress()  # a dummy context
     cast = np.asarray
     zeros_like = np.zeros_like
     where = np.where
