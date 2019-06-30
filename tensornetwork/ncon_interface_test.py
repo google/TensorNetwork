@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
-tf.enable_v2_behavior()
+tf.compat.v1.enable_v2_behavior()
 from tensornetwork import ncon_interface
 
 
@@ -25,20 +25,20 @@ class NconTest(tf.test.TestCase):
 
   def test_sanity_check(self):
     result = ncon_interface.ncon([tf.ones(
-        (2, 2)), tf.ones((2, 2))], [(-1, 0), (0, -2)])
+        (2, 2)), tf.ones((2, 2))], [(-1, 1), (1, -2)])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
   def test_order_spec(self):
     a = tf.ones((2, 2))
 
-    result = ncon_interface.ncon([a, a], [(-1, 0), (0, -2)], out_order=[-1, -2])
+    result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
-    result = ncon_interface.ncon([a, a], [(-1, 0), (0, -2)], con_order=[0])
+    result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
     result = ncon_interface.ncon(
-        [a, a], [(-1, 0), (0, -2)], con_order=[0], out_order=[-1, -2])
+        [a, a], [(-1, 1), (1, -2)], con_order=[1], out_order=[-1, -2])
     self.assertAllClose(result, tf.ones((2, 2)) * 2)
 
   def test_order_spec_noninteger(self):
@@ -52,24 +52,26 @@ class NconTest(tf.test.TestCase):
   def test_invalid_network(self):
     a = tf.ones((2, 2))
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 0), (0, 1)])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 1)])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 2)])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (2, 0)])
+      ncon_interface.ncon([a, a], [(1, 2), (3, 1)])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 0.1)])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 't')])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 't')])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0,), (0, 1)])
+      ncon_interface.ncon([a, a], [(0, 1), (1, 0)])
+    with self.assertRaises(ValueError):
+      ncon_interface.ncon([a, a], [(1,), (1, 2)])
 
   def test_invalid_order(self):
     a = tf.ones((2, 2))
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 0)], con_order=[1, 2])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3])
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a], [(0, 1), (1, 0)], out_order=[-1])
+      ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1])
     with self.assertRaises(ValueError):
       ncon_interface.ncon(
           [a, a], [('i1', 'i2'), ('i1', 'i2')], con_order=['i1'], out_order=[])
@@ -87,7 +89,7 @@ class NconTest(tf.test.TestCase):
   def test_out_of_order_contraction(self):
     a = tf.ones((2, 2, 2))
     with self.assertRaises(ValueError):
-      ncon_interface.ncon([a, a, a], [(-1, 0, 2), (0, 2, 1), (1, -2, -3)])
+      ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)])
 
   def test_output_order(self):
     a = np.random.randn(2, 2)
@@ -99,23 +101,23 @@ class NconTest(tf.test.TestCase):
     b = np.array([1, 2])
     res = ncon_interface.ncon([a, b], [(-1,), (-2,)])
     self.assertAllClose(res, np.kron(a, b).reshape((3, 2)))
-    res = ncon_interface.ncon([a, a, a, a], [(0,), (0,), (1,), (1,)])
+    res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)])
     self.assertEqual(res.numpy(), 196)
 
   def test_trace(self):
     a = tf.ones((2, 2))
-    res = ncon_interface.ncon([a], [(0, 0)])
+    res = ncon_interface.ncon([a], [(1, 1)])
     self.assertEqual(res.numpy(), 2)
 
   def test_small_matmul(self):
     a = np.random.randn(2, 2)
     b = np.random.randn(2, 2)
-    res = ncon_interface.ncon([a, b], [(0, -1), (0, -2)])
+    res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)])
     self.assertAllClose(res, a.transpose() @ b)
 
   def test_contraction(self):
     a = np.random.randn(2, 2, 2)
-    res = ncon_interface.ncon([a, a, a], [(-1, 0, 1), (0, 1, 2), (2, -2, -3)])
+    res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)])
     res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
     res_np = res_np.reshape((2, 2, 2))
     self.assertAllClose(res, res_np)

@@ -16,6 +16,17 @@ For an overview of tensor networks please see the following:
 - [Tensor Networks in a Nutshell](https://arxiv.org/abs/1708.00006)
 
 - [A Practical Introduction to Tensor Networks](https://arxiv.org/abs/1306.2164)
+
+More information can be found in our TensorNetwork papers:
+
+- [TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
+
+- [TensorNetwork on TensorFlow: A Spin Chain Application Using Tree Tensor Networks](https://arxiv.org/abs/1905.01331)
+
+- [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
+
+The code for reproducing the results of these papers can be found in the [experiments](https://github.com/google/TensorNetwork/tree/master/experiments) directory.
+
 ## Installation
 ```
 pip3 install tensornetwork
@@ -49,19 +60,15 @@ If you want to contribute changes to TensorNetwork, you will instead want to for
 
 ## Documentation
 
-Currently, the best documentation we have is our publication.
+For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
-[TensorNetwork: A Library for Physics and Machine Learning](https://arxiv.org/abs/1905.01330)
-
-We plan on getting proper documentation very soon once the API has settled.
-
+## Basic Example
 Note: The following examples assume a TensorFlow v2 interface 
 (in TF 1.13 or higher, run `tf.enable_v2_behavior()` after 
 importing TensorFlow) but should also work with eager mode 
 (`tf.enable_eager_execution()`). The actual library does work 
 under graph mode, but documentation is limited.
 
-## Basic Example
 Here, we build a simple 2 node contraction.
 ```python
 import numpy as np
@@ -77,7 +84,7 @@ a = net.add_node(np.ones((10,), dtype=np.float32))
 b = net.add_node(tf.ones((10,)))
 edge = net.connect(a[0], b[0])
 final_node = net.contract(edge)
-print(final_node.get_tensor().numpy()) # Should print 10.0
+print(final_node.tensor.numpy()) # Should print 10.0
 ```
 
 ## Optimized Contractions.
@@ -92,7 +99,7 @@ e2 = net.connect(b[1], a[1])
 e3 = net.connect(a[2], b[2])
 
 flattened_edge = net.flatten_edges([e1, e2, e3])
-print(net.contract(flattened_edge).get_tensor().numpy())
+print(net.contract(flattened_edge).tensor.numpy())
 ```
 We also have `contract_between` and `contract_parallel` for your convenience. 
 
@@ -159,7 +166,7 @@ For a more compact specification of a tensor network and its contraction, there 
 from tensornetwork import ncon
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
-c = ncon([a,b], [(-1,0),(0,-2)])
+c = ncon([a,b], [(-1,1),(1,-2)])
 print(tf.norm(tf.matmul(a,b) - c)) # Should be zero
 ```
 It is also possible to generate a `TensorNetwork`:
@@ -167,11 +174,11 @@ It is also possible to generate a `TensorNetwork`:
 from tensornetwork import ncon_network
 a = tf.random_normal((2,2))
 b = tf.random_normal((2,2))
-net, e_con, e_out = ncon_network([a,b], [(-1,0),(0,-2)])
+net, e_con, e_out = ncon_network([a,b], [(-1,1),(1,-2)])
 for e in e_con:
     n = net.contract(e) # Contract edges in order
 n.reorder_edges(e_out) # Permute final tensor as necessary
-print(tf.norm(tf.matmul(a,b) - n.get_tensor()))
+print(tf.norm(tf.matmul(a,b) - n.tensor))
 ```
 
 ## Different backend support.

@@ -159,7 +159,7 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
       rank_a = tf.rank(a)
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       axes = tf.where(axes >= 0, axes, axes + rank_a)
-      free, _ = tf.setdiff1d(tf.range(rank_a), axes)
+      free, _ = tf.compat.v1.setdiff1d(tf.range(rank_a), axes)
       # Matmul does not accept tensors for its transpose arguments, so fall
       # back to the previous, fixed behavior.
       # NOTE(amilsted): With a suitable wrapper for `matmul` using e.g. `case`
@@ -226,7 +226,7 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
     axes = tf.convert_to_tensor(axes, name="axes", dtype=tf.int32)
     return axes[0], axes[1]
 
-  with tf.name_scope(name, "Tensordot", [a, b, axes]) as _name:
+  with tf.compat.v1.name_scope(name, "Tensordot", [a, b, axes]) as _name:
     a = tf.convert_to_tensor(a, name="a")
     b = tf.convert_to_tensor(b, name="b")
     a_axes, b_axes = _tensordot_axes(a, axes)
