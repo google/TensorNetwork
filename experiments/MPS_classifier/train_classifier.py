@@ -5,12 +5,12 @@ import experiments.MPS_classifier.MPSMNIST as mm
 import datetime
 import pickle
 if __name__ == "__main__":
-    n_batches = 10
-    D = 20
+    n_batches = 1
+    D = 60
     n_sweeps = 10
     dtype = tf.float64
-    train,valid,test = mm.load_MNIST('MNIST')
-    data, labs = mm.generate_mapped_MNIST_batches(train[0],train[1],n_batches=20)
+    train,valid,test = mm.load_MNIST('data')
+    data, labs = mm.generate_mapped_MNIST_batches(train[0],train[1],n_batches=n_batches)
     samples = tf.convert_to_tensor(data[0].astype(dtype.as_numpy_dtype))
     labels = tf.convert_to_tensor(labs[0].astype(dtype.as_numpy_dtype))
     valid_data, valid_labels = mm.generate_mapped_MNIST_batches(valid[0], valid[1],n_batches=1)
