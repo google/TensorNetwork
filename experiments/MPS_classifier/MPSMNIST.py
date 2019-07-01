@@ -263,12 +263,12 @@ class MPSClassifier:
                 self.label_tensor, self.tensors[n] = self.shift_left(self.tensors[n], self.label_tensor, numpy_svd=numpy_svd)
             self._position = max(0,bond)
 
-        for s in reversed(range(self.pos)):
-            if s in self.right_data_environment:
-                del self.right_data_environment[s]
-        for s in range(self.pos + 1, len(self) + 1):
-            if s in self.left_data_environment:            
-                del self.left_data_environment[s]
+        # for s in reversed(range(self.pos)):
+        #     if s in self.right_data_environment:
+        #         del self.right_data_environment[s]
+        # for s in range(self.pos + 1, len(self) + 1):
+        #     if s in self.left_data_environment:            
+        #         del self.left_data_environment[s]
             
     def get_central_one_site_tensor(self, which): 
         """
@@ -680,7 +680,6 @@ class MPSClassifier:
             while self.pos < len(self) - n0:
                 self.position(self.pos + 1)
                 self.add_layer(samples, self.pos - 1, direction=1)                    
-            
             while self.pos > n0 + 1:
                 old_pos = self.pos
                 if cnt_steps < max_local_steps:
