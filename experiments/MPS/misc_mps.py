@@ -23,7 +23,7 @@ import copy
 import functools as fct
 import tensornetwork as tn
 from scipy.sparse.linalg import LinearOperator, lgmres, eigs
-ncon_defuned = tf.contrib.eager.defun(ncon_tn)
+ncon_defuned = tf.contrib.eager.defun(ncon_tn, autograph=False)
 
 
 def transfer_op(As, Bs, direction, x):
@@ -51,7 +51,7 @@ def transfer_op(As, Bs, direction, x):
   return x
 
 
-transfer_op_defuned = tf.contrib.eager.defun(transfer_op)
+transfer_op_defuned = tf.contrib.eager.defun(transfer_op, autograph=False)
 
 
 def add_layer(B, mps_tensor, mpo, conj_mps_tensor, direction):
@@ -83,7 +83,7 @@ def add_layer(B, mps_tensor, mpo, conj_mps_tensor, direction):
         [[1, 4, 3], [-1, 2, 1], [-3, 3, 5, 2], [-2, 5, 4]])
 
 
-add_layer_defuned = tf.contrib.eager.defun(add_layer)
+add_layer_defuned = tf.contrib.eager.defun(add_layer, autograph=False)
 
 
 def one_minus_pseudo_unitcell_transfer_op(direction, mps, left_dominant,
@@ -384,7 +384,7 @@ def prepare_tensor_QR(tensor, direction):
     return tf.transpose(tf.conj(r)), out, Z
 
 
-prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR)
+prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR, autograph=False)
 
 
 def prepare_tensor_SVD(tensor, direction):
@@ -428,7 +428,7 @@ def prepare_tensor_SVD(tensor, direction):
     return u, s, out, Z
 
 
-prepare_tensor_SVD_defuned = tf.contrib.eager.defun(prepare_tensor_SVD)
+prepare_tensor_SVD_defuned = tf.contrib.eager.defun(prepare_tensor_SVD, autograph=False)
 
 
 def apply_2site_schmidt_canonical(op,
@@ -515,7 +515,7 @@ def apply_2site_schmidt_canonical(op,
 
 
 apply_2site_schmidt_canonical_defuned = tf.contrib.eager.defun(
-    apply_2site_schmidt_canonical)
+    apply_2site_schmidt_canonical, autograph=False)
 
 
 def apply_2site_generic(op, A1, A2, max_bond_dim=None, auto_trunc_max_err=0.0):
@@ -560,7 +560,7 @@ def apply_2site_generic(op, A1, A2, max_bond_dim=None, auto_trunc_max_err=0.0):
   return nA1_new.tensor, nC.tensor, nA2_new.tensor, trunc_err
 
 
-apply_2site_generic_defuned = tf.contrib.eager.defun(apply_2site_generic)
+apply_2site_generic_defuned = tf.contrib.eager.defun(apply_2site_generic, autograph=False)
 
 
 @tf.contrib.eager.defun
@@ -906,7 +906,7 @@ def restore_helper(tensors,
   return As, mat, connector, right_mat
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def restore_helper_power_method(tensors,
                                 init=None,
                                 precision=1E-12,

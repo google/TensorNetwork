@@ -169,7 +169,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     return alphas, betas[0:-1], gammas[0:-1]
 
 
-#@tf.contrib.eager.defun
+#@tf.contrib.eager.defun(autograph=False)
 def ascending_super_operator(ham, isometry, unitary):
     """
     binary mera ascending super operator
@@ -185,7 +185,7 @@ def ascending_super_operator(ham, isometry, unitary):
             ham, isometry, unitary)
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def two_site_ascending_super_operator(operator, isometry, unitary):
     """
     binary mera two-site ascending super operator
@@ -232,7 +232,7 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def two_site_descending_super_operator(rho, isometry, unitary):
     """
     binary mera two-site descending super operator
@@ -279,7 +279,7 @@ def two_site_descending_super_operator(rho, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def left_ascending_super_operator(hamiltonian, isometry, unitary):
     """
     binary mera left ascending super operator
@@ -355,7 +355,7 @@ def left_ascending_super_operator(hamiltonian, isometry, unitary):
     return op.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def right_ascending_super_operator(hamiltonian, isometry, unitary):
     """
     binary mera right ascending super operator
@@ -432,7 +432,7 @@ def right_ascending_super_operator(hamiltonian, isometry, unitary):
     return op.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def left_descending_super_operator(reduced_density, isometry, unitary):
     """
     binary mera left descending super operator
@@ -511,7 +511,7 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def right_descending_super_operator(reduced_density, isometry, unitary):
     """
     binary mera right descending super operator
@@ -588,7 +588,7 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-#@tf.contrib.eager.defun
+#@tf.contrib.eager.defun(autograph=False)
 def descending_super_operator(rho, isometry, unitary):
     """
     binary mera descending super operator
@@ -608,7 +608,7 @@ def descending_super_operator(rho, isometry, unitary):
     return rho
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
     net = tn.TensorNetwork()
 
@@ -675,7 +675,7 @@ def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_2(hamiltonian, reduced_density, isometry, unitary):
     net = tn.TensorNetwork()
 
@@ -741,7 +741,7 @@ def get_env_disentangler_2(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_3(hamiltonian, reduced_density, isometry, unitary):
     net = tn.TensorNetwork()
 
@@ -807,7 +807,7 @@ def get_env_disentangler_3(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
     net = tn.TensorNetwork()
 
@@ -894,7 +894,7 @@ def get_env_disentangler(ham, rho, isometry, unitary):
     return env_1 + env_2 + env_3 + env_4
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
@@ -961,7 +961,7 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
@@ -1030,7 +1030,7 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
@@ -1096,7 +1096,7 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
@@ -1164,7 +1164,7 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
@@ -1233,7 +1233,7 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun
+@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
 
     net = tn.TensorNetwork()
