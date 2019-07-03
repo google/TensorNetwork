@@ -1175,3 +1175,9 @@ def test_edge_sorting(backend):
   e3 = net.connect(c[0], a[1])
   sorted_edges = sorted([e2, e3, e1])
   assert sorted_edges == [e1, e2, e3]
+
+def test_switch_backend():
+  net = tensornetwork.TensorNetwork(backend="numpy")
+  a = net.add_node(np.eye(2))
+  net.switch_backend(new_backend="tensorflow")
+  assert isinstance(a.tensor, tf.Tensor)
