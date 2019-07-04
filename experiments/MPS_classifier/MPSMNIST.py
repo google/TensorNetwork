@@ -727,7 +727,7 @@ class MPSClassifier:
                                                                                                      np.real(loss), 
                                                                                                      np.imag(loss), 
                                                                                                      lr, 
-                                                                                                     correct/labels.shape[0], self.tensors[self.pos].shape[0]))
+                                                                                                     correct/labels.shape[0], self.tensors[self.pos - 1].shape[1]))
                 stdout.flush()
             with open(self.name + 'data_.pickle', 'wb') as f:
                 pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
@@ -748,13 +748,12 @@ class MPSClassifier:
                     
                 correct = np.sum(prediction.numpy()==ground_truth.numpy())
                 train_accuracies.append(correct/labels.shape[0])                
-                losses.append(loss)                
-                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f" % (self.pos, 
-                                                                                               np.real(loss), 
-                                                                                               np.imag(loss), 
-                                                                                               lr, 
-                                                                                               correct/labels.shape[0]))
-                
+                losses.append(loss)
+                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
+                                                                                                     np.real(loss), 
+                                                                                                     np.imag(loss), 
+                                                                                                     lr, 
+                                                                                                     correct/labels.shape[0], self.tensors[self.pos].shape[0]))
                 stdout.flush()
             with open(self.name + 'data_.pickle', 'wb') as f:
                 pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
