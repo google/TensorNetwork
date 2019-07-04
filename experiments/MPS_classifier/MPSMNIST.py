@@ -60,20 +60,25 @@ def svd(mat, full_matrices=False, compute_uv=True, r_thresh=1E-12):
         print('caught a LinAlgError with dir>0')
     return u, s, v
 
-def split_node_full_svd_numpy(node, left_edges, right_edges, direction, max_singular_values):
+def split_node_full_svd_numpy(node, left_edges, right_edges, direction, max_singular_values=None, trunc_thresh=None):
 
     node = node.reorder_edges(left_edges + right_edges)
     D0, D1, D2, D3 = node.tensor.get_shape()    
     arr2 = np.reshape(node.tensor, [D0*D1, D2*D3])
     u,s,v = svd(arr2,full_matrices=False)
-    if len(s)> max_singular_values:
-        s = s[0 : max_singular_values]
-        s /= np.linalg.norm(s)
-        u = u[:, 0 : max_singular_values]
-        v = v[0 : max_singular_values, :]
+    if trunc_thresh:
+        s /= np.linalg.norm(s)    
+        s = s[s >= trunc_thresh]
+    if max_singular_values:
+        if len(s)> max_singular_values:
+            s = s[0 : max_singular_values]
+            
+    s /= np.linalg.norm(s)
+    u = u[:, 0 : len(s)]
+    v = v[0 : len(s), :]
     if direction in  ('r','right'):
         out = np.transpose(np.reshape(u,(D0, D1, len(s))), [0, 2, 1])
-        return out, np.reshape(np.dot(np.diag(s),v),(len(s), D2, D3))
+        return tf.convert_to_tensor(out),tf.convert_to_tensor(np.reshape(np.dot(np.diag(s),v),(len(s), D2, D3)))
     if direction in  ('l','left'):
         return tf.convert_to_tensor(np.reshape(np.dot(u,np.diag(s)),(D0, D1, len(s)))),\
             tf.convert_to_tensor(np.reshape(v,(len(s), D2, D3)))
@@ -182,50 +187,126 @@ class MPSClassifier:
         return len(self.tensors)
 
           
+
     @staticmethod
     #@tf.contrib.eager.defun    
-    def shift_right(label_tensor, tensor, numpy_svd=False):
-        D = tensor.shape[1]
-        net = tn.TensorNetwork()
-        l_node =  net.add_node(label_tensor)
-        t_node = net.add_node(tensor)
-        e = net.connect(l_node[2], t_node[0])
-        left_edges = [l_node[0],  t_node[2]]
-        right_edges = [l_node[1], t_node[1]]        
-        res = net.contract(e)
-        if not numpy_svd:
-            u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D)
-            Z = tf.linalg.norm(s_node.tensor)
-            s_node.tensor /= Z
-            out = u_node.reorder_axes([0, 2, 1])
-            label_tensor = net.contract(s_node[1])
-            return out.tensor , label_tensor.tensor
-        else:
-            out, label_tensor = split_node_full_svd_numpy(res, left_edges, right_edges, direction='r', max_singular_values=D)
-            return out, label_tensor
+    def split_off(tensor, direction, numpy_svd=False, D=None, trunc_thresh=None):
+        if direction in ('r','right'):
+            net = tn.TensorNetwork()
+            t_node = net.add_node(tensor)
+            left_edges = [t_node[0],  t_node[3]]
+            right_edges = [t_node[1], t_node[2]]        
+
+            if not numpy_svd:
+                u_node, s_node, v_node, _ = net.split_node_full_svd(t_node, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
+                Z = tf.linalg.norm(s_node.tensor)
+                s_node.tensor /= Z
+                out = u_node.reorder_axes([0, 2, 1])
+                label_tensor = net.contract(s_node[1])
+                return out.tensor , label_tensor.tensor
+            else:
+                out, label_tensor = split_node_full_svd_numpy(t_node, left_edges, right_edges, direction='r', max_singular_values=D, trunc_thresh=trunc_thresh)
+                #print('out.shape: ',out.shape, 'label.shape: ', label_tensor.shape)            
+                return out, label_tensor
+
+        if direction in ('l','left'):            
+            net = tn.TensorNetwork()
+            t_node = net.add_node(tensor)
+            left_edges = [t_node[0],  t_node[1]]
+            right_edges = [t_node[2], t_node[3]]
+            if not numpy_svd:
+                u_node, s_node, v_node, _ = net.split_node_full_svd(t_node, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
+                Z = tf.linalg.norm(s_node.tensor)
+                s_node.tensor /= Z
+                label_tensor = net.contract(s_node[0])
+                return label_tensor.tensor, v_node.tensor
+            else:
+                #the numpy truncation scheme is different from tensorflow above
+                label_tensor, out = split_node_full_svd_numpy(t_node, left_edges, right_edges, direction='l', max_singular_values=D,
+                                                              trunc_thresh=trunc_thresh)
+                return label_tensor, out
+                
+    @staticmethod        
+    def shift_right(label_tensor, tensor, numpy_svd=False, D=None, trunc_thresh=None):
+        t = misc_mps.ncon([label_tensor, tensor],[[-1,-2,1], [1,-3,-4]])        
+        return MPSClassifier.split_off(t, direction='r', numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)    
+
         
 
     
     @staticmethod
     #@tf.contrib.eager.defun
-    def shift_left(tensor, label_tensor, numpy_svd=False):
-        D = tensor.shape[0]
-        net = tn.TensorNetwork()
-        l_node =  net.add_node(label_tensor)
-        t_node = net.add_node(tensor)
-        e = net.connect(l_node[0], t_node[1])
-        left_edges = [t_node[0],  l_node[1]]
-        right_edges = [l_node[2], t_node[2]]        
-        res = net.contract(e)
-        if not numpy_svd:
-            u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D)
-            Z = tf.linalg.norm(s_node.tensor)
-            s_node.tensor /= Z
-            label_tensor = net.contract(s_node[0])
-            return label_tensor.tensor, v_node.tensor
-        else:
-            label_tensor, out = split_node_full_svd_numpy(res, left_edges, right_edges, direction='l', max_singular_values=D)
-            return label_tensor, out
+    def shift_left(tensor, label_tensor, numpy_svd=False, D=None, trunc_thresh=None):
+        t = misc_mps.ncon([tensor, label_tensor],[[-1,1,-4], [1,-2,-3]])
+        return MPSClassifier.split_off(t, direction='l', numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)    
+
+    
+    # @staticmethod
+    # #@tf.contrib.eager.defun    
+    # def shift_right(label_tensor, tensor, numpy_svd=False, D=None, trunc_thresh=None):
+    #     Nl = label_tensor.get_shape()[1]
+    #     Nr = tensor.get_shape()[2]
+    #     swap = np.zeros((Nl, Nr, Nr, Nl), dtype=tensor.dtype.as_numpy_dtype)
+    #     for i in range(Nl):
+    #         for j in range(Nr):
+    #             swap[i,j,j,i] = 1
+
+    #     net = tn.TensorNetwork()
+    #     l_node =  net.add_node(label_tensor)
+    #     t_node = net.add_node(tensor)
+    #     swap_node = net.add_node(swap)
+    #     #print('label.shape: ',label_tensor.shape, 'tensor.shpae: ', tensor.shape)
+    #     e1 = net.connect(l_node[2], t_node[0])
+    #     e2 = net.connect(l_node[1], swap_node[0])
+    #     e3 = net.connect(t_node[2], swap_node[1])        
+    #     left_edges = [l_node[0],  swap_node[2]]
+    #     right_edges = [swap_node[3], t_node[1]]        
+    #     temp = net.contract(e1)
+    #     res = net.contract_between(temp, swap_node)
+    #     if not numpy_svd:
+    #         u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
+    #         Z = tf.linalg.norm(s_node.tensor)
+    #         s_node.tensor /= Z
+    #         out = u_node.reorder_axes([0, 2, 1])
+    #         label_tensor = net.contract(s_node[1])
+    #         return out.tensor , label_tensor.tensor
+    #     else:
+    #         out, label_tensor = split_node_full_svd_numpy(res, left_edges, right_edges, direction='r', max_singular_values=D, trunc_thresh=trunc_thresh)
+    #         #print('out.shape: ',out.shape, 'label.shape: ', label_tensor.shape)            
+    #         return out, label_tensor
+
+    
+    # @staticmethod
+    # #@tf.contrib.eager.defun
+    # def shift_left(tensor, label_tensor, numpy_svd=False, D=None, trunc_thresh=None):
+    #     Nl = tensor.get_shape()[2]
+    #     Nr = label_tensor.get_shape()[1]
+    #     swap = np.zeros((Nl, Nr, Nr, Nl), dtype=tensor.dtype.as_numpy_dtype)
+    #     for i in range(Nl):
+    #         for j in range(Nr):
+    #             swap[i,j,j,i] = 1
+    #     net = tn.TensorNetwork()
+    #     l_node =  net.add_node(label_tensor)
+    #     t_node = net.add_node(tensor)
+    #     swap_node = net.add_node(swap)
+    #     e1 = net.connect(t_node[1],l_node[0])
+    #     e2 = net.connect(t_node[2], swap_node[0])
+    #     e3 = net.connect(l_node[1], swap_node[1])        
+    #     left_edges = [t_node[0],  swap_node[2]]
+    #     right_edges = [l_node[2], swap_node[3]]
+    #     temp = net.contract(e1)
+    #     res = net.contract_between(temp, swap_node)
+    #     if not numpy_svd:
+    #         u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
+    #         Z = tf.linalg.norm(s_node.tensor)
+    #         s_node.tensor /= Z
+    #         label_tensor = net.contract(s_node[0])
+    #         return label_tensor.tensor, v_node.tensor
+    #     else:
+    #         #the numpy truncation scheme is different from tensorflow above
+    #         label_tensor, out = split_node_full_svd_numpy(res, left_edges, right_edges, direction='l', max_singular_values=D,
+    #                                                       trunc_thresh=trunc_thresh)
+    #         return label_tensor, out
 
 
 
@@ -247,20 +328,23 @@ class MPSClassifier:
     def D(self):
         raise NotImplementedError()
         
-    def position(self, bond, numpy_svd=False):
+    def position(self, bond, numpy_svd=False, D=None, trunc_thresh=None):
         """
-        
         """
         if bond == self.pos:
             return
         if bond > self.pos:
-
             for n in range(self._position, min(bond,len(self))):
-                self.tensors[n],  self.label_tensor = self.shift_right(self.label_tensor, self.tensors[n], numpy_svd=numpy_svd)
+                self.tensors[n],  self.label_tensor = self.shift_right(self.label_tensor, self.tensors[n], numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)
+                #print(n, self.tensors[n].shape,  self.label_tensor.shape)
             self._position = min(bond,len(self))
         if bond < self._position:
             for n in range(self._position - 1, max(-1,bond - 1), -1):
-                self.label_tensor, self.tensors[n] = self.shift_left(self.tensors[n], self.label_tensor, numpy_svd=numpy_svd)
+                #print(" shifting label tensor from site {0} to  site {1}".format(n, n-1))
+                #print("shape(tensor[{0}]): {1}, shape(label_tensor): {2}", n, self.tensors[n].shape,  self.label_tensor.shape)                                
+                self.label_tensor, self.tensors[n] = self.shift_left(self.tensors[n], self.label_tensor, numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)
+                #print("shape(tensor[{0}]): {1}, shape(label_tensor): {2}", n, self.tensors[n].shape,  self.label_tensor.shape)                                                
+
             self._position = max(0,bond)
 
         # for s in reversed(range(self.pos)):
@@ -319,24 +403,31 @@ class MPSClassifier:
                 #has shape (Nt, 1, D[site + 1])
                 self.left_data_environment[site + 1] = tf.matmul(self.left_data_environment[site], tensor) 
             out = tf.linalg.norm(self.left_data_environment[site + 1], axis=2) #get the norm of each row
-            self.left_data_environment[site + 1] = tf.expand_dims(tf.squeeze(self.left_data_environment[site + 1])/out,1)
+            self.left_data_environment[site + 1] = tf.expand_dims(tf.squeeze(self.left_data_environment[site + 1], 1)/out,1)
 
                 
         if direction in (-1,'r','right'):
             assert(self.pos <= site)
             if site == (len(self) - 1):
+
                 self.right_data_environment[site - 1] = misc_mps.ncon([self.tensors[site],embedded_data[:,:,site]],
                                          [[-2,-3,1],[-1,1]]) #has shape (Nt, D[-1], 1)
+                #print('shape of right_envs[{0}]'.format(site-1),self.right_data_environment[site - 1].shape)
                 
             else:
                 #first contract the image pixels into the mps tensor
+                #print('shape of tensors[{0}]'.format(site),self.tensors[site].shape)
                 tensor = misc_mps.ncon([self.tensors[site],embedded_data[:,:,site]],
                                    [[-2,-3,1],[-1, 1]]) #has shape (Nt, D[site], D[site+1])
                 #use tf.matmul with broadcasting to multiply the right-next vectors
                 #has shape (Nt, D[site],1)
-                self.right_data_environment[site - 1] = tf.matmul(tensor, self.right_data_environment[site]) 
+                #print('shape of contracted tensor: ', tensor.shape)
+                #print('shape of right_env[{0}]'.format(site), self.right_data_environment[site].shape)
+                self.right_data_environment[site - 1] = tf.matmul(tensor, self.right_data_environment[site])
+                #print('shape of right_envs[{0}]'.format(site-1),self.right_data_environment[site - 1].shape)                
             out = tf.linalg.norm(self.right_data_environment[site - 1], axis=1) #get the norm of each row
-            self.right_data_environment[site - 1]= tf.expand_dims(tf.squeeze(self.right_data_environment[site - 1])/out,2)
+            #print('out.shape ', out.shape)
+            self.right_data_environment[site - 1]= tf.expand_dims(tf.squeeze(self.right_data_environment[site - 1], 2)/out,2)
             
     def compute_data_environments(self,embedded_data):
         for site in range(self.pos):
@@ -363,7 +454,7 @@ class MPSClassifier:
             Nt = embedded_data.shape[0]
             Dl, n_labels, Dr, dl = label_tensor.shape
             if self.pos > 0:
-                left_envs = tf.squeeze(self.left_data_environment[self.pos]) #dummy index can be dropped 
+                left_envs = tf.squeeze(self.left_data_environment[self.pos], 1) #dummy index can be dropped 
                                                                              #because we're using tensordot instead of 
                                                                              #matmul
             else:
@@ -385,7 +476,7 @@ class MPSClassifier:
             Nt = embedded_data.shape[0]
             Dl, n_labels, Dr, dl = label_tensor.shape
             if self.pos > 1:
-                left_envs = tf.squeeze(self.left_data_environment[self.pos - 1]) #dummy index can be dropped 
+                left_envs = tf.squeeze(self.left_data_environment[self.pos - 1], 1) #dummy index can be dropped 
                                                                                  #because we're using tensordot instead of 
                                                                                  #matmul
             else:
@@ -440,15 +531,9 @@ class MPSClassifier:
         t6 = tf.squeeze(tf.matmul(t5,bottom))
         if debug:
             print('shape of bottom:', bottom.shape)
-            print(t6.shape)
+            print('shape of t6 (t5 * bottom) ', t6.shape)
         norms = tf.expand_dims(tf.linalg.norm(t6, axis=1),1)
         t7 = t6 / norms #normalize the predictions
-        # print()
-        # print('maximums t6, t7')
-        # print(tf.math.reduce_max(t6),tf.math.reduce_max(t7))
-        # print('minimums norms')
-        # print(tf.math.reduce_min(norms))
-        
         return t7, norms  
         
     def one_site_gradient(self, embedded_data, labels, which): 
@@ -465,13 +550,13 @@ class MPSClassifier:
             n_labels = labels.shape[1]
             Nt = labels.shape[0]
             if self.pos > 0:
-                left_env = tf.squeeze(self.left_data_environment[self.pos])
+                left_env = tf.squeeze(self.left_data_environment[self.pos], 1)
                 Dl = left_env.shape[1]
             else:
                 left_env = tf.ones(shape=(Nt,1),  dtype=self.dtype) #FIXME: that's overkill; a single vector is enough        
                 Dl = 1
             if self.pos < len(self) - 1:
-                right_env = tf.squeeze(self.right_data_environment[self.pos])
+                right_env = tf.squeeze(self.right_data_environment[self.pos], 2)
                 Dr = right_env.shape[1]
             else:
                 right_env = tf.ones(shape=(Nt, 1), dtype=self.dtype)
@@ -485,7 +570,7 @@ class MPSClassifier:
             #each row in `predict` gets multiplied by `temp`.
             #`temp` is a set of `Nt` numbers, obtained from contracting the label vector for sample `n`
             #with the prediction vector for sample `n`.
-            temp = tf.squeeze(tf.matmul(np.expand_dims(predict,1), np.expand_dims(labels, 2)),1)      
+            temp = tf.squeeze(tf.matmul(np.expand_dims(predict,1), np.expand_dims(labels, 2)), 1)      
             y = (predict * temp - labels)/norms
             loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
             t = batched_kronecker(batched_kronecker(batched_kronecker(left_env, 
@@ -500,13 +585,13 @@ class MPSClassifier:
             n_labels = labels.shape[1]
             Nt = labels.shape[0]
             if self.pos  > 1:
-                left_env = tf.squeeze(self.left_data_environment[self.pos - 1])
+                left_env = tf.squeeze(self.left_data_environment[self.pos - 1], 1)
                 Dl = left_env.shape[1]
             else:
                 left_env = tf.ones(shape=(Nt,1), dtype=self.dtype) #FIXME: that's overkill; a single vector is enough        
                 Dl = 1
             if self.pos < len(self):
-                right_env = tf.squeeze(self.right_data_environment[self.pos - 1])
+                right_env = tf.squeeze(self.right_data_environment[self.pos - 1], 2)
                 Dr = right_env.shape[1]
             else:
                 right_env = tf.ones(shape=(Nt, 1), dtype=self.dtype)
@@ -527,47 +612,50 @@ class MPSClassifier:
             return tf.transpose(tf.reshape(gradient, (Dl, dl, Dr, n_labels)), (0,3,2,1)), loss            
     
     
-    def do_one_site_step(self, embedded_data, labels, direction, learning_rate=-1E-5, numpy_svd=False):
+    def do_one_site_step(self, embedded_data, labels, direction, learning_rate=1E-5, numpy_svd=False, loss_thresh=1.0,
+                         max_singular_values=None, trunc_thresh=None):
         """
-        learning rate should be negative
+        learning rate should be positive
         """
         if direction in ('right','r'):
             old_tensor = copy.copy(self.tensors[self.pos])
             old_label_tensor = copy.copy(self.label_tensor)
             
-            D = self.tensors[self.pos].shape[1]
             gradient, loss = self.one_site_gradient(embedded_data, labels, which='r')
             gradient /= tf.linalg.norm(gradient)
             #merge the label-tensor into the mps from the left
             temp = self.get_central_one_site_tensor(which = 'r')
-            temp = (temp + learning_rate * gradient)
-            net = tn.TensorNetwork()
-            node = net.add_node(temp)
-            left_edges = [node[0],  node[3]]
-            right_edges = [node[1], node[2]]
-            if not numpy_svd:
-                u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=D)
-                Z = tf.linalg.norm(s_node.tensor)
-                s_node.tensor /= Z
-                out = u_node.reorder_axes([0, 2, 1])
-                label_tensor = net.contract(s_node[1])
+            temp = (temp - learning_rate * gradient)
+            self.tensors[self.pos],  self.label_tensor = self.split_off(temp, direction='r', numpy_svd=numpy_svd, D=max_singular_values, trunc_thresh=trunc_thresh)                
+
+            # net = tn.TensorNetwork()
+            # node = net.add_node(temp)
+            # left_edges = [node[0],  node[3]]
+            # right_edges = [node[1], node[2]]
+            # if not numpy_svd:
+            #     u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
+            #     Z = tf.linalg.norm(s_node.tensor)
+            #     s_node.tensor /= Z
+            #     out = u_node.reorder_axes([0, 2, 1])
+            #     label_tensor = net.contract(s_node[1])
                 
-                self.tensors[self.pos] = out.tensor
-                self.label_tensor = label_tensor.tensor
-            else:
-                out, label_tensor = split_node_full_svd_numpy(node, left_edges, right_edges, direction='r', max_singular_values=D)
-                self.tensors[self.pos] = out
-                self.label_tensor = label_tensor
+            #     self.tensors[self.pos] = out.tensor
+            #     self.label_tensor = label_tensor.tensor
+            # else:
+            #     out, label_tensor = split_node_full_svd_numpy(node, left_edges, right_edges, direction='r', max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
+            #     self.tensors[self.pos] = out
+            #     self.label_tensor = label_tensor
                 
             self._position += 1
             self.add_layer(embedded_data, self.pos - 1, direction=1)
             
             predict, norms = self.predict(embedded_data, which='r')
             new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if new_loss > loss:
+            if (new_loss - loss) > loss_thresh:
                 self._position -= 1
                 self.tensors[self.pos] = old_tensor
                 self.label_tensor = old_label_tensor
+                self.add_layer(embedded_data, self.pos, direction=-1)                                
             
             
         if direction in ('l','left'):
@@ -578,52 +666,121 @@ class MPSClassifier:
             gradient /= np.linalg.norm(gradient)
             #merge the label-tensor into the mps from the right
             temp = self.get_central_one_site_tensor(which = 'l')
-            temp = (temp + learning_rate * gradient)
+            temp = (temp - learning_rate * gradient)
 
-            D = self.tensors[self.pos - 1].shape[0]
+            self.label_tensor, self.tensors[self.pos - 1] = self.split_off(temp, direction='l', numpy_svd=numpy_svd, D=max_singular_values, trunc_thresh=trunc_thresh)                            
+            # net = tn.TensorNetwork()
+            # node = net.add_node(temp)
+            # left_edges = [node[0],  node[1]]
+            # right_edges = [node[2], node[3]]
+            # if not numpy_svd:
+            #     u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
+            #     Z = tf.linalg.norm(s_node.tensor)
+            #     s_node.tensor /= Z
+            #     label_tensor = net.contract(s_node[0])
 
-            net = tn.TensorNetwork()
-            node = net.add_node(temp)
-            left_edges = [node[0],  node[1]]
-            right_edges = [node[2], node[3]]
-            if not numpy_svd:
-                u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=D)
-                Z = tf.linalg.norm(s_node.tensor)
-                s_node.tensor /= Z
-                label_tensor = net.contract(s_node[0])
-
-                self.tensors[self.pos - 1] = v_node.tensor
-                self.label_tensor = label_tensor.tensor
-            else:
-                label_tensor, out = split_node_full_svd_numpy(node, left_edges, right_edges, direction='l', max_singular_values=D)
-                self.tensors[self.pos - 1] = out
-                self.label_tensor = label_tensor
+            #     self.tensors[self.pos - 1] = v_node.tensor
+            #     self.label_tensor = label_tensor.tensor
+            # else:
+            #     label_tensor, out = split_node_full_svd_numpy(node, left_edges, right_edges, direction='l', max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
+            #     self.tensors[self.pos - 1] = out
+            #     self.label_tensor = label_tensor
             
             self._position -= 1
             self.add_layer(embedded_data, self.pos, direction=-1)
             predict, norms = self.predict(embedded_data, which='r')
             new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if new_loss > loss:
+            if (new_loss - loss) > loss_thresh:
                 self._position += 1
                 self.tensors[self.pos - 1] = old_tensor
                 self.label_tensor = old_label_tensor
+                self.add_layer(embedded_data, self.pos - 1, direction=1)                
             
         return loss, gradient
+
+
     
-    def optimize(self, samples, labels, learning_rate, num_sweeps, n0=0, numpy_svd=False, factor=1.5, n_stpcnt=10, lower_bound=1E-10, max_local_steps=4):
+    def optimize_simple(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
+                        D=None,
+                        trunc_thresh=1E-8):
+        losses = []
+        train_accuracies = []
+
+        ground_truth = tf.argmax(labels,  axis=1)
+        lr = learning_rate
+        for sweep in range(num_sweeps):
+            while self.pos < len(self) - 1:
+                loss, gradient = self.do_one_site_step(samples, 
+                                                       labels, learning_rate=lr, 
+                                                       direction='r', numpy_svd=numpy_svd,
+                                                       loss_thresh=1000000000000.0,
+                                                       max_singular_values=D,
+                                                       trunc_thresh=trunc_thresh)
+                if self.pos < len(self):
+                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+                else:
+                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
+                correct = np.sum(prediction.numpy()==ground_truth.numpy())
+                train_accuracies.append(correct/labels.shape[0])
+                losses.append(loss)
+                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
+                                                                                                     np.real(loss), 
+                                                                                                     np.imag(loss), 
+                                                                                                     lr, 
+                                                                                                     correct/labels.shape[0], self.tensors[self.pos].shape[0]))
+                stdout.flush()
+            with open(self.name + 'data_.pickle', 'wb') as f:
+                pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
+            while self.pos < len(self):
+                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
+                self.add_layer(samples, self.pos - 1, direction=1)                    
+            while self.pos > 1:
+                loss, gradient = self.do_one_site_step(samples, 
+                                                       labels, learning_rate=lr, 
+                                                       direction='l', numpy_svd=numpy_svd,
+                                                       loss_thresh=1000000000000.0,
+                                                       max_singular_values=D,                                                       
+                                                       trunc_thresh=trunc_thresh)
+                if self.pos < len(self):
+                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+                else:
+                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
+                    
+                correct = np.sum(prediction.numpy()==ground_truth.numpy())
+                train_accuracies.append(correct/labels.shape[0])                
+                losses.append(loss)                
+                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f" % (self.pos, 
+                                                                                               np.real(loss), 
+                                                                                               np.imag(loss), 
+                                                                                               lr, 
+                                                                                               correct/labels.shape[0]))
+                
+                stdout.flush()
+            with open(self.name + 'data_.pickle', 'wb') as f:
+                pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
+                
+        return losses, train_accuracies
+
+    
+    def optimize(self, samples, labels, learning_rate, num_sweeps, n0=0, numpy_svd=False,
+                 factor=1.5, n_stpcnt=10,
+                 lower_bound=1E-10,
+                 max_local_steps=4, loss_thresh=1.0,
+                 D=None,
+                 trunc_thresh=1E-8):
         losses = []
         train_accuracies = []
         walltimes = []
 
-        self.position(0, numpy_svd=numpy_svd)        
-        self.position(n0, numpy_svd=numpy_svd)
+        self.position(0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)        
+        self.position(n0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)
         self.compute_data_environments(samples)
         ground_truth = tf.argmax(labels,  axis=1)
         old_loss = 1E200
         t1 = time.time()
         lr = learning_rate
         stpcnt = 0
-        self.position(n0, numpy_svd=numpy_svd)
+        self.position(n0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)
         self.compute_data_environments(samples)
         cnt_steps = 0
         for sweep in range(num_sweeps):
@@ -632,7 +789,7 @@ class MPSClassifier:
             # else:
             #     lr = learning_rates[-1]
             while self.pos > n0:
-                self.position(self.pos - 1)
+                self.position(self.pos - 1, trunc_thresh=trunc_thresh)
                 self.add_layer(samples, self.pos, direction=-1)
             
             while self.pos < len(self) - n0 - 1:
@@ -641,9 +798,11 @@ class MPSClassifier:
                 if cnt_steps < max_local_steps:
                     loss, gradient = self.do_one_site_step(samples, 
                                                            labels, learning_rate=lr, 
-                                                           direction='r', numpy_svd=numpy_svd)
+                                                           direction='r', numpy_svd=numpy_svd,
+                                                           max_singular_values=D,                                                           
+                                                           loss_thresh=loss_thresh)
                 else:
-                    self.position(self.pos + 1)
+                    self.position(self.pos + 1, trunc_thresh=trunc_thresh)
                     self.add_layer(samples, self.pos - 1, direction=1)                    
                     cnt_steps = 0
                     
@@ -656,12 +815,12 @@ class MPSClassifier:
                     prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
                 correct = np.sum(prediction.numpy()==ground_truth.numpy())
                 train_accuracies.append(correct)
-                if (loss >= old_loss) and (np.abs(lr) > lower_bound):                
+                if ((loss - old_loss) > loss_thresh) and (np.abs(lr) > np.abs(lower_bound)):                
                     lr /= factor
                     stpcnt = 0
-                elif (loss < old_loss) and (stpcnt > n_stpcnt) and (lr < learning_rate):
+                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr < learning_rate):
                     lr *= factor
-                elif (loss < old_loss) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
+                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
                     lr = learning_rate
 
                 stpcnt += 1
@@ -678,17 +837,19 @@ class MPSClassifier:
             cnt_steps = 0
                      
             while self.pos < len(self) - n0:
-                self.position(self.pos + 1)
+                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
                 self.add_layer(samples, self.pos - 1, direction=1)                    
             while self.pos > n0 + 1:
                 old_pos = self.pos
                 if cnt_steps < max_local_steps:
                     loss, gradient = self.do_one_site_step(samples, 
                                                            labels, learning_rate=lr, 
-                                                           direction='l', numpy_svd=numpy_svd)
+                                                           direction='l', numpy_svd=numpy_svd,
+                                                           max_singular_values=D,                                                           
+                                                           loss_thresh=loss_thresh)
                 else:
                     self.add_layer(samples, self.pos, direction=-1)                                                            
-                    self.position(self.pos - 1)
+                    self.position(self.pos - 1,  trunc_thresh=trunc_thresh)
                     self.add_layer(samples, self.pos, direction=-1)                                        
                     cnt_steps = 0
                     
@@ -702,12 +863,12 @@ class MPSClassifier:
                     
                 correct = np.sum(prediction.numpy()==ground_truth.numpy())
                 train_accuracies.append(correct)
-                if (loss >= old_loss) and (np.abs(lr) > lower_bound):                                
+                if ((loss - old_loss) > loss_thresh) and (np.abs(lr) > np.abs(lower_bound)): 
                     lr /= factor
                     stpcnt = 0
-                elif (loss < old_loss) and (stpcnt > n_stpcnt) and (lr < learning_rate):
+                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr < learning_rate):
                     lr *= factor
-                elif (loss < old_loss) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
+                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
                     lr = learning_rate
 
                 stpcnt += 1
