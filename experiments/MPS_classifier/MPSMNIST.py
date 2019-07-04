@@ -700,66 +700,97 @@ class MPSClassifier:
 
 
     
-    def optimize_simple(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
-                        D=None,
-                        trunc_thresh=1E-8):
+    def right_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
+                           D=None,
+                           trunc_thresh=1E-8):
         losses = []
         train_accuracies = []
 
         ground_truth = tf.argmax(labels,  axis=1)
         lr = learning_rate
-        for sweep in range(num_sweeps):
-            while self.pos < len(self) - 1:
-                loss, gradient = self.do_one_site_step(samples, 
-                                                       labels, learning_rate=lr, 
-                                                       direction='r', numpy_svd=numpy_svd,
-                                                       loss_thresh=1000000000000.0,
-                                                       max_singular_values=D,
-                                                       trunc_thresh=trunc_thresh)
-                if self.pos < len(self):
-                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
-                else:
-                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-                correct = np.sum(prediction.numpy()==ground_truth.numpy())
-                train_accuracies.append(correct/labels.shape[0])
-                losses.append(loss)
-                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
-                                                                                                     np.real(loss), 
-                                                                                                     np.imag(loss), 
-                                                                                                     lr, 
-                                                                                                     correct/labels.shape[0], self.tensors[self.pos - 1].shape[1]))
-                stdout.flush()
-            with open(self.name + 'data_.pickle', 'wb') as f:
-                pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
-            while self.pos < len(self):
-                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
-                self.add_layer(samples, self.pos - 1, direction=1)                    
-            while self.pos > 1:
-                loss, gradient = self.do_one_site_step(samples, 
-                                                       labels, learning_rate=lr, 
-                                                       direction='l', numpy_svd=numpy_svd,
-                                                       loss_thresh=1000000000000.0,
-                                                       max_singular_values=D,                                                       
-                                                       trunc_thresh=trunc_thresh)
-                if self.pos < len(self):
-                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
-                else:
-                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-                    
-                correct = np.sum(prediction.numpy()==ground_truth.numpy())
-                train_accuracies.append(correct/labels.shape[0])                
-                losses.append(loss)
-                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
-                                                                                                     np.real(loss), 
-                                                                                                     np.imag(loss), 
-                                                                                                     lr, 
-                                                                                                     correct/labels.shape[0], self.tensors[self.pos].shape[0]))
-                stdout.flush()
-            with open(self.name + 'data_.pickle', 'wb') as f:
-                pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
+        while self.pos < len(self) - 1:
+            loss, gradient = self.do_one_site_step(samples, 
+                                                   labels, learning_rate=lr, 
+                                                   direction='r', numpy_svd=numpy_svd,
+                                                   loss_thresh=1000000000000.0,
+                                                   max_singular_values=D,
+                                                   trunc_thresh=trunc_thresh)
+            if self.pos < len(self):
+                prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+            else:
+                prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
+            correct = np.sum(prediction.numpy()==ground_truth.numpy())
+            train_accuracies.append(correct/labels.shape[0])
+            losses.append(loss)
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
+                                                                                                 np.real(loss), 
+                                                                                                 np.imag(loss), 
+                                                                                                 lr, 
+                                                                                                 correct/labels.shape[0], self.tensors[self.pos - 1].shape[1]))
+            stdout.flush()
+        with open(self.name + 'data_.pickle', 'wb') as f:
+            pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
+        return losses, train_accuracies            
+                
+    def left_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
+                          D=None,
+                          trunc_thresh=1E-8):
+                          
+        losses = []
+        train_accuracies = []
+
+        ground_truth = tf.argmax(labels,  axis=1)
+        lr = learning_rate
+                        
+        while self.pos < len(self):
+            self.position(self.pos + 1, trunc_thresh=trunc_thresh)
+
+            self.add_layer(samples, self.pos - 1, direction=1)                    
+        while self.pos > 1:
+            loss, gradient = self.do_one_site_step(samples, 
+                                                   labels, learning_rate=lr, 
+                                                   direction='l', numpy_svd=numpy_svd,
+                                                   loss_thresh=1000000000000.0,
+                                                   max_singular_values=D,                                                       
+                                                   trunc_thresh=trunc_thresh)
+            if self.pos < len(self):
+                prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+            else:
+                prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
+                
+            correct = np.sum(prediction.numpy()==ground_truth.numpy())
+            train_accuracies.append(correct/labels.shape[0])                
+            losses.append(loss)
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
+                                                                                                 np.real(loss), 
+                                                                                                 np.imag(loss), 
+                                                                                                 lr, 
+                                                                                                 correct/labels.shape[0], self.tensors[self.pos].shape[0]))
+            stdout.flush()
+        with open(self.name + 'data_.pickle', 'wb') as f:
+            pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
                 
         return losses, train_accuracies
 
+
+    def optimize_simple(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
+                        D=None,
+                        trunc_thresh=1E-8):
+        losses, accuracies = [],[]        
+        for sweep in range(num_sweeps):
+            loss, accs = self.right_sweep_simple(samples, labels, learning_rate, numpy_svd=False,
+                                                 D=None,
+                                                 trunc_thresh=1E-8)
+            losses.extend(loss)
+            accuracies.extend(accs)
+            
+            loss, accs = self.left_sweep_simple(samples, labels, learning_rate, numpy_svd=False,
+                                                D=None,
+                                                trunc_thresh=1E-8)
+            
+            losses.extend(loss)
+            accuracies.extend(accs)
+        return losses, accuracies
     
     def optimize(self, samples, labels, learning_rate, num_sweeps, n0=0, numpy_svd=False,
                  factor=1.5, n_stpcnt=10,
