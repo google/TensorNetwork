@@ -435,6 +435,15 @@ class MPSClassifier:
         for site in reversed(range(self.pos,len(self))):
             self.add_layer(embedded_data, site, 'r')
             
+    def accuracy(self, samples, labels):
+        ground_truth = tf.argmax(labels,  axis=1)        
+        if self.pos < len(self):
+            prediction = tf.argmax(self.predict(samples, which='r')[0], 1)
+        else:
+            prediction = tf.argmax(self.predict(samples, which='l')[0], 1)
+        correct = np.sum(prediction.numpy() == ground_truth.numpy())
+        return correct/labels.shape[0]
+        
     def predict(self, embedded_data, which, debug=False):
         """
         Args:
@@ -628,30 +637,12 @@ class MPSClassifier:
             temp = (temp - learning_rate * gradient)
             self.tensors[self.pos],  self.label_tensor = self.split_off(temp, direction='r', numpy_svd=numpy_svd, D=max_singular_values, trunc_thresh=trunc_thresh)                
 
-            # net = tn.TensorNetwork()
-            # node = net.add_node(temp)
-            # left_edges = [node[0],  node[3]]
-            # right_edges = [node[1], node[2]]
-            # if not numpy_svd:
-            #     u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
-            #     Z = tf.linalg.norm(s_node.tensor)
-            #     s_node.tensor /= Z
-            #     out = u_node.reorder_axes([0, 2, 1])
-            #     label_tensor = net.contract(s_node[1])
-                
-            #     self.tensors[self.pos] = out.tensor
-            #     self.label_tensor = label_tensor.tensor
-            # else:
-            #     out, label_tensor = split_node_full_svd_numpy(node, left_edges, right_edges, direction='r', max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
-            #     self.tensors[self.pos] = out
-            #     self.label_tensor = label_tensor
-                
             self._position += 1
             self.add_layer(embedded_data, self.pos - 1, direction=1)
             
             predict, norms = self.predict(embedded_data, which='r')
             new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if (new_loss - loss) > loss_thresh:
+            if (new_loss - loss) > loss_thresh: #reject step if loss increases by more than `loss_thresh`
                 self._position -= 1
                 self.tensors[self.pos] = old_tensor
                 self.label_tensor = old_label_tensor
@@ -669,28 +660,11 @@ class MPSClassifier:
             temp = (temp - learning_rate * gradient)
 
             self.label_tensor, self.tensors[self.pos - 1] = self.split_off(temp, direction='l', numpy_svd=numpy_svd, D=max_singular_values, trunc_thresh=trunc_thresh)                            
-            # net = tn.TensorNetwork()
-            # node = net.add_node(temp)
-            # left_edges = [node[0],  node[1]]
-            # right_edges = [node[2], node[3]]
-            # if not numpy_svd:
-            #     u_node, s_node, v_node, _ = net.split_node_full_svd(node, left_edges, right_edges, max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
-            #     Z = tf.linalg.norm(s_node.tensor)
-            #     s_node.tensor /= Z
-            #     label_tensor = net.contract(s_node[0])
-
-            #     self.tensors[self.pos - 1] = v_node.tensor
-            #     self.label_tensor = label_tensor.tensor
-            # else:
-            #     label_tensor, out = split_node_full_svd_numpy(node, left_edges, right_edges, direction='l', max_singular_values=max_singular_values, max_truncation_err=trunc_thresh)
-            #     self.tensors[self.pos - 1] = out
-            #     self.label_tensor = label_tensor
-            
             self._position -= 1
             self.add_layer(embedded_data, self.pos, direction=-1)
             predict, norms = self.predict(embedded_data, which='r')
             new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if (new_loss - loss) > loss_thresh:
+            if (new_loss - loss) > loss_thresh:#reject step if loss increases by more than `loss_thresh`
                 self._position += 1
                 self.tensors[self.pos - 1] = old_tensor
                 self.label_tensor = old_label_tensor
@@ -699,73 +673,145 @@ class MPSClassifier:
         return loss, gradient
 
 
-    
-    def right_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
-                           D=None,
-                           trunc_thresh=1E-8):
+    def left_right_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
+                                D=None,
+                                factor=1.5,
+                                lower_lr_bound=1E-10,
+                                max_local_steps=1,
+                                max_steps_per_lr=4, 
+                                trunc_thresh=1E-8,
+                                loss_thresh=1E100,
+                                t0=0.0):
+        """
+        minimizes the  cost function by sweeping from left to right
+        Args:
+            samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
+                                                        d is the embedding dimension, and N is the systemsize
+            labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
+                                                        n_labels is the number of labels
+            learning_rate (float):
+            numpy_svd (bool):
+            D (int or None):
+            trunc_thresh (float):
+        Returns:
+            list of scalar tf.Tensor: the losses
+            list of scalar tf.Tensor: the training accuracies     
+        """
         losses = []
         train_accuracies = []
 
         ground_truth = tf.argmax(labels,  axis=1)
         lr = learning_rate
+        cnt_local_steps = 0
+        cnt_steps_at_current_lr = 0                        
         while self.pos < len(self) - 1:
-            loss, gradient = self.do_one_site_step(samples, 
-                                                   labels, learning_rate=lr, 
-                                                   direction='r', numpy_svd=numpy_svd,
-                                                   loss_thresh=1000000000000.0,
-                                                   max_singular_values=D,
-                                                   trunc_thresh=trunc_thresh)
-            if self.pos < len(self):
-                prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+            old_pos = self.pos
+            if cnt_local_steps < max_local_steps:
+                loss, gradient = self.do_one_site_step(samples, 
+                                                       labels, learning_rate=lr, 
+                                                       direction='r', numpy_svd=numpy_svd,
+                                                       loss_thresh=loss_thresh,
+                                                       max_singular_values=D,
+                                                       trunc_thresh=trunc_thresh)
             else:
-                prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-            correct = np.sum(prediction.numpy()==ground_truth.numpy())
-            train_accuracies.append(correct/labels.shape[0])
+                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
+                self.add_layer(samples, self.pos - 1, direction=1)                    
+                cnt_local_steps = 0
+            if self.pos == old_pos:
+                cnt_local_steps += 1                
+                if  (np.abs(lr/factor) > np.abs(lower_lr_bound)):                
+                    lr /= factor
+                    cnt_steps_at_current_lr = 0                
+            if (cnt_steps_at_current_lr > max_steps_per_lr) and (lr < learning_rate):
+                lr *= factor
+            elif (cnt_steps_at_current_lr > max_steps_per_lr) and (lr >= learning_rate):                    
+                lr = learning_rate
+            cnt_steps_at_current_lr += 1
+            acc = self.accuracy(samples, labels)
+            train_accuracies.append(acc)
             losses.append(loss)
-            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
-                                                                                                 np.real(loss), 
-                                                                                                 np.imag(loss), 
-                                                                                                 lr, 
-                                                                                                 correct/labels.shape[0], self.tensors[self.pos - 1].shape[1]))
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, time %0.2f" % (self.pos, 
+                                                                                                             np.real(loss), 
+                                                                                                             np.imag(loss), 
+                                                                                                             lr, 
+                                                                                                             acc,
+                                                                                                             self.tensors[self.pos].shape[0],
+                                                                                                             time.time() - t0))
             stdout.flush()
         with open(self.name + 'data_.pickle', 'wb') as f:
             pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
         return losses, train_accuracies            
                 
-    def left_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
-                          D=None,
-                          trunc_thresh=1E-8):
+    def right_left_sweep_simple(self, samples, labels, learning_rate,
+                                numpy_svd=False,
+                                D=None,
+                                factor=1.5,
+                                lower_lr_bound=1E-10,
+                                max_local_steps=1,
+                                max_steps_per_lr=4,                                 
+                                trunc_thresh=1E-8,
+                                loss_thresh=1E100,
+                                t0=0.0):
+        """
+        minimizes the  cost function by sweeping from right to left
+        Args:
+            samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
+                                                        d is the embedding dimension, and N is the systemsize
+            labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
+                                                        n_labels is the number of labels
+            learning_rate (float):
+            numpy_svd (bool):
+            D (int or None):
+            trunc_thresh (float):
+        Returns:
+            list of scalar tf.Tensor: the losses
+            list of scalar tf.Tensor: the training accuracies     
+        """
+        
                           
         losses = []
         train_accuracies = []
 
         ground_truth = tf.argmax(labels,  axis=1)
         lr = learning_rate
-                        
-        while self.pos < len(self):
-            self.position(self.pos + 1, trunc_thresh=trunc_thresh)
+        cnt_local_steps = 0        
+        cnt_steps_at_current_lr = 0
 
-            self.add_layer(samples, self.pos - 1, direction=1)                    
         while self.pos > 1:
-            loss, gradient = self.do_one_site_step(samples, 
-                                                   labels, learning_rate=lr, 
-                                                   direction='l', numpy_svd=numpy_svd,
-                                                   loss_thresh=1000000000000.0,
-                                                   max_singular_values=D,                                                       
-                                                   trunc_thresh=trunc_thresh)
-            if self.pos < len(self):
-                prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
+            old_pos = self.pos            
+            if cnt_local_steps < max_local_steps:
+                loss, gradient = self.do_one_site_step(samples, 
+                                                       labels, learning_rate=lr, 
+                                                       direction='l', numpy_svd=numpy_svd,
+                                                       loss_thresh=loss_thresh,
+                                                       max_singular_values=D,                                                       
+                                                       trunc_thresh=trunc_thresh)
             else:
-                prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-                
-            correct = np.sum(prediction.numpy()==ground_truth.numpy())
-            train_accuracies.append(correct/labels.shape[0])                
+                #self.add_layer(samples, self.pos, direction=-1)                                                            
+                self.position(self.pos - 1,  trunc_thresh=trunc_thresh)
+                self.add_layer(samples, self.pos, direction=-1)                                        
+                cnt_local_steps = 0
+            if self.pos == old_pos:
+                cnt_local_steps += 1                
+                if  (np.abs(lr/factor) > np.abs(lower_lr_bound)):                
+                    lr /= factor
+                    cnt_steps_at_current_lr = 0                
+            if (cnt_steps_at_current_lr > max_steps_per_lr) and (lr < learning_rate):
+                lr *= factor
+            elif (cnt_steps_at_current_lr > max_steps_per_lr) and (lr >= learning_rate):                    
+                lr = learning_rate
+            cnt_steps_at_current_lr += 1
+            
+            acc = self.accuracy(samples, labels)            
+            train_accuracies.append(acc) 
             losses.append(loss)
-            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i" % (self.pos, 
-                                                                                                 np.real(loss), 
-                                                                                                 np.imag(loss), 
-                                                                                                 lr, 
-                                                                                                 correct/labels.shape[0], self.tensors[self.pos].shape[0]))
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, time %0.2f" % (self.pos, 
+                                                                                                             np.real(loss), 
+                                                                                                             np.imag(loss), 
+                                                                                                             lr, 
+                                                                                                             acc,
+                                                                                                             self.tensors[self.pos].shape[0],
+                                                                                                             time.time() - t0))
             stdout.flush()
         with open(self.name + 'data_.pickle', 'wb') as f:
             pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
@@ -773,150 +819,46 @@ class MPSClassifier:
         return losses, train_accuracies
 
 
-    def optimize_simple(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
-                        D=None,
-                        trunc_thresh=1E-8):
+    def optimize(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
+                 D=None,
+                 factor=1.5,
+                 lower_lr_bound=1E-10,
+                 max_local_steps=1,
+                 max_steps_per_lr=4,                                 
+                 trunc_thresh=1E-8,
+                 loss_thresh=1E100,
+                 t0=0.0):
+        
         losses, accuracies = [],[]        
         for sweep in range(num_sweeps):
-            loss, accs = self.right_sweep_simple(samples, labels, learning_rate, numpy_svd=False,
-                                                 D=None,
-                                                 trunc_thresh=1E-8)
+            
+            loss, accs = self.left_right_sweep_simple(samples, labels, learning_rate, numpy_svd=numpy_svd,
+                                                      D=D,
+                                                      factor=factor,
+                                                      lower_lr_bound=lower_lr_bound,
+                                                      max_local_steps=max_local_steps,
+                                                      max_steps_per_lr=max_steps_per_lr, 
+                                                      trunc_thresh=trunc_thresh,
+                                                      loss_thresh=loss_thresh,
+                                                      t0=t0)
             losses.extend(loss)
             accuracies.extend(accs)
             
-            loss, accs = self.left_sweep_simple(samples, labels, learning_rate, numpy_svd=False,
-                                                D=None,
-                                                trunc_thresh=1E-8)
+            loss, accs = self.right_left_sweep_simple(samples, labels, learning_rate, numpy_svd=numpy_svd,
+                                                      D=D,
+                                                      factor=factor,
+                                                      lower_lr_bound=lower_lr_bound,
+                                                      max_local_steps=max_local_steps,
+                                                      max_steps_per_lr=max_steps_per_lr, 
+                                                      trunc_thresh=trunc_thresh,
+                                                      loss_thresh=loss_thresh,
+                                                      t0=t0)
             
             losses.extend(loss)
             accuracies.extend(accs)
         return losses, accuracies
+
     
-    def optimize(self, samples, labels, learning_rate, num_sweeps, n0=0, numpy_svd=False,
-                 factor=1.5, n_stpcnt=10,
-                 lower_bound=1E-10,
-                 max_local_steps=4, loss_thresh=1.0,
-                 D=None,
-                 trunc_thresh=1E-8):
-        losses = []
-        train_accuracies = []
-        walltimes = []
-
-        self.position(0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)        
-        self.position(n0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)
-        self.compute_data_environments(samples)
-        ground_truth = tf.argmax(labels,  axis=1)
-        old_loss = 1E200
-        t1 = time.time()
-        lr = learning_rate
-        stpcnt = 0
-        self.position(n0, numpy_svd=numpy_svd, trunc_thresh=trunc_thresh)
-        self.compute_data_environments(samples)
-        cnt_steps = 0
-        for sweep in range(num_sweeps):
-            # if sweep < len(learning_rates):
-            #     lr = learning_rates[sweep]
-            # else:
-            #     lr = learning_rates[-1]
-            while self.pos > n0:
-                self.position(self.pos - 1, trunc_thresh=trunc_thresh)
-                self.add_layer(samples, self.pos, direction=-1)
-            
-            while self.pos < len(self) - n0 - 1:
-                #for site in range(n0, len(self) - n0):
-                old_pos = self.pos
-                if cnt_steps < max_local_steps:
-                    loss, gradient = self.do_one_site_step(samples, 
-                                                           labels, learning_rate=lr, 
-                                                           direction='r', numpy_svd=numpy_svd,
-                                                           max_singular_values=D,                                                           
-                                                           loss_thresh=loss_thresh)
-                else:
-                    self.position(self.pos + 1, trunc_thresh=trunc_thresh)
-                    self.add_layer(samples, self.pos - 1, direction=1)                    
-                    cnt_steps = 0
-                    
-                if self.pos == old_pos:
-                    cnt_steps += 1
-                    
-                if self.pos < len(self):
-                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
-                else:
-                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-                correct = np.sum(prediction.numpy()==ground_truth.numpy())
-                train_accuracies.append(correct)
-                if ((loss - old_loss) > loss_thresh) and (np.abs(lr) > np.abs(lower_bound)):                
-                    lr /= factor
-                    stpcnt = 0
-                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr < learning_rate):
-                    lr *= factor
-                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
-                    lr = learning_rate
-
-                stpcnt += 1
-                old_loss = loss
-                losses.append(loss)
-                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f" % (self.pos, 
-                                                                                               np.real(loss), 
-                                                                                               np.imag(loss), 
-                                                                                               lr, 
-                                                                                               correct/labels.shape[0]))
-                stdout.flush()
-            walltimes.append(time.time() - t1)
-            t1 = time.time()
-            cnt_steps = 0
-                     
-            while self.pos < len(self) - n0:
-                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
-                self.add_layer(samples, self.pos - 1, direction=1)                    
-            while self.pos > n0 + 1:
-                old_pos = self.pos
-                if cnt_steps < max_local_steps:
-                    loss, gradient = self.do_one_site_step(samples, 
-                                                           labels, learning_rate=lr, 
-                                                           direction='l', numpy_svd=numpy_svd,
-                                                           max_singular_values=D,                                                           
-                                                           loss_thresh=loss_thresh)
-                else:
-                    self.add_layer(samples, self.pos, direction=-1)                                                            
-                    self.position(self.pos - 1,  trunc_thresh=trunc_thresh)
-                    self.add_layer(samples, self.pos, direction=-1)                                        
-                    cnt_steps = 0
-                    
-                if self.pos == old_pos:
-                    cnt_steps += 1
-                                
-                if self.pos < len(self):
-                    prediction = tf.argmax(self.predict(samples, which='r', debug=False)[0], 1)
-                else:
-                    prediction = tf.argmax(self.predict(samples, which='l', debug=False)[0], 1)
-                    
-                correct = np.sum(prediction.numpy()==ground_truth.numpy())
-                train_accuracies.append(correct)
-                if ((loss - old_loss) > loss_thresh) and (np.abs(lr) > np.abs(lower_bound)): 
-                    lr /= factor
-                    stpcnt = 0
-                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr < learning_rate):
-                    lr *= factor
-                elif ((loss - old_loss) <= loss_thresh) and (stpcnt > n_stpcnt) and (lr >= learning_rate):                    
-                    lr = learning_rate
-
-                stpcnt += 1
-                old_loss = loss
-                
-                losses.append(loss)                
-                stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f" % (self.pos, 
-                                                                                               np.real(loss), 
-                                                                                               np.imag(loss), 
-                                                                                               lr, 
-                                                                                               correct/labels.shape[0]))
-                
-                stdout.flush()
-            walltimes.append(time.time() - t1)
-            with open(self.name + '.pickle', 'wb') as f:
-                pickle.dump({'walltimes' : walltimes, 'losses':losses, 'accuracies': train_accuracies},f)
-                
-        return losses, train_accuracies, walltimes
     
 def load_MNIST(folder):
     """
