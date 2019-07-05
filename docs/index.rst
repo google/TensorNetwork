@@ -10,6 +10,7 @@ Welcome to TensorNetwork's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   tutorial
    tensornetwork
    contractors
    nodes

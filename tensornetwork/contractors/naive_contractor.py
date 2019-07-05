@@ -37,8 +37,8 @@ def naive(net: network.TensorNetwork,
   Returns:
     The given TensorNetwork with all non-dangling edges contracted.
   Raises:
-    ValueError: If any of the edges originally created by `connect` have been
-      contracted or flattened.
+    ValueError: If the passed `edge_order` list does not contain all of the
+      non-dangling edges of the network.
   """
   if edge_order is None:
     edge_order = sorted(net.get_all_nondangling())
