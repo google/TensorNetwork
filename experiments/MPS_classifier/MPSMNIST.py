@@ -148,7 +148,6 @@ class MPSClassifier:
                                              self.left_data_environments[site] contains the 
                                              left environment of site `site`
     """
-
     @classmethod
     def eye(cls, d, D, num_labels, dtype=tf.float64, noise=1E-5,scaling=0.1, name='MPS_classifier'):
         D = [1] + D
@@ -186,7 +185,6 @@ class MPSClassifier:
     def __len__(self):
         return len(self.tensors)
 
-          
 
     @staticmethod
     #@tf.contrib.eager.defun    
@@ -240,76 +238,6 @@ class MPSClassifier:
         t = misc_mps.ncon([tensor, label_tensor],[[-1,1,-4], [1,-2,-3]])
         return MPSClassifier.split_off(t, direction='l', numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)    
 
-    
-    # @staticmethod
-    # #@tf.contrib.eager.defun    
-    # def shift_right(label_tensor, tensor, numpy_svd=False, D=None, trunc_thresh=None):
-    #     Nl = label_tensor.get_shape()[1]
-    #     Nr = tensor.get_shape()[2]
-    #     swap = np.zeros((Nl, Nr, Nr, Nl), dtype=tensor.dtype.as_numpy_dtype)
-    #     for i in range(Nl):
-    #         for j in range(Nr):
-    #             swap[i,j,j,i] = 1
-
-    #     net = tn.TensorNetwork()
-    #     l_node =  net.add_node(label_tensor)
-    #     t_node = net.add_node(tensor)
-    #     swap_node = net.add_node(swap)
-    #     #print('label.shape: ',label_tensor.shape, 'tensor.shpae: ', tensor.shape)
-    #     e1 = net.connect(l_node[2], t_node[0])
-    #     e2 = net.connect(l_node[1], swap_node[0])
-    #     e3 = net.connect(t_node[2], swap_node[1])        
-    #     left_edges = [l_node[0],  swap_node[2]]
-    #     right_edges = [swap_node[3], t_node[1]]        
-    #     temp = net.contract(e1)
-    #     res = net.contract_between(temp, swap_node)
-    #     if not numpy_svd:
-    #         u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
-    #         Z = tf.linalg.norm(s_node.tensor)
-    #         s_node.tensor /= Z
-    #         out = u_node.reorder_axes([0, 2, 1])
-    #         label_tensor = net.contract(s_node[1])
-    #         return out.tensor , label_tensor.tensor
-    #     else:
-    #         out, label_tensor = split_node_full_svd_numpy(res, left_edges, right_edges, direction='r', max_singular_values=D, trunc_thresh=trunc_thresh)
-    #         #print('out.shape: ',out.shape, 'label.shape: ', label_tensor.shape)            
-    #         return out, label_tensor
-
-    
-    # @staticmethod
-    # #@tf.contrib.eager.defun
-    # def shift_left(tensor, label_tensor, numpy_svd=False, D=None, trunc_thresh=None):
-    #     Nl = tensor.get_shape()[2]
-    #     Nr = label_tensor.get_shape()[1]
-    #     swap = np.zeros((Nl, Nr, Nr, Nl), dtype=tensor.dtype.as_numpy_dtype)
-    #     for i in range(Nl):
-    #         for j in range(Nr):
-    #             swap[i,j,j,i] = 1
-    #     net = tn.TensorNetwork()
-    #     l_node =  net.add_node(label_tensor)
-    #     t_node = net.add_node(tensor)
-    #     swap_node = net.add_node(swap)
-    #     e1 = net.connect(t_node[1],l_node[0])
-    #     e2 = net.connect(t_node[2], swap_node[0])
-    #     e3 = net.connect(l_node[1], swap_node[1])        
-    #     left_edges = [t_node[0],  swap_node[2]]
-    #     right_edges = [l_node[2], swap_node[3]]
-    #     temp = net.contract(e1)
-    #     res = net.contract_between(temp, swap_node)
-    #     if not numpy_svd:
-    #         u_node, s_node, v_node, _ = net.split_node_full_svd(res, left_edges, right_edges, max_singular_values=D, max_truncation_err=trunc_thresh)
-    #         Z = tf.linalg.norm(s_node.tensor)
-    #         s_node.tensor /= Z
-    #         label_tensor = net.contract(s_node[0])
-    #         return label_tensor.tensor, v_node.tensor
-    #     else:
-    #         #the numpy truncation scheme is different from tensorflow above
-    #         label_tensor, out = split_node_full_svd_numpy(res, left_edges, right_edges, direction='l', max_singular_values=D,
-    #                                                       trunc_thresh=trunc_thresh)
-    #         return label_tensor, out
-
-
-
     @property
     def pos(self):
         return self._position
@@ -329,31 +257,17 @@ class MPSClassifier:
         raise NotImplementedError()
         
     def position(self, bond, numpy_svd=False, D=None, trunc_thresh=None):
-        """
-        """
         if bond == self.pos:
             return
         if bond > self.pos:
             for n in range(self._position, min(bond,len(self))):
                 self.tensors[n],  self.label_tensor = self.shift_right(self.label_tensor, self.tensors[n], numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)
-                #print(n, self.tensors[n].shape,  self.label_tensor.shape)
             self._position = min(bond,len(self))
         if bond < self._position:
             for n in range(self._position - 1, max(-1,bond - 1), -1):
-                #print(" shifting label tensor from site {0} to  site {1}".format(n, n-1))
-                #print("shape(tensor[{0}]): {1}, shape(label_tensor): {2}", n, self.tensors[n].shape,  self.label_tensor.shape)                                
                 self.label_tensor, self.tensors[n] = self.shift_left(self.tensors[n], self.label_tensor, numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)
-                #print("shape(tensor[{0}]): {1}, shape(label_tensor): {2}", n, self.tensors[n].shape,  self.label_tensor.shape)                                                
-
             self._position = max(0,bond)
 
-        # for s in reversed(range(self.pos)):
-        #     if s in self.right_data_environment:
-        #         del self.right_data_environment[s]
-        # for s in range(self.pos + 1, len(self) + 1):
-        #     if s in self.left_data_environment:            
-        #         del self.left_data_environment[s]
-            
     def get_central_one_site_tensor(self, which): 
         """
         return the label_tensor contracted with the right-next mps tensor
@@ -409,11 +323,9 @@ class MPSClassifier:
         if direction in (-1,'r','right'):
             assert(self.pos <= site)
             if site == (len(self) - 1):
-
                 self.right_data_environment[site - 1] = misc_mps.ncon([self.tensors[site],embedded_data[:,:,site]],
                                          [[-2,-3,1],[-1,1]]) #has shape (Nt, D[-1], 1)
                 #print('shape of right_envs[{0}]'.format(site-1),self.right_data_environment[site - 1].shape)
-                
             else:
                 #first contract the image pixels into the mps tensor
                 #print('shape of tensors[{0}]'.format(site),self.tensors[site].shape)
@@ -428,7 +340,7 @@ class MPSClassifier:
             out = tf.linalg.norm(self.right_data_environment[site - 1], axis=1) #get the norm of each row
             #print('out.shape ', out.shape)
             self.right_data_environment[site - 1]= tf.expand_dims(tf.squeeze(self.right_data_environment[site - 1], 2)/out,2)
-            
+
     def compute_data_environments(self,embedded_data):
         for site in range(self.pos):
             self.add_layer(embedded_data, site, 'l')
@@ -474,8 +386,6 @@ class MPSClassifier:
                 right_envs = tf.ones(shape=(Nt, 1, 1), dtype=self.dtype) #need a third dummy index for matmul
             bottom = tf.expand_dims(embedded_data[:,:,self.pos], 2)
 
-
- 
         if which in ('l', 'left'):
             assert(self.pos > 0)
             
@@ -533,7 +443,6 @@ class MPSClassifier:
         t4 = tf.matmul(t3,right_envs)
         if debug:
             print('shape of t4 (t3*right) {}'.format(t4.shape))
-
         t5 = tf.reshape(t4,(Nt, n_labels, dl))
         if debug:
             print('shape of t5 (reshaped t4) {}'.format(t5.shape))
@@ -581,13 +490,13 @@ class MPSClassifier:
             #with the prediction vector for sample `n`.
             temp = tf.squeeze(tf.matmul(np.expand_dims(predict,1), np.expand_dims(labels, 2)), 1)      
             y = (predict * temp - labels)/norms
-            loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
+            #y = (predict - labels)
+            loss = 1/2 * tf.math.reduce_mean((predict - labels)**2)
             t = batched_kronecker(batched_kronecker(batched_kronecker(left_env, 
                                                                       embedded_data[:, :, self.pos]),
                                                     right_env), 
                                   y)
-            gradient = tf.math.reduce_sum(t,axis=0)
-
+            gradient = tf.math.reduce_mean(t,axis=0)
             return tf.transpose(tf.reshape(gradient, (Dl, dl, Dr, n_labels)),(0,3,2,1)), loss
         
         if which in ('l','left'):    
@@ -606,17 +515,17 @@ class MPSClassifier:
                 right_env = tf.ones(shape=(Nt, 1), dtype=self.dtype)
                 Dr = 1
             dl = embedded_data.shape[1]
-            # print('gradient-predict')
             predict, norms = self.predict(embedded_data,which) #predictions are already normalized 
             temp = tf.squeeze(tf.matmul(tf.expand_dims(predict,1), tf.expand_dims(labels, 2)), 1)
             y = (predict * temp - labels)/norms
+            #y = (predict - labels)
 
-            loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
+            loss = 1/2 * tf.math.reduce_mean((predict - labels)**2)
             t = batched_kronecker(batched_kronecker(batched_kronecker(left_env, 
                                                                       embedded_data[:,:,self.pos  - 1]),
                                                     right_env), 
                                   y)
-            gradient = tf.math.reduce_sum(t,axis=0)
+            gradient = tf.math.reduce_mean(t,axis=0)
 
             return tf.transpose(tf.reshape(gradient, (Dl, dl, Dr, n_labels)), (0,3,2,1)), loss            
     
@@ -631,7 +540,8 @@ class MPSClassifier:
             old_label_tensor = copy.copy(self.label_tensor)
             
             gradient, loss = self.one_site_gradient(embedded_data, labels, which='r')
-            gradient /= tf.linalg.norm(gradient)
+            gradient_norm = tf.linalg.norm(gradient)
+            gradient /= gradient_norm
             #merge the label-tensor into the mps from the left
             temp = self.get_central_one_site_tensor(which = 'r')
             temp = (temp - learning_rate * gradient)
@@ -641,8 +551,8 @@ class MPSClassifier:
             self.add_layer(embedded_data, self.pos - 1, direction=1)
             
             predict, norms = self.predict(embedded_data, which='r')
-            new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if (new_loss - loss) > loss_thresh: #reject step if loss increases by more than `loss_thresh`
+            new_loss = 1/2 * tf.math.reduce_mean((predict - labels)**2)
+            if ((new_loss - loss)/loss) > loss_thresh: #reject step if loss increases by more than `loss_thresh`
                 self._position -= 1
                 self.tensors[self.pos] = old_tensor
                 self.label_tensor = old_label_tensor
@@ -654,7 +564,8 @@ class MPSClassifier:
             old_label_tensor = copy.copy(self.label_tensor)
             
             gradient, loss = self.one_site_gradient(embedded_data, labels, which='l')
-            gradient /= np.linalg.norm(gradient)
+            gradient_norm = tf.linalg.norm(gradient)            
+            gradient /= gradient_norm
             #merge the label-tensor into the mps from the right
             temp = self.get_central_one_site_tensor(which = 'l')
             temp = (temp - learning_rate * gradient)
@@ -663,14 +574,14 @@ class MPSClassifier:
             self._position -= 1
             self.add_layer(embedded_data, self.pos, direction=-1)
             predict, norms = self.predict(embedded_data, which='r')
-            new_loss = 1/2 * tf.math.reduce_sum((predict - labels)**2)
-            if (new_loss - loss) > loss_thresh:#reject step if loss increases by more than `loss_thresh`
+            new_loss = 1/2 * tf.math.reduce_mean((predict - labels)**2)
+            if ((new_loss - loss)/loss) > loss_thresh:#reject step if loss increases by more than `loss_thresh`
                 self._position += 1
                 self.tensors[self.pos - 1] = old_tensor
                 self.label_tensor = old_label_tensor
                 self.add_layer(embedded_data, self.pos - 1, direction=1)                
             
-        return loss, gradient
+        return loss, gradient, gradient_norm
 
 
     def left_right_sweep_simple(self, samples, labels, learning_rate, numpy_svd=False,
@@ -681,7 +592,7 @@ class MPSClassifier:
                                 max_steps_per_lr=4, 
                                 trunc_thresh=1E-8,
                                 loss_thresh=1E100,
-                                t0=0.0):
+                                t0=0.0, n1=None):
         """
         minimizes the  cost function by sweeping from left to right
         Args:
@@ -699,22 +610,23 @@ class MPSClassifier:
         """
         losses = []
         train_accuracies = []
-
+        if not n1:
+            n1 = len(self)
         ground_truth = tf.argmax(labels,  axis=1)
         lr = learning_rate
         cnt_local_steps = 0
         cnt_steps_at_current_lr = 0                        
-        while self.pos < len(self) - 1:
+        while self.pos < n1 - 1:
             old_pos = self.pos
             if cnt_local_steps < max_local_steps:
-                loss, gradient = self.do_one_site_step(samples, 
-                                                       labels, learning_rate=lr, 
-                                                       direction='r', numpy_svd=numpy_svd,
-                                                       loss_thresh=loss_thresh,
-                                                       max_singular_values=D,
-                                                       trunc_thresh=trunc_thresh)
+                loss, gradient, gradient_norm = self.do_one_site_step(samples, 
+                                                                      labels, learning_rate=lr, 
+                                                                      direction='r', numpy_svd=numpy_svd,
+                                                                      loss_thresh=loss_thresh,
+                                                                      max_singular_values=D,
+                                                                      trunc_thresh=trunc_thresh)
             else:
-                self.position(self.pos + 1, trunc_thresh=trunc_thresh)
+                self.position(self.pos + 1, trunc_thresh=trunc_thresh, D=D)
                 self.add_layer(samples, self.pos - 1, direction=1)                    
                 cnt_local_steps = 0
             if self.pos == old_pos:
@@ -730,14 +642,17 @@ class MPSClassifier:
             acc = self.accuracy(samples, labels)
             train_accuracies.append(acc)
             losses.append(loss)
-            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, time %0.2f" % (self.pos, 
-                                                                                                             np.real(loss), 
-                                                                                                             np.imag(loss), 
-                                                                                                             lr, 
-                                                                                                             acc,
-                                                                                                             self.tensors[self.pos].shape[0],
-                                                                                                             time.time() - t0))
+            #print(tf.math.reduce_min(gradient),tf.math.reduce_max(gradient))
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, ||gradient|| + %.4f, time %0.2f" % (self.pos, 
+                                                                                                                                  np.real(loss), 
+                                                                                                                                  np.imag(loss), 
+                                                                                                                                  lr, 
+                                                                                                                                  acc,
+                                                                                                                                  self.tensors[self.pos].shape[0],
+                                                                                                                                  gradient_norm,
+                                                                                                                                  time.time() - t0))
             stdout.flush()
+            
         with open(self.name + 'data_.pickle', 'wb') as f:
             pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
         return losses, train_accuracies            
@@ -751,7 +666,7 @@ class MPSClassifier:
                                 max_steps_per_lr=4,                                 
                                 trunc_thresh=1E-8,
                                 loss_thresh=1E100,
-                                t0=0.0):
+                                t0=0.0, n0=0):
         """
         minimizes the  cost function by sweeping from right to left
         Args:
@@ -777,18 +692,18 @@ class MPSClassifier:
         cnt_local_steps = 0        
         cnt_steps_at_current_lr = 0
 
-        while self.pos > 1:
+        while self.pos > n0 + 1:
             old_pos = self.pos            
             if cnt_local_steps < max_local_steps:
-                loss, gradient = self.do_one_site_step(samples, 
-                                                       labels, learning_rate=lr, 
-                                                       direction='l', numpy_svd=numpy_svd,
-                                                       loss_thresh=loss_thresh,
-                                                       max_singular_values=D,                                                       
-                                                       trunc_thresh=trunc_thresh)
+                loss, gradient, gradient_norm = self.do_one_site_step(samples, 
+                                                                      labels, learning_rate=lr, 
+                                                                      direction='l', numpy_svd=numpy_svd,
+                                                                      loss_thresh=loss_thresh,
+                                                                      max_singular_values=D,                                                       
+                                                                      trunc_thresh=trunc_thresh)
             else:
                 #self.add_layer(samples, self.pos, direction=-1)                                                            
-                self.position(self.pos - 1,  trunc_thresh=trunc_thresh)
+                self.position(self.pos - 1,  trunc_thresh=trunc_thresh, D=D)
                 self.add_layer(samples, self.pos, direction=-1)                                        
                 cnt_local_steps = 0
             if self.pos == old_pos:
@@ -805,13 +720,15 @@ class MPSClassifier:
             acc = self.accuracy(samples, labels)            
             train_accuracies.append(acc) 
             losses.append(loss)
-            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, time %0.2f" % (self.pos, 
-                                                                                                             np.real(loss), 
-                                                                                                             np.imag(loss), 
-                                                                                                             lr, 
-                                                                                                             acc,
-                                                                                                             self.tensors[self.pos].shape[0],
-                                                                                                             time.time() - t0))
+            #print(tf.math.reduce_min(gradient).n,tf.math.reduce_max(gradient))            
+            stdout.write("\rsite %i, loss = %0.8f , %0.8f, lr = %0.8f, accuracy: %0.8f, D=%i, ||gradient|| + %.4f, time %0.2f" % (self.pos, 
+                                                                                                                                  np.real(loss), 
+                                                                                                                                  np.imag(loss), 
+                                                                                                                                  lr, 
+                                                                                                                                  acc,
+                                                                                                                                  self.tensors[self.pos].shape[0],
+                                                                                                                                  gradient_norm,
+                                                                                                                                  time.time() - t0))
             stdout.flush()
         with open(self.name + 'data_.pickle', 'wb') as f:
             pickle.dump({'losses':losses, 'accuracies': train_accuracies},f)
@@ -874,20 +791,49 @@ def load_MNIST(folder):
     test_set=[np.load(folder+'/test_set_data.npy'),np.load(folder+'/test_set_label.npy')]
     return train_set,valid_set,test_set
 
-    
-def generate_mapped_MNIST_batches(X,Y,n_batches):
+
+
+def shuffle(X, new_order=None):
+    out = np.copy(X)
+    if not new_order:
+        new_order = list(range(X.shape[1]))
+        np.random.shuffle(new_order)
+    for t in range(X.shape[0]):
+        out[t,:] =  X[t,new_order]
+    return out, new_order
+
+def generate_mapped_MNIST_batches(X,Y,n_batches,which='one_hot',scaling=1.0, shuffle_pixels=False):
     """
     X is an M by N matrix, where M is the number of samples and N is the number of features 
     (N= 28*28 for the MNIST data set) Y are the labels 
     returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
     pass this to calculateGradient
     """
+    if shuffle_pixels:
+        X = shuffle(X)
+    def smooth_labels(labels,sig, n_labels):
+        x = np.arange(n_labels)
+        out = np.zeros((len(labels),n_labels))
+        for n in range(len(labels)):
+            out[n,:] = np.exp(-(x - labels[n])**2/(2*sig**2))
+            Z = np.linalg.norm(out[n,:])
+            out[n,:] /= Z
+        return out
+
     batch_size = X.shape[0] // n_batches
     nb = len(np.unique(Y))
-    y_one_hot = [np.eye(nb)[np.array([Y[n*batch_size:(n+1)*batch_size]])].squeeze().astype(np.int32)  
-                 for n in range(n_batches)]
+    if which == 'one_hot':
+        y_one_hot = [scaling * np.eye(nb)[np.array([Y[n*batch_size:(n+1)*batch_size]])].squeeze().astype(np.int32)  
+                     for n in range(n_batches)]
+    elif which =='gaussian':
+        sig = 10/8
+        n_labels = len(np.unique(Y))        
+        y_one_hot = [scaling * smooth_labels(Y[n*batch_size:(n+1)*batch_size],sig,n_labels) 
+                     for n in range(n_batches)]
+        
+        
     X_mapped = [np.transpose(np.array([np.cos((X[n*batch_size:(n+1)*batch_size,:]*256)/255*math.pi/2),
-                          np.sin((X[n*batch_size:(n+1)*batch_size,:]*256)/255*math.pi/2)]),(1,0,2)) 
+                                       np.sin((X[n*batch_size:(n+1)*batch_size,:]*256)/255*math.pi/2)]),(1,0,2)) 
                 for n in range(n_batches)]    
     return X_mapped, y_one_hot
 
