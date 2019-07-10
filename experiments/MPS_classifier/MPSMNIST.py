@@ -731,7 +731,7 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
         train_accuracies = []
 
         ground_truth = tf.argmax(labels,  axis=1)
-        while self.pos > n0 + 1:
+        while self.pos >= n0 + 1:
             loss, gradient, gradient_norm = self.do_one_site_step(samples, 
                                                                   labels,
                                                                   learning_rate=learning_rate, 
