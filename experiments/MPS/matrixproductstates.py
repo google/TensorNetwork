@@ -1263,8 +1263,8 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
 
   def normalize(self):
     """
-        normalizes the center matrix
-        """
+    normalizes the center matrix
+    """
     Z = tf.sqrt(misc_mps.ncon([self.mat, tf.conj(self.mat)], [[1, 2], [1, 2]]))
     self.mat /= Z
     return Z
@@ -1294,7 +1294,7 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
           [tf.conj(V), self._tensors[self.pos]], [[1, -1], [1, -2, -3]])
       self.mat = tf.diag(S)
 
-  def position(self, bond):
+  def position(self, bond, D=None, thresh=1E-32,normalize=False):
     """
         position(bond,schmidt_thresh = 1E-16):
         shifts the center site of the MPS to "bond".
@@ -1309,7 +1309,12 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
           [self.mat, self._tensors[self.pos]], [[-1, 1], [1, -2, -3]])
 
       for n in range(self.pos, bond):
-        tensor, mat, _ = misc_mps.prepare_tensor_QR(
+        if (D is not None) or (thresh > 1E-16):
+          tensor, s, v, _ = misc_mps.prepare_tensor_SVD(
+            self._tensors[n], direction=1, D=D, thresh=thresh, normalize=normalize)
+          mat = misc_mps.ncon([s,v],[[-1,1],[1,-2]])
+        else:
+          tensor, mat, _ = misc_mps.prepare_tensor_QR(
             self._tensors[n], direction=1)
         self.mat = mat
         self._tensors[n] = tensor
@@ -1322,7 +1327,13 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
           [self._tensors[self.pos - 1], self.centermatrix],
           [[-1, -2, 1], [1, -3]])
       for n in range(self.pos - 1, bond - 1, -1):
-        mat, tensor, _ = misc_mps.prepare_tensor_QR(
+        if (D is not None) or (thresh > 1E-16):        
+          u, s, tensor, _ = misc_mps.prepare_tensor_SVD(
+            self._tensors[n], direction=-1, D=D, thresh=thresh, normalize=normalize)
+          mat = misc_mps.ncon([u,s],[[-1,1],[1,-2]])
+
+        else:        
+          mat, tensor, _ = misc_mps.prepare_tensor_QR(
             self._tensors[n], direction=-1)
         self.mat = mat
         self._tensors[n] = tensor
@@ -1381,9 +1392,33 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
 
 class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
   """
-    A simple MPS class for finite systems;
-    """
-
+  A simple MPS class for finite systems;
+  """
+  @classmethod  
+  def from_dense(cls, psi, name=None):
+    
+    ds = psi.shape
+    Dl = 1
+    tensors=[]
+    for n in range(len(ds)-1):
+        mat = np.reshape(psi,(ds[n]*Dl,np.prod(ds[n+1:])))
+        Q,R = np.linalg.qr(mat)
+        Dr = Q.shape[1]
+        tensors.append(tf.convert_to_tensor(np.reshape(Q,(Dl,ds[n],Dr))))
+        psi = np.reshape(R,((Dr,) + ds[n+1:]))
+        Dl = Dr
+    tensors.append(tf.convert_to_tensor(np.reshape(R,(Dl,ds[-1],1))))
+    dtype = tensors[0].dtype
+    D_end = tensors[-1].shape[2]
+    centermatrix = tf.eye(int(D_end), dtype=dtype)
+    position = len(tensors)
+    mps = cls(
+        tensors=tensors,
+        centermatrix=centermatrix,
+        position=position,
+        name=name)
+    return mps
+   
   @classmethod
   def from_tensors(cls, tensors, name=None):
     """
@@ -1433,6 +1468,12 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
         connector=tf.ones(shape=[1, 1], dtype=centermatrix.dtype),
         right_mat=tf.ones(shape=[1, 1], dtype=centermatrix.dtype),
         name=name)
+    
+  def get_amplitude(self,sigmas):
+      t = self.get_tensor(0)[:,sigmas[0],:]
+      for n in range(1,len(self)):
+        t = misc_mps.ncon([t,self.get_tensor(n)[:,sigmas[n],:]],[[-1,1],[1,-2]])
+      return t
 
   def canonize(self, name=None):
     """
