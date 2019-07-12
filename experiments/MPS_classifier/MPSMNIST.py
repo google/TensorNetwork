@@ -377,7 +377,9 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
             irght_envs: (np.ndarray):   right data environments of shape (Nt, Dr)
             samples (np.ndarray): shape (Nt,dl,N); the data matrix
         Returns:
-            np.ndarray of shape (Nt, n_labels)
+            predictions (tf.Tensor)     shape (Nt, n_labels))
+            norms (tf.Tensor)           shape (Nt, 1)
+
         """
         if self.pos == self.label_pos:
             y = misc_mps.ncon([tf.squeeze(self.left_data_environment[self.label_pos], 1),
@@ -810,6 +812,11 @@ def shuffle(X, new_order=None):
         out[t,:] =  X[t,new_order]
     return out, new_order
 
+
+def one_hot_encoder(nb, Y):
+    return np.eye(nb)[Y].astype(np.int32)[0]
+
+    
 def generate_mapped_MNIST_batches(X,Y,n_batches,which='one_hot',scaling=1.0, shuffle_pixels=False):
     """
     X is an M by N matrix, where M is the number of samples and N is the number of features 
@@ -861,7 +868,8 @@ def generate_mapped_MNIST_batches_poly(data,labels,n_batches):
     X_mapped = [np.transpose(np.array([1 - X[n*batch_size:(n+1)*batch_size,:],
                                        X[n*batch_size:(n+1)*batch_size,:]]),(1,0,2)) 
                 for n in range(n_batches)]    
-    return X_mapped, y_one_hot    
+    return X_mapped, y_one_hot
+
 def generate_MNIST_mapped(X,Y):
     """
     X is an M by N matrix, where M is the number of samples and N is the number of features 
