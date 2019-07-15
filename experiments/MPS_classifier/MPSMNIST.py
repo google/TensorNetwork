@@ -62,7 +62,9 @@ def svd(mat, full_matrices=False, compute_uv=True, r_thresh=1E-12):
     return u, s, v
 
 def split_node_full_svd_numpy(node, left_edges, right_edges, direction, max_singular_values=None, trunc_thresh=None):
-
+    """
+    numpy version of TensorNetwork.split_node_full_svd
+    """
     node = node.reorder_edges(left_edges + right_edges)
     D0, D1, D2, D3 = node.tensor.get_shape()    
     arr2 = np.reshape(node.tensor, [D0*D1, D2*D3])
@@ -85,72 +87,29 @@ def split_node_full_svd_numpy(node, left_edges, right_edges, direction, max_sing
             tf.convert_to_tensor(np.reshape(v,(len(s), D2, D3)))
 
     
-@tf.contrib.eager.defun
-def prepare_tensor_SVD(tensor, direction, D=None, thresh=1E-32):
-    """
-    prepares and truncates an mps tensor using svd
-    Parameters:
-    ---------------------
-    tensor: np.ndarray of shape(D1,D2,d)
-            an mps tensor
-    direction: int
-               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
-    thresh: float
-            cutoff of schmidt-value truncation
-    r_thresh: float
-              only used when svd throws an exception.
-    D:        int or None
-              the maximum bond-dimension to keep (hard cutoff); if None, no truncation is applied
-
-    Returns:
-    ----------------------------
-    direction>0: out,s,v,Z
-                 out: a left isometric tensor of dimension (D1,D,d)
-                 s  : the singular values of length D
-                 v  : a right isometric matrix of dimension (D,D2)
-                 Z  : the norm of tensor, i.e. tensor"="out.dot(s).dot(v)*Z
-    direction<0: u,s,out,Z
-                 u  : a left isometric matrix of dimension (D1,D)
-                 s  : the singular values of length D
-                 out: a right isometric tensor of dimension (D,D2,d)
-                 Z  : the norm of tensor, i.e. tensor"="u.dot(s).dot(out)*Z
-
-    """
-
-    assert (direction != 0), 'do NOT use direction=0!'
-    [l1, l2, d] = tensor.shape
-    if direction in (1, 'l', 'left'):
-        net = tn.TensorNetwork()
-        node = net.add_node(tensor)
-        u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0], node[2]], [node[1]], max_singular_values=D, max_truncation_err=thresh)
-        Z = tf.linalg.norm(s_node.tensor)
-        s_node.tensor /= Z
-        out = u_node.reorder_axes([0, 2, 1])
-        return out.tensor, s_node.tensor, v_node.tensor, Z
-
-    if direction in (-1, 'r', 'right'):
-        net = tn.TensorNetwork()
-        node = net.add_node(tensor)
-        u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0]], [node[1], node[2]], max_singular_values=D, max_truncation_err=thresh)
-        Z = tf.linalg.norm(s_node.tensor)
-        s_node.tensor /= Z
-        return u_node.tensor, s_node.tensor, v_node.tensor, Z
-
-
     
 class MPSClassifier(mps.FiniteMPSCentralGauge):
     """
-    A classifier for data
-    Members:
-        self.right_data_environments (dict): contains right data-environments.
-                                             self.right_data_environments[site] contains the 
-                                             right environment of site `site`
-        self.left_data_environments (dict):  contains left data-environments.
-                                             self.left_data_environments[site] contains the 
+    A Matrix Product State based linear classifier
+    based on the proposal in https://arxiv.org/abs/1605.05775
                                              left environment of site `site`
     """
     @classmethod
     def eye(cls, ds, D, num_labels, label_position, dtype=tf.float64, noise=1E-5,scaling=0.1, name='MPS_classifier'):
+        """
+        Initialize an MPSClassifier with mps tensors being initialized with identities
+        Args:        
+            ds (list of int): dimensions of the embedding space
+            D (int):          bond dimension of the MPS 
+            num_labels (int): number of labels to be classified
+            label_position (int):  position of the label tensor
+            dtype (tf.dtype): dtype of the tensors 
+            noise (float):    noise added to the initial matrices 
+            scaling (float):  initial matrices are scaled by `scaling`
+            name (str):       name of the object
+        Returns:
+           MPSClassifier
+        """
         N = len(ds)
         Ds = [1] + [D] * N + [1]
         ds.insert(label_position, num_labels)
@@ -166,6 +125,20 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
     
     @classmethod
     def random(cls, ds, D, num_labels, label_position, dtype=tf.float64, scaling=0.1, name='MPS_classifier'):
+        """
+        Initialize an MPSClassifier with mps tensors being initialized randomly
+        Args:        
+            ds (list of int): dimensions of the embedding space
+            D (int):          bond dimension of the MPS 
+            num_labels (int): number of labels to be classified
+            label_position (int):  position of the label tensor
+            dtype (tf.dtype): dtype of the tensors 
+            scaling (float):  initial matrices are scaled by `scaling`
+            name (str):       name of the object
+        Returns:
+           MPSClassifier
+        """
+        
         N = len(ds)
         Ds = [1] + [D] * N + [1]
         ds.insert(label_position, num_labels)
@@ -175,6 +148,15 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
         return cls(mps_tensors=tf_tensors, label_position=label_position, dtype=dtype, name=name)    
 
     def __init__(self, mps_tensors, label_position, dtype, name = 'MPS_classifier'):
+        """ 
+        Args:
+            mps_tensors (list of tf.Tensor):   mps tensors; the label-tensors has to be included in this list
+            label_position (int):              index of the label-tensor in `mps_tensors`
+            dtype (tf.dtype):                  the dtype of the tensors in `mps_tensors`
+            name (str):                        name for the object
+        Returns:
+            MPSClassifier
+        """
         self.right_data_environment={}
         self.left_data_environment={}
         self._label_position = label_position
@@ -185,6 +167,28 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
     @staticmethod
     #@tf.contrib.eager.defun    
     def split_off(tensor, direction, numpy_svd=False, D=None, trunc_thresh=None):
+        """ 
+        takes a rank-4 tensor `tensor` (with indices at left, top, right, bottom) and splits it into two rank-3 tensors
+        depending on the value of `direction`, the top index is either put to the left or right side
+          
+          L        _   L
+        -| |- =  -| |-| |-  for direction of `right`
+          T        T   -
+
+          L        L   _
+        -| |- =  -| |-| |- for direction of `left`
+          T        -   T
+
+        Args:    
+            tensor (tf.Tensor):  a  rank-4 tensor
+            direction (str):     takes values in ('l','left') or ('r','right')
+            numpy_svd (bool):    if `True`, use numpy's svd instead of tensorflow
+            D (int):             maximum bond  dimension to be kept during the split 
+            trunc_thresh (float):truncatio threshold of singular values to be kept during the split
+
+        Returns:
+            tf.Tensor, tf.Tensor
+        """
         if direction in ('r','right'):
             net = tn.TensorNetwork()
             t_node = net.add_node(tensor)
@@ -222,6 +226,17 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                 
     @staticmethod        
     def shift_right(label_tensor, tensor, numpy_svd=False, D=None, trunc_thresh=None):
+        """
+        right-shift `label_tensor` past `tensor`
+        Args:
+            label_tensor (tf.Tensor):  a rank-3 tensor, the label-tensor of the mps
+            tensor (tf.Tensor):  a rank-3 tensor
+            numpy_svd (bool):    if `True`, use numpy's svd instead of tensorflow
+            D (int):             maximum bond  dimension to be kept during the split 
+            trunc_thresh (float):truncatio threshold of singular values to be kept during the split
+        Returns: 
+            None
+        """
         t = misc_mps.ncon([label_tensor, tensor],[[-1,-2,1], [1,-4,-3]])        
         return MPSClassifier.split_off(t, direction='r', numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)    
 
@@ -229,6 +244,18 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
     @staticmethod
     #@tf.contrib.eager.defun
     def shift_left(tensor, label_tensor, numpy_svd=False, D=None, trunc_thresh=None):
+        """
+        left-shift `label_tensor` past `tensor`
+        Args:
+            label_tensor (tf.Tensor):  a rank-3 tensor, the label-tensor of the mps
+            tensor (tf.Tensor):  a rank-3 tensor
+            numpy_svd (bool):    if `True`, use numpy's svd instead of tensorflow
+            D (int):             maximum bond  dimension to be kept during the split 
+            trunc_thresh (float):truncatio threshold of singular values to be kept during the split
+        Returns: 
+            None
+        """
+        
         t = misc_mps.ncon([tensor, label_tensor],[[-1, -4, 1], [1,-2,-3]])
         return MPSClassifier.split_off(t, direction='l', numpy_svd=numpy_svd, D=D, trunc_thresh=trunc_thresh)    
 
@@ -860,6 +887,24 @@ def generate_mapped_MNIST_batches_poly(data,labels,n_batches):
     pass this to calculateGradientn
     """
     X = data / 255
+    Y = labels
+    batch_size = X.shape[0] // n_batches
+    nb = len(np.unique(Y))
+    y_one_hot = [np.eye(nb)[np.array([Y[n*batch_size:(n+1)*batch_size]])].squeeze().astype(np.int32)  
+                 for n in range(n_batches)]
+    X_mapped = [np.transpose(np.array([1 - X[n*batch_size:(n+1)*batch_size,:],
+                                       X[n*batch_size:(n+1)*batch_size,:]]),(1,0,2)) 
+                for n in range(n_batches)]    
+    return X_mapped, y_one_hot
+
+def generate_mapped_MNIST_batches_one_hot(data,labels,n_batches):
+    """
+    X is an M by N matrix, where M is the number of samples and N is the number of features 
+    (N= 28*28 for the MNIST data set) Y are the labels 
+    returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
+    pass this to calculateGradientn
+    """
+    X = data 
     Y = labels
     batch_size = X.shape[0] // n_batches
     nb = len(np.unique(Y))
