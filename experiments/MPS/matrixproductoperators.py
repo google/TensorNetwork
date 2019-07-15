@@ -516,6 +516,69 @@ class FiniteTFI(FiniteMPO):
 
     super().__init__(tensors=mpo, name='TFI_MPO')
 
+class FiniteTFI_2(FiniteMPO):
+  """
+    the good old transverse field Ising model
+    convention: sigma_z=diag([-1,1])
+    """
+
+  def __init__(self, Jz, Bx, dtype=tf.float64):
+    """
+    returns the MPO of the finite TFI model
+    Args:
+        Jx (np.ndarray or tf.Tensor):  the Sx*Sx coupling strength between nearest neighbor lattice sites
+        Bz (np.ndarray or tf.Tensor):  magnetic field on each lattice site
+        dtype (tf-dtype or numpy dtype): the dtype of the MPO
+    Returns:
+        FiniteXXZ:   the mpo of the infinite TFI model
+    """
+
+    if hasattr(dtype, 'as_numpy_dtype'):
+      dtype = dtype.as_numpy_dtype
+
+    self.Jz = Jz.astype(dtype)
+    self.Bx = Bx.astype(dtype)
+    N = len(Bx)
+    sigma_x = np.array([[0, 1], [1, 0]]).astype(dtype)
+    sigma_z = np.diag([-1, 1]).astype(dtype)
+    mpo = []
+    temp = np.zeros(shape=[1, 3, 2, 2], dtype=dtype)
+    #Bsigma_z
+    temp[0, 0, :, :] = self.Bx[0] * sigma_x
+    #sigma_x
+    temp[0, 1, :, :] = self.Jz[0] * sigma_z
+    #11
+    temp[0, 2, 0, 0] = 1.0
+    temp[0, 2, 1, 1] = 1.0
+    mpo.append(tf.convert_to_tensor(temp))
+    for n in range(1, N - 1):
+      temp = np.zeros(shape=[3, 3, 2, 2], dtype=dtype)
+      #11
+      temp[0, 0, 0, 0] = 1.0
+      temp[0, 0, 1, 1] = 1.0
+      #sigma_x
+      temp[1, 0, :, :] = sigma_z
+      #Bsigma_z
+      temp[2, 0, :, :] = self.Bx[n] * sigma_x
+      #sigma_x
+      temp[2, 1, :, :] = self.Jz[n] * sigma_z
+      #11
+      temp[2, 2, 0, 0] = 1.0
+      temp[2, 2, 1, 1] = 1.0
+      mpo.append(tf.convert_to_tensor(temp))
+
+    temp = np.zeros([3, 1, 2, 2], dtype=dtype)
+    #11
+    temp[0, 0, 0, 0] = 1.0
+    temp[0, 0, 1, 1] = 1.0
+    #sigma_x
+    temp[1, 0, :, :] = sigma_z
+    #Bsigma_z
+    temp[2, 0, :, :] = self.Bx[-1] * sigma_x
+    mpo.append(tf.convert_to_tensor(temp))
+
+    super().__init__(tensors=mpo, name='TFI_MPO')
+
 
 class InfiniteTFI(InfiniteMPO):
   """
