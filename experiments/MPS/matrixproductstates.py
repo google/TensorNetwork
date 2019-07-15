@@ -1530,11 +1530,11 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
   
   def generate_samples(self, num_samples):
       """
-      calculate samples from the MPS probability amplitude
+      generate samples from the MPS probability amplitude
       Args:
           num_samples(int): number of samples
       Returns:
-          list of list:  the samples
+          tf.Tensor of shape (num_samples, len(self):  the samples
       """
       dtype = self.dtype
       
@@ -1549,7 +1549,7 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
       lenv = tf.stack([tf.eye(Ds[0], dtype=dtype) for _ in range(num_samples)], axis=0) #shape (num_samples, 1, 1)
       Z1 = tf.ones(shape=[num_samples,1], dtype=dtype)#shape (num_samples, 1)
       for site in range(len(self)):
-        stdout.write( "\rgenerating samples at site %i" % (site))
+        stdout.write( "\rgenerating samples at site %i/%i" % (site,len(self)))
         Z0 = tf.expand_dims(tf.linalg.norm(tf.reshape(lenv,(num_samples, Ds[site] * Ds[site])), axis=1),1) #shape (num_samples, 1)
         lenv /= tf.expand_dims(Z0,2)
         p_joint_0 = tf.linalg.diag_part(tn.ncon([lenv,self.get_tensor(site), tf.conj(self.get_tensor(site)), right_envs[site]],
