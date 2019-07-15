@@ -89,6 +89,22 @@ class TensorNetwork:
       new_network.add_subnetwork(network)
     return new_network
 
+  def switch_backend(self, new_backend: Text) -> None:
+    """Change this network's backend.
+
+    This will convert all node's tensors to the new backend's Tensor type.
+    """
+    if self.backend.name != "numpy":
+      raise NotImplementedError(
+          "Can only switch backends when the current "
+          "backend is 'numpy'. Current backend is '{}'".format(
+              self.backend.name)
+        )
+    self.backend = backend_factory.get_backend(new_backend)
+    for node in self.nodes_set:
+      node.tensor = self.backend.convert_to_tensor(node.tensor)
+
+
   def add_node(self,
                tensor: Union[np.ndarray, Tensor],
                name: Optional[Text] = None,

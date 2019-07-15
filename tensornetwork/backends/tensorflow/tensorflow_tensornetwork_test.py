@@ -41,7 +41,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes(self):
 
-    @tf.function
+    @tf.contrib.eager.defun
     def f(x, n):
       x_slice = x[:n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -56,7 +56,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_contract_between(self):
 
-    @tf.function
+    @tf.contrib.eager.defun
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -73,7 +73,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_flatten_standard(self):
 
-    @tf.function
+    @tf.contrib.eager.defun
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
@@ -90,7 +90,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_dynamic_network_sizes_flatten_trace(self):
 
-    @tf.function
+    @tf.contrib.eager.defun
     def f(x, n):
       x_slice = x[..., :n]
       net = tensornetwork.TensorNetwork(backend="tensorflow")
