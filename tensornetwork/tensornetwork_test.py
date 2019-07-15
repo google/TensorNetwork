@@ -1183,11 +1183,11 @@ def test_switch_backend():
   assert isinstance(a.tensor, tf.Tensor)
 
 def test_svd_consistency(backend):
-	net = tensornetwork.TensorNetwork(backend=backend)
-	original_tensor = np.array(
-		[[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]], 
+  net = tensornetwork.TensorNetwork(backend=backend)
+  original_tensor = np.array(
+    [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]], 
     dtype=np.complex64)
-	node = net.add_node(original_tensor)
-	u, vh, _ = net.split_node(node, [node[0]], [node[1]])
-	final_node = net.contract_between(u, vh)
-	np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
+  node = net.add_node(original_tensor)
+  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
+  final_node = net.contract_between(u, vh)
+  np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
