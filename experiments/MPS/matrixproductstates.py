@@ -1566,7 +1566,7 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
 
         one_hots = tf.one_hot(sigmas[-1],ds[site], dtype=dtype)
         tmp = tn.ncon([self.get_tensor(site), one_hots],[[-2, 1, -3], [-1, 1]])          #tmp has shape (Nt, Dl, Dr)
-        tmp2 = tf.transpose(tf.matmul(tf.transpose(lenv,(0, 2, 1)), tmp), (0, 2, 1)) #has shape (Nt, Dr, Dl')
+        tmp2 = tf.transpose(tf.matmul(tf.transpose(lenv,(0, 2, 1)), tmp), (0, 2, 1)) #has shape (Nt, Dr, Dl') #FIXME: get rid of all these transposes
         lenv = tf.matmul(tmp2, tf.conj(tmp)) #has shape (Nt, Dr, Dr')
         Z1 = Z0
       return tf.stack(sigmas, axis=1)
