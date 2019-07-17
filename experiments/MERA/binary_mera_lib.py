@@ -71,7 +71,7 @@ def get_scaling_dimensions(isometry, unitary, k=4):
     Returns:
         tf.Tensor of shape (k,): first k scaling dimensions
     """
-    chi = isometry.get_shape()[2]
+    chi = isometry.shape[2]
     dtype = isometry.dtype
 
     def lmv(vec):
@@ -98,7 +98,7 @@ def get_scaling_dimensions_2site(isometry, unitary, k=4):
     Returns:
         tf.Tensor of shape (k,): first k scaling dimensions
     """
-    chi = isometry.get_shape()[2]
+    chi = isometry.shape[2]
     dtype = isometry.dtype
 
     def lmv(vec):
@@ -129,7 +129,7 @@ def eigs(isometry, unitary, N=10, thresh=1E-6):
     Returns:
         (list,list,list): central, lower and upper diagonal part of the tridiagonal matrix
     """
-    chi = isometry.get_shape()[2]
+    chi = isometry.shape[2]
     dtype = isometry.dtype
     q_j = tf.random_uniform(shape=[chi, chi, chi, chi, chi, chi], dtype=dtype.real_dtype)
     q_j = misc_mera.symmetrize(q_j)
@@ -228,7 +228,7 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
     out = net.contract_between(right, out)
 
     out.reorder_edges(out_order)
-    out.axis_names = [out[n].name for n in range(len(out.get_tensor().get_shape()))]
+    out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]
     return out.get_tensor()
 
 
@@ -275,7 +275,7 @@ def two_site_descending_super_operator(rho, isometry, unitary):
     out = net.contract_between(temp, un_con)
 
     out = out.reorder_edges(out_order)
-    out.axis_names = [out[n].name for n in range(len(out.get_tensor().get_shape()))]
+    out.axis_names = [out[n].name for n in range(len(out.get_tensor().shape))]
     return out.get_tensor()
 
 
@@ -588,7 +588,6 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-
 #@tf.contrib.eager.defun(autograph=False)
 def descending_super_operator(rho, isometry, unitary):
     """
@@ -876,7 +875,6 @@ def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler(ham, rho, isometry, unitary):
     """
     compute the disentangler environment
@@ -894,6 +892,7 @@ def get_env_disentangler(ham, rho, isometry, unitary):
     env_3 = get_env_disentangler_3(ham, rho, isometry, unitary)
     env_4 = get_env_disentangler_4(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4
+
 
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
@@ -1304,7 +1303,6 @@ def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
     return out.get_tensor()
 
 
-@tf.contrib.eager.defun(autograph=False)
 def get_env_isometry(ham, rho, isometry, unitary):
     """
     compute the isometry environment
@@ -1325,7 +1323,7 @@ def get_env_isometry(ham, rho, isometry, unitary):
     env_6 = get_env_isometry_6(ham, rho, isometry, unitary)
     return env_1 + env_2 + env_3 + env_4 + env_5 + env_6
 
-@tf.contrib.eager.defun(autograph=False)
+
 def steady_state_density_matrix(nsteps, rho, isometry, unitary, verbose=0):
     """
     obtain steady state density matrix of the scale invariant binary MERA
@@ -1362,11 +1360,10 @@ def unlock_layer(wC, uC, noise=0.0):
     wC.append(copy.copy(wC[-1]))
     uC.append(copy.copy(uC[-1]))
     wC[-1] += tf.cast(tf.random_uniform(
-        shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
+        shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     uC[-1] += tf.cast(tf.random_uniform(
-        shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
+        shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) * noise, wC[-1].dtype)
     return wC, uC
-
 
 def increase_bond_dimension_by_adding_layers(chi_new, wC, uC, noise=0.0):
     """
@@ -1385,22 +1382,22 @@ def increase_bond_dimension_by_adding_layers(chi_new, wC, uC, noise=0.0):
          uC (list):   list of tf.Tensors of disentangler
     """
 
-    if misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].get_shape()[2] >= chi_new):
+    if misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].shape[2] >= chi_new):
         #nothing to do here
         return wC, uC
-    elif misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].get_shape()[2] < chi_new):
-        chi = min(chi_new, wC[-1].get_shape()[0] * wC[-1].get_shape()[1])
+    elif misc_mera.all_same_chi(wC[-1], uC[-1]) and (wC[-1].shape[2] < chi_new):
+        chi = min(chi_new, wC[-1].shape[0] * wC[-1].shape[1])
         wC[-1] = misc_mera.pad_tensor(wC[-1],
-                                      [wC[-1].get_shape()[0], wC[-1].get_shape()[1], chi])
+                                      [wC[-1].shape[0], wC[-1].shape[1], chi])
         wC_temp = copy.deepcopy(wC[-1])
         uC_temp = copy.deepcopy(uC[-1])
         wC.append(misc_mera.pad_tensor(wC_temp, [chi, chi, chi]))
         uC.append(misc_mera.pad_tensor(uC_temp, [chi, chi, chi, chi]))
         wC[-1] += (tf.random_uniform(
-            shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
+            shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
                    noise)
         uC[-1] += (tf.random_uniform(
-            shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
+            shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
                    noise)
         return increase_bond_dimension_by_adding_layers(chi_new, wC, uC)
 
@@ -1423,12 +1420,12 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
         wC (list of tf.Tensor):   padded MERA isometries and disentanglers
         uC (list of tf.Tensor):   padded MERA isometries and disentanglers
     """
-    all_chis = [t.get_shape()[n] for t in wC for n in range(len(t.get_shape()))]
+    all_chis = [t.shape[n] for t in wC for n in range(len(t.shape))]
     if not np.all([c <= chi_new for c in all_chis]):
         #nothing to increase
         return wC, uC
 
-    chi_0 = wC[0].get_shape()[0]
+    chi_0 = wC[0].shape[0]
     wC[0] = misc_mera.pad_tensor(wC[0], [chi_0, chi_0, min(chi_new, chi_0**2)])
 
     for n in range(1, len(wC)):
@@ -1445,9 +1442,9 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
         ])
 
         wC[n] += tf.cast(
-            tf.random_uniform(shape=wC[n].get_shape(), dtype=wC[n].dtype.real_dtype) * noise, wC[n].dtype)
+            tf.random_uniform(shape=wC[n].shape, dtype=wC[n].dtype.real_dtype) * noise, wC[n].dtype)
         uC[n] += tf.cast(
-            tf.random_uniform(shape=uC[n].get_shape(), dtype=uC[n].dtype.real_dtype) * noise, uC[n].dtype)
+            tf.random_uniform(shape=uC[n].shape, dtype=uC[n].dtype.real_dtype) * noise, uC[n].dtype)
         
     n = len(wC)
     while not misc_mera.all_same_chi(wC[-1]):
@@ -1466,16 +1463,15 @@ def pad_mera_tensors(chi_new, wC, uC, noise=0.0):
             ]))
 
         wC[-1] += tf.cast(tf.random_uniform(
-            shape=wC[-1].get_shape(), minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
+            shape=wC[-1].shape, minval=-1, maxval=1, dtype=wC[-1].dtype.real_dtype) *
                           noise, wC[-1].dtype)
         uC[-1] += tf.cast(tf.random_uniform(
-            shape=uC[-1].get_shape(), minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
+            shape=uC[-1].shape, minval=-1, maxval=1, dtype=uC[-1].dtype.real_dtype) *
                           noise, uC[-1].dtype)
         
         n += 1
 
     return wC, uC
-
 
 def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
     """
@@ -1516,20 +1512,12 @@ def initialize_binary_MERA_identities(phys_dim, chi, dtype=tf.float64):
         if misc_mera.all_same_chi(wC[-1]):
             break
 
-    rhos = [0 for _ in range(len(wC) + 1)]
-    for n in reversed(range(len(wC))):
-        chi_top = tf.shape(wC[n])[2]
-        rhos[n + 1] = tf.reshape(
-            tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
-            (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
-        rhos[n + 1] /= misc_mera.trace(rhos[n + 1])
-    chi_top = tf.shape(wC[0])[0]
-    rhos[0] = tf.reshape(
+    chi_top = wC[-1].shape[2]
+    rho = tf.reshape(
         tf.eye(chi_top * chi_top * chi_top, dtype=dtype),
         (chi_top, chi_top, chi_top, chi_top, chi_top, chi_top))
-    rhos[0] /= misc_mera.trace(rhos[0])
-        
-    return wC, uC, rhos
+
+    return wC, uC, rho / misc_mera.trace(rho)
 
 
 
@@ -1550,15 +1538,15 @@ def initialize_binary_MERA_random(phys_dim, chi, dtype=tf.float64):
     """
     #Fixme: currently, passing tf.complex128 merely initializez imaginary part to 0.0
     #       make it random
-    wC, uC, rhos = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
+    wC, uC, rho = initialize_binary_MERA_identities(phys_dim, chi, dtype=dtype)
     
-    wC = [tf.cast(tf.random_uniform(shape=w.get_shape(), dtype=dtype.real_dtype), dtype) for w in wC]
+    wC = [tf.cast(tf.random_uniform(shape=w.shape, dtype=dtype.real_dtype), dtype) for w in wC]
     wC = [misc_mera.w_update_svd_numpy(w) for w in wC]
     
-    uC = [tf.cast(tf.random_uniform(shape=u.get_shape(), dtype=dtype.real_dtype), dtype) for u in uC]
+    uC = [tf.cast(tf.random_uniform(shape=u.shape, dtype=dtype.real_dtype), dtype) for u in uC]
     uC = [misc_mera.u_update_svd_numpy(u) for u in uC]
 
-    return wC, uC, rhos 
+    return wC, uC, rho 
 
 
 def initialize_TFI_hams(dtype=tf.float64):
@@ -1620,7 +1608,7 @@ def optimize_binary_mera(ham_0,
                          opt_u=True,
                          opt_w=True,
                          numpy_update=True,
-                         opt_all_layers=True,
+                         opt_all_layers=False,
                          opt_u_after=40,
                          E_exact=-4 / np.pi):
     """
@@ -1655,11 +1643,10 @@ def optimize_binary_mera(ham_0,
     rho = [0 for x in range(len(wC) + 1)]
     ham[0] = ham_0
 
-    chi1 = ham[0].get_shape()[0]
+    chi1 = ham[0].shape[0]
     bias = tf.cast(tf.math.reduce_max(
         tf.cast(tf.linalg.eigvalsh(
             tf.reshape(ham[0], (chi1 * chi1 * chi1, chi1 * chi1 * chi1))),tf.float64)) / 2,dtype)
-
     ham[0] = ham[0] - bias * tf.reshape(
         tf.eye(chi1 * chi1 * chi1, dtype=dtype),
         (chi1, chi1, chi1, chi1, chi1, chi1))
@@ -1670,34 +1657,23 @@ def optimize_binary_mera(ham_0,
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
 
     Energies = []
-    # run_times = {'env_u' : [], 'env1_u' : [],'env2_u' : [],'env3_u' : [],'env4_u' : [], 'env1_w' : [],'env2_w' : [],'env3_w' : [],'env4_w' : [],'env5_w' : [],'env6_w' : [],'env_w' : [],
-    #              'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
-    run_times = {'env_u' : [], 'env_w' : [], 'steady_state' : [], 'svd_env_u' : [], 'svd_env_w' : [], 'ascend' : [], 'descend' : [], 'total' : []}
+    run_times = []
 
     if rho_0 == 0:
-        chi_max = wC[-1].get_shape()[2]
+        chi_max = wC[-1].shape[2]
         rho_0 = tf.reshape(
             tf.eye(chi_max**3, dtype=dtype),
             (chi_max, chi_max, chi_max, chi_max, chi_max, chi_max))
 
     for k in range(numiter):
-        t_init = time.time()
         t1 = time.time()
         rho_0 = steady_state_density_matrix(nsteps_steady_state, rho_0, wC[-1],
                                             uC[-1])
-        dummy = rho_0[0,0,0,0,0,0] + 1
-        print(dummy)
-        run_times['steady_state'].append(time.time() - t1)
-
         rho[-1] = rho_0
-        t1 = time.time()        
         for p in range(len(rho) - 2, -1, -1):
             rho[p] = descending_super_operator(rho[p + 1], wC[p], uC[p])
-        dummy = rho[0][0,0,0,0,0,0] + 1
-        print(dummy)
-        run_times['descend'].append(time.time() - t1)            
 
-        if verbose == 1:
+        if verbose > 0:
             if np.mod(k, 10) == 1:
                 Z = misc_mera.trace(rho[0])
                 net = tn.TensorNetwork()
@@ -1709,122 +1685,32 @@ def optimize_binary_mera(ham_0,
                 stdout.write(
                     '\r     Iteration: %i of %i: E = %.8f, err = %.16f at D = %i with %i layers'
                     % (int(k), int(numiter), float(Energies[-1]),
-                       float(Energies[-1] - E_exact), int(wC[-1].get_shape()[2]),
+                       float(Energies[-1] - E_exact), int(wC[-1].shape[2]),
                        len(wC)))
                 stdout.flush()
-        run_times['ascend'].append(0)
-        run_times['svd_env_u'].append(0)
-        run_times['svd_env_w'].append(0)
-        run_times['env_u'].append(0)        
-        run_times['env_w'].append(0)
-        # run_times['env1_w'].append(0)
-        # run_times['env2_w'].append(0)
-        # run_times['env3_w'].append(0)
-        # run_times['env4_w'].append(0)
-        # run_times['env5_w'].append(0)
-        # run_times['env6_w'].append(0)        
-        # run_times['env1_u'].append(0)
-        # run_times['env2_u'].append(0)
-        # run_times['env3_u'].append(0)
-        # run_times['env4_u'].append(0)
-        
+
         for p in range(len(wC)):
             if (not opt_all_layers) and skip_layer[p]:
                 continue
             if k >= opt_u_after:
-                t1 = time.time()
                 uEnv = get_env_disentangler(ham[p], rho[p + 1], wC[p], uC[p])
-                dummy = uEnv[0,0,0,0] + 1
-                print(dummy)
-                run_times['env_u'][-1] += (time.time() - t1)
-                
-                # t1 = time.time()
-                # uEnv_1 = get_env_disentangler_1(ham[p], rho[p + 1], wC[p], uC[p])
-                # dummy = uEnv_1[0]                
-                # run_times['env1_u'][-1] += (time.time() - t1)
-                
-                # t1 = time.time()            
-                # uEnv_2 = get_env_disentangler_2(ham[p], rho[p + 1], wC[p], uC[p])
-                # dummy = uEnv_2[0]                                
-                # run_times['env2_u'][-1] += (time.time() - t1)
-                # t1 = time.time()            
-                # uEnv_3 = get_env_disentangler_3(ham[p], rho[p + 1], wC[p], uC[p])
-                # dummy = uEnv_3[0]                                                
-                # run_times['env3_u'][-1] += (time.time() - t1)
-                # t1 = time.time()
-                # uEnv_4 = get_env_disentangler_4(ham[p], rho[p + 1], wC[p], uC[p])
-                # dummy = uEnv_4[0]
-                # run_times['env4_u'][-1] += (time.time() - t1)
-                # uEnv = uEnv_1 + uEnv_2 + uEnv_3 + uEnv_4
                 if opt_u:
-                    t1 = time.time()                                            
                     if numpy_update:
                         uC[p] = misc_mera.u_update_svd_numpy(uEnv)
                     else:
                         uC[p] = misc_mera.u_update_svd(uEnv)
-                    dummy = uC[p][0,0,0,0] + 1
-                    print(dummy)
-                    run_times['svd_env_u'][-1] += (time.time() - t1)                                                                        
 
-            # t1 = time.time()
-            # wEnv_1 = get_env_isometry_1(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env1_w'][-1] += (time.time() - t1)
-            # t1 = time.time()            
-            # wEnv_2 = get_env_isometry_2(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env2_w'][-1] += (time.time() - t1)
-            # t1 = time.time()            
-            # wEnv_3 = get_env_isometry_3(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env3_w'][-1] += (time.time() - t1)
-            # t1 = time.time()            
-            # wEnv_4 = get_env_isometry_4(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env4_w'][-1] += (time.time() - t1)
-            # t1 = time.time()            
-            # wEnv_5 = get_env_isometry_5(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env5_w'][-1] += (time.time() - t1)
-            # t1 = time.time()            
-            # wEnv_6 = get_env_isometry_6(ham[p], rho[p + 1], wC[p], uC[p])
-            # run_times['env6_w'][-1] += (time.time() - t1)
-            # wEnv = wEnv_1 + wEnv_2 + wEnv_3 + wEnv_4 + wEnv_5 + wEnv_6
-            
-            t1 = time.time()
             wEnv = get_env_isometry(ham[p], rho[p + 1], wC[p], uC[p])
-            dummy = wEnv[0,0,0] + 1
-            print(dummy)            
-            run_times['env_w'][-1] += (time.time() - t1)
-            
             if opt_w:
-                t1 = time.time()                
                 if numpy_update:
                     wC[p] = misc_mera.w_update_svd_numpy(wEnv)
                 else:
                     wC[p] = misc_mera.w_update_svd(wEnv)
-                dummy = wC[p][0,0,0] + 1
-                print(dummy)            
-                run_times['svd_env_w'][-1] += (time.time() - t1)                    
 
-            t1 = time.time()                
             ham[p + 1] = ascending_super_operator(ham[p], wC[p], uC[p])
-            dummy = ham[p + 1][0,0,0,0,0,0] + 1
-            print(dummy)            
-            run_times['ascend'][-1] += (time.time() - t1)
 
-            
-        # run_times['env_u'].append(run_times['env1_u'][-1] + \
-        #     run_times['env2_u'][-1] + \
-        #     run_times['env4_u'][-1] + \
-        #     run_times['env1_u'][-1])
-        # run_times['env_w'].append(run_times['env1_w'][-1] + \
-        #                           run_times['env2_w'][-1] + \
-        #                           run_times['env3_w'][-1] + \
-        #                           run_times['env4_w'][-1] + \
-        #                           run_times['env5_w'][-1] + \
-        #                           run_times['env6_w'][-1])
-        run_times['total'].append(time.time() - t_init)
-        if verbose == 2:
-            print('time per iteration: ', run_times['total'][-1])
-        if verbose == 3:
-            print('runtimes')
-            for k, i in run_times.items():
-                print(k, i)
+        run_times.append(time.time() - t1)
+        if verbose > 2:
+            print('time per iteration: ', run_times[-1])
 
     return wC, uC, rho[-1], run_times, Energies
