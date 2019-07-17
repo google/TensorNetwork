@@ -64,6 +64,52 @@ def svd(mat, full_matrices=False, compute_uv=True, r_thresh=1E-12):
 def split_node_full_svd_numpy(node, left_edges, right_edges, direction, max_singular_values=None, trunc_thresh=None):
     """
     numpy version of TensorNetwork.split_node_full_svd
+    Split a node by doing a full singular value decomposition.
+
+    Let M be the matrix created by flattening left_edges and right_edges into
+    2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
+    :math:`M`.
+
+    The left most node will be :math:`U` tensor of the SVD, the middle node is
+    the diagonal matrix of the singular values, ordered largest to smallest,
+    and the right most node will be the :math:`V*` tensor of the SVD.
+
+    The singular value decomposition is truncated if `max_singular_values` or
+    `max_truncation_err` is not `None`.
+
+    The truncation error is the 2-norm of the vector of truncated singular
+    values. If only `max_truncation_err` is set, as many singular values will
+    be truncated as possible while maintaining:
+    `norm(truncated_singular_values) <= max_truncation_err`.
+
+    If only `max_singular_values` is set, the number of singular values kept
+    will be `min(max_singular_values, number_of_singular_values)`, so that
+    `max(0, number_of_singular_values - max_singular_values)` are truncated.
+
+    If both `max_truncation_err` and `max_singular_values` are set,
+    `max_singular_values` takes priority: The truncation error may be larger
+    than `max_truncation_err` if required to satisfy `max_singular_values`.
+
+    Args:
+      node: The node you want to split.
+      left_edges: The edges you want connected to the new left node.
+      right_edges: The edges you want connected to the new right node.
+      max_singular_values: The maximum number of singular values to keep.
+      max_truncation_err: The maximum allowed truncation error.
+
+    Returns:
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`U`
+        singular_values_node: 
+          A new node that has 2 edges connecting `left_node` and `right_node`.
+          Its underlying tensor is :math:`S`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`V^*`
+        truncated_singular_values: 
+          The vector of truncated singular values.
     """
     node = node.reorder_edges(left_edges + right_edges)
     D0, D1, D2, D3 = node.tensor.get_shape()    
@@ -93,6 +139,8 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
     A Matrix Product State based linear classifier
     based on the proposal in https://arxiv.org/abs/1605.05775
                                              left environment of site `site`
+    For data with `n_features` features, the MPS has `n_features + 1` sites, the additional 
+    site being the label-tensor. For data with `n_labels` classes, Tthe label-tensor has a physical dimension of `n_labels`.
     """
     @classmethod
     def eye(cls, ds, D, num_labels, label_position, dtype=tf.float64, noise=1E-5,scaling=0.1, name='MPS_classifier'):
@@ -265,6 +313,16 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
 
     
     def label_position(self, site, numpy_svd=False, D=None, trunc_thresh=None):
+        """
+        shift the position of the label-tensor to `site`
+        Args:
+            site (int):                    the site where the label tensor should be shifted
+            numpy_svd (bool):              if `True`, use numpy's svd instead of tensorflow
+            D (int or None):               maximum bond  dimension to be kept during the shift; if `None`, no truncation is applied
+            trunc_thresh (floato or None): truncatio threshold of singular values to be kept during the shift
+        Returns: 
+            None
+        """
         if site == self._label_position:
             return
         elif site > self._label_position:
@@ -295,15 +353,18 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
             
     def add_layer(self, samples, site, direction):
         """
-        this computes the environments at `site + 1` or `site -1` for direction = 1 or -1, respectively,
-        for the mps; site labels the mps sites, including the label-tensor. 
+        computes the data-environments at `site + 1` or `site -1` for direction = 1 or -1, respectively,
+        site labels the mps sites, including the label-tensor. 
         this calls ._tensors, and not get_tensor, i.e. centermatrix is not absorbed into the mps
         left environments to the left of label_pos have dimensions (Nt, 1, D), to the right (Nt, Nlables, D)
         right environments to the right of label_pos have dimensions (Nt, D, 1), to the left (Nt, D, Nlables)
         Args:
-            samples (np.ndarray): shape (Nt,dl,N); the data matrix
+            samples (tf.Tensor): shape (Nt,dl,N); the data matrix
             site (int):   the site of the system (i.e. the feature number)
-            direction (int or str)
+            direction (int or str):  can be either (1,'l','left') or (-1,'r','right')
+        Returns:
+            tf.Tensor: the data environment at site `site + 1` or `site - 1` for 
+                       `direction` in (1,'l','left') or (-1,'r','right'), respectively
         """
         
         if direction in (1,'l','left'):
@@ -385,12 +446,23 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
             return self.right_data_environment[site - 1]                
 
     def compute_data_environments(self,samples):
+        """
+        compute left and right data environments
+        Args:
+            samples (tf.Tensor): shape (Nt,dl,N); the data matrix
+        """
         for site in range(-1, self.pos):
             self.add_layer(samples, site, 'l')
         for site in reversed(range(self.pos,len(self) + 1)):
             self.add_layer(samples, site, 'r')
             
     def accuracy(self, samples, labels):
+        """
+        compute the accuracy of the prediction
+        Args:
+            samples (tf.Tensor of shape (Nt, dl, N)): the samples
+            labels (tf.Tensor of shape (Nt,n_labels): the one-hot encoded labels
+        """
         ground_truth = tf.argmax(labels,  axis=1)        
         prediction = tf.argmax(self.predict(samples)[0], 1)
         correct = np.sum(prediction.numpy() == ground_truth.numpy())
@@ -399,14 +471,10 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
     def predict(self, samples):
         """
         Args:
-            label_tensor (np.ndarray):  rank-4 array of shape (Dl, n_labels, Dr, dl)
-            left_envs (np.ndarrray):    left data environments of shape (Nt, Dl)
-            irght_envs: (np.ndarray):   right data environments of shape (Nt, Dr)
-            samples (np.ndarray): shape (Nt,dl,N); the data matrix
+            samples (tf.Tensor of shape (Nt, dl, N)): the samples
         Returns:
-            predictions (tf.Tensor)     shape (Nt, n_labels))
-            norms (tf.Tensor)           shape (Nt, 1)
-
+            predictions (tf.Tensor with shape (Nt, n_labels)):  the predictions for `samples` (each prediction is normalized)
+            norms (tf.Tensor with shape (Nt, 1)):               the norms for of the prediction vector for each sample
         """
         if self.pos == self.label_pos:
             y = misc_mps.ncon([tf.squeeze(self.left_data_environment[self.label_pos], 1),
@@ -450,7 +518,7 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
             labels (tf.Tensor):          shape (Nt, n_labels): one-hot encoded labels for the 
                                          data in `samples`
         Returns:
-            tf.Tensor of shape (Dl, n_labels, Dr, d)
+            tf.Tensor of shape (Dl, n_labels, Dr, d):  the gradient of the tensor
         """
         #Todo:  this likely uses too much memory, fix this!
         assert(self.pos < len(self)) #exclude the case where central site is a the right boundary, see above
@@ -545,7 +613,21 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                          learning_rate=1E-5):
 
         """
+        do a single one-site optimization step.
+        This routine shifts self.pos one site the left or right for direction 
+        ('l','left') or ('r','right'), respectively.
         learning rate should be positive
+        Args:
+            samples (tf.Tensor):         shape (Nt, d, N) with Nt number of samples
+                                         d the embedding dimension, and N the number of features
+            labels (tf.Tensor):          shape (Nt, n_labels): one-hot encoded labels for the 
+                                         data in `samples`
+            direction (int or str):      can be either ('l','left') or ('r','right')    
+            learning_rate (float):       the learning rate
+        Returns:
+            tf.Tensor (scalar):             loss 
+            tf.Tensor (shape (Dl, d, Dr):   the normalized gradient
+            tf.Tensor (scalar):             norm of the gradient
         """
         if direction in ('right','r'):
             assert (self.pos < len(self)) #the case of self.pos == len(self) is currently not implemented for self.one_site_gradient
@@ -588,16 +670,15 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                                 t0=0.0,
                                 n1=None):
         """
-        minimizes the  cost function by sweeping from left to right
+        minimizes the  cost function by sweeping once from left to right
         Args:
             samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
                                                         d is the embedding dimension, and N is the systemsize
             labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
                                                         n_labels is the number of labels
-            learning_rate (float):
-            numpy_svd (bool):
-            D (int or None):
-            trunc_thresh (float):
+            learning_rate (float):                      the learning rate
+            t0 (float):                                 initial time; used to print running time
+            n1 (int or None):                           optimization stops at site `n1`; if None, moves all the way to the right end
         Returns:
             list of scalar tf.Tensor: the losses
             list of scalar tf.Tensor: the training accuracies     
@@ -637,17 +718,18 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                                t0=0.0,
                                D=None,
                                n1=None):
+        
         """
-        minimizes the  cost function by sweeping from left to right
+        minimizes the  cost function by sweeping from left to right and shifting the label-index with the optimization
         Args:
             samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
                                                         d is the embedding dimension, and N is the systemsize
             labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
                                                         n_labels is the number of labels
-            learning_rate (float):
-            numpy_svd (bool):
-            D (int or None):
-            trunc_thresh (float):
+            learning_rate (float):                      the learning rate
+            t0 (float):                                 initial time; used to print running time
+            D (int or None):                            maximum bond dimension to be kept durign sweeping; if `None`, no truncation is applied
+            n1 (int or None):                           optimization stops at site `n1`; if None, moves all the way to the right end
         Returns:
             list of scalar tf.Tensor: the losses
             list of scalar tf.Tensor: the training accuracies     
@@ -691,20 +773,20 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                                 t0=0.0,
                                 n0=0):
         """
-        minimizes the  cost function by sweeping from right to left
+        minimizes the  cost function by sweeping once from right to left
         Args:
             samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
                                                         d is the embedding dimension, and N is the systemsize
             labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
                                                         n_labels is the number of labels
-            learning_rate (float):
-            numpy_svd (bool):
-            D (int or None):
-            trunc_thresh (float):
+            learning_rate (float):                      the learning rate
+            t0 (float):                                 initial time; used to print running time
+            n0 (int or None):                           optimization stops at site `n0`; if None, moves all the way to the left end
         Returns:
             list of scalar tf.Tensor: the losses
             list of scalar tf.Tensor: the training accuracies     
         """
+
         
         losses = []
         train_accuracies = []
@@ -747,10 +829,11 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
                                                         d is the embedding dimension, and N is the systemsize
             labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
                                                         n_labels is the number of labels
-            learning_rate (float):
-            numpy_svd (bool):
-            D (int or None):
-            trunc_thresh (float):
+            learning_rate (float):                      the learning rate
+            D (int or None):                            maximum bond dimension to be kept durign sweeping; if `None`, no truncation is applied
+            t0 (float):                                 initial time; used to print running time
+            n0 (int or None):                           optimization stops at site `n0`; if None, moves all the way to the left end
+
         Returns:
             list of scalar tf.Tensor: the losses
             list of scalar tf.Tensor: the training accuracies     
@@ -787,26 +870,41 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
         return losses, train_accuracies
 
 
-    def optimize(self, samples, labels, learning_rate, num_sweeps, numpy_svd=False,
-                 D=None,
-                 factor=1.5,
-                 lower_lr_bound=1E-10,
-                 max_local_steps=1,
-                 max_steps_per_lr=4,                                 
-                 trunc_thresh=1E-8,
-                 loss_thresh=1E100,
-                 t0=0.0):
+    def optimize(self, samples,
+                 labels,
+                 learning_rate,
+                 num_sweeps,
+                 t0=0.0,
+                 n0=None,
+                 n1=None):
+        """
+        minimizes the  cost function by sweeping 
+        Args:
+            samples (tf.Tensor of shape (Nt, d, N) ):   the samples; Nt is the number of training samples
+                                                        d is the embedding dimension, and N is the systemsize
+            labels (tf.Tensor of shape (Nt, n_labels)): the one-hot encoded labels; Nt is the number of training samples
+                                                        n_labels is the number of labels
+            learning_rate (float):                      the learning rate
+            num_sweeps (int):                           number of sweeps
+            t0 (float):                                 initial time; used to print running time
+            n0 (int or None):                           optimization stops at site `n0`; if None, moves all the way to the left end
+            n1 (int or None):                           optimization stops at site `n1`; if None, moves all the way to the right end
+        Returns:
+            list of scalar tf.Tensor: the losses
+            list of scalar tf.Tensor: the training accuracies     
+        """
+
         
         losses, accuracies = [],[]        
         for sweep in range(num_sweeps):
             
             loss, accs = self.left_right_sweep_simple(samples, labels, learning_rate,
-                                                      t0=t0)
+                                                      t0=t0, n1=n1)
             losses.extend(loss)
             accuracies.extend(accs)
             
             loss, accs = self.right_left_sweep_simple(samples, labels, learning_rate,
-                                                      t0=t0)
+                                                      t0=t0, n0=n0)
             
             losses.extend(loss)
             accuracies.extend(accs)
@@ -831,6 +929,12 @@ def load_MNIST(folder):
 
 
 def shuffle(X, new_order=None):
+    """
+    shuffles the first axis in X randomly
+    Args:
+        X (np.ndarray): data tensor
+        new_order (array):  the new order of the elements along first axis of `X`
+    """
     out = np.copy(X)
     if not new_order:
         new_order = list(range(X.shape[1]))
@@ -846,10 +950,10 @@ def one_hot_encoder(nb, Y):
     
 def generate_mapped_MNIST_batches(X,Y,n_batches,which='one_hot',scaling=1.0, shuffle_pixels=False):
     """
+    generate sample batches from `X` and `Y`
     X is an M by N matrix, where M is the number of samples and N is the number of features 
     (N= 28*28 for the MNIST data set) Y are the labels 
     returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
-    pass this to calculateGradient
     """
     if shuffle_pixels:
         X = shuffle(X)
@@ -881,10 +985,10 @@ def generate_mapped_MNIST_batches(X,Y,n_batches,which='one_hot',scaling=1.0, shu
 
 def generate_mapped_MNIST_batches_poly(data,labels,n_batches):
     """
+    generate sample batches from `X` and `Y`
     X is an M by N matrix, where M is the number of samples and N is the number of features 
     (N= 28*28 for the MNIST data set) Y are the labels 
-    returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
-    pass this to calculateGradientn
+    returns [f_1(x),f_2(x),Y], where f_1=1-x and f_2=x
     """
     X = data / 255
     Y = labels
@@ -897,49 +1001,15 @@ def generate_mapped_MNIST_batches_poly(data,labels,n_batches):
                 for n in range(n_batches)]    
     return X_mapped, y_one_hot
 
-def generate_mapped_MNIST_batches_one_hot(data,labels,n_batches):
-    """
-    X is an M by N matrix, where M is the number of samples and N is the number of features 
-    (N= 28*28 for the MNIST data set) Y are the labels 
-    returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
-    pass this to calculateGradientn
-    """
-    X = data 
-    Y = labels
-    batch_size = X.shape[0] // n_batches
-    nb = len(np.unique(Y))
-    y_one_hot = [np.eye(nb)[np.array([Y[n*batch_size:(n+1)*batch_size]])].squeeze().astype(np.int32)  
-                 for n in range(n_batches)]
-    X_mapped = [np.transpose(np.array([1 - X[n*batch_size:(n+1)*batch_size,:],
-                                       X[n*batch_size:(n+1)*batch_size,:]]),(1,0,2)) 
-                for n in range(n_batches)]    
-    return X_mapped, y_one_hot
-
-def generate_MNIST_mapped(X,Y):
-    """
-    X is an M by N matrix, where M is the number of samples and N is the number of features 
-    (N= 28*28 for the MNIST data set) Y are the labels 
-    returns [f_1(x),f_2(x),Y], where f_1=cos(pi*x*256/(2*255)) and f_2=sin(pi*x*256/(2*255))
-    pass this to calculateGradient
-    """
-
-    nb = len(np.unique(Y))
-    y_one_hot = np.eye(nb)[np.array([Y])].squeeze().astype(np.int32)  
-                 
-    samples = [np.array([np.cos((X[n,:]*256)/255*math.pi/2),np.sin((X[n,:]*256)/255*math.pi/2)])
-                    for n in range(X.shape[0])]    
-    return samples,y_one_hot
-
- 
 def batched_kronecker(a,b):   
     """
     compute the kronecker product np.kron(a[n,:], b[n,:]) for all `n` using 
-    numpy broadcasting
+    broadcasting
     Args:
-        a (np.ndarray):  matrix of shape (Nt, d)
-        b (np.ndarray):  matrix of shape (Nt, d)
+        a (tf.Tensor):  matrix of shape (Nt, d)
+        b (tf.Tensor):  matrix of shape (Nt, d)
     Returns:
-        np.ndarray of shape (Nt, d**2)
+        tf.Tensor of shape (Nt, d**2)
     """
     return tf.reshape(tf.matmul(tf.expand_dims(a,2),tf.expand_dims(b,1)),(a.shape[0],a.shape[1]*b.shape[1]))
 
