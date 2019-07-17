@@ -11,16 +11,16 @@ tf.enable_v2_behavior()
 
 def test_predict():
     dtype  = tf.float64
-    train,valid,test = mm.load_MNIST('data')
-    data, labs = mm.generate_mapped_MNIST_batches(train[0],train[1],n_batches=500)
+    N = 196
+    x_train = np.random.randn(100,N)
+    y_train = np.random.randint(0,10,N).astype(np.int32)
+    data, labs = mm.generate_mapped_MNIST_batches(x_train,y_train,n_batches=1)
     samples = tf.convert_to_tensor(data[0].astype(dtype.as_numpy_dtype))
     labels = tf.convert_to_tensor(labs[0].astype(dtype.as_numpy_dtype))
-    N = samples.shape[2]
-
-    mps = mm.MPSClassifier.random(ds = [2]*N, D=7, num_labels=10,label_position = 300,
+    mps = mm.MPSClassifier.random(ds = [2]*N, D=7, num_labels=10,label_position = N//2,
                                   scaling=1.0, name='test',dtype=dtype)
 
-    sampel = tf.expand_dims(samples[0,:,:],0)
+    sample = tf.expand_dims(samples[0,:,:],0)
     label = tf.expand_dims(labels[0,:],0)    
 
     mps.position(len(mps))
@@ -42,23 +42,23 @@ def test_predict():
         pred= misc_mps.ncon([left, mps.get_tensor(mps.label_pos), right],[[1], [1, -1, 2], [2]])
         return pred / tf.linalg.norm(pred)            
 
-    a = predictor(mps,sampel, mps.label_pos-100).numpy()
-    b = predictor(mps,sampel,mps.label_pos).numpy()
-    c = predictor(mps,sampel,mps.label_pos + 100).numpy()
+    a = predictor(mps,sample, mps.label_pos-40).numpy()
+    b = predictor(mps,sample,mps.label_pos).numpy()
+    c = predictor(mps,sample,mps.label_pos + 40).numpy()
 
-    mps.position(mps.label_pos-100)
-    mps.compute_data_environments(sampel)
-    p, n = mps.predict(sampel)
+    mps.position(mps.label_pos-40)
+    mps.compute_data_environments(sample)
+    p, n = mps.predict(sample)
     d = np.squeeze(p.numpy())
     mps.position(mps.label_pos)
-    mps.compute_data_environments(sampel)
-    p, n = mps.predict(sampel)
+    mps.compute_data_environments(sample)
+    p, n = mps.predict(sample)
     e = np.squeeze(p.numpy())    
 
     
-    mps.position(mps.label_pos + 100)
-    mps.compute_data_environments(sampel)
-    p, n = mps.predict(sampel)
+    mps.position(mps.label_pos + 40)
+    mps.compute_data_environments(sample)
+    p, n = mps.predict(sample)
     f = np.squeeze(p.numpy())        
     
     np.testing.assert_allclose(a,b)
