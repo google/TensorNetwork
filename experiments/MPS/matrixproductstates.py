@@ -1102,10 +1102,10 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
 
   def __init__(self,
                tensors,
-               centermatrix,
-               connector,
-               right_mat,
-               position,
+               centermatrix=None,
+               connector=None,
+               right_mat=None,
+               position=None,
                name=None):
     """
         initializes an MPSUnitCellCentralGauge .
@@ -1121,6 +1121,16 @@ class MPSUnitCellCentralGauge(AbstractMPSUnitCell):
         """
 
     self._tensors = tensors
+    D_end = tensors[-1].shape[2]
+    if centermatrix is None:
+      centermatrix = tf.eye(int(D_end), dtype=self.dtype)
+    if connector is None:
+      connector = tf.eye(int(D_end), dtype=self.dtype)
+    if right_mat is None:
+      right_mat = tf.eye(int(D_end), dtype=self.dtype)
+    if position is None:
+      position = len(tensors)
+    
     self.pos = position
     self.mat = centermatrix
     self.connector = connector
@@ -1442,7 +1452,7 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
     mps.position(0)  # obtain canonical form
     return mps
 
-  def __init__(self, tensors, centermatrix, position, name=None):
+  def __init__(self, tensors, centermatrix=None, position=None, name=None):
     """
         initializes a FiniteMPSCentralGauge .
         Args:
@@ -1456,17 +1466,18 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
 
     if not (np.all([tensors[0].dtype == t.dtype for t in tensors])):
       raise TypeError(
-          'FiniteMPSCentralGauge.__init__: tensors need to have same types')
-    if not tensors[0].dtype == centermatrix.dtype:
-      raise TypeError(
-          'FiniteMPSCentralGauge.__init__: tensors need to have same type as centermatrix'
-      )
+        'FiniteMPSCentralGauge.__init__: tensors need to have same types')
+    dtype = tensors[0].dtype
+    # if not tensors[0].dtype == centermatrix.dtype:
+    #   raise TypeError(
+    #       'FiniteMPSCentralGauge.__init__: tensors need to have same type as centermatrix'
+    #   )
     super().__init__(
         tensors=tensors,
         centermatrix=centermatrix,
         position=position,
-        connector=tf.ones(shape=[1, 1], dtype=centermatrix.dtype),
-        right_mat=tf.ones(shape=[1, 1], dtype=centermatrix.dtype),
+        connector=tf.ones(shape=[1, 1], dtype=dtype),
+        right_mat=tf.ones(shape=[1, 1], dtype=dtype),
         name=name)
     
   def get_amplitude(self,sigmas):
@@ -1527,6 +1538,26 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
     self._tensors[n + 1] = A2
 
     return trunc_err
+
+
+  def get_amplitude(self, sigmas):
+      """
+      compute the amplitude of configuration `sigma`
+      This is not very efficient
+      Args:
+        sigma (tf.Tensor of shape (n_samples, N):  basis configuration
+      Returns:
+        tf.Tensor of shape (n_samples): the amplitudes
+
+      """
+      ds = self.d
+      dtype = self.dtype
+      left = tf.expand_dims(tf.ones(shape=(sigmas.shape[0], self.D[0]),dtype=dtype), 1)  #(Nt, 1, Dl)
+
+      for site in range(len(self)):
+        tmp = tn.ncon([self.get_tensor(site), tf.one_hot(sigmas[:,site], ds[site], dtype=dtype)],[[-2, 1, -3], [-1, 1]]) #(Nt, Dl, Dr)
+        left = tf.matmul(left, tmp) #(Nt, 1, Dr)
+      return tf.squeeze(left)
   
   def generate_samples(self, num_samples):
       """
@@ -1540,7 +1571,7 @@ class FiniteMPSCentralGauge(MPSUnitCellCentralGauge, AbstractFiniteMPS):
       
       self.position(len(self))
       self.position(0)
-      ds = self.d
+      ds = self.d #calling self.d and self.D repeatedly is very slow
       Ds = self.D
       right_envs = self.get_envs_right(range(len(self)))
       it = 0
