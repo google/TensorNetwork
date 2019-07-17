@@ -213,7 +213,7 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
         
 
     @staticmethod
-    #@tf.contrib.eager.defun    
+    #@tf.contrib.eager.defun(autograph=False)    
     def split_off(tensor, direction, numpy_svd=False, D=None, trunc_thresh=None):
         """ 
         takes a rank-4 tensor `tensor` (with indices at left, top, right, bottom) and splits it into two rank-3 tensors
@@ -290,7 +290,7 @@ class MPSClassifier(mps.FiniteMPSCentralGauge):
 
     
     @staticmethod
-    #@tf.contrib.eager.defun
+    #@tf.contrib.eager.defun(autograph=False)        
     def shift_left(tensor, label_tensor, numpy_svd=False, D=None, trunc_thresh=None):
         """
         left-shift `label_tensor` past `tensor`
