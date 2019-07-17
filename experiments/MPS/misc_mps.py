@@ -386,46 +386,57 @@ def prepare_tensor_QR(tensor, direction):
 
 prepare_tensor_QR_defuned = tf.contrib.eager.defun(prepare_tensor_QR, autograph=False)
 
-
-def prepare_tensor_SVD(tensor, direction):
-  """
-    prepares an mps tensor using svd decomposition 
-    Args:
-        tensor (tf.Tensors):  tensor of shape(D1,D2,d)
-                              an mps tensor
-        direction (int):      if `int` > 0: returns left orthogonal decomposition, 
-                              if `int` < 0: returns right orthogonal decomposition
+def prepare_tensor_SVD(tensor, direction, D=None, thresh=1E-32, normalize=False):
+    """
+    prepares and truncates an mps tensor using svd
+    Parameters:
+    ---------------------
+    tensor: np.ndarray of shape(D1,D2,d)
+            an mps tensor
+    direction: int
+               if >0 returns left orthogonal decomposition, if <0 returns right orthogonal decomposition
+    thresh: float
+            cutoff of schmidt-value truncation
+    r_thresh: float
+              only used when svd throws an exception.
+    D:        int or None
+              the maximum bond-dimension to keep (hard cutoff); if None, no truncation is applied
 
     Returns:
-        if direction>0: (out,s,v) with
-        out (tf.Tensor): a left isometric tf.Tensor of dimension (D1,D,d)
-        s (tf.Tensor):   the singular values of length D
-        v (tf.Tensor):   a right isometric tf.Tensor of dimension (D,D2)
+    ----------------------------
+    direction>0: out,s,v,Z
+                 out: a left isometric tensor of dimension (D1,D,d)
+                 s  : the singular values of length D
+                 v  : a right isometric matrix of dimension (D,D2)
+                 Z  : the norm of tensor, i.e. tensor"="out.dot(s).dot(v)*Z
+    direction<0: u,s,out,Z
+                 u  : a left isometric matrix of dimension (D1,D)
+                 s  : the singular values of length D
+                 out: a right isometric tensor of dimension (D,D2,d)
+                 Z  : the norm of tensor, i.e. tensor"="u.dot(s).dot(out)*Z
 
-        if direction<0: (u,s,out) with
-        u (tf.Tensor):   a left isometric tf.Tensor of dimension (D1,D)
-        s (tf.Tensor):   the singular values of length D
-        out (tf.Tensor): a right isometric tf.Tensor of dimension (D,D2,d)
     """
-  l1, d, l2 = tf.unstack(tf.shape(tensor))
 
-  if direction in ('l', 'left', 1):
-    temp = tf.reshape(tensor, [d * l1, l2])
-    s, u, v = tf.linalg.svd(temp, full_matrices=False)
-    Z = tf.linalg.norm(s)
-    #s/=Z
-    size1, size2 = tf.unstack(tf.shape(u))
-    out = tf.reshape(u, [l1, d, size2])
-    return out, s, tf.transpose(tf.conj(v)), Z
+    assert (direction != 0), 'do NOT use direction=0!'
+    [l1, l2, d] = tensor.shape
+    if direction in (1, 'l', 'left'):
+        net = tn.TensorNetwork()
+        node = net.add_node(tensor)
+        u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0], node[1]], [node[2]], max_singular_values=D, max_truncation_err=thresh)
+        Z = tf.linalg.norm(s_node.tensor)
+        if normalize:
+          s_node.tensor /= Z
+        return u_node.tensor, s_node.tensor, v_node.tensor, Z
 
-  if direction in ('r', 'right', -1):
-    temp = tf.reshape(tensor, [l1, d * l2])
-    s, u, v = tf.linalg.svd(temp, full_matrices=False)
-    Z = tf.linalg.norm(s)
-    #s/=Z
-    size1, size2 = tf.unstack(tf.shape(v))
-    out = tf.reshape(tf.transpose(tf.conj(v)), [size2, d, l2])
-    return u, s, out, Z
+    if direction in (-1, 'r', 'right'):
+        net = tn.TensorNetwork()
+        node = net.add_node(tensor)
+        u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0]], [node[1], node[2]], max_singular_values=D, max_truncation_err=thresh)
+        Z = tf.linalg.norm(s_node.tensor)
+        if normalize:        
+          s_node.tensor /= Z
+        return u_node.tensor, s_node.tensor, v_node.tensor, Z
+
 
 
 prepare_tensor_SVD_defuned = tf.contrib.eager.defun(prepare_tensor_SVD, autograph=False)
