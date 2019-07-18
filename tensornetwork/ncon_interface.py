@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Any
 from tensornetwork import network
 from tensornetwork import network_components
@@ -73,37 +74,41 @@ def ncon(tensors: Sequence[Tensor],
   tn, con_edges, out_edges = ncon_network(
       tensors, network_structure, con_order=con_order, out_order=out_order)
 
-  # Contract assuming all edges connecting a given pair of nodes are adjacent
-  # in con_order. If this is not the case, the contraction is sub-optimal
-  # so we throw an exception.
   while con_edges:
-    nodes = con_edges.pop(0).get_nodes()
-    nodes_set = set(nodes)
+    nodes_to_contract = con_edges.pop(0).get_nodes()
+    edges_to_contract = tn.get_shared_edges(*nodes_to_contract)
 
-    # Eat up all edges sharing these nodes that are adjacent in con_edges.
+    # Eat up all parallel edges that are adjacent in the ordering.
     while con_edges:
-      if set(con_edges[0].get_nodes()) != nodes_set:
+      if con_edges[0] not in edges_to_contract:
         break
       con_edges.pop(0)
 
-    if nodes_set == tn.nodes_set:
-      assert not con_edges
+    # In an optimal ordering, all edges connecting a given pair of nodes are
+    # adjacent in con_order. If this is not the case, warn the user.
+    leftovers = set(con_edges) & edges_to_contract
+    if leftovers:
+      warnings.warn(
+        "Suboptimal ordering detected. Edges {} are not adjacent in the "
+        "contraction order to edges {}, connecting nodes {}. Deviating from "
+        "the specified ordering!".format(
+          list(map(str, leftovers)),
+          list(map(str, edges_to_contract - leftovers)),
+          list(map(str, nodes_to_contract)))
+        )
+      con_edges = [e for e in con_edges if e not in edges_to_contract]
+
+    if set(nodes_to_contract) == tn.nodes_set:
       # If this already produces the final output, order the edges
       # here to avoid transposes in some cases.
       tn.contract_between(
-          *nodes,
-          name="con({},{})".format(*nodes),
-          output_edge_order=out_edges)
+        *nodes_to_contract,
+        name="con({},{})".format(*nodes_to_contract),
+        output_edge_order=out_edges)
     else:
-      edges_to_contract = tn.get_shared_edges(*nodes)
-      leftovers = set(con_edges) & edges_to_contract
-      if len(leftovers) > 0:
-        raise ValueError("Suboptimal ordering: Edges {} are not adjacent "
-                        "in the contraction order to edges {} connecting the "
-                        "same nodes.".format(
-                          list(map(str, leftovers)),
-                          list(map(str, edges_to_contract - leftovers))))
-      tn.contract_between(*nodes, name="con({},{})".format(*nodes))
+      tn.contract_between(
+        *nodes_to_contract,
+        name="con({},{})".format(*nodes_to_contract))
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = tn.outer_product_final_nodes(out_edges)
