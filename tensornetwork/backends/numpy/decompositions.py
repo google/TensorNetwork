@@ -36,7 +36,7 @@ def svd_decomposition(np, # TODO: Typing
   right_dims = tensor.shape[split_axis:]
 
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
-  u, s, v = np.linalg.svd(tensor)
+  u, s, vh = np.linalg.svd(tensor)
 
   if max_singular_values is None:
     max_singular_values = np.size(s)
@@ -62,9 +62,7 @@ def svd_decomposition(np, # TODO: Typing
   s_rest = s[num_sing_vals_keep:]
   s = s[:num_sing_vals_keep]
   u = u[:, :num_sing_vals_keep]
-  v = v[:, :num_sing_vals_keep]
-
-  vh = v.conj().T
+  vh = vh[:num_sing_vals_keep, :]
 
   dim_s = s.shape[0]
   u = np.reshape(u, list(left_dims) + [dim_s])
