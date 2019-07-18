@@ -1193,3 +1193,13 @@ def test_svd_consistency(backend):
   u, vh, _ = net.split_node(node, [node[0]], [node[1]])
   final_node = net.contract_between(u, vh)
   np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
+
+def test_connect_alias(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2)))
+  b = net.add_node(np.ones((2, 2)))
+  e = a[0] ^ b[0]
+  assert set(e.get_nodes()) == {a, b}
+  assert e is a[0]
+  assert e is b[0]
+  assert e in net
