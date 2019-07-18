@@ -576,7 +576,7 @@ def test_flatten_consistent_result(backend):
   flat_result_node = net_flat.contract(final_edge)
   flat_result_node.reorder_edges([a_dangling_flat, b_dangling_flat])
   flat_result = flat_result_node.tensor
-  np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
+  np.testing.assert_allclose(flat_result, noflat_result)
 
 
 def test_flatten_consistent_tensor(backend):
@@ -594,8 +594,8 @@ def test_flatten_consistent_tensor(backend):
   # Check expected values.
   a_final = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_final = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
-  np.testing.assert_allclose(a.tensor, a_final, rtol=1e-6)
-  np.testing.assert_allclose(b.tensor, b_final, rtol=1e-6)
+  np.testing.assert_allclose(a.tensor, a_final)
+  np.testing.assert_allclose(b.tensor, b_final)
 
 
 def test_flatten_trace_consistent_result(backend):
@@ -616,7 +616,7 @@ def test_flatten_trace_consistent_result(backend):
   e3 = net_flat.connect(a_flat[3], a_flat[5])
   final_edge = net_flat.flatten_edges([e1, e2, e3])
   flat_result = net_flat.contract(final_edge).tensor
-  np.testing.assert_allclose(flat_result, noflat_result, rtol=1e-6)
+  np.testing.assert_allclose(flat_result, noflat_result)
 
 
 def test_flatten_trace_consistent_tensor(backend):
@@ -736,7 +736,7 @@ def test_contract_between(backend):
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(a_flat, b_flat.T)
-  np.testing.assert_allclose(c.tensor, final_val, rtol=1e-6)
+  np.testing.assert_allclose(c.tensor, final_val)
   assertEqual(c.name, "New Node")
 
 
