@@ -689,10 +689,10 @@ def test_flatten_all_edges(backend):
   flat_edges = net.flatten_all_edges()
   net.check_correct()
   assert len(flat_edges) == 3
-  assert (trace_edge1 not in flat_edges)
-  assert (trace_edge2 not in flat_edges)
-  assert (split_edge1 not in flat_edges)
-  assert (split_edge2 not in flat_edges)
+  assert trace_edge1 not in flat_edges
+  assert trace_edge2 not in flat_edges
+  assert split_edge1 not in flat_edges
+  assert split_edge2 not in flat_edges
   ok_edge in flat_edges
 
 
