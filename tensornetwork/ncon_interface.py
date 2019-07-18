@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Any
 from tensornetwork import network
 from tensornetwork import network_components
@@ -73,31 +74,46 @@ def ncon(tensors: Sequence[Tensor],
   tn, con_edges, out_edges = ncon_network(
       tensors, network_structure, con_order=con_order, out_order=out_order)
 
-  # Contract assuming all edges connecting a given pair of nodes are adjacent
-  # in con_order. If this is not the case, the contraction is sub-optimal
-  # so we throw an exception.
-  prev_nodes = []
+  # Reverse the list so we can pop from the end: O(1).
+  con_edges = con_edges[::-1]
   while con_edges:
-    e = con_edges.pop(0)  # pop so that older nodes can be deallocated
-    nodes = e.get_nodes()
+    nodes_to_contract = con_edges[-1].get_nodes()
+    edges_to_contract = tn.get_shared_edges(*nodes_to_contract)
 
-    nodes_set = set(nodes)
-    if nodes_set != set(prev_nodes):
-      if not nodes_set.issubset(tn.nodes_set):
-        # the node pair was already contracted
-        raise ValueError("Edge '{}' is not adjacent to other edges connecting "
-                         "'{}' and '{}' in the contraction order.".format(
-                             e, nodes[0], nodes[1]))
-      if not con_edges and len(tn.nodes_set) == 2:
-        # If this already produces the final output, order the edges 
-        # here to avoid transposes in some cases.
-        tn.contract_between(
-            *nodes,
-            name="con({},{})".format(*nodes),
-            output_edge_order=out_edges)
+    # Eat up all parallel edges that are adjacent in the ordering.
+    adjacent_parallel_edges = set()
+    for edge in reversed(con_edges):
+      if edge in edges_to_contract:
+        adjacent_parallel_edges.add(edge)
       else:
-        tn.contract_between(*nodes, name="con({},{})".format(*nodes))
-      prev_nodes = nodes
+        break
+    con_edges = con_edges[:-len(adjacent_parallel_edges)]
+
+    # In an optimal ordering, all edges connecting a given pair of nodes are
+    # adjacent in con_order. If this is not the case, warn the user.
+    leftovers = edges_to_contract - adjacent_parallel_edges
+    if leftovers:
+      warnings.warn(
+        "Suboptimal ordering detected. Edges {} are not adjacent in the "
+        "contraction order to edges {}, connecting nodes {}. Deviating from "
+        "the specified ordering!".format(
+          list(map(str, leftovers)),
+          list(map(str, adjacent_parallel_edges)),
+          list(map(str, nodes_to_contract)))
+        )
+      con_edges = [e for e in con_edges if e not in edges_to_contract]
+
+    if set(nodes_to_contract) == tn.nodes_set:
+      # If this already produces the final output, order the edges
+      # here to avoid transposes in some cases.
+      tn.contract_between(
+        *nodes_to_contract,
+        name="con({},{})".format(*nodes_to_contract),
+        output_edge_order=out_edges)
+    else:
+      tn.contract_between(
+        *nodes_to_contract,
+        name="con({},{})".format(*nodes_to_contract))
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = tn.outer_product_final_nodes(out_edges)
