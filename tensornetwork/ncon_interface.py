@@ -74,26 +74,31 @@ def ncon(tensors: Sequence[Tensor],
   tn, con_edges, out_edges = ncon_network(
       tensors, network_structure, con_order=con_order, out_order=out_order)
 
+  # Reverse the list so we can pop from the end: O(1).
+  con_edges = con_edges[::-1]
   while con_edges:
-    nodes_to_contract = con_edges.pop(0).get_nodes()
+    e = con_edges.pop()
+    nodes_to_contract = e.get_nodes()
     edges_to_contract = tn.get_shared_edges(*nodes_to_contract)
 
     # Eat up all parallel edges that are adjacent in the ordering.
+    adjacent_parallel_edges = {e}
     while con_edges:
-      if con_edges[0] not in edges_to_contract:
+      if con_edges[-1] in edges_to_contract:
+        adjacent_parallel_edges.add(con_edges.pop())
+      else:
         break
-      con_edges.pop(0)
 
     # In an optimal ordering, all edges connecting a given pair of nodes are
     # adjacent in con_order. If this is not the case, warn the user.
-    leftovers = set(con_edges) & edges_to_contract
+    leftovers = edges_to_contract - adjacent_parallel_edges
     if leftovers:
       warnings.warn(
         "Suboptimal ordering detected. Edges {} are not adjacent in the "
         "contraction order to edges {}, connecting nodes {}. Deviating from "
         "the specified ordering!".format(
           list(map(str, leftovers)),
-          list(map(str, edges_to_contract - leftovers)),
+          list(map(str, adjacent_parallel_edges)),
           list(map(str, nodes_to_contract)))
         )
       con_edges = [e for e in con_edges if e not in edges_to_contract]
