@@ -59,8 +59,8 @@ def test_disconnect_edge(backend):
   net.check_correct(check_connected=False)
   assert dangling_edge_1.is_dangling()
   assert dangling_edge_2.is_dangling()
-  assert a.get_edge(0), dangling_edge_1
-  assert b.get_edge(0), dangling_edge_2
+  assert a.get_edge(0) == dangling_edge_1
+  assert b.get_edge(0) == dangling_edge_2
 
 
 def test_set_tensor(backend):
