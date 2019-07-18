@@ -352,7 +352,7 @@ def test_node_edge_ordering(backend):
   e2 = a[0]
   e3 = a[1]
   e4 = a[2]
-  assert a.shape, (2, 3, 4)
+  assert a.shape == (2, 3, 4)
   a.reorder_edges([e4, e2, e3])
   net.check_correct()
   assert a.shape == (4, 2, 3)
