@@ -873,7 +873,7 @@ def test_set_node2(backend):
   # You should never do this, but if you do, we should handle
   # it gracefully.
   e.node2 = None
-  assert (e.is_dangling())
+  assert e.is_dangling()
 
 
 def test_edge_in_network(backend):
@@ -881,7 +881,7 @@ def test_edge_in_network(backend):
   a = net.add_node(np.eye(2))
   b = net.add_node(np.eye(2))
   edge = net.connect(a[0], b[0])
-  edge in net
+  assert edge in net
 
 
 def test_edge_not_in_network(backend):
@@ -890,13 +890,13 @@ def test_edge_not_in_network(backend):
   b = net.add_node(np.eye(2))
   edge = net.connect(a[0], b[0])
   net.disconnect(edge)
-  assert (edge not in net)
+  assert edge not in net
 
 
 def test_node_in_network(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
-  a in net
+  assert a in net
 
 
 def test_node_not_in_network(backend):
@@ -904,7 +904,7 @@ def test_node_not_in_network(backend):
   a = net.add_node(np.ones((2, 2)))
   e = net.connect(a[0], a[1])
   net.contract(e)
-  assert (a not in net)
+  assert a not in net
 
 
 def test_contract_parallel(backend):
@@ -914,7 +914,7 @@ def test_contract_parallel(backend):
   edge1 = net.connect(a[0], b[0])
   edge2 = net.connect(a[1], b[1])
   c = net.contract_parallel(edge1)
-  assert (edge2 not in net)
+  assert edge2 not in net
   np.testing.assert_allclose(c.tensor, 2.0)
 
 
