@@ -510,7 +510,7 @@ class Edge:
   def set_name(self, name: Text) -> None:
     self.name = name
 
-  def __xor__(self, other) -> "Edge":
+  def __xor__(self, other: "Edge") -> "Edge":
     return self.node1.network.connect(self, other)
 
   def __lt__(self, other):
