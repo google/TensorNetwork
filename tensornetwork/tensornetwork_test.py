@@ -693,7 +693,7 @@ def test_flatten_all_edges(backend):
   assert trace_edge2 not in flat_edges
   assert split_edge1 not in flat_edges
   assert split_edge2 not in flat_edges
-  ok_edge in flat_edges
+  assert ok_edge in flat_edges
 
 
 def test_contract_between(backend):
