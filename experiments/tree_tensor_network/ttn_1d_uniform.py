@@ -520,7 +520,7 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
     return ops
 
   def _mpo_with_state(iso_012, iso_021, h_mpo_2site, state_1site):
-    """Contract a 2-site MPO with a 1-site descended state."""
+    """Contract a 2-site MPO with a 1-site descended state. O(D^4)"""
     h2L, h2R = h_mpo_2site
 
     envL = [
@@ -645,8 +645,7 @@ def opt_energy_env_1site(iso_012, h_op_1site, h_mpo_2site, state_1site):
 def opt_energy_env(isos_012,
                    h_op_1site,
                    h_mpo_2site,
-                   states_1site_above,
-                   envsq_dtype=None):
+                   states_1site_above):
   """Computes the isometry environment for the energy expectation value network.
 
     This always computes the environment contribution for the isometry in the
@@ -678,38 +677,48 @@ def opt_energy_env(isos_012,
     env2 = opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above[1:])
     env = env1 + env2
 
-  if envsq_dtype is not None:
-    env = cast(env, envsq_dtype)
-
-  # FIXME: This is not needed if we decompose the full environment.
-  env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 1, 2), (-2, 1, 2)])
-  return env, env_sq
+  return env
 
 
 opt_energy_env_graph = build(opt_energy_env)
 
 
-def _uinv_decomp(X_sq, cutoff=0.0, decomp_mode="eigh", decomp_device=None):
-  with device(decomp_device):
-    if decomp_mode == "svd":
-      # hermitian, positive matrix, so eigvals = singular values
-      e, v, _ = svd(X_sq)
-    elif decomp_mode == "eigh":
-      e, v = eigh(X_sq)
-      e = to_real(e)  # The values here should be real anyway
-    else:
-      raise ValueError("Invalid decomp_mode: {}".format(decomp_mode))
+def _uinv_decomp(X_sq, cutoff=0.0, decomp_mode="eigh"):
+  if decomp_mode == "svd":
+    # hermitian, positive matrix, so eigvals = singular values
+    e, v, _ = svd(X_sq)
+  elif decomp_mode == "eigh":
+    e, v = eigh(X_sq)
+    e = to_real(e)  # The values here should be real anyway
+  else:
+    raise ValueError("Invalid decomp_mode: {}".format(decomp_mode))
 
-    # NOTE: Negative values are always due to precision problems.
-    # NOTE: Inaccuracies here mean the final tensor is not exactly isometric!
-    e_pinvsqrt = where(e <= cutoff, zeros_like(e), 1 / sqrt(e))
+  # NOTE: Negative values are always due to precision problems.
+  # NOTE: Inaccuracies here mean the final tensor is not exactly isometric!
+  e_pinvsqrt = where(e <= cutoff, zeros_like(e), 1 / sqrt(e))
 
-    e_pinvsqrt_mat = diag(cast(e_pinvsqrt, v.dtype))
-    X_uinv = matmul(v @ e_pinvsqrt_mat, v, adjoint_b=True)
+  e_pinvsqrt_mat = diag(cast(e_pinvsqrt, v.dtype))
+  X_uinv = matmul(v @ e_pinvsqrt_mat, v, adjoint_b=True)
   return X_uinv, e
 
 
-_uinv_decomp_graph = build(_uinv_decomp)
+def _iso_from_envsq_decomp(env,
+                  cutoff=0.0,
+                  decomp_mode="eigh",
+                  decomp_device=None,
+                  envsq_dtype=None):
+  if envsq_dtype is not None:
+    env = cast(env, envsq_dtype)
+  env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 1, 2), (-2, 1, 2)])
+  with device(decomp_device):
+    env_uinv, s = _uinv_decomp(env_sq, cutoff, decomp_mode, decomp_device)
+  iso_012_new = tensornetwork.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
+  if envsq_dtype is not None:
+    iso_012_new = cast(iso_012_new, dtype)
+  return iso_012_new, s
+
+
+_iso_from_envsq_decomp_graph = build(_iso_from_envsq_decomp)
 
 
 def _energy_expval_env(isos_012, h_op_1site, h_mpo_2site, states_1site_above):
@@ -736,20 +745,14 @@ def _iso_from_svd(u, vh):
 _iso_from_svd_graph = build(_iso_from_svd)
 
 
-def _iso_from_uinv(env, env_uinv):
-  return tensornetwork.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
-
-
-_iso_from_uinv_graph = build(_iso_from_uinv)
-
-
 def _iso_from_svd_decomp(env, decomp_device=None):
   with device(decomp_device):
     env_r = reshape(env, (env.shape[0], -1))
     s, u, v = svd(env_r)
     vh = adjoint(v)
     vh = reshape(vh, (vh.shape[0], env.shape[1], env.shape[2]))
-    return u, s, vh
+    iso_new = _iso_from_svd(u, vh)
+    return iso_new, s
 
 
 _iso_from_svd_decomp_graph = build(_iso_from_svd_decomp)
@@ -779,14 +782,14 @@ def opt_energy_layer_once(isos_012,
 
   t0 = time.time()
   if graphed:
-    env, env_sq = opt_energy_env_graph(
+    env = opt_energy_env_graph(
         isos_012,
         h_op_1site,
         h_mpo_2site,
         states_1site_above,
         envsq_dtype=envsq_dtype)
   else:
-    env, env_sq = opt_energy_env(
+    env = opt_energy_env(
         isos_012,
         h_op_1site,
         h_mpo_2site,
@@ -802,29 +805,31 @@ def opt_energy_layer_once(isos_012,
   t0 = time.time()
   if decomp_mode == "svd_full_iso":
     if graphed:
-      u, s, vh = _iso_from_svd_decomp_graph(env, decomp_device=decomp_device)
-      iso_012_new = _iso_from_svd_graph(u, vh)
+      iso_012_new, s = _iso_from_svd_decomp_graph(
+        env, decomp_device=decomp_device)
     else:
-      u, s, vh = _iso_from_svd_decomp(env, decomp_device=decomp_device)
-      iso_012_new = _iso_from_svd(u, vh)
+      iso_012_new, s = _iso_from_svd_decomp(env, decomp_device=decomp_device)
   elif decomp_mode == "svd_full_iso_scipy":
     u, s, vh = _iso_from_svd_decomp_scipy(env)
     if graphed:
       iso_012_new = _iso_from_svd_graph(u, vh)
     else:
       iso_012_new = _iso_from_svd(u, vh)
-  else:
+  elif decomp_mode == "eigh":
     if graphed:
-      env_uinv, s = _uinv_decomp_graph(
-          env_sq, decomp_mode=decomp_mode, decomp_device=decomp_device)
-      iso_012_new = _iso_from_uinv_graph(env, env_uinv)
+      iso_012_new, s = _iso_from_envsq_decomp_graph(
+          env,
+          decomp_mode=decomp_mode,
+          decomp_device=decomp_device,
+          envsq_dtype=envsq_dtype)
     else:
-      env_uinv, s = _uinv_decomp(
-          env_sq, decomp_mode=decomp_mode, decomp_device=decomp_device)
-      iso_012_new = _iso_from_uinv(env, env_uinv)
-
-  if envsq_dtype is not None:
-    iso_012_new = cast(iso_012_new, dtype)
+      iso_012_new, s = _iso_from_envsq_decomp(
+          env,
+          decomp_mode=decomp_mode,
+          decomp_device=decomp_device,
+          envsq_dtype=envsq_dtype)
+  else:
+    raise ValueError("Invalid decomp mode: {}".format(decomp_mode))
 
   if timing and executing_eagerly():
     # Hack to ensure values on GPU are ready. Only works for TensorFlow.
@@ -1636,18 +1641,16 @@ def set_backend(backend):
   global ascend_uniform_op_local_graph
   global ascend_uniform_op_local_top_graph
   global opt_energy_layer_once_graph
-  global _uinv_decomp_graph
+  global _iso_from_envsq_decomp_graph
   global opt_energy_env_graph
   global _iso_from_svd_graph
-  global _iso_from_uinv_graph
   global _iso_from_svd_decomp_graph
   global all_states_1site_graph
   ascend_uniform_op_local_graph = build(ascend_uniform_op_local)
   ascend_uniform_op_local_top_graph = build(ascend_uniform_op_local_top)
   opt_energy_layer_once_graph = build(opt_energy_layer_once)
-  _uinv_decomp_graph = build(_uinv_decomp)
+  _iso_from_envsq_decomp_graph = build(_iso_from_envsq_decomp)
   opt_energy_env_graph = build(opt_energy_env)
   _iso_from_svd_graph = build(_iso_from_svd)
-  _iso_from_uinv_graph = build(_iso_from_uinv)
   _iso_from_svd_decomp_graph = build(_iso_from_svd_decomp)
   all_states_1site_graph = build(all_states_1site)
