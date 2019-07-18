@@ -19,7 +19,9 @@ import tensornetwork
 import pytest
 import numpy as np
 import tensorflow as tf
+from jax.config import config
 
+config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
 
