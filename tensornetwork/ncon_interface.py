@@ -77,17 +77,17 @@ def ncon(tensors: Sequence[Tensor],
   # Reverse the list so we can pop from the end: O(1).
   con_edges = con_edges[::-1]
   while con_edges:
-    e = con_edges.pop()
-    nodes_to_contract = e.get_nodes()
+    nodes_to_contract = con_edges[-1].get_nodes()
     edges_to_contract = tn.get_shared_edges(*nodes_to_contract)
 
     # Eat up all parallel edges that are adjacent in the ordering.
-    adjacent_parallel_edges = {e}
-    while con_edges:
-      if con_edges[-1] in edges_to_contract:
-        adjacent_parallel_edges.add(con_edges.pop())
+    adjacent_parallel_edges = set()
+    for edge in reversed(con_edges):
+      if edge in edges_to_contract:
+        adjacent_parallel_edges.add(edge)
       else:
         break
+    con_edges = con_edges[:-len(adjacent_parallel_edges)]
 
     # In an optimal ordering, all edges connecting a given pair of nodes are
     # adjacent in con_order. If this is not the case, warn the user.
