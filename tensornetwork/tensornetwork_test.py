@@ -22,28 +22,6 @@ import tensorflow as tf
 
 tf.compat.v1.enable_v2_behavior()
 
-
-# TODO(chaseriley): Remove these and inline the asserts
-def assertEqual(a, b):
-  assert a == b
-
-
-def assertNotIn(a, b):
-  assert a not in b
-
-
-def assertIn(a, b):
-  assert a in b
-
-
-def assertTrue(a):
-  assert a is True
-
-
-def assertFalse(a):
-  assert a is False
-
-
 def test_sanity_check(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   net.add_node(np.eye(2), "a")
@@ -53,9 +31,9 @@ def test_sanity_check(backend):
 def test_node_names(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2), "a", axis_names=["e0", "e1"])
-  assertEqual(a.name, "a")
-  assertEqual(a[0].name, "e0")
-  assertEqual(a[1].name, "e1")
+  assert a.name == "a"
+  assert a[0].name == "e0"
+  assert a[1].name == "e1"
 
 
 def test_single_contract(backend):
@@ -74,13 +52,13 @@ def test_disconnect_edge(backend):
   a = net.add_node(np.array([1.0] * 5), "a")
   b = net.add_node(np.array([1.0] * 5), "b")
   e = net.connect(a[0], b[0])
-  assertFalse(e.is_dangling())
+  assert not e.is_dangling()
   dangling_edge_1, dangling_edge_2 = net.disconnect(e)
   net.check_correct(check_connected=False)
-  assertTrue(dangling_edge_1.is_dangling())
-  assertTrue(dangling_edge_2.is_dangling())
-  assertEqual(a.get_edge(0), dangling_edge_1)
-  assertEqual(b.get_edge(0), dangling_edge_2)
+  assert dangling_edge_1.is_dangling()
+  assert dangling_edge_2.is_dangling()
+  assert a.get_edge(0), dangling_edge_1
+  assert b.get_edge(0), dangling_edge_2
 
 
 def test_set_tensor(backend):
@@ -94,10 +72,10 @@ def test_set_tensor(backend):
 def test_has_nondangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones(2))
-  assertFalse(a.has_nondangling_edge())
+  assert not a.has_nondangling_edge()
   b = net.add_node(np.ones((2, 2)))
   net.connect(b[0], b[1])
-  assertTrue(b.has_nondangling_edge())
+  assert b.has_nondangling_edge()
 
 
 def test_large_nodes(backend):
@@ -116,7 +94,7 @@ def test_small_matmul(backend):
   edge = net.connect(a[0], b[0], "edge")
   net.check_correct()
   c = net.contract(edge, name="a * b")
-  assertEqual(list(c.shape), [10, 10])
+  assert list(c.shape) == [10, 10]
   net.check_correct()
 
 
@@ -228,7 +206,7 @@ def test_real_physics_naive_contraction(backend):
   for edge in [e1, e2, e3]:
     net.contract(edge)
   val = net.get_final_node()
-  assertEqual(list(val.shape), [8, 2, 3, 7])
+  assert list(val.shape) == [8, 2, 3, 7]
   np.testing.assert_allclose(val.tensor, final_result)
 
 
@@ -284,11 +262,11 @@ def test_node2_contract_trace(backend):
 def test_contract_fall_through_name(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   node = net.add_node(np.eye(2), name="Identity Matrix")
-  assertEqual(node.name, "Identity Matrix")
+  assert node.name == "Identity Matrix"
   edge = net.connect(node[0], node[1], name="Trace Edge")
-  assertEqual(edge.name, "Trace Edge")
+  assert edge.name == "Trace Edge"
   final_result = net.contract(edge, name="Trace Of Identity")
-  assertEqual(final_result.name, "Trace Of Identity")
+  assert final_result.name == "Trace Of Identity"
 
 
 def test_non_connected(backend):
@@ -374,13 +352,13 @@ def test_node_edge_ordering(backend):
   e2 = a[0]
   e3 = a[1]
   e4 = a[2]
-  assertEqual(a.shape, (2, 3, 4))
+  assert a.shape, (2, 3, 4)
   a.reorder_edges([e4, e2, e3])
   net.check_correct()
-  assertEqual(a.shape, (4, 2, 3))
-  assertEqual(e2.axis1, 1)
-  assertEqual(e3.axis1, 2)
-  assertEqual(e4.axis1, 0)
+  assert a.shape == (4, 2, 3)
+  assert e2.axis1 == 1
+  assert e3.axis1 == 2
+  assert e4.axis1 == 0
 
 
 def test_trace_edge_ordering(backend):
@@ -415,7 +393,7 @@ def test_complicated_edge_reordering(backend):
   net.contract(e_bd)
   a.reorder_edges([e_ac, e_ab, e_ad])
   net.check_correct()
-  assertEqual(a.shape, (3, 2, 4))
+  assert a.shape == (3, 2, 4)
 
 
 def test_edge_reorder_axis_names(backend):
@@ -426,8 +404,8 @@ def test_edge_reorder_axis_names(backend):
   edge_c = a["c"]
   edge_d = a["d"]
   a.reorder_edges([edge_c, edge_b, edge_d, edge_a])
-  assertEqual(a.shape, (4, 3, 5, 2))
-  assertEqual(a.axis_names, ["c", "b", "d", "a"])
+  assert a.shape == (4, 3, 5, 2)
+  assert a.axis_names == ["c", "b", "d", "a"]
 
 
 def test_outer_product(backend):
@@ -441,9 +419,9 @@ def test_outer_product(backend):
   # Purposely leave b's 3rd axis undefined.
   d = net.outer_product(a, b, name="D")
   net.check_correct()
-  assertEqual(d.shape, (2, 4, 5, 4, 3, 6))
+  assert d.shape == (2, 4, 5, 4, 3, 6)
   np.testing.assert_allclose(d.tensor, np.ones((2, 4, 5, 4, 3, 6)))
-  assertEqual(d.name, "D")
+  assert d.name == "D"
 
 
 def test_outer_product_final_nodes(backend):
@@ -453,7 +431,7 @@ def test_outer_product_final_nodes(backend):
     edges.append(net.add_node(np.ones(i))[0])
   final_node = net.outer_product_final_nodes(edges)
   np.testing.assert_allclose(final_node.tensor, np.ones([1, 2, 3, 4]))
-  assertEqual(final_node.get_all_edges(), edges)
+  assert final_node.get_all_edges() == edges
 
 
 def test_outer_product_final_nodes_not_contracted(backend):
@@ -469,7 +447,7 @@ def test_add_axis_names(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2), name="A", axis_names=["ignore1", "ignore2"])
   a.add_axis_names(["a", "b"])
-  assertEqual(a.axis_names, ["a", "b"])
+  assert a.axis_names == ["a", "b"]
 
 
 def test_reorder_axes(backend):
@@ -483,7 +461,7 @@ def test_reorder_axes(backend):
   net.connect(b[2], c[2])
   a.reorder_axes([2, 0, 1])
   net.check_correct()
-  assertEqual(a.shape, (4, 2, 3))
+  assert a.shape == (4, 2, 3)
 
 
 def test_flattening_standard_edges(backend):
@@ -496,10 +474,10 @@ def test_flattening_standard_edges(backend):
   edge_b_1 = b[1]
   edge_b_2 = b[2]
   new_edge = net.flatten_edges([e1, e2], new_edge_name="New Edge")
-  assertEqual(a.shape, (3, 10))
-  assertEqual(b.shape, (3, 4, 10))
-  assertEqual(a.edges, [edge_a_1, new_edge])
-  assertEqual(b.edges, [edge_b_1, edge_b_2, new_edge])
+  assert a.shape == (3, 10)
+  assert b.shape == (3, 4, 10)
+  assert a.edges == [edge_a_1, new_edge]
+  assert b.edges == [edge_b_1, edge_b_2, new_edge]
   net.check_correct()
 
 
@@ -511,9 +489,9 @@ def test_flattening_dangling_edges(backend):
   e3 = a[2]
   e4 = a[3]
   flattened_edge = net.flatten_edges([e1, e3], new_edge_name="New Edge")
-  assertEqual(a.shape, (3, 5, 8))
-  assertEqual(a.edges, [e2, e4, flattened_edge])
-  assertEqual(flattened_edge.name, "New Edge")
+  assert a.shape == (3, 5, 8)
+  assert a.edges == [e2, e4, flattened_edge]
+  assert flattened_edge.name == "New Edge"
   net.check_correct()
 
 
@@ -539,9 +517,9 @@ def test_flatten_trace_edges(backend):
   external_2 = net.connect(c[1], a[2])
   new_edge = net.flatten_edges([e1, e2], "New Edge")
   net.check_correct()
-  assertEqual(a.shape, (2, 4, 15, 15))
-  assertEqual(a.edges, [external_1, external_2, new_edge, new_edge])
-  assertEqual(new_edge.name, "New Edge")
+  assert a.shape == (2, 4, 15, 15)
+  assert a.edges == [external_1, external_2, new_edge, new_edge]
+  assert new_edge.name == "New Edge"
 
 
 def test_flatten_consistent_result(backend):
@@ -693,7 +671,7 @@ def test_flatten_edges_between_no_edges(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((3)))
   b = net.add_node(np.ones((3)))
-  assertEqual(net.flatten_edges_between(a, b), None)
+  assert net.flatten_edges_between(a, b) is None
 
 
 def test_flatten_all_edges(backend):
@@ -708,12 +686,12 @@ def test_flatten_all_edges(backend):
   ok_edge = net.connect(b[2], c[0])
   flat_edges = net.flatten_all_edges()
   net.check_correct()
-  assertEqual(len(flat_edges), 3)
-  assertNotIn(trace_edge1, flat_edges)
-  assertNotIn(trace_edge2, flat_edges)
-  assertNotIn(split_edge1, flat_edges)
-  assertNotIn(split_edge2, flat_edges)
-  assertIn(ok_edge, flat_edges)
+  assert len(flat_edges) == 3
+  assert (trace_edge1 not in flat_edges)
+  assert (trace_edge2 not in flat_edges)
+  assert (split_edge1 not in flat_edges)
+  assert (split_edge2 not in flat_edges)
+  ok_edge in flat_edges
 
 
 def test_contract_between(backend):
@@ -735,7 +713,7 @@ def test_contract_between(backend):
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(a_flat, b_flat.T)
   np.testing.assert_allclose(c.tensor, final_val, rtol=1e-6)
-  assertEqual(c.name, "New Node")
+  assert c.name == "New Node"
 
 
 def test_contract_between_output_order(backend):
@@ -764,7 +742,7 @@ def test_contract_between_output_order(backend):
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(b_flat, a_flat.T)
   np.testing.assert_allclose(d.tensor, final_val)
-  assertEqual(d.name, "New Node")
+  assert d.name == "New Node"
 
 
 def test_contract_between_outer_product(backend):
@@ -774,7 +752,7 @@ def test_contract_between_outer_product(backend):
   a = net.add_node(a_val)
   b = net.add_node(b_val)
   c = net.contract_between(a, b, allow_outer_product=True)
-  assertEqual(c.shape, (2, 3, 4, 5, 6, 7))
+  assert c.shape == (2, 3, 4, 5, 6, 7)
 
 
 def test_contract_between_no_outer_product(backend):
@@ -893,7 +871,7 @@ def test_set_node2(backend):
   # You should never do this, but if you do, we should handle
   # it gracefully.
   e.node2 = None
-  assertTrue(e.is_dangling())
+  assert (e.is_dangling())
 
 
 def test_edge_in_network(backend):
@@ -901,7 +879,7 @@ def test_edge_in_network(backend):
   a = net.add_node(np.eye(2))
   b = net.add_node(np.eye(2))
   edge = net.connect(a[0], b[0])
-  assertIn(edge, net)
+  edge in net
 
 
 def test_edge_not_in_network(backend):
@@ -910,13 +888,13 @@ def test_edge_not_in_network(backend):
   b = net.add_node(np.eye(2))
   edge = net.connect(a[0], b[0])
   net.disconnect(edge)
-  assertNotIn(edge, net)
+  assert (edge not in net)
 
 
 def test_node_in_network(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
-  assertIn(a, net)
+  a in net
 
 
 def test_node_not_in_network(backend):
@@ -924,7 +902,7 @@ def test_node_not_in_network(backend):
   a = net.add_node(np.ones((2, 2)))
   e = net.connect(a[0], a[1])
   net.contract(e)
-  assertNotIn(a, net)
+  assert (a not in net)
 
 
 def test_contract_parallel(backend):
@@ -934,7 +912,7 @@ def test_contract_parallel(backend):
   edge1 = net.connect(a[0], b[0])
   edge2 = net.connect(a[1], b[1])
   c = net.contract_parallel(edge1)
-  assertNotIn(edge2, net)
+  assert (edge2 not in net)
   np.testing.assert_allclose(c.tensor, 2.0)
 
 
@@ -947,7 +925,7 @@ def test_get_all_nondangling(backend):
   d = net.add_node(np.eye(2))
   edge2 = net.connect(c[0], d[0])
   edge3 = net.connect(a[1], c[1])
-  assertEqual({edge1, edge2, edge3}, net.get_all_nondangling())
+  assert {edge1, edge2, edge3} == net.get_all_nondangling()
 
 
 def test_set_default(backend):
