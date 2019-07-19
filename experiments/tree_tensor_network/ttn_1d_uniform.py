@@ -709,10 +709,10 @@ def _iso_from_envsq_decomp(env,
                   envsq_dtype=None):
   if envsq_dtype is not None:
     env = cast(env, envsq_dtype)
-  env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 1, 2), (-2, 1, 2)])
   with device(decomp_device):
+    env_sq = tensornetwork.ncon([env, conj(env)], [(-1, 1, 2), (-2, 1, 2)])
     env_uinv, s = _uinv_decomp(env_sq, cutoff, decomp_mode, decomp_device)
-  iso_012_new = tensornetwork.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
+    iso_012_new = tensornetwork.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
   if envsq_dtype is not None:
     iso_012_new = cast(iso_012_new, dtype)
   return iso_012_new, s
