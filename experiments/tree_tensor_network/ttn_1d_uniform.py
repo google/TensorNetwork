@@ -1100,7 +1100,6 @@ def random_isometry(D1, D2, dtype):
   Q, R = qr(A)
   r = diag_part(R)
   L = diag(r / abvals(r))
-  print(Q.shape, R.shape, D1, D2)
   return transpose(Q @ L)
 
 
