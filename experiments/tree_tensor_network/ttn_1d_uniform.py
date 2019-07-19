@@ -842,15 +842,13 @@ def opt_energy_layer_once(isos_012,
         isos_012,
         h_op_1site,
         h_mpo_2site,
-        states_1site_above,
-        envsq_dtype=envsq_dtype)
+        states_1site_above)
   else:
     env = opt_energy_env(
         isos_012,
         h_op_1site,
         h_mpo_2site,
-        states_1site_above,
-        envsq_dtype=envsq_dtype)
+        states_1site_above)
 
   if timing and executing_eagerly():
     # Hack to ensure values on GPU are ready. Only works for TensorFlow.
@@ -999,7 +997,7 @@ def all_states_1site(isos_012):
   states = [eye(isos_012[-1].shape[0], dtype=isos_012[0][0].dtype)]
   for l in reversed(range(len(isos_012))):
     iso_021 = transpose(isos_012[l], (0, 2, 1))
-    states.append(descend_state_1site(states[0], isos_012[l], iso_021))
+    states.append(descend_state_1site(states[-1], isos_012[l], iso_021))
   return states[::-1]
 
 
