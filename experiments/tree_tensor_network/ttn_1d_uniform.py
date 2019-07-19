@@ -53,20 +53,20 @@ def build(x):
 def _ascend_partial(op, iso):
   """Contract an operator with the rightmost index of an isometry.
 
-    For 012 (021) index ordering, this is equivalent to contracting with the
-    physical right (left). This is "half" of the operation needed to ascend
-    an operator via the isometry.
-    To complete, use `_complete_partial_ascend()`.
+  For 012 (021) index ordering, this is equivalent to contracting with the
+  physical right (left). This is "half" of the operation needed to ascend
+  an operator via the isometry.
+  To complete, use `_complete_partial_ascend()`.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      op: The operator to ascend (a matrix). Dimensions must match the
-        dimensions of the lower indices of the isometry.
-      iso: The isometry (a rank-3 tensor).
+  Args:
+    op: The operator to ascend (a matrix). Dimensions must match the
+      dimensions of the lower indices of the isometry.
+    iso: The isometry (a rank-3 tensor).
 
-    Returns:
-      The result of contracting `op` with `iso`.
+  Returns:
+    The result of contracting `op` with `iso`.
   """
   return tensornetwork.ncon([iso, op], [(-1, -2, 1), (-3, 1)])
 
@@ -74,17 +74,17 @@ def _ascend_partial(op, iso):
 def _complete_partial_ascend(iso_op, iso):
   """Complete a partial operator ascension performed by `_ascend_partial()`.
 
-    This contracts with the conjugated isometry.
+  This contracts with the conjugated isometry.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      iso_op: Operator contracted with the isometry (result of 
-        `_ascend_partial()`).
-      iso: The isometry (a rank-3 tensor).
+  Args:
+    iso_op: Operator contracted with the isometry (result of 
+      `_ascend_partial()`).
+    iso: The isometry (a rank-3 tensor).
 
-    Returns:
-      The ascended operator.
+  Returns:
+    The ascended operator.
   """
   return tensornetwork.ncon([conj(iso), iso_op], [(-1, 1, 2), (-2, 1, 2)])
 
@@ -92,18 +92,18 @@ def _complete_partial_ascend(iso_op, iso):
 def _ascend_op_2site_to_1site_partial(mpo_2site, iso_021):
   """Contract a 2-site MPO with a single isometry.
 
-    Produces an ascended (1-site) operator after completion via
-    `_complete_partial_ascend()`.
+  Produces an ascended (1-site) operator after completion via
+  `_complete_partial_ascend()`.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      mpo_2site: The 2-site MPO consisting of two lists of the same length (the
-        MPO bond dimension), one for each site, of 1-site operators.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    mpo_2site: The 2-site MPO consisting of two lists of the same length (the
+      MPO bond dimension), one for each site, of 1-site operators.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      The result of contracting the operator with the isometry.
+  Returns:
+    The result of contracting the operator with the isometry.
   """
   op2L, op2R = mpo_2site
 
@@ -124,25 +124,25 @@ def _ascend_op_2site_to_1site_partial(mpo_2site, iso_021):
 def _ascend_uniform_op_to_1site_partial(op_1site, mpo_2site, iso_012, iso_021):
   """Contract a uniform 2-site operator with a single isometry.
 
-    A "uniform 2-site operator" means an operator that is a sum of of two equal
-    1-site terms and a single 2-site MPO term:
-      "op = op_1site(0) + op_1site(1) + mpo_2site"
+  A "uniform 2-site operator" means an operator that is a sum of of two equal
+  1-site terms and a single 2-site MPO term:
+    "op = op_1site(0) + op_1site(1) + mpo_2site"
 
-    Produces an ascended (1-site) operator after completion via
-    `_complete_partial_ascend()`.
+  Produces an ascended (1-site) operator after completion via
+  `_complete_partial_ascend()`.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      op_1site: The 1-site term.
-      mpo_2site: The 2-site MPO term.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    op_1site: The 1-site term.
+    mpo_2site: The 2-site MPO term.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      res_012: The result of contracting the operator with the isometry,
-        012 ordering.
-      res_021: The result of contracting the operator with the isometry,
-        021 ordering.
+  Returns:
+    res_012: The result of contracting the operator with the isometry,
+      012 ordering.
+    res_021: The result of contracting the operator with the isometry,
+      021 ordering.
   """
   iso_op_2site_012 = _ascend_op_2site_to_1site_partial(mpo_2site, iso_021)
   iso_op_1site_R_012 = _ascend_partial(op_1site, iso_012)
@@ -153,15 +153,15 @@ def _ascend_uniform_op_to_1site_partial(op_1site, mpo_2site, iso_012, iso_021):
 def ascend_op_1site_to_1site_R(op_1site, iso_012):
   """Ascends a 1-site operator from the right of an isometry.
 
-    Note: If called with an isometry using "021" ordering, this ascends from
-      the left instead.
+  Note: If called with an isometry using "021" ordering, this ascends from
+    the left instead.
 
-    Args:
-      op_1site: The 1-site operator (a matrix).
-      iso_012: The isometry (a rank-3 tensor).
+  Args:
+    op_1site: The 1-site operator (a matrix).
+    iso_012: The isometry (a rank-3 tensor).
 
-    Returns:
-      The ascended operator.
+  Returns:
+    The ascended operator.
   """
   return _complete_partial_ascend(_ascend_partial(op_1site, iso_012), iso_012)
 
@@ -169,12 +169,12 @@ def ascend_op_1site_to_1site_R(op_1site, iso_012):
 def ascend_op_1site_to_1site_L(op_1site, iso_012):
   """Ascends a 1-site operator from the left of an isometry.
 
-    Args:
-      op_1site: The 1-site operator (a matrix).
-      iso_012: The isometry (a rank-3 tensor).
+  Args:
+    op_1site: The 1-site operator (a matrix).
+    iso_012: The isometry (a rank-3 tensor).
 
-    Returns:
-      The ascended operator.
+  Returns:
+    The ascended operator.
   """
   return ascend_op_1site_to_1site_R(op_1site, transpose(iso_012, (0,2,1)))
 
@@ -182,18 +182,18 @@ def ascend_op_1site_to_1site_L(op_1site, iso_012):
 def ascend_uniform_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
   """Ascends a uniform 2-site operator through an isometry.
 
-    A "uniform 2-site operator" means an operator that is a sum of of two equal
-    1-site terms and a single 2-site MPO term:
-      "op = op_1site(0) + op_1site(1) + mpo_2site"
+  A "uniform 2-site operator" means an operator that is a sum of of two equal
+  1-site terms and a single 2-site MPO term:
+    "op = op_1site(0) + op_1site(1) + mpo_2site"
 
-    Args:
-      op_1site: The 1-site term.
-      mpo_2site: The 2-site MPO term.
-      iso_012: The isometry (a rank-3 tensor) with "012" ordering.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    op_1site: The 1-site term.
+    mpo_2site: The 2-site MPO term.
+    iso_012: The isometry (a rank-3 tensor) with "012" ordering.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      The ascended operator.
+  Returns:
+    The ascended operator.
   """
   terms_012, iso_op_1site_L_021 = _ascend_uniform_op_to_1site_partial(
       op_1site, mpo_2site, iso_012, iso_021)
@@ -207,13 +207,13 @@ def ascend_uniform_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
 def ascend_op_2site_to_1site(mpo_2site, iso_012, iso_021):
   """Ascends a 2-site MPO through a single isometry.
 
-    Args:
-      mpo_2site: The 2-site MPO.
-      iso_012: The isometry (a rank-3 tensor) with "012" ordering.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    mpo_2site: The 2-site MPO.
+    iso_012: The isometry (a rank-3 tensor) with "012" ordering.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      The ascended operator, now a 1-site operator.
+  Returns:
+    The ascended operator, now a 1-site operator.
   """
   iso_op_2site_012 = _ascend_op_2site_to_1site_partial(mpo_2site, iso_021)
   return _complete_partial_ascend(iso_op_2site_012, iso_012)
@@ -222,17 +222,17 @@ def ascend_op_2site_to_1site(mpo_2site, iso_012, iso_021):
 def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
   """Ascends a 2-site MPO through a pair of isometries.
 
-    Given a pair of neighboring isometries, each with two lower indices,
-    ascends a 2-site MPO through the middle two indices to form a new 2-site
-    MPO.
+  Given a pair of neighboring isometries, each with two lower indices,
+  ascends a 2-site MPO through the middle two indices to form a new 2-site
+  MPO.
 
-    Args:
-      mpo_2site: The 2-site MPO.
-      iso_012: The isometry (a rank-3 tensor) with "012" ordering.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    mpo_2site: The 2-site MPO.
+    iso_012: The isometry (a rank-3 tensor) with "012" ordering.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      The ascended operator, a 2-site MPO.
+  Returns:
+    The ascended operator, a 2-site MPO.
   """
   def _ascend(op, iso, iso_conj):
     return tensornetwork.ncon([iso_conj, op, iso], [(-1, 3, 1), (1, 2),
@@ -259,25 +259,25 @@ def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
 def ascend_uniform_op_local(op_1site, mpo_2site, iso_012, iso_021):
   """Ascends a globally uniform operator through a periodic layer of isometries.
 
-    The operator is assumed to consist of a sum of equal 1-site terms, the same
-    on every site, plus a sum of 2-site MPOs, also the same for each pair of
-    neighboring sites.
+  The operator is assumed to consist of a sum of equal 1-site terms, the same
+  on every site, plus a sum of 2-site MPOs, also the same for each pair of
+  neighboring sites.
 
-    This is ascended though a uniform layer of isometries to produce an
-    ascended of the same form.
+  This is ascended though a uniform layer of isometries to produce an
+  ascended of the same form.
 
-    It is assumed that the layer of isometries consists of more than isometry.
-    If this is not the case, use `ascend_uniform_op_local_top()`.
+  It is assumed that the layer of isometries consists of more than isometry.
+  If this is not the case, use `ascend_uniform_op_local_top()`.
 
-    Args:
-      op_1site: The 1-site term.
-      mpo_2site: The 2-site MPO term.
-      iso_012: The isometry (a rank-3 tensor) with "012" ordering.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    op_1site: The 1-site term.
+    mpo_2site: The 2-site MPO term.
+    iso_012: The isometry (a rank-3 tensor) with "012" ordering.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      op_1site: The 1-site component of the ascended operator.
-      op_2site: The 2-site MPO component of the ascended operator.
+  Returns:
+    op_1site: The 1-site component of the ascended operator.
+    op_2site: The 2-site MPO component of the ascended operator.
   """
   op_1site = ascend_uniform_op_to_1site(op_1site, mpo_2site, iso_012, iso_021)
   mpo_2site = ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021)
@@ -290,20 +290,20 @@ ascend_uniform_op_local_graph = build(ascend_uniform_op_local)
 def ascend_uniform_op_local_top(op_1site, mpo_2site, iso_012, iso_021):
   """Ascends a globally uniform operator through the top tensor of a tree.
 
-    See `ascend_uniform_op_local()`. This ascends a globally uniform operator
-    through a periodic layer of isometries consisting of only a single isometry
-    as occurs at the top of a tree tensor network.
+  See `ascend_uniform_op_local()`. This ascends a globally uniform operator
+  through a periodic layer of isometries consisting of only a single isometry
+  as occurs at the top of a tree tensor network.
 
-    The result is a 1-site operator.
+  The result is a 1-site operator.
 
-    Args:
-      op_1site: The 1-site term.
-      mpo_2site: The 2-site MPO term.
-      iso_012: The isometry (a rank-3 tensor) with "012" ordering.
-      iso_021: The isometry (a rank-3 tensor) with "021" ordering.
+  Args:
+    op_1site: The 1-site term.
+    mpo_2site: The 2-site MPO term.
+    iso_012: The isometry (a rank-3 tensor) with "012" ordering.
+    iso_021: The isometry (a rank-3 tensor) with "021" ordering.
 
-    Returns:
-      The ascended operator, a 1-site operator.
+  Returns:
+    The ascended operator, a 1-site operator.
   """
   mpo_2site = add_mpos_2site(mpo_2site, reflect_mpo_2site(mpo_2site))
   op_1site = ascend_uniform_op_to_1site(op_1site, mpo_2site, iso_012, iso_021)
@@ -316,18 +316,18 @@ ascend_uniform_op_local_top_graph = build(ascend_uniform_op_local_top)
 def ascend_uniform_op_local_many(op_1site, mpo_2site, isos):
   """Ascends a globally uniform operator through many layers.
 
-    Returns intermediate results.
-    See `ascend_uniform_op_local()`.
+  Returns intermediate results.
+  See `ascend_uniform_op_local()`.
 
-    Args:
-      op_1site: The 1-site term.
-      mpo_2site: The 2-site MPO term.
-      isos: List of isometries, each representing a uniform layer through which
-        the operator is to be ascended.
+  Args:
+    op_1site: The 1-site term.
+    mpo_2site: The 2-site MPO term.
+    isos: List of isometries, each representing a uniform layer through which
+      the operator is to be ascended.
 
-    Returns:
-      A list of pairs of 1-site and MPO terms. Each entry `i` is the result of
-      ascending through the layers defined by `isos[:i+1]`.
+  Returns:
+    A list of pairs of 1-site and MPO terms. Each entry `i` is the result of
+    ascending through the layers defined by `isos[:i+1]`.
   """
   ops = []
   for l in range(len(isos)):
@@ -339,24 +339,24 @@ def ascend_uniform_op_local_many(op_1site, mpo_2site, isos):
 def ascend_uniform_MPO_to_top(mpo_tensor_dense, isos_012):
   """Ascends a globally uniform MPO to the top of a tree.
 
-    Unlike the 2-site MPOs used elsewhere, this takes a dense MPO tensor of
-    rank 4 with the following ordering convention:
+  Unlike the 2-site MPOs used elsewhere, this takes a dense MPO tensor of
+  rank 4 with the following ordering convention:
 
-          3
-          |
-       0--m--1
-          |
-          2
+        3
+        |
+      0--m--1
+        |
+        2
 
-    The bottom and top indices are the "left" and "right" indices of 1-site
-    operators. The left and right indices are the MPO bond indices.
+  The bottom and top indices are the "left" and "right" indices of 1-site
+  operators. The left and right indices are the MPO bond indices.
 
-    Args:
-      mpo_tensor_dense: The MPO tensor.
-      isos_012: List of isometries with 012 ordering, defining the tree.
+  Args:
+    mpo_tensor_dense: The MPO tensor.
+    isos_012: List of isometries with 012 ordering, defining the tree.
 
-    Returns:
-      A 1-site operator acting on the top space of the tree.
+  Returns:
+    A 1-site operator acting on the top space of the tree.
   """
   L = len(isos_012)
   for l in range(L):
@@ -372,17 +372,17 @@ def ascend_uniform_MPO_to_top(mpo_tensor_dense, isos_012):
 def descend_state_1site_R(state_1site, iso_012):
   """Descends a 1-site density matrix though a single isometry to the right.
 
-    Produces a 1-site density matrix on the right site by tracing out the left
-    site.
+  Produces a 1-site density matrix on the right site by tracing out the left
+  site.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      state_1site: The 1-site density matrix.
-      iso_012: Isometry (rank-3 tensor) with 012 ordering.
+  Args:
+    state_1site: The 1-site density matrix.
+    iso_012: Isometry (rank-3 tensor) with 012 ordering.
 
-    Returns:
-      Descended 1-site density matrix.
+  Returns:
+    Descended 1-site density matrix.
   """
   return tensornetwork.ncon(
     [iso_012, state_1site, conj(iso_012)],
@@ -392,35 +392,35 @@ def descend_state_1site_R(state_1site, iso_012):
 def descend_state_1site_L(state_1site, iso_021):
   """Descends a 1-site density matrix though a single isometry to the left.
 
-    Produces a 1-site density matrix on the left site by tracing out the right
-    site.
+  Produces a 1-site density matrix on the left site by tracing out the right
+  site.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      state_1site: The 1-site density matrix.
-      iso_021: Isometry (rank-3 tensor) with 021 ordering.
+  Args:
+    state_1site: The 1-site density matrix.
+    iso_021: Isometry (rank-3 tensor) with 021 ordering.
 
-    Returns:
-      Descended 1-site density matrix.
-  """
+  Returns:
+    Descended 1-site density matrix.
+"""
   return descend_state_1site_R(state_1site, iso_021)
 
 
 def descend_state_1site(state_1site, iso_012, iso_021):
   """Average descended 1-site.
 
-    The average of `descend_state_1site_R()` and `descend_state_1site_L()`.
+  The average of `descend_state_1site_R()` and `descend_state_1site_L()`.
 
-    Cost: D^4.
+  Cost: D^4.
 
-    Args:
-      state_1site: The 1-site density matrix.
-      iso_012: Isometry (rank-3 tensor) with 012 ordering.
-      iso_021: The same isometry, but with 021 ordering.
+  Args:
+    state_1site: The 1-site density matrix.
+    iso_012: Isometry (rank-3 tensor) with 012 ordering.
+    iso_021: The same isometry, but with 021 ordering.
 
-    Returns:
-      Descended 1-site density matrix.
+  Returns:
+    Descended 1-site density matrix.
   """
   state_1L = descend_state_1site_L(state_1site, iso_021)
   state_1R = descend_state_1site_R(state_1site, iso_012)
@@ -430,13 +430,13 @@ def descend_state_1site(state_1site, iso_012, iso_021):
 def correlations_2pt_1s(isos_012, op):
   """Computes a two-point correlation function for a 1-site operator `op`.
 
-    Args:
-      isos_012: List of isometries defining the uniform tree.
-      op: The 1-site operator (matrix).
+  Args:
+    isos_012: List of isometries defining the uniform tree.
+    op: The 1-site operator (matrix).
 
-    Returns:
-      cf_transl_avg: Translation-averaged correlation function (as a vector).
-      cf_1: Partially translation-averaged correlation function (as a vector).
+  Returns:
+    cf_transl_avg: Translation-averaged correlation function (as a vector).
+    cf_1: Partially translation-averaged correlation function (as a vector).
   """
   if len(op.shape) != 2:
     raise ValueError("Operator must be a matrix.")
@@ -497,20 +497,20 @@ def add_mpos_2site(mpo1, mpo2):
 def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
   """Computes 2-site Hamiltonian contributions to the isometry environment.
 
-    This always computes the environment contribution for the isometry in the
-    first entry of `isos_012`. To compute environments for higher levels in a
-    three, supply data for the truncated tree: For level `l` call with
-    `isos_012[l:]` and the corresponding hamiltonian and states.
+  This always computes the environment contribution for the isometry in the
+  first entry of `isos_012`. To compute environments for higher levels in a
+  three, supply data for the truncated tree: For level `l` call with
+  `isos_012[l:]` and the corresponding hamiltonian and states.
 
-    Args:
-      isos_012: The isometries defining the tree tensor network.
-      h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      states_1site_above: 1-site translation-averaged density matrices for each
-        level above the bottom of the network defined in `isos_012`.
-    
-    Returns:
-      Environment tensor (rank 3).
+  Args:
+    isos_012: The isometries defining the tree tensor network.
+    h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    states_1site_above: 1-site translation-averaged density matrices for each
+      level above the bottom of the network defined in `isos_012`.
+
+  Returns:
+    Environment tensor (rank 3).
   """
   def _ascend_op_2site_to_2site_many(mpo_2site, isos):
     ops = []
@@ -622,17 +622,17 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
 def opt_energy_env_1site(iso_012, h_op_1site, h_mpo_2site, state_1site):
   """Computes 1-site Hamiltonian contributions to the isometry environment.
 
-    Args:
-      iso_012: The isometry whose environment is desired.
-      h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
-        of the layer defined by the isometry.
-      h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
-        of the layer defined by the isometry.
-      state_1site: 1-site translation-averaged density matrix for the top of
-        the layer defined by the isometry.
-    
-    Returns:
-      Environment tensor (rank 3).
+  Args:
+    iso_012: The isometry whose environment is desired.
+    h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
+      of the layer defined by the isometry.
+    h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
+      of the layer defined by the isometry.
+    state_1site: 1-site translation-averaged density matrix for the top of
+      the layer defined by the isometry.
+
+  Returns:
+    Environment tensor (rank 3).
   """
   iso_021 = transpose(iso_012, (0, 2, 1))
   terms_012, terms_021 = _ascend_uniform_op_to_1site_partial(
@@ -648,24 +648,24 @@ def opt_energy_env(isos_012,
                    states_1site_above):
   """Computes the isometry environment for the energy expectation value network.
 
-    This always computes the environment contribution for the isometry in the
-    first entry of `isos_012`. To compute environments for higher levels in a
-    three, supply data for the truncated tree: For level `l` call with
-    `isos_012[l:]` and the corresponding hamiltonian terms and states.
+  This always computes the environment contribution for the isometry in the
+  first entry of `isos_012`. To compute environments for higher levels in a
+  three, supply data for the truncated tree: For level `l` call with
+  `isos_012[l:]` and the corresponding hamiltonian terms and states.
 
-    Args:
-      isos_012: The isometries defining the tree tensor network.
-      h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      states_1site_above: 1-site translation-averaged density matrices for each
-        level above the bottom of the network defined in `isos_012`.
-      envsq_dtype: Used to specify a different dtype for the computation of the
-        squared environment, if used.
-    
-    Returns:
-      Environment tensor (rank 3).
+  Args:
+    isos_012: The isometries defining the tree tensor network.
+    h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    states_1site_above: 1-site translation-averaged density matrices for each
+      level above the bottom of the network defined in `isos_012`.
+    envsq_dtype: Used to specify a different dtype for the computation of the
+      squared environment, if used.
+
+  Returns:
+    Environment tensor (rank 3).
   """
   if len(isos_012) == 1:  # top of tree
     h_mpo_2site = add_mpos_2site(h_mpo_2site, reflect_mpo_2site(h_mpo_2site))
@@ -687,6 +687,15 @@ def _uinv_decomp(X_sq, cutoff=0.0, decomp_mode="eigh"):
   """Computes an "inverse" from the square of a rectangular matrix.
   The matrix returned is the inverse up to a unitary transformation. So not
   really an inverse at all.
+
+  Args:
+    X_sq: A positive Hermitian matrix (the square of rectangular matrix).
+    cutoff: Threshold for pseudo-inversion.
+    decomp_mode: Can be "eigh" of "svd". The former should be slightly faster.
+
+  Returns:
+    X_uinv: An "inverse" of the original rectangular matrix.
+    s: The singular values of the square root of X_sq.
   """
   if decomp_mode == "svd":
     # hermitian, positive matrix, so eigvals = singular values
@@ -697,13 +706,14 @@ def _uinv_decomp(X_sq, cutoff=0.0, decomp_mode="eigh"):
   else:
     raise ValueError("Invalid decomp_mode: {}".format(decomp_mode))
 
+  s = sqrt(e)  # singular values of the square root of X_sq
   # NOTE: Negative values are always due to precision problems.
   # NOTE: Inaccuracies here mean the final tensor is not exactly isometric!
-  e_pinvsqrt = where(e <= cutoff, zeros_like(e), 1 / sqrt(e))
+  e_pinvsqrt = where(e <= cutoff, zeros_like(e), 1 / s)
 
   e_pinvsqrt_mat = diag(cast(e_pinvsqrt, v.dtype))
   X_uinv = matmul(v @ e_pinvsqrt_mat, v, adjoint_b=True)
-  return X_uinv, e
+  return X_uinv, s
 
 
 def _iso_from_envsq_decomp(env,
@@ -799,27 +809,30 @@ def opt_energy_layer_once(isos_012,
                           timing=False):
   """Updates a layer of the tree via a linearized energy optimization.
 
-    Args:
-      isos_012: The isometries for the tree, beginning at the layer to be updated.
-      h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      states_1site_above: 1-site translation-averaged density matrices for each
-        level above the bottom of the network defined in `isos_012`.
-      graphed: Whether to build computational graphs of certain groups of
-        operations. This can speed up computation, but may increase memory usage.
-      decomp_mode: The decomposition used to update the isometries.
-      decomp_device: Device on which to perform the decomposition.
-      envsq_dtype: Used to specify a different dtype for the computation of the
-        squared environment and its decomposition, if used.
-      timing: Whether to gather timing information (decomps vs. environments).
+  Args:
+    isos_012: The isometries for the tree, beginning at the layer to be
+      updated.
+    h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    states_1site_above: 1-site translation-averaged density matrices for each
+      level above the bottom of the network defined in `isos_012`.
+    graphed: Whether to build computational graphs of certain groups of
+      operations. This can speed up computation, but may increase memory usage.
+    decomp_mode: The decomposition used to update the isometries.
+    decomp_device: Device on which to perform the decomposition.
+    envsq_dtype: Used to specify a different dtype for the computation of the
+      squared environment and its decomposition, if used.
+    timing: Whether to gather timing information (decomps vs. environments).
 
-    Returns:
-      iso_012_new: Updated isometry for the current layer.
-      s: Singular values of the environment.
-      t_env: Time spent computing the environment (only returned if timing is True).
-      t_decomp: Time spent computing the decomposition (only returned if timing is True).
+  Returns:
+    iso_012_new: Updated isometry for the current layer.
+    s: Singular values of the environment.
+    t_env: Time spent computing the environment (only returned if timing is
+      True).
+    t_decomp: Time spent computing the decomposition (only returned if timing
+      is True).
   """
   dtype = isos_012[0].dtype
 
@@ -902,32 +915,32 @@ def opt_energy_layer(isos_012,
                      timing=False):
   """Updates a layer of the tree via by doing several linearized energy optimizations.
 
-    Args:
-      isos_012: The isometries for the tree, beginning at the layer to be updated.
-      h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
-        of the network defined in `isos_012`.
-      states_1site_above: 1-site translation-averaged density matrices for each
-        level above the bottom of the network defined in `isos_012`.
-      itr: How many linearized updates to do.
-      graphed: Whether to build computational graphs of certain groups of
-        operations. This can speed up computation, but may increase memory usage.
-      graph_level: If "sweep", use a single graph for the entire linearized
-        update. Otherwise use separate graphs for decomp. and environment.
-      decomp_mode: The decomposition used to update the isometries.
-      decomp_device: Device on which to perform the decomposition.
-      envsq_dtype: Used to specify a different dtype for the computation of the
-        squared environment and its decomposition, if used.
-      timing: Whether to gather timing information (decomps vs. environments).
+  Args:
+    isos_012: The isometries for the tree, beginning at the layer to be updated.
+    h_op_1site: The 1-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    h_mpo_2site: The 2-site term of the uniform Hamiltonian for the bottom
+      of the network defined in `isos_012`.
+    states_1site_above: 1-site translation-averaged density matrices for each
+      level above the bottom of the network defined in `isos_012`.
+    itr: How many linearized updates to do.
+    graphed: Whether to build computational graphs of certain groups of
+      operations. This can speed up computation, but may increase memory usage.
+    graph_level: If "sweep", use a single graph for the entire linearized
+      update. Otherwise use separate graphs for decomp. and environment.
+    decomp_mode: The decomposition used to update the isometries.
+    decomp_device: Device on which to perform the decomposition.
+    envsq_dtype: Used to specify a different dtype for the computation of the
+      squared environment and its decomposition, if used.
+    timing: Whether to gather timing information (decomps vs. environments).
 
-    Returns:
-      iso_012: Updated isometry for the current layer.
-      s: Singular values of the environment (from the final iteration).
-      t_env: Average time spent computing the environment (only returned if
-        timing is True).
-      t_decomp: Average time spent computing the decomposition (only returned
-        if timing is True).
+  Returns:
+    iso_012: Updated isometry for the current layer.
+    s: Singular values of the environment (from the final iteration).
+    t_env: Average time spent computing the environment (only returned if
+      timing is True).
+    t_decomp: Average time spent computing the decomposition (only returned
+      if timing is True).
   """
   shp = isos_012[0].shape
   if shp[0] == shp[1] * shp[2]:  # unitary, nothing to optimise
@@ -1042,13 +1055,53 @@ def entropies_from_specs(specs):
   return entropies
 
 
-def random_isometry(D1, D2, dtype):
-  """Generate a random isometric matrix of dimension D1 x D2 fairly efficiently.
+def random_isometry_cheap(D1, D2, dtype, decomp_mode="eigh"):
+  """Generate a random isometric matrix of dimension D1 x D2 more cheaply.
+
+  This uses a decomposition of the square of a random matrix to generate an
+  isometry. Since the initial matrix is random, the singular values of its
+  square should not be small, and the halving of the precision due to the
+  squaring should not be cause significant violations of the isometry property.
+
+  We require D1 <= D2.
+
+  Args:
+    D1: Left dimension.
+    D2: Right dimension.
+    dtype: Element type.
+    decomp_mode: "eigh" or "svd".
+
+  Returns:
+    V: An isometry.
   """
-  assert D1 <= D2
+  if not D1 <= D2:
+    raise ValueError("The left dimension must be <= the right dimension.")
   A = random_normal_mat(D1, D2, dtype)
-  A_inv, _ = _uinv_decomp(matmul(A, A, adjoint_b=True))
+  A_inv, _ = _uinv_decomp(matmul(A, A, adjoint_b=True), decomp_mode=decomp_mode)
   return A_inv @ A
+
+
+def random_isometry(D1, D2, dtype):
+  """Generate a random isometric matrix of dimension D1 x D2.
+
+  We require D1 <= D2.
+
+  Args:
+    D1: Left dimension.
+    D2: Right dimension.
+    dtype: Element type.
+
+  Returns:
+    V: An isometry.
+  """
+  if not D1 <= D2:
+    raise ValueError("The left dimension must be <= the right dimension.")
+  A = random_normal_mat(D2, D1, dtype)
+  Q, R = qr(A)
+  r = diag_part(R)
+  L = diag(r / abvals(r))
+  print(Q.shape, R.shape, D1, D2)
+  return transpose(Q @ L)
 
 
 def random_tree_tn_uniform(Ds, dtype, top_rank=1):
@@ -1118,14 +1171,14 @@ def expand_bonds(isos, new_Ds, new_top_rank=None):
 def random_herm(D, dtype):
   """Generate a random hermitian matrix of dimension D.
 
-    Symmetrizes a random matrix with entries drawn from a normal distribution.
+  Symmetrizes a random matrix with entries drawn from a normal distribution.
 
-    Args:
-      D: The dimension.
-      dtype: Element type.
+  Args:
+    D: The dimension.
+    dtype: Element type.
 
-    Returns:
-      A random hermitian matrix.
+  Returns:
+    A random hermitian matrix.
   """
   h = random_normal_mat(D, D, dtype)
   return 0.5 * (h + adjoint(h))
@@ -1257,42 +1310,42 @@ def opt_tree_energy(isos_012,
                     time_layer_updates=False):
   """Variationally minimize the energy of a binary tree tensor network.
 
-    Spatial uniformity is assumed: The tree tensor network consists of a single
-    isometric tensor per layer.
+  Spatial uniformity is assumed: The tree tensor network consists of a single
+  isometric tensor per layer.
 
-    The Hamiltonian, assumed to be translation invariant, is provided as a
-    single nearest-neighbor term `H`. See for example `get_ham_ising()`, which
-    constructs an appropriate object for the Ising model. The size of the
-    second and third dimensions of the first-layer tensor `isos_012[0]` must
-    match the physical dimension of the Hamiltonian.
+  The Hamiltonian, assumed to be translation invariant, is provided as a
+  single nearest-neighbor term `H`. See for example `get_ham_ising()`, which
+  constructs an appropriate object for the Ising model. The size of the
+  second and third dimensions of the first-layer tensor `isos_012[0]` must
+  match the physical dimension of the Hamiltonian.
 
-    A number `itr` of variational sweeps are carried out. For each sweep, the
-    tensor specifying each layer is optimized using a linear approximation,
-    with `itr_l` iterations per layer.
+  A number `itr` of variational sweeps are carried out. For each sweep, the
+  tensor specifying each layer is optimized using a linear approximation,
+  with `itr_l` iterations per layer.
 
-    Args:
-        isos_012: List of tensors specifying the tree tensor network; one
-                  tensor for each layer. Assumed to be isometries.
-        H: The local term of the Hamiltonian as an MPO.
-        itr: The number of variational sweeps to perform.
-        itr_l: The number of iterations per layer. Typically, 1 is enough.
-        verbose: Set to >0 to print some status information.
-        graphed: If `True`, build a graph for a complete sweep for best
-                 performance.
-        decomp_mode: Which decomposition scheme to use for tensor updates.
-        decomp_device: TensorFlow device on which to perform decompositions.
-        envsq_dtype: Data type to use for the squared environment. Only
-                     applicable if `decomp_mode` is `"svd"` or `"eigh"`.
-        ham_shift: Amount by which to shift the energies of the local 
-                   Hamiltonian term. A small positive value typically improves
-                   convergence.
-        callback: A function to be called after each sweep.
-        time_layer_updates: Boolean. Whether to collect timing data for layer
-          updates, split into computation of environments and matrix
-          decompositions. The data is supplied only to the callback function.
-    Returns:
-        isos_012: The optimized tensors of the tree tensor network.
-    """
+  Args:
+      isos_012: List of tensors specifying the tree tensor network; one
+                tensor for each layer. Assumed to be isometries.
+      H: The local term of the Hamiltonian as an MPO.
+      itr: The number of variational sweeps to perform.
+      itr_l: The number of iterations per layer. Typically, 1 is enough.
+      verbose: Set to >0 to print some status information.
+      graphed: If `True`, build a graph for a complete sweep for best
+                performance.
+      decomp_mode: Which decomposition scheme to use for tensor updates.
+      decomp_device: TensorFlow device on which to perform decompositions.
+      envsq_dtype: Data type to use for the squared environment. Only
+                    applicable if `decomp_mode` is `"svd"` or `"eigh"`.
+      ham_shift: Amount by which to shift the energies of the local 
+                  Hamiltonian term. A small positive value typically improves
+                  convergence.
+      callback: A function to be called after each sweep.
+      time_layer_updates: Boolean. Whether to collect timing data for layer
+        updates, split into computation of environments and matrix
+        decompositions. The data is supplied only to the callback function.
+  Returns:
+      isos_012: The optimized tensors of the tree tensor network.
+  """
   with device(decomp_device):
     H, shift = shift_ham(H, ham_shift)
   print("Hamiltonian shift:", shift)
@@ -1390,15 +1443,15 @@ def opt_tree_energy(isos_012,
 def top_hamiltonian(H, isos_012):
   """Ascend the Hamiltonian to the single leg on the top of the tree.
 
-    In case the top rank is 1, this computes the Hamiltonian expectation value
-    of the pure state.
+  In case the top rank is 1, this computes the Hamiltonian expectation value
+  of the pure state.
 
-    Args:
-      H: The local Hamiltonian term for the bottom of the tree.
-      isos_012: The isometries defining the tree.
+  Args:
+    H: The local Hamiltonian term for the bottom of the tree.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      The Hamiltonian at the top, dimension equal to the top rank of the tree.
+  Returns:
+    The Hamiltonian at the top, dimension equal to the top rank of the tree.
   """
   L = len(isos_012)
   for l in range(L - 1):
@@ -1414,13 +1467,13 @@ def top_hamiltonian(H, isos_012):
 def top_eigen(H, isos_012):
   """Compute the eigenvalue decomposition of the top Hamiltonian.
 
-    Args:
-      H: The local Hamiltonian term for the bottom of the tree.
-      isos_012: The isometries defining the tree.
+  Args:
+    H: The local Hamiltonian term for the bottom of the tree.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      ev: Eigenvalues.
-      eV: Matrix of eigenvectors.
+  Returns:
+    ev: Eigenvalues.
+    eV: Matrix of eigenvectors.
   """
   Htop = top_hamiltonian(isos_012, H)
   return eigh(Htop)
@@ -1429,16 +1482,16 @@ def top_eigen(H, isos_012):
 def apply_top_op(isos_012, top_op):
   """Apply an operator to the top of a tree.
 
-    Note: If the operator is not an isometry, the resulting tree will no longer
-    be isometric.
+  Note: If the operator is not an isometry, the resulting tree will no longer
+  be isometric.
 
-    Args:
-      isos_012: The isometries defining the tree.
-      top_op: The operator to apply as a matrix. The right index will be contracted
-        with the top index of the tree.
+  Args:
+    isos_012: The isometries defining the tree.
+    top_op: The operator to apply as a matrix. The right index will be contracted
+      with the top index of the tree.
 
-    Returns:
-      isos_012_new: Updated list of tensors defining the tree.
+  Returns:
+    isos_012_new: Updated list of tensors defining the tree.
   """
   isos_012_new = isos_012[:]
   isos_012_new[-1] = tensornetwork.ncon(
@@ -1450,15 +1503,15 @@ def apply_top_op(isos_012, top_op):
 def apply_top_vec(isos_012, top_vec):
   """Contract a vector with the top of a tree, converting it to a pure state.
 
-    Note: If the vector is not normalized, the tree will no longer be
-    normalized, and hence no longer isometric.
+  Note: If the vector is not normalized, the tree will no longer be
+  normalized, and hence no longer isometric.
 
-    Args:
-      isos_012: The isometries defining the tree.
-      top_vec: Vector to contract with the tree top.
+  Args:
+    isos_012: The isometries defining the tree.
+    top_vec: Vector to contract with the tree top.
 
-    Returns:
-      isos_012_new: Updated list of tensors defining the tree.
+  Returns:
+    isos_012_new: Updated list of tensors defining the tree.
   """
   if len(top_vec.shape) != 1:
     raise ValueError("top_purestate was not a vector!")
@@ -1469,16 +1522,16 @@ def apply_top_vec(isos_012, top_vec):
 def top_translation(isos_012):
   """Ascend the physical translation operator to the top of the tree.
 
-    For top rank equal to 1, this computes a value representing the translation
-    invariance of the tree. If it is 1, the tree is completely translation
-    invariant. Similary, for top rank > 1, the unitarity of the resulting
-    operator is a measure of the translation invariance of the mixed state.
+  For top rank equal to 1, this computes a value representing the translation
+  invariance of the tree. If it is 1, the tree is completely translation
+  invariant. Similarly, for top rank > 1, the unitarity of the resulting
+  operator is a measure of the translation invariance of the mixed state.
 
-    Args:
-      isos_012: The isometries defining the tree.
+  Args:
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      T: The coarse-grained translation operator.
+  Returns:
+    T: The coarse-grained translation operator.
   """
   d = isos_012[0].shape[1]
   E2 = eye(d**2, dtype=isos_012[0].dtype)
@@ -1490,12 +1543,12 @@ def top_translation(isos_012):
 def top_global_product_op(op, isos_012):
   """Ascend a uniform product of 1-site operators to the top of the tree.
 
-    Args:
-      op: 1-site operator (matrix) defining the global product.
-      isos_012: The isometries defining the tree.
+  Args:
+    op: 1-site operator (matrix) defining the global product.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      top_op: The coarse-grained operator.
+  Returns:
+    top_op: The coarse-grained operator.
   """
   d = op.shape[0]
   Mop = reshape(op, (1, 1, d, d))
@@ -1505,13 +1558,13 @@ def top_global_product_op(op, isos_012):
 def top_localop_1site(op, n, isos_012):
   """Ascend a 1-site operator at a particular site to the top of the tree.
 
-    Args:
-      op: 1-site operator (matrix).
-      n: The site number from which to ascend.
-      isos_012: The isometries defining the tree.
+  Args:
+    op: 1-site operator (matrix).
+    n: The site number from which to ascend.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      top_op: The coarse-grained operator.
+  Returns:
+    top_op: The coarse-grained operator.
   """
   L = len(isos_012)
   if not (n >= 0 and n < 2**L):
@@ -1528,13 +1581,13 @@ def top_localop_1site(op, n, isos_012):
 def top_localop_2site(op, n, isos_012):
   """Ascend a 2-site MPO at a particular pair of sites to the top of the tree.
 
-    Args:
-      op: 2-site MPO (2-tuple of lists of operators).
-      n: The (leftmost) site number from which to ascend.
-      isos_012: The isometries defining the tree.
+  Args:
+    op: 2-site MPO (2-tuple of lists of operators).
+    n: The (leftmost) site number from which to ascend.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      top_op: The coarse-grained operator.
+  Returns:
+    top_op: The coarse-grained operator.
   """
   L = len(isos_012)
   N = 2**L
@@ -1570,13 +1623,13 @@ def top_localop_2site(op, n, isos_012):
 def top_local_ham(H, n, isos_012):
   """Ascend a local Hamiltonian term at a particular location to the top of the tree.
 
-    Args:
-      H: Local Hamiltonian term in sparse representation.
-      n: The (leftmost) site number from which to ascend.
-      isos_012: The isometries defining the tree.
+  Args:
+    H: Local Hamiltonian term in sparse representation.
+    n: The (leftmost) site number from which to ascend.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      top_op: The coarse-grained operator.
+  Returns:
+    top_op: The coarse-grained operator.
   """
   h1, h2 = H
   h1 = top_localop_1site(h1, n, isos_012)
@@ -1587,12 +1640,12 @@ def top_local_ham(H, n, isos_012):
 def top_ham_all_terms(H, isos_012):
   """Ascend all Hamiltonian terms separately to the top of the tree.
 
-    Args:
-      H: Local Hamiltonian term in sparse representation.
-      isos_012: The isometries defining the tree.
+  Args:
+    H: Local Hamiltonian term in sparse representation.
+    isos_012: The isometries defining the tree.
 
-    Returns:
-      top_ops: List of coarse-grained Hamiltonian terms.
+  Returns:
+    top_ops: List of coarse-grained Hamiltonian terms.
   """
   N = 2**len(isos_012)
   Htop_terms = []
@@ -1604,13 +1657,13 @@ def top_ham_all_terms(H, isos_012):
 def top_ham_modes(H, isos_012, ns):
   """Compute the Hamiltonian density modes at the top of the tree.
 
-    Args:
-      H: Local Hamiltonian term in sparse representation.
-      isos_012: The isometries defining the tree.
-      ns: Modes to compute (list of integers).
+  Args:
+    H: Local Hamiltonian term in sparse representation.
+    isos_012: The isometries defining the tree.
+    ns: Modes to compute (list of integers).
 
-    Returns:
-      mode_ops: List of coarse-grained Hamiltonian density modes.
+  Returns:
+    mode_ops: List of coarse-grained Hamiltonian density modes.
   """
   Htop_terms = top_ham_all_terms(H, isos_012)
   N = len(Htop_terms)
@@ -1627,15 +1680,15 @@ def top_ham_modes(H, isos_012, ns):
 def tree_energy_expval_check(H, isos_012):
   """Compute the energy at all levels in the tree.
 
-    Useful for checking consistency of ascended Hamiltonians and descended
-    states.
+  Useful for checking consistency of ascended Hamiltonians and descended
+  states.
 
-    Args:
-      H: Local Hamiltonian term.
-      isos_012: List of isometries defining the tree.
+  Args:
+    H: Local Hamiltonian term.
+    isos_012: List of isometries defining the tree.
 
-    Returns:
-      Vector of energies, one for each level plus one for the top.
+  Returns:
+    Vector of energies, one for each level plus one for the top.
   """
   L = len(isos_012)
   states = all_states_1site(isos_012)
@@ -1660,14 +1713,14 @@ def tree_energy_expval_check(H, isos_012):
 def descend_full_state_pure(isos_012):
   """Compute the dense representation of the state from a pure tree.
 
-    This is an expensive operation that requires exponential memory and time
-    (in the number of sites, so doubly exponential in the number of layers!).
+  This is an expensive operation that requires exponential memory and time
+  (in the number of sites, so doubly exponential in the number of layers!).
 
-    Args:
-      isos_012: The list of isometries defining the tree.
+  Args:
+    isos_012: The list of isometries defining the tree.
 
-    Returns:
-      The state as a dense tensor of rank N, where N is the number of sites.
+  Returns:
+    The state as a dense tensor of rank N, where N is the number of sites.
   """
   if not isos_012[-1].shape[0] == 1:
     raise ValueError("Top dimension is not 1 (state not pure).")
@@ -1707,17 +1760,17 @@ def descend_full_state_pure(isos_012):
 def get_ham_ising(dtype, J=1.0, h=1.0):
   """Return the local term for the critical Ising Hamiltonian.
 
-    Defines the global Hamiltonian:
-    $H = -\sum_{i=1}^N [ J * X_i X_{i+1} + h * Z_i ]$
+  Defines the global Hamiltonian:
+  $H = -\sum_{i=1}^N [ J * X_i X_{i+1} + h * Z_i ]$
 
-    Args:
-      dtype: The data type.
-      J: The coupling strength.
-      h: The field strength.
-    
-    Returns:
-      The Hamiltonian term, separated into a 1-site contribution and a 2-site
-      MPO.
+  Args:
+    dtype: The data type.
+    J: The coupling strength.
+    h: The field strength.
+
+  Returns:
+    The Hamiltonian term, separated into a 1-site contribution and a 2-site
+    MPO.
   """
   X = convert_to_tensor([[0.0, 1.0], [1.0, 0.0]], dtype=dtype)
   Z = convert_to_tensor([[1.0, 0.0], [0.0, -1.0]], dtype=dtype)
@@ -1737,20 +1790,20 @@ def _weylops(q):
 def get_ham_potts(dtype, q, J=1.0, h=1.0):
   """Return the local term for the q-state Potts Hamiltonian.
 
-    Defines the global Hamiltonian:
-    $H = -\sum_{i=1}^N \sum_{k=1}^q [ J * U_i^k U_{i+1}^{q-k} + h * V_i^k]$
+  Defines the global Hamiltonian:
+  $H = -\sum_{i=1}^N \sum_{k=1}^q [ J * U_i^k U_{i+1}^{q-k} + h * V_i^k]$
 
-    Args:
-      dtype: The data type.
-      q: Which root of unity to use. Alternatively, how many values the Potts
-        "spins" are able to take.
-      J: Coefficient for the nearest-neighbor terms (positive means
-        ferromagnetic).
-      h: Coefficient for the 1-site terms.
+  Args:
+    dtype: The data type.
+    q: Which root of unity to use. Alternatively, how many values the Potts
+      "spins" are able to take.
+    J: Coefficient for the nearest-neighbor terms (positive means
+      ferromagnetic).
+    h: Coefficient for the 1-site terms.
 
-    Returns:
-      The Hamiltonian term, separated into a 1-site contribution and a 2-site
-      MPO.
+  Returns:
+    The Hamiltonian term, separated into a 1-site contribution and a 2-site
+    MPO.
   """
   U, V, om = _weylops(q)
 
@@ -1792,14 +1845,14 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
 def get_ham_heis_su3_2box(dtype):
   """Return the local term for the su(3) Heisenberg model at 2-box level.
 
-    VERY EXPERIMENTAL: Requires su3 irrep matrices!
+  VERY EXPERIMENTAL: Requires su3 irrep matrices!
 
-    Args:
-      dtype: The data type.
+  Args:
+    dtype: The data type.
 
-    Returns:
-      The Hamiltonian term, separated into a 1-site contribution and a 2-site
-      MPO.
+  Returns:
+    The Hamiltonian term, separated into a 1-site contribution and a 2-site
+    MPO.
   """
   import scipy.io as sio
   su3_20 = sio.loadmat("experiments/tree_tensor_network/su3_20.mat")
@@ -1827,12 +1880,12 @@ def get_ham_heis_su3_2box(dtype):
 def kron_td(a, b):
   """Computes the Kronecker product of two matrices using tensordot.
 
-    Args:
-      a: Matrix a.
-      b: Matrix b.
+  Args:
+    a: Matrix a.
+    b: Matrix b.
 
-    Returns:
-      The Kronecker product a x b, as a matrix.
+  Returns:
+    The Kronecker product a x b, as a matrix.
   """
   if len(a.shape) != 2 or len(b.shape) != 2:
     raise ValueError("Only implemented for matrices.")
@@ -1844,14 +1897,14 @@ def kron_td(a, b):
 def block_ham(H, sites_per_block):
   """Creates a 'blocked' Hamiltonian from an input Hamiltonian.
 
-    Blocks sites together, increasing the site dimension.
+  Blocks sites together, increasing the site dimension.
 
-    Args:
-      H: The local Hamiltonian term.
-      sites_per_block: The number of sites to block into one.
+  Args:
+    H: The local Hamiltonian term.
+    sites_per_block: The number of sites to block into one.
 
-    Returns:
-      The blocked local Hamiltonian term.
+  Returns:
+    The blocked local Hamiltonian term.
   """
   h1, h2 = H
   d = h1.shape[0]
@@ -1888,21 +1941,21 @@ def block_ham(H, sites_per_block):
 def get_ham_ising_tube(dtype, Ly, lam=-3.044):
   """Return the local term for the 2+1D Ising Hamiltonian on a narrow torus.
 
-    Defines the global Hamiltonian:
-    $H = -\sum_{\langle i, j \rangle} X_i X_j + lam * \sum_i Z_i ]$
+  Defines the global Hamiltonian:
+  $H = -\sum_{\langle i, j \rangle} X_i X_j + lam * \sum_i Z_i ]$
 
-    Represents the Hamiltonian for the 2D torus as a 1-dimensional Hamiltonian,
-    where each "site" is a slice of the torus in the "y" direction. The site
-    dimension thus depends on the size of the system in the y direction.
+  Represents the Hamiltonian for the 2D torus as a 1-dimensional Hamiltonian,
+  where each "site" is a slice of the torus in the "y" direction. The site
+  dimension thus depends on the size of the system in the y direction.
 
-    Args:
-      dtype: The data type.
-      Ly: The size of the torus in the y direction (number of sites).
-      lam: The field strength.
+  Args:
+    dtype: The data type.
+    Ly: The size of the torus in the y direction (number of sites).
+    lam: The field strength.
 
-    Returns:
-      The Hamiltonian term, separated into a 1-site contribution and a 2-site
-      MPO.
+  Returns:
+    The Hamiltonian term, separated into a 1-site contribution and a 2-site
+    MPO.
   """
   X = np.array([[0.0, 1.0], [1.0, 0.0]])
   Z = np.array([[1.0, 0.0], [0.0, -1.0]])
@@ -1954,7 +2007,9 @@ def set_backend(backend):
   global to_real
   global eye
   global diag
+  global diag_part
   global sqrt
+  global abvals
   global matmul
   global tensordot
   global norm
@@ -1962,6 +2017,7 @@ def set_backend(backend):
   global svd_np
   global eigh
   global eigvalsh
+  global qr
   global to_numpy
   global executing_eagerly
 
@@ -1978,10 +2034,10 @@ def set_backend(backend):
       else:
         A = tf.random_normal((D1, D2), dtype=dtype)
       return A
-    conj = tf.conj
+    conj = tf.math.conj
     adjoint = tf.linalg.adjoint
     def build(f): return tf.contrib.eager.defun(f, autograph=False)
-    trace = tf.trace
+    trace = tf.linalg.trace
     transpose = tf.transpose
     reshape = tf.reshape
     convert_to_tensor = tf.convert_to_tensor
@@ -1992,15 +2048,18 @@ def set_backend(backend):
     reduce_max = tf.reduce_max
     def to_real(x): return tf.cast(x, x.dtype.real_dtype)
     eye = tf.eye
-    diag = tf.diag
+    diag = tf.linalg.diag
+    diag_part = tf.linalg.diag_part
     sqrt = tf.sqrt
+    abvals = tf.abs
     matmul = tf.matmul
     tensordot = tf.tensordot
     norm = tf.norm
-    svd = tf.svd
+    svd = tf.linalg.svd
     svd_np = spla.svd
     eigh = tf.linalg.eigh
     eigvalsh = tf.linalg.eigvalsh
+    qr = tf.linalg.qr
     def to_numpy(x): return x.numpy()
     executing_eagerly = tf.executing_eagerly
   elif backend == "numpy" or backend == "jax":
@@ -2041,7 +2100,9 @@ def set_backend(backend):
     to_real = np.real
     eye = np.eye
     diag = np.diag
+    diag_part = np.diagonal
     sqrt = np.sqrt
+    abvals = np.abs
     def matmul(a, b, adjoint_b=False):
       if adjoint_b:
         return np.matmul(a, adjoint(b))
@@ -2054,6 +2115,7 @@ def set_backend(backend):
     svd_np = spla.svd
     eigh = np.linalg.eigh
     eigvalsh = np.linalg.eigvalsh
+    qr = np.linalg.qr
     def to_numpy(x): return np.asarray(x)
     executing_eagerly = lambda: False
   else:
