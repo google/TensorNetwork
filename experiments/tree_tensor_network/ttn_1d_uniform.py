@@ -11,7 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""1-dimensional uniform binary tree tensor network."""
+"""1-dimensional uniform binary tree tensor network.
+
+Index ordering conventions:
+```
+iso_012:
+
+  0
+  |
+(iso)
+ / \
+1   2
+```
+
+iso_021:
+```
+  0
+  |
+(iso)
+ / \
+2   1
+```
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -23,26 +44,7 @@ import time
 import tensornetwork
 
 
-"""
-Index ordering conventions:
 
-iso_012:
-
-  0
-  |
-(iso)
- / \
-1   2
-
-
-iso_021:
-
-  0
-  |
-(iso)
- / \
-2   1
-"""
 
 
 def build(x):
@@ -239,7 +241,6 @@ def ascend_op_2site_to_2site(mpo_2site, iso_012, iso_021):
                                                     (-2, 3, 2)])
 
   op2L, op2R = mpo_2site
-  dtype = iso_012.dtype
 
   M = len(op2L)
 
@@ -550,7 +551,7 @@ def opt_energy_env_2site(isos_012, h_mpo_2site, states_1site_above):
   isos_wt_above = isos_wt[1:]
   levels_above = len(isos_wt_above)
 
-  # Ascend two-site Hamiltonian terms through to the bottom of the final isometry
+  # Ascend two-site Hamiltonian terms to the bottom of the final isometry
   h2s_above = _ascend_op_2site_to_2site_many(h_mpo_2site, isos_wt)
 
   # hamiltonian with isometry opposite the gap
@@ -834,8 +835,6 @@ def opt_energy_layer_once(isos_012,
     t_decomp: Time spent computing the decomposition (only returned if timing
       is True).
   """
-  dtype = isos_012[0].dtype
-
   t0 = time.time()
   if graphed:
     env = opt_energy_env_graph(
@@ -852,7 +851,7 @@ def opt_energy_layer_once(isos_012,
 
   if timing and executing_eagerly():
     # Hack to ensure values on GPU are ready. Only works for TensorFlow.
-    test = to_numpy(env_sq[0,0])
+    to_numpy(env_sq[0,0])
 
   t_env = time.time() - t0
 
@@ -887,14 +886,13 @@ def opt_energy_layer_once(isos_012,
 
   if timing and executing_eagerly():
     # Hack to ensure values on GPU are ready. Only works for TensorFlow.
-    test = to_numpy(iso_012_new[0,0,0])
+    to_numpy(iso_012_new[0,0,0])
 
   t_decomp = time.time() - t0
 
   if timing:
     return iso_012_new, s, t_env, t_decomp
-  else:
-    return iso_012_new, s
+  return iso_012_new, s
 
 
 opt_energy_layer_once_graph = build(opt_energy_layer_once)
@@ -911,7 +909,7 @@ def opt_energy_layer(isos_012,
                      decomp_device=None,
                      envsq_dtype=None,
                      timing=False):
-  """Updates a layer of the tree via by doing several linearized energy optimizations.
+  """Updates a layer of tree by doing several linearized energy optimizations.
 
   Args:
     isos_012: The isometries for the tree, beginning at the layer to be updated.
@@ -980,8 +978,7 @@ def opt_energy_layer(isos_012,
 
   if timing:
     return iso_012, s, tes / itr, tds / itr
-  else:
-    return iso_012, s
+  return iso_012, s
 
 
 def all_states_1site(isos_012):
@@ -1005,7 +1002,7 @@ all_states_1site_graph = build(all_states_1site)
 
 
 def entanglement_specs_1site(isos_012):
-  """Compute 1-site entanglement spectra for all levels of a tree tensor network.
+  """1-site entanglement spectra for all levels of a tree tensor network.
 
   Here, "entanglement spectrum" means the spectrum of the reduced density
   matrix (rather than the log of that spectrum).
@@ -1044,7 +1041,7 @@ def entropies_from_specs(specs):
     entropies: List of entanglement entropies.
   """
   entropies = []
-  for (i, spec) in enumerate(specs):
+  for spec in specs:
     spec = to_numpy(spec)
     x = spec * np.log2(spec)
     x[np.isnan(x)] = 0.0  # ignore zero or negative eigenvalues
@@ -1484,8 +1481,8 @@ def apply_top_op(isos_012, top_op):
 
   Args:
     isos_012: The isometries defining the tree.
-    top_op: The operator to apply as a matrix. The right index will be contracted
-      with the top index of the tree.
+    top_op: The operator to apply as a matrix. The right index will be 
+      contracted with the top index of the tree.
 
   Returns:
     isos_012_new: Updated list of tensors defining the tree.
@@ -1564,7 +1561,7 @@ def top_localop_1site(op, n, isos_012):
     top_op: The coarse-grained operator.
   """
   L = len(isos_012)
-  if not (n >= 0 and n < 2**L):
+  if not (0 <= n < 2**L):
     raise ValueError("Invalid site number '{}' with {} sites.".format(n, 2**L))
   for l in range(L):
     if n % 2 == 0:
@@ -1588,7 +1585,7 @@ def top_localop_2site(op, n, isos_012):
   """
   L = len(isos_012)
   N = 2**L
-  if not (n >= 0 and n < N):
+  if not (0 <= n < 2**L):
     raise ValueError("Invalid site number '{}' with {} sites.".format(n, N))
   np1 = n + 1  # site number of neighbor
   for l in range(L):
@@ -1618,7 +1615,9 @@ def top_localop_2site(op, n, isos_012):
 
 
 def top_local_ham(H, n, isos_012):
-  """Ascend a local Hamiltonian term at a particular location to the top of the tree.
+  """Ascend a local Hamiltonian term at a particular location to the tree top.
+
+  Keeps the 1-site and 2-site components separate.
 
   Args:
     H: Local Hamiltonian term in sparse representation.
@@ -1747,9 +1746,10 @@ def descend_full_state_pure(isos_012):
       nisos.append(niso)
     sites = sites_next
 
-  nstate = nisos.pop(0)
-  while len(nisos) > 0:
-    nstate = tree.contract_between(nstate, nisos.pop(0))
+  nisos = nisos[::-1]
+  nstate = nisos.pop()
+  while nisos:
+    nstate = tree.contract_between(nstate, nisos.pop())
   nstate = nstate.reorder_edges(sites)
   return nstate.get_tensor()
 
@@ -1771,8 +1771,8 @@ def get_ham_ising(dtype, J=1.0, h=1.0):
   """
   X = convert_to_tensor([[0.0, 1.0], [1.0, 0.0]], dtype=dtype)
   Z = convert_to_tensor([[1.0, 0.0], [0.0, -1.0]], dtype=dtype)
-  h_mpo_2site = ([-X], [X])
-  h1 = -Z
+  h_mpo_2site = ([-J * X], [X])
+  h1 = -h * Z
   return h1, h_mpo_2site
 
 
@@ -1802,7 +1802,7 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
     The Hamiltonian term, separated into a 1-site contribution and a 2-site
     MPO.
   """
-  U, V, om = _weylops(q)
+  U, V, _ = _weylops(q)
 
   mp = np.linalg.matrix_power
 
@@ -2022,7 +2022,8 @@ def set_backend(backend):
     import numpy as np
     import scipy.linalg as spla
     import tensorflow as tf
-    def dtype_is_complex(dtype): return dtype.is_complex
+    def dtype_is_complex(dtype):
+      return dtype.is_complex
     def random_normal_mat(D1, D2, dtype):
       if dtype.is_complex:
         A = tf.complex(
@@ -2033,7 +2034,8 @@ def set_backend(backend):
       return A
     conj = tf.math.conj
     adjoint = tf.linalg.adjoint
-    def build(f): return tf.contrib.eager.defun(f, autograph=False)
+    def build(f):
+      return tf.contrib.eager.defun(f, autograph=False)
     trace = tf.linalg.trace
     transpose = tf.transpose
     reshape = tf.reshape
@@ -2043,7 +2045,8 @@ def set_backend(backend):
     zeros_like = tf.zeros_like
     where = tf.where
     reduce_max = tf.reduce_max
-    def to_real(x): return tf.cast(x, x.dtype.real_dtype)
+    def to_real(x):
+      return tf.cast(x, x.dtype.real_dtype)
     eye = tf.eye
     diag = tf.linalg.diag
     diag_part = tf.linalg.diag_part
@@ -2057,9 +2060,10 @@ def set_backend(backend):
     eigh = tf.linalg.eigh
     eigvalsh = tf.linalg.eigvalsh
     qr = tf.linalg.qr
-    def to_numpy(x): return x.numpy()
+    def to_numpy(x):
+      return x.numpy()
     executing_eagerly = tf.executing_eagerly
-  elif backend == "numpy" or backend == "jax":
+  elif backend in ("numpy", "jax"):
     if backend == "numpy":
       import numpy as np
       np_nojax = np
@@ -2069,7 +2073,8 @@ def set_backend(backend):
       import jax.numpy as np
       import scipy.linalg as spla
     import contextlib
-    def dtype_is_complex(dtype): return np_nojax.dtype(dtype).kind == 'c'
+    def dtype_is_complex(dtype):
+      return np_nojax.dtype(dtype).kind == 'c'
     def random_normal_mat(D1, D2, dtype):
       if dtype_is_complex(dtype):
         A = (np_nojax.random.randn(D1,D2) +
@@ -2079,17 +2084,20 @@ def set_backend(backend):
         A = np.asarray(np_nojax.random.randn(D1,D2), dtype)
       return A
     conj = np.conj
-    def adjoint(x): return np.conj(np.transpose(x))
+    def adjoint(x):
+      return np.conj(np.transpose(x))
     if backend == "jax":
       from jax import jit
       build = jit
     else: 
-      def build(x): return x
+      def build(x):
+        return x
     trace = np.trace
     transpose = np.transpose
     reshape = np.reshape
     convert_to_tensor = np.array
-    def device(x): return contextlib.suppress()  # a dummy context
+    def device(_):
+      return contextlib.suppress()  # a dummy context
     cast = np.asarray
     zeros_like = np.zeros_like
     where = np.where
@@ -2113,7 +2121,8 @@ def set_backend(backend):
     eigh = np.linalg.eigh
     eigvalsh = np.linalg.eigvalsh
     qr = np.linalg.qr
-    def to_numpy(x): return np.asarray(x)
+    def to_numpy(x):
+      return np.asarray(x)
     executing_eagerly = lambda: False
   else:
     raise ValueError("Unsupported backend: {}".format(backend))

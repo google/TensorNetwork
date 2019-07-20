@@ -57,7 +57,8 @@ def test_opt(backend):
 
   N = 2**num_layers
   full_state = ttn.descend_full_state_pure(isos_012)
-  assert abs(ttn.to_numpy(ttn.norm(ttn.reshape(full_state, (2**N,)))) - 1) < 1e-12
+  norm = ttn.norm(ttn.reshape(full_state, (2**N,)))
+  assert abs(ttn.to_numpy(norm) - 1) < 1e-12
 
   if backend != "jax":
     # wavefunctions assumes TensorFlow. This will interact with numpy OK, but
@@ -65,7 +66,8 @@ def test_opt(backend):
     h = ttn._dense_ham_term(H)
     energy_1_full_state = sum(
       wf.expval(full_state, h, j, pbc=True) for j in range(N))
-    assert abs(ttn.to_numpy(energy_1_full_state) - ttn.to_numpy(energy_1)) < 1e-12
+    assert abs(ttn.to_numpy(energy_1_full_state) -
+               ttn.to_numpy(energy_1)) < 1e-12
 
 
 def test_expvals(random_isos):
