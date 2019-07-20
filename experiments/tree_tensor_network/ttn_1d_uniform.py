@@ -1097,7 +1097,7 @@ def random_isometry(D1, D2, dtype):
   A = random_normal_mat(D2, D1, dtype)
   Q, R = qr(A)
   r = diag_part(R)
-  L = diag(r / abvals(r))
+  L = diag(r / cast(abvals(r), dtype))
   return transpose(Q @ L)
 
 
