@@ -41,7 +41,7 @@ def test_concat():
 def test_shape():
   net = tensornetwork.TensorNetwork('numpy')
   a = net.add_node(np.ones([2, 3, 4]))
-  assert type(net.backend.shape(a.tensor)) == tuple
+  assert isinstance(net.backend.shape(a.tensor), tuple)
   actual = net.backend.shape(a.tensor)
   expected = np.array([2, 3, 4])
   np.testing.assert_allclose(expected, actual)
@@ -85,7 +85,7 @@ def test_convert_to_tensor():
   a = net.add_node(array)
   actual = net.backend.convert_to_tensor(array)
   expected =np.ones((2, 3, 4))
-  assert type(actual) == type(a.tensor)
+  assert isinstance(actual, type(a.tensor))
   np.testing.assert_allclose(expected, actual)
 
 def test_trace():
