@@ -23,7 +23,8 @@ def test_reshape():
 
 def test_transpose():
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]]]))
+  a = backend.convert_to_tensor(np.array([[[1., 2.], [3., 4.]],
+                                          [[5., 6.], [7., 8.]]]))
   actual = backend.transpose(a, [2, 0, 1])
   expected = np.array([[[1.0, 3.0], [5.0, 7.0]], [[2.0, 4.0], [6.0, 8.0]]])
   np.testing.assert_allclose(expected, actual)
