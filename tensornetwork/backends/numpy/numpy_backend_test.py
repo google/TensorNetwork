@@ -73,7 +73,7 @@ def test_diag():
   a = net.add_node(np.array([[1, 2, 3], [4, 5, 6]]))
   with pytest.raises(TypeError):
     assert net.backend.diag(a.tensor)
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork('numpy')
   b = net.add_node(np.array([1, 2, 3]))
   actual = net.backend.diag(b.tensor)
   expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
@@ -110,3 +110,4 @@ def test_einsum():
   b = net.add_node(np.ones((1, 2, 2)))
   actual = net.backend.einsum('ij,jil->l', a.tensor, b.tensor)
   expected = np.array([4.0, 4.0])
+  np.testing.assert_allclose(expected, actual)
