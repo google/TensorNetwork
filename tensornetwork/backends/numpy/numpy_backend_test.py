@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import tensornetwork
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
 
