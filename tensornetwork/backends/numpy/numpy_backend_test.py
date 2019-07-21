@@ -84,7 +84,7 @@ def test_convert_to_tensor():
   array = np.ones((2, 3, 4))
   a = net.add_node(array)
   actual = net.backend.convert_to_tensor(array)
-  expected =np.ones((2, 3, 4))
+  expected = np.ones((2, 3, 4))
   assert isinstance(actual, type(a.tensor))
   np.testing.assert_allclose(expected, actual)
 
