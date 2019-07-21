@@ -71,8 +71,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def diag(self, tensor: Tensor) -> Tensor:
     if len(tensor.shape) != 1:
       raise TypeError("Only one dimensional tensors are allowed as input")
-    else:
-      return self.np.diag(tensor)
+    return self.np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     return self.np.asarray(tensor)
