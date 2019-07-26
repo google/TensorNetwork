@@ -32,8 +32,6 @@ def test_opt(backend):
   else:
     dtype = np.float64
 
-  ttn.set_backend(backend)
-
   num_layers = 3
   max_bond_dim = 8
   build_graphs = True
@@ -43,7 +41,7 @@ def test_opt(backend):
 
   H = ttn.get_ham_ising(dtype)
   isos_012 = ttn.random_tree_tn_uniform(Ds, dtype, top_rank=1)
-  energy_0 = ttn.trace(ttn.top_hamiltonian(H, isos_012))
+  energy_0 = ttn.backend.trace(ttn.top_hamiltonian(H, isos_012))
   isos_012 = ttn.opt_tree_energy(
     isos_012,
     H,
@@ -52,13 +50,13 @@ def test_opt(backend):
     verbose=0,
     graphed=build_graphs,
     ham_shift=0.2)
-  energy_1 = ttn.trace(ttn.top_hamiltonian(H, isos_012))
-  assert ttn.to_numpy(energy_1) < ttn.to_numpy(energy_0)
+  energy_1 = ttn.backend.trace(ttn.top_hamiltonian(H, isos_012))
+  assert ttn.backend.to_numpy(energy_1) < ttn.backend.to_numpy(energy_0)
 
   N = 2**num_layers
   full_state = ttn.descend_full_state_pure(isos_012)
-  norm = ttn.norm(ttn.reshape(full_state, (2**N,)))
-  assert abs(ttn.to_numpy(norm) - 1) < 1e-12
+  norm = ttn.backend.norm(ttn.backend.reshape(full_state, (2**N,)))
+  assert abs(ttn.backend.to_numpy(norm) - 1) < 1e-12
 
   if backend != "jax":
     # wavefunctions assumes TensorFlow. This will interact with numpy OK, but
@@ -66,29 +64,26 @@ def test_opt(backend):
     h = ttn._dense_ham_term(H)
     energy_1_full_state = sum(
       wf.expval(full_state, h, j, pbc=True) for j in range(N))
-    assert abs(ttn.to_numpy(energy_1_full_state) -
-               ttn.to_numpy(energy_1)) < 1e-12
+    assert abs(ttn.backend.to_numpy(energy_1_full_state) -
+               ttn.backend.to_numpy(energy_1)) < 1e-12
 
 
 def test_expvals(random_isos):
   H = ttn.get_ham_ising(random_isos[0].dtype)
-  ens = ttn.to_numpy(ttn.tree_energy_expval_check(H, random_isos))
+  ens = ttn.backend.to_numpy(ttn.tree_energy_expval_check(H, random_isos))
   assert np.all(ens - ens[0] < 1e-12)
 
 
 def test_iso(random_isos):
   for iso in random_isos:
-    assert ttn.to_numpy(ttn.check_iso(iso)) < 1e-12
+    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-12
 
 
 @pytest.fixture(params=["tensorflow", "jax", "numpy"])
 def backend(request):
   backend = request.param
   ttn.set_backend(backend)
-  yield backend
-  # We changed the default TensorNetwork backend. Reset it so as not to spoil
-  # other tests
-  ttn.set_backend("tensorflow")
+  return backend
 
 
 @pytest.fixture(
@@ -102,7 +97,4 @@ def random_isos(request):
   backend, num_layers, max_bond_dim, top_rank, dtype = request.param
   ttn.set_backend(backend)
   Ds = [min(2**i, max_bond_dim) for i in range(1, num_layers + 1)]
-  yield ttn.random_tree_tn_uniform(Ds, dtype, top_rank=top_rank)
-  # We changed the default TensorNetwork backend. Reset it so as not to spoil
-  # other tests
-  ttn.set_backend("tensorflow")
+  return ttn.random_tree_tn_uniform(Ds, dtype, top_rank=top_rank)
