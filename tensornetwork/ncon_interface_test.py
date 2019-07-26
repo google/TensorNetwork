@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 tf.compat.v1.enable_v2_behavior()
 from tensornetwork import ncon_interface
+from tensornetwork.contractors.naive_contractor import naive
 
 
 def test_sanity_check():
@@ -127,6 +128,18 @@ def test_small_matmul():
 def test_contraction():
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)])
+  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
+  res_np = res_np.reshape((2, 2, 2))
+  np.testing.assert_allclose(res, res_np)
+
+
+def test_backend_network():
+  a = np.random.randn(2, 2, 2)
+  tn, con_edges, out_edges = ncon_interface.ncon_network(
+    [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend="numpy")
+  assert tn.backend.name == "numpy"
+
+  res = naive(tn).get_final_node().get_tensor()
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res, res_np)

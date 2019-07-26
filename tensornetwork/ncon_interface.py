@@ -27,7 +27,8 @@ Tensor = Any
 def ncon(tensors: Sequence[Tensor],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
-         out_order: Optional[Sequence] = None) -> Tensor:
+         out_order: Optional[Sequence] = None,
+         backend: Optional[Text] = None) -> Tensor:
   r"""Contracts a list of tensors according to a tensor network specification.
 
     The network is provided as a list of lists, one for each
@@ -64,15 +65,21 @@ def ncon(tensors: Sequence[Tensor],
     Args:
       tensors: List of `Tensor`s.
       network_structure: List of lists specifying the tensor network
-          structure.
+        structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
+      backend: String specifying the backend to use. Defaults to 
+        `tensornetwork.config.default_backend`.
 
     Returns:
       A `Tensor` resulting from the contraction of the tensor network.
     """
   tn, con_edges, out_edges = ncon_network(
-      tensors, network_structure, con_order=con_order, out_order=out_order)
+      tensors,
+      network_structure,
+      con_order=con_order,
+      out_order=out_order,
+      backend=backend)
 
   # Reverse the list so we can pop from the end: O(1).
   con_edges = con_edges[::-1]
@@ -125,7 +132,8 @@ def ncon_network(
     tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
-    out_order: Optional[Sequence] = None) -> Tuple[network.TensorNetwork, List[
+    out_order: Optional[Sequence] = None,
+    backend: Optional[Text] = None) -> Tuple[network.TensorNetwork, List[
         network_components.Edge], List[network_components.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
@@ -146,6 +154,8 @@ def ncon_network(
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
+      backend: String specifying the backend to use. Defaults to the default
+        TensorNetwork backend.
 
     Returns:
       net: `TensorNetwork` with the structure given by `network`.
@@ -155,7 +165,7 @@ def ncon_network(
   if len(tensors) != len(network_structure):
     raise ValueError('len(tensors) != len(network_structure)')
 
-  tn, edges = _build_network(tensors, network_structure)
+  tn, edges = _build_network(tensors, network_structure, backend)
 
   if con_order is None:
     try:
@@ -209,9 +219,11 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Tensor], network_structure: Sequence[Sequence]
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence],
+    backend: Optional[Text]
 ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
-  tn = network.TensorNetwork()
+  tn = network.TensorNetwork(backend=backend)
   nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
