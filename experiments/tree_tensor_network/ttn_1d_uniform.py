@@ -189,7 +189,8 @@ def ascend_op_1site_to_1site_L(op_1site, iso_012):
   Returns:
     The ascended operator.
   """
-  return ascend_op_1site_to_1site_R(op_1site, backend.transpose(iso_012, (0,2,1)))
+  return ascend_op_1site_to_1site_R(
+    op_1site, backend.transpose(iso_012, (0,2,1)))
 
 
 def ascend_uniform_op_to_1site(op_1site, mpo_2site, iso_012, iso_021):
@@ -736,7 +737,7 @@ def _iso_from_envsq_decomp(env,
   with backend.device(decomp_device):
     env_sq = backend.ncon(
       [env, backend.conj(env)], [(-1, 1, 2), (-2, 1, 2)])
-    env_uinv, s = _uinv_decomp(env_sq, cutoff, decomp_mode, decomp_device)
+    env_uinv, s = _uinv_decomp(env_sq, cutoff, decomp_mode)
     iso_012_new = backend.ncon([env_uinv, env], [(-1, 1), (1, -2, -3)])
   if envsq_dtype is not None:
     iso_012_new = backend.cast(iso_012_new, dtype)
@@ -784,11 +785,11 @@ def _iso_from_svd_decomp_scipy(env):
   parallelizes better than TensorFlow's SVD on CPU.
   """
   env = backend.to_numpy(env)
-  env_r = env.backend.reshape((env.shape[0], -1))
+  env_r = env.reshape((env.shape[0], -1))
   u, s, vh = backend.svd_np(env_r, full_matrices=False)
   u = backend.convert_to_tensor(u)
   s = backend.convert_to_tensor(s)
-  vh = vh.backend.reshape((vh.shape[0], env.shape[1], env.shape[2]))
+  vh = vh.reshape((vh.shape[0], env.shape[1], env.shape[2]))
   vh = backend.convert_to_tensor(vh)
   return u, s, vh
 
@@ -862,7 +863,7 @@ def opt_energy_layer_once(isos_012,
       iso_012_new = backend._iso_from_svd_graph(u, vh)
     else:
       iso_012_new = _iso_from_svd(u, vh)
-  elif decomp_mode == "eigh":
+  else:
     if graphed:
       iso_012_new, s = backend._iso_from_envsq_decomp_graph(
           env,
@@ -875,8 +876,6 @@ def opt_energy_layer_once(isos_012,
           decomp_mode=decomp_mode,
           decomp_device=decomp_device,
           envsq_dtype=envsq_dtype)
-  else:
-    raise ValueError("Invalid decomp mode: {}".format(decomp_mode))
 
   if timing and backend.executing_eagerly():
     # Hack to ensure values on GPU are ready. Only works for TensorFlow.
@@ -1060,7 +1059,8 @@ def random_isometry_cheap(D1, D2, dtype, decomp_mode="eigh"):
   if not D1 <= D2:
     raise ValueError("The left dimension must be <= the right dimension.")
   A = backend.random_normal_mat(D1, D2, dtype)
-  A_inv, _ = _uinv_decomp(backend.matmul(A, A, adjoint_b=True), decomp_mode=decomp_mode)
+  A_inv, _ = _uinv_decomp(
+    backend.matmul(A, A, adjoint_b=True), decomp_mode=decomp_mode)
   return A_inv @ A
 
 
@@ -1146,7 +1146,8 @@ def expand_bonds(isos, new_Ds, new_top_rank=None):
       isos_new[i] = backend.ncon([v, isos_new[i]], [(1, -1), (1, -2, -3)])
       if i + 1 < len(isos):
         isos_new[i + 1] = backend.ncon(
-            [backend.conj(v), backend.conj(v), isos_new[i + 1]], [(1, -2), (2, -3), (-1, 1, 2)])
+            [backend.conj(v), backend.conj(v), isos_new[i + 1]],
+            [(1, -2), (2, -3), (-1, 1, 2)])
   return isos_new
 
 
@@ -1275,7 +1276,8 @@ def isos_with_transposes(isos_012):
     A list of tuples of form (iso_012, iso_021), with iso_021 the transpose
     (reflection) of iso_012.
   """
-  return list(zip(isos_012, [backend.transpose(w, (0, 2, 1)) for w in isos_012]))
+  return list(
+    zip(isos_012, [backend.transpose(w, (0, 2, 1)) for w in isos_012]))
 
 
 def opt_tree_energy(isos_012,
@@ -1402,7 +1404,8 @@ def opt_tree_energy(isos_012,
     tds_sweep = tds_sweep / (L + 1 - bottom)
 
     if verbose > 0:
-      minsv = backend.np.min([backend.to_numpy(sv).min() for sv in svs[bottom:]])
+      minsv = backend.np.min(
+        [backend.to_numpy(sv).min() for sv in svs[bottom:]])
       print("sweeps: {}, energy density: {}, min_sv: {}, run-time: {}".format(
           j,
           backend.to_numpy(en).real, minsv,
@@ -1944,7 +1947,7 @@ class TTNBackend():
   np = None
   name = None
 
-  def build_functions(self):
+  def __init__(self):
     self.ascend_uniform_op_local_graph = self.build(ascend_uniform_op_local)
     self.ascend_uniform_op_local_top_graph = self.build(
       ascend_uniform_op_local_top)
@@ -1991,7 +1994,7 @@ class TTNBackend():
   def zeros_like(self, x, **kwargs):
     raise NotImplementedError()
 
-  def where(self, x):
+  def where(self, cond, x, y):
     raise NotImplementedError()
 
   def reduce_max(self, x):
@@ -2027,7 +2030,7 @@ class TTNBackend():
   def svd(self, x):
     raise NotImplementedError()
 
-  def svd_np(self, x):
+  def svd_np(self, x, **kwargs):
     raise NotImplementedError()
 
   def eigh(self, x):
@@ -2063,7 +2066,7 @@ class TTNBackendTensorFlow(TTNBackend):
     self._spla = spla
     self.tf = tf
 
-    self.build_functions()
+    super().__init__()
 
   def dtype_is_complex(self, dtype):
     return dtype.is_complex
@@ -2107,8 +2110,8 @@ class TTNBackendTensorFlow(TTNBackend):
   def zeros_like(self, x, **kwargs):
     return self.tf.zeros_like(x, **kwargs)
 
-  def where(self, x):
-    return self.tf.where(x)
+  def where(self, cond, x, y):
+    return self.tf.where(cond, x, y)
 
   def reduce_max(self, x):
     return self.tf.reduce_max(x)
@@ -2144,7 +2147,7 @@ class TTNBackendTensorFlow(TTNBackend):
     return self.tf.linalg.svd(x)
 
   def svd_np(self, x, **kwargs):
-    raise self._spla.svd(x, **kwargs)
+    return self._spla.svd(x, **kwargs)
 
   def eigh(self, x):
     return self.tf.linalg.eigh(x)
@@ -2171,21 +2174,21 @@ class TTNBackendNumpy(TTNBackend):
     import numpy as np
     import scipy.linalg as spla
     self.np = np
-    self.np_nojax = np
+    self.really_np = np
     self._spla = spla
 
-    self.build_functions()
+    super().__init__()
 
   def dtype_is_complex(self, dtype):
-    return self.np_nojax.dtype(dtype).kind == 'c'
+    return self.really_np.dtype(dtype).kind == 'c'
 
   def random_normal_mat(self, D1, D2, dtype):
     if self.dtype_is_complex(dtype):
-      A = (self.np_nojax.random.randn(D1,D2) +
-            1.j * self.np_nojax.random.randn(D1,D2)) / math.sqrt(2)
+      A = (self.really_np.random.randn(D1,D2) +
+            1.j * self.really_np.random.randn(D1,D2)) / math.sqrt(2)
       A = self.np.asarray(A, dtype)
     else:
-      A = self.np.asarray(self.np_nojax.random.randn(D1,D2), dtype)
+      A = self.np.asarray(self.really_np.random.randn(D1,D2), dtype)
     return A
 
   def conj(self, x):
@@ -2218,8 +2221,8 @@ class TTNBackendNumpy(TTNBackend):
   def zeros_like(self, x, **kwargs):
     return self.np.zeros_like(x, **kwargs)
 
-  def where(self, x):
-    return self.np.where(x)
+  def where(self, cond, x, y):
+    return self.np.where(cond, x, y)
 
   def reduce_max(self, x):
     return self.np.amax(x)
@@ -2258,7 +2261,7 @@ class TTNBackendNumpy(TTNBackend):
       return s, u, self.adjoint(vh)
 
   def svd_np(self, x, **kwargs):
-    raise self._spla.svd(x, **kwargs)
+    return self._spla.svd(x, **kwargs)
 
   def eigh(self, x):
     return self.np.linalg.eigh(x)
@@ -2282,16 +2285,13 @@ class TTNBackendJAX(TTNBackendNumpy):
   name = "jax"
 
   def __init__(self):
-    import numpy as np_nojax
-    import jax.numpy as np
-    import scipy.linalg as spla
+    import jax.numpy as np_jax
     from jax import jit
-    self.np = np
-    self.np_nojax = np_nojax
-    self._spla = spla
     self._jit = jit
 
-    self.build_functions()
+    super().__init__()
+
+    self.np = np_jax
 
   def build(self, f):
     return self._jit(f)

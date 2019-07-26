@@ -67,6 +67,45 @@ def test_opt(backend):
     assert abs(ttn.backend.to_numpy(energy_1_full_state) -
                ttn.backend.to_numpy(energy_1)) < 1e-12
 
+  isos_012 = ttn.opt_tree_energy(
+    isos_012,
+    H,
+    1,
+    1,
+    verbose=0,
+    graphed=False,
+    decomp_mode="eigh",
+    ham_shift=0.2)
+
+  for iso in isos_012:
+    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-6
+
+  isos_012 = ttn.opt_tree_energy(
+    isos_012,
+    H,
+    1,
+    1,
+    verbose=0,
+    graphed=False,
+    decomp_mode="svd",
+    ham_shift=0.2)
+
+  for iso in isos_012:
+    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-6
+
+  isos_012 = ttn.opt_tree_energy(
+    isos_012,
+    H,
+    1,
+    1,
+    verbose=0,
+    graphed=False,
+    decomp_mode="svd_full_iso_scipy",
+    ham_shift=0.2)
+
+  for iso in isos_012:
+    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-12
+
 
 def test_expvals(random_isos):
   H = ttn.get_ham_ising(random_isos[0].dtype)
@@ -81,9 +120,9 @@ def test_iso(random_isos):
 
 @pytest.fixture(params=["tensorflow", "jax", "numpy"])
 def backend(request):
-  backend = request.param
-  ttn.set_backend(backend)
-  return backend
+  backend_name = request.param
+  ttn.set_backend(backend_name)
+  return backend_name
 
 
 @pytest.fixture(
