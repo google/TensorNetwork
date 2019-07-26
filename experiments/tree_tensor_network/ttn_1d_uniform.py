@@ -1831,42 +1831,6 @@ def get_ham_potts(dtype, q, J=1.0, h=1.0):
   return h1, h2
 
 
-def get_ham_heis_su3_2box(dtype):
-  """Return the local term for the su(3) Heisenberg model at 2-box level.
-
-  VERY EXPERIMENTAL: Requires su3 irrep matrices!
-
-  Args:
-    dtype: The data type.
-
-  Returns:
-    The Hamiltonian term, separated into a 1-site contribution and a 2-site
-    MPO.
-  """
-  import scipy.io as sio
-  su3_20 = sio.loadmat("experiments/tree_tensor_network/su3_20.mat")
-  h2_dense = sum(backend.np.tensordot(S, S, axes=((),()))
-              for (k, S) in su3_20.items())
-  realness = backend.np.linalg.norm(h2_dense - h2_dense.real)
-  if realness > 1e-12:
-    raise ValueError(
-      "2-site term was not real. Realness = {}".format(realness))
-  u, s, vh = backend.svd_np(
-    h2_dense.real.backend.reshape((6**2, 6**2)), full_matrices=False)
-  mpo_rank = backend.np.count_nonzero(s.round(decimals=12))
-  if mpo_rank != 8:
-    raise ValueError(
-      "Error performing SVD of 2-site term. {} != {}".format(mpo_rank, 8))
-  h2 = ([s[i] * u[:,i].backend.reshape(6,6) for i in range(8)],
-        [vh[i,:].backend.reshape(6,6) for i in range(8)])
-  h2 = (
-      [backend.convert_to_tensor(h, dtype=dtype) for h in h2[0]],
-      [backend.convert_to_tensor(h, dtype=dtype) for h in h2[1]],
-  )
-  h1 = backend.zeros_like(h2[0][0])
-  return h1, h2
-
-
 def kron_td(a, b):
   """Computes the Kronecker product of two matrices using tensordot.
 
