@@ -135,7 +135,7 @@ def test_contraction():
 
 def test_backend_network():
   a = np.random.randn(2, 2, 2)
-  tn, con_edges, out_edges = ncon_interface.ncon_network(
+  tn, _, _ = ncon_interface.ncon_network(
     [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend="numpy")
   assert tn.backend.name == "numpy"
 
