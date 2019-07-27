@@ -36,8 +36,8 @@ def fixture_double_node_edge(backend):
     return DoubleNodeEdgeTensor(node1, node2, edge1, edge12, tensor)
 
 
-def test_node_initialize_numpy(backend):
-    net = tensornetwork.TensorNetwork(backend=backend)
+def test_node_initialize_numpy():
+    net = tensornetwork.TensorNetwork(backend="numpy")
     tensor = np.ones((1, 2, 3))
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
@@ -50,8 +50,8 @@ def test_node_initialize_numpy(backend):
     assert node.signature == -1
 
 
-def test_node_initialize_tensorflow(backend):
-    net = tensornetwork.TensorNetwork(backend=backend)
+def test_node_initialize_tensorflow():
+    net = tensornetwork.TensorNetwork(backend="tensorflow")
     tensor = tf.ones((1, 2, 3))
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
