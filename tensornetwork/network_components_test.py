@@ -132,7 +132,7 @@ def test_node_set_tensor(single_node_edge):
 
 def test_node_shape(single_node_edge):
     node = single_node_edge.node
-    assert node.shape == (1, 2, 3)
+    assert node.shape == (1, 2, 2)
 
 
 def test_node_get_axis_number(single_node_edge):
