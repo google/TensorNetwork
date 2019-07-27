@@ -14,7 +14,7 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):
     net = tensornetwork.TensorNetwork(backend=backend)
-    tensor = np.ones((1, 2, 3))
+    tensor = np.ones((1, 2, 2))
     tensor = net.backend.convert_to_tensor(tensor)
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
@@ -25,7 +25,7 @@ def fixture_single_node_edge(backend):
 @pytest.fixture(name='double_node_edge')
 def fixture_double_node_edge(backend):
     net = tensornetwork.TensorNetwork(backend=backend)
-    tensor = net.backend.convert_to_tensor(np.ones((1, 2, 3)))
+    tensor = net.backend.convert_to_tensor(np.ones((1, 2, 2)))
     node1 = Node(tensor=tensor, name="test_node1",
                  axis_names=["a", "b", "c"], network=net)
     node2 = Node(tensor=tensor, name="test_node2",
@@ -261,7 +261,7 @@ def test_edge_initialize_dangling(single_node_edge):
     assert edge.axis1 == 0
     assert edge.node2 is None
     assert edge.axis2 is None
-    assert edge.is_dangling is True
+    assert edge.is_dangling() is True
     assert edge.signature == -1
 
 
@@ -274,7 +274,7 @@ def test_edge_initialize_nondangling(double_node_edge):
     assert edge.axis1 == 1
     assert edge.node2 == node2
     assert edge.axis2 == 1
-    assert edge.is_dangling is False
+    assert edge.is_dangling() is False
     assert edge.signature == -1
 
 
@@ -370,7 +370,7 @@ def test_edge_is_dangling(double_node_edge):
 
 def test_edge_is_trace_true(single_node_edge):
     node = single_node_edge.node
-    edge = Edge(name="edge", node1=node, axis1=2, node2=node, axis2=2)
+    edge = Edge(name="edge", node1=node, axis1=1, node2=node, axis2=2)
     assert edge.is_trace()
 
 
