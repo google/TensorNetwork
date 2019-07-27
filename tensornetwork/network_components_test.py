@@ -60,7 +60,7 @@ def test_node_initialize_tensorflow(backend):
     assert node.name == 'test_node'
     assert node.network == net
     assert len(node.edges) == 3
-    assert type(node.edges[0]) == Edge
+    assert isinstance(node.edges[0], Edge)
     assert node.axis_names == ["a", "b", "c"]
     assert node.signature == -1
 
@@ -220,24 +220,23 @@ def test_node_magic_lt(double_node_edge):
 def test_node_magic_lt_raises_error_not_node(single_node_edge):
     node = single_node_edge.node
     with pytest.raises(ValueError):
-        node < 0
+        assert node < 0
 
 
 def test_node_magic_matmul_raises_error_not_node(single_node_edge):
     node = single_node_edge.node
     with pytest.raises(TypeError):
-        node @ 0
+        assert node @ 0
 
 
 def test_node_magic_matmul_raises_error_different_network(single_node_edge):
     node = single_node_edge.node
-    print(node.network)
     net = tensornetwork.TensorNetwork(backend=node.network.backend.name)
     tensor = net.backend.convert_to_tensor(np.zeros((1, 2, 3)))
     node2 = Node(tensor=tensor, name="test", axis_names=["A", "B", "C"],
                  network=net)
     with pytest.raises(ValueError):
-        node @ node2
+        assert node @ node2
 
 
 def test_node_magic_matmul(backend):
@@ -361,8 +360,6 @@ def test_edge_node2_setter(double_node_edge):
 
 def test_edge_dimension(single_node_edge):
     edge = single_node_edge.edge
-    print(edge.node1)
-    print(edge.axis1)
     assert edge.dimension == 1
 
 
@@ -417,7 +414,7 @@ def test_edge_magic_xor(double_node_edge):
 def test_edge_magic_lt_raise_error_type(single_node_edge):
     edge = single_node_edge.edge
     with pytest.raises(TypeError):
-        edge < 0
+        assert edge < 0
 
 
 def test_edge_magic_lt(double_node_edge):
