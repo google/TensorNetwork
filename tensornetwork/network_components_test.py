@@ -41,7 +41,7 @@ def test_node_initialize_numpy():
     tensor = np.ones((1, 2, 3))
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
-    np.testing.assert_allclose(node._tensor, tensor)
+    np.testing.assert_allclose(node.tensor, tensor)
     assert node.name == 'test_node'
     assert node.network == net
     assert len(node.edges) == 3
@@ -55,7 +55,7 @@ def test_node_initialize_tensorflow():
     tensor = tf.ones((1, 2, 3))
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
-    np.testing.assert_allclose(node._tensor, np.ones((1, 2, 3)))
+    np.testing.assert_allclose(node.tensor, np.ones((1, 2, 3)))
     assert node.name == 'test_node'
     assert node.network == net
     assert len(node.edges) == 3
@@ -261,7 +261,7 @@ def test_edge_initialize_dangling(single_node_edge):
     assert edge.axis1 == 0
     assert edge.node2 is None
     assert edge.axis2 is None
-    assert edge._is_dangling is True
+    assert edge.is_dangling is True
     assert edge.signature == -1
 
 
@@ -274,7 +274,7 @@ def test_edge_initialize_nondangling(double_node_edge):
     assert edge.axis1 == 1
     assert edge.node2 == node2
     assert edge.axis2 == 1
-    assert edge._is_dangling is False
+    assert edge.is_dangling is False
     assert edge.signature == -1
 
 
