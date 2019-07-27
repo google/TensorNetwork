@@ -46,7 +46,7 @@ def test_node_initialize_numpy(backend):
     assert node.name == 'test_node'
     assert node.network == net
     assert len(node.edges) == 3
-    assert type(node.edges[0]) == Edge
+    assert isinstance(node.edges[0], Edge)
     assert node.axis_names == ["a", "b", "c"]
     assert node.signature == -1
 
