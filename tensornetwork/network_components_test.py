@@ -11,8 +11,8 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
 
 
-@pytest.fixture
-def single_node_edge(backend):
+@pytest.fixture(name='single_node_edge')
+def fixture_single_node_edge(backend):
     net = tensornetwork.TensorNetwork(backend=backend)
     tensor = np.ones((1, 2, 3))
     #todo: put backend conversion in node initialization?
@@ -23,8 +23,8 @@ def single_node_edge(backend):
     return SingleNodeEdgeTensor(node, edge, tensor)
 
 
-@pytest.fixture
-def double_node_edge(backend):
+@pytest.fixture(name='double_node_edge')
+def fixture_double_node_edge(backend):
     net = tensornetwork.TensorNetwork(backend=backend)
     tensor = net.backend.convert_to_tensor(np.ones((1, 2, 3)))
     node1 = Node(tensor=tensor, name="test_node1",
