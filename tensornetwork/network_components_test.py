@@ -15,7 +15,6 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
 def fixture_single_node_edge(backend):
     net = tensornetwork.TensorNetwork(backend=backend)
     tensor = np.ones((1, 2, 3))
-    #todo: put backend conversion in node initialization?
     tensor = net.backend.convert_to_tensor(tensor)
     node = Node(tensor=tensor, name="test_node",
                 axis_names=["a", "b", "c"], network=net)
@@ -151,7 +150,6 @@ def test_node_get_axis_number_raises_error_unknown(single_node_edge):
 def test_node_get_dimension(single_node_edge):
     node = single_node_edge.node
     assert node.get_dimension(1) == 2
-    #todo: change docstr
     assert node.get_dimension("b") == 2
 
 
