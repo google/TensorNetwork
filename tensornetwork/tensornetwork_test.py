@@ -1165,6 +1165,8 @@ def test_switch_backend():
 
 
 def test_svd_consistency(backend):
+  if backend == "pytorch":
+    pytest.skip()
   net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
     [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]], 
@@ -1173,6 +1175,18 @@ def test_svd_consistency(backend):
   u, vh, _ = net.split_node(node, [node[0]], [node[1]])
   final_node = net.contract_between(u, vh)
   np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
+
+
+def test_svd_consistency_symmetric_real_matrix(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  original_tensor = np.array(
+    [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 3.0, 2.0]],
+    dtype=np.float64)
+  node = net.add_node(original_tensor)
+  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
+  final_node = net.contract_between(u, vh)
+  np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
+
 
 def test_connect_alias(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
