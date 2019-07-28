@@ -20,12 +20,15 @@ from tensornetwork.backends.tensorflow import tensorflow_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
+from tensornetwork.backends.pytorch import pytorch_backend
+
 
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
     "jax": jax_backend.JaxBackend,
-    "shell": shell_backend.ShellBackend
+    "shell": shell_backend.ShellBackend,
+    "pytorch": pytorch_backend.PyTorchBackend
 }
 
 
