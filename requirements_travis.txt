@@ -2,3 +2,4 @@ jax
 jaxlib
 pytype
 pytest
+torch>=1.1
