@@ -81,15 +81,9 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array([[[1., 2.], [3., 4.]],
-                                          [[5., 6.], [7., 8.]],
-                                          [[9., 10.], [11., 12.]]]))
+  a = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6]]))
   actual = backend.trace(a)
-  expected = np.array([5., 13., 21.])
-  np.testing.assert_allclose(expected, actual)
-  a = backend.convert_to_tensor(np.array([[1., 2.], [3., 4.]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 5)
+  np.testing.assert_allclose(actual, 6)
 
 def test_outer_product():
   backend = tensorflow_backend.TensorFlowBackend()
