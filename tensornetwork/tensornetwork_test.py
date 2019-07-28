@@ -1166,7 +1166,7 @@ def test_switch_backend():
 
 def test_svd_consistency(backend):
   if backend == "pytorch":
-    pytest.skip()
+    pytest.skip("Complex numbers currently not supported in PyTorch")
   net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
     [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]], 
