@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
 
-A tensor network wrapper for TensorFlow, JAX, and Numpy.
+A tensor network wrapper for TensorFlow, JAX, PyTorch, and Numpy.
 
 For an overview of tensor networks please see the following: 
 
@@ -186,7 +186,7 @@ Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends.
 
 To change the default global backend, you can do:
 ```python
-tensornetwork.set_default_backend("jax") # numpy, tensorflow
+tensornetwork.set_default_backend("jax") # numpy, tensorflow, pytorch
 ```
 Or, if you only want to change the backend for a single `TensorNetwork`, you can do:
 ```python
