@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
@@ -105,3 +106,8 @@ def test_einsum():
   actual = backend.einsum('ij,jil->l', a, b)
   expected = np.array([4.0, 4.0])
   np.testing.assert_allclose(expected, actual)
+
+def test_convert_bad_test():
+  backend = numpy_backend.NumPyBackend()
+  with pytest.raises(ValueError):
+    backend.convert_to_tensor(tf.ones((2, 2)))

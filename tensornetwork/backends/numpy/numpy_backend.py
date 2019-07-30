@@ -74,6 +74,8 @@ class NumPyBackend(base_backend.BaseBackend):
     return self.np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
+    if not isinstance(tensor, self.np.ndarray) and not self.np.isscalar(tensor):
+      raise ValueError("Expected a `np.array` or scalar. Got {}".format(type(tensor)))
     return self.np.asarray(tensor)
 
   def trace(self, tensor: Tensor) -> Tensor:
