@@ -9,6 +9,7 @@ def test_sanity_check(backend):
   b = net.add_node(np.ones((2, 7, 11)))
   c = net.add_node(np.ones((7, 11, 13, 2)))
   d = net.add_node(np.eye(13))
+  # pylint: disable=pointless-statement
   a[0] ^ b[0]
   b[1] ^ c[0]
   b[2] ^ c[1]

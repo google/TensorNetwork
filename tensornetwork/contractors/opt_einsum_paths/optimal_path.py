@@ -1,9 +1,9 @@
 import opt_einsum
-import tensornetwork
+from tensornetwork import network
 from tensornetwork.contractors.opt_einsum_paths import utils
 
 
-def optimal(net: tensornetwork.TensorNetwork) -> tensornetwork.TensorNetwork:
+def optimal(net: network.TensorNetwork) -> network.TensorNetwork:
   """Optimal contraction order via opt_einsum.
 
   This method will find the truely optimal contraction order via 
