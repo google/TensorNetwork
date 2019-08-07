@@ -19,6 +19,7 @@ def base(net: network.TensorNetwork,
   Returns:
     The network after full contraction.
   """
+  net.check_connected()
   # First contract all trace edges
   edges = net.get_all_nondangling()
   for edge in edges:

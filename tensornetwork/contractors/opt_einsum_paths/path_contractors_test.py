@@ -7,7 +7,7 @@ from tensornetwork.contractors.opt_einsum_paths import path_contractors
 @pytest.fixture(name="path_algorithm",
                 params=["optimal", "branch", "greedy", "auto"])
 def path_algorithm_fixture(request):
-  return request.param
+  return getattr(path_contractors, request.param)
 
 
 def test_sanity_check(backend, path_algorithm):
@@ -22,7 +22,7 @@ def test_sanity_check(backend, path_algorithm):
   b[2] ^ c[1]
   c[2] ^ d[1]
   c[3] ^ a[1]
-  final_node = getattr(path_contractors, path_algorithm)(net).get_final_node()
+  final_node = path_algorithm(net).get_final_node()
   assert final_node.shape == (13,)
 
 
@@ -37,8 +37,16 @@ def test_trace_edge(backend, path_algorithm):
   a[3] ^ c[0]
   b[1] ^ c[1]
   b[2] ^ c[2]
-  node = getattr(path_contractors, path_algorithm)(net).get_final_node()
+  node = path_algorithm(net).get_final_node()
   np.testing.assert_allclose(node.tensor, np.ones(2) * 32.0)
+
+
+def test_auto_single_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)))
+  a[0] ^ a[1]
+  node = path_contractors.auto(net).get_final_node()
+  np.testing.assert_allclose(node.tensor, np.ones(2) * 2.0)
 
 
 def test_custom_sanity_check(backend):
