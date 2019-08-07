@@ -2,14 +2,14 @@
 
 import functools
 import opt_einsum
-from typing import Callable, Dict, Optional, List, Set, Tuple
+from typing import Callable, Dict, Optional, List, Set
 from tensornetwork import network
 from tensornetwork.contractors.opt_einsum_paths import utils
 
 
 def base(net: network.TensorNetwork,
          algorithm: Callable[[List[Set[int]], Set[int], Dict[int, int]],
-                             List[Tuple[int]]]) -> network.TensorNetwork:
+                             List]) -> network.TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -121,16 +121,17 @@ def auto(net: network.TensorNetwork,
   n = len(net.nodes_set)
   if n <= 0:
     raise ValueError("Cannot contract empty tensor network.")
-  elif n == 1:
-    net.contract_all_trace_edges()
+  if n == 1:
+    edges = net.get_all_nondangling()
+    net.contract_parallel(edges.pop())
     return net
-  elif n < 5:
+  if n < 5:
     return optimal(net, memory_limit)
-  elif n < 7:
+  if n < 7:
     return branch(net, memory_limit)
-  elif n < 9:
+  if n < 9:
     return branch(net, memory_limit, nbranch=2)
-  elif n < 15:
+  if n < 15:
     return branch(net, nbranch=1)
   return greedy(net, memory_limit)
 
