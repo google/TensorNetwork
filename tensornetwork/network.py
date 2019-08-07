@@ -517,6 +517,13 @@ class TensorNetwork:
     for node in self.nodes_set:
       edges |= node.get_all_nondangling()
     return edges
+  
+  def get_all_edges(self):
+    """Return the set of all edges."""
+    edges = set()
+    for node in self.nodes_set:
+      edges |= set(node.edges)
+    return edges
 
   def outer_product_final_nodes(self, edge_order: List[network_components.Edge]
                                ) -> network_components.Node:
