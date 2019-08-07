@@ -137,7 +137,8 @@ def auto(net: network.TensorNetwork,
   return greedy(net, memory_limit)
 
 
-def custom(net: network.TensorNetwork, optimizer,
+def custom(net: network.TensorNetwork,
+           optimizer: opt_einsum.paths.PathOptimizer,
            memory_limit: Optional[int] = None) -> network.TensorNetwork:
   """
   Uses a custom path optimizer created by the user to calculate paths.
