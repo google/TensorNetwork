@@ -8,12 +8,12 @@ def multi_remove(elems, indices):
 def get_input_sets(net: network.TensorNetwork) -> List[Set[int]]:
   input_sets = []
   for node in sorted(net.nodes_set):
-    input_sets.append({x.signature for x in node.edges})
+    input_sets.append(set(node.edges))
   return input_sets
 
 def get_output_set(net: network.TensorNetwork) -> Set[int]:
   dangling_edges = net.get_all_edges() - net.get_all_nondangling()
-  return {x.signature for x in dangling_edges}
+  return set(dangling_edges)
 
 def get_size_dict(net: network.TensorNetwork) -> Dict[int, int]:
-  return {edge.signature: edge.dimension for edge in net.get_all_edges()}
+  return {edge: edge.dimension for edge in net.get_all_edges()}
