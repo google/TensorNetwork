@@ -25,6 +25,9 @@ def base(net: network.TensorNetwork,
   for edge in edges:
     if edge in net and edge.is_trace():
       net.contract_parallel(edge)
+  if not net.get_all_nondangling():
+    # There's nothing to contract.
+    return net
 
   # Then apply `opt_einsum`'s algorithm
   nodes = sorted(net.nodes_set)
