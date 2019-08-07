@@ -2,7 +2,7 @@
 
 import functools
 import opt_einsum
-from typing import Callable, Dict, Optional, List, Set
+from typing import Any, Callable, Dict, Optional, List, Set
 from tensornetwork import network
 from tensornetwork.contractors.opt_einsum_paths import utils
 
@@ -137,8 +137,7 @@ def auto(net: network.TensorNetwork,
   return greedy(net, memory_limit)
 
 
-def custom(net: network.TensorNetwork,
-           optimizer: opt_einsum.paths.PathOptimizer,
+def custom(net: network.TensorNetwork, optimizer: Any,
            memory_limit: Optional[int] = None) -> network.TensorNetwork:
   """
   Uses a custom path optimizer created by the user to calculate paths.
