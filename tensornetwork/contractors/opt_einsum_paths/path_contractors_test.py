@@ -41,9 +41,23 @@ def test_trace_edge(backend, path_algorithm):
   np.testing.assert_allclose(node.tensor, np.ones(2) * 32.0)
 
 
+def test_disconnected_network(backend, path_algorithm):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.array([2, 2]))
+  b = net.add_node(np.array([2, 2]))
+  c = net.add_node(np.array([2, 2]))
+  d = net.add_node(np.array([2, 2]))
+  # pylint: disable=pointless-statement
+  a[0] ^ b[0]
+  c[0] ^ d[0]
+  with pytest.raises(ValueError):
+    net = path_algorithm(net)
+
+
 def test_auto_single_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
+  # pylint: disable=pointless-statement
   a[0] ^ a[1]
   node = path_contractors.auto(net).get_final_node()
   np.testing.assert_allclose(node.tensor, np.ones(2) * 2.0)
