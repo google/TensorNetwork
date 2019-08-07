@@ -6,7 +6,7 @@ from tensornetwork.contractors.opt_einsum_paths import utils
 def optimal(net: network.TensorNetwork) -> network.TensorNetwork:
   """Optimal contraction order via opt_einsum.
 
-  This method will find the truely optimal contraction order via 
+  This method will find the truly optimal contraction order via 
   `opt_einsum`'s depth first search algorithm. Since this search is
   exhaustive, if your network is large (n>10), then the search may
   take longer than just contracting in a suboptimal way.
