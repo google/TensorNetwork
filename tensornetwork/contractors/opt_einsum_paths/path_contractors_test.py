@@ -54,12 +54,12 @@ def test_disconnected_network(backend, path_algorithm):
     net = path_algorithm(net)
 
 
-def test_auto_single_node(backend):
+def test_single_node(backend, path_algorithm):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
   # pylint: disable=pointless-statement
   a[0] ^ a[1]
-  node = path_contractors.auto(net).get_final_node()
+  node = path_algorithm(net).get_final_node()
   np.testing.assert_allclose(node.tensor, np.ones(2) * 2.0)
 
 
