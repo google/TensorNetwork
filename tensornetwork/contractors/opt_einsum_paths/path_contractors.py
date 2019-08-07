@@ -155,28 +155,3 @@ def custom(net: network.TensorNetwork, optimizer,
   """
   alg = functools.partial(optimizer, memory_limit=memory_limit)
   return base(net, alg)
-
-
-def random_greedy(net: network.TensorNetwork,
-                  memory_limit: Optional[int] = None,
-                  **optimizer_kwargs) -> network.TensorNetwork:
-  """Samples many greedy paths and selects the best.
-
-  For more details:
-    https://optimized-einsum.readthedocs.io/en/latest/random_greedy_path.html
-
-  Args:
-    net: a TensorNetwork object.
-    memory_limit: Maximum number of elements in an array during contractions.
-    optimizer_kwargs: Settings of the random-greedy optimizer.
-      Possible keys are:
-        max_repeats: The maximum number of repeats.
-        max_time: Maximum amount of time (in seconds) to run.
-        parallel: If True or int > 0 the random-greedy search is parallelized.
-
-  Returns:
-    The network after full contraction.
-  """
-  alg = functools.partial(opt_einsum.path_random.random_greedy,
-                          memory_limit=memory_limit, **optimizer_kwargs)
-  return base(net, alg)
