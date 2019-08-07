@@ -5,7 +5,7 @@ from tensornetwork.contractors.opt_einsum_paths import path_contractors
 
 
 @pytest.fixture(name="path_algorithm",
-                params=["optimal", "branch", "greedy", "auto"])
+                params=["optimal", "branch", "greedy", "auto", "random_greedy"])
 def path_algorithm_fixture(request):
   return request.param
 
@@ -39,6 +39,20 @@ def test_trace_edge(backend, path_algorithm):
   b[2] ^ c[2]
   node = getattr(path_contractors, path_algorithm)(net).get_final_node()
   np.testing.assert_allclose(node.tensor, np.ones(2) * 32.0)
+
+
+def test_random_greedy_settings(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones(2))
+  b = net.add_node(np.ones((2, 4, 5)))
+  c = net.add_node(np.ones((4, 5, 6, 2)))
+  # pylint: disable=pointless-statement
+  a[0] ^ b[0]
+  b[1] ^ c[0]
+  b[2] ^ c[1]
+  settings = {"max_repeats": 2, "max_time": 5, "parallel": True}
+  node = path_contractors.random_greedy(net, settings).get_final_node()
+  np.testing.assert_allclose(node.tensor, 40 * np.ones((6, 2)))
 
 
 def test_custom_sanity_check(backend):
