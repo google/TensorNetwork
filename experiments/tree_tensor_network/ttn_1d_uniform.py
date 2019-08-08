@@ -44,25 +44,6 @@ import contextlib
 import tensornetwork
 
 
-def set_backend(backend_name):
-  """Sets the backend to use for tree tensor network computations.
-
-  A backend must be set after importing the module.
-
-  Args:
-    backend: Possible values are "tensorflow", "jax", and "numpy".
-  """
-  global backend
-  if backend_name == "tensorflow":
-    backend = TTNBackendTensorFlow()
-  elif backend_name == "jax":
-    backend = TTNBackendJAX()
-  elif backend_name == "numpy":
-    backend = TTNBackendNumpy()
-  else:
-    raise ValueError("Unsupported backend: {}".format(backend_name))
-
-
 def _ascend_partial(op, iso):
   """Contract an operator with the rightmost index of an isometry.
 
