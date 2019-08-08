@@ -16,15 +16,29 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensorflow as tf
-tf.enable_v2_behavior()
 
-from experiments.tree_tensor_network import ttn_1d_uniform
+from experiments import tree_tensor_network
 
 if __name__ == "__main__":
+  backend = "tensorflow"  # "numpy" and "jax" are also supported!
+
+  if backend == "tensorflow":
+    import tensorflow as tf
+    tf.enable_v2_behavior()
+    dtype = tf.float64
+  elif backend == "jax":
+    from jax.config import config
+    config.update("jax_enable_x64", True)
+    import jax.numpy as np
+    dtype = np.float64
+  elif backend == "numpy":
+    import numpy as np
+    dtype = np.float64
+
+  tree_tensor_network.set_backend(backend)
+
   num_layers = 6
   max_bond_dim = 16
-  dtype = tf.complex128
   build_graphs = True
 
   num_sweeps = 1000
@@ -37,10 +51,10 @@ if __name__ == "__main__":
   print("System size:", 2**num_layers)
   print("Bond dimensions:", Ds)
 
-  H = ttn_1d_uniform.get_ham_ising(dtype)
-  isos_012 = ttn_1d_uniform.random_tree_tn_uniform(Ds, dtype, top_rank=1)
+  H = tree_tensor_network.get_ham_ising(dtype)
+  isos_012 = tree_tensor_network.random_tree_tn_uniform(Ds, dtype, top_rank=1)
 
-  isos_012 = ttn_1d_uniform.opt_tree_energy(
+  isos_012 = tree_tensor_network.opt_tree_energy(
       isos_012,
       H,
       num_sweeps,

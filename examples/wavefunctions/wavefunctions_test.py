@@ -25,14 +25,15 @@ from examples.wavefunctions import wavefunctions
 
 @pytest.mark.parametrize("num_sites", [2, 3, 4])
 def test_expval(num_sites):
-  op = tf.convert_to_tensor(np.array([[1.0, 0.0], [0.0, -1.0]]))
+  op = np.kron(np.array([[1.0, 0.0], [0.0, -1.0]]), np.eye(2)).reshape([2]*4)
+  op = tf.convert_to_tensor(op)
   for j in range(num_sites):
     psi = np.zeros([2] * num_sites)
     psi_vec = psi.reshape((2**num_sites,))
     psi_vec[2**j] = 1.0
     psi = tf.convert_to_tensor(psi)
     for i in range(num_sites):
-      res = wavefunctions.expval(psi, op, i)
+      res = wavefunctions.expval(psi, op, i, pbc=True)
       if i == num_sites-1-j:
         np.testing.assert_allclose(res, -1.0)
       else:

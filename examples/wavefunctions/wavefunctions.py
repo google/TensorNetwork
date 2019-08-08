@@ -37,7 +37,7 @@ def inner(psi1, psi2):
   return tf.reduce_sum(tf.conj(psi1) * psi2)
 
 
-def apply_op(psi, op, n1):
+def apply_op(psi, op, n1, pbc=False):
   """Apply a local operator to a wavefunction.
 
     The number of dimensions of the tensor representing the wavefunction `psi`
@@ -52,6 +52,9 @@ def apply_op(psi, op, n1):
       psi: An `N`-dimensional tensor representing the wavefunction.
       op: Tensor with `2 * k` dimensions. The operator to apply.
       n1: The number of the leftmost site at which to apply the operator.
+      pbc: If `True`, use periodic boundary conditions, so that site `N` is
+        identified with site `0`. Otherwise, site `N-1` has no neighbors to the
+        right.
 
     Returns:
       psi_final: The result of applying `op` to `psi`.
@@ -60,7 +63,7 @@ def apply_op(psi, op, n1):
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
 
-  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
+  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1, pbc)
 
   n_res = net.contract_between(n_op, n_psi)
   n_res.reorder_edges(site_edges)
@@ -68,16 +71,18 @@ def apply_op(psi, op, n1):
   return n_res.tensor
 
 
-def _apply_op_network(net, site_edges, op, n1):
+def _apply_op_network(net, site_edges, op, n1, pbc=False):
+  N = len(site_edges)
   op_sites = len(op.shape) // 2
   n_op = net.add_node(op)
   for m in range(op_sites):
-    net.connect(n_op[op_sites + m], site_edges[n1 + m])
-    site_edges[n1 + m] = n_op[m]
+    target_site = (n1 + m) % N if pbc else n1 + m
+    net.connect(n_op[op_sites + m], site_edges[target_site])
+    site_edges[target_site] = n_op[m]
   return net, site_edges, n_op
 
 
-def expval(psi, op, n1):
+def expval(psi, op, n1, pbc=False):
   """Expectation value of a k-local operator, acting on sites n1 to n1 + k-1.
 
     In braket notation: <psi|op(n1)|psi>
@@ -89,6 +94,9 @@ def expval(psi, op, n1):
       psi: An `N`-dimensional tensor representing the wavefunction.
       op: Tensor with `2 * k` dimensions. The operator to apply.
       n1: The number of the leftmost site at which to apply the operator.
+      pbc: If `True`, use periodic boundary conditions, so that site `N` is
+        identified with site `0`. Otherwise, site `N-1` has no neighbors to the
+        right.
 
     Returns:
       expval: The expectation value.
@@ -97,7 +105,7 @@ def expval(psi, op, n1):
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
 
-  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1)
+  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1, pbc)
 
   n_op_psi = net.contract_between(n_op, n_psi)
 
