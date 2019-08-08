@@ -17,75 +17,70 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
-
+from tensornetwork.backends.pytorch import decompositions
+import numpy as np
+# This might seem bad, but pytype treats tf.Tensor as Any anyway, so
+# we don't actually lose anything by doing this.
 Tensor = Any
 
 
-class NumPyBackend(base_backend.BaseBackend):
+class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
-    super(NumPyBackend, self).__init__()
+    super(PyTorchBackend, self).__init__()
     try:
-      import numpy
+      import torch
     except ImportError:
-      raise AssertionError("numpy is not installed.")
-    from tensornetwork.backends.numpy import decompositions
-    self.np = numpy
-    self.decompositions = decompositions
-    self.name = "numpy"
+      raise AssertionError("pytorch is not installed.")
+    self.torch = torch
+    self.name = "pytorch"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
-    return self.np.tensordot(a, b, axes)
+    return self.torch.tensordot(a, b, dims=axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.np.reshape(tensor, shape.astype(self.np.int32))
+    return self.torch.reshape(tensor, tuple(np.array(shape).astype(int)))
 
   def transpose(self, tensor, perm):
-    return self.np.transpose(tensor, perm)
+    return tensor.permute(perm)
 
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(
-        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
+                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    return decompositions.svd_decomposition(self.torch, tensor, split_axis,
+                                            max_singular_values,
+                                            max_truncation_error)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
-    return self.np.concatenate(values, axis)
+    return np.concatenate(values, axis)
 
   def shape(self, tensor: Tensor) -> Tensor:
-    return tensor.shape
+    return self.torch.tensor(list(tensor.shape))
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
-    return tensor.shape
+    return tuple(tensor.shape)
 
-  def prod(self, values: Tensor) -> Tensor:
-    return self.np.prod(values)
+  def prod(self, values: Tensor) -> int:
+    return np.prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
-    return self.np.sqrt(tensor)
+    return self.torch.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
-    return self.np.diag(tensor)
+    return self.torch.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, self.np.ndarray) 
-        and not self.np.isscalar(tensor)):
-      raise ValueError(
-        "Expected a `np.array` or scalar. Got {}".format(type(tensor)))
-    return self.np.asarray(tensor)
+    return self.torch.as_tensor(tensor)
 
   def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return self.np.trace(tensor, axis1=-2, axis2=-1)
+    return self.torch.einsum('...jj', tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.np.tensordot(tensor1, tensor2, 0)
+    return self.torch.tensordot(tensor1, tensor2, dims=0)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return self.np.einsum(expression, *tensors)
+    return self.torch.einsum(expression, *tensors)
