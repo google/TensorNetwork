@@ -2276,6 +2276,3 @@ class TTNBackendJAX(TTNBackendNumpy):
 
   def build(self, f):
     return self._jit(f)
-
-
-backend = TTNBackend()

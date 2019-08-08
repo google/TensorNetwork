@@ -32,3 +32,8 @@ def set_backend(backend_name):
     ttn_1d_uniform.backend = TTNBackendNumpy()
   else:
     raise ValueError("Unsupported backend: {}".format(backend_name))
+
+
+def get_backend():
+    """Returns the backend object used for tree tensor network computations."""
+    return ttn_1d_uniform.backend

@@ -21,7 +21,7 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 import tensornetwork as tn
 import examples.wavefunctions.wavefunctions as wf
-import experiments.tree_tensor_network.ttn_1d_uniform as ttn
+import experiments.tree_tensor_network as ttn
 
 tf.enable_v2_behavior()
 
@@ -32,6 +32,8 @@ def test_opt(backend):
   else:
     dtype = np.float64
 
+  backend_obj = ttn.get_backend()
+
   num_layers = 3
   max_bond_dim = 8
   build_graphs = True
@@ -41,7 +43,7 @@ def test_opt(backend):
 
   H = ttn.get_ham_ising(dtype)
   isos_012 = ttn.random_tree_tn_uniform(Ds, dtype, top_rank=1)
-  energy_0 = ttn.backend.trace(ttn.top_hamiltonian(H, isos_012))
+  energy_0 = backend_obj.trace(ttn.top_hamiltonian(H, isos_012))
   isos_012 = ttn.opt_tree_energy(
     isos_012,
     H,
@@ -50,22 +52,22 @@ def test_opt(backend):
     verbose=0,
     graphed=build_graphs,
     ham_shift=0.2)
-  energy_1 = ttn.backend.trace(ttn.top_hamiltonian(H, isos_012))
-  assert ttn.backend.to_numpy(energy_1) < ttn.backend.to_numpy(energy_0)
+  energy_1 = backend_obj.trace(ttn.top_hamiltonian(H, isos_012))
+  assert backend_obj.to_numpy(energy_1) < backend_obj.to_numpy(energy_0)
 
   N = 2**num_layers
   full_state = ttn.descend_full_state_pure(isos_012)
-  norm = ttn.backend.norm(ttn.backend.reshape(full_state, (2**N,)))
-  assert abs(ttn.backend.to_numpy(norm) - 1) < 1e-12
+  norm = backend_obj.norm(backend_obj.reshape(full_state, (2**N,)))
+  assert abs(backend_obj.to_numpy(norm) - 1) < 1e-12
 
   if backend != "jax":
     # wavefunctions assumes TensorFlow. This will interact with numpy OK, but
     # not JAX.
-    h = ttn._dense_ham_term(H)
+    h = ttn.ttn_1d_uniform._dense_ham_term(H)
     energy_1_full_state = sum(
       wf.expval(full_state, h, j, pbc=True) for j in range(N))
-    assert abs(ttn.backend.to_numpy(energy_1_full_state) -
-               ttn.backend.to_numpy(energy_1)) < 1e-12
+    assert abs(backend_obj.to_numpy(energy_1_full_state) -
+               backend_obj.to_numpy(energy_1)) < 1e-12
 
   isos_012 = ttn.opt_tree_energy(
     isos_012,
@@ -78,7 +80,7 @@ def test_opt(backend):
     ham_shift=0.2)
 
   for iso in isos_012:
-    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-6
+    assert backend_obj.to_numpy(ttn.check_iso(iso)) < 1e-6
 
   isos_012 = ttn.opt_tree_energy(
     isos_012,
@@ -91,7 +93,7 @@ def test_opt(backend):
     ham_shift=0.2)
 
   for iso in isos_012:
-    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-6
+    assert backend_obj.to_numpy(ttn.check_iso(iso)) < 1e-6
 
   isos_012 = ttn.opt_tree_energy(
     isos_012,
@@ -104,18 +106,19 @@ def test_opt(backend):
     ham_shift=0.2)
 
   for iso in isos_012:
-    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-12
+    assert backend_obj.to_numpy(ttn.check_iso(iso)) < 1e-12
 
 
 def test_expvals(random_isos):
   H = ttn.get_ham_ising(random_isos[0].dtype)
-  ens = ttn.backend.to_numpy(ttn.tree_energy_expval_check(H, random_isos))
+  ens = ttn.get_backend().to_numpy(
+    ttn.tree_energy_expval_check(H, random_isos))
   assert np.all(ens - ens[0] < 1e-12)
 
 
 def test_iso(random_isos):
   for iso in random_isos:
-    assert ttn.backend.to_numpy(ttn.check_iso(iso)) < 1e-12
+    assert ttn.get_backend().to_numpy(ttn.check_iso(iso)) < 1e-12
 
 
 @pytest.fixture(params=["tensorflow", "jax", "numpy"])
