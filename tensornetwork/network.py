@@ -599,7 +599,7 @@ class TensorNetwork:
     edge2 = network_components.Edge("TraceBack", node, len(perm_front) + 1)
     node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
     new_edge = self.connect(edge1, edge2, new_edge_name)
-    node.axis_names = None
+    node.axis_names = [self._new_edge_name(None) for _ in range(len(node.edges))]
     return new_edge
 
   def flatten_edges(self,
@@ -672,7 +672,7 @@ class TensorNetwork:
       node.edges = node.edges[:len(perm_front)] + [edge]
       new_dangling_edges.append(edge)
       # TODO: Allow renaming of the new axis.
-      node.axis_names = None
+      node.axis_names = [self._new_edge_name(None) for _ in range(len(node.edges))]
     node1, node2 = tuple(expected_nodes)
     # Sets are returned in a random order, so this is how we deal with
     # dangling edges.
