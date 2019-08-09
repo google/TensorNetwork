@@ -196,7 +196,8 @@ def auto(net: network.TensorNetwork,
                 (net.get_all_edges() - net.get_all_nondangling()))
         elif (len(final_node[0].edges) > 1) and (output_edge_order is None):
             raise ValueError(
-                'if the final node has more than one dangling edge, `output_edge_order` has to be provided'
+                "if the final node has more than one dangling edge"
+                ", `output_edge_order` has to be provided"
             )
 
         net.nodes_set = set(
