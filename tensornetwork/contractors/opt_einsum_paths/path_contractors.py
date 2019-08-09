@@ -62,19 +62,16 @@ def base(net: network.TensorNetwork,
 
 
   # if the final node has more than one edge, output_edge_order has to be specified
-  final_node = list(net.nodes_set)
-  if (len(final_node[0].edges) <= 1) and (output_edge_order is None):
+  final_node = net.get_final_node()
+  if (len(final_node.edges) <= 1) and (output_edge_order is None):
     output_edge_order = list((net.get_all_edges() - net.get_all_nondangling()))
-  elif (len(final_node[0].edges) > 1) and (output_edge_order is None):
+  elif (len(final_node.edges) > 1) and (output_edge_order is None):
     raise ValueError('if the final node has more than one dangling edge, `output_edge_order` has to be provided')
     
   if set(output_edge_order) != (net.get_all_edges() - net.get_all_nondangling()):
     raise ValueError("output edges are not all dangling.")
   
-  final_node = list(net.nodes_set)
-  if len(final_node) > 1: #currently this should never be reached if the network is disconnected (opt_einsum doesn't support disconnected graphs yet)
-    raise ValueError('network is disconnected')
-  net.nodes_set = set([final_node[0].reorder_edges(output_edge_order)])
+  net.nodes_set = set([final_node.reorder_edges(output_edge_order)])
   return net
 
 
