@@ -35,7 +35,7 @@ def test_sanity_check(backend):
   net.connect(a[0], b[1])
   net.connect(b[0], c[1])
   net.connect(c[0], a[1])
-  result = naive(net,output_edge_order=[[]]).get_final_node()
+  result = naive(net).get_final_node()
   np.testing.assert_allclose(result.tensor, 2.0)
 
 def test_passed_edge_order(backend):
@@ -46,7 +46,7 @@ def test_passed_edge_order(backend):
   e1 = net.connect(a[0], b[1])
   e2 = net.connect(b[0], c[1])
   e3 = net.connect(c[0], a[1])
-  result = naive(net, output_edge_order=[[]], edge_order=[e3, e1, e2]).get_final_node()
+  result = naive(net, [e3, e1, e2]).get_final_node()
   np.testing.assert_allclose(result.tensor, 2.0)
 
 def test_bad_passed_edges(backend):
@@ -58,31 +58,8 @@ def test_bad_passed_edges(backend):
   e2 = net.connect(b[0], c[1])
   _ = net.connect(c[0], a[1])
   with pytest.raises(ValueError):
-    naive(net, output_edge_order=[[]],edge_order=[e1, e2])
+    naive(net, [e1, e2])
 
-def test_bad_output_edge_order(backend):
-  net = network.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  c = net.add_node(np.eye(2))
-  net.connect(a[0], b[1])
-  net.connect(b[0], c[1])
-  order = [[a[1], c[1]]]
-  with pytest.raises(ValueError):
-    naive(net, output_edge_order=order)
-
-def test_bad_output_edge_order_disconnected(backend):
-  net = network.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  c = net.add_node(np.eye(2))
-  d = net.add_node(np.eye(2))  
-  net.connect(a[0], b[1])
-  net.connect(b[0], c[1])
-  order = [[a[1], d[0]], [d[1], c[0]]]
-  with pytest.raises(ValueError):
-    naive(net, output_edge_order=order)
-    
 def test_precontracted_network(backend):
   net = network.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
@@ -93,5 +70,5 @@ def test_precontracted_network(backend):
   edge = net.connect(c[0], a[1])
   net.contract(edge)
   # This should work now!
-  result = naive(net,output_edge_order=[[]]).get_final_node()
+  result = naive(net).get_final_node()
   np.testing.assert_allclose(result.tensor, 2.0)
