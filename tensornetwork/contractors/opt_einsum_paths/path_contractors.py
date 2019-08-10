@@ -60,7 +60,8 @@ def base(net: network.TensorNetwork,
         nodes.append(new_node)
         nodes = utils.multi_remove(nodes, [a, b])
 
-    # if the final node has more than one edge, output_edge_order has to be specified
+    # if the final node has more than one edge,
+    # output_edge_order has to be specified
     final_node = net.get_final_node()
     if (len(final_node.edges) <= 1) and (output_edge_order is None):
         output_edge_order = list(
