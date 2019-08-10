@@ -1197,3 +1197,12 @@ def test_connect_alias(backend):
   assert e is a[0]
   assert e is b[0]
   assert e in net
+
+def test_remove_after_flatten(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2)))
+  b = net.add_node(np.ones((2, 2)))
+  net.connect(a[0], b[0])
+  net.connect(a[1], b[1])
+  net.flatten_all_edges()
+  net.remove_node(a)
