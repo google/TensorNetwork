@@ -30,7 +30,7 @@ import jax.config
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as np
 import tensornetwork
-from tensornetwork.contractors.opt_einsum_paths import path_contractors
+from tensornetwork import contractors
 
 
 @jax.jit
@@ -106,7 +106,9 @@ def binary_mera_energy(hamiltonian, state, isometry, disentangler):
     net.connect(iso_c_con[2], rho[4])
     net.connect(iso_r_con[2], rho[5])
 
-    out.append(path_contractors.auto(net).get_final_node().get_tensor())
+    # FIXME: Check that this is giving us a good path!
+    out.append(
+      contractors.branch(net, nbranch=2).get_final_node().get_tensor())
 
   return 0.5 * sum(out)
 
