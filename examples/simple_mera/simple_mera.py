@@ -20,6 +20,8 @@ single layer of MERA together with a reduced state and a hamiltonian.
 
 Run as the main module, this module executes a script that optimizes a MERA
 for the critical Ising model.
+
+For the scale-invairant MERA, see arXiv:1109.5334.
 """
 
 from __future__ import absolute_import
