@@ -14,7 +14,12 @@
 """Very simple scale-invariant MERA.
 
 Uses automatic differentiation to construct ascending and descending
-superoperators, as well as environment tensors.
+superoperators, as well as environment tensors so that only a single tensor
+network needs to be defined: The network for computing the energy using a
+single layer of MERA together with a reduced state and a hamiltonian.
+
+Run as the main module, this module executes a script that optimizes a MERA
+for the critical Ising model.
 """
 
 from __future__ import absolute_import
@@ -33,10 +38,12 @@ def binary_mera_energy(hamiltonian, state, isometry, disentangler):
   """Computes the energy using a layer of uniform binary MERA.
 
   Args:
-    hamiltonian: The hamiltonian defined at the bottom of the MERA layer.
-    state: The 3-site reduced state defined at the top of the MERA layer.
-    isometry: The isometry tensor of the binary MERA.
-    disentangler: The disentangler tensor of the binary MERA.
+    hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom of the
+      MERA layer.
+    state: The 3-site reduced state (rank-6 tensor) defined at the top of the
+      MERA layer.
+    isometry: The isometry tensor (rank 3) of the binary MERA.
+    disentangler: The disentangler tensor (rank 4) of the binary MERA.
 
   Returns:
     The energy.
@@ -104,25 +111,89 @@ def binary_mera_energy(hamiltonian, state, isometry, disentangler):
   return 0.5 * sum(out)
 
 
-"""Descending super-operator."""
 descend = jax.jit(jax.grad(binary_mera_energy, argnums=0, holomorphic=True))
+"""Descending super-operator.
+
+Args:
+  hamiltonian: A dummy rank-6 tensor not involved in the computation.
+  state: The 3-site reduced state to be descended (rank-6 tensor).
+  isometry: The isometry tensor of the binary MERA.
+  disentangler: The disentangler tensor of the binary MERA.
+
+Returns:
+  The descended state (spatially averaged).
+"""
 
 
-"""Ascending super-operator."""
 ascend = jax.jit(jax.grad(binary_mera_energy, argnums=1, holomorphic=True))
+"""Ascending super-operator.
+
+Args:
+  operator: The operator to be ascended (rank-6 tensor).
+  state: A dummy rank-6 tensor not involved in the computation.
+  isometry: The isometry tensor of the binary MERA.
+  disentangler: The disentangler tensor of the binary MERA.
+
+Returns:
+  The ascended operator (spatially averaged).
+"""
 
 
-"""Isometry environment."""
-env_iso = jax.jit(jax.grad(binary_mera_energy, argnums=2, holomorphic=False))
+# NOTE: Not a holomorphic function, but a real-valued loss function.
+env_iso = jax.jit(jax.grad(binary_mera_energy, argnums=2, holomorphic=True))
+"""Isometry environment tensor.
+
+In other words: The derivative of the `binary_mera_energy()` with respect to
+the isometry tensor.
+
+Args:
+  hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom of the
+    MERA layer.
+  state: The 3-site reduced state (rank-6 tensor) defined at the top of the
+    MERA layer.
+  isometry: A dummy isometry tensor (rank 3) not used in the computation.
+  disentangler: The disentangler tensor (rank 4) of the binary MERA.
+
+Returns:
+  The environment tensor of the isometry, including all contributions.
+"""
 
 
-"""Disentangler environment."""
-env_dis = jax.jit(jax.grad(binary_mera_energy, argnums=3, holomorphic=False))
+# NOTE: Not a holomorphic function, but a real-valued loss function.
+env_dis = jax.jit(jax.grad(binary_mera_energy, argnums=3, holomorphic=True))
+"""Disentangler environment.
+
+In other words: The derivative of the `binary_mera_energy()` with respect to
+the disentangler tensor.
+
+Args:
+  hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom of the
+    MERA layer.
+  state: The 3-site reduced state (rank-6 tensor) defined at the top of the
+    MERA layer.
+  isometry: The isometry tensor (rank 3) of the binary MERA.
+  disentangler: A dummy disentangler (rank 4) not used in the computation.
+
+Returns:
+  The environment tensor of the disentangler, including all contributions.
+"""
 
 
 @jax.jit
 def update_iso(hamiltonian, state, isometry, disentangler):
-  """Updates the isometry with the aim of reducing the energy."""
+  """Updates the isometry with the aim of reducing the energy.
+
+  Args:
+    hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom of the
+      MERA layer.
+    state: The 3-site reduced state (rank-6 tensor) defined at the top of the
+      MERA layer.
+    isometry: The isometry tensor (rank 3) of the binary MERA.
+    disentangler: The disentangler tensor (rank 4) of the binary MERA.
+
+  Returns:
+    The updated isometry.
+  """
   env = env_iso(hamiltonian, state, isometry, disentangler)
 
   net = tensornetwork.TensorNetwork(backend="jax")
@@ -140,7 +211,19 @@ def update_iso(hamiltonian, state, isometry, disentangler):
 
 @jax.jit
 def update_dis(hamiltonian, state, isometry, disentangler):
-  """Updates the disentangler with the aim of reducing the energy."""
+  """Updates the disentangler with the aim of reducing the energy.
+
+  Args:
+    hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom of the
+      MERA layer.
+    state: The 3-site reduced state (rank-6 tensor) defined at the top of the
+      MERA layer.
+    isometry: The isometry tensor (rank 3) of the binary MERA.
+    disentangler: The disentangler tensor (rank 4) of the binary MERA.
+
+  Returns:
+    The updated disentangler.
+  """
   env = env_dis(hamiltonian, state, isometry, disentangler)
 
   net = tensornetwork.TensorNetwork(backend="jax")
@@ -163,6 +246,7 @@ def shift_ham(hamiltonian, shift=None):
     hamiltonian: The hamiltonian tensor (rank 6).
     shift: The amount by which to shift. If `None`, shifts so that the local
       term is negative semi-definite.
+
   Returns:
     The shifted Hamiltonian.
   """
@@ -175,6 +259,21 @@ def shift_ham(hamiltonian, shift=None):
 
 def optimize_linear(hamiltonian, state, isometry, disentangler, num_itr):
   """Optimize a scale-invariant MERA using linearized updates.
+
+  The MERA is assumed to be completely uniform and scale-invariant, consisting
+  of a single isometry and disentangler.
+
+  Args:
+    hamiltonian: The hamiltonian (rank-6 tensor) defined at the bottom.
+    state: An initial 3-site reduced state (rank-6 tensor) to initialize the
+      descending fixed-point computation.
+    isometry: The isometry tensor (rank 3) of the binary MERA.
+    disentangler: The disentangler tensor (rank 4) of the binary MERA.
+
+  Returns:
+    state: The approximate descending fixed-point reduced state (rank 6).
+    isometry: The optimized isometry.
+    disentangler: The optimized disentangler.
   """
   h_shifted = shift_ham(hamiltonian)
 
@@ -193,6 +292,8 @@ def optimize_linear(hamiltonian, state, isometry, disentangler, num_itr):
 
 def ham_ising():
   """Dimension 2 "Ising" Hamiltonian.
+
+  This version from Evenbly & White, Phys. Rev. Lett. 116, 140403 (2016).
   """
   E = np.array([[1, 0], [0, 1]])
   X = np.array([[0, 1], [1, 0]])
@@ -203,9 +304,11 @@ def ham_ising():
 
 
 if __name__ == '__main__':
+  # Starting from a very simple initial MERA, optimize for the critical Ising
+  # model.
   h = ham_ising()
   s = np.reshape(np.eye(2**3), [2]*6) / 2**3
   dis = np.reshape(np.eye(2**2), [2]*4)
-  iso = disentangler[:,:,:,0]
+  iso = dis[:,:,:,0]
 
-  optimize_linear(ham, s, iso, dis, 100)
+  s, iso, dis = optimize_linear(h, s, iso, dis, 100)
