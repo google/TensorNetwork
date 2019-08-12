@@ -50,7 +50,7 @@ class PyTorchBackend(base_backend.BaseBackend):
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
-                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)

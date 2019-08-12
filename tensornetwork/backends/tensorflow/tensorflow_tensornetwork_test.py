@@ -116,5 +116,6 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     result = tf.map_fn(build_tensornetwork, tensors, dtype=tf.float64)
     np.testing.assert_allclose(result, np.ones(5) * 10)
 
+
 if __name__ == '__main__':
   tf.test.main()

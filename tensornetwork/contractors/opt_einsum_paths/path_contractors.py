@@ -8,8 +8,8 @@ from tensornetwork.contractors.opt_einsum_paths import utils
 
 
 def base(net: network.TensorNetwork,
-         algorithm: Callable[[List[Set[int]], Set[int], Dict[int, int]],
-                             List]) -> network.TensorNetwork:
+         algorithm: Callable[[List[Set[int]], Set[int], Dict[int, int]], List]
+        ) -> network.TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -62,7 +62,8 @@ def optimal(net: network.TensorNetwork,
   return base(net, alg)
 
 
-def branch(net: network.TensorNetwork, memory_limit: Optional[int] = None,
+def branch(net: network.TensorNetwork,
+           memory_limit: Optional[int] = None,
            nbranch: Optional[int] = None) -> network.TensorNetwork:
   """Branch contraction path via `opt_einsum`.
 
@@ -82,8 +83,8 @@ def branch(net: network.TensorNetwork, memory_limit: Optional[int] = None,
   Returns:
     The network after full contraction.
   """
-  alg = functools.partial(opt_einsum.paths.branch, memory_limit=memory_limit,
-                          nbranch=nbranch)
+  alg = functools.partial(
+      opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
   return base(net, alg)
 
 
@@ -140,7 +141,8 @@ def auto(net: network.TensorNetwork,
   return greedy(net, memory_limit)
 
 
-def custom(net: network.TensorNetwork, optimizer: Any,
+def custom(net: network.TensorNetwork,
+           optimizer: Any,
            memory_limit: Optional[int] = None) -> network.TensorNetwork:
   """
   Uses a custom path optimizer created by the user to calculate paths.

@@ -88,12 +88,12 @@ def svd_decomposition(torch: Any,
 
   if max_truncation_error is not None:
     # Cumulative norms of singular values in ascending order
-    s_sorted, _ = torch.sort(s ** 2)
+    s_sorted, _ = torch.sort(s**2)
     trunc_errs = torch.sqrt(torch.cumsum(s_sorted, 0))
     # We must keep at least this many singular values to ensure the
     # truncation error is <= max_truncation_error.
-    num_sing_vals_err = torch.nonzero(trunc_errs
-                                      > max_truncation_error).nelement()
+    num_sing_vals_err = torch.nonzero(
+        trunc_errs > max_truncation_error).nelement()
   else:
     num_sing_vals_err = max_singular_values
 

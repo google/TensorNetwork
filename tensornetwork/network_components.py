@@ -27,6 +27,7 @@ Tensor = Any
 # network_components.py and network.py types.
 TensorNetwork = Any
 
+
 class Node:
   """Node for the TensorNetwork graph.
 
@@ -44,9 +45,8 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(
-    self, tensor: Tensor, name: Text, axis_names: List[Text],
-    network: TensorNetwork) -> None:
+  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
+               network: TensorNetwork) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -134,7 +134,7 @@ class Node:
   @property
   def shape(self):
     return self.network.backend.shape_tuple(self._tensor)
-  
+
   @property
   def tensor(self) -> Tensor:
     return self._tensor
@@ -176,8 +176,7 @@ class Node:
       permutation.append(old_position)
       edge.update_axis(old_position, self, i, self)
     self.edges = edge_order[:]
-    self.tensor = self.network.backend.transpose(
-        self.tensor, perm=permutation)
+    self.tensor = self.network.backend.transpose(self.tensor, perm=permutation)
     if self.axis_names is not None:
       # Update axis_names:
       tmp_axis_names = []
@@ -274,6 +273,7 @@ class Node:
     if other.network is not self.network:
       raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
+
 
 class CopyNode(Node):
 
@@ -422,7 +422,7 @@ class Edge:
   def set_signature(self, signature: int) -> None:
     if self.is_dangling():
       raise ValueError(
-        "Do not set a signature for dangling edge '{}'.".format(self))
+          "Do not set a signature for dangling edge '{}'.".format(self))
     self.signature = signature
 
   def get_nodes(self) -> List[Optional[Node]]:

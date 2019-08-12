@@ -29,6 +29,7 @@ def test_expected_shapes():
   np.testing.assert_allclose(s, np.zeros(6))
   assert vh.shape == (6, 4, 5)
 
+
 def test_max_singular_values():
   np.random.seed(2018)
   random_matrix = np.random.rand(10, 10)
@@ -42,6 +43,7 @@ def test_max_singular_values():
   np.testing.assert_array_almost_equal(s, np.arange(9, 2, -1))
   assert vh.shape == (7, 10)
   np.testing.assert_array_almost_equal(trun, np.arange(2, -1, -1))
+
 
 def test_max_truncation_error():
   np.random.seed(2019)

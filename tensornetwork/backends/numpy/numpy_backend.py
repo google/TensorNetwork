@@ -50,8 +50,9 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(
-        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
+    return self.decompositions.svd_decomposition(self.np, tensor, split_axis,
+                                                 max_singular_values,
+                                                 max_truncation_error)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
@@ -74,10 +75,10 @@ class NumPyBackend(base_backend.BaseBackend):
     return self.np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, self.np.ndarray) 
-        and not self.np.isscalar(tensor)):
-      raise ValueError(
-        "Expected a `np.array` or scalar. Got {}".format(type(tensor)))
+    if (not isinstance(tensor, self.np.ndarray) and
+        not self.np.isscalar(tensor)):
+      raise ValueError("Expected a `np.array` or scalar. Got {}".format(
+          type(tensor)))
     return self.np.asarray(tensor)
 
   def trace(self, tensor: Tensor) -> Tensor:

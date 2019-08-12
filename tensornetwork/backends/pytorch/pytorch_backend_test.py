@@ -9,9 +9,9 @@ import torch
 
 def test_tensordot():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(2*np.ones((2, 3, 4)))
+  a = backend.convert_to_tensor(2 * np.ones((2, 3, 4)))
   b = backend.convert_to_tensor(np.ones((2, 3, 4)))
-  actual = backend.tensordot(a, b,  ((1, 2), (1, 2)))
+  actual = backend.tensordot(a, b, ((1, 2), (1, 2)))
   expected = np.array([[24.0, 24.0], [24.0, 24.0]])
   np.testing.assert_allclose(expected, actual)
 
@@ -25,8 +25,8 @@ def test_reshape():
 
 def test_transpose():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array([[[1., 2.], [3., 4.]],
-                                          [[5., 6.], [7., 8.]]]))
+  a = backend.convert_to_tensor(
+      np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]]]))
   actual = backend.transpose(a, [2, 0, 1])
   expected = np.array([[[1.0, 3.0], [5.0, 7.0]], [[2.0, 4.0], [6.0, 8.0]]])
   np.testing.assert_allclose(expected, actual)
@@ -34,7 +34,7 @@ def test_transpose():
 
 def test_concat():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(2*np.ones((1, 3, 1)))
+  a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
   expected = backend.concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
@@ -59,7 +59,7 @@ def test_shape_tuple():
 
 def test_prod():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(2*np.ones([1, 2, 3, 4]))
+  a = backend.convert_to_tensor(2 * np.ones([1, 2, 3, 4]))
   actual = np.array(backend.prod(a))
   assert actual == 2**24
 
@@ -91,9 +91,9 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array([[[1., 2.], [3., 4.]],
-                                          [[5., 6.], [7., 8.]],
-                                          [[9., 10.], [11., 12.]]]))
+  a = backend.convert_to_tensor(
+      np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]],
+                [[9., 10.], [11., 12.]]]))
   actual = backend.trace(a)
   expected = np.array([5., 13., 21.])
   np.testing.assert_allclose(expected, actual)
@@ -107,6 +107,6 @@ def test_outer_product():
   a = backend.convert_to_tensor(2 * np.ones((2, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 2)))
   actual = backend.outer_product(a, b)
-  expected = np.array([[[[[2.0, 2.0], [2.0, 2.0]]]],
-                       [[[[2.0, 2.0], [2.0, 2.0]]]]])
+  expected = np.array([[[[[2.0, 2.0], [2.0, 2.0]]]], [[[[2.0, 2.0], [2.0,
+                                                                     2.0]]]]])
   np.testing.assert_allclose(expected, actual)
