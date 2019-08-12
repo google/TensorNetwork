@@ -27,7 +27,7 @@ def test_gradient_decent():
   final_tensor.norm().backward()
   opt.step()
   np.testing.assert_allclose(final_tensor.data, 10)
-  np.testing.assert_allclose(a.tensor.data, 0.999*np.ones((10,)))
+  np.testing.assert_allclose(a.tensor.data, 0.999 * np.ones((10,)))
   assert final_tensor == 10
 
 

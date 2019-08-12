@@ -21,12 +21,10 @@ from typing import Optional, Text
 from tensornetwork import network
 
 
-def to_graphviz(
-    net: network.TensorNetwork, 
-    graph: Optional[graphviz.Graph] = None,
-    include_all_names: bool = False,
-    engine: Text = "neato"
-  ) -> graphviz.Graph:
+def to_graphviz(net: network.TensorNetwork,
+                graph: Optional[graphviz.Graph] = None,
+                include_all_names: bool = False,
+                engine: Text = "neato") -> graphviz.Graph:
   """Create a graphviz Graph that is isomorphic to the given TensorNetwork.
 
   Args:
@@ -60,19 +58,19 @@ def to_graphviz(
       else:
         edge_label = ""
       if edge.is_dangling():
-        # We need to create an invisible node for the dangling edge 
+        # We need to create an invisible node for the dangling edge
         # to connect to.
         graph.node(
-            "{}_{}".format(node.signature, i), 
+            "{}_{}".format(node.signature, i),
             label="",
-             _attributes={"style":"invis"})
+            _attributes={"style": "invis"})
         graph.edge(
-            "{}_{}".format(node.signature, i), 
+            "{}_{}".format(node.signature, i),
             str(node.signature),
             label=edge_label)
       else:
         graph.edge(
-          str(edge.node1.signature),
-          str(edge.node2.signature),
-          label=edge_label)
+            str(edge.node1.signature),
+            str(edge.node2.signature),
+            label=edge_label)
   return graph

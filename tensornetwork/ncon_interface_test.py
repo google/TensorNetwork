@@ -38,17 +38,17 @@ def test_order_spec():
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1])
   np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
-  result = ncon_interface.ncon(
-      [a, a], [(-1, 1), (1, -2)], con_order=[1], out_order=[-1, -2])
+  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                               con_order=[1],
+                               out_order=[-1, -2])
   np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
 
 def test_order_spec_noninteger():
   a = tf.ones((2, 2))
-  result = ncon_interface.ncon(
-      [a, a], [('o1', 'i'), ('i', 'o2')],
-      con_order=['i'],
-      out_order=['o1', 'o2'])
+  result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
+                               con_order=['i'],
+                               out_order=['o1', 'o2'])
   np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
 
@@ -77,18 +77,17 @@ def test_invalid_order():
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1])
   with pytest.raises(ValueError):
-    ncon_interface.ncon(
-        [a, a], [('i1', 'i2'), ('i1', 'i2')], con_order=['i1'], out_order=[])
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1'],
+                        out_order=[])
   with pytest.raises(ValueError):
-    ncon_interface.ncon(
-        [a, a], [('i1', 'i2'), ('i1', 'i2')],
-        con_order=['i1', 'i2'],
-        out_order=['i1'])
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1', 'i2'],
+                        out_order=['i1'])
   with pytest.raises(ValueError):
-    ncon_interface.ncon(
-        [a, a], [('i1', 'i2'), ('i1', 'i2')],
-        con_order=['i1', 'i1', 'i2'],
-        out_order=[])
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1', 'i1', 'i2'],
+                        out_order=[])
 
 
 def test_out_of_order_contraction():
@@ -135,8 +134,9 @@ def test_contraction():
 
 def test_backend_network():
   a = np.random.randn(2, 2, 2)
-  tn, _, _ = ncon_interface.ncon_network(
-    [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend="numpy")
+  tn, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
+                                                     (3, -2, -3)],
+                                         backend="numpy")
   assert tn.backend.name == "numpy"
 
   res = naive(tn).get_final_node().get_tensor()

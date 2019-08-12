@@ -98,12 +98,10 @@ class TensorNetwork:
       raise NotImplementedError(
           "Can only switch backends when the current "
           "backend is 'numpy'. Current backend is '{}'".format(
-              self.backend.name)
-        )
+              self.backend.name))
     self.backend = backend_factory.get_backend(new_backend)
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
-
 
   def add_node(self,
                tensor: Union[np.ndarray, Tensor],
@@ -162,8 +160,8 @@ class TensorNetwork:
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(rank)]
-    new_node = network_components.CopyNode(
-            rank, dimension, name, axis_names, self, dtype)
+    new_node = network_components.CopyNode(rank, dimension, name, axis_names,
+                                           self, dtype)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
@@ -187,17 +185,12 @@ class TensorNetwork:
         and edge2 are the same edge.
     """
     if edge1 is edge2:
-      raise ValueError(
-        "Cannot connect and edge '{}' to itself.".format(edge1))
+      raise ValueError("Cannot connect and edge '{}' to itself.".format(edge1))
     if edge1.dimension != edge2.dimension:
       raise ValueError("Cannot connect edges of unequal dimension. "
                        "Dimension of edge '{}': {}, "
                        "Dimension of edge '{}': {}.".format(
-                            edge1,
-                            edge1.dimension,
-                            edge2,
-                            edge2.dimension
-                        ))
+                           edge1, edge1.dimension, edge2, edge2.dimension))
     for edge in [edge1, edge2]:
       if not edge.is_dangling():
         raise ValueError("Edge '{}' is not a dangling edge. "
@@ -416,9 +409,10 @@ class TensorNetwork:
     self._remove_edges(set([edge]), edge.node1, edge.node2, new_node)
     return new_node
 
-  def contract_copy_node(self, copy_node: network_components.CopyNode,
+  def contract_copy_node(self,
+                         copy_node: network_components.CopyNode,
                          name: Optional[Text] = None
-                         ) -> network_components.Node:
+                        ) -> network_components.Node:
     """Contract all edges incident on given copy node.
 
     Args:
@@ -437,18 +431,18 @@ class TensorNetwork:
     partners = copy_node.get_partners()
     new_axis = 0
     for partner in partners:
-        for edge in partner.edges:
-            if edge.node1 is copy_node or edge.node2 is copy_node:
-                continue
-            old_axis = edge.axis1 if edge.node1 is partner else edge.axis2
-            edge.update_axis(
-              old_node=partner,
-              old_axis=old_axis,
-              new_node=new_node,
-              new_axis=new_axis)
-            new_node.add_edge(edge, new_axis)
-            new_axis += 1
-        self.nodes_set.remove(partner)
+      for edge in partner.edges:
+        if edge.node1 is copy_node or edge.node2 is copy_node:
+          continue
+        old_axis = edge.axis1 if edge.node1 is partner else edge.axis2
+        edge.update_axis(
+            old_node=partner,
+            old_axis=old_axis,
+            new_node=new_node,
+            new_axis=new_axis)
+        new_node.add_edge(edge, new_axis)
+        new_axis += 1
+      self.nodes_set.remove(partner)
     assert len(new_tensor.shape) == new_axis
 
     self.nodes_set.remove(copy_node)
@@ -517,7 +511,7 @@ class TensorNetwork:
     for node in self.nodes_set:
       edges |= node.get_all_nondangling()
     return edges
-  
+
   def get_all_edges(self):
     """Return the set of all edges."""
     edges = set()
@@ -599,7 +593,9 @@ class TensorNetwork:
     edge2 = network_components.Edge("TraceBack", node, len(perm_front) + 1)
     node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
     new_edge = self.connect(edge1, edge2, new_edge_name)
-    node.axis_names = [self._new_edge_name(None) for _ in range(len(node.edges))]
+    node.axis_names = [
+        self._new_edge_name(None) for _ in range(len(node.edges))
+    ]
     return new_edge
 
   def flatten_edges(self,
@@ -672,7 +668,9 @@ class TensorNetwork:
       node.edges = node.edges[:len(perm_front)] + [edge]
       new_dangling_edges.append(edge)
       # TODO: Allow renaming of the new axis.
-      node.axis_names = [self._new_edge_name(None) for _ in range(len(node.edges))]
+      node.axis_names = [
+          self._new_edge_name(None) for _ in range(len(node.edges))
+      ]
     node1, node2 = tuple(expected_nodes)
     # Sets are returned in a random order, so this is how we deal with
     # dangling edges.
@@ -703,9 +701,8 @@ class TensorNetwork:
         shared_edges.add(edge)
     return shared_edges
 
-  def get_parallel_edges(
-      self, 
-      edge: network_components.Edge) -> Set[network_components.Edge]:
+  def get_parallel_edges(self, edge: network_components.Edge
+                        ) -> Set[network_components.Edge]:
     """Get all of the edges parallel to the given `edge`.
 
     Args:
@@ -716,7 +713,6 @@ class TensorNetwork:
       (including the given edge).
   """
     return self.get_shared_edges(edge.node1, edge.node2)
-
 
   def flatten_edges_between(self, node1: network_components.Node,
                             node2: network_components.Node
@@ -1009,9 +1005,8 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.Node
-    ) -> Tuple[
-      Dict[Text, network_components.Edge],
-      Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components
+                                 .Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
@@ -1038,7 +1033,6 @@ class TensorNetwork:
         broken_edges_by_name[name] = new_broken_edge
     self.nodes_set.remove(node)
     return broken_edges_by_name, broken_edges_by_axis
-
 
   def check_correct(self, check_connected: bool = True) -> None:
     """Check that the network is structured correctly.

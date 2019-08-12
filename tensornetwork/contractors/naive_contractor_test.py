@@ -26,7 +26,6 @@ from tensornetwork.contractors import naive_contractor
 naive = naive_contractor.naive
 
 
-
 def test_sanity_check(backend):
   net = network.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
@@ -37,6 +36,7 @@ def test_sanity_check(backend):
   net.connect(c[0], a[1])
   result = naive(net).get_final_node()
   np.testing.assert_allclose(result.tensor, 2.0)
+
 
 def test_passed_edge_order(backend):
   net = network.TensorNetwork(backend=backend)
@@ -49,6 +49,7 @@ def test_passed_edge_order(backend):
   result = naive(net, [e3, e1, e2]).get_final_node()
   np.testing.assert_allclose(result.tensor, 2.0)
 
+
 def test_bad_passed_edges(backend):
   net = network.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
@@ -59,6 +60,7 @@ def test_bad_passed_edges(backend):
   _ = net.connect(c[0], a[1])
   with pytest.raises(ValueError):
     naive(net, [e1, e2])
+
 
 def test_precontracted_network(backend):
   net = network.TensorNetwork(backend=backend)

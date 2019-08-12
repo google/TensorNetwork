@@ -23,12 +23,14 @@ from typing import Optional, Sequence, Tuple, List, Any
 
 
 class ShellTensor:
+
   def __init__(self, shape: Tuple):
     self.shape = shape
 
   def reshape(self, new_shape: Tuple):
     self.shape = new_shape
     return self
+
 
 Tensor = ShellTensor
 
@@ -72,8 +74,9 @@ class ShellBackend(base_backend.BaseBackend):
                                 "calculated without explicit tensor values.")
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    dim_s0 = min(functools.reduce(operator.mul, left_dims),
-                 functools.reduce(operator.mul, right_dims))
+    dim_s0 = min(
+        functools.reduce(operator.mul, left_dims),
+        functools.reduce(operator.mul, right_dims))
     if max_singular_values is not None:
       dim_s = min(dim_s0, max_singular_values)
     else:

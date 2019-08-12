@@ -61,12 +61,12 @@ class TensordotTest(tf.compat.v1.test.TestCase):
           b_ph = tf.compat.v1.placeholder(tf.float32)
           axes_ph = tf.compat.v1.placeholder(tf.int32)
           output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
-          _ = sess.run(
-              [output], feed_dict={
-                  a_ph: a,
-                  b_ph: b,
-                  axes_ph: (a_axes, b_axes)
-              })
+          _ = sess.run([output],
+                       feed_dict={
+                           a_ph: a,
+                           b_ph: b,
+                           axes_ph: (a_axes, b_axes)
+                       })
 
   def test_invalid_axes(self):
     # pylint: disable=not-context-manager
@@ -90,12 +90,12 @@ class TensordotTest(tf.compat.v1.test.TestCase):
       for axes_value in 1, [1], [0, 1], [[1]], [[0, 1]], [[0], [7]]:
         with self.cached_session() as sess:
           with self.assertRaises(tf.errors.InvalidArgumentError):
-            _ = sess.run(
-                [output], feed_dict={
-                    a_ph: a,
-                    b_ph: b,
-                    axes_ph: axes_value
-                })
+            _ = sess.run([output],
+                         feed_dict={
+                             a_ph: a,
+                             b_ph: b,
+                             axes_ph: axes_value
+                         })
 
   # Test case for 11950
   def test_valid_axis(self):
@@ -145,6 +145,7 @@ def _random_subset(m, n):
   assert m <= n
   return (np.random.permutation(n)[:m]).astype(np.int32)
 
+
 def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
   a_shape = np.random.randint(1, _MAXDIM + 1, rank_a_)
   b_shape = np.random.randint(1, _MAXDIM + 1, rank_b_)
@@ -155,19 +156,18 @@ def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
     a_shape[a_dims[i]] = shared_shape[i]
     b_shape[b_dims[i]] = shared_shape[i]
   a = np.random.uniform(
-      low=-1.0, high=1.0,
-      size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
   b = np.random.uniform(
-      low=-1.0, high=1.0,
-      size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
   return a, b, a_dims, b_dims
+
 
 @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
 @pytest.mark.parametrize("rank_a_", [1, 2, 3])
 @pytest.mark.parametrize("rank_b_", [1, 2, 3])
 @pytest.mark.parametrize("num_dims_", [1, 2, 3])
 def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
-  if not (num_dims_ <= min(rank_a_, rank_b_)):
+  if not num_dims_ <= min(rank_a_, rank_b_):
     pytest.skip("Not a test")
   if dtype_ == np.float16:
     tol = 0.05
@@ -189,12 +189,13 @@ def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
     np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
     assert tf_ans.shape == np_ans.shape
 
+
 @pytest.mark.parametrize("dtype_", [np.float32, np.complex64])
 @pytest.mark.parametrize("rank_a_", [1, 2, 3])
 @pytest.mark.parametrize("rank_b_", [1, 2, 3])
 @pytest.mark.parametrize("num_dims_", [0, 1, 2, 3])
 def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
-  if not (num_dims_ <= min(rank_a_, rank_b_)):
+  if not num_dims_ <= min(rank_a_, rank_b_):
     pytest.skip("Not a test")
   num_trials = min(30, num_dims_ * num_dims_)
   if dtype_ == np.float16:

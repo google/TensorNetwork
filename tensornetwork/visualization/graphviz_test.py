@@ -21,6 +21,7 @@ from tensornetwork.visualization.graphviz import to_graphviz
 import tensornetwork
 import numpy as np
 
+
 def test_sanity_check():
   net = tensornetwork.TensorNetwork(backend="tensorflow")
   a = net.add_node(np.eye(2))

@@ -24,6 +24,7 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
+
 def test_sanity_check(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   net.add_node(np.eye(2), "a")
@@ -1169,8 +1170,8 @@ def test_svd_consistency(backend):
     pytest.skip("Complex numbers currently not supported in PyTorch")
   net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
-    [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]], 
-    dtype=np.complex64)
+      [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
+      dtype=np.complex64)
   node = net.add_node(original_tensor)
   u, vh, _ = net.split_node(node, [node[0]], [node[1]])
   final_node = net.contract_between(u, vh)
@@ -1179,9 +1180,8 @@ def test_svd_consistency(backend):
 
 def test_svd_consistency_symmetric_real_matrix(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  original_tensor = np.array(
-    [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 3.0, 2.0]],
-    dtype=np.float64)
+  original_tensor = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 3.0, 2.0]],
+                             dtype=np.float64)
   node = net.add_node(original_tensor)
   u, vh, _ = net.split_node(node, [node[0]], [node[1]])
   final_node = net.contract_between(u, vh)
@@ -1197,6 +1197,7 @@ def test_connect_alias(backend):
   assert e is a[0]
   assert e is b[0]
   assert e in net
+
 
 def test_remove_after_flatten(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
