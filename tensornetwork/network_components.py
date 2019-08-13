@@ -260,8 +260,13 @@ class Node:
   @overload
   def __getitem__(self, key: slice) -> List["Edge"]:
     return self.edges[key]
-
+  
+  @overload
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
+    return self.get_edge(key)
+
+  def __getitem__(self, key: Union[int, Text, slice]
+                 ) -> Union["Edge", List["Edge"]]:
     if isinstance(key, slice):
       return self.edges[key]
     return self.get_edge(key)
