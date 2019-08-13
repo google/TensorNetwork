@@ -201,8 +201,17 @@ def test_node_magic_getitem(single_node_edge):
   edge = single_node_edge.edge
   node.add_edge(edge, axis=0)
   assert node[0] == edge
-
-
+  
+  
+def test_node_magic_getslice(single_node_edge):
+  node = single_node_edge.node
+  edge = single_node_edge.edge 
+  node.add_edge(edge, axis=0)
+  assert node[:1][0] is edge 
+  assert len(node[None:None]) == 3 
+  assert len(node[0:3:2]) == 2 
+  
+  
 def test_node_magic_str(single_node_edge):
   node = single_node_edge.node
   assert str(node) == node.name
