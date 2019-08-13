@@ -23,8 +23,8 @@ from tensornetwork import network
 from tensornetwork import network_components
 
 
-def cost_contract_between(
-  node1: network_components.Node, node2: network_components.Node) -> int:
+def cost_contract_between(node1: network_components.Node,
+                          node2: network_components.Node) -> int:
   """Calculate the memory cost of running `contract_between` on given nodes.
 
   The "memory cost" is the memory requirement to store the resulting
@@ -51,13 +51,14 @@ def cost_contract_between(
       shared_edge_found = True
       contracted_dimensions *= edge.node1.shape[edge.axis1]
   if not shared_edge_found:
-    raise ValueError(
-      "No shared edges found between '{}' and '{}'".format(node1, node2))
+    raise ValueError("No shared edges found between '{}' and '{}'".format(
+        node1, node2))
   # We take the square as we have to discount the contracted axes twice.
   # The resulting cost is the memory required to store the resulting
   # tensor after the `contract_between` call.
   cost = np.prod(node1.shape + node2.shape) // (contracted_dimensions)**2
   return cost
+
 
 def cost_contract_parallel(edge: network_components.Edge) -> int:
   """Calculate the memory cost of running `contract_parallel on given edge.

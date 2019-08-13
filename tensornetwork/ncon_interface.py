@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import warnings
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Any
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network
 from tensornetwork import network_components
 
@@ -101,26 +101,24 @@ def ncon(tensors: Sequence[Tensor],
     leftovers = edges_to_contract - adjacent_parallel_edges
     if leftovers:
       warnings.warn(
-        "Suboptimal ordering detected. Edges {} are not adjacent in the "
-        "contraction order to edges {}, connecting nodes {}. Deviating from "
-        "the specified ordering!".format(
-          list(map(str, leftovers)),
-          list(map(str, adjacent_parallel_edges)),
-          list(map(str, nodes_to_contract)))
-        )
+          "Suboptimal ordering detected. Edges {} are not adjacent in the "
+          "contraction order to edges {}, connecting nodes {}. Deviating from "
+          "the specified ordering!".format(
+              list(map(str, leftovers)),
+              list(map(str, adjacent_parallel_edges)),
+              list(map(str, nodes_to_contract))))
       con_edges = [e for e in con_edges if e not in edges_to_contract]
 
     if set(nodes_to_contract) == tn.nodes_set:
       # If this already produces the final output, order the edges
       # here to avoid transposes in some cases.
       tn.contract_between(
-        *nodes_to_contract,
-        name="con({},{})".format(*nodes_to_contract),
-        output_edge_order=out_edges)
+          *nodes_to_contract,
+          name="con({},{})".format(*nodes_to_contract),
+          output_edge_order=out_edges)
     else:
       tn.contract_between(
-        *nodes_to_contract,
-        name="con({},{})".format(*nodes_to_contract))
+          *nodes_to_contract, name="con({},{})".format(*nodes_to_contract))
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = tn.outer_product_final_nodes(out_edges)
@@ -133,8 +131,9 @@ def ncon_network(
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
-    backend: Optional[Text] = None) -> Tuple[network.TensorNetwork, List[
-        network_components.Edge], List[network_components.Edge]]:
+    backend: Optional[Text] = None
+) -> Tuple[network.TensorNetwork, List[network_components
+                                       .Edge], List[network_components.Edge]]:
   r"""Creates a TensorNetwork from a list of tensors according to `network`.
 
     The network is provided as a list of lists, one for each
@@ -172,7 +171,7 @@ def ncon_network(
       con_order = sorted((k for k in edges if k >= 0))
       if con_order and con_order[0] == 0:
         raise ValueError("'0' is not a valid edge label when the "
-          "contraction order is not specified separately.")
+                         "contraction order is not specified separately.")
     except TypeError:
       raise ValueError("Non-integer edge label(s): {}".format(
           list(edges.keys())))
@@ -219,8 +218,7 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Tensor],
-    network_structure: Sequence[Sequence],
+    tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
     backend: Optional[Text]
 ) -> Tuple[network.TensorNetwork, Dict[Any, network_components.Edge]]:
   tn = network.TensorNetwork(backend=backend)

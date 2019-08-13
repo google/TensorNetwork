@@ -145,9 +145,7 @@ class BaseBackend:
       The shape of the input tensor returned as a tuple of ints.
     """
     raise NotImplementedError(
-          "Backend '{}' has not implemented shape_tuple.".format(
-              self.name)
-      )
+        "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
   def prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
@@ -181,5 +179,5 @@ class BaseBackend:
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
-    raise NotImplementedError(
-        "Backend '{}' has not implemented einsum.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
+        self.name))

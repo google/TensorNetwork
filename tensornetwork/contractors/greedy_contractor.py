@@ -20,7 +20,7 @@ from __future__ import print_function
 from typing import List, Optional, Tuple
 from tensornetwork import network
 from tensornetwork import network_components
-from tensornetwork.contractors import cost_calculators 
+from tensornetwork.contractors import cost_calculators
 
 cost_contract_parallel = cost_calculators.cost_contract_parallel
 

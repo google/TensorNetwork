@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """A modified version of TensorFlow's tensordot operation."""
 
 from __future__ import absolute_import
@@ -24,8 +23,11 @@ import tensorflow as tf
 AXES_TYPE = Union[int, tf.Tensor, Sequence[Union[int, Sequence[int]]]]
 AXES_ENTRY_TYPE = Union[Sequence[int], tf.Tensor]
 
-def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
-  name: Optional[Text] = None) -> tf.Tensor:
+
+def tensordot(a: tf.Tensor,
+              b: tf.Tensor,
+              axes: AXES_TYPE,
+              name: Optional[Text] = None) -> tf.Tensor:
   r"""Tensor contraction of a and b along specified axes.
   Tensordot (also known as tensor contraction) sums the product of elements
   from `a` and `b` over the indices specified by `a_axes` and `b_axes`.
@@ -64,7 +66,7 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
   """
 
   def _tensordot_should_flip(contraction_axes: List[int],
-    free_axes: List[int]) -> bool:
+                             free_axes: List[int]) -> bool:
     """Helper method to determine axis ordering.
     We minimize the average distance the indices would have to move under the
     transposition.
@@ -89,8 +91,8 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
       return tensor
     return tf.transpose(tensor, perm)
 
-  def _reshape_if_necessary(tensor: tf.Tensor, new_shape: List[int]
-    ) -> tf.Tensor:
+  def _reshape_if_necessary(tensor: tf.Tensor,
+                            new_shape: List[int]) -> tf.Tensor:
     """Like reshape(), but avoids creating a new tensor if possible.
     Assumes shapes are both fully specified."""
     cur_shape = tensor.get_shape().as_list()
@@ -99,9 +101,9 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
       return tensor
     return tf.reshape(tensor, new_shape)
 
-  def _tensordot_reshape(a: tf.Tensor, axes: Union[Sequence[int], tf.Tensor],
-    is_right_term=False) -> Tuple[
-      tf.Tensor, Union[List[int], tf.Tensor], Optional[List[int]], bool]:
+  def _tensordot_reshape(
+      a: tf.Tensor, axes: Union[Sequence[int], tf.Tensor], is_right_term=False
+  ) -> Tuple[tf.Tensor, Union[List[int], tf.Tensor], Optional[List[int]], bool]:
     """Helper method to perform transpose and reshape for contraction op.
     This method is helpful in reducing `math_ops.tensordot` to `math_ops.matmul`
     using `array_ops.transpose` and `array_ops.reshape`. The method takes a
@@ -168,7 +170,7 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
       #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
       perm = (
-        tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0))
+          tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0))
       transposed_a = tf.transpose(a, perm)
 
     free_dims = tf.gather(shape_a, free)
@@ -185,7 +187,7 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
   def _tensordot_axes(a: tf.Tensor, axes: AXES_TYPE
-    ) -> Tuple[AXES_ENTRY_TYPE, AXES_ENTRY_TYPE]:
+                     ) -> Tuple[AXES_ENTRY_TYPE, AXES_ENTRY_TYPE]:
     """Generates two sets of contraction axes for the two tensor arguments."""
     a_shape = a.get_shape()
     if isinstance(axes, tf.compat.integral_types):
@@ -195,11 +197,11 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
         if axes > a_shape.ndims:
           raise ValueError("'axes' must not be larger than the number of "
                            "dimensions of tensor %s." % a)
-        return (list(range(a_shape.ndims - axes, a_shape.ndims)),
-                list(range(axes)))
+        return (list(range(a_shape.ndims - axes,
+                           a_shape.ndims)), list(range(axes)))
       rank = tf.rank(a)
-      return (tf.range(rank - axes, rank, dtype=tf.int32),
-              tf.range(axes, dtype=tf.int32))
+      return (tf.range(rank - axes, rank,
+                       dtype=tf.int32), tf.range(axes, dtype=tf.int32))
     if isinstance(axes, (list, tuple)):
       if len(axes) != 2:
         raise ValueError("'axes' must be an integer or have length 2.")
@@ -231,15 +233,12 @@ def tensordot(a: tf.Tensor, b: tf.Tensor, axes: AXES_TYPE,
     b = tf.convert_to_tensor(b, name="b")
     a_axes, b_axes = _tensordot_axes(a, axes)
     a_reshape, a_free_dims, a_free_dims_static, a_transp = _tensordot_reshape(
-      a, a_axes)
+        a, a_axes)
     b_reshape, b_free_dims, b_free_dims_static, b_transp = _tensordot_reshape(
-      b, b_axes, is_right_term=True)
+        b, b_axes, is_right_term=True)
 
     ab_matmul = tf.matmul(
-        a_reshape,
-        b_reshape,
-        transpose_a=a_transp,
-        transpose_b=b_transp)
+        a_reshape, b_reshape, transpose_a=a_transp, transpose_b=b_transp)
 
     if isinstance(a_free_dims, list) and isinstance(b_free_dims, list):
       return tf.reshape(ab_matmul, a_free_dims + b_free_dims, name=_name)

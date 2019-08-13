@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tensor Decomposition Numpy Implementation."""
 
 from __future__ import absolute_import
@@ -22,12 +21,13 @@ import numpy
 Tensor = Any
 
 
-def svd_decomposition(np, # TODO: Typing
-                      tensor: Tensor,
-                      split_axis: int,
-                      max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None,
-                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+def svd_decomposition(
+    np,  # TODO: Typing
+    tensor: Tensor,
+    split_axis: int,
+    max_singular_values: Optional[int] = None,
+    max_truncation_error: Optional[float] = None,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.

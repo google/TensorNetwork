@@ -22,7 +22,6 @@ from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
 
-
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
