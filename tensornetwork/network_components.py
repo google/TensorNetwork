@@ -16,7 +16,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
+  overload
 import typing
 import numpy as np
 from tensornetwork.backends import base_backend
@@ -256,7 +257,18 @@ class Node:
         return True
     return False
 
+  @overload
+  def __getitem__(self, key: slice) -> List["Edge"]:
+    pass 
+
+  @overload
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
+    pass
+
+  def __getitem__(self, key: Union[int, Text, slice]
+                 ) -> Union["Edge", List["Edge"]]:
+    if isinstance(key, slice):
+      return self.edges[key]
     return self.get_edge(key)
 
   def __str__(self) -> Text:
