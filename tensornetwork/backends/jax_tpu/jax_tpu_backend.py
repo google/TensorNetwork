@@ -25,17 +25,15 @@ import logging
 Tensor = Any
 
 
-def optimized_shape(shape):
+def optimized_shape(shape) -> Tuple[Tuple[int, ...], int]:
   size = 1
-  # This is disabled since the return below will
-  # always run since we have a `or i == 0`.
-  #pylint: disable=inconsistent-return-statements
   for i, dim in reversed(list(enumerate(shape))):
     size *= dim
     if size >= 128 or i == 0:
       first_expensive_axis = i
       new_shape = (int(onp.prod(shape[:i])),) + (size,)
-      return new_shape, first_expensive_axis
+      break
+  return new_shape, first_expensive_axis
 
 
 class JaxTPUTensor():
@@ -88,21 +86,22 @@ class JaxTPUBackend(base_backend.BaseBackend):
   def prod(self, values: Tensor) -> Tensor:
     return onp.prod(values)
 
-  def reshape(self, tensor, shape):
+  def reshape(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
     tmp_tensor = jax.numpy.reshape(tensor.concrete_tensor, shape)
     return JaxTPUTensor(tmp_tensor, shell_backend.ShellTensor(tuple(shape)))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
     tmp_tensor = jax.numpy.reshape(tensor.concrete_tensor, tensor.shape)
     tmp_tensor = jax.numpy.transpose(tmp_tensor, perm)
     return JaxTPUTensor(tmp_tensor, shell_backend.ShellTensor(tmp_tensor.shape))
 
-  def convert_to_tensor(self, tensor):
+  def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if isinstance(tensor, JaxTPUTensor):
       return tensor
     return JaxTPUTensor(tensor, shell_backend.ShellTensor(tensor.shape))
 
-  def tensordot(self, a, b, axes):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     use_optimized = True
     for contraction_axes, tensor in zip(axes, [a, b]):
       for axis in contraction_axes:
@@ -120,7 +119,9 @@ class JaxTPUBackend(base_backend.BaseBackend):
     return JaxTPUTensor(resulting_tensor, new_virtual)
 
 
-def optimized_dot_general(a, b, contracting_axes):
+def optimized_dot_general(
+    a: Tensor, b: Tensor, 
+    contracting_axes: Sequence[Sequence[int]]) -> Tensor:
   new_tensors = []
   for i, tensor in enumerate([a, b]):
     # These reshapes are much cheaper than the reshapes done in tensordot.
@@ -130,7 +131,8 @@ def optimized_dot_general(a, b, contracting_axes):
         list(tensor.shape[:tensor.first_expensive_axis]) +
         [tensor.concrete_tensor.shape[-1]])
     tmp_tensor = jax.numpy.reshape(tensor.concrete_tensor, new_shape)
-    perm = axes + sorted(list(set(range(len(tmp_tensor.shape))) - set(axes)))
+    perm = list(axes) + sorted(
+        list(set(range(len(tmp_tensor.shape))) - set(axes)))
     tmp_tensor = jax.numpy.transpose(tmp_tensor, perm)
     tmp_tensor = jax.numpy.reshape(tmp_tensor, [new_dim] +
                                    list(tmp_tensor.shape[len(axes):]))
