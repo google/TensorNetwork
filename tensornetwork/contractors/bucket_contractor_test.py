@@ -30,12 +30,10 @@ bucket = bucket_contractor.bucket
 naive = naive_contractor.naive
 
 
-def add_cnot(net: network.TensorNetwork,
-             q0: network_components.Edge,
+def add_cnot(net: network.TensorNetwork, q0: network_components.Edge,
              q1: network_components.Edge
-) -> Tuple[network_components.CopyNode,
-           network_components.Edge,
-           network_components.Edge]:
+            ) -> Tuple[network_components.CopyNode, network_components
+                       .Edge, network_components.Edge]:
   """Adds the CNOT quantum gate to tensor network.
 
   CNOT consists of two rank-3 tensors: a COPY tensor on the control qubit and
@@ -53,8 +51,7 @@ def add_cnot(net: network.TensorNetwork,
     - output edge for the target qubit.
   """
   control = net.add_copy_node(rank=3, dimension=2)
-  xor = np.array([[[1, 0], [0, 1]],
-                  [[0, 1], [1, 0]]], dtype=np.float64)
+  xor = np.array([[[1, 0], [0, 1]], [[0, 1], [1, 0]]], dtype=np.float64)
   target = net.add_node(xor)
   net.connect(q0, control[0])
   net.connect(q1, target[0])
@@ -83,6 +80,7 @@ def test_cnot_gate():
   result = net.get_final_node()
   # Verify that CNOT has turned |11> into |10>.
   np.testing.assert_allclose(result.get_tensor(), 1.0)
+
 
 def test_swap_gate():
   net = network.TensorNetwork(backend="jax")

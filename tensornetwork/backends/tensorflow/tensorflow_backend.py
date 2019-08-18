@@ -53,8 +53,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
-        self.tf, tensor, split_axis, max_singular_values, max_truncation_error)
+    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
+                                            max_singular_values,
+                                            max_truncation_error)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)

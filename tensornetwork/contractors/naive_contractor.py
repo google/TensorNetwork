@@ -45,7 +45,7 @@ def naive(net: network.TensorNetwork,
   if set(edge_order) != net.get_all_nondangling():
     raise ValueError("Set of passed edges does not match expected set."
                      "Given: {}\nExpected: {}".format(
-                          edge_order, net.get_all_nondangling()))
+                         edge_order, net.get_all_nondangling()))
   for edge in edge_order:
     if edge in net:
       net.contract_parallel(edge)

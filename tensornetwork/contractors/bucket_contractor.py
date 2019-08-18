@@ -24,7 +24,7 @@ from tensornetwork import network_components
 
 def bucket(net: network.TensorNetwork,
            contraction_order: Sequence[network_components.CopyNode]
-) -> network.TensorNetwork:
+          ) -> network.TensorNetwork:
   """Contract given tensor network exploiting copy tensors.
 
   This is based on the Bucket-Elimination-based algorithm described in

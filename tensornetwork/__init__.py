@@ -7,5 +7,7 @@ from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork import config
 from typing import Text
+
+
 def set_default_backend(backend: Text) -> None:
   config.default_backend = backend

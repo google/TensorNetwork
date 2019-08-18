@@ -214,7 +214,6 @@ def auto(net: network.TensorNetwork,
       return branch(net, output_edge_order, nbranch=1)
   return greedy(net, output_edge_order, memory_limit)
 
-
 def custom(net: network.TensorNetwork,
            optimizer: Any,
            output_edge_order: Sequence[network_components.Edge] = None,
