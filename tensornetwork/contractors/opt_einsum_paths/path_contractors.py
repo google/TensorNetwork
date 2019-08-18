@@ -198,7 +198,7 @@ def auto(net: network.TensorNetwork,
                        ", `output_edge_order` has to be provided")
 
     net.nodes_set = set([list(net.nodes_set)[0].reorder_edges(
-      output_edge_order)])
+        output_edge_order)])
     return net
   if n < 5:
     return optimal(net, output_edge_order, memory_limit)
