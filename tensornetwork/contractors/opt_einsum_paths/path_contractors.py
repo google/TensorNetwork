@@ -64,13 +64,11 @@ def base(net: network.TensorNetwork,
   # output_edge_order has to be specified
   final_node = net.get_final_node()
   if (len(final_node.edges) <= 1) and (output_edge_order is None):
-    output_edge_order = list(
-      (net.get_all_edges() - net.get_all_nondangling()))
+    output_edge_order = list((net.get_all_edges() -
+                              net.get_all_nondangling()))
   elif (len(final_node.edges) > 1) and (output_edge_order is None):
-    raise ValueError(
-      "if the final node has more than one dangling edge"
-      " `output_edge_order` has to be provided"
-    )
+    raise ValueError("if the final node has more than one dangling edge"
+                     " `output_edge_order` has to be provided")
 
   if set(output_edge_order) != (
       net.get_all_edges() - net.get_all_nondangling()):
@@ -133,8 +131,8 @@ def branch(net: network.TensorNetwork,
   Returns:
     The network after full contraction.
   """
-  alg = functools.partial(
-    opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
+  alg = functools.partial(opt_einsum.paths.branch,
+                          memory_limit=memory_limit, nbranch=nbranch)
   return base(net, alg, output_edge_order)
 
 
@@ -193,16 +191,14 @@ def auto(net: network.TensorNetwork,
     net.contract_parallel(edges.pop())
     final_node = list(net.nodes_set)
     if (len(final_node[0].edges) <= 1) and (output_edge_order is None):
-      output_edge_order = list(
-        (net.get_all_edges() - net.get_all_nondangling()))
+      output_edge_order = list((net.get_all_edges() -
+                                net.get_all_nondangling()))
     elif (len(final_node[0].edges) > 1) and (output_edge_order is None):
-      raise ValueError(
-        "if the final node has more than one dangling edge"
-        ", `output_edge_order` has to be provided"
-      )
+      raise ValueError("if the final node has more than one dangling edge"
+                       ", `output_edge_order` has to be provided")
 
-    net.nodes_set = set(
-      [list(net.nodes_set)[0].reorder_edges(output_edge_order)])
+    net.nodes_set = set([list(net.nodes_set)[0].reorder_edges(
+      output_edge_order)])
     return net
   if n < 5:
     return optimal(net, output_edge_order, memory_limit)
