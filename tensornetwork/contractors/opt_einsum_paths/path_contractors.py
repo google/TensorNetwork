@@ -1,4 +1,4 @@
-# Copyright 2019 The TensorNetwork Authors
+g# Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -189,16 +189,15 @@ def auto(net: network.TensorNetwork,
   if n == 1:
     edges = net.get_all_nondangling()
     net.contract_parallel(edges.pop())
-    final_node = list(net.nodes_set)
-    if (len(final_node[0].edges) <= 1) and (output_edge_order is None):
+    final_node = net.get_final_node()   
+    if (len(final_node.edges) <= 1) and (output_edge_order is None):
       output_edge_order = list((net.get_all_edges() -
                                 net.get_all_nondangling()))
-    elif (len(final_node[0].edges) > 1) and (output_edge_order is None):
+    elif (len(final_node.edges) > 1) and (output_edge_order is None):
       raise ValueError("if the final node has more than one dangling edge"
                        ", `output_edge_order` has to be provided")
 
-    net.nodes_set = set([list(net.nodes_set)[0].reorder_edges(
-        output_edge_order)])
+    final_node.reorder_edges(output_edge_order)    
     return net
   if n < 5:
     return optimal(net, output_edge_order, memory_limit)
