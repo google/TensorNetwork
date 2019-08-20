@@ -173,7 +173,7 @@ class BaseNode(ABC):
 
     """
     if not hasattr(self, '_tensor'):
-      raise AttributeError("Please provide a valid tensor for this None.")
+      raise AttributeError("Please provide a valid tensor for this Node.")
 
     if set(edge_order) != set(self.edges):
       raise ValueError("Given edge order does not match expected edges. "
@@ -215,7 +215,7 @@ class BaseNode(ABC):
       AttributeError: If the Node has no tensor.
     """
     if not hasattr(self, '_tensor'):
-      raise AttributeError("Please provide a valid tensor for this None.")
+      raise AttributeError("Please provide a valid tensor for this Node.")
 
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
@@ -300,6 +300,8 @@ class BaseNode(ABC):
     return id(self) < id(other)
 
   def __matmul__(self, other: "BaseNode") -> "BaseNode":
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
     if not isinstance(other, BaseNode):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
     if other.network is not self.network:
