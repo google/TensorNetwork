@@ -23,8 +23,8 @@ from tensornetwork import network
 from tensornetwork import network_components
 
 
-def cost_contract_between(node1: network_components.Node,
-                          node2: network_components.Node) -> int:
+def cost_contract_between(node1: network_components.BaseNode,
+                          node2: network_components.BaseNode) -> int:
   """Calculate the memory cost of running `contract_between` on given nodes.
 
   The "memory cost" is the memory requirement to store the resulting
