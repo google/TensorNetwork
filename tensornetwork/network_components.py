@@ -137,6 +137,8 @@ class BaseNode(ABC):
   @property
   @abstractmethod
   def shape(self):
+    if self._shape is None:
+      raise ValueError('Please ensure this Node has a well-defined shape')
     return self._shape
 
   @property
