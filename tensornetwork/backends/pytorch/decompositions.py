@@ -151,7 +151,12 @@ def qr_decomposition(torch: Any,
   right_dims = list(tensor.shape)[split_axis:]
 
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
-  return torch.qr(tensor)
+  q,r = torch.qr(tensor)
+  center_dim = q.shape[1]
+  q = torch.reshape(q, list(left_dims) + [center_dim])
+  r = torch.reshape(r, [center_dim] + list(right_dims))
+  return q, r
+
 
 
 
