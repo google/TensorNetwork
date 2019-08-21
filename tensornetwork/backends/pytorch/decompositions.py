@@ -151,7 +151,7 @@ def qr_decomposition(torch: Any,
   right_dims = list(tensor.shape)[split_axis:]
 
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
-  q,r = torch.qr(tensor)
+  q, r = torch.qr(tensor)
   center_dim = q.shape[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
@@ -193,8 +193,9 @@ def rq_decomposition(torch: Any,
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
   tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
-  q, r = torch.qr(torch.transpose(tensor, 0, 1)) #torch has currently no support for complex dtypes
-  r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0, 1)  #M=r*q at this point
+  #torch has currently no support for complex dtypes  
+  q, r = torch.qr(torch.transpose(tensor, 0, 1)) 
+  r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0, 1)#M=r*q at this point
   center_dim = r.shape[1]
   r = torch.reshape(r, list(left_dims) + [center_dim])
   q = torch.reshape(q, [center_dim] + list(right_dims))
