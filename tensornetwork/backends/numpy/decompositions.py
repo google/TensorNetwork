@@ -101,9 +101,8 @@ def rq_decomposition(
   right_dims = tensor.shape[split_axis:]
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
-  r, q = np.conj(np.transpose(r)),np.conj(np.transpose(q))  #M=r*q at this point
+  r, q = np.conj(np.transpose(r)), np.conj(np.transpose(q))  #M=r*q at this point
   center_dim = r.shape[1]
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q
-
