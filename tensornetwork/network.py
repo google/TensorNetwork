@@ -862,7 +862,9 @@ class TensorNetwork:
       left_edges: List[network_components.Edge],
       right_edges: List[network_components.Edge],
       max_singular_values: Optional[int] = None,
-      max_truncation_err: Optional[float] = None
+      max_truncation_err: Optional[float] = None,
+      left_name: Optional[Text] = None,
+      right_name: Optional[Text] = None
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
     """Split a network_components.BaseNode using Singular Value Decomposition.
 
@@ -919,11 +921,11 @@ class TensorNetwork:
     sqrt_s_broadcast_shape = self.backend.concat(
         [self.backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
     vh_s = vh * self.backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
-    left_node = self.add_node(u_s)
+    left_node = self.add_node(u_s,name=left_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
-    right_node = self.add_node(vh_s)
+    right_node = self.add_node(vh_s, name=right_name)
     for i, edge in enumerate(right_edges):
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
