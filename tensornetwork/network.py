@@ -932,6 +932,57 @@ class TensorNetwork:
     self.nodes_set.remove(node)
     return left_node, right_node, trun_vals
 
+
+  def split_node_qr(
+      self,
+      node: network_components.BaseNode,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      left_name: Optional[Text] = None,
+      right_name: Optional[Text] = None,      
+  ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
+    """Split a network_components.BaseNode using QR decomposition
+
+    Let M be the matrix created by flattening left_edges and right_edges into
+    2 axes. Let :math:`QR = M` be the QR Decomposition of 
+    :math:`M`. This will split the network into 2 nodes. The left node's 
+    tensor will be :math:`Q` and the right node's tensor will be 
+    :math:`R` where :math:`R`.
+
+    Args:
+      node: The node you want to split.
+      left_edges: The edges you want connected to the new left node.
+      right_edges: The edges you want connected to the new right node.
+      left_name: The name of the new left node. If None, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If None, a name will be generated
+        automatically.
+
+    Returns:
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`Q`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`R`
+    """
+    node.reorder_edges(left_edges + right_edges)
+    q, r = self.backend.qr_decomposition(node.tensor, len(left_edges))
+    left_node = self.add_node(q, name=left_name)
+    for i, edge in enumerate(left_edges):
+      left_node.add_edge(edge, i)
+      edge.update_axis(i, node, i, left_node)
+    right_node = self.add_node(r, name=right_name)
+    for i, edge in enumerate(right_edges):
+      # i + 1 to account for the new edge.
+      right_node.add_edge(edge, i + 1)
+      edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    self.connect(left_node[-1], right_node[0])
+    self.nodes_set.remove(node)
+    return left_node, right_node
+
+  
   def split_node_full_svd(self,
                           node: network_components.BaseNode,
                           left_edges: List[network_components.Edge],
