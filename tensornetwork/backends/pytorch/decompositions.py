@@ -121,14 +121,13 @@ def qr_decomposition(torch: Any,
                      ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
-  and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  The QR decomposition is performed by treating the tensor as a matrix, 
+  with an effective left (row) index resulting from combining the axes 
+  `tensor.shape[:split_axis]` and an effective right (column) index 
+  resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
-  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
-  have shape (6, 4, 5).
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  then `q` would have shape (2, 3, 6), and `r` would have shape (6, 4, 5).
 
   The output consists of two tensors `Q, R` such that:
   ```python
@@ -165,14 +164,13 @@ def rq_decomposition(torch: Any,
                      ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
-  The RQ decomposition is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
-  and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  The RQ decomposition is performed by treating the tensor as a matrix, 
+  with an effective left (row) index resulting from combining the axes 
+  `tensor.shape[:split_axis]` and an effective right (column) index 
+  resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
-  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
-  have shape (6, 4, 5).
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  then `r` would have shape (2, 3, 6), and `q` would have shape (6, 4, 5).
 
   The output consists of two tensors `R, Q` such that:
   ```python
@@ -196,7 +194,7 @@ def rq_decomposition(torch: Any,
   right_dims = tensor.shape[split_axis:]
   tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
   q, r = torch.qr(torch.transpose(tensor, 0, 1)) #torch has currently no support for complex dtypes
-  r, q = torch.transpose(r, 0, 1),torch.transpose(q, 0, 1)  #M=r*q at this point
+  r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0, 1)  #M=r*q at this point
   center_dim = r.shape[1]
   r = torch.reshape(r, list(left_dims) + [center_dim])
   q = torch.reshape(q, [center_dim] + list(right_dims))
