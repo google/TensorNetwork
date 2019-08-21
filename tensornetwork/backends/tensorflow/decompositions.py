@@ -202,7 +202,7 @@ def rq_decomposition(tf: Any,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tf.conj(tf.transpose(tensor)))
-  r, q = tf.conj(tf.transpose(r)), tf.conj(tf.transpose(q))  #M=r*q at this point
+  r, q = tf.conj(tf.transpose(r)), tf.conj(tf.transpose(q))#M=r*q at this point
   center_dim = tf.shape(r)[1]
   r = tf.reshape(r, list(left_dims) + [center_dim])
   q = tf.reshape(q, [center_dim] + list(right_dims))
