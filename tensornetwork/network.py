@@ -925,7 +925,7 @@ class TensorNetwork:
     sqrt_s_broadcast_shape = self.backend.concat(
         [self.backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
     vh_s = vh * self.backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
-    left_node = self.add_node(u_s,name=left_name)
+    left_node = self.add_node(u_s, name=left_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
