@@ -114,3 +114,44 @@ def svd_decomposition(torch: Any,
   vh = torch.reshape(vh, [dim_s] + right_dims)
 
   return u, s, vh, s_rest
+
+def qr_decomposition(torch: Any,
+                     tensor: Tensor,
+                     split_axis: int,
+                     ) -> Tuple[Tensor, Tensor]:
+  """Computes the QR decomposition (SVD) of a tensor.
+
+  The QR decomposition is performed by treating the tensor as a matrix, with an effective
+  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
+  and an effective right (column) index resulting from combining the axes
+  `tensor.shape[split_axis:]`.
+
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
+  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
+  have shape (6, 4, 5).
+
+  The output consists of two tensors `Q, R` such that:
+  ```python
+    Q[i1,...,iN, j] * R[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
+  ```
+  Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
+
+  Args:
+    tf: The tensorflow module.
+    tensor: A tensor to be decomposed.
+    split_axis: Where to split the tensor's axes before flattening into a
+      matrix.
+
+  Returns:
+    Q: Left tensor factor.
+    R: Right tensor factor.
+  """
+
+  left_dims = list(tensor.shape)[:split_axis]
+  right_dims = list(tensor.shape)[split_axis:]
+
+  tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
+  return torch.qr(tensor)
+
+
+
