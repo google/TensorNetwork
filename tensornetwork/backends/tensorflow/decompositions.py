@@ -157,6 +157,10 @@ def qr_decomposition(tf: Any,
   tensor = tf.reshape(tensor,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
-  return tf.linalg.qr(tensor)
+  q, r = tf.linalg.qr(tensor)
+  center_dim = tf.shape(q)[1]
+  q = np.reshape(q, list(left_dims) + [center_dim])
+  r = np.reshape(r, [center_dim] + list(right_dims))
+  return q, r
 
 
