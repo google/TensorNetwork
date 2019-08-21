@@ -91,6 +91,8 @@ class ShellBackend(base_backend.BaseBackend):
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
 
+    left_dims = tensor.shape[:split_axis]
+    right_dims = tensor.shape[split_axis:]
     center_dim = min(tensor.shape)
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
@@ -99,6 +101,8 @@ class ShellBackend(base_backend.BaseBackend):
   def rq_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
 
+    left_dims = tensor.shape[:split_axis]
+    right_dims = tensor.shape[split_axis:]
     center_dim = min(tensor.shape)
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
