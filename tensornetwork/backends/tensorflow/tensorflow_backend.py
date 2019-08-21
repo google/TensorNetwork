@@ -56,6 +56,12 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return decompositions.svd_decomposition(self.tf, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
+  def qr_decomposition(self,
+                       tensor: Tensor,
+                       split_axis: int
+                      ) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
+
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
