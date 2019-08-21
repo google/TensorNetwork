@@ -470,7 +470,10 @@ class TensorNetwork:
     Returns:
       A new node. Its shape will be node1.shape + node2.shape
     """
-    new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
+    if node1.get_rank() == 0 or node2.get_rank() == 0:
+      new_tensor = node1.tensor * node2.tensor
+    else:
+      new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
     new_node = self.add_node(new_tensor, name)
     additional_axes = len(node1.tensor.shape)
     for i, edge in enumerate(node1.edges):
