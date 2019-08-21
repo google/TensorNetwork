@@ -119,7 +119,7 @@ def qr_decomposition(torch: Any,
                      tensor: Tensor,
                      split_axis: int,
                      ) -> Tuple[Tensor, Tensor]:
-  """Computes the QR decomposition (SVD) of a tensor.
+  """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix, with an effective
   left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
@@ -134,6 +134,7 @@ def qr_decomposition(torch: Any,
   ```python
     Q[i1,...,iN, j] * R[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
   ```
+  `R` is an upper triangular matrix, `Q` is an orthonormal matrix
   Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
 
   Args:
@@ -158,5 +159,45 @@ def qr_decomposition(torch: Any,
   return q, r
 
 
+def rq_decomposition(torch: Any,
+                     tensor: Tensor,
+                     split_axis: int,
+                     ) -> Tuple[Tensor, Tensor]:
+  """Computes the RQ decomposition of a tensor.
 
+  The RQ decomposition is performed by treating the tensor as a matrix, with an effective
+  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
+  and an effective right (column) index resulting from combining the axes
+  `tensor.shape[split_axis:]`.
 
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
+  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
+  have shape (6, 4, 5).
+
+  The output consists of two tensors `R, Q` such that:
+  ```python
+    R[i1,...,iN, j] * Q[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
+  ```
+  `R` is a lower triangular matrix, `Q` is an orthonormal matrix
+  Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
+
+  Args:
+    tf: The tensorflow module.
+    tensor: A tensor to be decomposed.
+    split_axis: Where to split the tensor's axes before flattening into a
+     p matrix.
+
+  Returns:
+    R: Left tensor factor.
+    Q: Right tensor factor.
+  """
+
+  left_dims = tensor.shape[:split_axis]
+  right_dims = tensor.shape[split_axis:]
+  tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
+  q, r = torch.qr(torch.transpose(tensor, 0, 1)) #torch has currently no support for complex dtypes
+  r, q = torch.transpose(r, 0, 1),torch.transpose(q, 0, 1)  #M=r*q at this point
+  center_dim = r.shape[1]
+  r = torch.reshape(r, list(left_dims) + [center_dim])
+  q = torch.reshape(q, [center_dim] + list(right_dims))
+  return r, q
