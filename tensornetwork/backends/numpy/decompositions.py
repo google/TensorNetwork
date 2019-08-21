@@ -69,3 +69,19 @@ def svd_decomposition(
   vh = np.reshape(vh, [dim_s] + list(right_dims))
 
   return u, s, vh, s_rest
+
+def qr_decomposition(
+    np,  # TODO: Typing
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
+  """Computes the singular value decomposition (SVD) of a tensor.
+
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
+  left_dims = tensor.shape[:split_axis]
+  right_dims = tensor.shape[split_axis:]
+
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  return np.linalg.qr(tensor)
+
