@@ -159,8 +159,51 @@ def qr_decomposition(tf: Any,
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tensor)
   center_dim = tf.shape(q)[1]
-  q = np.reshape(q, list(left_dims) + [center_dim])
-  r = np.reshape(r, [center_dim] + list(right_dims))
+  q = tf.reshape(q, list(left_dims) + [center_dim])
+  r = tf.reshape(r, [center_dim] + list(right_dims))
   return q, r
 
 
+def rq_decomposition(tf: Any,
+                     tensor: Tensor,
+                     split_axis: int,
+                     ) -> Tuple[Tensor, Tensor]:
+  """Computes the QR decomposition (SVD) of a tensor.
+
+  The QR decomposition is performed by treating the tensor as a matrix, with an effective
+  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
+  and an effective right (column) index resulting from combining the axes
+  `tensor.shape[split_axis:]`.
+
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
+  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
+  have shape (6, 4, 5).
+
+  The output consists of two tensors `Q, R` such that:
+  ```python
+    Q[i1,...,iN, j] * R[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
+  ```
+  Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
+
+  Args:
+    tf: The tensorflow module.
+    tensor: A tensor to be decomposed.
+    split_axis: Where to split the tensor's axes before flattening into a
+      matrix.
+
+  Returns:
+    Q: Left tensor factor.
+    R: Right tensor factor.
+  """
+  left_dims = tf.shape(tensor)[:split_axis]
+  right_dims = tf.shape(tensor)[split_axis:]
+
+  tensor = tf.reshape(tensor,
+                      [tf.reduce_prod(left_dims),
+                       tf.reduce_prod(right_dims)])
+  q, r = tf.linalg.qr(tf.conj(tf.transpose(tensor)))
+  r, q = tf.conj(tf.transpose(r)),tf.conj(tf.transpose(q))  #M=r*q at this point
+  center_dim = tf.shape(r)[1]
+  r = tf.reshape(r, list(left_dims) + [center_dim])
+  q = tf.reshape(q, [center_dim] + list(right_dims))
+  return r, q
