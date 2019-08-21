@@ -897,6 +897,10 @@ class TensorNetwork:
       right_edges: The edges you want connected to the new right node.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      left_name: The name of the new left node. If None, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If None, a name will be generated
+        automatically.
 
     Returns:
       A tuple containing:
@@ -1029,6 +1033,12 @@ class TensorNetwork:
       right_edges: The edges you want connected to the new right node.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      left_name: The name of the new left node. If None, a name will be generated
+        automatically.
+      middle_name: The name of the new center node. If None, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If None, a name will be generated
+        automatically.
 
     Returns:
       A tuple containing:
