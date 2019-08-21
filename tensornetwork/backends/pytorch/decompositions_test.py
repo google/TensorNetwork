@@ -29,6 +29,11 @@ def test_expected_shapes():
   np.testing.assert_allclose(s, np.zeros(6))
   assert vh.shape == (6, 4, 5)
 
+def test_expected_shapes_qr():
+  val = torch.zeros((2, 3, 4, 5))
+  q, r = decompositions.qr_decomposition(torch, val, 2)
+  assert q.shape == (2, 3, 6)
+  assert r.shape == (6, 4, 5)  
 
 def test_max_singular_values():
   np.random.seed(2018)
