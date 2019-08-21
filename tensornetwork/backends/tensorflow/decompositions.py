@@ -124,15 +124,15 @@ def qr_decomposition(tf: Any,
                      tensor: Tensor,
                      split_axis: int,
                      ) -> Tuple[Tensor, Tensor]:
-  """Computes the QR decomposition (SVD) of a tensor.
+  """Computes the QR decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
-  and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  The QR decomposition is performed by treating the tensor as a matrix, 
+  with an effective left (row) index resulting from combining the 
+  axes `tensor.shape[:split_axis]` and an effective right (column) 
+  index resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
-  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  then `q` would have shape (2, 3, 6), and `r` would
   have shape (6, 4, 5).
 
   The output consists of two tensors `Q, R` such that:
@@ -168,15 +168,15 @@ def rq_decomposition(tf: Any,
                      tensor: Tensor,
                      split_axis: int,
                      ) -> Tuple[Tensor, Tensor]:
-  """Computes the QR decomposition (SVD) of a tensor.
+  """Computes the RQ decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
-  and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  The QR decomposition is performed by treating the tensor as a matrix, 
+  with an effective left (row) index resulting from combining the axes 
+  `tensor.shape[:split_axis]` and an effective right (column) index 
+  resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
-  `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  then `r` would have shape (2, 3, 6), and `q` would
   have shape (6, 4, 5).
 
   The output consists of two tensors `Q, R` such that:
@@ -202,7 +202,7 @@ def rq_decomposition(tf: Any,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tf.conj(tf.transpose(tensor)))
-  r, q = tf.conj(tf.transpose(r)),tf.conj(tf.transpose(q))  #M=r*q at this point
+  r, q = tf.conj(tf.transpose(r)), tf.conj(tf.transpose(q))  #M=r*q at this point
   center_dim = tf.shape(r)[1]
   r = tf.reshape(r, list(left_dims) + [center_dim])
   q = tf.reshape(q, [center_dim] + list(right_dims))
