@@ -990,7 +990,10 @@ class TensorNetwork:
                           left_edges: List[network_components.Edge],
                           right_edges: List[network_components.Edge],
                           max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None
+                          max_truncation_err: Optional[float] = None,
+                          left_name: Optional[Text] = None,
+                          middle_name: Optional[Text] = None,      
+                          right_name: Optional[Text] = None
                          ) -> Tuple[network_components.BaseNode,
                                     network_components.BaseNode,
                                     network_components.BaseNode, Tensor]:
@@ -1044,9 +1047,9 @@ class TensorNetwork:
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
-    left_node = self.add_node(u)
-    singular_values_node = self.add_node(self.backend.diag(s))
-    right_node = self.add_node(vh)
+    left_node = self.add_node(u, name=left_name)
+    singular_values_node = self.add_node(self.backend.diag(s), name=middle_name)
+    right_node = self.add_node(vh, name=right_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
