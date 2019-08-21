@@ -35,6 +35,13 @@ def test_expected_shapes_qr():
   assert q.shape == (2, 3, 6)
   assert r.shape == (6, 4, 5)  
 
+def test_expected_shapes_rq():
+  val = torch.zeros((2, 3, 4, 5))
+  r, q = decompositions.rq_decomposition(torch, val, 2)
+  assert r.shape == (2, 3, 6)
+  assert q.shape == (6, 4, 5)  
+
+  
 def test_max_singular_values():
   np.random.seed(2018)
   random_matrix = np.random.rand(10, 10)
