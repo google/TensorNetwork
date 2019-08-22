@@ -1263,7 +1263,7 @@ def test_split_node_rq(backend):
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_rq(a, left_edges, right_edges)
+  left, _ = net.split_node_rq(a, left_edges, right_edges)
   net.check_correct()
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
 
@@ -1277,6 +1277,6 @@ def test_split_node_qr(backend):
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_qr(a, left_edges, right_edges)
+  left, _ = net.split_node_qr(a, left_edges, right_edges)
   net.check_correct()
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)

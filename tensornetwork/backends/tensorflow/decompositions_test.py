@@ -30,7 +30,7 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(s.shape, (6,))
     self.assertAllClose(s, np.zeros(6))
     self.assertEqual(vh.shape, (6, 4, 5))
-    
+
   def test_expected_shapes_qr(self):
     val = tf.zeros((2, 3, 4, 5))
     q, r = decompositions.qr_decomposition(tf, val, 2)
@@ -44,19 +44,15 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(q.shape, (6, 4, 5))
 
   def test_rq_decomposition(self):
-    random_matrix = np.random.rand(10, 10)    
-    r, q = decompositions.rq_decomposition(
-      tf, random_matrix, 1)
-    self.assertAllClose(tf.tensordot(r,q,([1],[0])), random_matrix)    
+    random_matrix = np.random.rand(10, 10)
+    r, q = decompositions.rq_decomposition(tf, random_matrix, 1)
+    self.assertAllClose(tf.tensordot(r, q, ([1], [0])), random_matrix)
 
-    
   def test_qr_decomposition(self):
-    random_matrix = np.random.rand(10, 10)    
-    q, r = decompositions.qr_decomposition(
-      tf, random_matrix, 1)
-    self.assertAllClose(tf.tensordot(q,r,([1],[0])), random_matrix)
-    
-    
+    random_matrix = np.random.rand(10, 10)
+    q, r = decompositions.qr_decomposition(tf, random_matrix, 1)
+    self.assertAllClose(tf.tensordot(q, r, ([1], [0])), random_matrix)
+
   def test_max_singular_values(self):
     random_matrix = np.random.rand(10, 10)
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)
