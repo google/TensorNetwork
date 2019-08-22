@@ -426,11 +426,16 @@ def test_outer_product(backend):
   np.testing.assert_allclose(d.tensor, np.ones((2, 4, 5, 4, 3, 6)))
   assert d.name == "D"
 
+def test_scalar_outer_product(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+
   # check outer product with scalar tensor
-  e = net.add_node(2.*np.ones(()), name="C")
-  f = net.outer_product(d, e, name="F")
-  np.testing.assert_allclose(f.tensor, 2.*np.ones((2, 4, 5, 4, 3, 6)))
-  assert f.name == "F"
+  a = net.add_node(np.ones((2, 4, 5)), name="A")
+
+  b = net.add_node(2.*np.ones(()), name="B")
+  c = net.outer_product(a, b, name="C")
+  np.testing.assert_allclose(c.tensor, 2.*np.ones((2, 4, 5)))
+  assert c.name == "C"
 
 
 def test_outer_product_final_nodes(backend):

@@ -147,6 +147,11 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
+  def multiply(self, tensor1: Tensor, tensor2: Tensor):
+    """Take the product of all of the elements in values"""
+    raise NotImplementedError("Backend '{}' has not implemented multiply.".format(
+      self.name))
+
   def prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(

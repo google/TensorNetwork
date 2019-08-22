@@ -54,6 +54,9 @@ class NumPyBackend(base_backend.BaseBackend):
                                                  max_singular_values,
                                                  max_truncation_error)
 
+  def multiply(self, tensor1: Tensor, tensor2: Tensor):
+    return tensor1 * tensor2
+
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 

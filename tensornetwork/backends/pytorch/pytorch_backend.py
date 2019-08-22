@@ -64,6 +64,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
 
+  def multiply(self, tensor1: Tensor, tensor2: Tensor):
+    return tensor1 * tensor2
+
   def prod(self, values: Tensor) -> int:
     return np.prod(np.array(values))
 

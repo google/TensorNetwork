@@ -471,7 +471,7 @@ class TensorNetwork:
       A new node. Its shape will be node1.shape + node2.shape
     """
     if node1.get_rank() == 0 or node2.get_rank() == 0:
-      new_tensor = node1.tensor * node2.tensor
+      new_tensor = self.backend.multiply(node1.tensor, node2.tensor)
     else:
       new_tensor = self.backend.outer_product(node1.tensor, node2.tensor)
     new_node = self.add_node(new_tensor, name)

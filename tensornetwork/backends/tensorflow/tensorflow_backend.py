@@ -66,6 +66,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
 
+  def multiply(self, tensor1: Tensor, tensor2: Tensor):
+    return tensor1 * tensor2
+
   def prod(self, values: Tensor) -> Tensor:
     return self.tf.reduce_prod(values)
 
