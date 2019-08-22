@@ -125,8 +125,6 @@ class BaseBackend:
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor.
-
-    See tensornetwork.backends.tensorflow.decompositions for details.
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented qr_decomposition.".format(self.name))
@@ -137,8 +135,6 @@ class BaseBackend:
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor.
-    
-    See tensornetwork.backends.tensorflow.decompositions for details.
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented rq_decomposition.".format(self.name))
