@@ -119,7 +119,8 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented svd_decomposition.".format(self.name))
 
-  def qr_decomposition(self,
+  def qr_decomposition(
+      self,
       np,  # TODO: Typing
       tensor: Tensor,
       split_axis: int,
@@ -129,7 +130,8 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented qr_decomposition.".format(self.name))
 
-  def rq_decomposition(self,
+  def rq_decomposition(
+      self,
       np,  # TODO: Typing
       tensor: Tensor,
       split_axis: int,
