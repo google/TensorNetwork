@@ -866,7 +866,7 @@ class TensorNetwork:
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
-    """Split a network_components.BaseNode using Singular Value Decomposition.
+    """Split a `Node` using Singular Value Decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
     2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
@@ -897,9 +897,9 @@ class TensorNetwork:
       right_edges: The edges you want connected to the new right node.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
-      left_name: The name of the new left node. If None, a name will be generated
+      left_name: The name of the new left node. If `None`, a name will be generated
         automatically.
-      right_name: The name of the new right node. If None, a name will be generated
+      right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
 
     Returns:
@@ -947,7 +947,7 @@ class TensorNetwork:
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None,      
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
-    """Split a network_components.BaseNode using QR decomposition
+    """Split a `Node` using QR decomposition
 
     Let M be the matrix created by flattening left_edges and right_edges into
     2 axes. Let :math:`QR = M` be the QR Decomposition of 
@@ -959,9 +959,9 @@ class TensorNetwork:
       node: The node you want to split.
       left_edges: The edges you want connected to the new left node.
       right_edges: The edges you want connected to the new right node.
-      left_name: The name of the new left node. If None, a name will be generated
+      left_name: The name of the new left node. If `None`, a name will be generated
         automatically.
-      right_name: The name of the new right node. If None, a name will be generated
+      right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
 
     Returns:
@@ -996,7 +996,7 @@ class TensorNetwork:
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None,      
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
-    """Split a network_components.BaseNode using RQ (reversed QR) decomposition
+    """Split a `Node` using RQ (reversed QR) decomposition
 
     Let M be the matrix created by flattening left_edges and right_edges into
     2 axes. Let :math:`QR = M^*` be the QR Decomposition of 
@@ -1008,9 +1008,9 @@ class TensorNetwork:
       node: The node you want to split.
       left_edges: The edges you want connected to the new left node.
       right_edges: The edges you want connected to the new right node.
-      left_name: The name of the new left node. If None, a name will be generated
+      left_name: The name of the new left node. If `None`, a name will be generated
         automatically.
-      right_name: The name of the new right node. If None, a name will be generated
+      right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
 
     Returns:
