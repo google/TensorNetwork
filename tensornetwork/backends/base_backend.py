@@ -121,7 +121,6 @@ class BaseBackend:
 
   def qr_decomposition(
       self,
-      np,  # TODO: Typing
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
@@ -132,7 +131,6 @@ class BaseBackend:
 
   def rq_decomposition(
       self,
-      np,  # TODO: Typing
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
