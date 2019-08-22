@@ -131,7 +131,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented qr_decomposition.".format(self.name))
 
-  def qr_decomposition(
+  def rq_decomposition(
       np,  # TODO: Typing
       tensor: Tensor,
       split_axis: int,
