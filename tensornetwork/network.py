@@ -865,6 +865,7 @@ class TensorNetwork:
       max_truncation_err: Optional[float] = None,
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None
+      edge_name: Optional[Text] = None,      
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
     """Split a `Node` using Singular Value Decomposition.
 
@@ -901,6 +902,8 @@ class TensorNetwork:
         automatically.
       right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
+      edge_name: The name of the new `Edge` connecting the new left and right node. 
+        If `None`, a name will be generated automatically.
 
     Returns:
       A tuple containing:
@@ -934,7 +937,7 @@ class TensorNetwork:
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
-    self.connect(left_node[-1], right_node[0])
+    self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
     return left_node, right_node, trun_vals
 
@@ -945,7 +948,8 @@ class TensorNetwork:
       left_edges: List[network_components.Edge],
       right_edges: List[network_components.Edge],
       left_name: Optional[Text] = None,
-      right_name: Optional[Text] = None,      
+      right_name: Optional[Text] = None,
+      edge_name: Optional[Text] = None,
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
     """Split a `Node` using QR decomposition
 
@@ -963,6 +967,8 @@ class TensorNetwork:
         automatically.
       right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
+      edge_name: The name of the new `Edge` connecting the new left and right node. 
+        If `None`, a name will be generated automatically.
 
     Returns:
       A tuple containing:
@@ -984,7 +990,7 @@ class TensorNetwork:
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
-    self.connect(left_node[-1], right_node[0])
+    self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
     return left_node, right_node
   
@@ -994,7 +1000,8 @@ class TensorNetwork:
       left_edges: List[network_components.Edge],
       right_edges: List[network_components.Edge],
       left_name: Optional[Text] = None,
-      right_name: Optional[Text] = None,      
+      right_name: Optional[Text] = None,
+      edge_name: Optional[Text] = None,      
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
     """Split a `Node` using RQ (reversed QR) decomposition
 
@@ -1012,6 +1019,8 @@ class TensorNetwork:
         automatically.
       right_name: The name of the new right node. If `None`, a name will be generated
         automatically.
+      edge_name: The name of the new `Edge` connecting the new left and right node. 
+        If `None`, a name will be generated automatically.
 
     Returns:
       A tuple containing:
@@ -1033,7 +1042,7 @@ class TensorNetwork:
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
-    self.connect(left_node[-1], right_node[0])
+    self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
     return left_node, right_node
 
@@ -1047,6 +1056,8 @@ class TensorNetwork:
                           left_name: Optional[Text] = None,
                           middle_name: Optional[Text] = None,      
                           right_name: Optional[Text] = None
+                          left_edge_name: Optional[Text] = None,
+                          right_edge_name: Optional[Text] = None,                                                    
                          ) -> Tuple[network_components.BaseNode,
                                     network_components.BaseNode,
                                     network_components.BaseNode, Tensor]:
@@ -1088,6 +1099,12 @@ class TensorNetwork:
         automatically.
       right_name: The name of the new right node. If None, a name will be generated
         automatically.
+      left_edge_name: The name of the new left `Edge` connecting 
+        the new left node (`U`) and the new central node (`S`). 
+        If `None`, a name will be generated automatically.
+      right_edge_name: The name of the new right `Edge` connecting 
+        the new central node (`S`) and the new right node (`V*`). 
+        If `None`, a name will be generated automatically.
 
     Returns:
       A tuple containing:
@@ -1116,8 +1133,8 @@ class TensorNetwork:
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
-    self.connect(left_node[-1], singular_values_node[0])
-    self.connect(singular_values_node[1], right_node[0])
+    self.connect(left_node[-1], singular_values_node[0], name=left_edge_name)
+    self.connect(singular_values_node[1], right_node[0], name=right_edge_name)
     self.nodes_set.remove(node)
     return left_node, singular_values_node, right_node, trun_vals
 
