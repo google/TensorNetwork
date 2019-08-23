@@ -1207,6 +1207,27 @@ def test_remove_after_flatten(backend):
   net.connect(a[1], b[1])
   net.flatten_all_edges()
   net.remove_node(a)
+  
+def test_split_node_full_svd_names(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(10,10))
+  e1 = a[0]
+  e2 = a[1]
+  left, s, right, _, = net.split_node_full_svd(
+    a, [e1], [e2],
+    left_name='left',
+    middle_name='center',
+    right_name='right',
+    left_edge_name='left_edge',
+    right_edge_name='right_edge'
+  )
+  assert left.name == 'left'
+  assert s.name == 'center'  
+  assert right.name == 'right'
+  assert left.edges[-1].name == 'left_edge'
+  assert s[0].name == 'left_edge'
+  assert s[1].name == 'right_edge'  
+  assert right.edges[0].name == 'right_edge'  
 
 
 def test_split_node_rq_names(backend):
@@ -1219,9 +1240,12 @@ def test_split_node_rq_names(backend):
   for i in range(3, 5):
     right_edges.append(a[i])
   left, right = net.split_node_rq(
-      a, left_edges, right_edges, left_name='left', right_name='right')
+      a, left_edges, right_edges, left_name='left', right_name='right',
+    edge_name='edge')
   assert left.name == 'left'
   assert right.name == 'right'
+  assert left.edges[-1].name == 'edge'
+  assert right.edges[0].name == 'edge'  
 
 
 def test_split_node_qr_names(backend):
@@ -1234,9 +1258,12 @@ def test_split_node_qr_names(backend):
   for i in range(3, 5):
     right_edges.append(a[i])
   left, right = net.split_node_qr(
-      a, left_edges, right_edges, left_name='left', right_name='right')
+      a, left_edges, right_edges, left_name='left', right_name='right',
+    edge_name='edge')
   assert left.name == 'left'
   assert right.name == 'right'
+  assert left.edges[-1].name == 'edge'
+  assert right.edges[0].name == 'edge'  
 
 
 def test_split_node_names(backend):
@@ -1249,9 +1276,12 @@ def test_split_node_names(backend):
   for i in range(3, 5):
     right_edges.append(a[i])
   left, right, _ = net.split_node(
-      a, left_edges, right_edges, left_name='left', right_name='right')
+      a, left_edges, right_edges, left_name='left', right_name='right',
+    edge_name='edge')
   assert left.name == 'left'
   assert right.name == 'right'
+  assert left.edges[-1].name == 'edge'
+  assert right.edges[0].name == 'edge'  
 
 
 def test_split_node_rq(backend):
