@@ -864,7 +864,7 @@ class TensorNetwork:
       max_singular_values: Optional[int] = None,
       max_truncation_err: Optional[float] = None,
       left_name: Optional[Text] = None,
-      right_name: Optional[Text] = None
+      right_name: Optional[Text] = None,
       edge_name: Optional[Text] = None,      
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
     """Split a `Node` using Singular Value Decomposition.
@@ -1055,7 +1055,7 @@ class TensorNetwork:
                           max_truncation_err: Optional[float] = None,
                           left_name: Optional[Text] = None,
                           middle_name: Optional[Text] = None,      
-                          right_name: Optional[Text] = None
+                          right_name: Optional[Text] = None,
                           left_edge_name: Optional[Text] = None,
                           right_edge_name: Optional[Text] = None,                                                    
                          ) -> Tuple[network_components.BaseNode,
