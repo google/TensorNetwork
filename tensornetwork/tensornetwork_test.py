@@ -1207,3 +1207,76 @@ def test_remove_after_flatten(backend):
   net.connect(a[1], b[1])
   net.flatten_all_edges()
   net.remove_node(a)
+
+
+def test_split_node_rq_names(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right = net.split_node_rq(
+      a, left_edges, right_edges, left_name='left', right_name='right')
+  assert left.name == 'left'
+  assert right.name == 'right'
+
+
+def test_split_node_qr_names(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right = net.split_node_qr(
+      a, left_edges, right_edges, left_name='left', right_name='right')
+  assert left.name == 'left'
+  assert right.name == 'right'
+
+
+def test_split_node_names(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right, _ = net.split_node(
+      a, left_edges, right_edges, left_name='left', right_name='right')
+  assert left.name == 'left'
+  assert right.name == 'right'
+
+
+def test_split_node_rq(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, _ = net.split_node_rq(a, left_edges, right_edges)
+  net.check_correct()
+  np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+
+
+def test_split_node_qr(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, _ = net.split_node_qr(a, left_edges, right_edges)
+  net.check_correct()
+  np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)

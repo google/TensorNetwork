@@ -54,6 +54,17 @@ class PyTorchBackend(base_backend.BaseBackend):
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
+  def qr_decomposition(self,
+                       tensor: Tensor,
+                       split_axis: int,
+                       ) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr_decomposition(self.torch, tensor, split_axis)
+  
+  def rq_decomposition(self,
+                       tensor: Tensor,
+                       split_axis: int,
+                       ) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)

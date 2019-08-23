@@ -119,6 +119,26 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented svd_decomposition.".format(self.name))
 
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
+    """Computes the QR decomposition of a tensor.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
+    """Computes the RQ (reversed QR) decomposition of a tensor.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+
   def concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
     raise NotImplementedError("Backend '{}' has not implemented concat.".format(

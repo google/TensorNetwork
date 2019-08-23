@@ -862,9 +862,11 @@ class TensorNetwork:
       left_edges: List[network_components.Edge],
       right_edges: List[network_components.Edge],
       max_singular_values: Optional[int] = None,
-      max_truncation_err: Optional[float] = None
+      max_truncation_err: Optional[float] = None,
+      left_name: Optional[Text] = None,
+      right_name: Optional[Text] = None
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
-    """Split a network_components.BaseNode using Singular Value Decomposition.
+    """Split a `Node` using Singular Value Decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
     2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
@@ -895,6 +897,10 @@ class TensorNetwork:
       right_edges: The edges you want connected to the new right node.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      left_name: The name of the new left node. If `None`, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If `None`, a name will be generated
+        automatically.
 
     Returns:
       A tuple containing:
@@ -919,11 +925,11 @@ class TensorNetwork:
     sqrt_s_broadcast_shape = self.backend.concat(
         [self.backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
     vh_s = vh * self.backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
-    left_node = self.add_node(u_s)
+    left_node = self.add_node(u_s, name=left_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
-    right_node = self.add_node(vh_s)
+    right_node = self.add_node(vh_s, name=right_name)
     for i, edge in enumerate(right_edges):
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
@@ -932,12 +938,115 @@ class TensorNetwork:
     self.nodes_set.remove(node)
     return left_node, right_node, trun_vals
 
+
+  def split_node_qr(
+      self,
+      node: network_components.BaseNode,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      left_name: Optional[Text] = None,
+      right_name: Optional[Text] = None,      
+  ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
+    """Split a `Node` using QR decomposition
+
+    Let M be the matrix created by flattening left_edges and right_edges into
+    2 axes. Let :math:`QR = M` be the QR Decomposition of 
+    :math:`M`. This will split the network into 2 nodes. The left node's 
+    tensor will be :math:`Q` (an orthonormal matrix) and the right node's tensor will be 
+    :math:`R` (an upper triangular matrix)
+
+    Args:
+      node: The node you want to split.
+      left_edges: The edges you want connected to the new left node.
+      right_edges: The edges you want connected to the new right node.
+      left_name: The name of the new left node. If `None`, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If `None`, a name will be generated
+        automatically.
+
+    Returns:
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`Q`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`R`
+    """
+    node.reorder_edges(left_edges + right_edges)
+    q, r = self.backend.qr_decomposition(node.tensor, len(left_edges))
+    left_node = self.add_node(q, name=left_name)
+    for i, edge in enumerate(left_edges):
+      left_node.add_edge(edge, i)
+      edge.update_axis(i, node, i, left_node)
+    right_node = self.add_node(r, name=right_name)
+    for i, edge in enumerate(right_edges):
+      # i + 1 to account for the new edge.
+      right_node.add_edge(edge, i + 1)
+      edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    self.connect(left_node[-1], right_node[0])
+    self.nodes_set.remove(node)
+    return left_node, right_node
+  
+  def split_node_rq(
+      self,
+      node: network_components.BaseNode,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      left_name: Optional[Text] = None,
+      right_name: Optional[Text] = None,      
+  ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
+    """Split a `Node` using RQ (reversed QR) decomposition
+
+    Let M be the matrix created by flattening left_edges and right_edges into
+    2 axes. Let :math:`QR = M^*` be the QR Decomposition of 
+    :math:`M^*`. This will split the network into 2 nodes. The left node's 
+    tensor will be :math:`R^*` (a lower triangular matrix) and the right node's tensor will be 
+    :math:`Q^*` (an orthonormal matrix)
+
+    Args:
+      node: The node you want to split.
+      left_edges: The edges you want connected to the new left node.
+      right_edges: The edges you want connected to the new right node.
+      left_name: The name of the new left node. If `None`, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If `None`, a name will be generated
+        automatically.
+
+    Returns:
+      A tuple containing:
+        left_node: 
+          A new node created that connects to all of the `left_edges`.
+          Its underlying tensor is :math:`Q`
+        right_node: 
+          A new node created that connects to all of the `right_edges`.
+          Its underlying tensor is :math:`R`
+    """
+    node.reorder_edges(left_edges + right_edges)
+    q, r = self.backend.qr_decomposition(node.tensor, len(left_edges))
+    left_node = self.add_node(q, name=left_name)
+    for i, edge in enumerate(left_edges):
+      left_node.add_edge(edge, i)
+      edge.update_axis(i, node, i, left_node)
+    right_node = self.add_node(r, name=right_name)
+    for i, edge in enumerate(right_edges):
+      # i + 1 to account for the new edge.
+      right_node.add_edge(edge, i + 1)
+      edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    self.connect(left_node[-1], right_node[0])
+    self.nodes_set.remove(node)
+    return left_node, right_node
+
+  
   def split_node_full_svd(self,
                           node: network_components.BaseNode,
                           left_edges: List[network_components.Edge],
                           right_edges: List[network_components.Edge],
                           max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None
+                          max_truncation_err: Optional[float] = None,
+                          left_name: Optional[Text] = None,
+                          middle_name: Optional[Text] = None,      
+                          right_name: Optional[Text] = None
                          ) -> Tuple[network_components.BaseNode,
                                     network_components.BaseNode,
                                     network_components.BaseNode, Tensor]:
@@ -973,6 +1082,12 @@ class TensorNetwork:
       right_edges: The edges you want connected to the new right node.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      left_name: The name of the new left node. If None, a name will be generated
+        automatically.
+      middle_name: The name of the new center node. If None, a name will be generated
+        automatically.
+      right_name: The name of the new right node. If None, a name will be generated
+        automatically.
 
     Returns:
       A tuple containing:
@@ -991,9 +1106,9 @@ class TensorNetwork:
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
         node.tensor, len(left_edges), max_singular_values, max_truncation_err)
-    left_node = self.add_node(u)
-    singular_values_node = self.add_node(self.backend.diag(s))
-    right_node = self.add_node(vh)
+    left_node = self.add_node(u, name=left_name)
+    singular_values_node = self.add_node(self.backend.diag(s), name=middle_name)
+    right_node = self.add_node(vh, name=right_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
