@@ -103,11 +103,11 @@ class TensorNetwork:
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
 
-  def add_node(self,
-               tensor: Union[np.ndarray, Tensor],
-               name: Optional[Text] = None,
-               axis_names: Optional[List[Text]] = None
-              ) -> network_components.BaseNode:
+  def add_node(
+      self,
+      tensor: Union[np.ndarray, Tensor],
+      name: Optional[Text] = None,
+      axis_names: Optional[List[Text]] = None) -> network_components.BaseNode:
     """Create a new node in the network.
 
     Args:
@@ -131,13 +131,13 @@ class TensorNetwork:
     self.nodes_set.add(new_node)
     return new_node
 
-  def add_copy_node(self,
-                    rank: int,
-                    dimension: int,
-                    name: Optional[Text] = None,
-                    axis_names: Optional[List[Text]] = None,
-                    dtype: Type[np.number] = np.float64
-                   ) -> network_components.CopyNode:
+  def add_copy_node(
+      self,
+      rank: int,
+      dimension: int,
+      name: Optional[Text] = None,
+      axis_names: Optional[List[Text]] = None,
+      dtype: Type[np.number] = np.float64) -> network_components.CopyNode:
     """Create a new copy node in the network.
 
     Copy node represents the copy tensor, i.e. tensor :math:`C` such that
@@ -353,7 +353,7 @@ class TensorNetwork:
   def _contract_trace(self,
                       edge: network_components.Edge,
                       name: Optional[Text] = None
-                      ) -> network_components.BaseNode:
+                     ) -> network_components.BaseNode:
     """Contract a trace edge connecting in the TensorNetwork.
 
     Args:
@@ -564,9 +564,9 @@ class TensorNetwork:
     if self.nodes_set != seen_nodes:
       raise ValueError("Non-connected graph")
 
-  def _flatten_trace_edges(self, edges: List[network_components.Edge],
-                           new_edge_name: Optional[Text]
-                          ) -> network_components.Edge:
+  def _flatten_trace_edges(
+      self, edges: List[network_components.Edge],
+      new_edge_name: Optional[Text]) -> network_components.Edge:
     """Flatten trace edges into single edge.
 
     Args:
@@ -599,10 +599,10 @@ class TensorNetwork:
     ]
     return new_edge
 
-  def flatten_edges(self,
-                    edges: List[network_components.Edge],
-                    new_edge_name: Optional[Text] = None
-                   ) -> network_components.Edge:
+  def flatten_edges(
+      self,
+      edges: List[network_components.Edge],
+      new_edge_name: Optional[Text] = None) -> network_components.Edge:
     """Flatten edges into single edge.
 
     If two nodes have multiple edges connecting them, it may be
@@ -680,9 +680,9 @@ class TensorNetwork:
     return self.connect(new_dangling_edges[0], new_dangling_edges[1],
                         new_edge_name)
 
-  def get_shared_edges(self, node1: network_components.BaseNode,
-                       node2: network_components.BaseNode
-                      ) -> Set[network_components.Edge]:
+  def get_shared_edges(
+      self, node1: network_components.BaseNode,
+      node2: network_components.BaseNode) -> Set[network_components.Edge]:
     """Get all edges shared between two nodes.
 
     Args:
@@ -702,8 +702,8 @@ class TensorNetwork:
         shared_edges.add(edge)
     return shared_edges
 
-  def get_parallel_edges(self, edge: network_components.Edge
-                        ) -> Set[network_components.Edge]:
+  def get_parallel_edges(
+      self, edge: network_components.Edge) -> Set[network_components.Edge]:
     """Get all of the edges parallel to the given `edge`.
 
     Args:
@@ -715,9 +715,9 @@ class TensorNetwork:
   """
     return self.get_shared_edges(edge.node1, edge.node2)
 
-  def flatten_edges_between(self, node1: network_components.BaseNode,
-                            node2: network_components.BaseNode
-                           ) -> Optional[network_components.Edge]:
+  def flatten_edges_between(
+      self, node1: network_components.BaseNode,
+      node2: network_components.BaseNode) -> Optional[network_components.Edge]:
     """Flatten all of the edges between the given two nodes.
 
     Args:
@@ -840,8 +840,8 @@ class TensorNetwork:
       new_node = new_node.reorder_edges(list(output_edge_order))
     return new_node
 
-  def contract_parallel(self, edge: network_components.Edge
-                       ) -> network_components.BaseNode:
+  def contract_parallel(
+      self, edge: network_components.Edge) -> network_components.BaseNode:
     """Contract all edges parallel to this edge.
 
     This method calls `contract_between` with the nodes connected by the edge.
@@ -865,7 +865,7 @@ class TensorNetwork:
       max_truncation_err: Optional[float] = None,
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None,
-      edge_name: Optional[Text] = None,      
+      edge_name: Optional[Text] = None,
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode, Tensor]:
     """Split a `Node` using Singular Value Decomposition.
 
@@ -941,7 +941,6 @@ class TensorNetwork:
     self.nodes_set.remove(node)
     return left_node, right_node, trun_vals
 
-
   def split_node_qr(
       self,
       node: network_components.BaseNode,
@@ -993,7 +992,7 @@ class TensorNetwork:
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
     return left_node, right_node
-  
+
   def split_node_rq(
       self,
       node: network_components.BaseNode,
@@ -1001,7 +1000,7 @@ class TensorNetwork:
       right_edges: List[network_components.Edge],
       left_name: Optional[Text] = None,
       right_name: Optional[Text] = None,
-      edge_name: Optional[Text] = None,      
+      edge_name: Optional[Text] = None,
   ) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
     """Split a `Node` using RQ (reversed QR) decomposition
 
@@ -1046,21 +1045,20 @@ class TensorNetwork:
     self.nodes_set.remove(node)
     return left_node, right_node
 
-  
-  def split_node_full_svd(self,
-                          node: network_components.BaseNode,
-                          left_edges: List[network_components.Edge],
-                          right_edges: List[network_components.Edge],
-                          max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None,
-                          left_name: Optional[Text] = None,
-                          middle_name: Optional[Text] = None,      
-                          right_name: Optional[Text] = None,
-                          left_edge_name: Optional[Text] = None,
-                          right_edge_name: Optional[Text] = None,                                                    
-                         ) -> Tuple[network_components.BaseNode,
-                                    network_components.BaseNode,
-                                    network_components.BaseNode, Tensor]:
+  def split_node_full_svd(
+      self,
+      node: network_components.BaseNode,
+      left_edges: List[network_components.Edge],
+      right_edges: List[network_components.Edge],
+      max_singular_values: Optional[int] = None,
+      max_truncation_err: Optional[float] = None,
+      left_name: Optional[Text] = None,
+      middle_name: Optional[Text] = None,
+      right_name: Optional[Text] = None,
+      left_edge_name: Optional[Text] = None,
+      right_edge_name: Optional[Text] = None,
+  ) -> Tuple[network_components.BaseNode, network_components.
+             BaseNode, network_components.BaseNode, Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -1139,8 +1137,8 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
-                 ) -> Tuple[Dict[Text, network_components
-                                 .Edge], Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components.
+                                 Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
