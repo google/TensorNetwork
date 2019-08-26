@@ -795,7 +795,7 @@ def test_split_node_qr_disable(backend):
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_qr(a, left_edges, right_edges)
+  _, _ = net.split_node_qr(a, left_edges, right_edges)
   with pytest.raises(ValueError):
     # pylint: disable=pointless-statement    
     a.edges[0]
@@ -817,7 +817,7 @@ def test_split_node_rq_disable(backend):
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_rq(a, left_edges, right_edges)
+  _, _ = net.split_node_rq(a, left_edges, right_edges)
   with pytest.raises(ValueError):
     # pylint: disable=pointless-statement    
     a.edges[0]
@@ -839,7 +839,7 @@ def test_split_node_disable(backend):
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right, _ = net.split_node(a, left_edges, right_edges)
+  _, _, _ = net.split_node(a, left_edges, right_edges)
   with pytest.raises(ValueError):
     # pylint: disable=pointless-statement    
     a.edges[0]
