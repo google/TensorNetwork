@@ -349,6 +349,10 @@ class TensorNetwork:
     # Remove nodes
     self.nodes_set.remove(node1)
     self.nodes_set.remove(node2)
+    
+    # disable nodes
+    node1.disable()
+    node2.disable()
 
   def _contract_trace(self,
                       edge: network_components.Edge,
@@ -483,6 +487,10 @@ class TensorNetwork:
     self.nodes_set.remove(node2)
     for i, edge in enumerate(node1.edges + node2.edges):
       new_node.add_edge(edge, i)
+
+    # disable removed nodes
+    node1.disable()
+    node2.disable()    
     return new_node
 
   def get_final_node(self) -> network_components.BaseNode:
@@ -1168,6 +1176,7 @@ class TensorNetwork:
         broken_edges_by_axis[i] = new_broken_edge
         broken_edges_by_name[name] = new_broken_edge
     self.nodes_set.remove(node)
+    node.disable()
     return broken_edges_by_name, broken_edges_by_axis
 
   def check_correct(self, check_connected: bool = True) -> None:
@@ -1215,10 +1224,18 @@ class TensorNetwork:
         return False
       else:
         edge_is_in_network = edge.node1 in self.nodes_set
-        edge_is_in_network &= edge in edge.node1.edges
+        try:
+          edge_is_in_network &= edge in edge.node1.edges
+        #if ValueError is raised, edge.node1 has been disabled
+        except ValueError:
+          return False
         if not edge.is_dangling():
           edge_is_in_network &= edge.node2 in self.nodes_set
-          edge_is_in_network &= edge in edge.node2.edges
+          try:
+            edge_is_in_network &= edge in edge.node2.edges
+          #if ValueError is raised, edge.node2 has been disabled            
+          except ValueError:
+            return False
         return edge_is_in_network
     elif isinstance(item, network_components.BaseNode):
       return item in self.nodes_set
