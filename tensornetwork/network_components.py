@@ -65,15 +65,15 @@ class BaseNode(ABC):
     self.network = network
     self._shape = shape
 
-    self.edges = [
-        Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
+    self._edges = [
+      Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
       self.axis_names = None
 
-    self.signature = -1
+    self._signature = -1
 
     super().__init__()
 
@@ -310,7 +310,41 @@ class BaseNode(ABC):
       raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
 
+  @property
+  def edges(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its edges is no longer possible'.format(self.name))
+    else:
+      return self._edges
+    
+  @edges.setter
+  def edges(self, edges: List):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Assigning edges is no longer possible'.format(self.name))
+    else:
+      self._edges = edges
 
+  @property
+  def signature(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Accessing its signature is no longer possible'.format(self.name))
+    else:
+      return self.signature
+
+  @signature.setter
+  def signature(self, signature: int):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Accessing its signature is no longer possible'.format(self.name))
+    else:
+      self._signature = signature
+    
+  def disable(self):
+    self.network = None
+    
 class Node(BaseNode):
   """Node for the TensorNetwork graph.
 
@@ -354,7 +388,11 @@ class Node(BaseNode):
 
   @property
   def shape(self):
-    return self.network.backend.shape_tuple(self._tensor)
+    if self.network is not None:
+      return self.network.backend.shape_tuple(self._tensor)
+    else:
+      raise ValueError('Node {} has been disabled. '
+                       'Access its shape via self.tensor'.format(self.name))
 
   @property
   def tensor(self) -> Tensor:
