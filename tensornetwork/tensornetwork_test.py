@@ -1322,3 +1322,28 @@ def test_split_node_qr(backend):
   left, _ = net.split_node_qr(a, left_edges, right_edges)
   net.check_correct()
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+
+
+def test_create_file(tmp_path):
+  net = tensornetwork.TensorNetwork(backend="numpy")
+  a = net.add_node(np.ones((2, 2, 2)))
+  b = net.add_node(np.ones((2, 2, 2)))
+  e1 = net.connect(a[0], b[0])
+  e2 = net.connect(b[1], a[1])
+  e3 = net.connect(a[2], b[2])
+
+  p = tmp_path / "network"
+  net.save(p)
+
+  net2 = tensornetwork.TensorNetwork.load(p)
+  nodes_1 = list(net.nodes_set)
+  nodes_2 = list(net2.nodes_set)
+
+  assert set([node.name for node in nodes_1]) == set([node.name for node in nodes_2])
+
+  for e in net.get_all_edges():
+      x = net.contract(e)
+
+  for e in net2.get_all_edges():
+      x2 = net2.contract(e)
+  assert x.tensor==x2.tensor
