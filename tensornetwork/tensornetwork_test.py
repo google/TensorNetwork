@@ -900,7 +900,7 @@ def test_contract_disable(backend):
   a = net.add_node(np.random.rand(2, 2))
   b = net.add_node(np.random.rand(2, 2))
   e = net.connect(a[0], b[0])
-  c = net.contract(e)
+  net.contract(e)
   with pytest.raises(ValueError):
     # pylint: disable=pointless-statement
     a.edges[0]
@@ -937,8 +937,8 @@ def test_contract_between_disable(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(2, 2))
   b = net.add_node(np.random.rand(2, 2))
-  e = net.connect(a[1], b[0])
-  c = net.contract_between(a, b)
+  net.connect(a[1], b[0])
+  net.contract_between(a, b)
   with pytest.raises(ValueError):
     # pylint: disable=pointless-statement
     a.edges[0]
@@ -976,7 +976,7 @@ def test_double_trace_disable(backend):
   node = net.add_node(np.random.rand(2, 2, 2, 2), name='node1')
 
   e1 = net.connect(node[0], node[2], name='e1')
-  e2 = net.connect(node[1], node[3], name='e2')
+  net.connect(node[1], node[3], name='e2')
 
   net.contract(e1, name='b')
   node1 = e1.node1
