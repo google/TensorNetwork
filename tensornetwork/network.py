@@ -250,7 +250,7 @@ class TensorNetwork:
       new_node: The new node created after contraction.
 
     Returns:
-      The node that had the contracted edge.
+      None
 
     Raises:
       ValueError: If edge is not a trace edge.
