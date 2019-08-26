@@ -71,7 +71,7 @@ class BaseNode(ABC):
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
-      self.axis_names = None
+      self._axis_names = None
 
     self._signature = -1
 
@@ -325,6 +325,22 @@ class BaseNode(ABC):
                        'Assigning edges is no longer possible'.format(self.name))
     else:
       self._edges = edges
+      
+  @property
+  def axis_names(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its axis_names is no longer possible'.format(self.name))
+    else:
+      return self._axis_names
+    
+  @axis_names.setter
+  def axis_names(self, axis_names: List[Text]):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Assigning axis_names is no longer possible'.format(self.name))
+    else:
+      self._axis_names = axis_names
 
   @property
   def signature(self):
@@ -332,7 +348,7 @@ class BaseNode(ABC):
       raise ValueError('Node {} has been disabled.'
                        'Accessing its signature is no longer possible'.format(self.name))
     else:
-      return self.signature
+      return self._signature
 
   @signature.setter
   def signature(self, signature: int):
