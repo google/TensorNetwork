@@ -797,10 +797,15 @@ def test_split_node_qr_disable(backend):
     right_edges.append(a[i])
   left, right = net.split_node_qr(a, left_edges, right_edges)
   with pytest.raises(ValueError):
+    # pylint: disable=pointless-statement    
     a.edges[0]
+    # pylint: disable=pointless-statement    
     a.edges
+    # pylint: disable=pointless-statement    
     a.signature
+    # pylint: disable=pointless-statement    
     a.shape
+    # pylint: disable=pointless-statement    
     a.axis_names
     
 def test_split_node_rq_disable(backend):
@@ -814,10 +819,15 @@ def test_split_node_rq_disable(backend):
     right_edges.append(a[i])
   left, right = net.split_node_rq(a, left_edges, right_edges)
   with pytest.raises(ValueError):
+    # pylint: disable=pointless-statement    
     a.edges[0]
+    # pylint: disable=pointless-statement    
     a.edges
+    # pylint: disable=pointless-statement    
     a.signature
+    # pylint: disable=pointless-statement    
     a.shape
+    # pylint: disable=pointless-statement    
     a.axis_names
     
 def test_split_node_disable(backend):
@@ -831,10 +841,15 @@ def test_split_node_disable(backend):
     right_edges.append(a[i])
   left, right, _ = net.split_node(a, left_edges, right_edges)
   with pytest.raises(ValueError):
+    # pylint: disable=pointless-statement    
     a.edges[0]
+    # pylint: disable=pointless-statement    
     a.edges
+    # pylint: disable=pointless-statement    
     a.signature
+    # pylint: disable=pointless-statement    
     a.shape
+    # pylint: disable=pointless-statement    
     a.axis_names
     
 def test_split_node_full_svd_disable(backend):
@@ -848,10 +863,15 @@ def test_split_node_full_svd_disable(backend):
     right_edges.append(a[i])
   _, _, _, _ = net.split_node_full_svd(a, left_edges, right_edges)
   with pytest.raises(ValueError):
+    # pylint: disable=pointless-statement    
     a.edges[0]
+    # pylint: disable=pointless-statement    
     a.edges
+    # pylint: disable=pointless-statement    
     a.signature
+    # pylint: disable=pointless-statement    
     a.shape
+    # pylint: disable=pointless-statement    
     a.axis_names
 
 def test_split_node(backend):
@@ -1395,8 +1415,13 @@ def test_disable_node(backend):
   a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
   a.disable()
   with pytest.raises(ValueError):
+    # pylint: disable=pointless-statement    
     a.edges[0]
+    # pylint: disable=pointless-statement    
     a.edges
+    # pylint: disable=pointless-statement    
     a.signature
+    # pylint: disable=pointless-statement    
     a.shape
+    # pylint: disable=pointless-statement    
     a.axis_names
