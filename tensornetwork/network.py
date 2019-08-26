@@ -263,6 +263,7 @@ class TensorNetwork:
     node_edges = edge.node1.edges[:]
     node_edges.pop(axes[0])
     node_edges.pop(axes[1] - 1)
+    
     seen_edges = set()
     for tmp_edge in node_edges:
       if tmp_edge in seen_edges:
@@ -284,8 +285,10 @@ class TensorNetwork:
     # Update edges for the new node.
     for i, e in enumerate(node_edges):
       new_node.add_edge(e, i)
+    node = edge.node1
     self.nodes_set.remove(edge.node1)
-
+    node.disable()
+    
   def _remove_edges(self, edges: Set[network_components.Edge],
                     node1: network_components.BaseNode,
                     node2: network_components.BaseNode,
