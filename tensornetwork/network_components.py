@@ -46,7 +46,10 @@ class BaseNode(ABC):
   an arbitrary dimension.
   """
 
-  def __init__(self, name: Text, axis_names: List[Text], network: TensorNetwork,
+  def __init__(self,
+               name: Text,
+               axis_names: List[Text],
+               network: TensorNetwork,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node for the TensorNetwork. Should be subclassed before usage
     and a limited number of abstract methods and properties implemented.
@@ -66,7 +69,7 @@ class BaseNode(ABC):
     self._shape = shape
 
     self._edges = [
-      Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
+        Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
@@ -287,8 +290,8 @@ class BaseNode(ABC):
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
     pass
 
-  def __getitem__(self, key: Union[int, Text, slice]
-                 ) -> Union["Edge", List["Edge"]]:
+  def __getitem__(self,
+                  key: Union[int, Text, slice]) -> Union["Edge", List["Edge"]]:
     if isinstance(key, slice):
       return self.edges[key]
     return self.get_edge(key)
@@ -314,31 +317,35 @@ class BaseNode(ABC):
   def edges(self):
     if self.network is None:
       raise ValueError('Node {} has been disabled. '
-                       'Accessing its edges is no longer possible'.format(self.name))
+                       'Accessing its edges is no longer possible'.format(
+                           self.name))
     else:
       return self._edges
-    
+
   @edges.setter
   def edges(self, edges: List):
     if self.network is None:
       raise ValueError('Node {} has been disabled.'
-                       'Assigning edges is no longer possible'.format(self.name))
+                       'Assigning edges is no longer possible'.format(
+                           self.name))
     else:
       self._edges = edges
-      
+
   @property
   def axis_names(self):
     if self.network is None:
       raise ValueError('Node {} has been disabled. '
-                       'Accessing its axis_names is no longer possible'.format(self.name))
+                       'Accessing its axis_names is no longer possible'.format(
+                           self.name))
     else:
       return self._axis_names
-    
+
   @axis_names.setter
   def axis_names(self, axis_names: List[Text]):
     if self.network is None:
       raise ValueError('Node {} has been disabled.'
-                       'Assigning axis_names is no longer possible'.format(self.name))
+                       'Assigning axis_names is no longer possible'.format(
+                           self.name))
     else:
       self._axis_names = axis_names
 
@@ -346,7 +353,8 @@ class BaseNode(ABC):
   def signature(self):
     if self.network is None:
       raise ValueError('Node {} has been disabled.'
-                       'Accessing its signature is no longer possible'.format(self.name))
+                       'Accessing its signature is no longer possible'.format(
+                           self.name))
     else:
       return self._signature
 
@@ -354,13 +362,15 @@ class BaseNode(ABC):
   def signature(self, signature: int):
     if self.network is None:
       raise ValueError('Node {} has been disabled.'
-                       'Accessing its signature is no longer possible'.format(self.name))
+                       'Accessing its signature is no longer possible'.format(
+                           self.name))
     else:
       self._signature = signature
-    
+
   def disable(self):
     self.network = None
-    
+
+
 class Node(BaseNode):
   """Node for the TensorNetwork graph.
 
@@ -434,8 +444,7 @@ class CopyNode(BaseNode):
     self.dtype = dtype
     self._tensor = None
 
-    super().__init__(name, axis_names, network,
-                     shape=(dimension,) * rank)
+    super().__init__(name, axis_names, network, shape=(dimension,) * rank)
 
   def get_tensor(self):
     return self.tensor
