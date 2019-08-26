@@ -786,6 +786,73 @@ def test_join_dangling(backend):
   net.connect(a[0], b[0])
   net.check_correct()
 
+def test_split_node_qr_disable(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right = net.split_node_qr(a, left_edges, right_edges)
+  with pytest.raises(ValueError):
+    a.edges[0]
+    a.edges
+    a.signature
+    a.shape
+    a.axis_names
+    
+def test_split_node_rq_disable(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right = net.split_node_rq(a, left_edges, right_edges)
+  with pytest.raises(ValueError):
+    a.edges[0]
+    a.edges
+    a.signature
+    a.shape
+    a.axis_names
+    
+def test_split_node_disable(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  left, right, _ = net.split_node(a, left_edges, right_edges)
+  with pytest.raises(ValueError):
+    a.edges[0]
+    a.edges
+    a.signature
+    a.shape
+    a.axis_names
+    
+def test_split_node_full_svd_disable(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  left_edges = []
+  for i in range(3):
+    left_edges.append(a[i])
+  right_edges = []
+  for i in range(3, 5):
+    right_edges.append(a[i])
+  _, _, _, _ = net.split_node_full_svd(a, left_edges, right_edges)
+  with pytest.raises(ValueError):
+    a.edges[0]
+    a.edges
+    a.signature
+    a.shape
+    a.axis_names
 
 def test_split_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -800,7 +867,6 @@ def test_split_node(backend):
   net.check_correct()
   np.testing.assert_allclose(left.tensor, np.zeros((2, 3, 4, 24)))
   np.testing.assert_allclose(right.tensor, np.zeros((24, 5, 6)))
-
 
 def test_split_node_mixed_order(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
