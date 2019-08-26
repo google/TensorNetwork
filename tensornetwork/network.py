@@ -285,7 +285,7 @@ class TensorNetwork:
     # Update edges for the new node.
     for i, e in enumerate(node_edges):
       new_node.add_edge(e, i)
-    node = edge.node1
+    node = edge.node1 #keep reference to edge.node1 for disabling 
     self.nodes_set.remove(edge.node1)
     node.disable()
     
