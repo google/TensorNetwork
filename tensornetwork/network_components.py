@@ -340,7 +340,7 @@ class BaseNode(ABC):
   @axis_names.setter
   def axis_names(self, axis_names: List[Text]):
     if self.network is None:
-      raise ValueError('Node {} has been disabled.'
+      raise ValueError('Node {} has been disabled. '
                        'Assigning axis_names is no longer possible'.format(
                            self.name))
     self._axis_names = axis_names
@@ -348,7 +348,7 @@ class BaseNode(ABC):
   @property
   def signature(self):
     if self.network is None:
-      raise ValueError('Node {} has been disabled.'
+      raise ValueError('Node {} has been disabled. '
                        'Accessing its signature is no longer possible'.format(
                            self.name))
     return self._signature
@@ -356,15 +356,16 @@ class BaseNode(ABC):
   @signature.setter
   def signature(self, signature: int):
     if self.network is None:
-      raise ValueError('Node {} has been disabled.'
+      raise ValueError('Node {} has been disabled. '
                        'Assigning a signature is no longer possible'.format(
                            self.name))
     self._signature = signature
 
   def disable(self):
     if self in self.network.nodes_set:
-      raise ValueError('Node {} is still part of a network.'
-                       'Disabelling is is not allowed'.format(self.name))
+      raise ValueError(
+          'Node {} is part of a network. Disabelling not allowed'.format(
+              self.name))
     self.network = None
 
 
