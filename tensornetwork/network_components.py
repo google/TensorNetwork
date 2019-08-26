@@ -362,6 +362,9 @@ class BaseNode(ABC):
     self._signature = signature
 
   def disable(self):
+    if self in self.network.nodes_set:
+      raise ValueError('Node {} is still part of a network.'
+                       'Disabelling is is not allowed'.format(self.name))
     self.network = None
 
 
