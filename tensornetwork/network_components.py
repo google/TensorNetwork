@@ -410,9 +410,8 @@ class Node(BaseNode):
   def shape(self):
     if self.network is not None:
       return self.network.backend.shape_tuple(self._tensor)
-    else:
-      raise ValueError('Node {} has been disabled. '
-                       'Access its shape via self.tensor'.format(self.name))
+    raise ValueError('Node {} has been disabled. '
+                     'Access its shape via self.tensor'.format(self.name))
 
   @property
   def tensor(self) -> Tensor:
