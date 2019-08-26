@@ -939,6 +939,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()
     return left_node, right_node, trun_vals
 
   def split_node_qr(
@@ -991,6 +992,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()    
     return left_node, right_node
 
   def split_node_rq(
@@ -1043,6 +1045,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()    
     return left_node, right_node
 
   def split_node_full_svd(
@@ -1134,6 +1137,7 @@ class TensorNetwork:
     self.connect(left_node[-1], singular_values_node[0], name=left_edge_name)
     self.connect(singular_values_node[1], right_node[0], name=right_edge_name)
     self.nodes_set.remove(node)
+    node.disable()    
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
