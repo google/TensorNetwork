@@ -362,7 +362,7 @@ class BaseNode(ABC):
   def signature(self, signature: int):
     if self.network is None:
       raise ValueError('Node {} has been disabled.'
-                       'Accessing its signature is no longer possible'.format(
+                       'Assigning a signature is no longer possible'.format(
                            self.name))
     else:
       self._signature = signature
