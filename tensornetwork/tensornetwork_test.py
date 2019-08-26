@@ -1322,3 +1322,16 @@ def test_split_node_qr(backend):
   left, _ = net.split_node_qr(a, left_edges, right_edges)
   net.check_correct()
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+
+
+def test_disable_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
+  a.disable()
+  with pytest.raises(ValueError):
+    a.edges[0]
+    a.edges
+    a.signature
+    a.shape
+    a.axis_names
+  
