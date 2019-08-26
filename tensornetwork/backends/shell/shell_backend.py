@@ -107,7 +107,8 @@ class ShellBackend(base_backend.BaseBackend):
     return tensor.shape
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor):
-    return tensor1 * tensor2
+    # one tensor is assumed scalar, shapes concatenated yields larger tensor shape
+    return tensor1.shape + tensor2.shape
 
   def prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!

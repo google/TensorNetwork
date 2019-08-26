@@ -95,6 +95,13 @@ def test_shape_tuple():
   sh_result = shell_backend.ShellBackend().shape_tuple(tensor)
   assert np_result == sh_result
 
+def test_multiply():
+  backend = shell_backend.ShellBackend()
+  a = backend.convert_to_tensor(np.ones([1, 2, 3, 4]))
+  scalar = backend.convert_to_tensor(2 * np.ones(()))
+  actual = backend.multiply(scalar, a)
+  assert actual == (1, 2, 3, 4)
+
 
 def test_prod():
   result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))

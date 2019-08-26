@@ -56,6 +56,13 @@ def test_shape_tuple():
   actual = backend.shape_tuple(a)
   assert actual == (2, 3, 4)
 
+def test_multiply():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.convert_to_tensor(np.ones([1, 2, 3, 4]))
+  scalar = backend.convert_to_tensor(2 * np.ones(()))
+  actual = backend.multiply(scalar, a)
+  np.testing.assert_allclose(np.array(actual),2. * np.ones([1, 2, 3, 4]))
+
 
 def test_prod():
   backend = pytorch_backend.PyTorchBackend()
