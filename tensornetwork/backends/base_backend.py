@@ -209,7 +209,8 @@ class BaseBackend:
         self.name))
 
   def eye(self,
-          dim: Union[int, 'ShapeType'],
+          N: Union[int, 'ShapeType'],
+          M: Optional[Union[int, 'ShapeType']] = None,
           dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
@@ -224,7 +225,7 @@ class BaseBackend:
         self.name))
 
   def ones(self,
-           dim: Union[int, 'ShapeType'],
+           shape: Tuple[Union[int, 'ShapeType']],                       
            dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
@@ -239,7 +240,7 @@ class BaseBackend:
         self.name))
 
   def zeros(self,
-            dim: Union[int, 'ShapeType'],
+            shape: Tuple[Union[int, 'ShapeType']],
             dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a zeros-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
@@ -254,7 +255,7 @@ class BaseBackend:
         self.name))
 
   def randn(self,
-            dim: Union[int, 'ShapeType'],
+            shape: Tuple[Union[int, 'ShapeType']],            
             dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
@@ -267,3 +268,14 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
+  def conj(self, tensor: Tensor) -> Tensor:
+    """ 
+    Return the complex conjugate of `tensor`
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError("Backend '{}' has not implemented conj.".format(
+        self.name))
+    
