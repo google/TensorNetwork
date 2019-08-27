@@ -181,20 +181,23 @@ class ShellBackend(base_backend.BaseBackend):
                      "in input.")
   def norm(self, tensor: Tensor) -> Tensor:
     return ShellTensor(())
-
-  def eye(self, N: Union[int, 'ShapeType'], M: Optional[Union[int, 'ShapeType']]
-          dtype: Optional['dtype']='dtype') -> Tensor:                           
-    return ShellTensor((dim, dim))
+  
+  def eye(self, N: Union[int, 'ShapeType'], M: Optional[Union[int, 'ShapeType']] = None,
+          dtype: Optional['dtype']='dtype') -> Tensor:
+    if not M:
+      M = N
+    return ShellTensor((N, M))
   
   def ones(self, shape: Tuple[Union[int, 'ShapeType']],
-           dtype: Optional['dtype']='dtype') -> Tensor:                       
-    return ShellTensor((dim, dim))
+           dtype: Optional['dtype']='dtype') -> Tensor:
+    return ShellTensor(shape)    
   
   def zeros(self, shape: Tuple[Union[int, 'ShapeType']],
-            dtype: Optional['dtype']='dtype') -> Tensor:            
-    return ShellTensor((dim, dim))
+            dtype: Optional['dtype']='dtype') -> Tensor:
+    return ShellTensor(shape)    
   
   def randn(self, shape: Tuple[Union[int, 'ShapeType']],
             dtype: Optional['dtype']='dtype') -> Tensor:
-    return ShellTensor((dim, dim))    
+    return ShellTensor(shape)        
+
   
