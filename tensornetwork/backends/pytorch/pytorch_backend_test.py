@@ -116,3 +116,54 @@ def test_norm():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(np.ones((2, 2)))
   assert backend.norm(a) == 2
+
+def test_eye():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.eye(4)
+  np.testing.assert_allclose(np.eye(4), a)
+
+
+def test_ones():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.ones(4)
+  np.testing.assert_allclose(np.ones((4, 4)), a)
+
+
+def test_zeros():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.zeros(4)
+  np.testing.assert_allclose(np.zeros((4, 4)), a)
+
+
+def test_randn():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.randn(4)
+  assert a.shape == (4, 4)
+
+
+def test_eye_dtype():
+  backend = pytorch_backend.PyTorchBackend()
+  dtype = torch.float32
+  a = backend.eye(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_ones_dtype():
+  backend = pytorch_backend.PyTorchBackend()
+  dtype = torch.float32
+  a = backend.ones(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_zeros_dtype():
+  backend = pytorch_backend.PyTorchBackend()
+  dtype = torch.float32
+  a = backend.zeros(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_randn_dtype():
+  backend = pytorch_backend.PyTorchBackend()
+  dtype = torch.float32
+  a = backend.randn(4, dtype=dtype)
+  assert a.dtype == dtype
