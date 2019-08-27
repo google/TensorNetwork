@@ -20,6 +20,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 from jax.config import config
+import h5py
 
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
@@ -1324,26 +1325,105 @@ def test_split_node_qr(backend):
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
 
 
-def test_create_file(tmp_path):
-  net = tensornetwork.TensorNetwork(backend="numpy")
+def test_save_makes_hdf5_file(tmp_path, backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
   b = net.add_node(np.ones((2, 2, 2)))
-  e1 = net.connect(a[0], b[0])
-  e2 = net.connect(b[1], a[1])
-  e3 = net.connect(a[2], b[2])
-
+  net.connect(a[0], b[0])
   p = tmp_path / "network"
   net.save(p)
+  assert p.exists()
 
-  net2 = tensornetwork.TensorNetwork.load(p)
-  nodes_1 = list(net.nodes_set)
-  nodes_2 = list(net2.nodes_set)
 
-  assert set([node.name for node in nodes_1]) == set([node.name for node in nodes_2])
+def test_save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)), name="node_a",
+                   axis_names=["e1", "e2", "e3"])
+  b = net.add_node(np.ones((2, 2, 2)), name="node_b",
+                   axis_names=["f1", "f2", "f3"])
+  e1 = net.connect(a[0], b[0])
+  e1.name = "edge_ab"
+  p = tmp_path / "network"
+  net.save(p)
+  with h5py.File(p, 'r') as net_file:
+    assert set(list(net_file.keys())) == {"backend", "nodes", "edges"}
+    assert set(list(net_file['nodes'])) == {"node_a", "node_b"}
+    assert set(list(net_file['edges'])) == {"edge_ab", "e2", "e3", "f2", "f3"}
+    assert set(list(net_file['nodes/'])) == {"node_a", "node_b"}
+    assert set(list(net_file['nodes/node_a'])) == {'shape', 'signature',
+                                                   'name', 'edges',
+                                                   'axis_names', 'tensor'}
+    assert set(list(net_file['edges/edge_ab'])) == {'axis1', 'axis2',
+                                                    'name', 'node1',
+                                                    'node2', 'signature'}
+    assert set(list(net_file['edges/e2'])) == {'axis1', 'name',
+                                               'node1', 'signature'}
 
-  for e in net.get_all_edges():
-      x = net.contract(e)
 
-  for e in net2.get_all_edges():
-      x2 = net2.contract(e)
-  assert x.tensor==x2.tensor
+def test_save_and_load_returns_same_network(tmp_path, backend):
+  saved_net = tensornetwork.TensorNetwork(backend=backend)
+  a = saved_net.add_node(np.ones((2, 2, 2)), name="node_a",
+                         axis_names=["e1", "e2", "e3"])
+  b = saved_net.add_node(2*np.ones((2, 2, 2)), name="node_b",
+                         axis_names=["f1", "f2", "f3"])
+  e1 = saved_net.connect(a[0], b[0])
+  e1.name = "edge_ab"
+
+  p = tmp_path / "network"
+  saved_net.save(p)
+
+  loaded_net = tensornetwork.load(p)
+  saved_nodes = list(saved_net.nodes_set)
+  loaded_nodes = list(loaded_net.nodes_set)
+  assert len(loaded_nodes) == len(saved_nodes)
+  assert set(node.name for node in saved_nodes) == set(node.name for
+                                                       node in loaded_nodes)
+
+  saved_edges = saved_net.get_all_edges()
+  loaded_edges = loaded_net.get_all_edges()
+  assert len(loaded_edges) == len(saved_edges)
+  assert set(edge.name for edge in saved_edges) == set(edge.name for
+                                                       edge in loaded_edges)
+
+  saved_node_a = [node for node in saved_nodes if node.name == "node_a"][0]
+  loaded_node_a = [node for node in saved_nodes if node.name == "node_a"][0]
+  np.testing.assert_allclose(saved_node_a.tensor, loaded_node_a.tensor)
+  assert saved_node_a.axis_names == loaded_node_a.axis_names
+  assert saved_node_a.signature == loaded_node_a.signature
+
+  saved_node_b = [node for node in saved_nodes if node.name == "node_b"][0]
+  loaded_node_b = [node for node in saved_nodes if node.name == "node_b"][0]
+  np.testing.assert_allclose(saved_node_b.tensor, loaded_node_b.tensor)
+  assert saved_node_b.axis_names == loaded_node_b.axis_names
+  assert saved_node_b.signature == loaded_node_b.signature
+
+  saved_edge_ab = [edge for edge in saved_edges if edge.name == "edge_ab"][0]
+  loaded_edge_ab = [edge for edge in loaded_edges if edge.name == "edge_ab"][0]
+  assert saved_edge_ab.node1.name == loaded_edge_ab.node1.name
+  assert saved_edge_ab.node2.name == loaded_edge_ab.node2.name
+  assert saved_edge_ab.signature == loaded_edge_ab.signature
+
+  saved_edge_e2 = [edge for edge in saved_edges if edge.name == "e2"][0]
+  loaded_edge_e2 = [edge for edge in loaded_edges if edge.name == "e2"][0]
+  assert saved_edge_e2.node1.name == loaded_edge_e2.node1.name
+  assert saved_edge_e2.node2 == loaded_edge_e2.node2
+  assert saved_edge_e2.signature == loaded_edge_e2.signature
+
+
+def test_save_and_load_contract_to_same_number(tmp_path, backend):
+  saved_net = tensornetwork.TensorNetwork(backend=backend)
+  a = saved_net.add_node(np.ones((2, 2, 2)))
+  b = saved_net.add_node(2*np.ones((2, 2, 2)))
+  saved_net.connect(a[0], b[0])
+  saved_net.connect(b[1], a[1])
+  saved_net.connect(a[2], b[2])
+  p = tmp_path / "network"
+  saved_net.save(p)
+  loaded_net = tensornetwork.load(p)
+
+  saved_net.contract_between(a, b)
+
+  loaded_nodes = list(loaded_net.nodes_set)
+  loaded_net.contract_between(loaded_nodes[0], loaded_nodes[1])
+  np.testing.assert_allclose(saved_net.get_final_node().tensor,
+                             loaded_net.get_final_node().tensor)
