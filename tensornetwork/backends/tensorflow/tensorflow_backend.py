@@ -96,9 +96,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def norm(self,
            tensor: Tensor,
-           ord: Optional[Text] = 'euclidean',
+           p: Optional[Text] = 'euclidean',
            axis: Optional[Union[int, Tuple]] = None,
            keepdims: Optional[bool] = False,
            name: Optional[Text] = None) -> Tensor:
     return self.tf.linalg.norm(
-        tensor, ord=ord, axis=axis, keepdims=keepdims, name=name)
+        tensor, ord=p, axis=axis, keepdims=keepdims, name=name)
