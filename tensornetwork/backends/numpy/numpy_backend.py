@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Union
 from tensornetwork.backends import base_backend
 
 Tensor = Any
@@ -64,7 +64,7 @@ class NumPyBackend(base_backend.BaseBackend):
                        tensor: Tensor,
                        split_axis: int,
                        ) -> Tuple[Tensor, Tensor]:
-    return self.decompositions.rq_decomposition(self.np, tensor, split_axis)
+    return self.decompositions.qrq_decomposition(self.np, tensor, split_axis)
   
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
@@ -102,3 +102,9 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.np.einsum(expression, *tensors)
+  
+  def norm(self,
+           tensor: Tensor,
+           axis: Optional[Union[int, Tuple]] = None,
+           keepdims: Optional[bool] = False) -> Tensor:
+    return self.np.linalg.norm(tensor, ord=None, axis=axis, keepdims=keepdims)
