@@ -94,11 +94,5 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.tf.einsum(expression, *tensors)
 
-  def norm(self,
-           tensor: Tensor,
-           p: Optional[Text] = 'euclidean',
-           axis: Optional[Union[int, Tuple]] = None,
-           keepdims: Optional[bool] = False,
-           name: Optional[Text] = None) -> Tensor:
-    return self.tf.linalg.norm(
-        tensor, ord=p, axis=axis, keepdims=keepdims, name=name)
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.tf.linalg.norm(tensor)
