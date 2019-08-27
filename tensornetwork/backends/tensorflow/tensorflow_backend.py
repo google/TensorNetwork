@@ -96,15 +96,24 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def norm(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.norm(tensor)
-  
-  def eye(self, N: int, M: Optional[int]=None, dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+
+  def eye(self,
+          N: int,
+          M: Optional[int] = None,
+          dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
-  
-  def ones(self, shape: Tuple[int], dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+
+  def ones(self,
+           shape: Tuple[int],
+           dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
     return self.tf.ones(shape=shape, dtype=dtype)
-  
-  def zeros(self, shape: Tuple[int], dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+
+  def zeros(self,
+            shape: Tuple[int],
+            dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
     return self.tf.zeros(shape, dtype=dtype)
-  
-  def randn(self, shape: Tuple[int], dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+
+  def randn(self,
+            shape: Tuple[int],
+            dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
     return self.tf.random_normal(shape=shape, dtype=dtype)
