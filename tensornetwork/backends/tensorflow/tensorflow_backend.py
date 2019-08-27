@@ -120,4 +120,3 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def conj(tensor: Tensor) -> Tensor:
     return self.tf.conj(tensor)
-  

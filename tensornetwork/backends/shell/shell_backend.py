@@ -205,6 +205,6 @@ class ShellBackend(base_backend.BaseBackend):
             shape: Tuple[Union[int, 'ShapeType']],
             dtype: Optional['dtype'] = 'dtype') -> Tensor:
     return ShellTensor(shape)
-  
+
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
