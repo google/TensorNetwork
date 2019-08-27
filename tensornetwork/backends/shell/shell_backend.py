@@ -179,3 +179,5 @@ class ShellBackend(base_backend.BaseBackend):
         return tensors[i].shape[ind]
     raise ValueError("Einsum output expression contains letters not given"
                      "in input.")
+  def norm(self, tensor: Tensor) -> Tensor:
+    return ShellTensor([1])
