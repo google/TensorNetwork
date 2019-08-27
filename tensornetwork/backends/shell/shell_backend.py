@@ -19,7 +19,7 @@ from __future__ import print_function
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List, Any
+from typing import Optional, Sequence, Tuple, List, Any, Union
 
 
 class ShellTensor:
@@ -184,17 +184,18 @@ class ShellBackend(base_backend.BaseBackend):
 
 
   def eye(self, dim: Union[int, 'ShapeType'],
-          dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+          dtype: Optional['dtype']='dtype') -> Tensor:                           
     return ShellTensor((dim, dim))
+  
   def ones(self, dim: Union[int, 'ShapeType'],
-           dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+           dtype: Optional['dtype']='dtype') -> Tensor:                       
     return ShellTensor((dim, dim))
   
   def zeros(self, dim: Union[int, 'ShapeType'],
-            dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+            dtype: Optional['dtype']='dtype') -> Tensor:            
     return ShellTensor((dim, dim))
   
   def randn(self, dim: Union[int, 'ShapeType'],
-            dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+            dtype: Optional['dtype']='dtype') -> Tensor:
     return ShellTensor((dim, dim))    
   
