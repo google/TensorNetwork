@@ -201,3 +201,9 @@ class BaseBackend:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
+  def norm(self, tensor: Tensor) -> Tensor:
+    """Calculate the L2-norm of the elements of `tensor`    
+    """
+    raise NotImplementedError("Backend '{}' has not implemented norm.".format(
+        self.name))
+    

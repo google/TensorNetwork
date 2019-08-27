@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Text, Union
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 
@@ -53,21 +53,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int
-                      ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
-  
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int
-                      ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.tf, tensor, split_axis)
+    return decompositions.svd_decomposition(
+        self.tf, tensor, split_axis, max_singular_values, max_truncation_error)
 
+  def qr_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
+
+  def rq_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
@@ -98,3 +93,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.tf.einsum(expression, *tensors)
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.tf.linalg.norm(tensor)

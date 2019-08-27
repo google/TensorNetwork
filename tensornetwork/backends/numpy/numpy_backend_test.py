@@ -123,3 +123,9 @@ def test_convert_bad_test():
   backend = numpy_backend.NumPyBackend()
   with pytest.raises(ValueError):
     backend.convert_to_tensor(tf.ones((2, 2)))
+
+
+def test_norm():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.convert_to_tensor(np.ones((2, 2)))
+  assert backend.norm(a) == 2

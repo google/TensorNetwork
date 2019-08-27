@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Union, List, Text
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -54,16 +54,19 @@ class PyTorchBackend(base_backend.BaseBackend):
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.qr_decomposition(self.torch, tensor, split_axis)
-  
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
@@ -95,3 +98,6 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.torch.einsum(expression, *tensors)
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.torch.norm(tensor)
