@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Text, Union
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 
@@ -98,3 +98,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.tf.einsum(expression, *tensors)
+  
+  def norm(self,
+           tensor: Tensor,
+           ord: Optional[Text] = 'euclidean',
+           axis: Optional[Union[int, Tuple]] = None,
+           keepdims: Optional[bool] = False,
+           name: Optional[Text] = None) -> Tensor:
+    return self.tf.linalg.norm(tensor, ord=ord, axis=axis, keepdims=keepdims, name=name)
