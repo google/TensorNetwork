@@ -201,14 +201,16 @@ class BaseBackend:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
+
   def norm(self, tensor: Tensor) -> Tensor:
     """Calculate the L2-norm of the elements of `tensor`    
     """
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
-  
-  def eye(self, dim: Union[int, 'ShapeType'],
-          dtype: Optional['dtype']='dtype') -> Tensor:
+
+  def eye(self,
+          dim: Union[int, 'ShapeType'],
+          dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
        tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
@@ -220,9 +222,10 @@ class BaseBackend:
     #TODO: implement `ShapeType` objects
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
-  
-  def ones(self, dim: Union[int, 'ShapeType'],
-          dtype: Optional['dtype']='dtype') -> Tensor:           
+
+  def ones(self,
+           dim: Union[int, 'ShapeType'],
+           dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
        tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
@@ -234,9 +237,10 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
-  
-  def zeros(self, dim: Union[int, 'ShapeType'],
-            dtype: Optional['dtype']='dtype') -> Tensor:                       
+
+  def zeros(self,
+            dim: Union[int, 'ShapeType'],
+            dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a zeros-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
        tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
@@ -248,9 +252,10 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
-  
-  def randn(self, dim: Union[int, 'ShapeType'],
-            dtype: Optional['dtype']='dtype') -> Tensor:                                   
+
+  def randn(self,
+            dim: Union[int, 'ShapeType'],
+            dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int (numpy, torch,
        tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
@@ -262,4 +267,3 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
-    
