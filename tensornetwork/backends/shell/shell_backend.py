@@ -181,3 +181,20 @@ class ShellBackend(base_backend.BaseBackend):
                      "in input.")
   def norm(self, tensor: Tensor) -> Tensor:
     return ShellTensor((1,))
+
+
+  def eye(self, dim: Union[int, 'ShapeType'],
+          dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return ShellTensor((dim, dim))
+  def ones(self, dim: Union[int, 'ShapeType'],
+           dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return ShellTensor((dim, dim))
+  
+  def zeros(self, dim: Union[int, 'ShapeType'],
+            dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return ShellTensor((dim, dim))
+  
+  def randn(self, dim: Union[int, 'ShapeType'],
+            dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return ShellTensor((dim, dim))    
+  
