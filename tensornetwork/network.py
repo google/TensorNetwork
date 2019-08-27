@@ -1199,7 +1199,12 @@ class TensorNetwork:
     if check_connected:
       self.check_connected()
 
-  def save(self, path):
+  def save(self, path: str):
+    """Serialize the network to disk in hdf5 format.
+
+    Args:
+      path: path to folder where network is saved.
+    """
     with h5py.File(path, 'w') as net_file:
       net_file.create_dataset('backend', data=self.backend.name)
       nodes_group = net_file.create_group('nodes')
@@ -1214,26 +1219,10 @@ class TensorNetwork:
             edge_group = edges_group.create_group(edge.name)
             self._save_edge(edge, edge_group)
 
-  @classmethod
-  def load(cls, path):
-    with h5py.File(path, 'r') as net_file:
-      net = cls(backend=net_file["backend"][()])
-      nodes = list(net_file["nodes"].keys())
-      edges = list(net_file["edges"].keys())
-      nodes_dict = {}
-
-      for node in nodes:
-        node_data = net_file["nodes/" + node]
-        cls._load_node(net, node_data, nodes_dict)
-
-      for edge in edges:
-        edge_data = net_file["edges/" + edge]
-        cls._load_edge(net, edge_data, nodes_dict)
-    return net
-
   @staticmethod
-  def _save_node(node, node_group):
-    node_group.create_dataset('tensor', data=node._tensor)
+  def _save_node(node: network_components.BaseNode, node_group: h5py.Group):
+    if hasattr(node, '_tensor'):
+      node_group.create_dataset('tensor', data=node._tensor)
     node_group.create_dataset('signature', data=node.signature)
     node_group.create_dataset('name', data=node.name)
     node_group.create_dataset('shape', data=node.shape)
@@ -1243,39 +1232,14 @@ class TensorNetwork:
                               dtype=string_type)
 
   @staticmethod
-  def _save_edge(edge, edge_group):
+  def _save_edge(edge: network_components.Edge, edge_group: h5py.Group):
     edge_group.create_dataset('node1', data=edge.node1.name)
-    edge_group.create_dataset('node2', data=edge.node2.name)
     edge_group.create_dataset('axis1', data=edge.axis1)
-    edge_group.create_dataset('axis2', data=edge.axis2)
+    if edge.node2 is not None:
+      edge_group.create_dataset('node2', data=edge.node2.name)
+      edge_group.create_dataset('axis2', data=edge.axis2)
     edge_group.create_dataset('signature', data=edge.signature)
     edge_group.create_dataset('name', data=edge.name)
-
-  @classmethod
-  def _load_node(cls, net, node_data, nodes_dict):
-    name = node_data['name'][()]
-    tensor = node_data['tensor'][()]
-    signature = node_data['signature'][()]
-    shape = node_data['shape'][()]
-    axis_names = node_data['axis_names'][()]
-
-    node = net.add_node(tensor=tensor, name=name, axis_names=[ax for ax in axis_names])
-    node.set_signature(signature)
-    node._shape = shape
-    nodes_dict[name] = node
-
-  @classmethod
-  def _load_edge(cls, net, edge_data, nodes_dict):
-    node1 = nodes_dict[edge_data["node1"][()]]
-    node2 = nodes_dict[edge_data["node2"][()]]
-    axis1 = int(edge_data["axis1"][()])
-    axis2 = int(edge_data["axis2"][()])
-    signature = edge_data["signature"][()]
-    name = edge_data["name"][()]
-    edge = network_components.Edge(node1=node1, axis1=axis1, node2=node2, axis2=axis2, name=name)
-    edge.set_signature(signature)
-    node1.add_edge(edge, axis1)
-    node2.add_edge(edge, axis2)
 
   def __contains__(self, item):
     if isinstance(item, network_components.Edge):
@@ -1302,3 +1266,62 @@ class TensorNetwork:
       raise TypeError("Type '{}' was unexpected. "
                       "Only 'None' and 'Edge' types are allowed.".format(
                           type(item)))
+
+
+def load(path: str):
+  """Load the network from disk.
+
+  Args:
+    path: path to folder where network is saved.
+  """
+  with h5py.File(path, 'r') as net_file:
+    net = TensorNetwork(backend=net_file["backend"][()])
+    nodes = list(net_file["nodes"].keys())
+    edges = list(net_file["edges"].keys())
+    nodes_dict = {}
+
+    for node in nodes:
+      node_data = net_file["nodes/" + node]
+      _load_node(net, node_data, nodes_dict)
+
+    for edge in edges:
+      edge_data = net_file["edges/" + edge]
+      _load_edge(edge_data, nodes_dict)
+  return net
+
+
+def _load_node(net: TensorNetwork, node_data: h5py.Group,
+               nodes_dict: Dict[Text, network_components.BaseNode]):
+  name = node_data['name'][()]
+  if "tensor" in list(node_data.keys()):
+    tensor = node_data['tensor'][()]
+  signature = node_data['signature'][()]
+  shape = node_data['shape'][()]
+  axis_names = node_data['axis_names'][()]
+
+  node = net.add_node(tensor=tensor, name=name,
+                      axis_names=[ax for ax in axis_names])
+  node.set_signature(signature)
+  node._shape = shape
+  nodes_dict[name] = node
+
+
+def _load_edge(edge_data: h5py.Group,
+               nodes_dict: Dict[Text, network_components.BaseNode]):
+  node1 = nodes_dict[edge_data["node1"][()]]
+  axis1 = int(edge_data["axis1"][()])
+  if "node2" in list(edge_data.keys()):
+    node2 = nodes_dict[edge_data["node2"][()]]
+    axis2 = int(edge_data["axis2"][()])
+  else:
+    node2 = None
+    axis2 = None
+  signature = edge_data["signature"][()]
+  name = edge_data["name"][()]
+  edge = network_components.Edge(node1=node1, axis1=axis1,
+                                 node2=node2, axis2=axis2, name=name)
+  node1.add_edge(edge, axis1)
+  if node2 is not None:
+    node2.add_edge(edge, axis2)
+  if not edge.is_dangling():
+    edge.set_signature(signature)
