@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensornetwork.backends.tensorflow import tensorflow_backend
-
+tf.compat.v1.enable_v2_behavior()
 
 def test_tensordot():
   backend = tensorflow_backend.TensorFlowBackend()
@@ -113,3 +113,8 @@ def test_einsum():
   actual = backend.einsum('ij,jil->l', a, b)
   expected = np.array([4.0, 4.0])
   np.testing.assert_allclose(expected, actual)
+  
+def test_norm():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(np.ones((2,2)))
+  assert backend.norm(a).numpy() == 2
