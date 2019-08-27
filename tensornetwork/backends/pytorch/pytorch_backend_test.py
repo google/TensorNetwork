@@ -117,6 +117,7 @@ def test_norm():
   a = backend.convert_to_tensor(np.ones((2, 2)))
   assert backend.norm(a) == 2
 
+
 def test_eye():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.eye(4)
