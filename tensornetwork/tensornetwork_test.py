@@ -1645,7 +1645,7 @@ def test_network_copy(backend):
   # pylint: disable=pointless-statement
   b[2] ^ c[0]
 
-  net_copy, node_dict, edge_dict = net.copy()
+  net_copy, node_dict, _ = net.copy()
   net_copy.check_correct()
 
   res = a @ b @ c
@@ -1685,7 +1685,7 @@ def test_network_copy_names(backend):
   a[0] ^ b[1]
   # pylint: disable=pointless-statement
   b[2] ^ c[0]
-  net_copy, node_dict, edge_dict = net.copy()
+  _, node_dict, edge_dict = net.copy()
   for node in net.nodes_set:
     assert node_dict[node].name == node.name
   for edge in net.get_all_edges():
@@ -1701,7 +1701,7 @@ def test_network_copy_identities(backend):
   a[0] ^ b[1]
   # pylint: disable=pointless-statement
   b[2] ^ c[0]
-  net_copy, node_dict, edge_dict = net.copy()
+  _, node_dict, edge_dict = net.copy()
   for node in net.nodes_set:
     assert not node_dict[node] is node
   for edge in net.get_all_edges():
