@@ -68,26 +68,22 @@ class FiniteMPS(tensornetwork.TensorNetwork):
             self.center_position = site
         return Z
 
-    def transfer_operator(self, direction, tensor):
-        raise NotImplementedError()
-        
-    def unitcell_transfer_operator(self, direction, tensor):
-        net =  self.copy()
-        net.add_subnetwork(net.copy())
-        net.add_node()
-        raise NotImplementedError()
-        
-    def TMeigs(self, direction):
-        raise NotImplementedError()
 
-    def canonicalize(self):
-        raise NotImplementedError()
-        
-    def orthonormalize_left(self):
-        raise NotImplementedError()
-        
-    def orthonormalize_right(self):
-        raise NotImplementedError()
+    def get_envs_left(sites: List[int]):
+        n1 = min(sites)
+        n2 = max(sites)
+        if n1 < self.center_position:
+            left = self.backend.eye(self.nodes[n1].shape[2])
+        self.backend.eye(self.nodes[])
+        env = self._tensors[0].eye(0)#np.ones((1)).view(Tensor)
+        for n in range(site):
+            A = self.get_tensor(n)
+            env = ncon.ncon([env,A, self.eyes[n]],[[1],[1,-1,2],[2]])
+        return env
+
+
+    def get_envs_left():        
+
         
     def __len__(self):
         return len(self.nodes)
