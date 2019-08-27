@@ -104,8 +104,5 @@ class NumPyBackend(base_backend.BaseBackend):
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.np.einsum(expression, *tensors)
 
-  def norm(self,
-           tensor: Tensor,
-           axis: Optional[Union[int, Tuple]] = None,
-           keepdims: Optional[bool] = False) -> Tensor:
-    return self.np.linalg.norm(tensor, ord=None, axis=axis, keepdims=keepdims)
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.np.linalg.norm(tensor)
