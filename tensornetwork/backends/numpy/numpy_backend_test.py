@@ -148,30 +148,30 @@ def test_zeros():
 def test_randn():
   backend = numpy_backend.NumPyBackend()
   a = backend.randn(4)
-  assert a.shape = (4,4)
+  assert a.shape == (4,4)
 
 def test_eye_dtype():
   backend = numpy_backend.NumPyBackend()
   dtype = np.float32
   a = backend.eye(4, dtype=dtype)
-  assert a.dtype = dtype
+  assert a.dtype == dtype
   
 def test_ones_dtype():
   backend = numpy_backend.NumPyBackend()
   dtype = np.float32  
   a = backend.ones(4, dtype=dtype)
-  assert a.dtype = dtype  
+  assert a.dtype == dtype  
   
 def test_zeros_dtype():
   backend = numpy_backend.NumPyBackend()
   dtype = np.float32    
   a = backend.zeros(4, dtype=dtype)
-  assert a.dtype = dtype  
+  assert a.dtype == dtype  
 
 def test_randn_dtype():
   backend = numpy_backend.NumPyBackend()
   dtype = np.float32
   a = backend.randn(4, dtype=np.float32)
-  assert a.dtype = dtype  
+  assert a.dtype == dtype  
   
   
