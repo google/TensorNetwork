@@ -118,6 +118,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
             dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
-  def conj(tensor: Tensor):
+  def conj(tensor: Tensor) -> Tensor:
     return self.tf.conj(tensor)
   
