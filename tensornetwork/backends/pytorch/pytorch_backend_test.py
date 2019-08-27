@@ -110,3 +110,10 @@ def test_outer_product():
   expected = np.array([[[[[2.0, 2.0], [2.0, 2.0]]]], [[[[2.0, 2.0], [2.0,
                                                                      2.0]]]]])
   np.testing.assert_allclose(expected, actual)
+
+def test_norm():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.convert_to_tensor(np.ones((2,2)))
+  assert backend.norm(a) == 2
+
+  
