@@ -120,7 +120,8 @@ def test_norm():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones((2, 2)))
   assert backend.norm(a).numpy() == 2
-  
+
+
 def test_eye():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.eye(4)
@@ -171,4 +172,3 @@ def test_randn_dtype():
   dtype = tf.float32
   a = backend.randn(4, dtype=dtype)
   assert a.dtype == dtype
-  
