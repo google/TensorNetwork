@@ -50,22 +50,23 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                                 max_singular_values,
-                                                 max_truncation_error)
+    return self.decompositions.svd_decomposition(
+        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return self.decompositions.qr_decomposition(self.np, tensor, split_axis)
 
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return self.decompositions.qrq_decomposition(self.np, tensor, split_axis)
-  
+
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
@@ -102,7 +103,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.np.einsum(expression, *tensors)
-  
+
   def norm(self,
            tensor: Tensor,
            axis: Optional[Union[int, Tuple]] = None,

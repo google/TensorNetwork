@@ -54,16 +54,19 @@ class PyTorchBackend(base_backend.BaseBackend):
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.qr_decomposition(self.torch, tensor, split_axis)
-  
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
@@ -95,12 +98,13 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.torch.einsum(expression, *tensors)
+
   def norm(self,
            tensor: Tensor,
-           p: Optional[Union[int,  float, Text]] = 'fro',
-           dim: Optional[Union[int, Tuple,  List]] = None,
+           p: Optional[Union[int, float, Text]] = 'fro',
+           dim: Optional[Union[int, Tuple, List]] = None,
            keepdim: Optional[bool] = False,
            out: Optional[Tensor] = None,
            dtype: Optional["torch.dtype"] = None) -> Tensor:
-    return self.torch.norm(tensor, p=p, dim=dim, keepdim=keepdim, out=out,
-                           dtype=dtype)
+    return self.torch.norm(
+        tensor, p=p, dim=dim, keepdim=keepdim, out=out, dtype=dtype)
