@@ -105,7 +105,7 @@ class TensorNetwork:
 
   def add_node(
       self,
-      tensor: Union[np.ndarray, Tensor],
+      tensor: Union[np.ndarray, Tensor, network_components.BaseNode],
       name: Optional[Text] = None,
       axis_names: Optional[List[Text]] = None) -> network_components.BaseNode:
     """Create a new node in the network.
@@ -122,11 +122,24 @@ class TensorNetwork:
     Raises:
       ValueError: If `name` already exists in the network.
     """
-    tensor = self.backend.convert_to_tensor(tensor)
     name = self._new_node_name(name)
+    given_axis_name = axis_names is None
     if axis_names is None:
-      axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names, self)
+      axis_names = [
+          self._new_edge_name(None) for _ in range(len(tensor.shape))
+      ]
+    if isinstance(tensor, network_components.BaseNode):
+      new_node = tensor
+      if new_node.network is not None:
+        raise ValueError("Given node is already part of a network.")
+      new_node.network = self
+      if new_node.axis_names is None or given_axis_name:
+        new_node.axis_names = axis_names
+      if name is not None:
+        new_node.name = name
+    else:
+      tensor = self.backend.convert_to_tensor(tensor)
+      new_node = network_components.Node(tensor, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
