@@ -107,14 +107,14 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
   
-  def eye(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
-    return self.np.eye(dim, dtype=dtype)
+  def eye(self, N, M: Optional[int]=None, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.eye(N, M=M, dtype=dtype)
   
-  def ones(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
-    return self.np.ones((dim, dim), dtype=dtype)
+  def ones(self, shape: Tuple[int], dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.ones(shape, dtype=dtype)
   
-  def zeros(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
-    return self.np.zeros((dim, dim), dtype=dtype)
+  def zeros(self, shape: Tuple[int], dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.zeros(shape, dtype=dtype)
   
-  def randn(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
-    return self.np.random.randn(dim, dim).astype(dtype)
+  def randn(self, shape: Tuple[int], dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.random.randn(*shape).astype(dtype)
