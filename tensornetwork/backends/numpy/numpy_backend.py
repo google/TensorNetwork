@@ -128,5 +128,5 @@ class NumPyBackend(base_backend.BaseBackend):
             dtype: Optional[numpy.dtype] = numpy.float64) -> Tensor:
     return self.np.random.randn(*shape).astype(dtype)
   
-  def conj(tensor: Tensor):
+  def conj(tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
