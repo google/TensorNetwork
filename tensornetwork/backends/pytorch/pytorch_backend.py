@@ -99,12 +99,5 @@ class PyTorchBackend(base_backend.BaseBackend):
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.torch.einsum(expression, *tensors)
 
-  def norm(self,
-           tensor: Tensor,
-           p: Optional[Union[int, float, Text]] = 'fro',
-           dim: Optional[Union[int, Tuple, List]] = None,
-           keepdim: Optional[bool] = False,
-           out: Optional[Tensor] = None,
-           dtype: Optional["torch.dtype"] = None) -> Tensor:
-    return self.torch.norm(
-        tensor, p=p, dim=dim, keepdim=keepdim, out=out, dtype=dtype)
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.torch.norm(tensor)
