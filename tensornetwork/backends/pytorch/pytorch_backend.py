@@ -103,15 +103,23 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
-    return self.torch.eye(dim, dtype=dtype)
-  
-  def ones(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
-    return self.torch.ones(dim, dim, dtype=dtype)
-  
-  def zeros(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
-    return self.torch.zeros(dim, dim, dtype=dtype)
-  
-  def randn(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
-    return self.torch.randn(dim, dim, dtype=dtype)
-  
+  def eye(self,
+          N: int,
+          M: Optional[int],
+          dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+    return self.torch.eye(n=N, m=M, dtype=dtype)
+
+  def ones(self,
+           shape: Tuple[int],
+           dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+    return self.torch.ones(shape, dtype=dtype)
+
+  def zeros(self,
+            shape: Tuple[int],
+            dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+    return self.torch.zeros(shape, dtype=dtype)
+
+  def randn(self,
+            shape: Tuple[int],
+            dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+    return self.torch.randn(shape, dtype=dtype)
