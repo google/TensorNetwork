@@ -15,41 +15,40 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import tensornetwork 
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 Tensor = Any
 
-class FiniteMPS(tn.TensorNetwork):
+class FiniteMPS(tensornetwork.TensorNetwork):
     """
     An MPS class for finite systems.
     """
     def __init__(self, tensors: List[Tensor], center_position: int,
-                 connector_matrix: Tensor,
                  name: Optional[Text] = None,
-                 backend: Optional[Text] = None) -> FiniteMPS:
+                 backend: Optional[Text] = None):
         
         super().__init__(backend=backend)
-        self.nodes = [self.add_node(tensors[n], name='node{}'.format(n)) \
+        self.nodes = [self.add_node(tensors[n], name='node{}'.format(n)) 
                       for n in range(len(tensors))] #redundant?!
         for site in range(len(self.nodes) - 1):
             self.connect(self.nodes[site][2],self.nodes[site + 1][0])
-        self.connect(self.nodes[-1][2], self.connector_matrix[0])
         self.center_position = center_position
         
     def position(self, site: int, normalize: Optional[bool] = True) -> None:
         if site >= len(self.nodes) or site < 0:
-            raise ValueError('site = {} not within allowed values'
-                             ' 0 < site < {}'.format(site, len(self)))
+            raise ValueError('site = {} not between values'
+                             ' 0 < site < N = {}'.format(site, len(self)))
         if site == self.center_position:
             return 
         elif site > self.center_position:
             n = self.center_position
-            while n != site:
             for n in range(self.center_position, site):
                 Q, R = self.split_node_qr(self.nodes[n], left_edges=[self.nodes[n][0], self.nodes[n][1]], 
                                           right_edges=[self.nodes[n][2]],
                                           left_name=self.nodes[n].name)
+                Z = self.backend.norm(R.tensor)
                 if normalize:
-                    R.tensor /= self.backend.norm(R.tensor)
+                    R.tensor /= Z
                 self.nodes[n] = Q
                 self.nodes[n + 1] = self.contract(R[1], name=self.nodes[n + 1].name)
 
@@ -60,12 +59,14 @@ class FiniteMPS(tn.TensorNetwork):
                 R, Q = self.split_node_rq(self.nodes[n], left_edges=[self.nodes[n][0]], 
                                           right_edges=[self.nodes[n][1], self.nodes[n][2]],
                                           right_name=self.nodes[n].name)
+                Z = self.backend.norm(R.tensor)                
                 if normalize:
-                    R.tensor /= self.backend.norm(R.tensor)
+                    R.tensor /= Z
                 self.nodes[n] = Q
                 self.nodes[n - 1] = self.contract(R[0], name=self.nodes[n - 1].name)
 
             self.center_position = site
+        return Z
 
     def transfer_operator(self, direction, tensor):
         raise NotImplementedError()
