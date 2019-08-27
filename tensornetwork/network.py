@@ -53,16 +53,17 @@ class TensorNetwork:
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
-    return a copy of the TensorNetwork
+    Return a copy of the TensorNetwork.
     Returns:
       A tuple containing:
-        TensorNetwork: a copy of the network
-        node_dict: a dictionary mapping the nodes of the original 
-                   network to the nodes of the copy
-        edge_dict: dictionary mapping the edges of the original 
-                   network to the edges of the copy
+        TensorNetwork: A copy of the network.
+        node_dict: A dictionary mapping the nodes of the original 
+                   network to the nodes of the copy.
+        edge_dict: A dictionary mapping the edges of the original 
+                   network to the edges of the copy.
     """
     new_net = TensorNetwork(backend=self.backend.name)
+    #TODO: add support for copying CopyTensor
     node_dict = {
         node: new_net.add_node(
             node.tensor, name=node.name, axis_names=node.axis_names)
