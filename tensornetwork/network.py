@@ -51,6 +51,44 @@ class TensorNetwork:
       name = "__Node_{}".format(self.node_increment)
     return name
 
+  def copy(self) -> Tuple["TensorNetwork", dict, dict]:
+    """
+    Return a copy of the TensorNetwork.
+    Returns:
+      A tuple containing:
+        TensorNetwork: A copy of the network.
+        node_dict: A dictionary mapping the nodes of the original 
+                   network to the nodes of the copy.
+        edge_dict: A dictionary mapping the edges of the original 
+                   network to the edges of the copy.
+    """
+    new_net = TensorNetwork(backend=self.backend.name)
+    #TODO: add support for copying CopyTensor
+    node_dict = {
+        node: new_net.add_node(
+            node.tensor, name=node.name, axis_names=node.axis_names)
+        for node in self.nodes_set
+    }
+    edge_dict = {}
+    for edge in self.get_all_edges():
+      node1 = edge.node1
+      axis1 = edge.node1.get_axis_number(edge.axis1)
+
+      if not edge.is_dangling():
+        node2 = edge.node2
+        axis2 = edge.node2.get_axis_number(edge.axis2)
+        new_edge = network_components.Edge(edge.name, node_dict[node1], axis1,
+                                           node_dict[node2], axis2)
+        new_edge.set_signature(edge.signature)
+      else:
+        new_edge = network_components.Edge(edge.name, node_dict[node1], axis1)
+
+      node_dict[node1].add_edge(new_edge, axis1)
+      if not edge.is_dangling():
+        node_dict[node2].add_edge(new_edge, axis2)
+      edge_dict[edge] = new_edge
+    return new_net, node_dict, edge_dict
+
   def add_subnetwork(self, subnetwork: "TensorNetwork") -> None:
     """Add a subnetwork to an existing network.
 

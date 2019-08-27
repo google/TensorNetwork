@@ -309,6 +309,11 @@ class BaseNode(ABC):
       raise AttributeError("Please provide a valid tensor for this Node.")
     if not isinstance(other, BaseNode):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
+    if other.network is None:
+      raise ValueError("Cannot use '@' on disabled node {}.".format(other.name))
+    if self.network is None:
+      raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
+    
     if other.network is not self.network:
       raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
