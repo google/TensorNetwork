@@ -72,9 +72,18 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     def get_envs_left(sites: List[int]):
         n1 = min(sites)
         n2 = max(sites)
-        if n1 < self.center_position:
-            left = self.backend.eye(self.nodes[n1].shape[2])
-        self.backend.eye(self.nodes[])
+        if np.all(np.array(sites)<len(self)):
+            raise ValueError('all elements of `sites` have to be < N={}'.format(len(self)))
+        if np.all(np.array(sites)>=0):
+            raise ValueError('all elements of `sites` have to be positive')x
+        
+        for site in range(n1, self.center_position + 1):
+            left_envs[site] = self.backend.eye(N=self.nodes[site].shape[0])
+
+        net = tensornetwork.TensorNetwork(backend=self.backend)
+        for site in range(self.center_position + 1, n2 + 1):
+            net.add_node(self.nodes[site].tensor)
+            net.add_node(self.backend.conj(self.nodes[site].tensor))
         env = self._tensors[0].eye(0)#np.ones((1)).view(Tensor)
         for n in range(site):
             A = self.get_tensor(n)
