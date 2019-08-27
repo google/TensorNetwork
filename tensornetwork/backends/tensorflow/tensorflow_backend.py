@@ -18,7 +18,7 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-
+import tensorflow
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -96,3 +96,15 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def norm(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.norm(tensor)
+  
+  def eye(self, dim: int, dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+    return self.tf.eye(dim, dtype=dtype)
+  
+  def ones(self, dim: int, dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+    return self.tf.ones(shape=(dim, dim), dtype=dtype)
+  
+  def zeros(self, dim: int, dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+    return self.tf.zeros((dim, dim), dtype=dtype)
+  
+  def randn(self, dim: int, dtype: Optional[tensorflow.DType]=tensorflow.float64) -> Tensor:
+    return self.tf.random_normal(shape=(dim, dim), dtype=dtype)

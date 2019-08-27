@@ -19,6 +19,7 @@ from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
+import torch
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -101,3 +102,16 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
+
+  def eye(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return self.torch.eye(dim, dtype=dtype)
+  
+  def ones(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return self.torch.ones(dim, dim, dtype=dtype)
+  
+  def zeros(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return self.torch.zeros(dim, dim, dtype=dtype)
+  
+  def randn(self, dim: int, dtype: Optional[torch.dtype]=torch.float64) -> Tensor:
+    return self.torch.randn(dim, dim, dtype=dtype)
+  

@@ -129,3 +129,55 @@ def test_norm():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.ones((2, 2)))
   assert backend.norm(a) == 2
+
+
+def test_eye():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.eye(4)
+  np.testing.assert_allclose(np.eye(4), a)
+
+
+def test_ones():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.ones(4)
+  np.testing.assert_allclose(np.ones((4, 4)), a)
+
+
+def test_zeros():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.zeros(4)
+  np.testing.assert_allclose(np.zeros((4, 4)), a)
+
+
+def test_randn():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.randn(4)
+  assert a.shape == (4, 4)
+
+
+def test_eye_dtype():
+  backend = numpy_backend.NumPyBackend()
+  dtype = np.float32
+  a = backend.eye(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_ones_dtype():
+  backend = numpy_backend.NumPyBackend()
+  dtype = np.float32
+  a = backend.ones(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_zeros_dtype():
+  backend = numpy_backend.NumPyBackend()
+  dtype = np.float32
+  a = backend.zeros(4, dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_randn_dtype():
+  backend = numpy_backend.NumPyBackend()
+  dtype = np.float32
+  a = backend.randn(4, dtype=dtype)
+  assert a.dtype == dtype

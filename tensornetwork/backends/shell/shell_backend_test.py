@@ -132,3 +132,25 @@ def test_einsum():
   np_result = numpy_backend.NumPyBackend().einsum(expression, tensor1, tensor2)
   sh_result = shell_backend.ShellBackend().einsum(expression, tensor1, tensor2)
   assert np_result.shape == sh_result.shape
+
+def test_norm():
+    args = {"tensor": np.ones([3, 5])}
+    assertBackendsAgree("norm", args)
+    
+def test_eye():
+    args = {"dim": 10}
+    assertBackendsAgree("eye", args)
+    
+def test_zeros():
+    args = {"dim": 10}
+    assertBackendsAgree("zeros", args)
+    
+def test_ones():
+    args = {"dim": 10}
+    assertBackendsAgree("ones", args)
+    
+def test_randn():
+    args = {"dim": 10}
+    assertBackendsAgree("randn", args)
+
+

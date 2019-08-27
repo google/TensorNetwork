@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
-
+import numpy
 Tensor = Any
 
 
@@ -106,3 +106,15 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
+  
+  def eye(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.eye(dim, dtype=dtype)
+  
+  def ones(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.ones((dim, dim), dtype=dtype)
+  
+  def zeros(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.zeros((dim, dim), dtype=dtype)
+  
+  def randn(self, dim: int, dtype: Optional[numpy.dtype]=numpy.float64) -> Tensor:
+    return self.np.random.randn(dim, dim).astype(dtype)
