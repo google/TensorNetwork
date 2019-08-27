@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Union, List, Text
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -95,3 +95,12 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.torch.einsum(expression, *tensors)
+  def norm(self,
+           tensor: Tensor,
+           p: Optional[Union[int,  float, Text]] = 'fro',
+           dim: Optional[Union[int, Tuple,  List]] = None,
+           keepdim: Optional[bool] = False,
+           out: Optional[Tensor] = None,
+           dtype: Optional["torch.dtype"] = None) -> Tensor:
+    return self.torch.norm(tensor, p=p, dim=dim, keepdim=keepdim, out=out,
+                           dtype=dtype)
