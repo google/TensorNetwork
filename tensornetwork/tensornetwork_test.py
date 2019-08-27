@@ -1530,11 +1530,91 @@ def test_disable_node(backend):
 
 def test_add_copy_node_from_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  a = net.add_node(
+      tensornetwork.CopyNode(
+          3, 3, name="TestName", axis_names=['a', 'b', 'c']))
   assert a in net
   assert a.shape == (3, 3, 3)
   assert isinstance(a, tensornetwork.CopyNode)
+  assert a.name == "TestName"
+  assert a.axis_names == ['a', 'b', 'c']
   b = net.add_node(np.eye(3))
   e = a[0] ^ b[0]
   c = net.contract(e)
   np.testing.assert_allclose(c.tensor, a.tensor)
+
+def test_double_add_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  with pytest.raises(ValueError):
+    net.add_node(a)
+
+def test_default_names_add_node_object(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  assert a.name is not None
+  assert len(a.axis_names) == 3
+
+def test_network_copy(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(3, 3, 3))
+  b = net.add_node(np.random.rand(3, 3, 3))
+  c = net.add_node(np.random.rand(3, 3, 3))
+  a[0] ^ b[1]
+  a[1] ^ c[2]
+  b[2] ^ c[0]
+
+  net_copy, node_dict, _ = net.copy()
+  net_copy.check_correct()
+
+  res = a @ b @ c
+  res_copy = node_dict[a] @ node_dict[b] @ node_dict[c]
+  np.testing.assert_allclose(res.tensor, res_copy.tensor)
+
+
+def test_network_copy_reordered(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(3, 3, 3))
+  b = net.add_node(np.random.rand(3, 3, 3))
+  c = net.add_node(np.random.rand(3, 3, 3))
+  a[0] ^ b[1]
+  a[1] ^ c[2]
+  b[2] ^ c[0]
+
+  edge_order = [a[2], c[1], b[0]]
+  net_copy, node_dict, edge_dict = net.copy()
+  net_copy.check_correct()
+
+  res = a @ b @ c
+  res.reorder_edges(edge_order)
+  res_copy = node_dict[a] @ node_dict[b] @ node_dict[c]
+  res_copy.reorder_edges([edge_dict[e] for e in edge_order])
+  np.testing.assert_allclose(res.tensor, res_copy.tensor)
+
+
+def test_network_copy_names(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(3, 3, 3), name='a')
+  b = net.add_node(np.random.rand(3, 3, 3), name='b')
+  c = net.add_node(np.random.rand(3, 3, 3), name='c')
+  a[0] ^ b[1]
+  b[2] ^ c[0]
+  _, node_dict, edge_dict = net.copy()
+  for node in net.nodes_set:
+    assert node_dict[node].name == node.name
+  for edge in net.get_all_edges():
+    assert edge_dict[edge].name == edge.name
+
+
+def test_network_copy_identities(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.random.rand(3, 3, 3), name='a')
+  b = net.add_node(np.random.rand(3, 3, 3), name='b')
+  c = net.add_node(np.random.rand(3, 3, 3), name='c')
+  a[0] ^ b[1]
+  b[2] ^ c[0]
+  _, node_dict, edge_dict = net.copy()
+  for node in net.nodes_set:
+    assert not node_dict[node] is node
+  for edge in net.get_all_edges():
+    assert not edge_dict[edge] is edge
