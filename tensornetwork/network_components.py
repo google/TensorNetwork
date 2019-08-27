@@ -46,7 +46,10 @@ class BaseNode(ABC):
   an arbitrary dimension.
   """
 
-  def __init__(self, name: Text, axis_names: List[Text], network: TensorNetwork,
+  def __init__(self,
+               name: Text,
+               axis_names: List[Text],
+               network: TensorNetwork,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node for the TensorNetwork. Should be subclassed before usage
     and a limited number of abstract methods and properties implemented.
@@ -65,15 +68,15 @@ class BaseNode(ABC):
     self.network = network
     self._shape = shape
 
-    self.edges = [
+    self._edges = [
         Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
-      self.axis_names = None
+      self._axis_names = None
 
-    self.signature = -1
+    self._signature = -1
 
     super().__init__()
 
@@ -287,8 +290,8 @@ class BaseNode(ABC):
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
     pass
 
-  def __getitem__(self, key: Union[int, Text, slice]
-                 ) -> Union["Edge", List["Edge"]]:
+  def __getitem__(self,
+                  key: Union[int, Text, slice]) -> Union["Edge", List["Edge"]]:
     if isinstance(key, slice):
       return self.edges[key]
     return self.get_edge(key)
@@ -309,6 +312,61 @@ class BaseNode(ABC):
     if other.network is not self.network:
       raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
+
+  @property
+  def edges(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its edges is no longer possible'.format(
+                           self.name))
+    return self._edges
+
+  @edges.setter
+  def edges(self, edges: List):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Assigning edges is no longer possible'.format(
+                           self.name))
+    self._edges = edges
+
+  @property
+  def axis_names(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its axis_names is no longer possible'.format(
+                           self.name))
+    return self._axis_names
+
+  @axis_names.setter
+  def axis_names(self, axis_names: List[Text]):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Assigning axis_names is no longer possible'.format(
+                           self.name))
+    self._axis_names = axis_names
+
+  @property
+  def signature(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its signature is no longer possible'.format(
+                           self.name))
+    return self._signature
+
+  @signature.setter
+  def signature(self, signature: int):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Assigning a signature is no longer possible'.format(
+                           self.name))
+    self._signature = signature
+
+  def disable(self):
+    if self in self.network.nodes_set:
+      raise ValueError(
+          'Node {} is part of a network. Disabelling not allowed'.format(
+              self.name))
+    self.network = None
 
 
 class Node(BaseNode):
@@ -354,7 +412,10 @@ class Node(BaseNode):
 
   @property
   def shape(self):
-    return self.network.backend.shape_tuple(self._tensor)
+    if self.network is not None:
+      return self.network.backend.shape_tuple(self._tensor)
+    raise ValueError('Node {} has been disabled. '
+                     'Access its shape via self.tensor'.format(self.name))
 
   @property
   def tensor(self) -> Tensor:
@@ -380,8 +441,7 @@ class CopyNode(BaseNode):
     self.dtype = dtype
     self._tensor = None
 
-    super().__init__(name, axis_names, network,
-                     shape=(dimension,) * rank)
+    super().__init__(name, axis_names, network, shape=(dimension,) * rank)
 
   def get_tensor(self):
     return self.tensor

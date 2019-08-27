@@ -252,7 +252,7 @@ class TensorNetwork:
       new_node: The new node created after contraction.
 
     Returns:
-      The node that had the contracted edge.
+      None
 
     Raises:
       ValueError: If edge is not a trace edge.
@@ -265,6 +265,7 @@ class TensorNetwork:
     node_edges = edge.node1.edges[:]
     node_edges.pop(axes[0])
     node_edges.pop(axes[1] - 1)
+
     seen_edges = set()
     for tmp_edge in node_edges:
       if tmp_edge in seen_edges:
@@ -286,7 +287,9 @@ class TensorNetwork:
     # Update edges for the new node.
     for i, e in enumerate(node_edges):
       new_node.add_edge(e, i)
+    node = edge.node1  #keep reference to edge.node1 for disabling
     self.nodes_set.remove(edge.node1)
+    node.disable()
 
   def _remove_edges(self, edges: Set[network_components.Edge],
                     node1: network_components.BaseNode,
@@ -351,6 +354,10 @@ class TensorNetwork:
     # Remove nodes
     self.nodes_set.remove(node1)
     self.nodes_set.remove(node2)
+
+    # disable nodes
+    node1.disable()
+    node2.disable()
 
   def _contract_trace(self,
                       edge: network_components.Edge,
@@ -485,6 +492,10 @@ class TensorNetwork:
     self.nodes_set.remove(node2)
     for i, edge in enumerate(node1.edges + node2.edges):
       new_node.add_edge(edge, i)
+
+    # disable removed nodes
+    node1.disable()
+    node2.disable()
     return new_node
 
   def get_final_node(self) -> network_components.BaseNode:
@@ -941,6 +952,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()
     return left_node, right_node, trun_vals
 
   def split_node_qr(
@@ -993,6 +1005,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()
     return left_node, right_node
 
   def split_node_rq(
@@ -1045,6 +1058,7 @@ class TensorNetwork:
       edge.update_axis(i + len(left_edges), node, i + 1, right_node)
     self.connect(left_node[-1], right_node[0], name=edge_name)
     self.nodes_set.remove(node)
+    node.disable()
     return left_node, right_node
 
   def split_node_full_svd(
@@ -1136,11 +1150,12 @@ class TensorNetwork:
     self.connect(left_node[-1], singular_values_node[0], name=left_edge_name)
     self.connect(singular_values_node[1], right_node[0], name=right_edge_name)
     self.nodes_set.remove(node)
+    node.disable()
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
-                 ) -> Tuple[Dict[Text, network_components.Edge],
-                            Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components.
+                                 Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
@@ -1166,6 +1181,7 @@ class TensorNetwork:
         broken_edges_by_axis[i] = new_broken_edge
         broken_edges_by_name[name] = new_broken_edge
     self.nodes_set.remove(node)
+    node.disable()
     return broken_edges_by_name, broken_edges_by_axis
 
   def check_correct(self, check_connected: bool = True) -> None:
@@ -1255,10 +1271,18 @@ class TensorNetwork:
         return False
       else:
         edge_is_in_network = edge.node1 in self.nodes_set
-        edge_is_in_network &= edge in edge.node1.edges
+        try:
+          edge_is_in_network &= edge in edge.node1.edges
+        #if ValueError is raised, edge.node1 has been disabled
+        except ValueError:
+          return False
         if not edge.is_dangling():
           edge_is_in_network &= edge.node2 in self.nodes_set
-          edge_is_in_network &= edge in edge.node2.edges
+          try:
+            edge_is_in_network &= edge in edge.node2.edges
+          #if ValueError is raised, edge.node2 has been disabled
+          except ValueError:
+            return False
         return edge_is_in_network
     elif isinstance(item, network_components.BaseNode):
       return item in self.nodes_set
