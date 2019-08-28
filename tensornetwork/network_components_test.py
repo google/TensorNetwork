@@ -592,3 +592,55 @@ def test_edge_magic_lt(double_node_edge):
 def test_edge_magic_str(single_node_edge):
   edge = single_node_edge.edge
   assert str(edge) == edge.name
+
+
+def test_edge_node_save_structure(tmp_path, double_node_edge):
+  edge12 = double_node_edge.edge12
+  with h5py.File(tmp_path / 'edges', 'w') as edge_file:
+    edge_group = edge_file.create_group('edge')
+    edge12._save_edge(edge_group)
+    assert set(list(edge_group.keys())) == {"axis1", "node1", "axis2", "node2",
+                                            "name", "signature"}
+
+
+def test_edge_node_save_data(tmp_path, double_node_edge):
+  edge = double_node_edge.edge12
+  with h5py.File(tmp_path / 'edges', 'w') as edge_file:
+    edge_group = edge_file.create_group('edge')
+    edge._save_edge(edge_group)
+    assert edge_file['edge/signature'][()] == edge.signature
+    assert edge_file['edge/name'][()] == edge.name
+    assert edge_file['edge/node1'][()] == edge.node1.name
+    assert edge_file['edge/node2'][()] == edge.node2.name
+    assert edge_file['edge/axis1'][()] == edge.axis1
+    assert edge_file['edge/axis2'][()] == edge.axis2
+
+
+def test_edge_load(tmp_path, double_node_edge):
+  edge = double_node_edge.edge12
+
+  with h5py.File(tmp_path / 'edge', 'w') as edge_file:
+    edge_group = edge_file.create_group('edge_data')
+    edge_group.create_dataset('signature', data=edge.signature)
+    edge_group.create_dataset('name', data=edge.name)
+    edge_group.create_dataset('node1', data=edge.node1.name)
+    edge_group.create_dataset('node2', data=edge.node2.name)
+    edge_group.create_dataset('axis1', data=edge.axis1)
+    edge_group.create_dataset('axis2', data=edge.axis2)
+
+    net = tensornetwork.TensorNetwork(backend=edge.node1.network.backend.name)
+    ten = net.backend.convert_to_tensor(np.ones((1, 2, 2)))
+    node1 = Node(
+      tensor=2*ten, name="test_node1", axis_names=["a", "b", "c"], network=net)
+    node2 = Node(
+      tensor=ten, name="test_node2", axis_names=["a", "b", "c"], network=net)
+    loaded_edge = Edge._load_edge(edge_group,
+                                  {node1.name: node1, node2.name: node2})
+    assert loaded_edge.name == edge.name
+    assert loaded_edge.signature == edge.signature
+    assert loaded_edge.node1.name == edge.node1.name
+    assert loaded_edge.node2.name == edge.node2.name
+    assert loaded_edge.axis1 == edge.axis1
+    assert loaded_edge.axis2 == edge.axis2
+    np.testing.assert_allclose(loaded_edge.node1.tensor, node1.tensor)
+    np.testing.assert_allclose(loaded_edge.node2.tensor, node2.tensor)
