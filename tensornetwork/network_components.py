@@ -614,14 +614,13 @@ class CopyNode(BaseNode):
     tensors = [partner.get_tensor() for partner in partners]
     return self.network.backend.einsum(einsum_expression, *tensors)
 
-  # pylint: disable=W0235
   def _save_node(self, node_group: h5py.Group):
     """Method to save a node to hdf5.
 
     Args:
       node_group: h5py group where data is saved
     """
-    super()._save_node(node_group)
+    self._save_node(node_group)
 
   @classmethod
   def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
