@@ -150,7 +150,7 @@ class TensorNetwork:
 
     Args:
       value: Either the concrete tensor or an existing `Node` object that
-        has no accociated `TensorNetwork`. If a concrete tensor is given,
+        has no associated `TensorNetwork`. If a concrete tensor is given,
         a new node will be created.
       name: The name of the new node. If None, a name will be generated
         automatically.
