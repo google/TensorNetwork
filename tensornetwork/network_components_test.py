@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 import pytest
 from collections import namedtuple
-import tempfile
 import h5py
 from tensornetwork.network_components import Node, CopyNode, Edge
 import tensornetwork
@@ -297,7 +296,7 @@ def test_node_save_data(tmp_path, single_node_edge):
     assert set(node_file['test_node/shape'][()]) == set(node.shape)
     assert set(node_file['test_node/axis_names'][()]) == set(node.axis_names)
     assert (set(node_file['test_node/edges'][()])
-            == set([edge.name for edge in node.edges]))
+            == set(edge.name for edge in node.edges))
 
 
 def test_node_load(tmp_path, single_node_edge):
@@ -321,8 +320,8 @@ def test_node_load(tmp_path, single_node_edge):
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert set(loaded_node.axis_names) == set(node.axis_names)
-    assert (set([edge.name for edge in loaded_node.edges])
-            == set([edge.name for edge in node.edges]))
+    assert (set(edge.name for edge in loaded_node.edges)
+            == set(edge.name for edge in node.edges))
     np.testing.assert_allclose(loaded_node.tensor, node.tensor)
 
 
@@ -391,7 +390,7 @@ def test_copy_node_save_data(tmp_path, backend):
     assert set(node_file['copier/shape'][()]) == set(node.shape)
     assert set(node_file['copier/axis_names'][()]) == set(node.axis_names)
     assert (set(node_file['copier/edges'][()])
-            == set([edge.name for edge in node.edges]))
+            == set(edge.name for edge in node.edges))
 
 
 def test_copy_node_load(tmp_path, backend):
@@ -414,8 +413,8 @@ def test_copy_node_load(tmp_path, backend):
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert set(loaded_node.axis_names) == set(node.axis_names)
-    assert (set([edge.name for edge in loaded_node.edges])
-            == set([edge.name for edge in node.edges]))
+    assert (set(edge.name for edge in loaded_node.edges)
+            == set(edge.name for edge in node.edges))
     assert loaded_node.get_dimension(axis=1) == node.get_dimension(axis=1)
     assert loaded_node.get_rank() == node.get_rank()
     assert loaded_node.shape == node.shape
@@ -630,10 +629,10 @@ def test_edge_load(tmp_path, double_node_edge):
 
     net = tensornetwork.TensorNetwork(backend=edge.node1.network.backend.name)
     ten = net.backend.convert_to_tensor(np.ones((1, 2, 2)))
-    node1 = Node(
-      tensor=2*ten, name="test_node1", axis_names=["a", "b", "c"], network=net)
-    node2 = Node(
-      tensor=ten, name="test_node2", axis_names=["a", "b", "c"], network=net)
+    node1 = Node(tensor=2*ten, name="test_node1",
+                 axis_names=["a", "b", "c"], network=net)
+    node2 = Node(tensor=ten, name="test_node2",
+                 axis_names=["a", "b", "c"], network=net)
     loaded_edge = Edge._load_edge(edge_group,
                                   {node1.name: node1, node2.name: node2})
     assert loaded_edge.name == edge.name
