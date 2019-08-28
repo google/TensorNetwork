@@ -19,7 +19,8 @@ from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
-import torch
+# pylint: disable=reimported
+import torch as tch
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -105,25 +106,24 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def eye(self,
           N: int,
-          M: Optional[int],
-          dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+          M: Optional[int] = None,
+          dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self,
            shape: Tuple[int],
-           dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+           dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
     return self.torch.ones(shape, dtype=dtype)
 
   def zeros(self,
             shape: Tuple[int],
-            dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+            dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
     return self.torch.zeros(shape, dtype=dtype)
 
   def randn(self,
             shape: Tuple[int],
-            dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
+            dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
     return self.torch.randn(shape, dtype=dtype)
-  
-  def conj(tensor: Tensor) -> Tensor:
-    return tensor #pytorch does not support complex dtypes
-  
+
+  def conj(self, tensor: Tensor) -> Tensor:
+    return tensor  #pytorch does not support complex dtypes

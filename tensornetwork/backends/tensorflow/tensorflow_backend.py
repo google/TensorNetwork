@@ -18,7 +18,8 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-import tensorflow
+# pylint: disable=reimported
+import tensorflow as tf
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -100,24 +101,20 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def eye(self,
           N: int,
           M: Optional[int] = None,
-          dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
+          dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self,
-           shape: Tuple[int],
-           dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
+  def ones(self, shape: Tuple[int],
+           dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self,
-            shape: Tuple[int],
-            dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self,
-            shape: Tuple[int],
-            dtype: Optional[tensorflow.DType] = tensorflow.float64) -> Tensor:
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
-  def conj(tensor: Tensor) -> Tensor:
+  def conj(self, tensor: Tensor) -> Tensor:
     return self.tf.conj(tensor)
-  

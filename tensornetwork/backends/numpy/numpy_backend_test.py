@@ -181,3 +181,13 @@ def test_randn_dtype():
   dtype = np.float32
   a = backend.randn((4, 4), dtype=dtype)
   assert a.dtype == dtype
+
+
+def test_conj():
+  backend = numpy_backend.NumPyBackend()
+  real = np.random.rand(2, 2, 2)
+  imag = np.random.rand(2, 2, 2)
+  a = backend.convert_to_tensor(real + 1j * imag)
+  actual = backend.conj(a)
+  expected = real - 1j * imag
+  np.testing.assert_allclose(expected, actual)
