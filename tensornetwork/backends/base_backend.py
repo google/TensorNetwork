@@ -58,7 +58,7 @@ class BaseBackend:
     Args:
       tensor: A tensor.
       perm: The permutation of the axes.
-    Returns:
+v    Returns:
       The transposed tensor
     """
     raise NotImplementedError(
@@ -213,8 +213,9 @@ class BaseBackend:
           M: Optional[Union[int, 'ShapeType']] = None,
           dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an identity matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int (numpy, torch,
-       tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
        behavior is currently not supported
       Args:
         dim (int or ShapeType): The dimension of the returned matrix.
@@ -228,8 +229,9 @@ class BaseBackend:
            shape: Tuple[Union[int, 'ShapeType']],
            dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return an ones-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int (numpy, torch,
-       tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
          dim (int or ShapeType): The dimension of the returned matrix.
@@ -243,8 +245,9 @@ class BaseBackend:
             shape: Tuple[Union[int, 'ShapeType']],
             dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a zeros-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int (numpy, torch,
-       tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
          dim (int or ShapeType): The dimension of the returned matrix.
@@ -258,8 +261,9 @@ class BaseBackend:
             shape: Tuple[Union[int, 'ShapeType']],
             dtype: Optional['dtype'] = 'dtype') -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int (numpy, torch,
-       tensorflow) or a `ShapeType` object (for block-sparse backends). Block-sparse
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
          dim (int or ShapeType): The dimension of the returned matrix.
