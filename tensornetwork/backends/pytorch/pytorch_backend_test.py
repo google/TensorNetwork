@@ -168,3 +168,12 @@ def test_randn_dtype():
   dtype = torch.float32
   a = backend.randn((4, 4), dtype=dtype)
   assert a.dtype == dtype
+
+
+def test_conj():
+  backend = pytorch_backend.PyTorchBackend()
+  real = np.random.rand(2, 2, 2)
+  a = backend.convert_to_tensor(real)
+  actual = backend.conj(a)
+  expected = real
+  np.testing.assert_allclose(expected, actual)
