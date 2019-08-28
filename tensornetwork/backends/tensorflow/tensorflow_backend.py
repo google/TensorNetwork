@@ -18,7 +18,6 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-# pylint: disable=reimported
 import tensorflow as tf
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -30,10 +29,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(TensorFlowBackend, self).__init__()
-    try:
-      import tensorflow
-    except ImportError:
-      raise AssertionError("tensorflow is not installed.")
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
     self.tf = tensorflow
