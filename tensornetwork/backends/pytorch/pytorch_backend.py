@@ -19,8 +19,7 @@ from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
-# pylint: disable=reimported
-import torch as tch
+import torch
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -31,10 +30,6 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(PyTorchBackend, self).__init__()
-    try:
-      import torch
-    except ImportError:
-      raise AssertionError("pytorch is not installed.")
     self.torch = torch
     self.name = "pytorch"
 
@@ -107,22 +102,22 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eye(self,
           N: int,
           M: Optional[int] = None,
-          dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
+          dtype: Optional['torch.dtype'] = torch.float64) -> Tensor:
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self,
            shape: Tuple[int],
-           dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
+           dtype: Optional['torch.dtype'] = torch.float64) -> Tensor:
     return self.torch.ones(shape, dtype=dtype)
 
   def zeros(self,
             shape: Tuple[int],
-            dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
+            dtype: Optional['torch.dtype'] = torch.float64) -> Tensor:
     return self.torch.zeros(shape, dtype=dtype)
 
   def randn(self,
             shape: Tuple[int],
-            dtype: Optional['torch.dtype'] = tch.float64) -> Tensor:
+            dtype: Optional['torch.dtype'] = torch.float64) -> Tensor:
     return self.torch.randn(shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
