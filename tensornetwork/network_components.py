@@ -384,7 +384,7 @@ class BaseNode(ABC):
 
 
   @classmethod
-  def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Text]:
+  def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:
     """Common method to enable adding nodes to a network based on hdf5 data.
        Only a common functionality to load node properties is implemented.
 
