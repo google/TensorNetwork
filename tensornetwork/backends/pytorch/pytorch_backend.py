@@ -124,5 +124,5 @@ class PyTorchBackend(base_backend.BaseBackend):
             dtype: Optional[torch.dtype] = torch.float64) -> Tensor:
     return self.torch.randn(shape, dtype=dtype)
 
-  def conj(tensor: Tensor) -> Tensor:
+  def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
