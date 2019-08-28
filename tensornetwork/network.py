@@ -1314,22 +1314,6 @@ def load(path: str):
   return net
 
 
-def _load_node(net: TensorNetwork, node_data: h5py.Group,
-               nodes_dict: Dict[Text, network_components.BaseNode]):
-  name = node_data['name'][()]
-  if "tensor" in list(node_data.keys()):
-    tensor = node_data['tensor'][()]
-  signature = node_data['signature'][()]
-  shape = node_data['shape'][()]
-  axis_names = node_data['axis_names'][()]
-
-  node = net.add_node(tensor=tensor, name=name,
-                      axis_names=[ax for ax in axis_names])
-  node.set_signature(signature)
-  node._shape = shape
-  nodes_dict[name] = node
-
-
 def _load_edge(edge_data: h5py.Group,
                nodes_dict: Dict[Text, network_components.BaseNode]):
   node1 = nodes_dict[edge_data["node1"][()]]
