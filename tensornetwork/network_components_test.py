@@ -274,6 +274,30 @@ def test_node_magic_matmul(backend):
   np.testing.assert_allclose(actual.tensor, expected)
 
 
+def test_node_save_structure(tmp_path, single_node_edge):
+  node = single_node_edge.node
+  with h5py.File(tmp_path / 'nodes', 'w') as node_file:
+    node_group = node_file.create_group('test_node')
+    node._save_node(node_group)
+    assert set(list(node_file.keys())) == {"test_node"}
+    assert set(list(node_file['test_node'])) == {"tensor", "signature", 'name',
+                                                 'edges', 'shape', 'axis_names'}
+
+
+def test_node_save_data(tmp_path, single_node_edge):
+  node = single_node_edge.node
+  with h5py.File(tmp_path / 'nodes', 'w') as node_file:
+    node_group = node_file.create_group('test_node')
+    node._save_node(node_group)
+    np.testing.assert_allclose(node_file['test_node/tensor'][()], node.tensor)
+    assert node_file['test_node/signature'][()] == node.signature
+    assert node_file['test_node/name'][()] == node.name
+    assert set(node_file['test_node/shape'][()]) == set(node.shape)
+    assert set(node_file['test_node/axis_names'][()]) == set(node.axis_names)
+    assert (set(node_file['test_node/edges'][()])
+            == set([edge.name for edge in node.edges]))
+
+
 def test_node_load(tmp_path, single_node_edge):
   node = single_node_edge.node
   with h5py.File(tmp_path / 'node', 'w') as node_file:
@@ -289,10 +313,15 @@ def test_node_load(tmp_path, single_node_edge):
                               data=np.array([edge.name for edge in node.edges],
                                             dtype=object),
                               dtype=string_type)
+
     net = tensornetwork.TensorNetwork(backend=node.network.backend.name)
     loaded_node = Node._load_node(net, node_file["node_data/"])
-    print(loaded_node.name)
-    assert 4==5
+    assert loaded_node.name == node.name
+    assert loaded_node.signature == node.signature
+    assert set(loaded_node.axis_names) == set(node.axis_names)
+    assert (set([edge.name for edge in loaded_node.edges])
+            == set([edge.name for edge in node.edges]))
+    np.testing.assert_allclose(loaded_node.tensor, node.tensor)
 
 
 def test_copy_node_init(copy_node):
@@ -335,6 +364,58 @@ def test_copy_node_set_tensor_property(copy_node):
   np.testing.assert_allclose(copy_node.get_tensor(), expected)
   np.testing.assert_allclose(copy_node.tensor, expected)
   np.testing.assert_allclose(copy_node._tensor, expected)
+
+
+def test_copy_node_save_structure(tmp_path, backend):
+  net = tensornetwork.TensorNetwork(backend)
+  node = net.add_copy_node(rank=4, dimension=3, name='copier')
+  with h5py.File(tmp_path / 'nodes', 'w') as node_file:
+    node_group = node_file.create_group('test_node')
+    node._save_node(node_group)
+    assert set(list(node_file.keys())) == {"test_node"}
+    assert set(list(node_file['test_node'])) == {"signature", 'name', 'edges',
+                                                 'shape', 'axis_names'}
+
+
+def test_copy_node_save_data(tmp_path, backend):
+  net = tensornetwork.TensorNetwork(backend)
+  node = net.add_copy_node(rank=4, dimension=3, name='copier')
+  with h5py.File(tmp_path / 'nodes', 'w') as node_file:
+    node_group = node_file.create_group('copier')
+    node._save_node(node_group)
+    assert node_file['copier/signature'][()] == node.signature
+    assert node_file['copier/name'][()] == node.name
+    assert set(node_file['copier/shape'][()]) == set(node.shape)
+    assert set(node_file['copier/axis_names'][()]) == set(node.axis_names)
+    assert (set(node_file['copier/edges'][()])
+            == set([edge.name for edge in node.edges]))
+
+
+def test_copy_node_load(tmp_path, backend):
+  net = tensornetwork.TensorNetwork(backend)
+  node = net.add_copy_node(rank=4, dimension=3, name='copier')
+  with h5py.File(tmp_path / 'node', 'w') as node_file:
+    node_group = node_file.create_group('node_data')
+    node_group.create_dataset('signature', data=node.signature)
+    node_group.create_dataset('name', data=node.name)
+    node_group.create_dataset('shape', data=node.shape)
+    node_group.create_dataset('axis_names',
+                              data=np.array(node.axis_names, dtype=object),
+                              dtype=string_type)
+    node_group.create_dataset('edges',
+                              data=np.array([edge.name for edge in node.edges],
+                                            dtype=object),
+                              dtype=string_type)
+    net = tensornetwork.TensorNetwork(backend=node.network.backend.name)
+    loaded_node = CopyNode._load_node(net, node_file["node_data/"])
+    assert loaded_node.name == node.name
+    assert loaded_node.signature == node.signature
+    assert set(loaded_node.axis_names) == set(node.axis_names)
+    assert (set([edge.name for edge in loaded_node.edges])
+            == set([edge.name for edge in node.edges]))
+    assert loaded_node.get_dimension(axis=1) == node.get_dimension(axis=1)
+    assert loaded_node.get_rank() == node.get_rank()
+    assert loaded_node.shape == node.shape
 
 
 def test_edge_initialize_dangling(single_node_edge):
