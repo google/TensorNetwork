@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork
 import pytest
+import io
 import numpy as np
 import tensorflow as tf
 from jax.config import config
@@ -1531,6 +1532,16 @@ def test_save_makes_hdf5_file(tmp_path, backend):
   p = tmp_path / "network"
   net.save(p)
   assert p.exists()
+
+
+def test_save_makes_hdf5_filelike(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((2, 2, 2)))
+  b = net.add_node(np.ones((2, 2, 2)))
+  net.connect(a[0], b[0])
+  p = io.BytesIO()
+  net.save(p)
+  assert type(p.getvalue()) == bytes
 
 
 def test_save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
