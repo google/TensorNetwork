@@ -2,10 +2,14 @@ import numpy as np
 import tensorflow as tf
 import pytest
 from collections import namedtuple
+import tempfile
+import h5py
 from tensornetwork.network_components import Node, CopyNode, Edge
 import tensornetwork
 
 tf.compat.v1.enable_v2_behavior()
+
+string_type = h5py.special_dtype(vlen=str)
 
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
@@ -268,6 +272,27 @@ def test_node_magic_matmul(backend):
                        [60, 60, 60, 60]])
   assert isinstance(actual, Node)
   np.testing.assert_allclose(actual.tensor, expected)
+
+
+def test_node_load(tmp_path, single_node_edge):
+  node = single_node_edge.node
+  with h5py.File(tmp_path / 'node', 'w') as node_file:
+    node_group = node_file.create_group('node_data')
+    node_group.create_dataset('tensor', data=node._tensor)
+    node_group.create_dataset('signature', data=node.signature)
+    node_group.create_dataset('name', data=node.name)
+    node_group.create_dataset('shape', data=node.shape)
+    node_group.create_dataset('axis_names',
+                              data=np.array(node.axis_names, dtype=object),
+                              dtype=string_type)
+    node_group.create_dataset('edges',
+                              data=np.array([edge.name for edge in node.edges],
+                                            dtype=object),
+                              dtype=string_type)
+    net = tensornetwork.TensorNetwork(backend=node.network.backend.name)
+    loaded_node = Node._load_node(net, node_file["node_data/"])
+    print(loaded_node.name)
+    assert 4==5
 
 
 def test_copy_node_init(copy_node):
