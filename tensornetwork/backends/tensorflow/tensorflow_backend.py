@@ -93,7 +93,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.norm(tensor)
 
-  def eye(self, N: int, M: Optional[int] = None, dtype: tf.DType) -> Tensor:
+  def eye(self, N: int, dtype: tf.DType, M: Optional[int] = None) -> Tensor:
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int], dtype: tf.DType) -> Tensor:
