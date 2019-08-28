@@ -112,7 +112,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def zeros(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int], dtype: numpy.dtyp) -> Tensor:
+  def randn(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
     return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
