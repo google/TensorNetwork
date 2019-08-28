@@ -20,6 +20,7 @@ import functools
 import operator
 from tensornetwork.backends import base_backend
 from typing import Optional, Sequence, Tuple, List, Any, Union
+import numpy as np
 
 
 class ShellTensor:
@@ -184,26 +185,26 @@ class ShellBackend(base_backend.BaseBackend):
     return ShellTensor(())
 
   def eye(self,
-          N: Union[int, 'ShapeType'],
-          M: Optional[Union[int, 'ShapeType']] = None,
-          dtype: Optional['dtype'] = 'dtype') -> Tensor:
+          N: int,
+          M: Optional[int] = None,
+          dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     if not M:
       M = N
     return ShellTensor((N, M))
 
   def ones(self,
-           shape: Tuple[Union[int, 'ShapeType']],
-           dtype: Optional['dtype'] = 'dtype') -> Tensor:
+           shape: Tuple[int],
+           dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     return ShellTensor(shape)
 
   def zeros(self,
-            shape: Tuple[Union[int, 'ShapeType']],
-            dtype: Optional['dtype'] = 'dtype') -> Tensor:
+            shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     return ShellTensor(shape)
 
   def randn(self,
-            shape: Tuple[Union[int, 'ShapeType']],
-            dtype: Optional['dtype'] = 'dtype') -> Tensor:
+            shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     return ShellTensor(shape)
 
   def conj(self, tensor: Tensor) -> Tensor:
