@@ -30,7 +30,10 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self, backend: Optional[Text] = None) -> None:
+  def __init__(self,
+               backend: Optional[Text] = None,
+               dtype: Optional[Type[np.number]] = None) -> None:
+
     if backend is None:
       backend = config.default_backend
     self.backend = backend_factory.get_backend(backend)
@@ -38,6 +41,7 @@ class TensorNetwork:
     # These increments are only used for generating names.
     self.node_increment = 0
     self.edge_increment = 0
+    self.dtype = dtype
 
   def _new_edge_name(self, name: Optional[Text]) -> Text:
     self.edge_increment += 1
@@ -161,6 +165,13 @@ class TensorNetwork:
       ValueError: If `name` already exists in the network.
     """
     tensor = self.backend.convert_to_tensor(tensor)
+    if not self.dtype:
+      self.dtype = tensor.dtype
+    else:
+      if self.dtype != tensor.dtype:
+        raise TypeError(
+            'cannot add tensor with dtype {} to TensorNetwork with dtype = {}'
+            .format(tensor.dtype, self.dtype))
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
@@ -1109,8 +1120,8 @@ class TensorNetwork:
       right_name: Optional[Text] = None,
       left_edge_name: Optional[Text] = None,
       right_edge_name: Optional[Text] = None,
-  ) -> Tuple[network_components.BaseNode, network_components.
-             BaseNode, network_components.BaseNode, Tensor]:
+  ) -> Tuple[network_components.BaseNode, network_components
+             .BaseNode, network_components.BaseNode, Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -1190,8 +1201,8 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
-                 ) -> Tuple[Dict[Text, network_components.
-                                 Edge], Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components
+                                 .Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
