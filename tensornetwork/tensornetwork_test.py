@@ -1523,7 +1523,7 @@ def test_split_node_qr(backend):
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
 
 
-def save_makes_hdf5_file(tmp_path, backend):
+def test_save_makes_hdf5_file(tmp_path, backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
   b = net.add_node(np.ones((2, 2, 2)))
@@ -1533,7 +1533,7 @@ def save_makes_hdf5_file(tmp_path, backend):
   assert p.exists()
 
 
-def save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
+def test_save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)), name="node_a",
                    axis_names=["e1", "e2", "e3"])
@@ -1549,7 +1549,7 @@ def save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
     assert set(list(net_file['edges'])) == {"edge_ab", "e2", "e3", "f2", "f3"}
     assert set(list(net_file['nodes/'])) == {"node_a", "node_b"}
     assert set(list(net_file['nodes/node_a'])) == {'shape', 'signature',
-                                                   'name', 'edges',
+                                                   'name', 'edges', 'type',
                                                    'axis_names', 'tensor'}
     assert set(list(net_file['edges/edge_ab'])) == {'axis1', 'axis2',
                                                     'name', 'node1',
@@ -1558,7 +1558,7 @@ def save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
                                                'node1', 'signature'}
 
 
-def save_and_load_returns_same_network(tmp_path, backend):
+def test_save_and_load_returns_same_network(tmp_path, backend):
   saved_net = tensornetwork.TensorNetwork(backend=backend)
   a = saved_net.add_node(np.ones((2, 2, 2)), name="node_a",
                          axis_names=["e1", "e2", "e3"])
@@ -1608,7 +1608,7 @@ def save_and_load_returns_same_network(tmp_path, backend):
   assert saved_edge_e2.signature == loaded_edge_e2.signature
 
 
-def save_and_load_contract_to_same_number(tmp_path, backend):
+def test_save_and_load_contract_to_same_number(tmp_path, backend):
   saved_net = tensornetwork.TensorNetwork(backend=backend)
   a = saved_net.add_node(np.ones((2, 2, 2)))
   b = saved_net.add_node(2*np.ones((2, 2, 2)))
