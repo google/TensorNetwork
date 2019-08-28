@@ -208,8 +208,8 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self, N: int, M: Optional[int] = None,
-          dtype: Type[np.number]) -> Tensor:
+  def eye(self, N: int, dtype: Type[np.number],
+          M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
