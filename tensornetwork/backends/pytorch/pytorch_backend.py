@@ -99,7 +99,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, N: int, M: Optional[int] = None, dtype: torch.dtype) -> Tensor:
+  def eye(self, N: int, dtype: torch.dtype, M: Optional[int] = None) -> Tensor:
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int], dtype: torch.dtype) -> Tensor:
