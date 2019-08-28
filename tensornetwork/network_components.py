@@ -804,6 +804,15 @@ class Edge:
   @classmethod
   def _load_edge(cls, edge_data: h5py.Group,
                  nodes_dict: Dict[Text, BaseNode]):
+    """Add an edge to a network based on hdf5 data.
+
+    Args:
+      edge_data: h5py group that contains the serialized edge data
+      nodes: dictionary of node's name, node of all the nodes in the network
+
+    Returns:
+      The added edge.
+    """
     node1 = nodes_dict[edge_data["node1"][()]]
     axis1 = int(edge_data["axis1"][()])
     if "node2" in list(edge_data.keys()):
@@ -820,6 +829,7 @@ class Edge:
       node2.add_edge(edge, axis2)
     if not edge.is_dangling():
       edge.set_signature(signature)
+    return edge
 
   def __xor__(self, other: "Edge") -> "Edge":
     return self.node1.network.connect(self, other)
