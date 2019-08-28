@@ -103,7 +103,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
 
-  def eye(self, N, M: Optional[int] = None, dtype: numpy.dtype) -> Tensor:
+  def eye(self, N, dtype: numpy.dtype, M: Optional[int] = None) -> Tensor:
     return self.np.eye(N, M=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
