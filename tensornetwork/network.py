@@ -19,7 +19,7 @@ from __future__ import print_function
 import collections
 import h5py
 # pylint: disable=line-too-long
-from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, BinaryIO
 import numpy as np
 import weakref
 from tensornetwork import config
@@ -1267,7 +1267,7 @@ class TensorNetwork:
     if check_connected:
       self.check_connected()
 
-  def save(self, path: str):
+  def save(self, path: Union[str, BinaryIO]):
     """Serialize the network to disk in hdf5 format.
 
     Args:

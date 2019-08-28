@@ -1534,7 +1534,7 @@ def test_save_makes_hdf5_file(tmp_path, backend):
   assert p.exists()
 
 
-def test_save_makes_hdf5_filelike(backend):
+def test_save_makes_hdf5_filelike_io(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2)))
   b = net.add_node(np.ones((2, 2, 2)))
