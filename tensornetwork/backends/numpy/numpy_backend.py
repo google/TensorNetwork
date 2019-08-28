@@ -17,7 +17,8 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
-import numpy
+# pylint: disable=reimported
+import numpy as np
 Tensor = Any
 
 
@@ -110,22 +111,19 @@ class NumPyBackend(base_backend.BaseBackend):
   def eye(self,
           N,
           M: Optional[int] = None,
-          dtype: Optional[numpy.dtype] = numpy.float64) -> Tensor:
+          dtype: Optional['np.dtype'] = np.float64) -> Tensor:
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self,
-           shape: Tuple[int],
-           dtype: Optional[numpy.dtype] = numpy.float64) -> Tensor:
+  def ones(self, shape: Tuple[int],
+           dtype: Optional['np.dtype'] = np.float64) -> Tensor:
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self,
-            shape: Tuple[int],
-            dtype: Optional[numpy.dtype] = numpy.float64) -> Tensor:
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional['np.dtype'] = np.float64) -> Tensor:
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self,
-            shape: Tuple[int],
-            dtype: Optional[numpy.dtype] = numpy.float64) -> Tensor:
+  def randn(self, shape: Tuple[int],
+            dtype: Optional['np.dtype'] = np.float64) -> Tensor:
     return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:

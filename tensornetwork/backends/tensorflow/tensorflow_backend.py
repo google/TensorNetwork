@@ -18,6 +18,7 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
+# pylint: disable=reimported
 import tensorflow
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
