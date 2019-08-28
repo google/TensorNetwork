@@ -58,7 +58,7 @@ class BaseBackend:
     Args:
       tensor: A tensor.
       perm: The permutation of the axes.
-v    Returns:
+    Returns:
       The transposed tensor
     """
     raise NotImplementedError(
