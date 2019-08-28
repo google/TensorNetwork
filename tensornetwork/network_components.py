@@ -24,6 +24,8 @@ import weakref
 from abc import ABC, abstractmethod
 import h5py
 
+
+string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
 # This is required because of the circular dependancy between
 # network_components.py and network.py types.
@@ -377,24 +379,40 @@ class BaseNode(ABC):
 
   @classmethod
   @abstractmethod
-  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
-    """Add a node to a network based on hdf5 data.
+  def _load_node(cls, node_data: h5py.Group) -> Tuple[Text]:
+    """Abstract method to enable adding nodes to a network based on hdf5 data.
+       Only a common functionality to load properties is implemented. Should be
+       overwritten by subclasses.
 
     Args:
-      net: The network the node will be added to
       node_data: h5py group that contains the serialized node data
 
     Returns:
-      The added node.
+      the node's name, signature, shape, axis_names
     """
     name = node_data['name'][()]
     signature = node_data['signature'][()]
     shape = node_data['shape'][()]
     axis_names = node_data['axis_names'][()]
-    node = net.add_node(name=name, axis_names=[ax for ax in axis_names])
-    node.set_signature(signature)
-    node._shape = shape
-    return node
+    return name, signature, shape, axis_names
+
+  @abstractmethod
+  def _save_node(self, node_group: h5py.Group):
+    """Abstract method to enable saving nodes to hdf5.
+       Only serializing common properties is implemented. Should be
+       overwritten by subclasses.
+
+    Args:
+      node_group: h5py group where data is saved to
+    """
+    node_group.create_dataset('signature', data=self.signature)
+    node_group.create_dataset('name', data=self.name)
+    node_group.create_dataset('shape', data=self.shape)
+    node_group.create_dataset('axis_names', dtype=string_type,
+                              data=np.array(self.axis_names, dtype=object))
+    node_group.create_dataset('edges', dtype=string_type,
+                              data=np.array([edge.name for edge in self.edges],
+                                            dtype=object))
 
 
 class Node(BaseNode):
@@ -457,6 +475,15 @@ class Node(BaseNode):
   def tensor(self, tensor: Tensor) -> Tensor:
     self._tensor = tensor
 
+  def _save_node(self, node_group: h5py.Group):
+    """Method to save a node to hdf5.
+
+    Args:
+      node_group: h5py group where data is saved to
+    """
+    super()._save_node(node_group)
+    node_group.create_dataset('tensor', data=self._tensor)
+
   @classmethod
   def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
@@ -468,8 +495,11 @@ class Node(BaseNode):
     Returns:
       The added node.
     """
-    node = super()._load_node(net, node_data)
-    node.tensor = node_data['tensor'][()]
+    name, signature, shape, axis_names = super()._load_node(node_data)
+    tensor = node_data['tensor'][()]
+    node = net.add_node(tensor=tensor, name=name,
+                        axis_names=[ax for ax in axis_names])
+    node.set_signature(signature)
     return node
 
 
@@ -579,6 +609,14 @@ class CopyNode(BaseNode):
     tensors = [partner.get_tensor() for partner in partners]
     return self.network.backend.einsum(einsum_expression, *tensors)
 
+  def _save_node(self, node_group: h5py.Group):
+    """Method to save a node to hdf5.
+
+    Args:
+      node_group: h5py group where data is saved to
+    """
+    super()._save_node(node_group)
+
   @classmethod
   def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
@@ -590,7 +628,11 @@ class CopyNode(BaseNode):
     Returns:
       The added node.
     """
-    return super()._load_node(net, node_data)
+    name, signature, shape, axis_names = super()._load_node(node_data)
+    node = net.add_copy_node(name=name, axis_names=[ax for ax in axis_names],
+                             rank=len(shape), dimension=shape[0])
+    node.set_signature(signature)
+    return node
 
 
 class Edge:
