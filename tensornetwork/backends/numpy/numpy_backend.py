@@ -17,8 +17,7 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
-# pylint: disable=reimported
-import numpy as np
+import numpy
 Tensor = Any
 
 
@@ -27,10 +26,6 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(NumPyBackend, self).__init__()
-    try:
-      import numpy
-    except ImportError:
-      raise AssertionError("numpy is not installed.")
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
     self.decompositions = decompositions
@@ -111,19 +106,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def eye(self,
           N,
           M: Optional[int] = None,
-          dtype: Optional['np.dtype'] = np.float64) -> Tensor:
+          dtype: Optional['numpy.dtype'] = numpy.float64) -> Tensor:
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int],
-           dtype: Optional['np.dtype'] = np.float64) -> Tensor:
+  def ones(self,
+           shape: Tuple[int],
+           dtype: Optional['numpy.dtype'] = numpy.float64) -> Tensor:
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int],
-            dtype: Optional['np.dtype'] = np.float64) -> Tensor:
+  def zeros(self,
+            shape: Tuple[int],
+            dtype: Optional['numpy.dtype'] = numpy.float64) -> Tensor:
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int],
-            dtype: Optional['np.dtype'] = np.float64) -> Tensor:
+  def randn(self,
+            shape: Tuple[int],
+            dtype: Optional['numpy.dtype'] = numpy.float64) -> Tensor:
     return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
