@@ -403,8 +403,9 @@ class BaseNode(ABC):
        overwritten by subclasses.
 
     Args:
-      node_group: h5py group where data is saved to
+      node_group: h5py group where data is saved
     """
+    node_group.create_dataset('type', data=type(self).__name__)
     node_group.create_dataset('signature', data=self.signature)
     node_group.create_dataset('name', data=self.name)
     node_group.create_dataset('shape', data=self.shape)
@@ -479,13 +480,13 @@ class Node(BaseNode):
     """Method to save a node to hdf5.
 
     Args:
-      node_group: h5py group where data is saved to
+      node_group: h5py group where data is saved
     """
     super()._save_node(node_group)
     node_group.create_dataset('tensor', data=self._tensor)
 
   @classmethod
-  def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
 
     Args:
@@ -613,12 +614,12 @@ class CopyNode(BaseNode):
     """Method to save a node to hdf5.
 
     Args:
-      node_group: h5py group where data is saved to
+      node_group: h5py group where data is saved
     """
     super()._save_node(node_group)
 
   @classmethod
-  def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
 
     Args:
@@ -785,6 +786,40 @@ class Edge:
 
   def set_name(self, name: Text) -> None:
     self.name = name
+
+  def _save_edge(self, edge_group: h5py.Group):
+    """Method to save an edge to hdf5.
+
+    Args:
+      edge_group: h5py group where data is saved
+    """
+    edge_group.create_dataset('node1', data=self.node1.name)
+    edge_group.create_dataset('axis1', data=self.axis1)
+    if self.node2 is not None:
+      edge_group.create_dataset('node2', data=self.node2.name)
+      edge_group.create_dataset('axis2', data=self.axis2)
+    edge_group.create_dataset('signature', data=self.signature)
+    edge_group.create_dataset('name', data=self.name)
+
+  @classmethod
+  def _load_edge(cls, edge_data: h5py.Group,
+                 nodes_dict: Dict[Text, BaseNode]):
+    node1 = nodes_dict[edge_data["node1"][()]]
+    axis1 = int(edge_data["axis1"][()])
+    if "node2" in list(edge_data.keys()):
+      node2 = nodes_dict[edge_data["node2"][()]]
+      axis2 = int(edge_data["axis2"][()])
+    else:
+      node2 = None
+      axis2 = None
+    signature = edge_data["signature"][()]
+    name = edge_data["name"][()]
+    edge = cls(node1=node1, axis1=axis1, node2=node2, axis2=axis2, name=name)
+    node1.add_edge(edge, axis1)
+    if node2 is not None:
+      node2.add_edge(edge, axis2)
+    if not edge.is_dangling():
+      edge.set_signature(signature)
 
   def __xor__(self, other: "Edge") -> "Edge":
     return self.node1.network.connect(self, other)
