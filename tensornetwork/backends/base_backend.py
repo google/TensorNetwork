@@ -16,8 +16,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import Optional, Sequence, Tuple, Any, Union
-
+from typing import Optional, Sequence, Tuple, Any, Union, Type
+import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -209,16 +209,17 @@ v    Returns:
         self.name))
 
   def eye(self,
-          N: Union[int, 'ShapeType'],
-          M: Optional[Union[int, 'ShapeType']] = None,
-          dtype: Optional['dtype'] = 'dtype') -> Tensor:
+          N: int,
+          M: Optional[int] = None,
+          dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
       Args:
-        dim (int or ShapeType): The dimension of the returned matrix.
+        N (int): The dimension of the returned matrix.
+        M (int): The dimension of the returned matrix.
         dtype: The dtype of the returned matrix.
     """
     #TODO: implement `ShapeType` objects
@@ -226,15 +227,15 @@ v    Returns:
         self.name))
 
   def ones(self,
-           shape: Tuple[Union[int, 'ShapeType']],
-           dtype: Optional['dtype'] = 'dtype') -> Tensor:
+           shape: Tuple[int],
+           dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
-         dim (int or ShapeType): The dimension of the returned matrix.
+         shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
 
     """
@@ -242,15 +243,15 @@ v    Returns:
         self.name))
 
   def zeros(self,
-            shape: Tuple[Union[int, 'ShapeType']],
-            dtype: Optional['dtype'] = 'dtype') -> Tensor:
+            shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     """Return a zeros-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
-         dim (int or ShapeType): The dimension of the returned matrix.
+         shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
 
     """
@@ -258,15 +259,15 @@ v    Returns:
         self.name))
 
   def randn(self,
-            shape: Tuple[Union[int, 'ShapeType']],
-            dtype: Optional['dtype'] = 'dtype') -> Tensor:
+            shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
-         dim (int or ShapeType): The dimension of the returned matrix.
+         shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
 
     """
