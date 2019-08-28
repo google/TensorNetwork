@@ -281,7 +281,8 @@ def test_node_save_structure(tmp_path, single_node_edge):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {"tensor", "signature", 'name',
-                                                 'edges', 'shape', 'axis_names'}
+                                                 'edges', 'shape', 'axis_names',
+                                                 "type"}
 
 
 def test_node_save_data(tmp_path, single_node_edge):
@@ -291,6 +292,7 @@ def test_node_save_data(tmp_path, single_node_edge):
     node._save_node(node_group)
     np.testing.assert_allclose(node_file['test_node/tensor'][()], node.tensor)
     assert node_file['test_node/signature'][()] == node.signature
+    assert node_file['test_node/type'][()] == type(node).__name__
     assert node_file['test_node/name'][()] == node.name
     assert set(node_file['test_node/shape'][()]) == set(node.shape)
     assert set(node_file['test_node/axis_names'][()]) == set(node.axis_names)
@@ -374,7 +376,7 @@ def test_copy_node_save_structure(tmp_path, backend):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {"signature", 'name', 'edges',
-                                                 'shape', 'axis_names'}
+                                                 'shape', 'axis_names', "type"}
 
 
 def test_copy_node_save_data(tmp_path, backend):
@@ -384,6 +386,7 @@ def test_copy_node_save_data(tmp_path, backend):
     node_group = node_file.create_group('copier')
     node._save_node(node_group)
     assert node_file['copier/signature'][()] == node.signature
+    assert node_file['copier/type'][()] == type(node).__name__
     assert node_file['copier/name'][()] == node.name
     assert set(node_file['copier/shape'][()]) == set(node.shape)
     assert set(node_file['copier/axis_names'][()]) == set(node.axis_names)
