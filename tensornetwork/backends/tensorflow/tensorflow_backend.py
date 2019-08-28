@@ -101,22 +101,19 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def eye(self,
           N: int,
           M: Optional[int] = None,
-          dtype: Optional[tensorflow.DType] = tf.float64) -> Tensor:
+          dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self,
-           shape: Tuple[int],
-           dtype: Optional[tensorflow.DType] = tf.float64) -> Tensor:
+  def ones(self, shape: Tuple[int],
+           dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self,
-            shape: Tuple[int],
-            dtype: Optional[tensorflow.DType] = tf.float64) -> Tensor:
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self,
-            shape: Tuple[int],
-            dtype: Optional[tensorflow.DType] = tf.float64) -> Tensor:
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
