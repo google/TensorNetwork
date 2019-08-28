@@ -379,10 +379,14 @@ class BaseNode(ABC):
 
   @classmethod
   @abstractmethod
-  def _load_node(cls, node_data: h5py.Group) -> Tuple[Text]:
-    """Abstract method to enable adding nodes to a network based on hdf5 data.
-       Only a common functionality to load properties is implemented. Should be
-       overwritten by subclasses.
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    return
+
+
+  @classmethod
+  def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Text]:
+    """Common method to enable adding nodes to a network based on hdf5 data.
+       Only a common functionality to load node properties is implemented.
 
     Args:
       node_data: h5py group that contains the serialized node data
@@ -496,7 +500,7 @@ class Node(BaseNode):
     Returns:
       The added node.
     """
-    name, signature, shape, axis_names = super()._load_node(node_data)
+    name, signature, _, axis_names = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
     node = net.add_node(tensor=tensor, name=name,
                         axis_names=[ax for ax in axis_names])
@@ -610,6 +614,7 @@ class CopyNode(BaseNode):
     tensors = [partner.get_tensor() for partner in partners]
     return self.network.backend.einsum(einsum_expression, *tensors)
 
+  # pylint: disable=W0235
   def _save_node(self, node_group: h5py.Group):
     """Method to save a node to hdf5.
 
@@ -629,7 +634,7 @@ class CopyNode(BaseNode):
     Returns:
       The added node.
     """
-    name, signature, shape, axis_names = super()._load_node(node_data)
+    name, signature, shape, axis_names = cls._load_node_data(node_data)
     node = net.add_copy_node(name=name, axis_names=[ax for ax in axis_names],
                              rank=len(shape), dimension=shape[0])
     node.set_signature(signature)
