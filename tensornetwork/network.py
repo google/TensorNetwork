@@ -53,6 +53,44 @@ class TensorNetwork:
       name = "__Node_{}".format(self.node_increment)
     return name
 
+  def copy(self) -> Tuple["TensorNetwork", dict, dict]:
+    """
+    Return a copy of the TensorNetwork.
+    Returns:
+      A tuple containing:
+        TensorNetwork: A copy of the network.
+        node_dict: A dictionary mapping the nodes of the original 
+                   network to the nodes of the copy.
+        edge_dict: A dictionary mapping the edges of the original 
+                   network to the edges of the copy.
+    """
+    new_net = TensorNetwork(backend=self.backend.name)
+    #TODO: add support for copying CopyTensor
+    node_dict = {
+        node: new_net.add_node(
+            node.tensor, name=node.name, axis_names=node.axis_names)
+        for node in self.nodes_set
+    }
+    edge_dict = {}
+    for edge in self.get_all_edges():
+      node1 = edge.node1
+      axis1 = edge.node1.get_axis_number(edge.axis1)
+
+      if not edge.is_dangling():
+        node2 = edge.node2
+        axis2 = edge.node2.get_axis_number(edge.axis2)
+        new_edge = network_components.Edge(edge.name, node_dict[node1], axis1,
+                                           node_dict[node2], axis2)
+        new_edge.set_signature(edge.signature)
+      else:
+        new_edge = network_components.Edge(edge.name, node_dict[node1], axis1)
+
+      node_dict[node1].add_edge(new_edge, axis1)
+      if not edge.is_dangling():
+        node_dict[node2].add_edge(new_edge, axis2)
+      edge_dict[edge] = new_edge
+    return new_net, node_dict, edge_dict
+
   def add_subnetwork(self, subnetwork: "TensorNetwork") -> None:
     """Add a subnetwork to an existing network.
 
@@ -107,7 +145,7 @@ class TensorNetwork:
 
   def add_node(
       self,
-      tensor: Union[np.ndarray, Tensor],
+      tensor: Union[np.ndarray, Tensor, network_components.BaseNode],
       name: Optional[Text] = None,
       axis_names: Optional[List[Text]] = None) -> network_components.BaseNode:
     """Create a new node in the network.
@@ -124,11 +162,25 @@ class TensorNetwork:
     Raises:
       ValueError: If `name` already exists in the network.
     """
-    tensor = self.backend.convert_to_tensor(tensor)
-    name = self._new_node_name(name)
+    given_axis_name = axis_names is not None
+    given_node_name = name is not None
     if axis_names is None:
-      axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names, self)
+      axis_names = [
+          self._new_edge_name(None) for _ in range(len(tensor.shape))
+      ]
+    name = self._new_node_name(name)
+    if isinstance(tensor, network_components.BaseNode):
+      new_node = tensor
+      if new_node.network is not None:
+        raise ValueError("Given node is already part of a network.")
+      new_node.network = self
+      if new_node.axis_names is None or given_axis_name:
+        new_node.axis_names = axis_names
+      if new_node.name is None or given_node_name:
+        new_node.name = name
+    else:
+      tensor = self.backend.convert_to_tensor(tensor)
+      new_node = network_components.Node(tensor, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
