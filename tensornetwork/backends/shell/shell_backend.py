@@ -184,8 +184,8 @@ class ShellBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return ShellTensor(())
 
-  def eye(self, N: int, M: Optional[int] = None,
-          dtype: Type[np.number]) -> Tensor:
+  def eye(self, N: int, dtype: Type[np.number],
+          M: Optional[int] = None) -> Tensor:
     if not M:
       M = N
     return ShellTensor((N, M))
