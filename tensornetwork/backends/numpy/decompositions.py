@@ -69,3 +69,40 @@ def svd_decomposition(
   vh = np.reshape(vh, [dim_s] + list(right_dims))
 
   return u, s, vh, s_rest
+
+def qr_decomposition(
+    np,  # TODO: Typing
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
+  """Computes the QR decomposition of a tensor.
+
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
+  left_dims = tensor.shape[:split_axis]
+  right_dims = tensor.shape[split_axis:]
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  q, r = np.linalg.qr(tensor)
+  center_dim = q.shape[1]
+  q = np.reshape(q, list(left_dims) + [center_dim])
+  r = np.reshape(r, [center_dim] + list(right_dims))
+  return q, r
+
+def rq_decomposition(
+    np,  # TODO: Typing
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
+  """Computes the RQ (reversed QR) decomposition of a tensor.
+
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
+  left_dims = tensor.shape[:split_axis]
+  right_dims = tensor.shape[split_axis:]
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
+  r, q = np.conj(np.transpose(r)), np.conj(np.transpose(q))#M=r*q at this point
+  center_dim = r.shape[1]
+  r = np.reshape(r, list(left_dims) + [center_dim])
+  q = np.reshape(q, [center_dim] + list(right_dims))
+  return r, q

@@ -51,8 +51,8 @@ def find_parallel(edge: network_components.Edge
 
 def contract_trace_edges(
     net: network.TensorNetwork, none_value: int = 1
-) -> Tuple[network.TensorNetwork, Dict[network_components.Node, int],
-           Dict[network_components.Node, int]]:
+) -> Tuple[network.TensorNetwork, Dict[network_components.BaseNode, int],
+           Dict[network_components.BaseNode, int]]:
   """Contracts trace edges and calculate tensor sizes for every node.
 
   Tensor size is defined as the product of sizes of each of edges (axes).

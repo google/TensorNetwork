@@ -2,8 +2,10 @@ import numpy as np
 import tensorflow as tf
 import pytest
 from collections import namedtuple
-from tensornetwork.network_components import Node, Edge
+from tensornetwork.network_components import Node, CopyNode, Edge
 import tensornetwork
+
+tf.compat.v1.enable_v2_behavior()
 
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
@@ -35,6 +37,12 @@ def fixture_double_node_edge(backend):
   return DoubleNodeEdgeTensor(node1, node2, edge1, edge12, tensor)
 
 
+@pytest.fixture(name='copy_node')
+def fixture_copy_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  return CopyNode(4, 2, "copier", ["a", "b", "c", "d"], net)
+
+
 def test_node_initialize_numpy():
   net = tensornetwork.TensorNetwork(backend="numpy")
   tensor = np.ones((1, 2, 3))
@@ -54,6 +62,7 @@ def test_node_initialize_tensorflow():
   tensor = tf.ones((1, 2, 3))
   node = Node(
       tensor=tensor, name="test_node", axis_names=["a", "b", "c"], network=net)
+  print(node.tensor)
   np.testing.assert_allclose(node.tensor, np.ones((1, 2, 3)))
   assert node.name == 'test_node'
   assert node.network == net
@@ -259,6 +268,48 @@ def test_node_magic_matmul(backend):
                        [60, 60, 60, 60]])
   assert isinstance(actual, Node)
   np.testing.assert_allclose(actual.tensor, expected)
+
+
+def test_copy_node_init(copy_node):
+  assert copy_node.rank == 4
+  assert copy_node.dimension == 2
+  assert copy_node.name == "copier"
+  assert copy_node.axis_names == ["a", "b", "c", "d"]
+  assert copy_node._tensor is None
+
+def test_copy_node_shape(copy_node):
+  assert copy_node.shape == (2, 2, 2, 2)
+
+
+def test_copy_node_tensor(copy_node):
+  expected = np.array(([[[[1, 0], [0, 0]], [[0, 0], [0, 0]]],
+                        [[[0, 0], [0, 0]], [[0, 0], [0, 1]]]]))
+  np.testing.assert_allclose(copy_node.get_tensor(), expected)
+  np.testing.assert_allclose(copy_node.tensor, expected)
+  np.testing.assert_allclose(copy_node._tensor, expected)
+
+
+def test_copy_node_make_copy_tensor(copy_node):
+  expected = np.array(([[[[1, 0], [0, 0]], [[0, 0], [0, 0]]],
+                        [[[0, 0], [0, 0]], [[0, 0], [0, 1]]]]))
+  np.testing.assert_allclose(copy_node.make_copy_tensor(4, 2, dtype=np.int64),
+                             expected)
+
+
+def test_copy_node_set_tensor(copy_node):
+  expected = np.ones((2, 3, 4))
+  copy_node.set_tensor(expected)
+  np.testing.assert_allclose(copy_node.get_tensor(), expected)
+  np.testing.assert_allclose(copy_node.tensor, expected)
+  np.testing.assert_allclose(copy_node._tensor, expected)
+
+
+def test_copy_node_set_tensor_property(copy_node):
+  expected = np.ones((2, 3, 4))
+  copy_node.tensor = expected
+  np.testing.assert_allclose(copy_node.get_tensor(), expected)
+  np.testing.assert_allclose(copy_node.tensor, expected)
+  np.testing.assert_allclose(copy_node._tensor, expected)
 
 
 def test_edge_initialize_dangling(single_node_edge):

@@ -20,8 +20,8 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload
 import typing
 import numpy as np
-from tensornetwork.backends import base_backend
 import weakref
+from abc import ABC, abstractmethod
 
 Tensor = Any
 # This is required because of the circular dependancy between
@@ -29,8 +29,8 @@ Tensor = Any
 TensorNetwork = Any
 
 
-class Node:
-  """Node for the TensorNetwork graph.
+class BaseNode(ABC):
+  """Base class for nodes. Should be subclassed.
 
   A Node represents a concrete tensor in a tensor network. The number of edges
   for a node represents the rank of that tensor.
@@ -46,36 +46,39 @@ class Node:
   an arbitrary dimension.
   """
 
-  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
-               network: TensorNetwork) -> None:
-    """Create a node for the TensorNetwork.
+  def __init__(self,
+               name: Text,
+               axis_names: List[Text],
+               network: TensorNetwork,
+               shape: Optional[Tuple[int]] = None) -> None:
+    """Create a node for the TensorNetwork. Should be subclassed before usage
+    and a limited number of abstract methods and properties implemented.
 
     Args:
-      tensor: The concrete tensor that is represented by this node. Can be
-        either a numpy array or a tensorflow tensor.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
       network: The TensorNetwork this Node belongs to.
+      shape: the shape of the tensor, as tuple of integers.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self._tensor = tensor
     self.name = name
     self.network = network
-    self.edges = [
+    self._shape = shape
+
+    self._edges = [
         Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
     ]
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
-      self.axis_names = None
-    self.signature = -1
+      self._axis_names = None
 
-  def get_rank(self) -> int:
-    """Return rank of tensor represented by self."""
-    return len(self.tensor.shape)
+    self._signature = -1
+
+    super().__init__()
 
   def set_signature(self, signature: int) -> None:
     """Set the signature for the node.
@@ -97,10 +100,10 @@ class Node:
     """
     if len(axis_names) != len(set(axis_names)):
       raise ValueError("Not all axis names are unique.")
-    if len(axis_names) != len(self.tensor.shape):
+    if len(axis_names) != len(self.shape):
       raise ValueError("axis_names is not the same length as the tensor shape."
                        "axis_names length: {}, tensor.shape length: {}".format(
-                           len(axis_names), len(self.tensor.shape)))
+                           len(axis_names), len(self.shape)))
     self.axis_names = axis_names[:]
 
   def add_edge(self,
@@ -118,7 +121,7 @@ class Node:
       ValueError: If the edge on axis is not dangling.
     """
     axis_num = self.get_axis_number(axis)
-    if axis_num < 0 or axis_num >= len(self.tensor.shape):
+    if axis_num < 0 or axis_num >= len(self.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
     if not self.edges[axis_num].is_dangling() and not override:
       raise ValueError(
@@ -126,41 +129,57 @@ class Node:
               self, axis))
     self.edges[axis_num] = edge
 
+  @abstractmethod
   def get_tensor(self):
-    return self.tensor
+    return
 
+  @abstractmethod
   def set_tensor(self, tensor):
-    self.tensor = tensor
+    return
 
   @property
+  @abstractmethod
   def shape(self):
-    return self.network.backend.shape_tuple(self._tensor)
+    if self._shape is None:
+      raise ValueError('Please ensure this Node has a well-defined shape')
+    return self._shape
 
   @property
+  @abstractmethod
   def tensor(self) -> Tensor:
-    return self._tensor
+    return
 
   @tensor.setter
+  @abstractmethod
   def tensor(self, tensor: Tensor) -> Tensor:
-    self._tensor = tensor
+    return
 
-  def reorder_edges(self, edge_order: List["Edge"]) -> "Node":
+  def get_rank(self) -> int:
+    """Return rank of tensor represented by self."""
+    return len(self.shape)
+
+  def reorder_edges(self, edge_order: List["Edge"]) -> "BaseNode":
     """Reorder the edges for this given Node.
 
     This will reorder the node's edges and transpose the underlying tensor
     accordingly.
 
     Args:
-      edge_order: List of edges. The order in the list determins the new edge
+      edge_order: List of edges. The order in the list determines the new edge
         ordering.
 
     Returns:
       This node post reordering.
 
     Raises:
-      ValueError: If either the list of edges is not the same as expected or if
-        you try to reorder with a trace edge.
+      ValueError: If either the list of  edges is not the same as expected or
+        if you try to reorder with a trace edge.
+      AttributeError: If the Node has no tensor.
+
     """
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+
     if set(edge_order) != set(self.edges):
       raise ValueError("Given edge order does not match expected edges. "
                        "Found: {}, Expected: {}".format(edge_order, self.edges))
@@ -186,7 +205,7 @@ class Node:
       self.axis_names = tmp_axis_names
     return self
 
-  def reorder_axes(self, perm: List[int]) -> "Node":
+  def reorder_axes(self, perm: List[int]) -> "BaseNode":
     """Reorder axes of the node's tensor.
 
     This will also update all of the node's edges.
@@ -196,7 +215,13 @@ class Node:
 
     Returns:
       This node post reordering.
+
+    Raises:
+      AttributeError: If the Node has no tensor.
     """
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+
     if set(perm) != set(range(len(self.edges))):
       raise ValueError("A full permutation was not passed. "
                        "Permutation passed: {}".format(perm))
@@ -232,9 +257,9 @@ class Node:
       ValueError: if axis isn't an int or if axis is too large or small.
     """
     axis_num = self.get_axis_number(axis)
-    if axis_num < 0 or axis_num >= len(self.tensor.shape):
+    if axis_num < 0 or axis_num >= len(self.shape):
       raise ValueError("Axis must be positive and less than rank of the tensor")
-    return self.network.backend.shape_tuple(self.tensor)[axis_num]
+    return self.shape[axis_num]
 
   def get_edge(self, axis: Union[int, Text]) -> "Edge":
     axis_num = self.get_axis_number(axis)
@@ -259,14 +284,14 @@ class Node:
 
   @overload
   def __getitem__(self, key: slice) -> List["Edge"]:
-    pass 
+    pass
 
   @overload
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
     pass
 
-  def __getitem__(self, key: Union[int, Text, slice]
-                 ) -> Union["Edge", List["Edge"]]:
+  def __getitem__(self,
+                  key: Union[int, Text, slice]) -> Union["Edge", List["Edge"]]:
     if isinstance(key, slice):
       return self.edges[key]
     return self.get_edge(key)
@@ -275,19 +300,138 @@ class Node:
     return self.name
 
   def __lt__(self, other):
-    if not isinstance(other, Node):
+    if not isinstance(other, BaseNode):
       raise ValueError("Object {} is not a Node type.".format(other))
     return id(self) < id(other)
 
-  def __matmul__(self, other: "Node") -> "Node":
-    if not isinstance(other, Node):
+  def __matmul__(self, other: "BaseNode") -> "BaseNode":
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+    if not isinstance(other, BaseNode):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
+    if other.network is None:
+      raise ValueError("Cannot use '@' on disabled node {}.".format(other.name))
+    if self.network is None:
+      raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
+    
     if other.network is not self.network:
       raise ValueError("Cannot use '@' on nodes in different networks.")
     return self.network.contract_between(self, other)
 
+  @property
+  def edges(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its edges is no longer possible'.format(
+                           self.name))
+    return self._edges
 
-class CopyNode(Node):
+  @edges.setter
+  def edges(self, edges: List):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled.'
+                       'Assigning edges is no longer possible'.format(
+                           self.name))
+    self._edges = edges
+
+  @property
+  def axis_names(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its axis_names is no longer possible'.format(
+                           self.name))
+    return self._axis_names
+
+  @axis_names.setter
+  def axis_names(self, axis_names: List[Text]):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Assigning axis_names is no longer possible'.format(
+                           self.name))
+    self._axis_names = axis_names
+
+  @property
+  def signature(self):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Accessing its signature is no longer possible'.format(
+                           self.name))
+    return self._signature
+
+  @signature.setter
+  def signature(self, signature: int):
+    if self.network is None:
+      raise ValueError('Node {} has been disabled. '
+                       'Assigning a signature is no longer possible'.format(
+                           self.name))
+    self._signature = signature
+
+  def disable(self):
+    if self in self.network.nodes_set:
+      raise ValueError(
+          'Node {} is part of a network. Disabelling not allowed'.format(
+              self.name))
+    self.network = None
+
+
+class Node(BaseNode):
+  """Node for the TensorNetwork graph.
+
+  A Node represents a concrete tensor in a tensor network. The number of edges
+  for a node represents the rank of that tensor.
+
+  For example:
+
+  * A node with no edges means this node represents a scalar value.
+  * A node with a single edge means this node is a vector.
+  * A node with two edges represents a matrix.
+  * A node with three edges is a tensor of rank 3, etc.
+
+  Each node can have an arbitrary rank/number of edges, each of which can have
+  an arbitrary dimension.
+  """
+
+  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
+               network: TensorNetwork) -> None:
+    """Create a node for the TensorNetwork.
+
+    Args:
+      tensor: The concrete tensor that is represented by this node. Can be
+        either a numpy array or a tensorflow tensor.
+      name: Name of the node. Used primarily for debugging.
+      axis_names: List of names for each of the tensor's axes.
+      network: The TensorNetwork this Node belongs to.
+
+    Raises:
+      ValueError: If there is a repeated name in `axis_names` or if the length
+        doesn't match the shape of the tensor.
+    """
+    self._tensor = tensor
+    super().__init__(name=name, axis_names=axis_names, network=network)
+
+  def get_tensor(self):
+    return self.tensor
+
+  def set_tensor(self, tensor):
+    self.tensor = tensor
+
+  @property
+  def shape(self):
+    if self.network is not None:
+      return self.network.backend.shape_tuple(self._tensor)
+    raise ValueError('Node {} has been disabled. '
+                     'Access its shape via self.tensor'.format(self.name))
+
+  @property
+  def tensor(self) -> Tensor:
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, tensor: Tensor) -> Tensor:
+    self._tensor = tensor
+
+
+class CopyNode(BaseNode):
 
   def __init__(self,
                rank: int,
@@ -296,11 +440,34 @@ class CopyNode(Node):
                axis_names: List[Text],
                network: TensorNetwork,
                dtype: Type[np.number] = np.float64) -> None:
-    # TODO: Make this computation lazy, once Node doesn't require tensor
-    # at instatiation.
-    copy_tensor = self.make_copy_tensor(rank, dimension, dtype)
-    copy_tensor = network.backend.convert_to_tensor(copy_tensor)
-    super().__init__(copy_tensor, name, axis_names, network)
+
+    self.rank = rank
+    self.dimension = dimension
+    self.dtype = dtype
+    self._tensor = None
+
+    super().__init__(name, axis_names, network, shape=(dimension,) * rank)
+
+  def get_tensor(self):
+    return self.tensor
+
+  def set_tensor(self, tensor):
+    self.tensor = tensor
+
+  @property
+  def shape(self):
+    return (self.dimension,) * self.rank
+
+  @property
+  def tensor(self) -> Tensor:
+    if self._tensor is None:
+      copy_tensor = self.make_copy_tensor(self.rank, self.dimension, self.dtype)
+      self._tensor = self.network.backend.convert_to_tensor(copy_tensor)
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, tensor: Tensor) -> Tensor:
+    self._tensor = tensor
 
   @staticmethod
   def make_copy_tensor(rank: int, dimension: int,
@@ -314,15 +481,15 @@ class CopyNode(Node):
   def _is_my_trace(self, edge: "Edge") -> bool:
     return edge.node1 is self and edge.node2 is self
 
-  def _get_partner(self, edge: "Edge") -> Tuple[Node, int]:
+  def _get_partner(self, edge: "Edge") -> Tuple[BaseNode, int]:
     if edge.node1 is self:
       assert edge.axis2 is not None
       return edge.node2, edge.axis2
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
-  def get_partners(self) -> Dict[Node, Set[int]]:
-    partners = {}  # type: Dict[Node, Set[int]]
+  def get_partners(self) -> Dict[BaseNode, Set[int]]:
+    partners = {}  # type: Dict[BaseNode, Set[int]]
     for edge in self.edges:
       if edge.is_dangling():
         raise ValueError('Cannot contract copy tensor with dangling edges')
@@ -337,7 +504,7 @@ class CopyNode(Node):
   _VALID_SUBSCRIPTS = list(
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 
-  def _make_einsum_input_term(self, node: Node, shared_axes: Set[int],
+  def _make_einsum_input_term(self, node: BaseNode, shared_axes: Set[int],
                               next_index: int) -> Tuple[str, int]:
     indices = []
     for axis in range(node.get_rank()):
@@ -352,7 +519,7 @@ class CopyNode(Node):
   def _make_einsum_output_term(self, next_index: int) -> str:
     return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
-  def _make_einsum_expression(self, partners: Dict[Node, Set[int]]) -> str:
+  def _make_einsum_expression(self, partners: Dict[BaseNode, Set[int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
     einsum_input_terms = []
     for partner_node, shared_axes in partners.items():
@@ -401,9 +568,9 @@ class Edge:
 
   def __init__(self,
                name: Text,
-               node1: Node,
+               node1: BaseNode,
                axis1: int,
-               node2: Optional[Node] = None,
+               node2: Optional[BaseNode] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
@@ -437,12 +604,12 @@ class Edge:
           "Do not set a signature for dangling edge '{}'.".format(self))
     self.signature = signature
 
-  def get_nodes(self) -> List[Optional[Node]]:
+  def get_nodes(self) -> List[Optional[BaseNode]]:
     """Get the nodes of the edge."""
     return [self.node1, self.node2]
 
-  def update_axis(self, old_axis: int, old_node: Node, new_axis: int,
-                  new_node: Node) -> None:
+  def update_axis(self, old_axis: int, old_node: BaseNode, new_axis: int,
+                  new_node: BaseNode) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -467,14 +634,14 @@ class Edge:
                            self.node2, self.axis2))
 
   @property
-  def node1(self) -> Node:
+  def node1(self) -> BaseNode:
     val = self._node1()
     if val is None:
       raise ValueError("node1 for edge '{}' no longer exists.".format(self))
     return val
 
   @property
-  def node2(self) -> Optional[Node]:
+  def node2(self) -> Optional[BaseNode]:
     if self._is_dangling:
       return None
     if self._node2() is None:
@@ -482,12 +649,12 @@ class Edge:
     return self._node2()
 
   @node1.setter
-  def node1(self, node: Node) -> None:
+  def node1(self, node: BaseNode) -> None:
     # pylint: disable=attribute-defined-outside-init
     self._node1 = weakref.ref(node)
 
   @node2.setter
-  def node2(self, node: Optional[Node]) -> None:
+  def node2(self, node: Optional[BaseNode]) -> None:
     # pylint: disable=attribute-defined-outside-init
     self._node2 = weakref.ref(node) if node else None
     if node is None:

@@ -88,6 +88,26 @@ class ShellBackend(base_backend.BaseBackend):
     s_rest = ShellTensor((dim_s0 - dim_s,))
     return u, s, vh, s_rest
 
+  def qr_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+
+    left_dims = tensor.shape[:split_axis]
+    right_dims = tensor.shape[split_axis:]
+    center_dim = min(tensor.shape)
+    q = ShellTensor(left_dims + (center_dim,))
+    r = ShellTensor((center_dim,) + right_dims)
+    return q, r
+
+  def rq_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+
+    left_dims = tensor.shape[:split_axis]
+    right_dims = tensor.shape[split_axis:]
+    center_dim = min(tensor.shape)
+    q = ShellTensor(left_dims + (center_dim,))
+    r = ShellTensor((center_dim,) + right_dims)
+    return q, r
+
   def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
     if axis < 0:
@@ -109,7 +129,7 @@ class ShellBackend(base_backend.BaseBackend):
   def multiply(self, tensor1: Tensor, tensor2: Tensor):
     # one tensor is assumed scalar, shapes concatenated yields larger tensor shape
     return tensor1.shape + tensor2.shape
-
+  
   def prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!
     # prod calculates the product of tensor elements and cannot implemented
