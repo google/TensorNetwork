@@ -31,7 +31,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
-    self.tf = tensorflow
+    self.tf = tf
     self.name = "tensorflow"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
