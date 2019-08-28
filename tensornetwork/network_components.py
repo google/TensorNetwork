@@ -22,6 +22,7 @@ import typing
 import numpy as np
 import weakref
 from abc import ABC, abstractmethod
+import h5py
 
 Tensor = Any
 # This is required because of the circular dependancy between
@@ -368,6 +369,27 @@ class BaseNode(ABC):
               self.name))
     self.network = None
 
+  @classmethod
+  @abstractmethod
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The added node.
+    """
+    name = node_data['name'][()]
+    signature = node_data['signature'][()]
+    shape = node_data['shape'][()]
+    axis_names = node_data['axis_names'][()]
+    node = net.add_node(name=name, axis_names=[ax for ax in axis_names])
+    node.set_signature(signature)
+    node._shape = shape
+    return node
+
 
 class Node(BaseNode):
   """Node for the TensorNetwork graph.
@@ -424,6 +446,21 @@ class Node(BaseNode):
   @tensor.setter
   def tensor(self, tensor: Tensor) -> Tensor:
     self._tensor = tensor
+
+  @classmethod
+  def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The added node.
+    """
+    node = super()._load_node(net, node_data)
+    node.tensor = node_data['tensor'][()]
+    return node
 
 
 class CopyNode(BaseNode):
@@ -531,6 +568,19 @@ class CopyNode(BaseNode):
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner in partners]
     return self.network.backend.einsum(einsum_expression, *tensors)
+
+  @classmethod
+  def _load_node(self, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The added node.
+    """
+    return super()._load_node(net, node_data)
 
 
 class Edge:
