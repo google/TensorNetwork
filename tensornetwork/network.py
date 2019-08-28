@@ -163,6 +163,7 @@ class TensorNetwork:
 
     Raises:
       ValueError: If `name` already exists in the network.
+      TypeError:  If `tensor.dtype` is different from network.dtype
     """
     tensor = self.backend.convert_to_tensor(tensor)
     if not self.dtype:
