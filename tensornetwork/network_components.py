@@ -620,7 +620,7 @@ class CopyNode(BaseNode):
     Args:
       node_group: h5py group where data is saved
     """
-    super()._save_node(node_group)
+    self._save_node(node_group)
 
   @classmethod
   def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
