@@ -30,10 +30,7 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self,
-               backend: Optional[Text] = None,
-               dtype: Optional[Type[np.number]] = None) -> None:
-
+  def __init__(self, backend: Optional[Text] = None) -> None:
     if backend is None:
       backend = config.default_backend
     self.backend = backend_factory.get_backend(backend)
@@ -41,7 +38,6 @@ class TensorNetwork:
     # These increments are only used for generating names.
     self.node_increment = 0
     self.edge_increment = 0
-    self.dtype = dtype
 
   def _new_edge_name(self, name: Optional[Text]) -> Text:
     self.edge_increment += 1
@@ -163,16 +159,8 @@ class TensorNetwork:
 
     Raises:
       ValueError: If `name` already exists in the network.
-      TypeError:  If `tensor.dtype` is different from network.dtype
     """
     tensor = self.backend.convert_to_tensor(tensor)
-    if not self.dtype:
-      self.dtype = tensor.dtype
-    else:
-      if self.dtype != tensor.dtype:
-        raise TypeError(
-            'cannot add tensor with dtype {} to TensorNetwork with dtype = {}'
-            .format(tensor.dtype, self.dtype))
     name = self._new_node_name(name)
     if axis_names is None:
       axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
