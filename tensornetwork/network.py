@@ -47,6 +47,11 @@ class TensorNetwork:
         dtype = config.default_dtypes[backend]
       except KeyError:
         raise ValueError("Backend {} does not exist".format(backend))
+    #backend.dtype is initialized from config.py (currently `None`)
+    #if `backend.dtype = None`, the backend dtype is set at the first
+    #call to `add_node(tensor)` to `backend.dtype = tensor.dtype`
+    #if `dtype` is is set at initialization, all tensors added to
+    #the network have to have the same `dtype` as the backend
     self.backend = backend_factory.get_backend(backend, dtype)
     self.nodes_set = set()
     # These increments are only used for generating names.
@@ -212,6 +217,8 @@ class TensorNetwork:
         new_node.name = name
     else:
       value = self.backend.convert_to_tensor(value)
+      if self.backend.dtype is None:
+        self.backend.dtype = value.dtype
       new_node = network_components.Node(value, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
