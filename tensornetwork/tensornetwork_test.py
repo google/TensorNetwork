@@ -1367,14 +1367,6 @@ def test_switch_backend():
 def test_svd_consistency(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
-  if backend == 'numpy':
-    dtype = np.complex64
-  if backend == 'tensorflow':
-    dtype = tf.complex64
-  if backend == 'jax':
-    dtype = np.complex64
-  if backend == 'shell':
-    dtype = np.complex64
 
   net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
