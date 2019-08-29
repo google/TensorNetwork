@@ -43,17 +43,13 @@ supported_dtypes = {
         tf.int8, tf.int16, tf.int32, tf.int64, tf.float32, tf.float16,
         tf.float64, tf.complex64, tf.complex128, tf.bool, None
     ],
-    'numpy':
-        numpy_dtypes,
+    'numpy': numpy_dtypes,
     'pytorch': [
         torch.int8, torch.int16, torch.int32, torch.int64, torch.float16,
         torch.float32, torch.float64, torch.complex64, torch.complex128,
         torch.bool, None
     ],
-    'jax': [
-        np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
-        np.float64, np.complex64, np.complex128, np.bool, None
-    ]
+    'jax': numpy_dtypes
 }
 #shell supports everything
 supported_dtypes['shell'] =\
