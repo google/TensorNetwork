@@ -30,10 +30,16 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self, backend: Optional[Text] = None) -> None:
+  def __init__(
+      self,
+      backend: Optional[Text] = None,
+      dtype: Optional[Type[np.number]] = None,
+  ) -> None:
     if backend is None:
       backend = config.default_backend
-    self.backend = backend_factory.get_backend(backend)
+    if dtype is None:
+      dtype = config.default_dtypes[backend]
+    self.backend = backend_factory.get_backend(backend, dtype)
     self.nodes_set = set()
     # These increments are only used for generating names.
     self.node_increment = 0
@@ -50,6 +56,14 @@ class TensorNetwork:
     if name is None:
       name = "__Node_{}".format(self.node_increment)
     return name
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    return self.backend.dtype
+
+  @dtype.setter
+  def dtype(self, dtype: Type[np.number]) -> None:
+    self.backend.dtype = dtype
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
