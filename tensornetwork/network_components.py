@@ -502,7 +502,7 @@ class Node(BaseNode):
     """
     name, signature, _, axis_names = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
-    node = net.add_node(tensor=tensor, name=name,
+    node = net.add_node(value=tensor, name=name,
                         axis_names=[ax for ax in axis_names])
     node.set_signature(signature)
     return node
