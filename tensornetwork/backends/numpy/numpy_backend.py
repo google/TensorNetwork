@@ -118,7 +118,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int],
+  def ones(self, shape: Sequence[int],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -127,7 +127,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int],
+  def zeros(self, shape: Sequence[int],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -136,7 +136,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int],
+  def randn(self, shape: Sequence[int],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype

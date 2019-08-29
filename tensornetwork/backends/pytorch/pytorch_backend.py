@@ -115,7 +115,7 @@ class PyTorchBackend(base_backend.BaseBackend):
       dtype = torch.float64
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int],
+  def ones(self, shape: Sequence[int],
            dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -124,7 +124,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
     return self.torch.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int],
+  def zeros(self, shape: Sequence[int],
             dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -133,7 +133,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
     return self.torch.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int],
+  def randn(self, shape: Sequence[int],
             dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype

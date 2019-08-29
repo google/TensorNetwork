@@ -110,7 +110,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int], dtype: Optional[tf.DType] = None) -> Tensor:
+  def ones(self, shape: Sequence[int],
+           dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
@@ -118,7 +119,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int],
+  def zeros(self, shape: Sequence[int],
             dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -127,7 +128,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int],
+  def randn(self, shape: Sequence[int],
             dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype

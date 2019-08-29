@@ -193,16 +193,16 @@ class ShellBackend(base_backend.BaseBackend):
       M = N
     return ShellTensor((N, M))
 
-  def ones(self, shape: Tuple[int],
+  def ones(self, shape: Sequence[int],
            dtype: Optional[Type[np.number]] = None) -> Tensor:
     return ShellTensor(shape)
 
-  def zeros(self, shape: Tuple[int],
+  def zeros(self, shape: Sequence[int],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
 
     return ShellTensor(shape)
 
-  def randn(self, shape: Tuple[int],
+  def randn(self, shape: Sequence[int],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
     return ShellTensor(shape)
 
