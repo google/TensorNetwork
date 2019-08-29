@@ -27,7 +27,7 @@ Tensor = Any
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[tf.DType] = tf.float64):
+  def __init__(self, dtype: Optional[tf.DType] = None):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
@@ -81,7 +81,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.tf.convert_to_tensor(tensor)
-    if result.dtype is not self.dtype:
+    if self.dtype is not None and result.dtype is not self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
               self.name, result.dtype, self.dtype))
@@ -105,23 +105,35 @@ class TensorFlowBackend(base_backend.BaseBackend):
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int], dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.ones(shape=shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int],
             dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.zeros(shape, dtype=dtype)
 
   def randn(self, shape: Tuple[int],
             dtype: Optional[tf.DType] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
