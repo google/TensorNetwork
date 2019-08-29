@@ -16,24 +16,24 @@ import numpy as np
 import torch
 default_backend = "tensorflow"
 default_dtypes = {
-    'tensorflow': tf.float64,
-    'numpy': np.float64,
-    'pytorch': torch.float64,
-    'jax': np.float64,
-    'shell': np.float64
+    'tensorflow': None,
+    'numpy': None,
+    'pytorch': None,
+    'jax': None,
+    'shell': None
 }
 
 supported_dtypes = {
     'tensorflow': (tf.int8, tf.int16, tf.int32, tf.int64, tf.float32,
-                   tf.float16, tf.float64, tf.complex64, tf.complex128,
-                   tf.bool),
+                   tf.float16, tf.float64, tf.complex64, tf.complex128, tf.bool,
+                   None),
     'numpy': (np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
-              np.float64, np.complex64, np.complex128, np.bool),
+              np.float64, np.complex64, np.complex128, np.bool, None),
     'pytorch': (torch.int8, torch.int16, torch.int32, torch.int64,
                 torch.float16, torch.float32, torch.float64, torch.complex64,
-                torch.complex128, torch.bool),
+                torch.complex128, torch.bool, None),
     'jax': (np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
-            np.float64, np.complex64, np.complex128, np.bool),
+            np.float64, np.complex64, np.complex128, np.bool, None),
 }
 #shell supports everything
 supported_dtypes['shell'] =\
