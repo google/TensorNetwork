@@ -28,7 +28,7 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype=torch.float64):
+  def __init__(self, dtype: Optional[torch.dtype] = torch.float64):
     super(PyTorchBackend, self).__init__()
     self.torch = torch
     self.name = "pytorch"
