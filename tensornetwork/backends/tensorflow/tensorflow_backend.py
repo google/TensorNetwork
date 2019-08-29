@@ -135,7 +135,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = tf.float64
 
-    return self.tf.random_normal(shape=shape, dtype=dtype)
+    return self.tf.random.normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return self.tf.conj(tensor)
+    return self.tf.math.conj(tensor)
