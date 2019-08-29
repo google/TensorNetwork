@@ -25,7 +25,7 @@ import numpy as np
 
 class ShellTensor:
 
-  def __init__(self, shape: Tuple):
+  def __init__(self, shape: Tuple[int, ...]):
     self.shape = shape
 
   def reshape(self, new_shape: Tuple):
@@ -193,16 +193,19 @@ class ShellBackend(base_backend.BaseBackend):
       M = N
     return ShellTensor((N, M))
 
-  def ones(self, shape: Sequence[int],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[Type[np.number]] = None) -> Tensor:
     return ShellTensor(shape)
 
-  def zeros(self, shape: Sequence[int],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
 
     return ShellTensor(shape)
 
-  def randn(self, shape: Sequence[int],
+  def randn(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
     return ShellTensor(shape)
 
