@@ -29,7 +29,7 @@ class ShellTensor:
     self.shape = shape
     self.dtype = dtype
 
-  def reshape(self, new_shape: Tuple):
+  def reshape(self, new_shape: Tuple[int, ...]):
     self.shape = new_shape
     return self
 
