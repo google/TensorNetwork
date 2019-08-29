@@ -139,7 +139,7 @@ class TensorNetwork:
       raise ValueError("Multiple incompatible backends found: {}".format(
           list(backend_types)))
     if len(backend_dtypes) != 1:
-      raise ValueError("backends have incompatiblr dtyper")
+      raise ValueError("backends have incompatible dtypes")
 
     new_network = cls(backend=networks[0].backend.name)
     for network in networks:
