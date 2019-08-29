@@ -36,8 +36,10 @@ class TensorNetwork:
                dtype: Optional[Type[np.number]] = None) -> None:
     """
     Args:
-      backend (str):  name of the backend. Currently supported backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
-      dtype:          dtype of the network. If `None`, no dtype checks are performed. For initialization functions of the backend,
+      backend (str):  name of the backend. Currently supported 
+                      backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype:          dtype of the network. If `None`, no dtype checks are performed. 
+                      For initialization functions of the backend,
                       a dtype of `None` defaults to float64
     """
     if backend is None:
@@ -73,10 +75,6 @@ class TensorNetwork:
   @property
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
-
-  @dtype.setter
-  def dtype(self, dtype: Type[np.number]) -> None:
-    self.backend.dtype = dtype
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
