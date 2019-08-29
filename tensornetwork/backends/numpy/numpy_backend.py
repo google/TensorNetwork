@@ -24,7 +24,7 @@ Tensor = Any
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype] = numpy.float64):
+  def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(NumPyBackend, self).__init__()
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
@@ -90,7 +90,7 @@ class NumPyBackend(base_backend.BaseBackend):
       raise ValueError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
-    if result.dtype != self.dtype:
+    if self.dtype is not None and result.dtype != self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
               self.name, result.dtype, numpy.dtype(self.dtype)))
@@ -113,24 +113,36 @@ class NumPyBackend(base_backend.BaseBackend):
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = np.float64
+
     return self.np.eye(N, M=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = np.float64
+
     return self.np.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = np.float64
+
     return self.np.zeros(shape, dtype=dtype)
 
   def randn(self, shape: Tuple[int],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = np.float64
+
     return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
