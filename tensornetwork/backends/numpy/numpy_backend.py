@@ -24,7 +24,7 @@ Tensor = Any
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype]: numpy.float64):
+  def __init__(self, dtype: Optional[numpy.dtype] = numpy.float64):
     super(NumPyBackend, self).__init__()
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
