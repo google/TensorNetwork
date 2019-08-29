@@ -25,6 +25,7 @@ import weakref
 from tensornetwork import config
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
+from tensornetwork import component_factory
 
 Tensor = Any
 string_type = h5py.special_dtype(vlen=str)
@@ -1335,7 +1336,7 @@ def load(path: str):
 
     for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
-      node_type = getattr(network_components, node_data['type'][()])
+      node_type = component_factory.get_component(node_data['type'][()])
       node_type._load_node(net, node_data)
 
     nodes_dict = {node.name: node for node in net.nodes_set}
