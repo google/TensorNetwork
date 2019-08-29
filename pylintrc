@@ -53,6 +53,7 @@ load-plugins=
 #
 # CHANGED:
 disable=
+    pointless-statement,
     invalid-name,
     missing-docstring,
     too-many-lines,
