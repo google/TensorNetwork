@@ -20,6 +20,7 @@ import collections
 # pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
+import tensorflow as tf
 import weakref
 from tensornetwork import config
 from tensornetwork import network_components
@@ -141,7 +142,7 @@ class TensorNetwork:
     if len(backend_dtypes) != 1:
       raise ValueError("backends have incompatible dtypes")
 
-    new_network = cls(backend=networks[0].backend.name)
+    new_network = cls(backend=networks[0].backend.name, dtype=networks[0].dtype)
     for network in networks:
       new_network.add_subnetwork(network)
     return new_network
