@@ -36,7 +36,12 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.dtype = dtype
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.jax.jit(lambda x: x)(tensor)
+    result = self.jax.jit(lambda x: x)(tensor)
+    if result.dtype != self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
