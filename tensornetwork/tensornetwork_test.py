@@ -18,6 +18,7 @@ from __future__ import print_function
 import tensornetwork
 import pytest
 import numpy as np
+import torch
 import tensorflow as tf
 import torch
 from jax.config import config
@@ -1516,6 +1517,98 @@ def test_split_node_rq(backend):
   left, _ = net.split_node_rq(a, left_edges, right_edges)
   net.check_correct()
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+
+
+def test_split_node_qr_unitarity_complex_numpy():
+  net = tensornetwork.TensorNetwork(backend='numpy')
+  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
+
+
+def test_split_node_qr_unitarity_float_numpy():
+  net = tensornetwork.TensorNetwork(backend='numpy')
+  a = net.add_node(np.random.rand(3, 3))
+  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
+
+
+def test_split_node_qr_unitarity_complex_tf():
+  net = tensornetwork.TensorNetwork(backend='tensorflow')
+  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
+
+
+def test_split_node_qr_unitarity_float_tf():
+  net = tensornetwork.TensorNetwork(backend='tensorflow')
+  a = net.add_node(np.random.rand(3, 3))
+  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
+
+
+def test_split_node_qr_unitarity_float_torch():
+  net = tensornetwork.TensorNetwork(backend='pytorch')
+  a = net.add_node(np.random.rand(3, 3))
+  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
+
+
+def test_split_node_rq_unitarity_complex_numpy():
+  net = tensornetwork.TensorNetwork(backend='numpy')
+  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+  _, q = net.split_node_rq(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
+
+
+def test_split_node_rq_unitarity_float_numpy():
+  net = tensornetwork.TensorNetwork(backend='numpy')
+  a = net.add_node(np.random.rand(3, 3))
+  _, q = net.split_node_rq(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
+
+
+def test_split_node_rq_unitarity_complex_tf():
+  net = tensornetwork.TensorNetwork(backend='tensorflow')
+  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+  _, q = net.split_node_rq(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
+
+
+def test_split_node_rq_unitarity_float_tf():
+  net = tensornetwork.TensorNetwork(backend='tensorflow')
+  a = net.add_node(np.random.rand(3, 3))
+  _, q = net.split_node_rq(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
+
+
+def test_split_node_rq_unitarity_float_torch():
+  net = tensornetwork.TensorNetwork(backend='pytorch')
+  a = net.add_node(np.random.rand(3, 3))
+  _, q = net.split_node_rq(a, [a[0]], [a[1]])
+  np.testing.assert_almost_equal(
+      torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
+  np.testing.assert_almost_equal(
+      q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
 
 
 def test_split_node_qr(backend):
