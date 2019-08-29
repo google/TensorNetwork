@@ -28,7 +28,7 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[torch.dtype] = torch.float64):
+  def __init__(self, dtype: Optional[torch.dtype] = None):
     super(PyTorchBackend, self).__init__()
     self.torch = torch
     self.name = "pytorch"
@@ -87,7 +87,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.torch.as_tensor(tensor)
-    if result.dtype is not self.dtype:
+    if self.dtype is not None and result.dtype is not self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
               self.name, result.dtype, self.dtype))
@@ -111,24 +111,35 @@ class PyTorchBackend(base_backend.BaseBackend):
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int],
            dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
     return self.torch.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int],
             dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
     return self.torch.zeros(shape, dtype=dtype)
 
   def randn(self, shape: Tuple[int],
             dtype: Optional[torch.dtype] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
     return self.torch.randn(shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
