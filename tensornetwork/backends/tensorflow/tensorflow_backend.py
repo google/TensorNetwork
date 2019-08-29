@@ -27,12 +27,13 @@ Tensor = Any
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[tf.DType] = tf.float64):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
     self.tf = tf
     self.name = "tensorflow"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.tensordot2.tensordot(a, b, axes)
@@ -79,7 +80,12 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.linalg.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.tf.convert_to_tensor(tensor)
+    result = self.tf.convert_to_tensor(tensor)
+    if result.dtype is not self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.trace(tensor)
@@ -93,16 +99,29 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.norm(tensor)
 
-  def eye(self, N: int, dtype: tf.DType, M: Optional[int] = None) -> Tensor:
+  def eye(self,
+          N: int,
+          dtype: Optional[tf.DType] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int], dtype: tf.DType) -> Tensor:
+  def ones(self, shape: Tuple[int], dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int], dtype: tf.DType) -> Tensor:
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int], dtype: tf.DType) -> Tensor:
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
