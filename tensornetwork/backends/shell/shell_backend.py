@@ -39,9 +39,10 @@ Tensor = ShellTensor
 class ShellBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(ShellBackend, self).__init__()
     self.name = "shell"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -184,22 +185,25 @@ class ShellBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return ShellTensor(())
 
-  def eye(self, N: int, dtype: Type[np.number],
+  def eye(self,
+          N: int,
+          dtype: Optional[Type[np.number]] = None,
           M: Optional[int] = None) -> Tensor:
     if not M:
       M = N
     return ShellTensor((N, M))
 
-  def ones(self, shape: Tuple[int], dtype: Type[np.number]) -> Tensor:
+  def ones(self, shape: Tuple[int],
+           dtype: Optional[Type[np.number]] = None) -> Tensor:
+    return ShellTensor(shape)
+
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
 
     return ShellTensor(shape)
 
-  def zeros(self, shape: Tuple[int], dtype: Type[np.number]) -> Tensor:
-
-    return ShellTensor(shape)
-
-  def randn(self, shape: Tuple[int], dtype: Type[np.number]) -> Tensor:
-
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
     return ShellTensor(shape)
 
   def conj(self, tensor: Tensor) -> Tensor:
