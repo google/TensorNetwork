@@ -171,6 +171,34 @@ def test_randn_dtype():
   assert a.dtype == dtype
 
 
+def test_eye_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.eye(N=4, M=4)
+  assert a.dtype == dtype
+
+
+def test_ones_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.ones((4, 4))
+  assert a.dtype == dtype
+
+
+def test_zeros_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.zeros((4, 4))
+  assert a.dtype == dtype
+
+
+def test_randn_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert a.dtype == dtype
+
+
 def test_conj():
   backend = pytorch_backend.PyTorchBackend()
   real = np.random.rand(2, 2, 2)
