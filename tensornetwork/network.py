@@ -133,10 +133,14 @@ class TensorNetwork:
     Returns:
       A new network created by the merging of all of the given networks.
     """
+    backend_dtypes = {net.backend.dtype for net in networks}
     backend_types = {net.backend.name for net in networks}
     if len(backend_types) != 1:
       raise ValueError("Multiple incompatible backends found: {}".format(
           list(backend_types)))
+    if len(backend_dtypes) != 1:
+      raise ValueError("backends have incompatiblr dtyper")
+
     new_network = cls(backend=networks[0].backend.name)
     for network in networks:
       new_network.add_subnetwork(network)
