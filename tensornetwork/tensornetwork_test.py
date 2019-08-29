@@ -1541,7 +1541,7 @@ def test_save_makes_hdf5_filelike_io(backend):
   net.connect(a[0], b[0])
   p = io.BytesIO()
   net.save(p)
-  assert type(p.getvalue()) == bytes
+  assert isinstance(p.getvalue(), bytes)
 
 
 def test_save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
