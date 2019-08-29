@@ -5,6 +5,7 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.backends.pytorch import pytorch_backend
 import torch
+import pytest
 
 
 def test_tensordot():
@@ -74,9 +75,9 @@ def test_sqrt():
 
 def test_diag():
   backend = pytorch_backend.PyTorchBackend()
-  b = backend.convert_to_tensor(np.array([1, 2, 3]))
+  b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
   actual = backend.diag(b)
-  expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+  expected = np.array([[1, 0, 0], [0, 2, 0], [0.0, 0, 3]])
   np.testing.assert_allclose(expected, actual)
 
 
@@ -143,30 +144,58 @@ def test_randn():
 
 
 def test_eye_dtype():
-  backend = pytorch_backend.PyTorchBackend()
+  backend = pytorch_backend.PyTorchBackend(dtype=torch.float64)
   dtype = torch.float32
   a = backend.eye(N=4, M=4, dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_ones_dtype():
-  backend = pytorch_backend.PyTorchBackend()
+  backend = pytorch_backend.PyTorchBackend(dtype=torch.float64)
   dtype = torch.float32
   a = backend.ones((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_zeros_dtype():
-  backend = pytorch_backend.PyTorchBackend()
+  backend = pytorch_backend.PyTorchBackend(dtype=torch.float64)
   dtype = torch.float32
   a = backend.zeros((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_randn_dtype():
-  backend = pytorch_backend.PyTorchBackend()
+  backend = pytorch_backend.PyTorchBackend(dtype=torch.float64)
   dtype = torch.float32
   a = backend.randn((4, 4), dtype=dtype)
+  assert a.dtype == dtype
+
+
+def test_eye_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.eye(N=4, M=4)
+  assert a.dtype == dtype
+
+
+def test_ones_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.ones((4, 4))
+  assert a.dtype == dtype
+
+
+def test_zeros_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.zeros((4, 4))
+  assert a.dtype == dtype
+
+
+def test_randn_dtype_2():
+  dtype = torch.float32
+  backend = pytorch_backend.PyTorchBackend(dtype=dtype)
+  a = backend.randn((4, 4))
   assert a.dtype == dtype
 
 
@@ -177,3 +206,10 @@ def test_conj():
   actual = backend.conj(a)
   expected = real
   np.testing.assert_allclose(expected, actual)
+
+
+def test_backend_dtype_exception():
+  backend = pytorch_backend.PyTorchBackend(dtype=torch.float32)
+  tensor = np.random.rand(2, 2, 2)
+  with pytest.raises(TypeError):
+    _ = backend.convert_to_tensor(tensor)

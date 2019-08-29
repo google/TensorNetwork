@@ -18,7 +18,6 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-# pylint: disable=reimported
 import tensorflow as tf
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -28,16 +27,13 @@ Tensor = Any
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[tf.DType] = None):
     super(TensorFlowBackend, self).__init__()
-    try:
-      import tensorflow
-    except ImportError:
-      raise AssertionError("tensorflow is not installed.")
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
-    self.tf = tensorflow
+    self.tf = tf
     self.name = "tensorflow"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.tensordot2.tensordot(a, b, axes)
@@ -84,7 +80,12 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.linalg.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.tf.convert_to_tensor(tensor)
+    result = self.tf.convert_to_tensor(tensor)
+    if self.dtype is not None and result.dtype is not self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.trace(tensor)
@@ -100,20 +101,40 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def eye(self,
           N: int,
-          M: Optional[int] = None,
-          dtype: Optional[tf.DType] = tf.float64) -> Tensor:
+          dtype: Optional[tf.DType] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int],
-           dtype: Optional[tf.DType] = tf.float64) -> Tensor:
+  def ones(self, shape: Tuple[int, ...],
+           dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int],
-            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
+  def zeros(self, shape: Tuple[int, ...],
+            dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int],
-            dtype: Optional[tf.DType] = tf.float64) -> Tensor:
+  def randn(self, shape: Tuple[int, ...],
+            dtype: Optional[tf.DType] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = tf.float64
+
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:

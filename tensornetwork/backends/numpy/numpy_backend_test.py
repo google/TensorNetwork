@@ -75,10 +75,10 @@ def test_sqrt():
 
 def test_diag():
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+  a = backend.convert_to_tensor(np.array([[1.0, 2, 3], [4, 5, 6]]))
   with pytest.raises(TypeError):
     assert backend.diag(a)
-  b = backend.convert_to_tensor(np.array([1, 2, 3]))
+  b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
   actual = backend.diag(b)
   expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
   np.testing.assert_allclose(expected, actual)
@@ -95,7 +95,7 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+  a = backend.convert_to_tensor(np.array([[1.0, 2, 3], [4, 5, 6]]))
   actual = backend.trace(a)
   np.testing.assert_allclose(actual, 6)
 
@@ -156,38 +156,73 @@ def test_randn():
 
 
 def test_eye_dtype():
-  backend = numpy_backend.NumPyBackend()
+  backend = numpy_backend.NumPyBackend(dtype=np.float64)
   dtype = np.float32
   a = backend.eye(N=4, M=4, dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_ones_dtype():
-  backend = numpy_backend.NumPyBackend()
+  backend = numpy_backend.NumPyBackend(dtype=np.float64)
   dtype = np.float32
   a = backend.ones((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_zeros_dtype():
-  backend = numpy_backend.NumPyBackend()
+  backend = numpy_backend.NumPyBackend(dtype=np.float64)
   dtype = np.float32
   a = backend.zeros((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
 def test_randn_dtype():
-  backend = numpy_backend.NumPyBackend()
+  backend = numpy_backend.NumPyBackend(dtype=np.float64)
   dtype = np.float32
   a = backend.randn((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
+def test_eye_dtype_2():
+  dtype = np.float32
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.eye(N=4, M=4)
+  assert a.dtype == dtype
+
+
+def test_ones_dtype_2():
+  dtype = np.float32
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.ones((4, 4))
+  assert a.dtype == dtype
+
+
+def test_zeros_dtype_2():
+  dtype = np.float32
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.zeros((4, 4))
+  assert a.dtype == dtype
+
+
+def test_randn_dtype_2():
+  dtype = np.float32
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert a.dtype == dtype
+
+
 def test_conj():
-  backend = numpy_backend.NumPyBackend()
+  backend = numpy_backend.NumPyBackend(np.complex128)
   real = np.random.rand(2, 2, 2)
   imag = np.random.rand(2, 2, 2)
   a = backend.convert_to_tensor(real + 1j * imag)
   actual = backend.conj(a)
   expected = real - 1j * imag
   np.testing.assert_allclose(expected, actual)
+
+
+def test_backend_dtype_exception():
+  backend = numpy_backend.NumPyBackend(dtype=np.float32)
+  tensor = np.random.rand(2, 2, 2)
+  with pytest.raises(TypeError):
+    _ = backend.convert_to_tensor(tensor)

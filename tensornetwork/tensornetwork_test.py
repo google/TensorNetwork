@@ -19,6 +19,7 @@ import tensornetwork
 import pytest
 import numpy as np
 import tensorflow as tf
+import torch
 from jax.config import config
 
 config.update("jax_enable_x64", True)
@@ -229,7 +230,7 @@ def test_with_tensors(backend):
 
 def test_contract_dangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1]))
+  a = net.add_node(np.array([1.0]))
   e = a[0]
   with pytest.raises(ValueError):
     net.contract(e)
@@ -246,7 +247,7 @@ def test_double_edge_contract(backend):
 
 def test_contract_trace_dangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1]))
+  a = net.add_node(np.array([1.0]))
   e = a[0]
   with pytest.raises(ValueError):
     net._contract_trace(e)
@@ -274,11 +275,11 @@ def test_contract_fall_through_name(backend):
 
 def test_non_connected(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2, 2]))
-  b = net.add_node(np.array([2, 2]))
+  a = net.add_node(np.array([2, 2.]))
+  b = net.add_node(np.array([2, 2.]))
   net.connect(a[0], b[0])
-  c = net.add_node(np.array([2, 2]))
-  d = net.add_node(np.array([2, 2]))
+  c = net.add_node(np.array([2, 2.]))
+  d = net.add_node(np.array([2, 2.]))
   net.connect(c[0], d[0])
   with pytest.raises(ValueError):
     net.check_connected()
@@ -293,8 +294,8 @@ def test_node_get_dim_bad_axis(backend):
 
 def test_bad_trace_contract(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2]))
-  b = net.add_node(np.array([2]))
+  a = net.add_node(np.array([2.]))
+  b = net.add_node(np.array([2.]))
   e = net.connect(a[0], b[0])
   with pytest.raises(ValueError):
     net._contract_trace(e)
@@ -302,8 +303,8 @@ def test_bad_trace_contract(backend):
 
 def test_double_edge_axis(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2]), name="a")
-  b = net.add_node(np.array([2]), name="b")
+  a = net.add_node(np.array([2.]), name="a")
+  b = net.add_node(np.array([2.]), name="b")
   net.connect(a[0], b[0])
   with pytest.raises(ValueError):
     net.connect(a[0], b[0])
@@ -798,20 +799,13 @@ def test_split_node_qr_disable(backend):
     right_edges.append(a[i])
   _, _ = net.split_node_qr(a, left_edges, right_edges)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
 
 
 def test_split_node_rq_disable(backend):
@@ -825,20 +819,13 @@ def test_split_node_rq_disable(backend):
     right_edges.append(a[i])
   _, _ = net.split_node_rq(a, left_edges, right_edges)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
 
 
 def test_split_node_disable(backend):
@@ -852,20 +839,13 @@ def test_split_node_disable(backend):
     right_edges.append(a[i])
   _, _, _ = net.split_node(a, left_edges, right_edges)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
 
 
 def test_split_node_full_svd_disable(backend):
@@ -879,20 +859,13 @@ def test_split_node_full_svd_disable(backend):
     right_edges.append(a[i])
   _, _, _, _ = net.split_node_full_svd(a, left_edges, right_edges)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
 
 
 def test_contract_disable(backend):
@@ -902,35 +875,21 @@ def test_contract_disable(backend):
   e = net.connect(a[0], b[0])
   net.contract(e)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    b.axis_names
 
 
 def test_contract_between_disable(backend):
@@ -940,35 +899,21 @@ def test_contract_between_disable(backend):
   net.connect(a[1], b[0])
   net.contract_between(a, b)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.shape
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    a.axis_names
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     b.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    b.axis_names
 
 
 def test_double_trace_disable(backend):
@@ -983,52 +928,31 @@ def test_double_trace_disable(backend):
   node2 = e1.node2
 
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node.axis_names
 
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node1.axis_names
 
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node2.axis_names
 
 
 def test_trace_disable(backend):
@@ -1040,52 +964,30 @@ def test_trace_disable(backend):
   node2 = e.node2
 
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node.axis_names
 
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node1.shape
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node1.axis_names
-
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.edges[0]
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.edges
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.signature
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     node2.shape
-  with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
-    node2.axis_names
 
 
 def test_split_node(backend):
@@ -1141,10 +1043,8 @@ def test_weakref(backend):
   del b
   net.contract(e)
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     e.node1
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     e.node2
 
 
@@ -1158,12 +1058,10 @@ def test_weakref_complex(backend):
   net.contract(e1)
   net.contract(e2)
   # This won't raise an exception since we still have a referance to 'a'.
-  # pylint: disable=pointless-statement
   e1.node1
   # This raises an exception since the intermediate node created when doing
   # `net.contract(e2)` was garbage collected.
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     e2.node1
 
 
@@ -1469,7 +1367,16 @@ def test_switch_backend():
 def test_svd_consistency(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
-  net = tensornetwork.TensorNetwork(backend=backend)
+  if backend == 'numpy':
+    dtype = np.complex64
+  if backend == 'tensorflow':
+    dtype = tf.complex64
+  if backend == 'jax':
+    dtype = np.complex64
+  if backend == 'shell':
+    dtype = np.complex64
+
+  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
   original_tensor = np.array(
       [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
       dtype=np.complex64)
@@ -1629,8 +1536,36 @@ def test_disable_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
   with pytest.raises(ValueError):
-    # pylint: disable=pointless-statement
     a.disable()
+
+
+def test_add_copy_node_from_node_object(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(
+      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+  assert a in net
+  assert a.shape == (3, 3, 3)
+  assert isinstance(a, tensornetwork.CopyNode)
+  assert a.name == "TestName"
+  assert a.axis_names == ['a', 'b', 'c']
+  b = net.add_node(np.eye(3))
+  e = a[0] ^ b[0]
+  c = net.contract(e)
+  np.testing.assert_allclose(c.tensor, a.tensor)
+
+
+def test_double_add_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  with pytest.raises(ValueError):
+    net.add_node(a)
+
+
+def test_default_names_add_node_object(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  assert a.name is not None
+  assert len(a.axis_names) == 3
 
 
 def test_network_copy(backend):
@@ -1638,11 +1573,8 @@ def test_network_copy(backend):
   a = net.add_node(np.random.rand(3, 3, 3))
   b = net.add_node(np.random.rand(3, 3, 3))
   c = net.add_node(np.random.rand(3, 3, 3))
-  # pylint: disable=pointless-statement
   a[0] ^ b[1]
-  # pylint: disable=pointless-statement
   a[1] ^ c[2]
-  # pylint: disable=pointless-statement
   b[2] ^ c[0]
 
   net_copy, node_dict, _ = net.copy()
@@ -1658,11 +1590,8 @@ def test_network_copy_reordered(backend):
   a = net.add_node(np.random.rand(3, 3, 3))
   b = net.add_node(np.random.rand(3, 3, 3))
   c = net.add_node(np.random.rand(3, 3, 3))
-  # pylint: disable=pointless-statement
   a[0] ^ b[1]
-  # pylint: disable=pointless-statement
   a[1] ^ c[2]
-  # pylint: disable=pointless-statement
   b[2] ^ c[0]
 
   edge_order = [a[2], c[1], b[0]]
@@ -1681,9 +1610,7 @@ def test_network_copy_names(backend):
   a = net.add_node(np.random.rand(3, 3, 3), name='a')
   b = net.add_node(np.random.rand(3, 3, 3), name='b')
   c = net.add_node(np.random.rand(3, 3, 3), name='c')
-  # pylint: disable=pointless-statement
   a[0] ^ b[1]
-  # pylint: disable=pointless-statement
   b[2] ^ c[0]
   _, node_dict, edge_dict = net.copy()
   for node in net.nodes_set:
@@ -1697,12 +1624,83 @@ def test_network_copy_identities(backend):
   a = net.add_node(np.random.rand(3, 3, 3), name='a')
   b = net.add_node(np.random.rand(3, 3, 3), name='b')
   c = net.add_node(np.random.rand(3, 3, 3), name='c')
-  # pylint: disable=pointless-statement
   a[0] ^ b[1]
-  # pylint: disable=pointless-statement
   b[2] ^ c[0]
   _, node_dict, edge_dict = net.copy()
   for node in net.nodes_set:
     assert not node_dict[node] is node
   for edge in net.get_all_edges():
     assert not edge_dict[edge] is edge
+
+
+def test_network_numpy_backend_dtype_1():
+  dtype = np.float32
+  net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+  n1 = net.add_node(net.backend.randn((2, 2)))
+  assert n1.tensor.dtype == dtype
+
+
+def test_network_numpy_backend_dtype_2():
+  dtype = tf.float32
+  with pytest.raises(TypeError):
+    tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+
+
+def test_network_numpy_backend_dtype_3():
+  dtype = np.float32
+  net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+  with pytest.raises(TypeError):
+    net.add_node(np.random.rand(3, 3))
+
+
+def test_network_tf_backend_dtype_1():
+  dtype = tf.float32
+  net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
+  n1 = net.add_node(net.backend.randn((2, 2)))
+  assert n1.tensor.dtype == dtype
+
+
+def test_network_tf_backend_dtype_2():
+  dtype = np.float32
+  with pytest.raises(TypeError):
+    tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
+
+
+def test_network_tf_backend_dtype_3():
+  dtype = tf.float32
+  net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
+  with pytest.raises(TypeError):
+    net.add_node(np.random.rand(3, 3))
+
+
+def test_network_torch_backend_dtype_1():
+  dtype = torch.float32
+  net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
+  n1 = net.add_node(net.backend.randn((2, 2)))
+  assert n1.tensor.dtype == dtype
+
+
+def test_network_torch_backend_dtype_2():
+  dtype = np.float32
+  with pytest.raises(TypeError):
+    tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
+
+
+def test_network_torch_backend_dtype_3():
+  dtype = torch.float32
+  net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
+  with pytest.raises(TypeError):
+    net.add_node(np.random.rand(3, 3))
+
+
+def test_network_jax_backend_dtype_2():
+  dtype = tf.float32
+  with pytest.raises(TypeError):
+    tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
+
+
+def test_network_jax_backend_dtype_3():
+  dtype = np.float16
+  net = tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
+  with pytest.raises(TypeError):
+    net.add_node(np.random.rand(3, 3))

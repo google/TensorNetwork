@@ -47,9 +47,9 @@ class BaseNode(ABC):
   """
 
   def __init__(self,
-               name: Text,
-               axis_names: List[Text],
-               network: TensorNetwork,
+               name: Optional[Text] = None,
+               axis_names: Optional[List[Text]] = None,
+               network: Optional[TensorNetwork] = None,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node for the TensorNetwork. Should be subclassed before usage
     and a limited number of abstract methods and properties implemented.
@@ -67,10 +67,16 @@ class BaseNode(ABC):
     self.name = name
     self.network = network
     self._shape = shape
-
-    self._edges = [
-        Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
-    ]
+    if axis_names is not None:
+      self._edges = [
+          Edge(edge_name, self, i) for i, edge_name in enumerate(axis_names)
+      ]
+    elif shape is not None:
+      self._edges = [
+          Edge("Dangling_{}".format(i), self, i) for i, _ in enumerate(shape)
+      ]
+    else:
+      raise ValueError("One of axis_names or shape must be provided.")
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
@@ -336,18 +342,13 @@ class BaseNode(ABC):
 
   @property
   def axis_names(self):
-    if self.network is None:
-      raise ValueError('Node {} has been disabled. '
-                       'Accessing its axis_names is no longer possible'.format(
-                           self.name))
     return self._axis_names
 
   @axis_names.setter
   def axis_names(self, axis_names: List[Text]):
-    if self.network is None:
-      raise ValueError('Node {} has been disabled. '
-                       'Assigning axis_names is no longer possible'.format(
-                           self.name))
+    if len(axis_names) != len(self.shape):
+      raise ValueError("Expected {} names, only got {}.".format(
+          len(self.shape), len(axis_names)))
     self._axis_names = axis_names
 
   @property
@@ -391,8 +392,12 @@ class Node(BaseNode):
   an arbitrary dimension.
   """
 
-  def __init__(self, tensor: Tensor, name: Text, axis_names: List[Text],
-               network: TensorNetwork) -> None:
+  def __init__(
+      self, 
+      tensor: Tensor, 
+      name: Text, 
+      axis_names: List[Text],
+      network: Optional[TensorNetwork] = None) -> None:
     """Create a node for the TensorNetwork.
 
     Args:
@@ -436,9 +441,9 @@ class CopyNode(BaseNode):
   def __init__(self,
                rank: int,
                dimension: int,
-               name: Text,
-               axis_names: List[Text],
-               network: TensorNetwork,
+               name: Optional[Text] = None,
+               axis_names: Optional[List[Text]] = None,
+               network: Optional[TensorNetwork] = None,
                dtype: Type[np.number] = np.float64) -> None:
 
     self.rank = rank
@@ -567,7 +572,7 @@ class Edge:
   """
 
   def __init__(self,
-               name: Text,
+               name: Optional[Text],
                node1: BaseNode,
                axis1: int,
                node2: Optional[BaseNode] = None,
@@ -697,5 +702,5 @@ class Edge:
       raise TypeError("Cannot compare 'Edge' with type {}".format(type(Edge)))
     return self.signature < other.signature
 
-  def __str__(self) -> Text:
+  def __str__(self) -> Optional[Text]:
     return self.name

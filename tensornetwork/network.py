@@ -20,6 +20,7 @@ import collections
 # pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
+import tensorflow as tf
 import weakref
 from tensornetwork import config
 from tensornetwork import network_components
@@ -30,10 +31,28 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self, backend: Optional[Text] = None) -> None:
+  def __init__(self,
+               backend: Optional[Text] = None,
+               dtype: Optional[Type[np.number]] = None) -> None:
+    """
+    Args:
+      backend (str):  name of the backend. Currently supported backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype:          dtype of the network. If `None`, no dtype checks are performed. For initialization functions of the backend,
+                      a dtype of `None` defaults to float64
+    """
     if backend is None:
       backend = config.default_backend
-    self.backend = backend_factory.get_backend(backend)
+    if dtype is None:
+      try:
+        dtype = config.default_dtypes[backend]
+      except KeyError:
+        raise ValueError("Backend {} does not exist".format(backend))
+    #backend.dtype is initialized from config.py (currently `None`)
+    #if `backend.dtype = None`, the backend dtype is set at the first
+    #call to `add_node(tensor)` to `backend.dtype = tensor.dtype`
+    #if `dtype` is is set at initialization, all tensors added to
+    #the network have to have the same `dtype` as the backend
+    self.backend = backend_factory.get_backend(backend, dtype)
     self.nodes_set = set()
     # These increments are only used for generating names.
     self.node_increment = 0
@@ -50,6 +69,14 @@ class TensorNetwork:
     if name is None:
       name = "__Node_{}".format(self.node_increment)
     return name
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    return self.backend.dtype
+
+  @dtype.setter
+  def dtype(self, dtype: Type[np.number]) -> None:
+    self.backend.dtype = dtype
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
@@ -118,38 +145,58 @@ class TensorNetwork:
     Returns:
       A new network created by the merging of all of the given networks.
     """
+    backend_dtypes = {net.backend.dtype for net in networks}
     backend_types = {net.backend.name for net in networks}
     if len(backend_types) != 1:
       raise ValueError("Multiple incompatible backends found: {}".format(
           list(backend_types)))
-    new_network = cls(backend=networks[0].backend.name)
+    #check if either all or all but one network have `dtype == None`
+    dtypes = {dtype for dtype in backend_dtypes if dtype is not None}
+    if len(dtypes) > 1:
+      raise ValueError("backends have incompatible dtypes")
+    if len(dtypes) == 1:
+      final_dtype = list(dtypes)[0]
+    else:
+      final_dtype = None
+    new_network = cls(backend=networks[0].backend.name, dtype=final_dtype)
+
     for network in networks:
       new_network.add_subnetwork(network)
     return new_network
 
-  def switch_backend(self, new_backend: Text) -> None:
+  def switch_backend(self,
+                     new_backend: Text,
+                     dtype: Optional[Type[np.number]] = None) -> None:
     """Change this network's backend.
 
     This will convert all node's tensors to the new backend's Tensor type.
+    Args:
+      new_backend (str): The new backend.
+      dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                         to config.py will be chosen.
     """
     if self.backend.name != "numpy":
       raise NotImplementedError(
           "Can only switch backends when the current "
           "backend is 'numpy'. Current backend is '{}'".format(
               self.backend.name))
-    self.backend = backend_factory.get_backend(new_backend)
+    if dtype is None:
+      dtype = config.default_dtypes[new_backend]
+    self.backend = backend_factory.get_backend(new_backend, dtype)
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
 
   def add_node(
       self,
-      tensor: Union[np.ndarray, Tensor],
+      value: Union[np.ndarray, Tensor, network_components.BaseNode],
       name: Optional[Text] = None,
       axis_names: Optional[List[Text]] = None) -> network_components.BaseNode:
     """Create a new node in the network.
 
     Args:
-      tensor: The concrete tensor for the node.
+      value: Either the concrete tensor or an existing `Node` object that
+        has no associated `TensorNetwork`. If a concrete tensor is given,
+        a new node will be created.
       name: The name of the new node. If None, a name will be generated
         automatically.
       axis_names: Optional list of strings to name each of the axes.
@@ -160,11 +207,25 @@ class TensorNetwork:
     Raises:
       ValueError: If `name` already exists in the network.
     """
-    tensor = self.backend.convert_to_tensor(tensor)
-    name = self._new_node_name(name)
+    given_axis_name = axis_names is not None
+    given_node_name = name is not None
     if axis_names is None:
-      axis_names = [self._new_edge_name(None) for _ in range(len(tensor.shape))]
-    new_node = network_components.Node(tensor, name, axis_names, self)
+      axis_names = [self._new_edge_name(None) for _ in range(len(value.shape))]
+    name = self._new_node_name(name)
+    if isinstance(value, network_components.BaseNode):
+      new_node = value
+      if new_node.network is not None:
+        raise ValueError("Given node is already part of a network.")
+      new_node.network = self
+      if new_node.axis_names is None or given_axis_name:
+        new_node.axis_names = axis_names
+      if new_node.name is None or given_node_name:
+        new_node.name = name
+    else:
+      value = self.backend.convert_to_tensor(value)
+      if self.backend.dtype is None:
+        self.backend.dtype = value.dtype
+      new_node = network_components.Node(value, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
@@ -1109,8 +1170,8 @@ class TensorNetwork:
       right_name: Optional[Text] = None,
       left_edge_name: Optional[Text] = None,
       right_edge_name: Optional[Text] = None,
-  ) -> Tuple[network_components.BaseNode, network_components.
-             BaseNode, network_components.BaseNode, Tensor]:
+  ) -> Tuple[network_components.BaseNode, network_components
+             .BaseNode, network_components.BaseNode, Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -1190,8 +1251,8 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
-                 ) -> Tuple[Dict[Text, network_components.
-                                 Edge], Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components
+                                 .Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:

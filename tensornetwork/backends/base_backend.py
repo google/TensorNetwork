@@ -58,7 +58,7 @@ class BaseBackend:
     Args:
       tensor: A tensor.
       perm: The permutation of the axes.
-v    Returns:
+    Returns:
       The transposed tensor
     """
     raise NotImplementedError(
@@ -208,10 +208,8 @@ v    Returns:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self,
-          N: int,
-          M: Optional[int] = None,
-          dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
+  def eye(self, N: int, dtype: Type[np.number],
+          M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -226,9 +224,7 @@ v    Returns:
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
 
-  def ones(self,
-           shape: Tuple[int],
-           dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
+  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -242,9 +238,7 @@ v    Returns:
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
 
-  def zeros(self,
-            shape: Tuple[int],
-            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
+  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return a zeros-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -258,9 +252,7 @@ v    Returns:
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
 
-  def randn(self,
-            shape: Tuple[int],
-            dtype: Optional[Type[np.number]] = np.float64) -> Tensor:
+  def randn(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -269,7 +261,6 @@ v    Returns:
        Args:
          shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
-
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
