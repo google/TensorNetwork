@@ -25,8 +25,9 @@ import numpy as np
 
 class ShellTensor:
 
-  def __init__(self, shape: Tuple[int, ...]):
+  def __init__(self, shape: Tuple[int, ...], dtype=None):
     self.shape = shape
+    self.dtype = dtype
 
   def reshape(self, new_shape: Tuple):
     self.shape = new_shape
