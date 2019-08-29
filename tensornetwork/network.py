@@ -36,7 +36,10 @@ class TensorNetwork:
     if backend is None:
       backend = config.default_backend
     if dtype is None:
-      dtype = config.default_dtypes[backend]
+      try:
+        dtype = config.default_dtypes[backend]
+      except KeyError:
+        raise ValueError("Backend {} does not exist".format(backend))
     self.backend = backend_factory.get_backend(backend, dtype)
     self.nodes_set = set()
     # These increments are only used for generating names.
