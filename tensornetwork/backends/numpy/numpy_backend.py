@@ -24,7 +24,7 @@ Tensor = Any
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype):
+  def __init__(self, dtype: Optional[numpy.dtype]: numpy.float64):
     super(NumPyBackend, self).__init__()
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
@@ -89,7 +89,12 @@ class NumPyBackend(base_backend.BaseBackend):
         not self.np.isscalar(tensor)):
       raise ValueError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
-    return self.np.asarray(tensor)
+    result = self.np.asarray(tensor)
+    if result.dtype != self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, numpy.dtype(self.dtype)))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     # Default np.trace uses first two axes.
