@@ -24,12 +24,13 @@ Tensor = Any
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype):
     super(NumPyBackend, self).__init__()
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
     self.decompositions = decompositions
     self.name = "numpy"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
@@ -103,16 +104,28 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: numpy.dtype, M: Optional[int] = None) -> Tensor:
+  def eye(self, N, dtype: Optional[numpy.dtype] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
+  def ones(self, shape: Tuple[int],
+           dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int], dtype: numpy.dtype) -> Tensor:
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
