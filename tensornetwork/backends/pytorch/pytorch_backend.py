@@ -28,10 +28,11 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype=torch.float64):
     super(PyTorchBackend, self).__init__()
     self.torch = torch
     self.name = "pytorch"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.torch.tensordot(a, b, dims=axes)
@@ -85,7 +86,12 @@ class PyTorchBackend(base_backend.BaseBackend):
     return self.torch.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.torch.as_tensor(tensor)
+    result = self.torch.as_tensor(tensor)
+    if result.dtype is not self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     return self.torch.einsum('...jj', tensor)
@@ -99,19 +105,30 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, N: int, dtype: torch.dtype, M: Optional[int] = None) -> Tensor:
+  def eye(self,
+          N: int,
+          dtype: Optional[torch.dtype] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int], dtype: torch.dtype) -> Tensor:
-
+  def ones(self, shape: Tuple[int],
+           dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.torch.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int], dtype: torch.dtype) -> Tensor:
-
+  def zeros(self, shape: Tuple[int],
+            dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.torch.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int], dtype: torch.dtype) -> Tensor:
-
+  def randn(self, shape: Tuple[int],
+            dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
     return self.torch.randn(shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
