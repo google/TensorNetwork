@@ -1376,7 +1376,7 @@ def test_svd_consistency(backend):
   if backend == 'shell':
     dtype = np.complex64
 
-  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
+  net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
       [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
       dtype=np.complex64)
@@ -1633,74 +1633,29 @@ def test_network_copy_identities(backend):
     assert not edge_dict[edge] is edge
 
 
-def test_network_numpy_backend_dtype_1():
-  dtype = np.float32
-  net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+@pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
+                                           ('tensorflow', tf.float32),
+                                           ('pytorch', torch.float32)])
+def test_network_backend_dtype_1(backend, dtype):
+  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
   n1 = net.add_node(net.backend.randn((2, 2)))
   assert n1.tensor.dtype == dtype
 
 
-def test_network_numpy_backend_dtype_2():
-  dtype = tf.float32
+@pytest.mark.parametrize("backend,dtype", [('numpy', tf.float32),
+                                           ('tensorflow', np.float32),
+                                           ('pytorch', np.float32),
+                                           ('jax', tf.float32)])
+def test_network_backend_dtype_2(backend, dtype):
   with pytest.raises(TypeError):
-    tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+    tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
 
 
-def test_network_numpy_backend_dtype_3():
-  dtype = np.float32
-  net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
-  with pytest.raises(TypeError):
-    net.add_node(np.random.rand(3, 3))
-
-
-def test_network_tf_backend_dtype_1():
-  dtype = tf.float32
-  net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
-  n1 = net.add_node(net.backend.randn((2, 2)))
-  assert n1.tensor.dtype == dtype
-
-
-def test_network_tf_backend_dtype_2():
-  dtype = np.float32
-  with pytest.raises(TypeError):
-    tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
-
-
-def test_network_tf_backend_dtype_3():
-  dtype = tf.float32
-  net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
-  with pytest.raises(TypeError):
-    net.add_node(np.random.rand(3, 3))
-
-
-def test_network_torch_backend_dtype_1():
-  dtype = torch.float32
-  net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
-  n1 = net.add_node(net.backend.randn((2, 2)))
-  assert n1.tensor.dtype == dtype
-
-
-def test_network_torch_backend_dtype_2():
-  dtype = np.float32
-  with pytest.raises(TypeError):
-    tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
-
-
-def test_network_torch_backend_dtype_3():
-  dtype = torch.float32
-  net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
-  with pytest.raises(TypeError):
-    net.add_node(np.random.rand(3, 3))
-
-
-def test_network_jax_backend_dtype_2():
-  dtype = tf.float32
-  with pytest.raises(TypeError):
-    tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
-
-
-def test_network_jax_backend_dtype_3():
-  dtype = np.float16
-  net = tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
+@pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
+                                           ('tensorflow', tf.float32),
+                                           ('pytorch', torch.float32),
+                                           ('jax', np.float32)])
+def test_network_backend_dtype_3(backend, dtype):
+  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
   with pytest.raises(TypeError):
     net.add_node(np.random.rand(3, 3))
