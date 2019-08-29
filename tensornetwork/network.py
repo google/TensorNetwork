@@ -30,11 +30,9 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(
-      self,
-      backend: Optional[Text] = None,
-      dtype: Optional[Type[np.number]] = None,
-  ) -> None:
+  def __init__(self,
+               backend: Optional[Text] = None,
+               dtype: Optional[Type[np.number]] = None) -> None:
     if backend is None:
       backend = config.default_backend
     if dtype is None:
@@ -141,17 +139,25 @@ class TensorNetwork:
       new_network.add_subnetwork(network)
     return new_network
 
-  def switch_backend(self, new_backend: Text) -> None:
+  def switch_backend(self,
+                     new_backend: Text,
+                     dtype: Optional[Type[np.number]] = None) -> None:
     """Change this network's backend.
 
     This will convert all node's tensors to the new backend's Tensor type.
+    Args:
+      new_backend (str): The new backend.
+      dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                         to config.py will be chosen.
     """
     if self.backend.name != "numpy":
       raise NotImplementedError(
           "Can only switch backends when the current "
           "backend is 'numpy'. Current backend is '{}'".format(
               self.backend.name))
-    self.backend = backend_factory.get_backend(new_backend)
+    if dtype is None:
+      dtype = config.default_dtypes[backend]
+    self.backend = backend_factory.get_backend(new_backend, dtype)
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
 
@@ -179,9 +185,7 @@ class TensorNetwork:
     given_axis_name = axis_names is not None
     given_node_name = name is not None
     if axis_names is None:
-      axis_names = [
-          self._new_edge_name(None) for _ in range(len(value.shape))
-      ]
+      axis_names = [self._new_edge_name(None) for _ in range(len(value.shape))]
     name = self._new_node_name(name)
     if isinstance(value, network_components.BaseNode):
       new_node = value
