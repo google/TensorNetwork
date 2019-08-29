@@ -34,6 +34,12 @@ class TensorNetwork:
   def __init__(self,
                backend: Optional[Text] = None,
                dtype: Optional[Type[np.number]] = None) -> None:
+    """
+    Args:
+      backend (str):  name of the backend. Currently supported backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype:          dtype of the network. If `None`, no dtype checks are performed. For initialization functions of the backend,
+                      a dtype of `None` defaults to float64
+    """
     if backend is None:
       backend = config.default_backend
     if dtype is None:
