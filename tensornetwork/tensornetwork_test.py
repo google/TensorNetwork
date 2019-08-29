@@ -1643,14 +1643,14 @@ def test_network_numpy_backend_dtype_1():
 def test_network_numpy_backend_dtype_2():
   dtype = tf.float32
   with pytest.raises(TypeError):
-    net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
+    tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
 
 
 def test_network_numpy_backend_dtype_3():
   dtype = np.float32
   net = tensornetwork.TensorNetwork(backend='numpy', dtype=dtype)
   with pytest.raises(TypeError):
-    n1 = net.add_node(np.random.rand(3, 3))
+    net.add_node(np.random.rand(3, 3))
 
 
 def test_network_tf_backend_dtype_1():
@@ -1663,14 +1663,14 @@ def test_network_tf_backend_dtype_1():
 def test_network_tf_backend_dtype_2():
   dtype = np.float32
   with pytest.raises(TypeError):
-    net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
+    tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
 
 
 def test_network_tf_backend_dtype_3():
   dtype = tf.float32
   net = tensornetwork.TensorNetwork(backend='tensorflow', dtype=dtype)
   with pytest.raises(TypeError):
-    n1 = net.add_node(np.random.rand(3, 3))
+    net.add_node(np.random.rand(3, 3))
 
 
 def test_network_torch_backend_dtype_1():
@@ -1683,24 +1683,24 @@ def test_network_torch_backend_dtype_1():
 def test_network_torch_backend_dtype_2():
   dtype = np.float32
   with pytest.raises(TypeError):
-    net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
+    tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
 
 
 def test_network_torch_backend_dtype_3():
   dtype = torch.float32
   net = tensornetwork.TensorNetwork(backend='pytorch', dtype=dtype)
   with pytest.raises(TypeError):
-    n1 = net.add_node(np.random.rand(3, 3))
+    net.add_node(np.random.rand(3, 3))
 
 
 def test_network_jax_backend_dtype_2():
   dtype = tf.float32
   with pytest.raises(TypeError):
-    net = tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
+    tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
 
 
 def test_network_jax_backend_dtype_3():
   dtype = np.float16
   net = tensornetwork.TensorNetwork(backend='jax', dtype=dtype)
   with pytest.raises(TypeError):
-    n1 = net.add_node(np.random.rand(3, 3))
+    net.add_node(np.random.rand(3, 3))
