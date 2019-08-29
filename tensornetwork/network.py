@@ -20,7 +20,6 @@ import collections
 # pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
-import tensorflow as tf
 import weakref
 from tensornetwork import config
 from tensornetwork import network_components
