@@ -21,7 +21,7 @@ from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
-import tensornetwork.config as config
+import tensornetwork.config as config_file
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
@@ -34,7 +34,7 @@ _BACKENDS = {
 def get_backend(name, dtype):
   if name not in _BACKENDS:
     raise ValueError("Backend {} does not exist".format(name))
-  if not any([dtype is d for d in config.supported_dtypes[name]]):
+  if not any([dtype is d for d in config_file.supported_dtypes[name]]):
     raise ValueError("Backend {} does not support dtype={} of type {}".format(
         name, dtype, type(dtype)))
   return _BACKENDS[name](dtype)
