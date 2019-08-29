@@ -20,7 +20,6 @@ import collections
 # pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
 import numpy as np
-import tensorflow as tf
 import weakref
 from tensornetwork import config
 from tensornetwork import network_components
@@ -36,8 +35,10 @@ class TensorNetwork:
                dtype: Optional[Type[np.number]] = None) -> None:
     """
     Args:
-      backend (str):  name of the backend. Currently supported backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
-      dtype:          dtype of the network. If `None`, no dtype checks are performed. For initialization functions of the backend,
+      backend (str):  name of the backend. Currently supported 
+                      backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype:          dtype of the network. If `None`, no dtype checks are performed. 
+                      For initialization functions of the backend,
                       a dtype of `None` defaults to float64
     """
     if backend is None:
@@ -73,10 +74,6 @@ class TensorNetwork:
   @property
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
-
-  @dtype.setter
-  def dtype(self, dtype: Type[np.number]) -> None:
-    self.backend.dtype = dtype
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
@@ -153,7 +150,7 @@ class TensorNetwork:
     #check if either all or all but one network have `dtype == None`
     dtypes = {dtype for dtype in backend_dtypes if dtype is not None}
     if len(dtypes) > 1:
-      raise ValueError("backends have incompatible dtypes")
+      raise ValueError("backends dtypes {} are not compatible".format(dtypes))
     if len(dtypes) == 1:
       final_dtype = list(dtypes)[0]
     else:
