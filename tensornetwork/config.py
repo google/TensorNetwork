@@ -32,8 +32,8 @@ supported_dtypes = {
     'pytorch': (torch.int8, torch.int16, torch.int32, torch.int64,
                 torch.float16, torch.float32, torch.float64, torch.complex64,
                 torch.complex128, torch.bool),
-    'jax': (np.int8, np.int16, np.int32, np.int64, np.float32, np.float64,
-            np.complex64, np.complex128, np.bool),
+    'jax': (np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
+            np.float64, np.complex64, np.complex128, np.bool),
 }
 #shell supports everything
 supported_dtypes['shell'] =\
