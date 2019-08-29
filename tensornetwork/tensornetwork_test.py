@@ -1509,96 +1509,134 @@ def test_split_node_rq(backend):
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
 
 
-def test_split_node_qr_unitarity_complex_numpy():
-  net = tensornetwork.TensorNetwork(backend='numpy')
+def test_split_node_qr_unitarity_complex(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+  net_1 = tensornetwork.TensorNetwork(backend=backend)
+  n1 = net_1.add_node(q.tensor)
+  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  n1[0] ^ n1[1]
+  u1 = net_1.contract_between(n1, n2)
+
+  net_2 = tensornetwork.TensorNetwork(backend=backend)
+  n1 = net_2.add_node(q.tensor)
+  n2 = net_2.add_node(net_2.backend.conj(q.tensor))
+  n1[1] ^ n1[0]
+  u2 = net_2.contract_between(n1, n2)
+
   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
 
 
-def test_split_node_qr_unitarity_float_numpy():
-  net = tensornetwork.TensorNetwork(backend='numpy')
+def test_split_node_qr_unitarity_float(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(3, 3))
   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
+  net_1 = tensornetwork.TensorNetwork(backend=backend)
+  n1 = net_1.add_node(q.tensor)
+  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  n1[0] ^ n1[1]
+  u1 = net_1.contract_between(n1, n2)
 
+  net_2 = tensornetwork.TensorNetwork(backend=backend)
+  n1 = net_2.add_node(q.tensor)
+  n2 = net_2.add_node(net_2.backend.conj(q.tensor))
+  n1[1] ^ n1[0]
+  u2 = net_2.contract_between(n1, n2)
 
-def test_split_node_qr_unitarity_complex_tf():
-  net = tensornetwork.TensorNetwork(backend='tensorflow')
-  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
-
-
-def test_split_node_qr_unitarity_float_tf():
-  net = tensornetwork.TensorNetwork(backend='tensorflow')
-  a = net.add_node(np.random.rand(3, 3))
-  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
-
-
-def test_split_node_qr_unitarity_float_torch():
-  net = tensornetwork.TensorNetwork(backend='pytorch')
-  a = net.add_node(np.random.rand(3, 3))
-  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
-
-
-def test_split_node_rq_unitarity_complex_numpy():
-  net = tensornetwork.TensorNetwork(backend='numpy')
-  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
 
 
-def test_split_node_rq_unitarity_float_numpy():
-  net = tensornetwork.TensorNetwork(backend='numpy')
-  a = net.add_node(np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
+# def test_split_node_qr_unitarity_float_numpy():
+#   net = tensornetwork.TensorNetwork(backend='numpy')
+#   a = net.add_node(np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
 
+# def test_split_node_qr_unitarity_complex_numpy():
+#   net = tensornetwork.TensorNetwork(backend='numpy')
+#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
 
-def test_split_node_rq_unitarity_complex_tf():
-  net = tensornetwork.TensorNetwork(backend='tensorflow')
-  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
+# def test_split_node_qr_unitarity_float_numpy():
+#   net = tensornetwork.TensorNetwork(backend='numpy')
+#   a = net.add_node(np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
 
+# def test_split_node_qr_unitarity_complex_tf():
+#   net = tensornetwork.TensorNetwork(backend='tensorflow')
+#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
 
-def test_split_node_rq_unitarity_float_tf():
-  net = tensornetwork.TensorNetwork(backend='tensorflow')
-  a = net.add_node(np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
+# def test_split_node_qr_unitarity_float_tf():
+#   net = tensornetwork.TensorNetwork(backend='tensorflow')
+#   a = net.add_node(np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
 
+# def test_split_node_qr_unitarity_float_torch():
+#   net = tensornetwork.TensorNetwork(backend='pytorch')
+#   a = net.add_node(np.random.rand(3, 3))
+#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
 
-def test_split_node_rq_unitarity_float_torch():
-  net = tensornetwork.TensorNetwork(backend='pytorch')
-  a = net.add_node(np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  np.testing.assert_almost_equal(
-      torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(
-      q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
+# def test_split_node_rq_unitarity_complex_numpy():
+#   net = tensornetwork.TensorNetwork(backend='numpy')
+#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
+
+# def test_split_node_rq_unitarity_float_numpy():
+#   net = tensornetwork.TensorNetwork(backend='numpy')
+#   a = net.add_node(np.random.rand(3, 3))
+#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
+
+# def test_split_node_rq_unitarity_complex_tf():
+#   net = tensornetwork.TensorNetwork(backend='tensorflow')
+#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
+#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
+
+# def test_split_node_rq_unitarity_float_tf():
+#   net = tensornetwork.TensorNetwork(backend='tensorflow')
+#   a = net.add_node(np.random.rand(3, 3))
+#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
+
+# def test_split_node_rq_unitarity_float_torch():
+#   net = tensornetwork.TensorNetwork(backend='pytorch')
+#   a = net.add_node(np.random.rand(3, 3))
+#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
+#   np.testing.assert_almost_equal(
+#       torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
+#   np.testing.assert_almost_equal(
+#       q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
 
 
 def test_split_node_qr(backend):
@@ -1621,11 +1659,11 @@ def test_disable_node(backend):
   with pytest.raises(ValueError):
     a.disable()
 
+
 def test_add_copy_node_from_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(
-      tensornetwork.CopyNode(
-          3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
   assert a in net
   assert a.shape == (3, 3, 3)
   assert isinstance(a, tensornetwork.CopyNode)
@@ -1636,17 +1674,20 @@ def test_add_copy_node_from_node_object(backend):
   c = net.contract(e)
   np.testing.assert_allclose(c.tensor, a.tensor)
 
+
 def test_double_add_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(tensornetwork.CopyNode(3, 3))
   with pytest.raises(ValueError):
     net.add_node(a)
 
+
 def test_default_names_add_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(tensornetwork.CopyNode(3, 3))
   assert a.name is not None
   assert len(a.axis_names) == 3
+
 
 def test_network_copy(backend):
   net = tensornetwork.TensorNetwork(backend=backend)

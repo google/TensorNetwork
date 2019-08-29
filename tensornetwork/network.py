@@ -165,9 +165,7 @@ class TensorNetwork:
     given_axis_name = axis_names is not None
     given_node_name = name is not None
     if axis_names is None:
-      axis_names = [
-          self._new_edge_name(None) for _ in range(len(value.shape))
-      ]
+      axis_names = [self._new_edge_name(None) for _ in range(len(value.shape))]
     name = self._new_node_name(name)
     if isinstance(value, network_components.BaseNode):
       new_node = value
