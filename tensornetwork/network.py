@@ -150,10 +150,16 @@ class TensorNetwork:
     if len(backend_types) != 1:
       raise ValueError("Multiple incompatible backends found: {}".format(
           list(backend_types)))
-    if len(backend_dtypes) != 1:
+    #check if either all or all but one network have `dtype == None`
+    dtypes = {dtype for dtype in backend_dtypes if dtype is not None}
+    if len(dtypes) > 1:
       raise ValueError("backends have incompatible dtypes")
+    elif len(dtypes) == 1:
+      final_dtype = list(dtypes)[0]
+    else:
+      final_dtype = None
+    new_network = cls(backend=networks[0].backend.name, dtype=final_dtype)
 
-    new_network = cls(backend=networks[0].backend.name, dtype=networks[0].dtype)
     for network in networks:
       new_network.add_subnetwork(network)
     return new_network
