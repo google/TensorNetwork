@@ -114,7 +114,7 @@ class NumPyBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = np.float64
+      dtype = numpy.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
@@ -123,7 +123,7 @@ class NumPyBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = np.float64
+      dtype = numpy.float64
 
     return self.np.ones(shape, dtype=dtype)
 
@@ -132,7 +132,7 @@ class NumPyBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = np.float64
+      dtype = numpy.float64
 
     return self.np.zeros(shape, dtype=dtype)
 
@@ -141,7 +141,7 @@ class NumPyBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = np.float64
+      dtype = numpy.float64
 
     return self.np.random.randn(*shape).astype(dtype)
 
