@@ -151,7 +151,7 @@ class TensorNetwork:
     #check if either all or all but one network have `dtype == None`
     dtypes = {dtype for dtype in backend_dtypes if dtype is not None}
     if len(dtypes) > 1:
-      raise ValueError("backends have incompatible dtypes")
+      raise ValueError("backends dtypes {} are not compatible".format(dtypes))
     if len(dtypes) == 1:
       final_dtype = list(dtypes)[0]
     else:
