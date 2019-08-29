@@ -224,7 +224,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
 
-  def ones(self, shape: Sequence[int], dtype: Type[np.number]) -> Tensor:
+  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -238,7 +238,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
 
-  def zeros(self, shape: Sequence[int], dtype: Type[np.number]) -> Tensor:
+  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return a zeros-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -252,7 +252,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
 
-  def randn(self, shape: Sequence[int], dtype: Type[np.number]) -> Tensor:
+  def randn(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
