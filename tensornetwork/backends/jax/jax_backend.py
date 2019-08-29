@@ -24,7 +24,7 @@ Tensor = Any
 class JaxBackend(numpy_backend.NumPyBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype] = numpy.float64):
+  def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
       import jax
@@ -37,7 +37,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
-    if result.dtype != self.dtype:
+    if self.dtype is not None and result.dtype != self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
               self.name, result.dtype, self.dtype))
