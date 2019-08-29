@@ -15,6 +15,7 @@ import tensorflow as tf
 import numpy as np
 import torch
 default_backend = "tensorflow"
+#for backwards compatibility default dtypes have to be None
 default_dtypes = {
     'tensorflow': None,
     'numpy': None,
