@@ -1082,12 +1082,12 @@ class TensorNetwork:
           Its underlying tensor is :math:`R`
     """
     node.reorder_edges(left_edges + right_edges)
-    q, r = self.backend.qr_decomposition(node.tensor, len(left_edges))
-    left_node = self.add_node(q, name=left_name)
+    r, q = self.backend.rq_decomposition(node.tensor, len(left_edges))
+    left_node = self.add_node(r, name=left_name)
     for i, edge in enumerate(left_edges):
       left_node.add_edge(edge, i)
       edge.update_axis(i, node, i, left_node)
-    right_node = self.add_node(r, name=right_name)
+    right_node = self.add_node(q, name=right_name)
     for i, edge in enumerate(right_edges):
       # i + 1 to account for the new edge.
       right_node.add_edge(edge, i + 1)
@@ -1109,8 +1109,8 @@ class TensorNetwork:
       right_name: Optional[Text] = None,
       left_edge_name: Optional[Text] = None,
       right_edge_name: Optional[Text] = None,
-  ) -> Tuple[network_components.BaseNode, network_components.
-             BaseNode, network_components.BaseNode, Tensor]:
+  ) -> Tuple[network_components.BaseNode, network_components
+             .BaseNode, network_components.BaseNode, Tensor]:
     """Split a node by doing a full singular value decomposition.
 
     Let M be the matrix created by flattening left_edges and right_edges into
@@ -1190,8 +1190,8 @@ class TensorNetwork:
     return left_node, singular_values_node, right_node, trun_vals
 
   def remove_node(self, node: network_components.BaseNode
-                 ) -> Tuple[Dict[Text, network_components.
-                                 Edge], Dict[int, network_components.Edge]]:
+                 ) -> Tuple[Dict[Text, network_components
+                                 .Edge], Dict[int, network_components.Edge]]:
     """Remove a node from the network.
 
     Args:
