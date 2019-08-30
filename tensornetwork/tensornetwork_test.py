@@ -1518,23 +1518,28 @@ def test_split_node_rq(backend):
 
 
 def test_split_node_qr_unitarity_complex(backend):
+  if backend == "pytorch":
+    pytest.skip("Complex numbers currently not supported in PyTorch")
+  if backend == "jax":
+    pytest.skip("Complex QR crashes jax")
+
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
   net_1 = tensornetwork.TensorNetwork(backend=backend)
   n1 = net_1.add_node(q.tensor)
   n2 = net_1.add_node(net_1.backend.conj(q.tensor))
-  n1[0] ^ n1[1]
+  n1[1] ^ n2[1]
   u1 = net_1.contract_between(n1, n2)
 
   net_2 = tensornetwork.TensorNetwork(backend=backend)
   n1 = net_2.add_node(q.tensor)
   n2 = net_2.add_node(net_2.backend.conj(q.tensor))
-  n1[1] ^ n1[0]
+  n2[0] ^ n1[0]
   u2 = net_2.contract_between(n1, n2)
 
-  np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
+  np.testing.assert_almost_equal(u1.tensor, np.eye(3))
+  np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
 def test_split_node_qr_unitarity_float(backend):
@@ -1544,17 +1549,17 @@ def test_split_node_qr_unitarity_float(backend):
   net_1 = tensornetwork.TensorNetwork(backend=backend)
   n1 = net_1.add_node(q.tensor)
   n2 = net_1.add_node(net_1.backend.conj(q.tensor))
-  n1[0] ^ n1[1]
+  n1[1] ^ n2[1]
   u1 = net_1.contract_between(n1, n2)
 
   net_2 = tensornetwork.TensorNetwork(backend=backend)
   n1 = net_2.add_node(q.tensor)
-  n2 = net_2.add_node(net_2.backend.conj(q.tensor))
-  n1[1] ^ n1[0]
+  n2 = net_2.add_node(q.tensor)
+  n2[0] ^ n1[0]
   u2 = net_2.contract_between(n1, n2)
 
-  np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
-  np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
+  np.testing.assert_almost_equal(u1.tensor, np.eye(3))
+  np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
 # def test_split_node_qr_unitarity_float_numpy():
