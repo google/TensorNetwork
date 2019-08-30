@@ -32,7 +32,7 @@ class NumPyBackend(base_backend.BaseBackend):
     self.name = "numpy"
     self.dtype = dtype
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Tuple[int, ...]]):
+  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
