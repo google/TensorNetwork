@@ -17,15 +17,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import collections
+import h5py
 # pylint: disable=line-too-long
-from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, BinaryIO
 import numpy as np
 import weakref
 from tensornetwork import config
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
-Tensor = Any
 
+
+Tensor = Any
+string_type = h5py.special_dtype(vlen=str)
 
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
@@ -1306,6 +1309,26 @@ class TensorNetwork:
                   edge, node, edge.axis1, edge.axis2, i))
     if check_connected:
       self.check_connected()
+
+  def save(self, path: Union[str, BinaryIO]):
+    """Serialize the network to disk in hdf5 format.
+
+    Args:
+      path: path to folder where network is saved.
+    """
+    with h5py.File(path, 'w') as net_file:
+      net_file.create_dataset('backend', data=self.backend.name)
+      nodes_group = net_file.create_group('nodes')
+      edges_group = net_file.create_group('edges')
+
+      for node in self.nodes_set:
+        node_group = nodes_group.create_group(node.name)
+        node._save_node(node_group)
+
+        for edge in node.edges:
+          if edge.node1 == node:
+            edge_group = edges_group.create_group(edge.name)
+            edge._save_edge(edge_group)
 
   def __contains__(self, item):
     if isinstance(item, network_components.Edge):
