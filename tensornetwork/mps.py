@@ -33,6 +33,10 @@ class FiniteMPS(tensornetwork.TensorNetwork):
                backend: Optional[Text] = None,
                dtype: Optional[Type[np.number]] = None):
 
+    if center_position < 0 or center_position >= len(tensors):
+      raise ValueError(
+          'center_position = {} not between 0 <= center_position < {}'.format(
+              center_position, len(tensors)))
     super().__init__(backend=backend, dtype=dtype)
     self.nodes = [
         self.add_node(tensors[n], name='node{}'.format(n))
@@ -97,16 +101,18 @@ class FiniteMPS(tensornetwork.TensorNetwork):
   def left_envs(self, sites: List[int]):
     n1 = min(sites)
     n2 = max(sites)
-    if not np.all(np.array(sites) < len(self)):
+    sites = np.array(sites)
+    if not np.all(sites < len(self)):
       raise ValueError('all elements of `sites` have to be < N={}'.format(
           len(self)))
-    if not np.all(np.array(sites) >= 0):
+    if not np.all(sites >= 0):
       raise ValueError('all elements of `sites` have to be positive')
 
+    left_sites = sites[sites <= self.center_position]
+
     left_envs = {}
-    for site in range(n1, min(self.center_position + 1, n2 + 1)):
-      if site in sites:
-        left_envs[site] = self.backend.eye(N=self.nodes[site].shape[0])
+    for site in left_sites:
+      left_envs[site] = self.backend.eye(N=self.nodes[site].shape[0])
 
     if n2 > self.center_position:
       net = tensornetwork.TensorNetwork(
@@ -135,6 +141,49 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         if site + 1 in sites:
           left_envs[site + 1] = left_env.tensor
     return left_envs
+
+  def right_envs(self, sites: List[int]):
+    n1 = min(sites)
+    n2 = max(sites)
+    sites = np.array(sites)
+    if not np.all(np.array(sites) < len(self)):
+      raise ValueError('all elements of `sites` have to be < N={}'.format(
+          len(self)))
+    if not np.all(np.array(sites) >= 0):
+      raise ValueError('all elements of `sites` have to be positive')
+
+    right_sites = sites[sites > self.center_position]
+    right_envs = {}
+    for site in right_sites:
+      right_envs[site] = self.backend.eye(N=self.nodes[site].shape[2])
+
+    if n1 < self.center_position:
+      net = tensornetwork.TensorNetwork(
+          backend=self.backend.name, dtype=self.dtype)
+      nodes = {}
+      conj_nodes = {}
+      for site in reversed(range(n1 + 1, self.center_position + 1)):
+        nodes[site] = net.add_node(self.nodes[site].tensor)
+        conj_nodes[site] = net.add_node(
+            self.backend.conj(self.nodes[site].tensor))
+      nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
+      nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
+
+      for site in reversed(range(n1 + 1, self.center_position)):
+        nodes[site][2] ^ nodes[site + 1][0]
+        conj_nodes[site][2] ^ conj_nodes[site + 1][0]
+        nodes[site][1] ^ conj_nodes[site][1]
+
+      right_env = net.contract_between(nodes[self.center_position],
+                                       conj_nodes[self.center_position])
+      if (self.center_position - 1) in sites:
+        right_envs[self.center_position - 1] = right_env.tensor
+      for site in reversed(range(n1 + 1, self.center_position)):
+        right_env = net.contract_between(right_env, nodes[site])
+        right_env = net.contract_between(right_env, conj_nodes[site])
+        if site - 1 in sites:
+          right_envs[site + 1] = right_env.tensor
+    return right_envs
 
   def __len__(self):
     return len(self.nodes)
