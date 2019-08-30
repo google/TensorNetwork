@@ -15,22 +15,26 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-import tensorflow as tf
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
+import numpy as np
 Tensor = Any
 
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[tf.DType] = None):
+  def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
+    try:
+      import tensorflow as tf
+    except ImportError:
+      raise ImportError()
     self.tf = tf
     self.name = "tensorflow"
     self.dtype = dtype
@@ -101,39 +105,42 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def eye(self,
           N: int,
-          dtype: Optional[tf.DType] = None,
+          dtype: Optional[Type[np.number]] = None,
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = tf.float64
+      dtype = self.tf.float64
 
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
-           dtype: Optional[tf.DType] = None) -> Tensor:
+  def ones(self,
+           shape: Tuple[int, ...],
+           dtype: Optional[Type[np.number]] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = tf.float64
+      dtype = self.tf.float64
 
     return self.tf.ones(shape=shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
-            dtype: Optional[tf.DType] = None) -> Tensor:
+  def zeros(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = tf.float64
+      dtype = self.tf.float64
 
     return self.tf.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int, ...],
-            dtype: Optional[tf.DType] = None) -> Tensor:
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = tf.float64
+      dtype = self.tf.float64
 
     return self.tf.random.normal(shape=shape, dtype=dtype)
 

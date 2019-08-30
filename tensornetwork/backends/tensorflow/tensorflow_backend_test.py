@@ -93,7 +93,7 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6.0]]))
+  a = backend.convert_to_tensor(np.array([[1., 2., 3.], [4., 5., 6.]]))
   actual = backend.trace(a)
   np.testing.assert_allclose(actual, 6)
 
