@@ -85,9 +85,9 @@ def test_sqrt():
 
 def test_diag():
   backend = pytorch_backend.PyTorchBackend()
-  b = backend.convert_to_tensor(np.array([1, 2, 3]))
+  b = backend.convert_to_tensor(np.array([1.0, 2.0, 3.0]))
   actual = backend.diag(b)
-  expected = np.array([[1, 0, 0], [0, 2, 0], [0.0, 0, 3]])
+  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
   np.testing.assert_allclose(expected, actual)
 
 
