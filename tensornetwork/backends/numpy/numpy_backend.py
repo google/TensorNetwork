@@ -17,23 +17,20 @@ from __future__ import division
 from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
-
+import numpy
 Tensor = Any
 
 
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(NumPyBackend, self).__init__()
-    try:
-      import numpy
-    except ImportError:
-      raise AssertionError("numpy is not installed.")
     from tensornetwork.backends.numpy import decompositions
     self.np = numpy
     self.decompositions = decompositions
     self.name = "numpy"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
@@ -50,22 +47,23 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                                 max_singular_values,
-                                                 max_truncation_error)
+    return self.decompositions.svd_decomposition(
+        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return self.decompositions.qr_decomposition(self.np, tensor, split_axis)
 
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return self.decompositions.rq_decomposition(self.np, tensor, split_axis)
-  
+
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
@@ -91,7 +89,12 @@ class NumPyBackend(base_backend.BaseBackend):
         not self.np.isscalar(tensor)):
       raise ValueError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
-    return self.np.asarray(tensor)
+    result = self.np.asarray(tensor)
+    if self.dtype is not None and result.dtype != self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, numpy.dtype(self.dtype)))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     # Default np.trace uses first two axes.
@@ -102,3 +105,45 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.np.einsum(expression, *tensors)
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.np.linalg.norm(tensor)
+
+  def eye(self, N, dtype: Optional[numpy.dtype] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = numpy.float64
+
+    return self.np.eye(N, M=M, dtype=dtype)
+
+  def ones(self, shape: Tuple[int, ...],
+           dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = numpy.float64
+
+    return self.np.ones(shape, dtype=dtype)
+
+  def zeros(self, shape: Tuple[int, ...],
+            dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = numpy.float64
+
+    return self.np.zeros(shape, dtype=dtype)
+
+  def randn(self, shape: Tuple[int, ...],
+            dtype: Optional[numpy.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = numpy.float64
+
+    return self.np.random.randn(*shape).astype(dtype)
+
+  def conj(self, tensor: Tensor) -> Tensor:
+    return self.np.conj(tensor)

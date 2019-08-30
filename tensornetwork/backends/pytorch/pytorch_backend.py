@@ -19,6 +19,7 @@ from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
+import torch
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -27,14 +28,11 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[torch.dtype] = None):
     super(PyTorchBackend, self).__init__()
-    try:
-      import torch
-    except ImportError:
-      raise AssertionError("pytorch is not installed.")
     self.torch = torch
     self.name = "pytorch"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.torch.tensordot(a, b, dims=axes)
@@ -54,16 +52,19 @@ class PyTorchBackend(base_backend.BaseBackend):
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def qr_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.qr_decomposition(self.torch, tensor, split_axis)
-  
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int,
-                       ) -> Tuple[Tensor, Tensor]:
+
+  def rq_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+  ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
@@ -85,7 +86,12 @@ class PyTorchBackend(base_backend.BaseBackend):
     return self.torch.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.torch.as_tensor(tensor)
+    result = self.torch.as_tensor(tensor)
+    if self.dtype is not None and result.dtype is not self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     return self.torch.einsum('...jj', tensor)
@@ -95,3 +101,46 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.torch.einsum(expression, *tensors)
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.torch.norm(tensor)
+
+  def eye(self,
+          N: int,
+          dtype: Optional[torch.dtype] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+    return self.torch.eye(n=N, m=M, dtype=dtype)
+
+  def ones(self, shape: Tuple[int, ...],
+           dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
+    return self.torch.ones(shape, dtype=dtype)
+
+  def zeros(self, shape: Tuple[int, ...],
+            dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
+    return self.torch.zeros(shape, dtype=dtype)
+
+  def randn(self, shape: Tuple[int, ...],
+            dtype: Optional[torch.dtype] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = torch.float64
+
+    return self.torch.randn(shape, dtype=dtype)
+
+  def conj(self, tensor: Tensor) -> Tensor:
+    return tensor  #pytorch does not support complex dtypes

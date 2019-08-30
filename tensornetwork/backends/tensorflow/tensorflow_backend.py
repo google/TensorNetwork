@@ -15,28 +15,29 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
-
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
+import numpy as np
 Tensor = Any
 
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
-    try:
-      import tensorflow
-    except ImportError:
-      raise AssertionError("tensorflow is not installed.")
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
-    self.tf = tensorflow
+    try:
+      import tensorflow as tf
+    except ImportError:
+      raise ImportError()
+    self.tf = tf
     self.name = "tensorflow"
+    self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.tensordot2.tensordot(a, b, axes)
@@ -53,21 +54,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
-  def qr_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int
-                      ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
-  
-  def rq_decomposition(self,
-                       tensor: Tensor,
-                       split_axis: int
-                      ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.tf, tensor, split_axis)
+    return decompositions.svd_decomposition(
+        self.tf, tensor, split_axis, max_singular_values, max_truncation_error)
 
+  def qr_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
+
+  def rq_decomposition(self, tensor: Tensor,
+                       split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
@@ -88,7 +84,12 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.linalg.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    return self.tf.convert_to_tensor(tensor)
+    result = self.tf.convert_to_tensor(tensor)
+    if self.dtype is not None and result.dtype is not self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
+    return result
 
   def trace(self, tensor: Tensor) -> Tensor:
     return self.tf.linalg.trace(tensor)
@@ -98,3 +99,50 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.tf.einsum(expression, *tensors)
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    return self.tf.linalg.norm(tensor)
+
+  def eye(self,
+          N: int,
+          dtype: Optional[Type[np.number]] = None,
+          M: Optional[int] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = self.tf.float64
+
+    return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
+
+  def ones(self,
+           shape: Tuple[int, ...],
+           dtype: Optional[Type[np.number]] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = self.tf.float64
+
+    return self.tf.ones(shape=shape, dtype=dtype)
+
+  def zeros(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = self.tf.float64
+
+    return self.tf.zeros(shape, dtype=dtype)
+
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[Type[np.number]] = None) -> Tensor:
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = self.tf.float64
+
+    return self.tf.random_normal(shape=shape, dtype=dtype)
+
+  def conj(self, tensor: Tensor) -> Tensor:
+    return self.tf.conj(tensor)

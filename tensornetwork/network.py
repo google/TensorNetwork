@@ -30,10 +30,28 @@ Tensor = Any
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
-  def __init__(self, backend: Optional[Text] = None) -> None:
+  def __init__(self,
+               backend: Optional[Text] = None,
+               dtype: Optional[Type[np.number]] = None) -> None:
+    """
+    Args:
+      backend (str): name of the backend. Currently supported 
+                     backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype: dtype of the backend of network. If `None`, no dtype checks 
+             are performed. Default value is `None`. For backend 
+             initialization functions like `zeros`, `ones`, `randn` a 
+             dtype of `None` defaults to float64
+    """
     if backend is None:
       backend = config.default_backend
-    self.backend = backend_factory.get_backend(backend)
+    if dtype is None:
+      dtype = config.default_dtype
+    #backend.dtype is initialized from config.py (currently `None`)
+    #if `backend.dtype = None`, the backend dtype is set at the first
+    #call to `add_node(tensor)` to `backend.dtype = tensor.dtype`
+    #if `dtype` is is set at initialization, all tensors added to
+    #the network have to have the same `dtype` as the backend
+    self.backend = backend_factory.get_backend(backend, dtype)
     self.nodes_set = set()
     # These increments are only used for generating names.
     self.node_increment = 0
@@ -50,6 +68,10 @@ class TensorNetwork:
     if name is None:
       name = "__Node_{}".format(self.node_increment)
     return name
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    return self.backend.dtype
 
   def copy(self) -> Tuple["TensorNetwork", dict, dict]:
     """
@@ -118,26 +140,44 @@ class TensorNetwork:
     Returns:
       A new network created by the merging of all of the given networks.
     """
+    backend_dtypes = {net.backend.dtype for net in networks}
     backend_types = {net.backend.name for net in networks}
     if len(backend_types) != 1:
       raise ValueError("Multiple incompatible backends found: {}".format(
           list(backend_types)))
-    new_network = cls(backend=networks[0].backend.name)
+    #check if either all or all but one network have `dtype == None`
+    dtypes = {dtype for dtype in backend_dtypes if dtype is not None}
+    if len(dtypes) > 1:
+      raise ValueError("backends dtypes {} are not compatible".format(dtypes))
+    if len(dtypes) == 1:
+      final_dtype = list(dtypes)[0]
+    else:
+      final_dtype = None
+    new_network = cls(backend=networks[0].backend.name, dtype=final_dtype)
+
     for network in networks:
       new_network.add_subnetwork(network)
     return new_network
 
-  def switch_backend(self, new_backend: Text) -> None:
+  def switch_backend(self,
+                     new_backend: Text,
+                     dtype: Optional[Type[np.number]] = None) -> None:
     """Change this network's backend.
 
     This will convert all node's tensors to the new backend's Tensor type.
+    Args:
+      new_backend (str): The new backend.
+      dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                         to config.py will be chosen.
     """
     if self.backend.name != "numpy":
       raise NotImplementedError(
           "Can only switch backends when the current "
           "backend is 'numpy'. Current backend is '{}'".format(
               self.backend.name))
-    self.backend = backend_factory.get_backend(new_backend)
+    if dtype is None:
+      dtype = config.default_dtypes[new_backend]
+    self.backend = backend_factory.get_backend(new_backend, dtype)
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
 
@@ -178,6 +218,8 @@ class TensorNetwork:
         new_node.name = name
     else:
       value = self.backend.convert_to_tensor(value)
+      if self.backend.dtype is None:
+        self.backend.dtype = value.dtype
       new_node = network_components.Node(value, name, axis_names, self)
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
