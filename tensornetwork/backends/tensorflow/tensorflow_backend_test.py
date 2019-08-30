@@ -78,7 +78,7 @@ def test_diag():
   backend = tensorflow_backend.TensorFlowBackend()
   b = backend.convert_to_tensor(np.array([1, 2, 3]))
   actual = backend.diag(b)
-  expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
   np.testing.assert_allclose(expected, actual)
 
 
