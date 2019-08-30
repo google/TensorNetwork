@@ -4,7 +4,13 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
+import pytest
+import tensornetwork.config as config_file
 from tensornetwork.backends.tensorflow import tensorflow_backend
+tf.compat.v1.enable_v2_behavior()
+
+tf_dtypes = config_file.supported_tensorflow_dtypes
+tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
 
 
 def test_tensordot():
@@ -74,9 +80,9 @@ def test_sqrt():
 
 def test_diag():
   backend = tensorflow_backend.TensorFlowBackend()
-  b = backend.convert_to_tensor(np.array([1, 2, 3]))
+  b = backend.convert_to_tensor(np.array([1.0, 2.0, 3.0]))
   actual = backend.diag(b)
-  expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
   np.testing.assert_allclose(expected, actual)
 
 
@@ -91,7 +97,7 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6]]))
+  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
   actual = backend.trace(a)
   np.testing.assert_allclose(actual, 6)
 
@@ -113,3 +119,117 @@ def test_einsum():
   actual = backend.einsum('ij,jil->l', a, b)
   expected = np.array([4.0, 4.0])
   np.testing.assert_allclose(expected, actual)
+
+
+def test_norm():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(np.ones((2, 2)))
+  assert backend.norm(a).numpy() == 2
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.eye(N=4, M=5)
+  np.testing.assert_allclose(tf.eye(num_rows=4, num_columns=5, dtype=dtype), a)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.ones((4, 4))
+  np.testing.assert_allclose(tf.ones((4, 4), dtype=dtype), a)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.zeros((4, 4))
+  np.testing.assert_allclose(tf.zeros((4, 4), dtype=dtype), a)
+
+
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert a.shape == (4, 4)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.eye(N=4, M=4, dtype=dtype_2)
+  assert a.dtype == dtype_2
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.ones((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.zeros((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
+
+
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.randn((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye_dtype_2(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.eye(N=4, M=4)
+  assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones_dtype_2(dtype):
+  dtype = tf.float32
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.ones((4, 4))
+  assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros_dtype_2(dtype):
+  dtype = tf.float32
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.zeros((4, 4))
+  assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn_dtype_2(dtype):
+  dtype = tf.float32
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert a.dtype == dtype
+
+
+def test_conj():
+  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.complex128)
+  real = np.random.rand(2, 2, 2)
+  imag = np.random.rand(2, 2, 2)
+  a = backend.convert_to_tensor(real + 1j * imag)
+  actual = backend.conj(a)
+  expected = real - 1j * imag
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_backend_dtype_exception():
+  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.float32)
+  tensor = np.random.rand(2, 2, 2)
+  with pytest.raises(TypeError):
+    _ = backend.convert_to_tensor(tensor)

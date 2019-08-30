@@ -19,10 +19,17 @@ import tensornetwork
 import pytest
 import numpy as np
 import tensorflow as tf
+import torch
 from jax.config import config
+import tensornetwork.config as config_file
 
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
+
+np_dtypes = config_file.supported_numpy_dtypes
+tf_dtypes = config_file.supported_tensorflow_dtypes
+torch_dtypes = config_file.supported_pytorch_dtypes
+jax_dtypes = config_file.supported_jax_dtypes
 
 
 def test_sanity_check(backend):
@@ -229,7 +236,7 @@ def test_with_tensors(backend):
 
 def test_contract_dangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1]))
+  a = net.add_node(np.array([1.0]))
   e = a[0]
   with pytest.raises(ValueError):
     net.contract(e)
@@ -246,7 +253,7 @@ def test_double_edge_contract(backend):
 
 def test_contract_trace_dangling_edge(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1]))
+  a = net.add_node(np.array([1.0]))
   e = a[0]
   with pytest.raises(ValueError):
     net._contract_trace(e)
@@ -274,11 +281,11 @@ def test_contract_fall_through_name(backend):
 
 def test_non_connected(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2, 2]))
-  b = net.add_node(np.array([2, 2]))
+  a = net.add_node(np.array([2, 2.]))
+  b = net.add_node(np.array([2, 2.]))
   net.connect(a[0], b[0])
-  c = net.add_node(np.array([2, 2]))
-  d = net.add_node(np.array([2, 2]))
+  c = net.add_node(np.array([2, 2.]))
+  d = net.add_node(np.array([2, 2.]))
   net.connect(c[0], d[0])
   with pytest.raises(ValueError):
     net.check_connected()
@@ -293,8 +300,8 @@ def test_node_get_dim_bad_axis(backend):
 
 def test_bad_trace_contract(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2]))
-  b = net.add_node(np.array([2]))
+  a = net.add_node(np.array([2.]))
+  b = net.add_node(np.array([2.]))
   e = net.connect(a[0], b[0])
   with pytest.raises(ValueError):
     net._contract_trace(e)
@@ -302,8 +309,8 @@ def test_bad_trace_contract(backend):
 
 def test_double_edge_axis(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2]), name="a")
-  b = net.add_node(np.array([2]), name="b")
+  a = net.add_node(np.array([2.]), name="a")
+  b = net.add_node(np.array([2.]), name="b")
   net.connect(a[0], b[0])
   with pytest.raises(ValueError):
     net.connect(a[0], b[0])
@@ -1366,6 +1373,7 @@ def test_switch_backend():
 def test_svd_consistency(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
+
   net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
       [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
@@ -1528,11 +1536,11 @@ def test_disable_node(backend):
   with pytest.raises(ValueError):
     a.disable()
 
+
 def test_add_copy_node_from_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(
-      tensornetwork.CopyNode(
-          3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
   assert a in net
   assert a.shape == (3, 3, 3)
   assert isinstance(a, tensornetwork.CopyNode)
@@ -1543,17 +1551,20 @@ def test_add_copy_node_from_node_object(backend):
   c = net.contract(e)
   np.testing.assert_allclose(c.tensor, a.tensor)
 
+
 def test_double_add_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(tensornetwork.CopyNode(3, 3))
   with pytest.raises(ValueError):
     net.add_node(a)
 
+
 def test_default_names_add_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(tensornetwork.CopyNode(3, 3))
   assert a.name is not None
   assert len(a.axis_names) == 3
+
 
 def test_network_copy(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -1618,3 +1629,34 @@ def test_network_copy_identities(backend):
     assert not node_dict[node] is node
   for edge in net.get_all_edges():
     assert not edge_dict[edge] is edge
+
+
+@pytest.mark.parametrize("backend,dtype", [
+    *list(zip(['numpy'] * len(np_dtypes), np_dtypes)),
+    *list(zip(['tensorflow'] * len(tf_dtypes), tf_dtypes)),
+    *list(zip(['pytorch'] * len(torch_dtypes), torch_dtypes)),
+    *list(zip(['jax'] * len(jax_dtypes), jax_dtypes)),
+])
+def test_network_backend_dtype_1(backend, dtype):
+  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
+  n1 = net.add_node(net.backend.zeros((2, 2)))
+  assert n1.tensor.dtype == dtype
+
+
+@pytest.mark.parametrize("backend,dtype", [('numpy', tf.float32),
+                                           ('tensorflow', np.float32),
+                                           ('pytorch', np.float32),
+                                           ('jax', tf.float32)])
+def test_network_backend_dtype_2(backend, dtype):
+  with pytest.raises(TypeError):
+    tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
+
+
+@pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
+                                           ('tensorflow', tf.float32),
+                                           ('pytorch', torch.float32),
+                                           ('jax', np.float32)])
+def test_network_backend_dtype_3(backend, dtype):
+  net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
+  with pytest.raises(TypeError):
+    net.add_node(np.random.rand(3, 3))

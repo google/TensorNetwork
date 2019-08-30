@@ -104,8 +104,8 @@ def ncon(tensors: Sequence[Tensor],
           "Suboptimal ordering detected. Edges {} are not adjacent in the "
           "contraction order to edges {}, connecting nodes {}. Deviating from "
           "the specified ordering!".format(
-              list(map(str, leftovers)),
-              list(map(str, adjacent_parallel_edges)),
+              list(map(str, leftovers)), list(
+                  map(str, adjacent_parallel_edges)),
               list(map(str, nodes_to_contract))))
       con_edges = [e for e in con_edges if e not in edges_to_contract]
 

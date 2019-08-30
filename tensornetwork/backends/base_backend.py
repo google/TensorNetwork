@@ -16,8 +16,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import Optional, Sequence, Tuple, Any
-
+from typing import Optional, Sequence, Tuple, Any, Union, Type
+import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -200,4 +200,78 @@ class BaseBackend:
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
+        self.name))
+
+  def norm(self, tensor: Tensor) -> Tensor:
+    """Calculate the L2-norm of the elements of `tensor`    
+    """
+    raise NotImplementedError("Backend '{}' has not implemented norm.".format(
+        self.name))
+
+  def eye(self, N: int, dtype: Type[np.number],
+          M: Optional[int] = None) -> Tensor:
+    """Return an identity matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+      Args:
+        N (int): The dimension of the returned matrix.
+        M (int): The dimension of the returned matrix.
+        dtype: The dtype of the returned matrix.
+    """
+    #TODO: implement `ShapeType` objects
+    raise NotImplementedError("Backend '{}' has not implemented eye.".format(
+        self.name))
+
+  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+    """Return an ones-matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         dtype: The dtype of the returned matrix.
+
+    """
+    raise NotImplementedError("Backend '{}' has not implemented ones.".format(
+        self.name))
+
+  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+    """Return a zeros-matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         dtype: The dtype of the returned matrix.
+
+    """
+    raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
+        self.name))
+
+  def randn(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+    """Return a random-normal-matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         dtype: The dtype of the returned matrix.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented randn.".format(
+        self.name))
+
+  def conj(self, tensor: Tensor) -> Tensor:
+    """ 
+    Return the complex conjugate of `tensor`
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
