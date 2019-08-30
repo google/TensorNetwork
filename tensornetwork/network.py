@@ -25,7 +25,7 @@ import weakref
 from tensornetwork import config
 from tensornetwork import network_components
 from tensornetwork.backends import backend_factory
-from tensornetwork import component_factory
+
 
 Tensor = Any
 string_type = h5py.special_dtype(vlen=str)
