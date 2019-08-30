@@ -15,8 +15,8 @@ def load(path: str):
 
     for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
-      node_type = (tensornetwork.component_factory
-                                .get_component(node_data['type'][()]))
+      class_name = node_data['type'][()]
+      node_type = (tensornetwork.component_factory.get_component(class_name))
       node_type._load_node(net, node_data)
 
     nodes_dict = {node.name: node for node in net.nodes_set}
