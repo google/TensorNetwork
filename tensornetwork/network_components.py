@@ -22,7 +22,10 @@ import typing
 import numpy as np
 import weakref
 from abc import ABC, abstractmethod
+import h5py
 
+
+string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
 # This is required because of the circular dependancy between
 # network_components.py and network.py types.
@@ -374,6 +377,48 @@ class BaseNode(ABC):
               self.name))
     self.network = None
 
+  @classmethod
+  @abstractmethod
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    return
+
+
+  @classmethod
+  def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:
+    """Common method to enable adding nodes to a network based on hdf5 data.
+       Only a common functionality to load node properties is implemented.
+
+    Args:
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      the node's name, signature, shape, axis_names
+    """
+    name = node_data['name'][()]
+    signature = node_data['signature'][()]
+    shape = node_data['shape'][()]
+    axis_names = node_data['axis_names'][()]
+    return name, signature, shape, axis_names
+
+  @abstractmethod
+  def _save_node(self, node_group: h5py.Group):
+    """Abstract method to enable saving nodes to hdf5.
+       Only serializing common properties is implemented. Should be
+       overwritten by subclasses.
+
+    Args:
+      node_group: h5py group where data is saved
+    """
+    node_group.create_dataset('type', data=type(self).__name__)
+    node_group.create_dataset('signature', data=self.signature)
+    node_group.create_dataset('name', data=self.name)
+    node_group.create_dataset('shape', data=self.shape)
+    node_group.create_dataset('axis_names', dtype=string_type,
+                              data=np.array(self.axis_names, dtype=object))
+    node_group.create_dataset('edges', dtype=string_type,
+                              data=np.array([edge.name for edge in self.edges],
+                                            dtype=object))
+
 
 class Node(BaseNode):
   """Node for the TensorNetwork graph.
@@ -434,6 +479,33 @@ class Node(BaseNode):
   @tensor.setter
   def tensor(self, tensor: Tensor) -> Tensor:
     self._tensor = tensor
+
+  def _save_node(self, node_group: h5py.Group):
+    """Method to save a node to hdf5.
+
+    Args:
+      node_group: h5py group where data is saved
+    """
+    super()._save_node(node_group)
+    node_group.create_dataset('tensor', data=self._tensor)
+
+  @classmethod
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The added node.
+    """
+    name, signature, _, axis_names = cls._load_node_data(node_data)
+    tensor = node_data['tensor'][()]
+    node = net.add_node(value=tensor, name=name,
+                        axis_names=[ax for ax in axis_names])
+    node.set_signature(signature)
+    return node
 
 
 class CopyNode(BaseNode):
@@ -541,6 +613,32 @@ class CopyNode(BaseNode):
     einsum_expression = self._make_einsum_expression(partners)
     tensors = [partner.get_tensor() for partner in partners]
     return self.network.backend.einsum(einsum_expression, *tensors)
+
+  # pylint: disable=W0235
+  def _save_node(self, node_group: h5py.Group):
+    """Method to save a node to hdf5.
+
+    Args:
+      node_group: h5py group where data is saved
+    """
+    super()._save_node(node_group)
+
+  @classmethod
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The added node.
+    """
+    name, signature, shape, axis_names = cls._load_node_data(node_data)
+    node = net.add_copy_node(name=name, axis_names=[ax for ax in axis_names],
+                             rank=len(shape), dimension=shape[0])
+    node.set_signature(signature)
+    return node
 
 
 class Edge:
@@ -693,6 +791,50 @@ class Edge:
 
   def set_name(self, name: Text) -> None:
     self.name = name
+
+  def _save_edge(self, edge_group: h5py.Group):
+    """Method to save an edge to hdf5.
+
+    Args:
+      edge_group: h5py group where data is saved
+    """
+    edge_group.create_dataset('node1', data=self.node1.name)
+    edge_group.create_dataset('axis1', data=self.axis1)
+    if self.node2 is not None:
+      edge_group.create_dataset('node2', data=self.node2.name)
+      edge_group.create_dataset('axis2', data=self.axis2)
+    edge_group.create_dataset('signature', data=self.signature)
+    edge_group.create_dataset('name', data=self.name)
+
+  @classmethod
+  def _load_edge(cls, edge_data: h5py.Group,
+                 nodes_dict: Dict[Text, BaseNode]):
+    """Add an edge to a network based on hdf5 data.
+
+    Args:
+      edge_data: h5py group that contains the serialized edge data
+      nodes: dictionary of node's name, node of all the nodes in the network
+
+    Returns:
+      The added edge.
+    """
+    node1 = nodes_dict[edge_data["node1"][()]]
+    axis1 = int(edge_data["axis1"][()])
+    if "node2" in list(edge_data.keys()):
+      node2 = nodes_dict[edge_data["node2"][()]]
+      axis2 = int(edge_data["axis2"][()])
+    else:
+      node2 = None
+      axis2 = None
+    signature = edge_data["signature"][()]
+    name = edge_data["name"][()]
+    edge = cls(node1=node1, axis1=axis1, node2=node2, axis2=axis2, name=name)
+    node1.add_edge(edge, axis1)
+    if node2 is not None:
+      node2.add_edge(edge, axis2)
+    if not edge.is_dangling():
+      edge.set_signature(signature)
+    return edge
 
   def __xor__(self, other: "Edge") -> "Edge":
     return self.node1.network.connect(self, other)
