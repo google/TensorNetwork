@@ -26,7 +26,7 @@ Tensor = Any
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[tf.DType] = None):
+  def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
