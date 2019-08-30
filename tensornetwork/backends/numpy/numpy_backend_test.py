@@ -79,12 +79,12 @@ def test_sqrt():
 
 def test_diag():
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2, 3], [4, 5, 6]]))
+  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
   with pytest.raises(TypeError):
     assert backend.diag(a)
   b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
   actual = backend.diag(b)
-  expected = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
   np.testing.assert_allclose(expected, actual)
 
 
@@ -99,7 +99,7 @@ def test_convert_to_tensor():
 
 def test_trace():
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2, 3], [4, 5, 6]]))
+  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
   actual = backend.trace(a)
   np.testing.assert_allclose(actual, 6)
 
