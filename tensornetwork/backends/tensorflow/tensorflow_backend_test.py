@@ -5,8 +5,12 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import pytest
+import tensornetwork.config as config_file
 from tensornetwork.backends.tensorflow import tensorflow_backend
 tf.compat.v1.enable_v2_behavior()
+
+tf_dtypes = config_file.supported_tensorflow_dtypes
+tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
 
 
 def test_tensordot():
@@ -123,80 +127,91 @@ def test_norm():
   assert backend.norm(a).numpy() == 2
 
 
-def test_eye():
-  backend = tensorflow_backend.TensorFlowBackend()
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.eye(N=4, M=5)
-  np.testing.assert_allclose(np.eye(4, 5), a)
+  np.testing.assert_allclose(tf.eye(num_rows=4, num_columns=5, dtype=dtype), a)
 
 
-def test_ones():
-  backend = tensorflow_backend.TensorFlowBackend()
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.ones((4, 4))
-  np.testing.assert_allclose(np.ones((4, 4)), a)
+  np.testing.assert_allclose(tf.ones((4, 4), dtype=dtype), a)
 
 
-def test_zeros():
-  backend = tensorflow_backend.TensorFlowBackend()
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.zeros((4, 4))
-  np.testing.assert_allclose(np.zeros((4, 4)), a)
+  np.testing.assert_allclose(tf.zeros((4, 4), dtype=dtype), a)
 
 
-def test_randn():
-  backend = tensorflow_backend.TensorFlowBackend()
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.randn((4, 4))
   assert a.shape == (4, 4)
 
 
-def test_eye_dtype():
-  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.float64)
-  dtype = tf.float32
-  a = backend.eye(N=4, M=4, dtype=dtype)
-  assert a.dtype == dtype
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.eye(N=4, M=4, dtype=dtype_2)
+  assert a.dtype == dtype_2
 
 
-def test_ones_dtype():
-  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.float64)
-  dtype = tf.float32
-  a = backend.ones((4, 4), dtype=dtype)
-  assert a.dtype == dtype
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.ones((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
 
 
-def test_zeros_dtype():
-  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.float64)
-  dtype = tf.float32
-  a = backend.zeros((4, 4), dtype=dtype)
-  assert a.dtype == dtype
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.zeros((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
 
 
-def test_randn_dtype():
-  backend = tensorflow_backend.TensorFlowBackend(dtype=tf.float64)
-  dtype = tf.float32
-  a = backend.randn((4, 4), dtype=dtype)
-  assert a.dtype == dtype
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  dtype_2 = tf.float32
+  a = backend.randn((4, 4), dtype=dtype_2)
+  assert a.dtype == dtype_2
 
 
-def test_eye_dtype_2():
-  dtype = tf.float32
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eye_dtype_2(dtype):
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.eye(N=4, M=4)
   assert a.dtype == dtype
 
 
-def test_ones_dtype_2():
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_ones_dtype_2(dtype):
   dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.ones((4, 4))
   assert a.dtype == dtype
 
 
-def test_zeros_dtype_2():
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_zeros_dtype_2(dtype):
   dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.zeros((4, 4))
   assert a.dtype == dtype
 
 
-def test_randn_dtype_2():
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn_dtype_2(dtype):
   dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.randn((4, 4))
