@@ -21,9 +21,15 @@ import numpy as np
 import tensorflow as tf
 import torch
 from jax.config import config
+import tensornetwork.config as config_file
 
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
+
+np_dtypes = config_file.supported_numpy_dtypes
+tf_dtypes = config_file.supported_tensorflow_dtypes
+torch_dtypes = config_file.supported_pytorch_dtypes
+jax_dtypes = config_file.supported_jax_dtypes
 
 
 def test_sanity_check(backend):
@@ -1625,12 +1631,15 @@ def test_network_copy_identities(backend):
     assert not edge_dict[edge] is edge
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
-                                           ('tensorflow', tf.float32),
-                                           ('pytorch', torch.float32)])
+@pytest.mark.parametrize("backend,dtype", [
+    *list(zip(['numpy'] * len(np_dtypes), np_dtypes)),
+    *list(zip(['tensorflow'] * len(tf_dtypes), tf_dtypes)),
+    *list(zip(['pytorch'] * len(torch_dtypes), torch_dtypes)),
+    *list(zip(['jax'] * len(jax_dtypes), jax_dtypes)),
+])
 def test_network_backend_dtype_1(backend, dtype):
   net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
-  n1 = net.add_node(net.backend.randn((2, 2)))
+  n1 = net.add_node(net.backend.zeros((2, 2)))
   assert n1.tensor.dtype == dtype
 
 
