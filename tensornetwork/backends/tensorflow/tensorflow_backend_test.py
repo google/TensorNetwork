@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 import pytest
 from tensornetwork.backends.tensorflow import tensorflow_backend
-import tensorflow as tf
 tf.compat.v1.enable_v2_behavior()
 
 
