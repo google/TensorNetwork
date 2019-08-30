@@ -15,6 +15,7 @@ import tensorflow as tf
 import numpy as np
 import torch
 default_backend = "tensorflow"
+default_dtype = None
 #for backwards compatibility default dtypes have to be `None`
 #changing this will cause tests to fail due backend.convert_to_tensor(tensor)
 #raising TypeErrors when incoming `tensor` has a dtype different from
