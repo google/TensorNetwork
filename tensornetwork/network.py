@@ -35,11 +35,12 @@ class TensorNetwork:
                dtype: Optional[Type[np.number]] = None) -> None:
     """
     Args:
-      backend (str):  name of the backend. Currently supported 
-                      backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
-      dtype:          dtype of the network. If `None`, no dtype checks are performed. 
-                      For initialization functions of the backend,
-                      a dtype of `None` defaults to float64
+      backend (str): name of the backend. Currently supported 
+                     backends are 'numpy', 'tensorflow', 'pytorch', 'jax', 'shell'
+      dtype: dtype of the backend of network. If `None`, no dtype checks 
+             are performed. Default value is `None`. For backend 
+             initialization functions like `zeros`, `ones`, `randn` a 
+             dtype of `None` defaults to float64
     """
     if backend is None:
       backend = config.default_backend
