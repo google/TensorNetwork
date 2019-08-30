@@ -44,10 +44,7 @@ class TensorNetwork:
     if backend is None:
       backend = config.default_backend
     if dtype is None:
-      try:
-        dtype = config.default_dtypes[backend]
-      except KeyError:
-        raise ValueError("Backend {} does not exist".format(backend))
+      dtype = config.default_dtype
     #backend.dtype is initialized from config.py (currently `None`)
     #if `backend.dtype = None`, the backend dtype is set at the first
     #call to `add_node(tensor)` to `backend.dtype = tensor.dtype`
