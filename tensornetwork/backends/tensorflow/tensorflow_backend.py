@@ -15,11 +15,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
+import numpy as np
 Tensor = Any
 
 
@@ -30,6 +31,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
     super(TensorFlowBackend, self).__init__()
     from tensornetwork.backends.tensorflow import tensordot2
     self.tensordot2 = tensordot2
+    try:
+      import tensorflow as tf
+    except ImportError:
+      raise ImportError()
     self.tf = tf
     self.name = "tensorflow"
     self.dtype = dtype
