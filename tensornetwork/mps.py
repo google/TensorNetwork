@@ -164,7 +164,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       n1[1] ^ n2[1]
     result = net.contract_between(n1, n2).tensor
     return self.backend.norm(
-        result - self.backend.eye(N=result.shape[0], M=result.shape[1]))
+        abs(result - self.backend.eye(N=result.shape[0], M=result.shape[1])))
 
   def left_envs(self, sites: List[int]) -> Dict:
     """
