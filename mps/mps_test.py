@@ -31,20 +31,10 @@ def get_random_np(shape, dtype):
   if dtype is np.complex64:
     return np.random.randn(*shape).astype(
         np.float32) + 1j * np.random.randn(*shape).astype(np.float32)
-  elif dtype is np.complex128:
+  if dtype is np.complex128:
     return np.random.randn(*shape).astype(
         np.float64) + 1j * np.random.randn(*shape).astype(np.float64)
-  else:
-    return np.random.randn(*shape).astype(dtype)
-
-
-def get_random_tf(shape, dtype):
-  if dtype in (tf.complex64, tf.complex128):
-    return tf.complex(
-        tf.random.normal(*shape, dtype=dtype.real_dtype),
-        tf.random.normal(*shape, dtype=dtype.real_dtype))
-  else:
-    return tf.random.normal(*shape, dtype=dtype)
+  return np.random.randn(*shape).astype(dtype)
 
 
 def test_normalization(backend):
@@ -65,8 +55,7 @@ def test_mps_init(backend, N, pos):
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
   with pytest.raises(ValueError):
-    mps = tensornetwork.mps.FiniteMPS(
-        tensors, center_position=pos, backend=backend)
+    tensornetwork.mps.FiniteMPS(tensors, center_position=pos, backend=backend)
 
 
 @pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
