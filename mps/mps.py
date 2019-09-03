@@ -24,30 +24,30 @@ Tensor = Any
 class FiniteMPS(tensornetwork.TensorNetwork):
   """
   An MPS class for finite systems.
-  FiniteMPS keeps track of the nodes of the network by storing them in a list
+  `FiniteMPS` keeps track of the nodes of the network by storing them in a list
   `FiniteMPS.nodes`. Any external changes to this list will potentially corrupt 
-  the mps. FiniteMPS has a central site. The position of this central site is
+  the mps. `FiniteMPS` has a central site. The position of this central site is
   stored in `FiniteMPS.center_position`. This center position can be  
   shifted using the `FiniteMPS.position` method. 
-  If the state is initialized with `center_positon=0`, 
-  then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the center_position 
-  to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. `center_position`
-  is moved from left to right), then all sites that are visited in between are left 
-  in left-orthogonal form. If the shift is a "right-shift" (i.e. `center_position` 
-  is shifted from right to left), then all sites that are visited in between are 
-  left in right-orthogonal form. 
+  If the state is initialized withnen `center_positon=0`, 
+  then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the `center_position`
+  to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. 
+  `center_position` is moved from left to right), then all sites that are 
+  visited in between are left in left-orthogonal form. If the shift is a 
+  "right-shift" (i.e. `center_position` is shifted from right to left), 
+  then all sites that are visited in between are left in right-orthogonal form. 
   For random initial tensors `tensors`, doing one sweep from left to right 
-  and a successive sweep from right to left brings the state into central canonical 
-  form. In this state, all sites to the left of `center_position` are left orthogonal,
-  and all sites to the right of `center_position` are right orthogonal.
-  Due to efficiency reasons, the state upon initialization is usually NOT brought 
-  into the central canonical form.
+  and a successive sweep from right to left brings the state into 
+  central canonical form. In this state, all sites to the left of 
+  `center_position` are left orthogonal, and all sites to the right of 
+  `center_position` are right orthogonal, and the state is normalized.
+  Due to efficiency reasons, the state upon initialization is usually 
+  NOT brought into the central canonical form.
   """
 
   def __init__(self,
                tensors: List[Tensor],
                center_position: int,
-               name: Optional[Text] = None,
                backend: Optional[Text] = None,
                dtype: Optional[Type[np.number]] = None) -> None:
     """
@@ -55,10 +55,9 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     Args:
       tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
-      name: A name for the object.
-      backend: The name of the backend that should be used to perform contractions.
-        See documentation of TensorNetwork.__init__ for a list of supported
-        backends.
+      backend: The name of the backend that should be used to perform 
+        contractions. See documentation of TensorNetwork.__init__ for 
+        a list of supported backends.
       dtype: An optional `dtype` for the FiniteMPS. See documentation of 
         TensorNetwork.__init__ for more details.
     Returns:
@@ -108,7 +107,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
                        ' 0 < site < N = {}'.format(site, len(self)))
     if site == self.center_position:
       return self.backend.norm(self.nodes[self.center_position].tensor)
-    elif site > self.center_position:
+    if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
         Q, R = self.split_node_qr(
@@ -124,7 +123,6 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           self.nodes[n + 1].tensor /= Z
 
       self.center_position = site
-
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
         R, Q = self.split_node_rq(
@@ -176,7 +174,6 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         at each  site in `sites`.
 
     """
-    n1 = min(sites)
     n2 = max(sites)
     sites = np.array(sites)
     if not np.all(sites <= len(self)):
@@ -215,7 +212,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
                                       conj_nodes[self.center_position])
       left_env.reorder_edges(
           [edges[self.center_position], conj_edges[self.center_position]])
-      if (self.center_position + 1) in sites:
+      if self.center_position + 1 in sites:
         left_envs[self.center_position + 1] = left_env.tensor
       for site in range(self.center_position + 1, n2):
         left_env = net.contract_between(left_env, nodes[site])
@@ -237,7 +234,6 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     """
 
     n1 = min(sites)
-    n2 = max(sites)
     sites = np.array(sites)
     if not np.all(np.array(sites) < len(self)):
       raise ValueError('all elements of `sites` have to be < N = {}'.format(
@@ -272,7 +268,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
 
       right_env = net.contract_between(nodes[self.center_position],
                                        conj_nodes[self.center_position])
-      if (self.center_position - 1) in sites:
+      if self.center_position - 1 in sites:
         right_env.reorder_edges(
             [edges[self.center_position], conj_edges[self.center_position]])
         right_envs[self.center_position - 1] = right_env.tensor
@@ -354,8 +350,8 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           site2, site1))
     if site2 != site1 + 1:
       raise ValueError(
-          'site2 ={} != site1={}. Only nearest neighbor gates are currenlty supported'
-          .format(site2, site1))
+          'site2 ={} != site1={}. Only nearest neighbor gates are currently '
+          'supported'.format(site2, site1))
 
     if (max_singular_values or
         max_truncation_err) and self.center_position not in (site1, site2):
@@ -366,8 +362,8 @@ class FiniteMPS(tensornetwork.TensorNetwork):
               self.center_position, site1, site2))
 
     gate_node = self.add_node(gate)
-    e1 = gate_node[2] ^ self.nodes[site1][1]
-    e2 = gate_node[3] ^ self.nodes[site2][1]
+    gate_node[2] ^ self.nodes[site1][1]
+    gate_node[3] ^ self.nodes[site2][1]
     left_edges = [self.nodes[site1][0], gate_node[0]]
     right_edges = [gate_node[1], self.nodes[site2][2]]
     result = self.contract_between(self.nodes[site1], self.nodes[site2])
@@ -404,7 +400,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
     gate_node = self.add_node(gate)
-    e = gate_node[1] ^ self.nodes[site][1]
+    gate_node[1] ^ self.nodes[site][1]
     edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
     self.nodes[site] = self.contract_between(
         gate_node, self.nodes[site],
@@ -426,14 +422,14 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     right_envs = self.right_envs(sites)
     left_envs = self.left_envs(sites)
     res = []
-    for n in range(len(sites)):
+    for n, site in enumerate(sites):
       net = tensornetwork.TensorNetwork(
           backend=self.backend.name, dtype=self.dtype)
       O = net.add_node(ops[n])
-      R = net.add_node(right_envs[sites[n]])
-      L = net.add_node(left_envs[sites[n]])
-      A = net.add_node(self.nodes[sites[n]].tensor)
-      conj_A = net.add_node(self.backend.conj(self.nodes[sites[n]].tensor))
+      R = net.add_node(right_envs[site])
+      L = net.add_node(left_envs[site])
+      A = net.add_node(self.nodes[site].tensor)
+      conj_A = net.add_node(self.backend.conj(self.nodes[site].tensor))
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
       R[0] ^ A[2]
@@ -469,8 +465,9 @@ class FiniteMPS(tensornetwork.TensorNetwork):
 
     rs = self.right_envs([site1])
     c = []
-    if len(left_sites) > 0:
-      left_sites_mod = list(set([n % N for n in left_sites]))
+    if left_sites:
+      #left_sites_mod = list(set([n % N for n in left_sites]))
+      left_sites_mod = list({n % N for n in left_sites})
 
       ls = self.left_envs(left_sites_mod)
       net = tensornetwork.TensorNetwork(
@@ -532,8 +529,8 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       c.append(res.tensor)
 
     right_sites = sites2[sites2 > site1]
-    if len(right_sites) > 0:
-      right_sites_mod = list(set([n % N for n in right_sites]))
+    if right_sites:
+      right_sites_mod = list({n % N for n in right_sites})
 
       rs = self.right_envs(right_sites_mod)
       net = tensornetwork.TensorNetwork(
