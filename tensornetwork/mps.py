@@ -410,6 +410,39 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
+  def measure_local_operator(self, ops, sites) -> List:
+    """
+    Args:
+      ops: Tensors of rank 2; the local operators to be measured
+      sites: sites where `ops` acts.
+    Returns:
+      List: measurements <op[n]> for n in `sites`
+    Raises:
+      ValueError if `len(ops) != len(sites)`
+    """
+    if not len(ops) == len(sites):
+      raise ValueError('measure_1site_ops: len(ops) has to be len(sites)!')
+    right_envs = self.right_envs(sites)
+    left_envs = self.left_envs(sites)
+    res = []
+    for n in range(len(sites)):
+      net = tensornetwork.TensorNetwork(
+          backend=self.backend.name, dtype=self.dtype)
+      O = net.add_node(ops[n])
+      R = net.add_node(right_envs[sites[n]])
+      L = net.add_node(left_envs[sites[n]])
+      A = net.add_node(self.nodes[sites[n]].tensor)
+      conj_A = net.add_node(self.backend.conj(self.nodes[sites[n]].tensor))
+      O[1] ^ A[1]
+      O[0] ^ conj_A[1]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      result = L @ A @ O @ conj_A @ R
+      res.append(result.tensor)
+    return res
+
   def measure_two_body_correlator(self, op1, op2, site1, sites2) -> List:
     """
     Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
@@ -440,12 +473,13 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       ls = self.left_envs(left_sites_mod)
       net = tensornetwork.TensorNetwork(
           backend=self.backend.name, dtype=self.dtype)
+
       A = net.add_node(self.nodes[site1].tensor)
       O1 = net.add_node(op1)
       conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
       R = net.add_node(rs[site1])
-      R[0] ^ A[0]
-      R[1] ^ conj_A[0]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
       A[1] ^ O1[1]
       conj_A[1] ^ O1[0]
       R = ((R @ A) @ O1) @ conj_A
@@ -534,14 +568,5 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           c.append(res.tensor)
 
         if n < n2:
-          net = tensornetwork.TensorNetwork(
-              backend=self.backend.name, dtype=self.dtype)
-          L = net.add_node(l)
-          A = net.add_node(self.nodes[n % N].tensor)
-          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
-          L[0] ^ A[0]
-          L[1] ^ conj_A[2]
-          A[1] ^ conj_A[1]
-          L = L @ A @ conj_A
-          l = L.tensor
+          l = self.transfer_operator(n % N, 'left', l)
     return np.array(c)
