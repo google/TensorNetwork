@@ -161,6 +161,7 @@ def test_randn(dtype):
 def test_eye_dtype(dtype):
   backend = pytorch_backend.PyTorchBackend(dtype=dtype)
   dtype_2 = torch.float32
+  _ = backend.eye(N=4, dtype=dtype_2)  # a check
   a = backend.eye(N=4, M=4, dtype=dtype_2)
   assert a.dtype == dtype_2
 
