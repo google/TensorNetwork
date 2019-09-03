@@ -124,6 +124,34 @@ def test_local_measurement(backend):
   sz = np.diag([0.5, -0.5])
   result_1 = np.array(mps_1.measure_local_operator([sz] * N, range(N)))
   result_2 = np.array(mps_2.measure_local_operator([sz] * N, range(N)))
-  np.testing.assert_allclose(result_1, np.zeros(N))
+  np.testing.assert_almost_equal(result_1, np.zeros(N))
   np.testing.assert_allclose(result_2, np.ones(N) * 0.5)
-  pass
+
+
+def test_correlation_measurement(backend):
+  D, d, N = 1, 2, 10
+  tensors_1 = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                     ] + [np.ones((D, d, 1))]
+  mps_1 = tensornetwork.mps.FiniteMPS(
+      tensors_1, center_position=0, backend=backend)
+  mps_1.position(N - 1)
+  mps_1.position(0)
+  tensors_2 = [np.zeros(
+      (1, d, D))] + [np.zeros((D, d, D)) for _ in range(N - 2)
+                    ] + [np.zeros((D, d, 1))]
+  for t in tensors_2:
+    t[0, 0, 0] = 1
+  mps_2 = tensornetwork.mps.FiniteMPS(
+      tensors_2, center_position=0, backend=backend)
+  mps_2.position(N - 1)
+  mps_2.position(0)
+
+  sz = np.diag([0.5, -0.5])
+  result_1 = np.array(
+      mps_1.measure_two_body_correlator(sz, sz, N // 2, range(N)))
+  result_2 = np.array(
+      mps_2.measure_two_body_correlator(sz, sz, N // 2, range(N)))
+  actual = np.zeros(N)
+  actual[N // 2] = 0.25
+  np.testing.assert_almost_equal(result_1, actual)
+  np.testing.assert_allclose(result_2, np.ones(N) * 0.25)
