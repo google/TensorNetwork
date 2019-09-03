@@ -113,6 +113,8 @@ class PyTorchBackend(base_backend.BaseBackend):
       dtype = self.dtype
     if not dtype:
       dtype = torch.float64
+    if not M:
+      M = N  #torch crashes if one passes M = None with dtype!=None
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...],
