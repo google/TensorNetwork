@@ -78,3 +78,52 @@ def test_right_orthonormalization(backend):
       mps.check_orthonormality('right', site) < 1E-12
       for site in range(len(mps))
   ])
+
+
+def test_apply_one_site_gate(backend):
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
+  gate = np.random.rand(2, 2)
+  mps.apply_one_site_gate(gate, 5)
+  actual = np.transpose(np.tensordot(tensors[5], gate, ([1], [1])), (0, 2, 1))
+  np.testing.assert_allclose(mps.nodes[5].tensor, actual)
+
+
+def test_apply_two_site_gate(backend):
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
+  gate = np.random.rand(2, 2, 2, 2)
+  mps.apply_two_site_gate(gate, 5, 6)
+  tmp = np.tensordot(tensors[5], tensors[6], ([2], [0]))
+  actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
+  res = mps.contract_between(mps.nodes[5], mps.nodes[6])
+  np.testing.assert_allclose(res.tensor, actual)
+
+
+def test_local_measurement(backend):
+  D, d, N = 1, 2, 10
+  tensors_1 = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                     ] + [np.ones((D, d, 1))]
+  mps_1 = tensornetwork.mps.FiniteMPS(
+      tensors_1, center_position=0, backend=backend)
+
+  tensors_2 = [np.zeros(
+      (1, d, D))] + [np.zeros((D, d, D)) for _ in range(N - 2)
+                    ] + [np.zeros((D, d, 1))]
+  for t in tensors_2:
+    t[0, 0, 0] = 1
+  mps_2 = tensornetwork.mps.FiniteMPS(
+      tensors_2, center_position=0, backend=backend)
+
+  sz = np.diag([0.5, -0.5])
+  result_1 = np.array(mps_1.measure_local_operator([sz] * N, range(N)))
+  result_2 = np.array(mps_2.measure_local_operator([sz] * N, range(N)))
+  np.testing.assert_allclose(result_1, np.zeros(N))
+  np.testing.assert_allclose(result_2, np.ones(N) * 0.5)
+  pass
