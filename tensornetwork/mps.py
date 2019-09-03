@@ -345,10 +345,10 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     if site1 < 0 or site1 >= len(self) - 1:
       raise ValueError(
           'site1 = {} is not between 0 <= site < N - 1 = {}'.format(
-              site, len(self)))
+              site1, len(self)))
     if site2 < 1 or site2 >= len(self):
       raise ValueError('site2 = {} is not between 1 <= site < N = {}'.format(
-          site, len(self)))
+          site2, len(self)))
     if site2 <= site1:
       raise ValueError('site2 = {} has to be larger than site2 = {}'.format(
           site2, site1))
@@ -378,8 +378,8 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         right_edges=right_edges,
         max_singular_values=max_singular_values,
         max_truncation_err=max_truncation_err,
-        left_name=[self.nodes[site1].name],
-        right_name=[self.nodes[site2].name])
+        left_name=self.nodes[site1].name,
+        right_name=self.nodes[site2].name)
     V.reorder_edges([S[1]] + right_edges)
     left_edges = left_edges + [S[1]]
     self.nodes[site1] = self.contract_between(
