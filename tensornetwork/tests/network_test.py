@@ -656,7 +656,7 @@ def test_remove_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
   b = net.add_node(np.eye(2))
-  e = net.connect(a[0], b[0])
+  net.connect(a[0], b[0])
   broken_edges_by_name, broken_edges_by_axis = net.remove_node(b)
   assert broken_edges_by_name == {"__Edge_3": a[0]}
   assert broken_edges_by_axis == {0: a[0]}
