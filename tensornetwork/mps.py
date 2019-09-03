@@ -410,10 +410,11 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
-  def measure_local_operator(self, ops, sites) -> List:
+  def measure_local_operator(self, ops: List[Tensor], sites: List[int]) -> List:
     """
+    Measure the expectation value of local operators `ops` site `sites`.
     Args:
-      ops: Tensors of rank 2; the local operators to be measured
+      ops: list Tensors of rank 2; the local operators to be measured
       sites: sites where `ops` acts.
     Returns:
       List: measurements <op[n]> for n in `sites`
@@ -443,7 +444,8 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       res.append(result.tensor)
     return res
 
-  def measure_two_body_correlator(self, op1, op2, site1, sites2) -> List:
+  def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
+                                  sites2: List[int]) -> List:
     """
     Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
     `sites2`. if `site1 == s`, op2 will be applied first
