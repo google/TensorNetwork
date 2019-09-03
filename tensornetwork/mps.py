@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork
 import numpy as np
-from typing import Any, List, Optional, Text, Type, Union
+from typing import Any, List, Optional, Text, Type, Union, Dict
 Tensor = Any
 
 
@@ -25,19 +25,21 @@ class FiniteMPS(tensornetwork.TensorNetwork):
   """
   An MPS class for finite systems.
   FiniteMPS keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS.nodes`. Any external changes to this list will corrupt the 
-  mps. FiniteMPS has a central site. The position of this central site is
+  `FiniteMPS.nodes`. Any external changes to this list will potentially corrupt 
+  the mps. FiniteMPS has a central site. The position of this central site is
   stored in `FiniteMPS.center_position`. This center position can be  
   shifted using the `FiniteMPS.position` method. 
   If the state is initialized with `center_positon=0`, 
   then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the center_position 
-  to `len(FiniteMPS) - 1`. If the shift is a "left-shift", all sites that 
-  are visited in between are left in left-orthogonal form. If the shift is a
-  "right-shift", all sites that are visited in between are left in right-orthogonal
-  form. For a random initial tensors `tensors`, doing one sweep from left to right 
+  to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. `center_position`
+  is moved from left to right), then all sites that are visited in between are left 
+  in left-orthogonal form. If the shift is a "right-shift" (i.e. `center_position` 
+  is shifted from right to left), then all sites that are visited in between are 
+  left in right-orthogonal form. 
+  For random initial tensors `tensors`, doing one sweep from left to right 
   and a successive sweep from right to left brings the state into central canonical 
-  form. In this state, all sites to the left of center_position are left orthogonal,
-  and all sites to the right of center_position are right orthogonal.
+  form. In this state, all sites to the left of `center_position` are left orthogonal,
+  and all sites to the right of `center_position` are right orthogonal.
   Due to efficiency reasons, the state upon initialization is usually NOT brought 
   into the central canonical form.
   """
@@ -77,21 +79,21 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     self.center_position = center_position
 
   @property
-  def D(self):
+  def D(self) -> List:
     """
     Return a list of bond dimensions of FiniteMPS
     """
     return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
 
   @property
-  def d(self):
+  def d(self) -> List:
     """
     Return a list of physical Hilbert-space dimensions of FiniteMPS
     """
 
     return [node.shape[1] for node in self.nodes]
 
-  def position(self, site: int, normalize: Optional[bool] = True) -> None:
+  def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
     Shift FiniteMPS.center_position to `site`.
     Args:
@@ -164,9 +166,9 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     return self.backend.norm(
         result - self.backend.eye(N=result.shape[0], M=result.shape[1]))
 
-  def left_envs(self, sites: List[int]):
+  def left_envs(self, sites: List[int]) -> Dict:
     """
-    Compute left reduced density matrices for site `sites.
+    Compute left reduced density matrices for site `sites`.
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
@@ -223,7 +225,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           left_envs[site + 1] = left_env.tensor
     return left_envs
 
-  def right_envs(self, sites: List[int]):
+  def right_envs(self, sites: List[int]) -> Dict:
     """
     Compute right reduced density matrices for site `sites.
     Args:
@@ -408,96 +410,138 @@ class FiniteMPS(tensornetwork.TensorNetwork):
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
-    def measure_two_body_correlator(self, op1, op2, site1, sites2):
-      """
-      Correlator of <op1,op2> between sites n1 and n2 (included)
-      if site1 == sites2, op2 will be applied first
-      Parameters
-      --------------------------
-      op1, op2:    Tensor
-                   local operators to be measure
-      site1        int
-      sites2:      list of int
-      Returns:
-      --------------------------             
-      an np.ndarray of measurements
-      """
-      N = len(self)
-      if site1 < 0:
-        raise ValueError(
-            "Site site1 out of range: {} not between 0 <= site < N = {}."
-            .format(site1, N))
-      sites2 = np.array(sites2)
+  def measure_two_body_correlator(self, op1, op2, site1, sites2) -> List:
+    """
+    Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
+    `sites2`. if `site1 == s`, op2 will be applied first
+    Args:
+      op1, op2: Tensors of rank 2; the local operators to be measured
+      site1: the site where `op1`  acts
+      sites2: sites where `op2` acts.
+    Returns:
+      List: correlator <op1, op2>
+    Raises:
+      ValueError if `site1` is out of range
+    """
+    N = len(self)
+    if site1 < 0:
+      raise ValueError(
+          "Site site1 out of range: {} not between 0 <= site < N = {}.".format(
+              site1, N))
+    sites2 = np.array(sites2)
 
-      left_sites = sorted(sites2[sites2 < site1])
+    left_sites = sorted(sites2[sites2 < site1])
 
-      rs = self.right_envs([site1])
-      if len(left_sites) > 0:
-        left_sites_mod = list(set([n % N for n in left_sites]))
+    rs = self.right_envs([site1])
+    c = []
+    if len(left_sites) > 0:
+      left_sites_mod = list(set([n % N for n in left_sites]))
 
-        ls = self.left_envs(left_sites_mod)
-        net = tensornetwork.TensorNetwor(
-            backend=self.backend.name, dtype=self.dtype)
-        A = net.add_node(self.node[site1].tensor)
-        O1 = net.add_node(op1)
-        conj_A = net.add_node(self.backend.conj(self.node[site1].tensor))
-        R = net.add_node(rs[site1])ppppppp
-        R[0] ^ A[0]
-        R[1] ^ conj_A[0]
-        A[1] ^ O1[1]
-        conj_A[1] ^ O1[0]
-        R = ((R @ A) @ O1) @ conj_A
-        n1 = np.min(left_sites)
-        r = R.tensor
-        for n in range(site1 - 1, n1 - 1, -1):
-          if n in left_sites:
-            net = tensornetwork.TensorNetwor(
-                backend=self.backnend.name, dtyper=self.dtype)
-            A = net.add_node(self.nodes[n % N].tensor)
-            conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
-            O2 = net.add_node(op2)
-            left = net.add_node(ls[n % N])
-            right = net.add_node(r)
-            res = (((left @ A) @ O2) @ conj_A) @ right
-            c.append(res.tensor)
-          if n > n1:
-            r = self.transfer_operator(n % N, 'right', r)
+      ls = self.left_envs(left_sites_mod)
+      net = tensornetwork.TensorNetwork(
+          backend=self.backend.name, dtype=self.dtype)
+      A = net.add_node(self.nodes[site1].tensor)
+      O1 = net.add_node(op1)
+      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
+      R = net.add_node(rs[site1])
+      R[0] ^ A[0]
+      R[1] ^ conj_A[0]
+      A[1] ^ O1[1]
+      conj_A[1] ^ O1[0]
+      R = ((R @ A) @ O1) @ conj_A
+      n1 = np.min(left_sites)
+      r = R.tensor
+      for n in range(site1 - 1, n1 - 1, -1):
+        if n in left_sites:
+          net = tensornetwork.TensorNetwork(
+              backend=self.backend.name, dtype=self.dtype)
+          A = net.add_node(self.nodes[n % N].tensor)
+          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
+          O2 = net.add_node(op2)
+          L = net.add_node(ls[n % N])
+          R = net.add_node(r)
+          L[0] ^ A[0]
+          L[1] ^ conj_A[0]
+          O2[0] ^ conj_A[1]
+          O2[1] ^ A[1]
+          R[0] ^ A[2]
+          R[1] ^ conj_A[2]
 
-        c = list(reversed(c))
+          res = (((L @ A) @ O2) @ conj_A) @ R
+          c.append(res.tensor)
+        if n > n1:
+          r = self.transfer_operator(n % N, 'right', r)
 
-      ls = self.left_envs([site1])
+      c = list(reversed(c))
+    ls = self.left_envs([site1])
+    if site1 in sites2:
+      net = tensornetwork.TensorNetwork(
+          backend=self.backend.name, dtype=self.dtype)
+      O1 = net.add_node(op1)
+      O2 = net.add_node(op2)
+      L = net.add_node(ls[site1])
+      R = net.add_node(rs[site1])
+      A = net.add_node(self.nodes[site1].tensor)
+      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
 
-      if site1 in sites2:
-        A = self.nodes[site1]
-        net = tensornetwork.TensorNetwork(backend=self.backend.name, dtype=self.dtype)
-        net.add_node(op1)
-        net.add_node(op2)        
-        op = ncon.ncon([op2, op1], [[-1, 1], [1, -2]])
-        res = ncon.ncon(
-            [ls[site1], A, op, A.conj(), rs[site1]],
-            [[1, 4], [1, 5, 2], [3, 2], [4, 6, 3], [5, 6]])
-        c.append(res)
+      O1[1] ^ O2[0]
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
+      A[1] ^ O2[1]
+      conj_A[1] ^ O1[0]
+      O = O1 @ O2
+      res = (((L @ A) @ O) @ conj_A) @ R
+      c.append(res.tensor)
 
-      right_sites = sites2[sites2 > site1]
-      if len(right_sites) > 0:
-        right_sites_mod = list(set([n % N for n in right_sites]))
+    right_sites = sites2[sites2 > site1]
+    if len(right_sites) > 0:
+      right_sites_mod = list(set([n % N for n in right_sites]))
 
-        rs = self.get_envs_right(right_sites_mod)
+      rs = self.right_envs(right_sites_mod)
+      net = tensornetwork.TensorNetwork(
+          backend=self.backend.name, dtype=self.dtype)
+      A = net.add_node(self.nodes[site1].tensor)
+      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
+      L = net.add_node(ls[site1])
+      O1 = net.add_node(op1)
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      A[1] ^ O1[1]
+      conj_A[1] ^ O1[0]
+      L = L @ A @ O1 @ conj_A
+      l = L.tensor
+      del net
 
-        A = self.get_tensor(site1)
-        l = ncon.ncon([ls[site1], A, op1, A.conj()], [(0, 1), (0, -1, 2),
-                                                      (3, 2), (1, -2, 3)])
+      n2 = np.max(right_sites)
+      for n in range(site1 + 1, n2 + 1):
+        if n in right_sites:
+          net = tensornetwork.TensorNetwork(
+              backend=self.backend.name, dtype=self.dtype)
+          L = net.add_node(l)
+          R = net.add_node(rs[n % N])
+          A = net.add_node(self.nodes[n % N].tensor)
+          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
+          O2 = net.add_node(op2)
+          A[0] ^ L[0]
+          conj_A[0] ^ L[1]
+          O2[0] ^ conj_A[1]
+          O2[1] ^ A[1]
+          R[0] ^ A[2]
+          R[1] ^ conj_A[2]
+          res = L @ A @ O2 @ conj_A @ R
+          c.append(res.tensor)
 
-        n2 = np.max(right_sites)
-        for n in range(site1 + 1, n2 + 1):
-          if n in right_sites:
-            r = rs[n % N]
-            A = self.get_tensor(n % N)
-            res = ncon.ncon([l, A, op2, A.conj(), r],
-                            [[1, 4], [1, 5, 2], [3, 2], [4, 6, 3], [5, 6]])
-            c.append(res)
-
-          if n < n2:
-            l = self.transfer_op(n % N, 'left', l)
-
-      return np.array(c)
+        if n < n2:
+          net = tensornetwork.TensorNetwork(
+              backend=self.backend.name, dtype=self.dtype)
+          L = net.add_node(l)
+          A = net.add_node(self.nodes[n % N].tensor)
+          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
+          L[0] ^ A[0]
+          L[1] ^ conj_A[2]
+          A[1] ^ conj_A[1]
+          L = L @ A @ conj_A
+          l = L.tensor
+    return np.array(c)
