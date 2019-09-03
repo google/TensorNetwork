@@ -276,16 +276,6 @@ def test_disconnect_dangling_edge_value_error(backend):
     net.disconnect(a[0])
 
 
-def test_remove_trace_edge():
-  #todo
-  return
-
-
-def test_remove_edges():
-  #todo
-  return
-
-
 def test_contract_trace_single_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones([10, 10]), name="a")
@@ -441,9 +431,11 @@ def test_get_all_nondangling(backend):
   assert {edge1, edge2, edge3} == net.get_all_nondangling()
 
 
-def test_get_all_edges():
-  #todo
-  return
+def test_get_all_edges(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  b = net.add_node(np.eye(2))
+  assert {a[0], a[1], b[0], b[1]} == net.get_all_edges()
 
 def test_outer_product_final_nodes(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -660,9 +652,14 @@ def test_contract_parallel(backend):
   np.testing.assert_allclose(c.tensor, 2.0)
 
 
-def test_remove_node():
-  #todo
-  return
+def test_remove_node(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  b = net.add_node(np.eye(2))
+  net.connect(a[0], b[0])
+  broken_edges_by_name, broken_edges_by_axis = net.remove_node(b)
+  assert broken_edges_by_name == {"__Edge_3": a[0]}
+  assert broken_edges_by_axis == {0: a[0]}
 
 
 def test_remove_node_value_error(backend):
