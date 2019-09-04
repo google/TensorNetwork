@@ -19,7 +19,8 @@ from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
-import torch
+
+
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -28,9 +29,14 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
+  try:
+    import torch
+  except ImportError:
+    raise ImportError("PyTorch not installed, please switch to a different "
+                      "backend or install PyTorch.")
+
   def __init__(self, dtype: Optional[torch.dtype] = None):
     super(PyTorchBackend, self).__init__()
-    self.torch = torch
     self.name = "pytorch"
     self.dtype = dtype
 
@@ -112,7 +118,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = torch.float64
+      dtype = self.torch.float64
     if not M:
       M = N  #torch crashes if one passes M = None with dtype!=None
     return self.torch.eye(n=N, m=M, dtype=dtype)
@@ -122,7 +128,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = torch.float64
+      dtype = self.torch.float64
 
     return self.torch.ones(shape, dtype=dtype)
 
@@ -131,7 +137,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = torch.float64
+      dtype = self.torch.float64
 
     return self.torch.zeros(shape, dtype=dtype)
 
@@ -140,7 +146,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     if not dtype:
       dtype = self.dtype
     if not dtype:
-      dtype = torch.float64
+      dtype = self.torch.float64
 
     return self.torch.randn(shape, dtype=dtype)
 
