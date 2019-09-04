@@ -29,9 +29,9 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
-        import jax
+      import jax
     except ImportError:
-        raise ImportError("Jax not installed, please switch to a different "
+      raise ImportError("Jax not installed, please switch to a different "
                           "backend or install Jax.")
     self.jax = jax
     self.np = self.jax.numpy
