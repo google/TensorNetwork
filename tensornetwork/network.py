@@ -90,7 +90,7 @@ class TensorNetwork:
     """
     new_net = TensorNetwork(backend=self.backend.name)
     #TODO: add support for copying CopyTensor
-    if conj==True:
+    if conj:
       node_dict = {
           node: new_net.add_node(
               self.backend.conj(node.tensor), name=node.name, axis_names=node.axis_names)
@@ -99,7 +99,7 @@ class TensorNetwork:
     else:
       node_dict = {
           node: new_net.add_node(
-            node.tensor, name=node.name, axis_names=node.axis_names)
+             node.tensor, name=node.name, axis_names=node.axis_names)
           for node in self.nodes_set
     }
     edge_dict = {}
@@ -1239,7 +1239,7 @@ class TensorNetwork:
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
-      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
+       node.tensor, len(left_edges), max_singular_values, max_truncation_err)
     left_node = self.add_node(u, name=left_name)
     singular_values_node = self.add_node(self.backend.diag(s), name=middle_name)
     right_node = self.add_node(vh, name=right_name)
