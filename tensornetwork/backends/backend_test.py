@@ -11,8 +11,6 @@ def clean_backend_import():
   sys.modules.pop('tensornetwork.backends.jax.jax_backend', None)
   sys.modules.pop('tensornetwork.backends.tensorflow.tensorflow_backend', None)
   sys.modules.pop('tensornetwork', None)
-  sys.modules.pop('tensornetwork.network', None)
-  sys.modules.pop('tensornetwork.network_components', None)
   yield # use as teardown
   sys.modules.pop('tensornetwork', None)
 
@@ -29,39 +27,48 @@ def no_backend_dependency(monkeypatch):
 
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_backend_pytorch_missing():
+def test_backend_pytorch_missing_cannot_initialize_backend():
   with pytest.raises(ImportError):
     from tensornetwork.backends.pytorch.pytorch_backend import PyTorchBackend
-
+    PyTorchBackend()
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_backend_tensorflow_missing():
+def test_backend_tensorflow_missing_cannot_initialize_backend():
   with pytest.raises(ImportError):
-    import tensornetwork.backends.tensorflow.tensorflow_backend
-
+    from tensornetwork.backends.tensorflow.tensorflow_backend \
+      import TensorFlowBackend
+    TensorFlowBackend()
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_backend_jax_missing():
+def test_backend_jax_missing_cannot_initialize_backend():
   with pytest.raises(ImportError):
     from tensornetwork.backends.jax.jax_backend import JaxBackend
-
+    JaxBackend()
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_config_pytorch_missing():
+def test_config_pytorch_missing_can_import_config():
   import tensornetwork.config
   with pytest.raises(ImportError):
     import torch
 
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_config_tensorflow_missing():
+def test_config_tensorflow_missing_can_import_config():
   import tensornetwork.config
   with pytest.raises(ImportError):
     import tensorflow as tf
 
 
 @pytest.mark.usefixtures('no_backend_dependency')
-def test_import_tensornetwork_withoutbackends():
+def test_import_tensornetwork_without_backends():
   import tensornetwork
+  import tensornetwork.config
+  import tensornetwork.component_factory
   import tensornetwork.network
   import tensornetwork.network_components
+  import tensornetwork.ncon_interface
+  import tensornetwork.backends.backend_factory
+  import tensornetwork.backends.pytorch.pytorch_backend
+  import tensornetwork.backends.tensorflow.tensorflow_backend
+  import tensornetwork.backends.jax.jax_backend
+  import tensornetwork.backends.numpy.numpy_backend
