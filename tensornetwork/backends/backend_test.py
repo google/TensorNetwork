@@ -10,7 +10,6 @@ def clean_backend_import():
   sys.modules.pop('tensornetwork.backends.pytorch.pytorch_backend', None)
   sys.modules.pop('tensornetwork.backends.jax.jax_backend', None)
   sys.modules.pop('tensornetwork.backends.tensorflow.tensorflow_backend', None)
-  sys.modules.pop('tensornetwork', None)
   yield # use as teardown
   sys.modules.pop('tensornetwork', None)
 
@@ -61,6 +60,12 @@ def test_config_tensorflow_missing_can_import_config():
 
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_import_tensornetwork_without_backends():
+  with pytest.raises(ImportError):
+    import torch
+  with pytest.raises(ImportError):
+    import tensorflow as tf
+  with pytest.raises(ImportError):
+    import jax
   import tensornetwork
   import tensornetwork.config
   import tensornetwork.component_factory
