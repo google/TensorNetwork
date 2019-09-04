@@ -32,7 +32,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
       import jax
     except ImportError:
       raise ImportError("Jax not installed, please switch to a different "
-                          "backend or install Jax.")
+                        "backend or install Jax.")
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
