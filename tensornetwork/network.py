@@ -78,6 +78,7 @@ class TensorNetwork:
 
   def copy(self,conj=False) -> Tuple["TensorNetwork", dict, dict]:
     """
+
     Return a copy of the TensorNetwork.
     Returns:
       A tuple containing:
@@ -89,10 +90,17 @@ class TensorNetwork:
     """
     new_net = TensorNetwork(backend=self.backend.name)
     #TODO: add support for copying CopyTensor
-    node_dict = {
-        node: new_net.add_node(
-            self.backend.conj(node.tensor), name=node.name, axis_names=node.axis_names)
-        for node in self.nodes_set
+    if conj==True:
+      node_dict = {
+          node: new_net.add_node(
+              self.backend.conj(node.tensor), name=node.name, axis_names=node.axis_names)
+          for node in self.nodes_set
+    }
+    else:
+      node_dict = {
+          node: new_net.add_node(
+            node.tensor, name=node.name, axis_names=node.axis_names)
+          for node in self.nodes_set
     }
     edge_dict = {}
     for edge in self.get_all_edges():
@@ -1231,7 +1239,7 @@ class TensorNetwork:
     """
     node.reorder_edges(left_edges + right_edges)
     u, s, vh, trun_vals = self.backend.svd_decomposition(
-        self.backend.conj(node.tensor), len(left_edges), max_singular_values, max_truncation_err)
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
     left_node = self.add_node(u, name=left_name)
     singular_values_node = self.add_node(self.backend.diag(s), name=middle_name)
     right_node = self.add_node(vh, name=right_name)
