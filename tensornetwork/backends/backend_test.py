@@ -67,12 +67,6 @@ def test_import_tensornetwork_without_backends():
   with pytest.raises(ImportError):
     import jax
   import tensornetwork
-  import tensornetwork.config
-  import tensornetwork.component_factory
-  import tensornetwork.network
-  import tensornetwork.network_components
-  import tensornetwork.ncon_interface
-  import tensornetwork.backends.backend_factory
   import tensornetwork.backends.pytorch.pytorch_backend
   import tensornetwork.backends.tensorflow.tensorflow_backend
   import tensornetwork.backends.jax.jax_backend
