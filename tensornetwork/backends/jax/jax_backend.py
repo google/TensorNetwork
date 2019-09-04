@@ -18,20 +18,23 @@ from __future__ import print_function
 from typing import Any, Optional
 from tensornetwork.backends.numpy import numpy_backend
 import numpy
+
+
 Tensor = Any
 
 
 class JaxBackend(numpy_backend.NumPyBackend):
   """See base_backend.BaseBackend for documentation."""
 
+  try:
+    import jax
+  except ImportError:
+    raise ImportError("Jax not installed, please switch to a different "
+                      "backend or install Jax.")
+
   def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(JaxBackend, self).__init__()
-    try:
-      import jax
-    except ImportError:
-      raise AssertionError("jax is not installed.")
-    self.jax = jax
-    self.np = jax.numpy
+    self.np = self.jax.numpy
     self.name = "jax"
     self.dtype = dtype
 
