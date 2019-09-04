@@ -29,14 +29,14 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  try:
-    import torch
-  except ImportError:
-    raise ImportError("PyTorch not installed, please switch to a different "
-                      "backend or install PyTorch.")
-
-  def __init__(self, dtype: Optional[torch.dtype] = None):
+  def __init__(self, dtype: Optional[Any] = None):
     super(PyTorchBackend, self).__init__()
+    try:
+      import torch
+    except ImportError:
+      raise ImportError("PyTorch not installed, please switch to a different "
+                        "backend or install PyTorch.")
+    self.torch = torch
     self.name = "pytorch"
     self.dtype = dtype
 
@@ -113,7 +113,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def eye(self,
           N: int,
-          dtype: Optional[torch.dtype] = None,
+          dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -124,7 +124,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...],
-           dtype: Optional[torch.dtype] = None) -> Tensor:
+           dtype: Optional[Any] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
@@ -133,7 +133,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     return self.torch.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int, ...],
-            dtype: Optional[torch.dtype] = None) -> Tensor:
+            dtype: Optional[Any] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
@@ -142,7 +142,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     return self.torch.zeros(shape, dtype=dtype)
 
   def randn(self, shape: Tuple[int, ...],
-            dtype: Optional[torch.dtype] = None) -> Tensor:
+            dtype: Optional[Any] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
