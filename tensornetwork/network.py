@@ -76,7 +76,7 @@ class TensorNetwork:
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
 
-  def copy(self) -> Tuple["TensorNetwork", dict, dict]:
+  def copy(self,conj=False) -> Tuple["TensorNetwork", dict, dict]:
     """
     Return a copy of the TensorNetwork.
     Returns:
