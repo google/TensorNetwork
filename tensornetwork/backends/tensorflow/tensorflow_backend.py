@@ -33,9 +33,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
     try:
       import tensorflow as tf
     except ImportError:
-      raise ImportError(
-        "Tensorflow not installed, please switch to a different "
-        "backend or install Tensorflow.")
+      raise ImportError( "Tensorflow not installed, please switch to a "
+                         "different backend or install Tensorflow.")
     self.tf = tf
     self.name = "tensorflow"
     self.dtype = dtype
