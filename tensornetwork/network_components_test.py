@@ -208,6 +208,40 @@ def test_node_has_nondangling_edge_true(double_node_edge):
   assert node1.has_nondangling_edge()
 
 
+def test_node_reorder_edges(single_node_edge):
+  node = single_node_edge.node
+  e0 = node[0]
+  e1 = node[1]
+  e2 = node[2]
+  node.reorder_edges([e1, e2, e0])
+  assert node[0] == e1
+  assert node[1] == e2
+  assert node[2] == e0
+
+
+def test_node_reorder_edges_raise_error_wrong_edges(single_node_edge):
+  node = single_node_edge.node
+  e0 = node[0]
+  e1 = node[1]
+  e2 = node[2]
+  edge = Edge(name="edge", node1=node, axis1=0)
+  with pytest.raises(ValueError) as e:
+    node.reorder_edges([e0])
+  assert "Missing edges that belong to node found:" in str(e.value)
+  with pytest.raises(ValueError) as e:
+    node.reorder_edges([e0, e1, e2, edge])
+  assert "Additional edges that do not belong to node found:" in str(e.value)
+
+
+def test_node_reorder_edges_raise_error_trace_edge(single_node_edge):
+  node = single_node_edge.node
+  e2 = node.network.connect(node[1], node[2])
+  e3 = node[0]
+  with pytest.raises(ValueError) as e:
+    node.reorder_edges([e2, e3])
+  assert "Edge reordering does not support trace edges." in str(e.value)
+
+
 def test_node_magic_getitem(single_node_edge):
   node = single_node_edge.node
   edge = single_node_edge.edge
