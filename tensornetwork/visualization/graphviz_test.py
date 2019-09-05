@@ -28,4 +28,5 @@ def test_sanity_check():
   b = net.add_node(np.eye(2))
   net.connect(a[0], b[0])
   g = to_graphviz(net)
+g  #pylint: disable=no-member
   assert isinstance(g, graphviz.Graph)
