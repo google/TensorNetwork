@@ -76,24 +76,36 @@ class TensorNetwork:
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
 
-  def copy(self) -> Tuple["TensorNetwork", dict, dict]:
+  def copy(self, conj: bool = False) -> Tuple["TensorNetwork", dict, dict]:
     """
+
     Return a copy of the TensorNetwork.
+    Args:
+      conj: Boolean. Whether to conjugate all of the nodes in the
+        `TensorNetwork` (useful for calculating norms and reduced density
+        matrices).
     Returns:
       A tuple containing:
         TensorNetwork: A copy of the network.
-        node_dict: A dictionary mapping the nodes of the original 
+        node_dict: A dictionary mapping the nodes of the original
                    network to the nodes of the copy.
-        edge_dict: A dictionary mapping the edges of the original 
+        edge_dict: A dictionary mapping the edges of the original
                    network to the edges of the copy.
     """
     new_net = TensorNetwork(backend=self.backend.name)
     #TODO: add support for copying CopyTensor
-    node_dict = {
-        node: new_net.add_node(
-            node.tensor, name=node.name, axis_names=node.axis_names)
-        for node in self.nodes_set
-    }
+    if conj:
+      node_dict = {
+          node: new_net.add_node(
+              self.backend.conj(node.tensor), name=node.name, axis_names=node.axis_names)
+          for node in self.nodes_set
+      }
+    else:
+      node_dict = {
+          node: new_net.add_node(
+              node.tensor, name=node.name, axis_names=node.axis_names)
+          for node in self.nodes_set
+      }
     edge_dict = {}
     for edge in self.get_all_edges():
       node1 = edge.node1
