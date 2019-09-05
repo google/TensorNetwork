@@ -6,7 +6,7 @@ from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork import config
-from tensornetwork.mps import mps
+from tensornetwork.matrixproductstates import mps
 from typing import Text, Optional, Type
 from tensornetwork.utils import load
 

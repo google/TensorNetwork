@@ -16,8 +16,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import tensornetwork
-from tensornetwork.mps import FiniteMPS
-
 import pytest
 import numpy as np
 
@@ -45,7 +43,7 @@ def test_normalization(backend):
   tensors = [np.random.randn(1, d, D)] + [
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
   mps.position(len(mps) - 1)
   Z = mps.position(0, normalize=True)
   np.testing.assert_allclose(Z, 1.0)
@@ -58,7 +56,7 @@ def test_mps_init(backend, N, pos):
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
   with pytest.raises(ValueError):
-    FiniteMPS(tensors, center_position=pos, backend=backend)
+    tensornetwork.mps.FiniteMPS(tensors, center_position=pos, backend=backend)
 
 
 @pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
@@ -72,7 +70,8 @@ def test_left_orthonormalization(backend, dtype):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=N - 1, backend=backend)
+  mps = tensornetwork.mps.FiniteMPS(
+      tensors, center_position=N - 1, backend=backend)
   mps.position(0)
   mps.position(len(mps) - 1)
   assert all([
@@ -92,7 +91,7 @@ def test_right_orthonormalization(backend, dtype):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
 
   mps.position(len(mps) - 1)
   mps.position(0)
@@ -113,7 +112,7 @@ def test_apply_one_site_gate(backend, dtype):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2), dtype)
   mps.apply_one_site_gate(gate, 5)
   actual = np.transpose(np.tensordot(tensors[5], gate, ([1], [1])), (0, 2, 1))
@@ -131,7 +130,7 @@ def test_apply_two_site_gate(backend, dtype):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = tensornetwork.mps.FiniteMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2, 2, 2), dtype)
   mps.apply_two_site_gate(gate, 5, 6)
   tmp = np.tensordot(tensors[5], tensors[6], ([2], [0]))
@@ -151,14 +150,16 @@ def test_local_measurement(backend, dtype):
   tensors_1 = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps_1 = FiniteMPS(tensors_1, center_position=0, backend=backend)
+  mps_1 = tensornetwork.mps.FiniteMPS(
+      tensors_1, center_position=0, backend=backend)
 
   tensors_2 = [np.zeros((1, d, D), dtype=dtype)] + [
       np.zeros((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.zeros((D, d, 1), dtype=dtype)]
   for t in tensors_2:
     t[0, 0, 0] = 1
-  mps_2 = FiniteMPS(tensors_2, center_position=0, backend=backend)
+  mps_2 = tensornetwork.mps.FiniteMPS(
+      tensors_2, center_position=0, backend=backend)
 
   sz = np.diag([0.5, -0.5]).astype(dtype)
   result_1 = np.array(mps_1.measure_local_operator([sz] * N, range(N)))
@@ -178,7 +179,8 @@ def test_correlation_measurement(backend, dtype):
   tensors_1 = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps_1 = FiniteMPS(tensors_1, center_position=0, backend=backend)
+  mps_1 = tensornetwork.mps.FiniteMPS(
+      tensors_1, center_position=0, backend=backend)
   mps_1.position(N - 1)
   mps_1.position(0)
   tensors_2 = [np.zeros((1, d, D), dtype=dtype)] + [
@@ -186,7 +188,8 @@ def test_correlation_measurement(backend, dtype):
   ] + [np.zeros((D, d, 1), dtype=dtype)]
   for t in tensors_2:
     t[0, 0, 0] = 1
-  mps_2 = FiniteMPS(tensors_2, center_position=0, backend=backend)
+  mps_2 = tensornetwork.mps.FiniteMPS(
+      tensors_2, center_position=0, backend=backend)
   mps_2.position(N - 1)
   mps_2.position(0)
 
