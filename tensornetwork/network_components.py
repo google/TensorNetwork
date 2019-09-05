@@ -181,7 +181,7 @@ class BaseNode(ABC):
       This node post reordering.
 
     Raises:
-      ValueError: If either the list of  edges is not the same as expected or
+      ValueError: If either the list of edges is not the same as expected or
         if you try to reorder with a trace edge.
       AttributeError: If the Node has no tensor.
 
@@ -189,9 +189,16 @@ class BaseNode(ABC):
     if not hasattr(self, '_tensor'):
       raise AttributeError("Please provide a valid tensor for this Node.")
 
-    if set(edge_order) != set(self.edges):
+    extra_edges = set(edge_order).difference(set(self.edges))
+    if extra_edges:
       raise ValueError("Given edge order does not match expected edges. "
-                       "Found: {}, Expected: {}".format(edge_order, self.edges))
+                       "Additional edges that do not belong to node found: "
+                       "{}".format(extra_edges))
+    missing_edges = set(self.edges).difference(set(edge_order))
+    if missing_edges:
+      raise ValueError("Given edge order does not match expected edges. "
+                       "Missing edges that belong to node found: "
+                       "{}".format(missing_edges))
     for edge in edge_order:
       if edge.node1 == edge.node2:
         raise ValueError("Edge reordering does not support trace edges. "
