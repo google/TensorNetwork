@@ -288,7 +288,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     return len(self.nodes)
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                        matrix: Tensor) -> Tensor:
+                              matrix: Tensor) -> Tensor:
     """
     Compute the action of the MPS transfer-operator at site `site`.
     Args:
