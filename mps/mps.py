@@ -77,6 +77,9 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       self.connect(self.nodes[site][2], self.nodes[site + 1][0])
     self.center_position = center_position
 
+  def save(self, path: str):
+    raise NotImplementedError()
+    
   @property
   def D(self) -> List:
     """
