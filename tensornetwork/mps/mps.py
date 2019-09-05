@@ -15,13 +15,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensornetwork
+from tensornetwork import TensorNetwork
 import numpy as np
 from typing import Any, List, Optional, Text, Type, Union, Dict
 Tensor = Any
 
 
-class FiniteMPS(tensornetwork.TensorNetwork):
+class FiniteMPS(TensorNetwork):
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
@@ -79,7 +79,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
 
   def save(self, path: str):
     raise NotImplementedError()
-    
+
   @property
   def D(self) -> List:
     """
@@ -153,8 +153,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
              if in ('r','right'): check right orthogonality
       site:  the site of the tensor
     """
-    net = tensornetwork.TensorNetwork(
-        backend=self.backend.name, dtype=self.dtype)
+    net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
     n1 = net.add_node(self.nodes[site].tensor)
     n2 = net.add_node(self.backend.conj(self.nodes[site].tensor))
     if which in ('l', 'left'):
@@ -192,8 +191,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       left_envs[site] = self.backend.eye(N=self.nodes[site].shape[0])
 
     if n2 > self.center_position:
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
       conj_nodes = {}
       for site in range(self.center_position, n2):
@@ -250,8 +248,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       right_envs[site] = self.backend.eye(N=self.nodes[site].shape[2])
 
     if n1 < self.center_position:
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
       conj_nodes = {}
       for site in reversed(range(n1 + 1, self.center_position + 1)):
@@ -303,8 +300,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     Returns:
       Tensor: the result of applying the MPS transfer-operator to `matrix`
     """
-    net = tensornetwork.TensorNetwork(
-        backend=self.backend.name, dtype=self.dtype)
+    net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
     mat = net.add_node(matrix)
     node = net.add_node(self.nodes[site].tensor)
     conj_node = net.add_node(self.backend.conj(self.nodes[site].tensor))
@@ -426,8 +422,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
     left_envs = self.left_envs(sites)
     res = []
     for n, site in enumerate(sites):
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       O = net.add_node(ops[n])
       R = net.add_node(right_envs[site])
       L = net.add_node(left_envs[site])
@@ -473,8 +468,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       left_sites_mod = list({n % N for n in left_sites})
 
       ls = self.left_envs(left_sites_mod)
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
 
       A = net.add_node(self.nodes[site1].tensor)
       O1 = net.add_node(op1)
@@ -489,8 +483,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       r = R.tensor
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
-          net = tensornetwork.TensorNetwork(
-              backend=self.backend.name, dtype=self.dtype)
+          net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
           A = net.add_node(self.nodes[n % N].tensor)
           conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
           O2 = net.add_node(op2)
@@ -511,8 +504,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       c = list(reversed(c))
     ls = self.left_envs([site1])
     if site1 in sites2:
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       O1 = net.add_node(op1)
       O2 = net.add_node(op2)
       L = net.add_node(ls[site1])
@@ -536,8 +528,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       right_sites_mod = list({n % N for n in right_sites})
 
       rs = self.right_envs(right_sites_mod)
-      net = tensornetwork.TensorNetwork(
-          backend=self.backend.name, dtype=self.dtype)
+      net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       A = net.add_node(self.nodes[site1].tensor)
       conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
       L = net.add_node(ls[site1])
@@ -553,8 +544,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       n2 = np.max(right_sites)
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
-          net = tensornetwork.TensorNetwork(
-              backend=self.backend.name, dtype=self.dtype)
+          net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
           L = net.add_node(l)
           R = net.add_node(rs[n % N])
           A = net.add_node(self.nodes[n % N].tensor)
