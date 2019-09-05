@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import tensorflow as tf
+
 import numpy as np
-import torch
 default_backend = "tensorflow"
 default_dtype = None
 #for backwards compatibility default dtypes have to be `None`
@@ -45,14 +44,32 @@ numpy_dtypes = supported_numpy_dtypes + [
     np.dtype(d) for d in supported_numpy_dtypes
 ]
 
-supported_tensorflow_dtypes = [
-    tf.int8, tf.int16, tf.int32, tf.int64, tf.float32, tf.float16, tf.float64,
-    tf.complex64, tf.complex128, tf.bool
-]
-supported_pytorch_dtypes = [
-    torch.int8, torch.int16, torch.int32, torch.int64, torch.float16,
-    torch.float32, torch.float64, torch.bool
-]
+#shell supports everything
+supported_shell_dtypes = supported_numpy_dtypes
+
+supported_dtypes = {
+    'numpy': numpy_dtypes + [None],
+    'jax': numpy_dtypes + [None],
+    'shell': supported_shell_dtypes + [None]
+}
+
+try:
+  import torch
+  supported_pytorch_dtypes = [
+      torch.int8, torch.int16, torch.int32, torch.int64, torch.float16,
+      torch.float32, torch.float64, torch.bool
+  ]
+except ImportError:
+  supported_pytorch_dtypes = []
+
+try:
+  import tensorflow as tf
+  supported_tensorflow_dtypes = [
+      tf.int8, tf.int16, tf.int32, tf.int64, tf.float32, tf.float16, tf.float64,
+      tf.complex64, tf.complex128, tf.bool
+  ]
+except ImportError:
+  supported_tensorflow_dtypes = []
 
 #shell supports everything
 supported_shell_dtypes = supported_tensorflow_dtypes + \
