@@ -17,13 +17,12 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork
 import pytest
-import io
 import numpy as np
 import tensorflow as tf
 import torch
 from jax.config import config
-import h5py
 import tensornetwork.config as config_file
+
 
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
@@ -34,13 +33,27 @@ torch_dtypes = config_file.supported_pytorch_dtypes
 jax_dtypes = config_file.supported_jax_dtypes
 
 
-def test_sanity_check(backend):
+def test_network_copy_reordered(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  net.add_node(np.eye(2), "a")
-  net.check_correct()
+  a = net.add_node(np.random.rand(3, 3, 3))
+  b = net.add_node(np.random.rand(3, 3, 3))
+  c = net.add_node(np.random.rand(3, 3, 3))
+  a[0] ^ b[1]
+  a[1] ^ c[2]
+  b[2] ^ c[0]
+
+  edge_order = [a[2], c[1], b[0]]
+  net_copy, node_dict, edge_dict = net.copy()
+  net_copy.check_correct()
+
+  res = a @ b @ c
+  res.reorder_edges(edge_order)
+  res_copy = node_dict[a] @ node_dict[b] @ node_dict[c]
+  res_copy.reorder_edges([edge_dict[e] for e in edge_order])
+  np.testing.assert_allclose(res.tensor, res_copy.tensor)
 
 
-def test_node_names(backend):
+def test_add_node_names(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2), "a", axis_names=["e0", "e1"])
   assert a.name == "a"
@@ -48,29 +61,26 @@ def test_node_names(backend):
   assert a[1].name == "e1"
 
 
-def test_single_contract(backend):
+def test_add_copy_node_from_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1.0] * 5), "a")
-  b = net.add_node(np.array([1.0] * 5), "b")
-  e = net.connect(a[0], b[0])
+  a = net.add_node(
+      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+  assert a in net
+  assert a.shape == (3, 3, 3)
+  assert isinstance(a, tensornetwork.CopyNode)
+  assert a.name == "TestName"
+  assert a.axis_names == ['a', 'b', 'c']
+  b = net.add_node(np.eye(3))
+  e = a[0] ^ b[0]
   c = net.contract(e)
-  net.check_correct()
-  val = c.tensor
-  np.testing.assert_allclose(val, 5.0)
+  np.testing.assert_allclose(c.tensor, a.tensor)
 
 
-def test_disconnect_edge(backend):
+def test_default_names_add_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1.0] * 5), "a")
-  b = net.add_node(np.array([1.0] * 5), "b")
-  e = net.connect(a[0], b[0])
-  assert not e.is_dangling()
-  dangling_edge_1, dangling_edge_2 = net.disconnect(e)
-  net.check_correct(check_connected=False)
-  assert dangling_edge_1.is_dangling()
-  assert dangling_edge_2.is_dangling()
-  assert a.get_edge(0) == dangling_edge_1
-  assert b.get_edge(0) == dangling_edge_2
+  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  assert a.name is not None
+  assert len(a.axis_names) == 3
 
 
 def test_set_tensor(backend):
@@ -108,16 +118,6 @@ def test_small_matmul(backend):
   c = net.contract(edge, name="a * b")
   assert list(c.shape) == [10, 10]
   net.check_correct()
-
-
-def test_direct_trace(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones([10, 10]), name="a")
-  edge = net.connect(a[0], a[1], "edge")
-  net.check_correct()
-  result = net._contract_trace(edge)
-  net.check_correct()
-  np.testing.assert_allclose(result.tensor, 10.0)
 
 
 def test_double_trace(backend):
@@ -236,30 +236,6 @@ def test_with_tensors(backend):
   np.testing.assert_allclose(val.tensor, 12.0)
 
 
-def test_contract_dangling_edge(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1.0]))
-  e = a[0]
-  with pytest.raises(ValueError):
-    net.contract(e)
-
-
-def test_double_edge_contract(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  e = net.connect(a[0], a[1], name="edge")
-  net.contract(e)
-  with pytest.raises(ValueError):
-    net.contract(e)
-
-
-def test_contract_trace_dangling_edge(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1.0]))
-  e = a[0]
-  with pytest.raises(ValueError):
-    net._contract_trace(e)
-
 
 def test_node2_contract_trace(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -271,51 +247,11 @@ def test_node2_contract_trace(backend):
   net.check_correct()
 
 
-def test_contract_fall_through_name(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  node = net.add_node(np.eye(2), name="Identity Matrix")
-  assert node.name == "Identity Matrix"
-  edge = net.connect(node[0], node[1], name="Trace Edge")
-  assert edge.name == "Trace Edge"
-  final_result = net.contract(edge, name="Trace Of Identity")
-  assert final_result.name == "Trace Of Identity"
-
-
-def test_non_connected(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2, 2.]))
-  b = net.add_node(np.array([2, 2.]))
-  net.connect(a[0], b[0])
-  c = net.add_node(np.array([2, 2.]))
-  d = net.add_node(np.array([2, 2.]))
-  net.connect(c[0], d[0])
-  with pytest.raises(ValueError):
-    net.check_connected()
-
-
 def test_node_get_dim_bad_axis(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   node = net.add_node(np.eye(2), name="a", axis_names=["1", "2"])
   with pytest.raises(ValueError):
     node.get_dimension(10)
-
-
-def test_bad_trace_contract(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2.]))
-  b = net.add_node(np.array([2.]))
-  e = net.connect(a[0], b[0])
-  with pytest.raises(ValueError):
-    net._contract_trace(e)
-
-
-def test_double_edge_axis(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([2.]), name="a")
-  b = net.add_node(np.array([2.]), name="b")
-  net.connect(a[0], b[0])
-  with pytest.raises(ValueError):
-    net.connect(a[0], b[0])
 
 
 def test_named_axis(backend):
@@ -420,41 +356,6 @@ def test_edge_reorder_axis_names(backend):
   assert a.axis_names == ["c", "b", "d", "a"]
 
 
-def test_outer_product(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((2, 4, 5)), name="A")
-  b = net.add_node(np.ones((4, 3, 6)), name="B")
-  c = net.add_node(np.ones((3, 2)), name="C")
-  net.connect(a[1], b[0])
-  net.connect(a[0], c[1])
-  net.connect(b[1], c[0])
-  # Purposely leave b's 3rd axis undefined.
-  d = net.outer_product(a, b, name="D")
-  net.check_correct()
-  assert d.shape == (2, 4, 5, 4, 3, 6)
-  np.testing.assert_allclose(d.tensor, np.ones((2, 4, 5, 4, 3, 6)))
-  assert d.name == "D"
-
-
-def test_outer_product_final_nodes(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  edges = []
-  for i in range(1, 5):
-    edges.append(net.add_node(np.ones(i))[0])
-  final_node = net.outer_product_final_nodes(edges)
-  np.testing.assert_allclose(final_node.tensor, np.ones([1, 2, 3, 4]))
-  assert final_node.get_all_edges() == edges
-
-
-def test_outer_product_final_nodes_not_contracted(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones(2))
-  b = net.add_node(np.ones(2))
-  e = net.connect(a[0], b[0])
-  with pytest.raises(ValueError):
-    net.outer_product_final_nodes([e])
-
-
 def test_add_axis_names(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2), name="A", axis_names=["ignore1", "ignore2"])
@@ -474,64 +375,6 @@ def test_reorder_axes(backend):
   a.reorder_axes([2, 0, 1])
   net.check_correct()
   assert a.shape == (4, 2, 3)
-
-
-def test_flattening_standard_edges(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 5)), name="A")
-  b = net.add_node(np.zeros((2, 3, 4, 5)), name="B")
-  e1 = net.connect(a[0], b[0], "Edge_1_1")
-  e2 = net.connect(a[2], b[3], "Edge_2_3")
-  edge_a_1 = a[1]
-  edge_b_1 = b[1]
-  edge_b_2 = b[2]
-  new_edge = net.flatten_edges([e1, e2], new_edge_name="New Edge")
-  assert a.shape == (3, 10)
-  assert b.shape == (3, 4, 10)
-  assert a.edges == [edge_a_1, new_edge]
-  assert b.edges == [edge_b_1, edge_b_2, new_edge]
-  net.check_correct()
-
-
-def test_flattening_dangling_edges(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5)), name="A")
-  e1 = a[0]
-  e2 = a[1]
-  e3 = a[2]
-  e4 = a[3]
-  flattened_edge = net.flatten_edges([e1, e3], new_edge_name="New Edge")
-  assert a.shape == (3, 5, 8)
-  assert a.edges == [e2, e4, flattened_edge]
-  assert flattened_edge.name == "New Edge"
-  net.check_correct()
-
-
-def test_flatten_edges_different_nodes(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  c = net.add_node(np.eye(2))
-  e1 = net.connect(a[0], b[0])
-  e2 = net.connect(a[1], c[0])
-  net.connect(b[1], c[1])
-  with pytest.raises(ValueError):
-    net.flatten_edges([e1, e2])
-
-
-def test_flatten_trace_edges(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 3, 5, 5)))
-  c = net.add_node(np.zeros((2, 4)))
-  e1 = net.connect(a[1], a[3])
-  e2 = net.connect(a[4], a[5])
-  external_1 = net.connect(a[0], c[0])
-  external_2 = net.connect(c[1], a[2])
-  new_edge = net.flatten_edges([e1, e2], "New Edge")
-  net.check_correct()
-  assert a.shape == (2, 4, 15, 15)
-  assert a.edges == [external_1, external_2, new_edge, new_edge]
-  assert new_edge.name == "New Edge"
 
 
 def test_flatten_consistent_result(backend):
@@ -620,114 +463,6 @@ def test_flatten_trace_consistent_tensor(backend):
   np.testing.assert_allclose(a.tensor, a_final)
 
 
-def test_add_subnetwork(backend):
-  net1 = tensornetwork.TensorNetwork(backend=backend)
-  net2 = tensornetwork.TensorNetwork(backend=backend)
-  a = net1.add_node(np.eye(2) * 2)
-  b = net1.add_node(np.eye(2) * 3)
-  e1 = net1.connect(a[0], b[0])
-  c = net2.add_node(np.eye(2) * 4)
-  net2.add_subnetwork(net1)
-  assert a in net2
-  assert b in net2
-  assert c in net2
-  assert a.network is net2
-  assert b.network is net2
-  assert c.network is net2
-  e2 = net2.connect(c[0], a[1])
-  e3 = net2.connect(c[1], b[1])
-  net2.check_correct()
-  for edge in [e1, e2, e3]:
-    net2.contract(edge)
-  result = net2.get_final_node()
-  np.testing.assert_allclose(result.tensor, 48.0)
-
-
-def test_merge_networks(backend):
-  net1 = tensornetwork.TensorNetwork(backend=backend)
-  net2 = tensornetwork.TensorNetwork(backend=backend)
-  a = net1.add_node(np.eye(2) * 2)
-  b = net1.add_node(np.eye(2) * 3)
-  e1 = net1.connect(a[0], b[0])
-  c = net2.add_node(np.eye(2) * 4)
-  net3 = tensornetwork.TensorNetwork.merge_networks([net1, net2])
-  assert a in net3
-  assert b in net3
-  assert c in net3
-  assert a.network is net3
-  assert b.network is net3
-  assert c.network is net3
-  e2 = net3.connect(c[0], a[1])
-  e3 = net3.connect(c[1], b[1])
-  net3.check_correct()
-  for edge in [e1, e2, e3]:
-    net3.contract(edge)
-  result = net3.get_final_node()
-  np.testing.assert_allclose(result.tensor, 48.0)
-
-
-def test_flatten_edges_between(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((3, 4, 5)))
-  b = net.add_node(np.ones((5, 4, 3)))
-  net.connect(a[0], b[2])
-  net.connect(a[1], b[1])
-  net.connect(a[2], b[0])
-  net.flatten_edges_between(a, b)
-  net.check_correct()
-  np.testing.assert_allclose(a.tensor, np.ones((60,)))
-  np.testing.assert_allclose(b.tensor, np.ones((60,)))
-
-
-def test_flatten_edges_between_no_edges(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((3)))
-  b = net.add_node(np.ones((3)))
-  assert net.flatten_edges_between(a, b) is None
-
-
-def test_flatten_all_edges(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((3, 3, 5, 6, 2, 2)))
-  b = net.add_node(np.ones((5, 6, 7)))
-  c = net.add_node(np.ones((7,)))
-  trace_edge1 = net.connect(a[0], a[1])
-  trace_edge2 = net.connect(a[4], a[5])
-  split_edge1 = net.connect(a[2], b[0])
-  split_edge2 = net.connect(a[3], b[1])
-  ok_edge = net.connect(b[2], c[0])
-  flat_edges = net.flatten_all_edges()
-  net.check_correct()
-  assert len(flat_edges) == 3
-  assert trace_edge1 not in flat_edges
-  assert trace_edge2 not in flat_edges
-  assert split_edge1 not in flat_edges
-  assert split_edge2 not in flat_edges
-  assert ok_edge in flat_edges
-
-
-def test_contract_between(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.ones((2, 3, 4, 5))
-  b_val = np.ones((3, 5, 4, 2))
-  a = net.add_node(a_val)
-  b = net.add_node(b_val)
-  net.connect(a[0], b[3])
-  net.connect(b[1], a[3])
-  net.connect(a[1], b[0])
-  edge_a = a[2]
-  edge_b = b[2]
-  c = net.contract_between(a, b, name="New Node")
-  c.reorder_edges([edge_a, edge_b])
-  net.check_correct()
-  # Check expected values.
-  a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
-  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
-  final_val = np.matmul(a_flat, b_flat.T)
-  assert c.name == "New Node"
-  np.testing.assert_allclose(c.tensor, final_val)
-
-
 def test_contract_between_output_order(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a_val = np.ones((2, 3, 4, 5))
@@ -757,26 +492,6 @@ def test_contract_between_output_order(backend):
   assert d.name == "New Node"
 
 
-def test_contract_between_outer_product(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.ones((2, 3, 4))
-  b_val = np.ones((5, 6, 7))
-  a = net.add_node(a_val)
-  b = net.add_node(b_val)
-  c = net.contract_between(a, b, allow_outer_product=True)
-  assert c.shape == (2, 3, 4, 5, 6, 7)
-
-
-def test_contract_between_no_outer_product(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a_val = np.ones((2, 3, 4))
-  b_val = np.ones((5, 6, 7))
-  a = net.add_node(a_val)
-  b = net.add_node(b_val)
-  with pytest.raises(ValueError):
-    net.contract_between(a, b)
-
-
 def test_contract_between_trace_edges(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a_val = np.ones((3, 3))
@@ -786,94 +501,6 @@ def test_contract_between_trace_edges(backend):
   b = net.contract_between(a, a)
   net.check_correct()
   np.testing.assert_allclose(b.tensor, final_val)
-
-
-def test_join_dangling(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((3,)))
-  b = net.add_node(np.ones((3,)))
-  net.connect(a[0], b[0])
-  net.check_correct()
-
-
-def test_split_node_qr_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _ = net.split_node_qr(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_rq_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _ = net.split_node_rq(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _, _ = net.split_node(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_full_svd_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _, _, _ = net.split_node_full_svd(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
 
 
 def test_contract_disable(backend):
@@ -998,50 +625,6 @@ def test_trace_disable(backend):
     node2.shape
 
 
-def test_split_node(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  left, right, _ = net.split_node(a, left_edges, right_edges)
-  net.check_correct()
-  np.testing.assert_allclose(left.tensor, np.zeros((2, 3, 4, 24)))
-  np.testing.assert_allclose(right.tensor, np.zeros((24, 5, 6)))
-
-
-def test_split_node_mixed_order(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in [0, 2, 4]:
-    left_edges.append(a[i])
-  right_edges = []
-  for i in [1, 3]:
-    right_edges.append(a[i])
-  left, right, _ = net.split_node(a, left_edges, right_edges)
-  net.check_correct()
-  np.testing.assert_allclose(left.tensor, np.zeros((2, 4, 6, 15)))
-  np.testing.assert_allclose(right.tensor, np.zeros((15, 3, 5)))
-
-
-def test_split_node_full_svd(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  unitary1 = np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2.0)
-  unitary2 = np.array([[0.0, 1.0], [1.0, 0.0]])
-  singular_values = np.array([9.1, 7.5], dtype=np.float32)
-  val = np.dot(unitary1, np.dot(np.diag(singular_values), (unitary2.T)))
-  a = net.add_node(val)
-  e1 = a[0]
-  e2 = a[1]
-  _, s, _, _, = net.split_node_full_svd(a, [e1], [e2])
-  net.check_correct()
-  np.testing.assert_allclose(s.tensor, np.diag([9.1, 7.5]), rtol=1e-5)
-
-
 def test_weakref(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
@@ -1084,30 +667,7 @@ def test_set_node2(backend):
   assert e.is_dangling()
 
 
-def test_edge_in_network(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  edge = net.connect(a[0], b[0])
-  assert edge in net
-
-
-def test_edge_not_in_network(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  edge = net.connect(a[0], b[0])
-  net.disconnect(edge)
-  assert edge not in net
-
-
-def test_node_in_network(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  assert a in net
-
-
-def test_node_not_in_network(backend):
+def test_contracted_node_not_in_network(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2)))
   e = net.connect(a[0], a[1])
@@ -1115,48 +675,11 @@ def test_node_not_in_network(backend):
   assert a not in net
 
 
-def test_contract_parallel(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  edge1 = net.connect(a[0], b[0])
-  edge2 = net.connect(a[1], b[1])
-  c = net.contract_parallel(edge1)
-  assert edge2 not in net
-  np.testing.assert_allclose(c.tensor, 2.0)
-
-
-def test_get_all_nondangling(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  edge1 = net.connect(a[0], b[0])
-  c = net.add_node(np.eye(2))
-  d = net.add_node(np.eye(2))
-  edge2 = net.connect(c[0], d[0])
-  edge3 = net.connect(a[1], c[1])
-  assert {edge1, edge2, edge3} == net.get_all_nondangling()
-
-
 def test_set_default(backend):
   tensornetwork.set_default_backend(backend)
   assert tensornetwork.config.default_backend == backend
   net = tensornetwork.TensorNetwork()
   assert net.backend.name == backend
-
-
-def test_add_subnetwork_incompatible_backends():
-  net1 = tensornetwork.TensorNetwork(backend="numpy")
-  net2 = tensornetwork.TensorNetwork(backend="tensorflow")
-  with pytest.raises(ValueError):
-    net1.add_subnetwork(net2)
-
-
-def test_merge_networks_incompatible_backends():
-  net1 = tensornetwork.TensorNetwork(backend="numpy")
-  net2 = tensornetwork.TensorNetwork(backend="tensorflow")
-  with pytest.raises(ValueError):
-    tensornetwork.TensorNetwork.merge_networks([net1, net2])
 
 
 def test_copy_tensor(backend):
@@ -1204,25 +727,6 @@ def test_copy_tensor_parallel_edges(backend):
   result = val.tensor
   assert list(result.shape) == []
   np.testing.assert_allclose(result, 10 + 40 + 90)
-
-
-def test_contract_copy_node(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.array([1, 2, 3], dtype=np.float64))
-  b = net.add_node(np.array([10, 20, 30], dtype=np.float64))
-  c = net.add_node(np.array([5, 6, 7], dtype=np.float64))
-  d = net.add_node(np.array([1, -1, 1], dtype=np.float64))
-  cn = net.add_copy_node(rank=4, dimension=3)
-  net.connect(a[0], cn[0])
-  net.connect(b[0], cn[1])
-  net.connect(c[0], cn[2])
-  net.connect(d[0], cn[3])
-
-  net.contract_copy_node(cn)
-  val = net.get_final_node()
-  result = val.tensor
-  assert list(result.shape) == []
-  np.testing.assert_allclose(result, 50 - 240 + 630)
 
 
 def test_contract_copy_node_connected_neighbors(backend):
@@ -1290,13 +794,6 @@ def test_remove_node_trace_edge(backend):
   assert broken_edges[0] is b[0]
 
 
-def test_self_connected_edge(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.eye(2))
-  with pytest.raises(ValueError):
-    net.connect(a[0], a[0])
-
-
 def test_subnetwork_signatures(backend):
   net1 = tensornetwork.TensorNetwork(backend=backend)
   net2 = tensornetwork.TensorNetwork(backend=backend)
@@ -1320,18 +817,6 @@ def test_edges_signatures(backend):
     # Add 11 to account for the the original 10
     # edges and the 1 indexing.
     assert edge.signature == i + 11
-
-
-def test_get_parallel_edge(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((2,) * 5))
-  b = net.add_node(np.ones((2,) * 5))
-  edges = set()
-  for i in {0, 1, 3}:
-    edges.add(net.connect(a[i], b[i]))
-  # sort by edge signature
-  a = sorted(list(edges))[0]
-  assert net.get_parallel_edges(a) == edges
 
 
 def test_at_operator(backend):
@@ -1363,37 +848,6 @@ def test_edge_sorting(backend):
   e3 = net.connect(c[0], a[1])
   sorted_edges = sorted([e2, e3, e1])
   assert sorted_edges == [e1, e2, e3]
-
-
-def test_switch_backend():
-  net = tensornetwork.TensorNetwork(backend="numpy")
-  a = net.add_node(np.eye(2))
-  net.switch_backend(new_backend="tensorflow")
-  assert isinstance(a.tensor, tf.Tensor)
-
-
-def test_svd_consistency(backend):
-  if backend == "pytorch":
-    pytest.skip("Complex numbers currently not supported in PyTorch")
-
-  net = tensornetwork.TensorNetwork(backend=backend)
-  original_tensor = np.array(
-      [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
-      dtype=np.complex64)
-  node = net.add_node(original_tensor)
-  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
-  final_node = net.contract_between(u, vh)
-  np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
-
-
-def test_svd_consistency_symmetric_real_matrix(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  original_tensor = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 3.0, 2.0]],
-                             dtype=np.float64)
-  node = net.add_node(original_tensor)
-  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
-  final_node = net.contract_between(u, vh)
-  np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
 
 
 def test_connect_alias(backend):
@@ -1563,96 +1017,6 @@ def test_split_node_qr_unitarity_float(backend):
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
-# def test_split_node_qr_unitarity_float_numpy():
-#   net = tensornetwork.TensorNetwork(backend='numpy')
-#   a = net.add_node(np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
-
-# def test_split_node_qr_unitarity_complex_numpy():
-#   net = tensornetwork.TensorNetwork(backend='numpy')
-#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
-
-# def test_split_node_qr_unitarity_float_numpy():
-#   net = tensornetwork.TensorNetwork(backend='numpy')
-#   a = net.add_node(np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
-
-# def test_split_node_qr_unitarity_complex_tf():
-#   net = tensornetwork.TensorNetwork(backend='tensorflow')
-#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
-
-# def test_split_node_qr_unitarity_float_tf():
-#   net = tensornetwork.TensorNetwork(backend='tensorflow')
-#   a = net.add_node(np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
-
-# def test_split_node_qr_unitarity_float_torch():
-#   net = tensornetwork.TensorNetwork(backend='pytorch')
-#   a = net.add_node(np.random.rand(3, 3))
-#   q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
-
-# def test_split_node_rq_unitarity_complex_numpy():
-#   net = tensornetwork.TensorNetwork(backend='numpy')
-#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(np.conj(q.tensor.T).dot(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(q.tensor.dot(np.conj(q.tensor.T)), np.eye(3))
-
-# def test_split_node_rq_unitarity_float_numpy():
-#   net = tensornetwork.TensorNetwork(backend='numpy')
-#   a = net.add_node(np.random.rand(3, 3))
-#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(q.tensor.T.dot(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(q.tensor.dot(q.tensor.T), np.eye(3))
-
-# def test_split_node_rq_unitarity_complex_tf():
-#   net = tensornetwork.TensorNetwork(backend='tensorflow')
-#   a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       tf.matmul(tf.conj(tf.transpose(q.tensor)), q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       tf.matmul(q.tensor, tf.conj(tf.transpose(q.tensor))), np.eye(3))
-
-# def test_split_node_rq_unitarity_float_tf():
-#   net = tensornetwork.TensorNetwork(backend='tensorflow')
-#   a = net.add_node(np.random.rand(3, 3))
-#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       tf.matmul(tf.transpose(q.tensor), q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       tf.matmul(q.tensor, tf.transpose(q.tensor)), np.eye(3))
-
-# def test_split_node_rq_unitarity_float_torch():
-#   net = tensornetwork.TensorNetwork(backend='pytorch')
-#   a = net.add_node(np.random.rand(3, 3))
-#   _, q = net.split_node_rq(a, [a[0]], [a[1]])
-#   np.testing.assert_almost_equal(
-#       torch.transpose(q.tensor, 1, 0).mm(q.tensor), np.eye(3))
-#   np.testing.assert_almost_equal(
-#       q.tensor.mm(torch.transpose(q.tensor, 1, 0)), np.eye(3))
-
-
 def test_split_node_qr(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
@@ -1667,219 +1031,11 @@ def test_split_node_qr(backend):
   np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
 
 
-def test_save_makes_hdf5_file(tmp_path, backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((2, 2, 2)))
-  b = net.add_node(np.ones((2, 2, 2)))
-  net.connect(a[0], b[0])
-  p = tmp_path / "network"
-  net.save(p)
-  assert p.exists()
-
-
-def test_save_makes_hdf5_filelike_io(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.ones((2, 2, 2)))
-  b = net.add_node(np.ones((2, 2, 2)))
-  net.connect(a[0], b[0])
-  p = io.BytesIO()
-  net.save(p)
-  assert isinstance(p.getvalue(), bytes)
-
-
-def test_save_makes_hdf5_file_with_correct_substructure(tmp_path, backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(
-      np.ones((2, 2, 2)), name="node_a", axis_names=["e1", "e2", "e3"])
-  b = net.add_node(
-      np.ones((2, 2, 2)), name="node_b", axis_names=["f1", "f2", "f3"])
-  e1 = net.connect(a[0], b[0])
-  e1.name = "edge_ab"
-  p = tmp_path / "network"
-  net.save(p)
-  with h5py.File(p, 'r') as net_file:
-    assert set(list(net_file.keys())) == {"backend", "nodes", "edges"}
-    assert set(list(net_file['nodes'])) == {"node_a", "node_b"}
-    assert set(list(net_file['edges'])) == {"edge_ab", "e2", "e3", "f2", "f3"}
-    assert set(list(net_file['nodes/'])) == {"node_a", "node_b"}
-    assert set(list(net_file['nodes/node_a'])) == {
-        'shape', 'signature', 'name', 'edges', 'type', 'axis_names', 'tensor'
-    }
-    assert set(list(net_file['edges/edge_ab'])) == {
-        'axis1', 'axis2', 'name', 'node1', 'node2', 'signature'
-    }
-    assert set(list(
-        net_file['edges/e2'])) == {'axis1', 'name', 'node1', 'signature'}
-
-
-def test_save_and_load_returns_same_network(tmp_path, backend):
-  saved_net = tensornetwork.TensorNetwork(backend=backend)
-  a = saved_net.add_node(
-      np.ones((2, 2, 2)), name="node_a", axis_names=["e1", "e2", "e3"])
-  b = saved_net.add_node(
-      2 * np.ones((2, 2, 2)), name="node_b", axis_names=["f1", "f2", "f3"])
-  e1 = saved_net.connect(a[0], b[0])
-  e1.name = "edge_ab"
-
-  p = tmp_path / "network"
-  saved_net.save(p)
-
-  loaded_net = tensornetwork.load(p)
-  saved_nodes = list(saved_net.nodes_set)
-  loaded_nodes = list(loaded_net.nodes_set)
-  assert len(loaded_nodes) == len(saved_nodes)
-  assert set(node.name for node in saved_nodes) == set(
-      node.name for node in loaded_nodes)
-
-  saved_edges = saved_net.get_all_edges()
-  loaded_edges = loaded_net.get_all_edges()
-  assert len(loaded_edges) == len(saved_edges)
-  assert set(edge.name for edge in saved_edges) == set(
-      edge.name for edge in loaded_edges)
-
-  saved_node_a = [node for node in saved_nodes if node.name == "node_a"][0]
-  loaded_node_a = [node for node in saved_nodes if node.name == "node_a"][0]
-  np.testing.assert_allclose(saved_node_a.tensor, loaded_node_a.tensor)
-  assert saved_node_a.axis_names == loaded_node_a.axis_names
-  assert saved_node_a.signature == loaded_node_a.signature
-
-  saved_node_b = [node for node in saved_nodes if node.name == "node_b"][0]
-  loaded_node_b = [node for node in saved_nodes if node.name == "node_b"][0]
-  np.testing.assert_allclose(saved_node_b.tensor, loaded_node_b.tensor)
-  assert saved_node_b.axis_names == loaded_node_b.axis_names
-  assert saved_node_b.signature == loaded_node_b.signature
-
-  saved_edge_ab = [edge for edge in saved_edges if edge.name == "edge_ab"][0]
-  loaded_edge_ab = [edge for edge in loaded_edges if edge.name == "edge_ab"][0]
-  assert saved_edge_ab.node1.name == loaded_edge_ab.node1.name
-  assert saved_edge_ab.node2.name == loaded_edge_ab.node2.name
-  assert saved_edge_ab.signature == loaded_edge_ab.signature
-
-  saved_edge_e2 = [edge for edge in saved_edges if edge.name == "e2"][0]
-  loaded_edge_e2 = [edge for edge in loaded_edges if edge.name == "e2"][0]
-  assert saved_edge_e2.node1.name == loaded_edge_e2.node1.name
-  assert saved_edge_e2.node2 == loaded_edge_e2.node2
-  assert saved_edge_e2.signature == loaded_edge_e2.signature
-
-
-def test_save_and_load_contract_to_same_number(tmp_path, backend):
-  saved_net = tensornetwork.TensorNetwork(backend=backend)
-  a = saved_net.add_node(np.ones((2, 2, 2)))
-  b = saved_net.add_node(2 * np.ones((2, 2, 2)))
-  saved_net.connect(a[0], b[0])
-  saved_net.connect(b[1], a[1])
-  saved_net.connect(a[2], b[2])
-  p = tmp_path / "network"
-  saved_net.save(p)
-  loaded_net = tensornetwork.load(p)
-
-  saved_net.contract_between(a, b)
-
-  loaded_nodes = list(loaded_net.nodes_set)
-  loaded_net.contract_between(loaded_nodes[0], loaded_nodes[1])
-  np.testing.assert_allclose(saved_net.get_final_node().tensor,
-                             loaded_net.get_final_node().tensor)
-
-
 def test_disable_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
   with pytest.raises(ValueError):
     a.disable()
-
-
-def test_add_copy_node_from_node_object(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(
-      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
-  assert a in net
-  assert a.shape == (3, 3, 3)
-  assert isinstance(a, tensornetwork.CopyNode)
-  assert a.name == "TestName"
-  assert a.axis_names == ['a', 'b', 'c']
-  b = net.add_node(np.eye(3))
-  e = a[0] ^ b[0]
-  c = net.contract(e)
-  np.testing.assert_allclose(c.tensor, a.tensor)
-
-
-def test_double_add_node(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(tensornetwork.CopyNode(3, 3))
-  with pytest.raises(ValueError):
-    net.add_node(a)
-
-
-def test_default_names_add_node_object(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(tensornetwork.CopyNode(3, 3))
-  assert a.name is not None
-  assert len(a.axis_names) == 3
-
-
-def test_network_copy(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3, 3))
-  b = net.add_node(np.random.rand(3, 3, 3))
-  c = net.add_node(np.random.rand(3, 3, 3))
-  a[0] ^ b[1]
-  a[1] ^ c[2]
-  b[2] ^ c[0]
-
-  net_copy, node_dict, _ = net.copy()
-  net_copy.check_correct()
-
-  res = a @ b @ c
-  res_copy = node_dict[a] @ node_dict[b] @ node_dict[c]
-  np.testing.assert_allclose(res.tensor, res_copy.tensor)
-
-
-def test_network_copy_reordered(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3, 3))
-  b = net.add_node(np.random.rand(3, 3, 3))
-  c = net.add_node(np.random.rand(3, 3, 3))
-  a[0] ^ b[1]
-  a[1] ^ c[2]
-  b[2] ^ c[0]
-
-  edge_order = [a[2], c[1], b[0]]
-  net_copy, node_dict, edge_dict = net.copy()
-  net_copy.check_correct()
-
-  res = a @ b @ c
-  res.reorder_edges(edge_order)
-  res_copy = node_dict[a] @ node_dict[b] @ node_dict[c]
-  res_copy.reorder_edges([edge_dict[e] for e in edge_order])
-  np.testing.assert_allclose(res.tensor, res_copy.tensor)
-
-
-def test_network_copy_names(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3, 3), name='a')
-  b = net.add_node(np.random.rand(3, 3, 3), name='b')
-  c = net.add_node(np.random.rand(3, 3, 3), name='c')
-  a[0] ^ b[1]
-  b[2] ^ c[0]
-  _, node_dict, edge_dict = net.copy()
-  for node in net.nodes_set:
-    assert node_dict[node].name == node.name
-  for edge in net.get_all_edges():
-    assert edge_dict[edge].name == edge.name
-
-
-def test_network_copy_identities(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3, 3), name='a')
-  b = net.add_node(np.random.rand(3, 3, 3), name='b')
-  c = net.add_node(np.random.rand(3, 3, 3), name='c')
-  a[0] ^ b[1]
-  b[2] ^ c[0]
-  _, node_dict, edge_dict = net.copy()
-  for node in net.nodes_set:
-    assert not node_dict[node] is node
-  for edge in net.get_all_edges():
-    assert not edge_dict[edge] is edge
 
 
 @pytest.mark.parametrize("backend,dtype", [
