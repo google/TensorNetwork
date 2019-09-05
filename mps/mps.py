@@ -531,7 +531,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
       res = (((L @ A) @ O) @ conj_A) @ R
       c.append(res.tensor)
 
-    right_sites = sites2[sites2 > site1]
+    right_sites = sorted(sites2[sites2 > site1])
     if right_sites:
       right_sites_mod = list({n % N for n in right_sites})
 
