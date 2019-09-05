@@ -88,7 +88,7 @@ def test_network_copy(backend):
   a[0] ^ b[1]
   a[1] ^ c[2]
   b[2] ^ c[0]
-  net_copy, node_dict, _ , = net.copy()
+  net_copy, node_dict, _ = net.copy()
   net_copy.check_correct()
 
   res = a @ b @ c
@@ -117,7 +117,6 @@ def test_network_copy_identities(backend):
   c = net.add_node(np.random.rand(3, 3, 3), name='c')
   a[0] ^ b[1]
   b[2] ^ c[0]
-  conj=False
   _, node_dict, edge_dict = net.copy()
   for node in net.nodes_set:
     assert not node_dict[node] is node
