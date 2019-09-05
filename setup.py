@@ -31,10 +31,10 @@ requirements = [
 ]
 
 setup(
-    name='TensorNetwork',
+    name='tensornetwork',
     version=__version__,
     url='http://github.com/google/TensorNetwork',
-    author='TensorNetwork Developers',
+    author='The TensorNetwork Developers',
     author_email='chaseriley@google.com',
     python_requires=('>=3.5.0'),
     install_requires=requirements,
