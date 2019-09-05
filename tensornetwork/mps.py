@@ -287,7 +287,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
   def __len__(self):
     return len(self.nodes)
 
-  def transfer_operator(self, site: int, direction: Union[Text, int],
+  def apply_transfer_operator(self, site: int, direction: Union[Text, int],
                         matrix: Tensor) -> Tensor:
     """
     Compute the action of the MPS transfer-operator at site `site`.
@@ -506,7 +506,7 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           res = (((L @ A) @ O2) @ conj_A) @ R
           c.append(res.tensor)
         if n > n1:
-          r = self.transfer_operator(n % N, 'right', r)
+          r = self.apply_transfer_operator(n % N, 'right', r)
 
       c = list(reversed(c))
     ls = self.left_envs([site1])
@@ -570,5 +570,5 @@ class FiniteMPS(tensornetwork.TensorNetwork):
           c.append(res.tensor)
 
         if n < n2:
-          l = self.transfer_operator(n % N, 'left', l)
+          l = self.apply_transfer_operator(n % N, 'left', l)
     return np.array(c)
