@@ -72,6 +72,16 @@ def test_dtype(backend):
   assert net.dtype is None
 
 
+def test_network_copy_conj(backend):
+  if backend == "pytorch":
+    pytest.skip("Pytorch does not support complex numbers")
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.array([1.0 + 2.0j, 2.0 - 1.0j]))
+  _, nodes, _ = net.copy(conj=True)
+  np.testing.assert_allclose(
+      nodes[a].tensor, np.array([1.0 - 2.0j, 2.0 + 1.0j]))
+
+
 def test_network_copy(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.random.rand(3, 3, 3))
@@ -80,7 +90,6 @@ def test_network_copy(backend):
   a[0] ^ b[1]
   a[1] ^ c[2]
   b[2] ^ c[0]
-
   net_copy, node_dict, _ = net.copy()
   net_copy.check_correct()
 
