@@ -27,7 +27,9 @@ config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
 
-def get_random_np(shape, dtype):
+
+def get_random_np(shape, dtype, seed=0):
+  np.random.seed(seed) #get the same tensors every time you call this function
   if dtype is np.complex64:
     return np.random.randn(*shape).astype(
         np.float32) + 1j * np.random.randn(*shape).astype(np.float32)
