@@ -31,14 +31,14 @@ requirements = [
 ]
 
 setup(
-    name='tensornetwork',
+    name='TensorNetwork',
     version=__version__,
     url='http://github.com/google/TensorNetwork',
-    author='The TensorNetwork Developers',
-    author_email=' chaseriley@google.com',
+    author='TensorNetwork Developers',
+    author_email='chaseriley@google.com',
     python_requires=('>=3.5.0'),
     install_requires=requirements,
-    license='Apache 2',
+    license='Apache 2.0',
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
