@@ -72,14 +72,12 @@ def test_dtype(backend):
   assert net.dtype is None
 
 
-def test_network_copy(backend):
+def test_network_copy_conj(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.array([1.0 + 2.0j, 2.0 - 1.0j]))
   new_net, nodes, edges = net.copy(conj=True)
   np.testing.assert_allclose(
       nodes[a].tensor, np.array([1.0 - 2.0j, 2.0 + 1.0j]))
-
-
 
 
 def test_network_copy(backend):
