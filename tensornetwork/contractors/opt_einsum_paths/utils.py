@@ -15,7 +15,7 @@
 
 from tensornetwork import network
 from tensornetwork import network_components
-from typing import Any, Callable, Dict, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
 # `opt_einsum` algorithm method typing
 Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]],
@@ -28,11 +28,11 @@ def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
 
 
 def get_input_sets(net: network.TensorNetwork
-                   ) -> List[Set[network_components.Edge]]:
-  input_sets = []
-  for node in sorted(net.nodes_set, key = lambda n: n.signature):
-    input_sets.append(set(node.edges))
-  return input_sets
+                   ) -> Tuple[Union[List[Set[network_components.Edge]],
+                                    List[network_components.Node]]]:
+  sorted_nodes = sorted(net.nodes_set, key = lambda n: n.signature)
+  input_sets = [set(node.edges) for node in sorted_nodes]
+  return input_sets, sorted_nodes
 
 
 def get_output_set(net: network.TensorNetwork) -> Set[network_components.Edge]:
@@ -46,7 +46,7 @@ def get_size_dict(net: network.TensorNetwork
 
 
 def get_path(net: network.TensorNetwork, algorithm: Algorithm
-             ) -> List[Tuple[int]]:
+             ) -> Tuple[Union[List[Tuple[int]], List[network_components.Node]]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:
@@ -55,8 +55,9 @@ def get_path(net: network.TensorNetwork, algorithm: Algorithm
 
   Returns:
     The optimal contraction path as returned by `opt_einsum`.
+    A list of nodes sorted compatibly with their indices in the path.
   """
-  input_sets = get_input_sets(net)
+  input_sets, sorted_nodes = get_input_sets(net)
   output_set = get_output_set(net)
   size_dict = get_size_dict(net)
-  return algorithm(input_sets, output_set, size_dict)
+  return algorithm(input_sets, output_set, size_dict), sorted_nodes
