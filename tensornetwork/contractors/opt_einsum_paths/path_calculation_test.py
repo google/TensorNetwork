@@ -31,9 +31,9 @@ def check_path(calculated_path, correct_path):
     return False
 
   ret = True
-  for pos in range(len(calculated_path)):
-    ret &= isinstance(calculated_path[pos], tuple)
-    ret &= calculated_path[pos] == correct_path[pos]
+  for calc, correct in zip(calculated_path, correct_path):
+    ret &= isinstance(calc, tuple)
+    ret &= calc == correct
   return ret
 
 
@@ -104,6 +104,5 @@ def test_path_optimal(params):
   net = globals()[network_name]()
   path_algorithm = getattr(opt_einsum.paths, algorithm_name)
 
-  calculated_path, sorted_nodes = utils.get_path(net, path_algorithm)
-  assert sorted_nodes == sorted(net.nodes_set, key=lambda n: n.signature)
+  calculated_path = utils.get_path(net, path_algorithm)
   assert check_path(calculated_path, correct_path)
