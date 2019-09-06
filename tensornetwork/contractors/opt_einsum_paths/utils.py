@@ -14,6 +14,7 @@
 """Helper methods for `path_contractors`."""
 
 from tensornetwork import network
+from tensornetwork import network_components
 from typing import Any, Callable, Dict, List, Set, Tuple
 
 # `opt_einsum` algorithm method typing
@@ -27,7 +28,8 @@ def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
 
 
 def get_path(net: network.TensorNetwork, algorithm: Algorithm
-             ) -> List[Tuple[int]]:
+             ) -> Tuple[List[Tuple[int, int]],
+                        List[network_components.BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:
@@ -43,4 +45,4 @@ def get_path(net: network.TensorNetwork, algorithm: Algorithm
   output_set = net.get_all_edges() - net.get_all_nondangling()
   size_dict = {edge: edge.dimension for edge in net.get_all_edges()}
 
-  return algorithm(input_sets, output_set, size_dict)
+  return algorithm(input_sets, output_set, size_dict), sorted_nodes

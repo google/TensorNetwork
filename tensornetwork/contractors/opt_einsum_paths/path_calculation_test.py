@@ -104,5 +104,5 @@ def test_path_optimal(params):
   net = globals()[network_name]()
   path_algorithm = getattr(opt_einsum.paths, algorithm_name)
 
-  calculated_path = utils.get_path(net, path_algorithm)
+  calculated_path, _ = utils.get_path(net, path_algorithm)
   assert check_path(calculated_path, correct_path)
