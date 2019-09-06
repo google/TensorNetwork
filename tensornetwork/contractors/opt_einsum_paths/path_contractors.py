@@ -51,7 +51,7 @@ def base(net: network.TensorNetwork, algorithm: utils.Algorithm,
   # Then apply `opt_einsum`'s algorithm
   path = utils.get_path(net, algorithm)
 
-  nodes = sorted(net.nodes_set)
+  nodes = sorted(net.nodes_set, key = lambda n: n.signature)
   for a, b in path:
     new_node = nodes[a] @ nodes[b]
     nodes.append(new_node)
