@@ -76,8 +76,9 @@ def matrix_chain():
   net = tensornetwork.TensorNetwork()
   d = [10, 8, 6, 4, 2]
   nodes = [net.add_node(np.ones([d1, d2])) for d1, d2 in zip(d[:-1], d[1:])]
-  for i in range(len(d) - 2):
-    nodes[i][1] ^ nodes[i + 1][0]
+  for a, b in zip(nodes[:-1], nodes[1:]):
+    # pylint: disable=pointless-statement
+    a[1] ^ b[0]
   return net
 
 
@@ -104,5 +105,5 @@ def test_path_optimal(params):
   path_algorithm = getattr(opt_einsum.paths, algorithm_name)
 
   calculated_path, sorted_nodes = utils.get_path(net, path_algorithm)
-  assert sorted_nodes == sorted(net.nodes_set, key = lambda n: n.signature)
+  assert sorted_nodes == sorted(net.nodes_set, key=lambda n: n.signature)
   assert check_path(calculated_path, correct_path)
