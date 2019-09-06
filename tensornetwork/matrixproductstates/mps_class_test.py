@@ -27,6 +27,15 @@ config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
 
+@pytest.fixture(
+    name="backend_dtype_values",
+    params=[('numpy', np.float64), ('numpy', np.complex128),
+            ('tensorflow', np.float64), ('tensorflow', np.complex128),
+            ('pytorch', np.float64), ('jax', np.float64)])
+def backend_dtype(request):
+  return request.param
+
+
 def get_random_np(shape, dtype, seed=0):
   np.random.seed(seed)  #get the same tensors every time you call this function
   if dtype is np.complex64:
@@ -59,13 +68,10 @@ def test_mps_init(backend, N, pos):
     tensornetwork.mps.FiniteMPS(tensors, center_position=pos, backend=backend)
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_left_orthonormalization(backend, dtype):
+def test_left_orthonormalization(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
   D, d, N = 10, 2, 10
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
@@ -80,13 +86,9 @@ def test_left_orthonormalization(backend, dtype):
   ])
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_right_orthonormalization(backend, dtype):
+def test_right_orthonormalization(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
   D, d, N = 10, 2, 10
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
@@ -101,13 +103,10 @@ def test_right_orthonormalization(backend, dtype):
   ])
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_apply_one_site_gate(backend, dtype):
+def test_apply_one_site_gate(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
   D, d, N = 10, 2, 10
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
@@ -119,13 +118,10 @@ def test_apply_one_site_gate(backend, dtype):
   np.testing.assert_allclose(mps.nodes[5].tensor, actual)
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_apply_two_site_gate(backend, dtype):
+def test_apply_two_site_gate(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
   D, d, N = 10, 2, 10
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
@@ -139,13 +135,10 @@ def test_apply_two_site_gate(backend, dtype):
   np.testing.assert_allclose(res.tensor, actual)
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_local_measurement(backend, dtype):
+def test_local_measurement(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
   D, d, N = 1, 2, 10
   tensors_1 = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
@@ -168,13 +161,10 @@ def test_local_measurement(backend, dtype):
   np.testing.assert_allclose(result_2, np.ones(N) * 0.5)
 
 
-@pytest.mark.parametrize("backend,dtype", [('numpy', np.float64),
-                                           ('numpy', np.complex128),
-                                           ('tensorflow', np.float64),
-                                           ('tensorflow', np.complex128),
-                                           ('pytorch', np.float64),
-                                           ('jax', np.float64)])
-def test_correlation_measurement(backend, dtype):
+def test_correlation_measurement(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
   D, d, N = 1, 2, 10
   tensors_1 = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
