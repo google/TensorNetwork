@@ -69,31 +69,35 @@ class FiniteMPS(TensorNetwork):
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
     super().__init__(backend=backend, dtype=dtype)
-    self.nodes = [
+    self._nodes = [
         self.add_node(tensors[n], name='node{}'.format(n))
         for n in range(len(tensors))
     ]  #redundant?!
-    for site in range(len(self.nodes) - 1):
-      self.connect(self.nodes[site][2], self.nodes[site + 1][0])
+    for site in range(len(self._nodes) - 1):
+      self.connect(self._nodes[site][2], self._nodes[site + 1][0])
     self.center_position = center_position
 
   def save(self, path: str):
     raise NotImplementedError()
 
   @property
-  def D(self) -> List:
+  def nodes(self):
+    return self._nodes
+
+  @property
+  def bond_dimensions(self) -> List:
     """
     Return a list of bond dimensions of FiniteMPS
     """
-    return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
+    return [self._nodes[0].shape[0]] + [node.shape[2] for node in self._nodes]
 
   @property
-  def d(self) -> List:
+  def physical_dimensions(self) -> List:
     """
     Return a list of physical Hilbert-space dimensions of FiniteMPS
     """
 
-    return [node.shape[1] for node in self.nodes]
+    return [node.shape[1] for node in self._nodes]
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
@@ -105,42 +109,42 @@ class FiniteMPS(TensorNetwork):
       Tensor: The norm of the tensor at FiniteMPS.center_position
     """
 
-    if site >= len(self.nodes) or site < 0:
+    if site >= len(self._nodes) or site < 0:
       raise ValueError('site = {} not between values'
                        ' 0 < site < N = {}'.format(site, len(self)))
     if site == self.center_position:
-      return self.backend.norm(self.nodes[self.center_position].tensor)
+      return self.backend.norm(self._nodes[self.center_position].tensor)
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
         Q, R = self.split_node_qr(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0], self.nodes[n][1]],
-            right_edges=[self.nodes[n][2]],
-            left_name=self.nodes[n].name)
+            self._nodes[n],
+            left_edges=[self._nodes[n][0], self._nodes[n][1]],
+            right_edges=[self._nodes[n][2]],
+            left_name=self._nodes[n].name)
 
-        self.nodes[n] = Q
-        self.nodes[n + 1] = self.contract(R[1], name=self.nodes[n + 1].name)
-        Z = self.backend.norm(self.nodes[n + 1].tensor)
+        self._nodes[n] = Q
+        self._nodes[n + 1] = self.contract(R[1], name=self._nodes[n + 1].name)
+        Z = self.backend.norm(self._nodes[n + 1].tensor)
         if normalize:
-          self.nodes[n + 1].tensor /= Z
+          self._nodes[n + 1].tensor /= Z
 
       self.center_position = site
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
         R, Q = self.split_node_rq(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0]],
-            right_edges=[self.nodes[n][1], self.nodes[n][2]],
-            right_name=self.nodes[n].name)
+            self._nodes[n],
+            left_edges=[self._nodes[n][0]],
+            right_edges=[self._nodes[n][1], self._nodes[n][2]],
+            right_name=self._nodes[n].name)
         Z = self.backend.norm(R.tensor)
         if normalize:
           R.tensor /= Z
-        self.nodes[n] = Q
-        self.nodes[n - 1] = self.contract(R[0], name=self.nodes[n - 1].name)
-        Z = self.backend.norm(self.nodes[n - 1].tensor)
+        self._nodes[n] = Q
+        self._nodes[n - 1] = self.contract(R[0], name=self._nodes[n - 1].name)
+        Z = self.backend.norm(self._nodes[n - 1].tensor)
         if normalize:
-          self.nodes[n - 1].tensor /= Z
+          self._nodes[n - 1].tensor /= Z
 
       self.center_position = site
     return Z
@@ -154,8 +158,8 @@ class FiniteMPS(TensorNetwork):
       site:  the site of the tensor
     """
     net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
-    n1 = net.add_node(self.nodes[site].tensor)
-    n2 = net.add_node(self.backend.conj(self.nodes[site].tensor))
+    n1 = net.add_node(self._nodes[site].tensor)
+    n2 = net.add_node(self.backend.conj(self._nodes[site].tensor))
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
       n1[1] ^ n2[1]
@@ -188,16 +192,16 @@ class FiniteMPS(TensorNetwork):
 
     left_envs = {}
     for site in left_sites:
-      left_envs[site] = self.backend.eye(N=self.nodes[site].shape[0])
+      left_envs[site] = self.backend.eye(N=self._nodes[site].shape[0])
 
     if n2 > self.center_position:
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
       conj_nodes = {}
       for site in range(self.center_position, n2):
-        nodes[site] = net.add_node(self.nodes[site].tensor)
+        nodes[site] = net.add_node(self._nodes[site].tensor)
         conj_nodes[site] = net.add_node(
-            self.backend.conj(self.nodes[site].tensor))
+            self.backend.conj(self._nodes[site].tensor))
       nodes[self.center_position][0] ^ conj_nodes[self.center_position][0]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
 
@@ -245,16 +249,16 @@ class FiniteMPS(TensorNetwork):
     right_sites = sites[sites >= self.center_position]
     right_envs = {}
     for site in right_sites:
-      right_envs[site] = self.backend.eye(N=self.nodes[site].shape[2])
+      right_envs[site] = self.backend.eye(N=self._nodes[site].shape[2])
 
     if n1 < self.center_position:
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
       conj_nodes = {}
       for site in reversed(range(n1 + 1, self.center_position + 1)):
-        nodes[site] = net.add_node(self.nodes[site].tensor)
+        nodes[site] = net.add_node(self._nodes[site].tensor)
         conj_nodes[site] = net.add_node(
-            self.backend.conj(self.nodes[site].tensor))
+            self.backend.conj(self._nodes[site].tensor))
       nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
 
@@ -282,7 +286,7 @@ class FiniteMPS(TensorNetwork):
     return right_envs
 
   def __len__(self):
-    return len(self.nodes)
+    return len(self._nodes)
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
                               matrix: Tensor) -> Tensor:
@@ -302,8 +306,8 @@ class FiniteMPS(TensorNetwork):
     """
     net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
     mat = net.add_node(matrix)
-    node = net.add_node(self.nodes[site].tensor)
-    conj_node = net.add_node(self.backend.conj(self.nodes[site].tensor))
+    node = net.add_node(self._nodes[site].tensor)
+    conj_node = net.add_node(self.backend.conj(self._nodes[site].tensor))
     node[1] ^ conj_node[1]
     if direction in (1, 'l', 'left'):
       mat[0] ^ node[0]
@@ -361,11 +365,11 @@ class FiniteMPS(TensorNetwork):
               self.center_position, site1, site2))
 
     gate_node = self.add_node(gate)
-    gate_node[2] ^ self.nodes[site1][1]
-    gate_node[3] ^ self.nodes[site2][1]
-    left_edges = [self.nodes[site1][0], gate_node[0]]
-    right_edges = [gate_node[1], self.nodes[site2][2]]
-    result = self.contract_between(self.nodes[site1], self.nodes[site2])
+    gate_node[2] ^ self._nodes[site1][1]
+    gate_node[3] ^ self._nodes[site2][1]
+    left_edges = [self._nodes[site1][0], gate_node[0]]
+    right_edges = [gate_node[1], self._nodes[site2][2]]
+    result = self.contract_between(self._nodes[site1], self._nodes[site2])
     result = self.contract_between(result, gate_node)
     U, S, V, tw = self.split_node_full_svd(
         result,
@@ -373,13 +377,13 @@ class FiniteMPS(TensorNetwork):
         right_edges=right_edges,
         max_singular_values=max_singular_values,
         max_truncation_err=max_truncation_err,
-        left_name=self.nodes[site1].name,
-        right_name=self.nodes[site2].name)
+        left_name=self._nodes[site1].name,
+        right_name=self._nodes[site2].name)
     V.reorder_edges([S[1]] + right_edges)
     left_edges = left_edges + [S[1]]
-    self.nodes[site1] = self.contract_between(
+    self._nodes[site1] = self.contract_between(
         U, S, name=U.name).reorder_edges(left_edges)
-    self.nodes[site2] = V
+    self._nodes[site2] = V
     return tw
 
   def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
@@ -399,11 +403,11 @@ class FiniteMPS(TensorNetwork):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
     gate_node = self.add_node(gate)
-    gate_node[1] ^ self.nodes[site][1]
-    edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
-    self.nodes[site] = self.contract_between(
-        gate_node, self.nodes[site],
-        name=self.nodes[site].name).reorder_edges(edge_order)
+    gate_node[1] ^ self._nodes[site][1]
+    edge_order = [self._nodes[site][0], gate_node[0], self._nodes[site][2]]
+    self._nodes[site] = self.contract_between(
+        gate_node, self._nodes[site],
+        name=self._nodes[site].name).reorder_edges(edge_order)
 
   def measure_local_operator(self, ops: List[Tensor], sites: List[int]) -> List:
     """
@@ -426,8 +430,8 @@ class FiniteMPS(TensorNetwork):
       O = net.add_node(ops[n])
       R = net.add_node(right_envs[site])
       L = net.add_node(left_envs[site])
-      A = net.add_node(self.nodes[site].tensor)
-      conj_A = net.add_node(self.backend.conj(self.nodes[site].tensor))
+      A = net.add_node(self._nodes[site].tensor)
+      conj_A = net.add_node(self.backend.conj(self._nodes[site].tensor))
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
       R[0] ^ A[2]
@@ -470,9 +474,9 @@ class FiniteMPS(TensorNetwork):
       ls = self.left_envs(left_sites_mod)
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
 
-      A = net.add_node(self.nodes[site1].tensor)
+      A = net.add_node(self._nodes[site1].tensor)
       O1 = net.add_node(op1)
-      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
+      conj_A = net.add_node(self.backend.conj(self._nodes[site1].tensor))
       R = net.add_node(rs[site1])
       R[0] ^ A[2]
       R[1] ^ conj_A[2]
@@ -484,8 +488,8 @@ class FiniteMPS(TensorNetwork):
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
           net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
-          A = net.add_node(self.nodes[n % N].tensor)
-          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
+          A = net.add_node(self._nodes[n % N].tensor)
+          conj_A = net.add_node(self.backend.conj(self._nodes[n % N].tensor))
           O2 = net.add_node(op2)
           L = net.add_node(ls[n % N])
           R = net.add_node(r)
@@ -509,8 +513,8 @@ class FiniteMPS(TensorNetwork):
       O2 = net.add_node(op2)
       L = net.add_node(ls[site1])
       R = net.add_node(rs[site1])
-      A = net.add_node(self.nodes[site1].tensor)
-      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
+      A = net.add_node(self._nodes[site1].tensor)
+      conj_A = net.add_node(self.backend.conj(self._nodes[site1].tensor))
 
       O1[1] ^ O2[0]
       L[0] ^ A[0]
@@ -529,8 +533,8 @@ class FiniteMPS(TensorNetwork):
 
       rs = self.right_envs(right_sites_mod)
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
-      A = net.add_node(self.nodes[site1].tensor)
-      conj_A = net.add_node(self.backend.conj(self.nodes[site1].tensor))
+      A = net.add_node(self._nodes[site1].tensor)
+      conj_A = net.add_node(self.backend.conj(self._nodes[site1].tensor))
       L = net.add_node(ls[site1])
       O1 = net.add_node(op1)
       L[0] ^ A[0]
@@ -547,8 +551,8 @@ class FiniteMPS(TensorNetwork):
           net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
           L = net.add_node(l)
           R = net.add_node(rs[n % N])
-          A = net.add_node(self.nodes[n % N].tensor)
-          conj_A = net.add_node(self.backend.conj(self.nodes[n % N].tensor))
+          A = net.add_node(self._nodes[n % N].tensor)
+          conj_A = net.add_node(self.backend.conj(self._nodes[n % N].tensor))
           O2 = net.add_node(op2)
           A[0] ^ L[0]
           conj_A[0] ^ L[1]
