@@ -1,8 +1,8 @@
 from tensornetwork import network
-from typing import Set, Dict, List, Tuple
+from typing import Any, Dict, List, Set
 
 
-def multi_remove(elems, indices):
+def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
   """Remove multiple indicies in a list at once."""
   return [i for j, i in enumerate(elems) if j not in indices]
 
