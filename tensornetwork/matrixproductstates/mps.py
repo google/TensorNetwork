@@ -153,8 +153,8 @@ class FiniteMPS(TensorNetwork):
     """
     Check orthonormality of tensor at site `site`.
     Args:
-      which: if in ('l','left'): check left orthogonality
-             if in ('r','right'): check right orthogonality
+      which: if 'l' or 'left': check left orthogonality
+             if 'r' or'right': check right orthogonality
       site:  the site of the tensor
     """
     net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
@@ -294,10 +294,10 @@ class FiniteMPS(TensorNetwork):
     Compute the action of the MPS transfer-operator at site `site`.
     Args:
       site (int): a site of the MPS
-      direction (str or int): if in (1, 'l', 'left'): compute the left-action 
+      direction (str or int): if 1, 'l' or 'left': compute the left-action 
                                 of the MPS transfer-operator at `site` on the
                                 input `matrix`
-                              if in (-1, 'r', 'right'): compute the right-action 
+                              if -1, 'r' or 'right': compute the right-action 
                                 of the MPS transfer-operator at `site` on the
                                 input `matrix`
       matrix (Tensor): A rank-2 tensor or matrix.
