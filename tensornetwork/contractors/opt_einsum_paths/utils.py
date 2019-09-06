@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Set, Tuple
 
 # `opt_einsum` algorithm method typing
 Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]],
-                     List[Tuple[int]]]
+                     List[Tuple[int, int]]]
 
 
 def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
