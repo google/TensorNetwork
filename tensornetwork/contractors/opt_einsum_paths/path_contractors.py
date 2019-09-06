@@ -15,30 +15,29 @@
 
 import functools
 import opt_einsum
-from typing import Any, Callable, Dict, Optional, List, Set, Sequence
 from tensornetwork import network
 from tensornetwork import network_components
 from tensornetwork.contractors.opt_einsum_paths import utils
+from typing import Any, Optional, Sequence
 
 
-def base(net: network.TensorNetwork,
-         algorithm: Callable[[List[Set[int]], Set[int], Dict[int, int]], List],
+def base(net: network.TensorNetwork, algorithm: utils.Algorithm,
          output_edge_order: Optional[Sequence[network_components.Edge]] = None
-        ) -> network.TensorNetwork:
+         ) -> network.TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
     net: a TensorNetwork object. Should be connected.
     algorithm: `opt_einsum` contraction method to use.
-    output_edge_order: An optional list of edges. Edges of the 
-      final node in `nodes_set` 
-      are reordered into `output_edge_order`; 
-      if final node has more than one edge, 
+    output_edge_order: An optional list of edges. Edges of the
+      final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
       `output_edge_order` must be provided.
+
   Returns:
     The network after full contraction.
   """
-
   net.check_connected()
   # First contract all trace edges
   edges = net.get_all_nondangling()
@@ -50,11 +49,7 @@ def base(net: network.TensorNetwork,
     return net
 
   # Then apply `opt_einsum`'s algorithm
-  nodes = sorted(net.nodes_set)
-  input_sets = utils.get_input_sets(net)
-  output_set = utils.get_output_set(net)
-  size_dict = utils.get_size_dict(net)
-  path = algorithm(input_sets, output_set, size_dict)
+  path, nodes = utils.get_path(net, algorithm)
   for a, b in path:
     new_node = nodes[a] @ nodes[b]
     nodes.append(new_node)
@@ -90,10 +85,10 @@ def optimal(net: network.TensorNetwork,
 
   Args:
     net: a TensorNetwork object.
-    output_edge_order: An optional list of edges. 
-      Edges of the final node in `nodes_set` 
-      are reordered into `output_edge_order`; 
-      if final node has more than one edge, 
+    output_edge_order: An optional list of edges.
+      Edges of the final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
 
@@ -118,10 +113,10 @@ def branch(net: network.TensorNetwork,
 
   Args:
     net: a TensorNetwork object.
-    output_edge_order: An optional list of edges. 
-      Edges of the final node in `nodes_set` 
-       are reordered into `output_edge_order`; 
-       if final node has more than one edge, 
+    output_edge_order: An optional list of edges.
+      Edges of the final node in `nodes_set`
+       are reordered into `output_edge_order`;
+       if final node has more than one edge,
        `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
     nbranch: Number of best contractions to explore.
@@ -150,10 +145,10 @@ def greedy(net: network.TensorNetwork,
 
   Args:
     net: a TensorNetwork object.
-    output_edge_order: An optional list of edges. 
-      Edges of the final node in `nodes_set` 
-      are reordered into `output_edge_order`; 
-      if final node has more than one edge, 
+    output_edge_order: An optional list of edges.
+      Edges of the final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
 
@@ -173,10 +168,10 @@ def auto(net: network.TensorNetwork,
 
   Args:
     net: a TensorNetwork object.
-    output_edge_order: An optional list of edges. 
-      Edges of the final node in `nodes_set` 
-      are reordered into `output_edge_order`; 
-      if final node has more than one edge, 
+    output_edge_order: An optional list of edges.
+      Edges of the final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
 
@@ -189,7 +184,7 @@ def auto(net: network.TensorNetwork,
   if n == 1:
     edges = net.get_all_nondangling()
     net.contract_parallel(edges.pop())
-    final_node = net.get_final_node()   
+    final_node = net.get_final_node()
     if (len(final_node.edges) <= 1) and (output_edge_order is None):
       output_edge_order = list((net.get_all_edges() -
                                 net.get_all_nondangling()))
@@ -197,7 +192,7 @@ def auto(net: network.TensorNetwork,
       raise ValueError("if the final node has more than one dangling edge"
                        ", `output_edge_order` has to be provided")
 
-    final_node.reorder_edges(output_edge_order)    
+    final_node.reorder_edges(output_edge_order)
     return net
   if n < 5:
     return optimal(net, output_edge_order, memory_limit)
@@ -209,12 +204,12 @@ def auto(net: network.TensorNetwork,
     return branch(net, output_edge_order, nbranch=1)
   return greedy(net, output_edge_order, memory_limit)
 
+
 def custom(net: network.TensorNetwork,
            optimizer: Any,
            output_edge_order: Sequence[network_components.Edge] = None,
            memory_limit: Optional[int] = None) -> network.TensorNetwork:
-  """
-  Uses a custom path optimizer created by the user to calculate paths.
+  """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.
   For more details:
@@ -222,10 +217,10 @@ def custom(net: network.TensorNetwork,
 
   Args:
     net: a TensorNetwork object.
-    output_edge_order: An optional list of edges. 
-      Edges of the final node in `nodes_set` 
-      are reordered into `output_edge_order`; 
-      if final node has more than one edge, 
+    output_edge_order: An optional list of edges.
+      Edges of the final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
       output_edge_order` must be provided.
     optimizer: A custom `opt_einsum.PathOptimizer` object.
     memory_limit: Maximum number of elements in an array during contractions.
