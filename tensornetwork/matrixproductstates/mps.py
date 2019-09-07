@@ -25,7 +25,7 @@ class FiniteMPS(TensorNetwork):
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS.nodes`. Any external changes to this list will potentially corrupt 
+  `FiniteMPS._nodes`. Any external changes to this list will potentially corrupt 
   the mps. `FiniteMPS` has a central site. The position of this central site is
   stored in `FiniteMPS.center_position`. This center position can be  
   shifted using the `FiniteMPS.position` method. 
