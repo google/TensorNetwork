@@ -29,20 +29,20 @@ class FiniteMPS(TensorNetwork):
   the mps. `FiniteMPS` has a central site. The position of this central site is
   stored in `FiniteMPS.center_position`. This center position can be  
   shifted using the `FiniteMPS.position` method. 
-  If the state is initialized withnen `center_positon=0`, 
+  If the state is initialized with `center_positon=0`, 
   then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the `center_position`
   to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. 
   `center_position` is moved from left to right), then all sites that are 
   visited in between are left in left-orthogonal form. If the shift is a 
-  "right-shift" (i.e. `center_position` is shifted from right to left), 
+  "left-shift" (i.e. `center_position` is shifted from right to left), 
   then all sites that are visited in between are left in right-orthogonal form. 
-  For random initial tensors `tensors`, doing one sweep from left to right 
-  and a successive sweep from right to left brings the state into 
-  central canonical form. In this state, all sites to the left of 
-  `center_position` are left orthogonal, and all sites to the right of 
-  `center_position` are right orthogonal, and the state is normalized.
-  Due to efficiency reasons, the state upon initialization is usually 
-  NOT brought into the central canonical form.
+  For random initial tensors `tensors` and `center_position=0`, 
+  doing one sweep from left to right and a successive sweep from right to left 
+  brings the state into central canonical form. In this state, 
+  all sites to the left of `center_position` are left orthogonal, 
+  and all sites to the right of `center_position` are right orthogonal, 
+  and the state is normalized. Due to efficiency reasons, the state upon 
+  initialization is usually NOT brought into the central canonical form.
   """
 
   def __init__(self,
