@@ -108,12 +108,15 @@ class FiniteMPS(TensorNetwork):
     Returns:
       Tensor: The norm of the tensor at FiniteMPS.center_position
     """
-
+    #`site` has to be between 0 and len(mps) - 1
     if site >= len(self._nodes) or site < 0:
       raise ValueError('site = {} not between values'
                        ' 0 < site < N = {}'.format(site, len(self)))
+    #nothing to do
     if site == self.center_position:
       return self.backend.norm(self._nodes[self.center_position].tensor)
+
+    #shift center_position to the right using QR decomposition
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
@@ -123,13 +126,18 @@ class FiniteMPS(TensorNetwork):
             right_edges=[self._nodes[n][2]],
             left_name=self._nodes[n].name)
 
-        self._nodes[n] = Q
+        self._nodes[n] = Q  #Q is a left-isometric tensor of rank 3
         self._nodes[n + 1] = self.contract(R[1], name=self._nodes[n + 1].name)
         Z = self.backend.norm(self._nodes[n + 1].tensor)
+
+        # for an mps with > O(10) sites one needs to normalize to avoid
+        # over or underflow errors; this takes care of the normalization
         if normalize:
           self._nodes[n + 1].tensor /= Z
 
       self.center_position = site
+
+    #shift center_position to the left using RQ decomposition
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
         R, Q = self.split_node_rq(
@@ -138,15 +146,19 @@ class FiniteMPS(TensorNetwork):
             right_edges=[self._nodes[n][1], self._nodes[n][2]],
             right_name=self._nodes[n].name)
         Z = self.backend.norm(R.tensor)
+
+        # for an mps with > O(10) sites one needs to normalize to avoid
+        # over or underflow errors; this takes care of the normalization
         if normalize:
           R.tensor /= Z
-        self._nodes[n] = Q
+        self._nodes[n] = Q  #Q is a right-isometric tensor of rank 3
         self._nodes[n - 1] = self.contract(R[0], name=self._nodes[n - 1].name)
         Z = self.backend.norm(self._nodes[n - 1].tensor)
         if normalize:
           self._nodes[n - 1].tensor /= Z
 
       self.center_position = site
+    #return the norm of the last R tensor (useful for checks)
     return Z
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
@@ -156,6 +168,8 @@ class FiniteMPS(TensorNetwork):
       which: if 'l' or 'left': check left orthogonality
              if 'r' or'right': check right orthogonality
       site:  the site of the tensor
+    Returns:
+      scalar Tensor: the L2 norm of the deviation from identity
     """
     net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
     n1 = net.add_node(self._nodes[site].tensor)
@@ -173,27 +187,35 @@ class FiniteMPS(TensorNetwork):
   def left_envs(self, sites: List[int]) -> Dict:
     """
     Compute left reduced density matrices for site `sites`.
+    This returns a dict `left_envs` mapping sites (int) to Tensors.
+    `left_envs[site]` is the left-reduced density matrix to the left of
+    site `site`.
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      dict maping int to Tensors: The left-reduced density matrices 
+      dict maping int to Tensor: The left-reduced density matrices 
         at each  site in `sites`.
 
     """
     n2 = max(sites)
-    sites = np.array(sites)
+    sites = np.array(sites)  #enable logical indexing
+
+    #check if all elements of `sites` are within allowed range
     if not np.all(sites <= len(self)):
       raise ValueError('all elements of `sites` have to be <= N = {}'.format(
           len(self)))
     if not np.all(sites >= 0):
       raise ValueError('all elements of `sites` have to be positive')
 
+    # left-reduced density matrices to the left of `center_position`
+    # (including center_position) are all identities
     left_sites = sites[sites <= self.center_position]
-
     left_envs = {}
     for site in left_sites:
       left_envs[site] = self.backend.eye(N=self._nodes[site].shape[0])
 
+    # left reduced density matrices at sites > center_position
+    # have to be calculated from a network contraction
     if n2 > self.center_position:
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
@@ -230,6 +252,9 @@ class FiniteMPS(TensorNetwork):
   def right_envs(self, sites: List[int]) -> Dict:
     """
     Compute right reduced density matrices for site `sites.
+    This returns a dict `right_envs` mapping sites (int) to Tensors.
+    `right_envs[site]` is the right-reduced density matrix to the right of
+    site `site`.
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
@@ -240,17 +265,22 @@ class FiniteMPS(TensorNetwork):
 
     n1 = min(sites)
     sites = np.array(sites)
+    #check if all elements of `sites` are within allowed range
     if not np.all(np.array(sites) < len(self)):
       raise ValueError('all elements of `sites` have to be < N = {}'.format(
           len(self)))
     if not np.all(np.array(sites) >= -1):
       raise ValueError('all elements of `sites` have to be >= -1')
 
+    # right-reduced density matrices to the right of `center_position`
+    # (including center_position) are all identities
     right_sites = sites[sites >= self.center_position]
     right_envs = {}
     for site in right_sites:
       right_envs[site] = self.backend.eye(N=self._nodes[site].shape[2])
 
+    # right reduced density matrices at sites < center_position
+    # have to be calculated from a network contraction
     if n1 < self.center_position:
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       nodes = {}
@@ -461,17 +491,31 @@ class FiniteMPS(TensorNetwork):
       raise ValueError(
           "Site site1 out of range: {} not between 0 <= site < N = {}.".format(
               site1, N))
-    sites2 = np.array(sites2)
+    sites2 = np.array(sites2)  #enable logical indexing
 
+    # we break the computation into two parts:
+    # first we get all correlators <op2(site2) op1(site1)> with site2 < site1
+    # then all correlators <op1(site1) op2(site2)> with site1 >= site1
+
+    # get all sites smaller than site1
     left_sites = sorted(sites2[sites2 < site1])
+    # get all sites larger than site1
+    right_sites = sorted(sites2[sites2 > site1])
 
-    rs = self.right_envs([site1])
+    # compute all neccessary right reduced
+    # density matrices in one go. This is
+    # more efficient than calling right_envs
+    # for each site individually
+    if right_sites:
+      right_sites_mod = list({n % N for n in right_sites})
+      rs = self.right_envs([site1] + right_sites_mod)
+
     c = []
     if left_sites:
-      #left_sites_mod = list(set([n % N for n in left_sites]))
+
       left_sites_mod = list({n % N for n in left_sites})
 
-      ls = self.left_envs(left_sites_mod)
+      ls = self.left_envs(left_sites_mod + [site1])
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
 
       A = net.add_node(self._nodes[site1].tensor)
@@ -485,6 +529,21 @@ class FiniteMPS(TensorNetwork):
       R = ((R @ A) @ O1) @ conj_A
       n1 = np.min(left_sites)
       r = R.tensor
+
+      #          -- A--------
+      #             |        |
+      # compute   op1(site1) |
+      #             |        |
+      #          -- A*-------
+      # and evolve it to the left by contracting tensors at site2 < site1
+      # if site2 is in `sites2`, calculate the observable
+      #
+      #  ---A--........-- A--------
+      # |   |             |        |
+      # |  op2(site2)    op1(site1)|
+      # |   |             |        |
+      #  ---A--........-- A*-------
+
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
           net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
@@ -506,7 +565,8 @@ class FiniteMPS(TensorNetwork):
           r = self.apply_transfer_operator(n % N, 'right', r)
 
       c = list(reversed(c))
-    ls = self.left_envs([site1])
+
+    # compute <op2(site1)op1(site1)>
     if site1 in sites2:
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       O1 = net.add_node(op1)
@@ -527,11 +587,9 @@ class FiniteMPS(TensorNetwork):
       res = (((L @ A) @ O) @ conj_A) @ R
       c.append(res.tensor)
 
+    # compute <op1(site1) op2(site2)> for site1 < site2
     right_sites = sorted(sites2[sites2 > site1])
     if right_sites:
-      right_sites_mod = list({n % N for n in right_sites})
-
-      rs = self.right_envs(right_sites_mod)
       net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
       A = net.add_node(self._nodes[site1].tensor)
       conj_A = net.add_node(self.backend.conj(self._nodes[site1].tensor))
@@ -546,6 +604,20 @@ class FiniteMPS(TensorNetwork):
       del net
 
       n2 = np.max(right_sites)
+      #          -- A--
+      #         |   |
+      # compute | op1(site1)
+      #         |   |
+      #          -- A*--
+      # and evolve it to the right by contracting tensors at site2 > site1
+      # if site2 is in `sites2`, calculate the observable
+      #
+      #  ---A--........-- A--------
+      # |   |             |        |
+      # |  op1(site1)    op2(site2)|
+      # |   |             |        |
+      #  ---A--........-- A*-------
+
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
           net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
