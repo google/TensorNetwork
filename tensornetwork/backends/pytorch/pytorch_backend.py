@@ -20,10 +20,20 @@ from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
 
+try:
+  import torch
+except ImportError:
+  raise ImportError("PyTorch not installed, please switch to a different "
+                    "backend or install PyTorch.")
+
 
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
+
+supported_dtypes = (
+    torch.int8, torch.int16, torch.int32, torch.int64, torch.float16,
+    torch.float32, torch.float64, torch.bool)
 
 
 class PyTorchBackend(base_backend.BaseBackend):
@@ -31,11 +41,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def __init__(self, dtype: Optional[Any] = None):
     super(PyTorchBackend, self).__init__()
-    try:
-      import torch
-    except ImportError:
-      raise ImportError("PyTorch not installed, please switch to a different "
-                        "backend or install PyTorch.")
+
     self.torch = torch
     self.name = "pytorch"
     self.dtype = dtype

@@ -6,13 +6,13 @@ import numpy as np
 from tensornetwork.backends.pytorch import pytorch_backend
 import torch
 import pytest
-import tensornetwork.config as config_file
+
 torch_dtypes = [
-    dtype for dtype in config_file.supported_pytorch_dtypes
+    dtype for dtype in pytorch_backend.supported_dtypes
     if dtype is not torch.bool
 ]
 torch_eye_dtypes = [
-    dtype for dtype in config_file.supported_pytorch_dtypes
+    dtype for dtype in pytorch_backend.supported_dtypes
     if dtype not in (torch.bool, torch.float16)
 ]
 torch_randn_dtypes = [torch.float32, torch.float64]

@@ -21,16 +21,18 @@ import numpy as np
 import tensorflow as tf
 import torch
 from jax.config import config
-import tensornetwork.config as config_file
 
+from tensornetwork.backends.numpy.numpy_backend import \
+  supported_dtypes as np_dtypes
+from tensornetwork.backends.tensorflow.tensorflow_backend import \
+  supported_dtypes as tf_dtypes
+from tensornetwork.backends.pytorch.pytorch_backend import \
+  supported_dtypes as torch_dtypes
+from tensornetwork.backends.jax.jax_backend import \
+  supported_dtypes as jax_dtypes
 
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
-
-np_dtypes = config_file.supported_numpy_dtypes
-tf_dtypes = config_file.supported_tensorflow_dtypes
-torch_dtypes = config_file.supported_pytorch_dtypes
-jax_dtypes = config_file.supported_jax_dtypes
 
 
 def test_network_copy_reordered(backend):

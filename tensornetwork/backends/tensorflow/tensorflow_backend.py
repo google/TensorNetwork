@@ -18,10 +18,23 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
+import numpy as np
+
+try:
+  import tensorflow as tf
+except ImportError:
+  raise ImportError("Tensorflow not installed, please switch to a "
+                    "different backend or install Tensorflow.")
+
+
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
-import numpy as np
 Tensor = Any
+
+supported_dtypes = (
+    tf.int8, tf.int16, tf.int32, tf.int64, tf.float32, tf.float16, tf.float64,
+    tf.complex64, tf.complex128, tf.bool
+    )
 
 
 class TensorFlowBackend(base_backend.BaseBackend):
@@ -30,11 +43,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
-    try:
-      import tensorflow as tf
-    except ImportError:
-      raise ImportError("Tensorflow not installed, please switch to a "
-                        "different backend or install Tensorflow.")
     self.tf = tf
     self.name = "tensorflow"
     self.dtype = dtype

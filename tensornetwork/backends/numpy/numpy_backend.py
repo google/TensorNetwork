@@ -18,7 +18,20 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
 import numpy
+
 Tensor = Any
+
+# np.ndarray.dtype doesn't return a `type`, but a `dtype` object
+# backend_factory compares object identities, and we want to catch both
+# the case of `dtype` being a `type` (like np.float64 given by a user) AND
+# the case of `dtype` being obtained from `np.ndarray.dtype`
+
+_supported_dtypes = (
+    numpy.int8, numpy.int16, numpy.int32, numpy.int64, numpy.float16,
+    numpy.float32, numpy.float64, numpy.complex64, numpy.complex128, numpy.bool
+    )
+supported_dtypes = _supported_dtypes + tuple(
+    numpy.dtype(d) for d in _supported_dtypes)
 
 
 class NumPyBackend(base_backend.BaseBackend):

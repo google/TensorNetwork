@@ -19,6 +19,9 @@ from __future__ import print_function
 import functools
 import operator
 from tensornetwork.backends import base_backend
+from ..numpy import numpy_backend
+from ..tensorflow import tensorflow_backend
+from ..pytorch import pytorch_backend
 from typing import Optional, Sequence, Tuple, List, Any, Union, Type
 import numpy as np
 
@@ -35,6 +38,11 @@ class ShellTensor:
 
 
 Tensor = ShellTensor
+
+# shell supports everything
+supported_dtypes = (numpy_backend.supported_dtypes +
+                    tensorflow_backend.supported_dtypes +
+                    pytorch_backend.supported_dtypes)
 
 
 class ShellBackend(base_backend.BaseBackend):

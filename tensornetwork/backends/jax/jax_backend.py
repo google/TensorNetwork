@@ -22,6 +22,8 @@ import numpy
 
 Tensor = Any
 
+supported_dtypes = numpy_backend.supported_dtypes
+
 
 class JaxBackend(numpy_backend.NumPyBackend):
   """See base_backend.BaseBackend for documentation."""

@@ -6,9 +6,8 @@ import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
-import tensornetwork.config as config_file
 
-np_dtypes = config_file.supported_numpy_dtypes
+np_dtypes = numpy_backend.supported_dtypes
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 
 

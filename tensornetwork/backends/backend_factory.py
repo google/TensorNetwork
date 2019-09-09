@@ -16,25 +16,30 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensornetwork.backends.tensorflow import tensorflow_backend
-from tensornetwork.backends.numpy import numpy_backend
-from tensornetwork.backends.jax import jax_backend
-from tensornetwork.backends.shell import shell_backend
-from tensornetwork.backends.pytorch import pytorch_backend
-import tensornetwork.config as config_file
-_BACKENDS = {
-    "tensorflow": tensorflow_backend.TensorFlowBackend,
-    "numpy": numpy_backend.NumPyBackend,
-    "jax": jax_backend.JaxBackend,
-    "shell": shell_backend.ShellBackend,
-    "pytorch": pytorch_backend.PyTorchBackend
-}
+import importlib
 
 
 def get_backend(name, dtype):
+
+  _BACKENDS = {
+      "tensorflow": ('.tensorflow.tensorflow_backend', 'TensorFlowBackend'),
+      "numpy": ('.numpy.numpy_backend', 'NumPyBackend'),
+      "jax": ('.jax.jax_backend', 'JaxBackend'),
+      "shell": ('.shell.shell_backend', 'ShellBackend'),
+      "pytorch": ('.pytorch.pytorch_backend', 'PyTorchBackend')
+      }
+
   if name not in _BACKENDS:
     raise ValueError("Backend {} does not exist".format(name))
-  if not any([dtype is d for d in config_file.supported_dtypes[name]]):
+
+  module_name, class_name = _BACKENDS[name]
+  package_name = 'tensornetwork.backends'
+  backend_module = importlib.import_module(module_name, package_name)
+  backend_class = getattr(backend_module, class_name)
+  dtypes = getattr(backend_module, 'supported_dtypes')
+
+  if dtype and not any([dtype is d for d in dtypes]):
     raise TypeError("Backend {} does not support dtype={} of type {}".format(
         name, dtype, type(dtype)))
-  return _BACKENDS[name](dtype)
+
+  return backend_class(dtype)
