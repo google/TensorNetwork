@@ -56,18 +56,3 @@ def test_config_tensorflow_missing_can_import_config():
   import tensornetwork.config
   with pytest.raises(ImportError):
     import tensorflow as tf
-
-
-# @pytest.mark.usefixtures('no_backend_dependency')
-# def test_import_tensornetwork_without_backends():
-#   with pytest.raises(ImportError):
-#     import torch
-#   with pytest.raises(ImportError):
-#     import tensorflow as tf
-#   with pytest.raises(ImportError):
-#     import jax
-#   import tensornetwork
-#   import tensornetwork.backends.pytorch.pytorch_backend
-#   #import tensornetwork.backends.tensorflow.tensorflow_backend
-#   import tensornetwork.backends.jax.jax_backend
-#   import tensornetwork.backends.numpy.numpy_backend
