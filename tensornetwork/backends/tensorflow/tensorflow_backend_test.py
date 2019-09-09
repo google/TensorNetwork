@@ -8,8 +8,8 @@ import pytest
 from tensornetwork.backends.tensorflow import tensorflow_backend
 tf.compat.v1.enable_v2_behavior()
 
-tf_dtypes = tensorflow_backend.supported_dtypes
-tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
+tf_dtypes = tensorflow_backend.supported_dtypes + (None,)
+tf_randn_dtypes = [tf.float32, tf.float16, tf.float64, None]
 
 
 def test_tensordot():
@@ -128,23 +128,28 @@ def test_norm():
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_eye(dtype):
+  result_type = dtype if dtype is not None else tf.float64
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.eye(N=4, M=5)
-  np.testing.assert_allclose(tf.eye(num_rows=4, num_columns=5, dtype=dtype), a)
+  if dtype is not None:
+    np.testing.assert_allclose(tf.eye(num_rows=4, num_columns=5,
+                                      dtype=result_type), a)
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_ones(dtype):
+  result_type = dtype if dtype is not None else tf.float64
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.ones((4, 4))
-  np.testing.assert_allclose(tf.ones((4, 4), dtype=dtype), a)
+  np.testing.assert_allclose(tf.ones((4, 4), dtype=result_type), a)
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_zeros(dtype):
+  result_type = dtype if dtype is not None else tf.float64
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.zeros((4, 4))
-  np.testing.assert_allclose(tf.zeros((4, 4), dtype=dtype), a)
+  np.testing.assert_allclose(tf.zeros((4, 4), dtype=result_type), a)
 
 
 @pytest.mark.parametrize("dtype", tf_randn_dtypes)
@@ -188,9 +193,10 @@ def test_randn_dtype(dtype):
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_eye_dtype_2(dtype):
+  result_type = dtype if dtype is not None else tf.float64
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.eye(N=4, M=4)
-  assert a.dtype == dtype
+  assert a.dtype == result_type
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
