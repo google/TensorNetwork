@@ -26,18 +26,21 @@ Tensor = Any
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
-  from tensornetwork.backends.tensorflow import tensordot2
 
   def __init__(self, dtype: Optional[Type[np.number]] = None):
+
     super(TensorFlowBackend, self).__init__()
     try:
       import tensorflow as tf
+      from tensornetwork.backends.tensorflow import tensordot2
     except ImportError:
       raise ImportError("Tensorflow not installed, please switch to a "
                         "different backend or install Tensorflow.")
+
     self.tf = tf
     self.name = "tensorflow"
     self.dtype = dtype
+    self.tensordot2 = tensordot2
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.tensordot2.tensordot(a, b, axes)
