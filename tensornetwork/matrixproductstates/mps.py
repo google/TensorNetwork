@@ -145,12 +145,9 @@ class FiniteMPS(TensorNetwork):
             left_edges=[self._nodes[n][0]],
             right_edges=[self._nodes[n][1], self._nodes[n][2]],
             right_name=self._nodes[n].name)
-        Z = self.backend.norm(R.tensor)
 
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
-        if normalize:
-          R.tensor /= Z
         self._nodes[n] = Q  #Q is a right-isometric tensor of rank 3
         self._nodes[n - 1] = self.contract(R[0], name=self._nodes[n - 1].name)
         Z = self.backend.norm(self._nodes[n - 1].tensor)
