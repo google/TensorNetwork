@@ -164,10 +164,16 @@ class FiniteMPS(TensorNetwork):
     Args:
       which: if 'l' or 'left': check left orthogonality
              if 'r' or'right': check right orthogonality
-      site:  the site of the tensor
+      site:  The site of the tensor.
     Returns:
-      scalar Tensor: the L2 norm of the deviation from identity
+      scalar Tensor: The L2 norm of the deviation from identity.
+    Raises:
+      ValueError: If which is different from 'l','left', 'r' or 'right'.
     """
+    if which not in ('l', 'left', 'r', 'right'):
+      raise ValueError(
+          "Wrong value `which`={}. "
+          "`which` as to be 'l','left', 'r' or 'right.".format(which))
     net = TensorNetwork(backend=self.backend.name, dtype=self.dtype)
     n1 = net.add_node(self._nodes[site].tensor)
     n2 = net.add_node(self.backend.conj(self._nodes[site].tensor))
