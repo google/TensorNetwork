@@ -177,9 +177,10 @@ class FiniteMPS(TensorNetwork):
     elif which in ('r', 'right'):
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
-    result = net.contract_between(n1, n2).tensor
+    result = net.contract_between(n1, n2)
     return self.backend.norm(
-        abs(result - self.backend.eye(N=result.shape[0], M=result.shape[1])))
+        abs(result.tensor -
+            self.backend.eye(N=result.shape[0], M=result.shape[1])))
 
   def left_envs(self, sites: List[int]) -> Dict:
     """
