@@ -115,10 +115,12 @@ def svd_decomposition(torch: Any,
 
   return u, s, vh, s_rest
 
-def qr_decomposition(torch: Any,
-                     tensor: Tensor,
-                     split_axis: int,
-                     ) -> Tuple[Tensor, Tensor]:
+
+def qr_decomposition(
+    torch: Any,
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix, 
@@ -153,15 +155,16 @@ def qr_decomposition(torch: Any,
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
   q, r = torch.qr(tensor)
   center_dim = q.shape[1]
-  q = torch.reshape(q, list(left_dims) + [center_dim])
-  r = torch.reshape(r, [center_dim] + list(right_dims))
+  q = torch.reshape(q, left_dims + [center_dim])
+  r = torch.reshape(r, [center_dim] + right_dims)
   return q, r
 
 
-def rq_decomposition(torch: Any,
-                     tensor: Tensor,
-                     split_axis: int,
-                     ) -> Tuple[Tensor, Tensor]:
+def rq_decomposition(
+    torch: Any,
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The RQ decomposition is performed by treating the tensor as a matrix, 
@@ -193,10 +196,11 @@ def rq_decomposition(torch: Any,
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
   tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
-  #torch has currently no support for complex dtypes  
-  q, r = torch.qr(torch.transpose(tensor, 0, 1)) 
-  r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0, 1)#M=r*q at this point
+  #torch has currently no support for complex dtypes
+  q, r = torch.qr(torch.transpose(tensor, 0, 1))
+  r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,
+                                                   1)  #M=r*q at this point
   center_dim = r.shape[1]
-  r = torch.reshape(r, list(left_dims) + [center_dim])
-  q = torch.reshape(q, [center_dim] + list(right_dims))
+  r = torch.reshape(r, left_dims + [center_dim])
+  q = torch.reshape(q, [center_dim] + right_dims)
   return r, q
