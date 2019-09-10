@@ -26,7 +26,7 @@ class LinearOperator:
 
   def __init__(self, matvec: Callable,
                shape: Tuple[Tuple[int]], backend: str, dtype: Type[np.number]):
-    self._matvec = matvec
+    self.matvec = matvec
     self.shape = shape
     self.backend = backend_factory.get_backend(backend, dtype)
 
@@ -41,7 +41,8 @@ def eigsh(A: LinearOperator,
           ncv: Optional[int] = 200,
           tol: Optional[float] = 1E-8,
           delta: Optional[float] = 1E-8
-          ndiag: Optional[int] = None):
+          ndiag: Optional[int] = 20,
+          reortho: Optional[bool] = False):
 
   if v0 and (A.dtype is not v0.dtype):
     raise TypeError("A.dtype={} is different from v0.dtype={}".format(
@@ -56,29 +57,29 @@ def eigsh(A: LinearOperator,
 
   converged = False
   it = 0
-  kn = []
+  norms_xn = []
   epsn = []
   krylov_vecs = []
   first = True
   while converged == False:
     #normalize the current vector:
-    knval = self.backend.sqrt(vv(xn, xn))
-    if knval < self.delta:
+    normxn = self.backend.sqrt(vv(xn, xn))
+    if normxn < delta:
       converged = True
       break
-    kn.append(knval)
-    xn = xn / kn[-1]
+    norms_xn.append(normxn)
+    xn = xn / norms_xn[-1]
     #store the Lanczos vector for later
     if reortho == True:
       for v in krylov_vecs:
         xn -= self.scalar_product(v, xn) * v
     krylov_vecs.append(xn)
-    Hxn = self.matvec(xn)
+    Hxn = A.matvec(xn)
     epsn.append(self.scalar_product(xn, Hxn))
 
     if ((it > 0) and (it % self.Ndiag) == 0) & (len(epsn) >= self.numeig):
       #diagonalize the effective Hamiltonian
-      Heff = np.diag(epsn) + np.diag(kn[1:], 1) + np.diag(np.conj(kn[1:]), -1)
+      Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(np.conj(norms_xn[1:]), -1)
       eta, u = np.linalg.eigh(Heff)
       if first == False:
         if np.linalg.norm(eta[0:self.numeig] -
@@ -88,7 +89,7 @@ def eigsh(A: LinearOperator,
       etaold = eta[0:self.numeig]
     if it > 0:
       Hxn -= (krylov_vecs[-1] * epsn[-1])
-      Hxn -= (krylov_vecs[-2] * kn[-1])
+      Hxn -= (krylov_vecs[-2] * norms_xn[-1])
     else:
       Hxn -= (krylov_vecs[-1] * epsn[-1])
     xn = Hxn
@@ -103,7 +104,7 @@ def eigsh(A: LinearOperator,
         add_layer=[],
         num_lan=[len(epsn)])
 
-  self.Heff = np.diag(epsn) + np.diag(kn[1:], 1) + np.diag(np.conj(kn[1:]), -1)
+  self.Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(np.conj(norms_xn[1:]), -1)
   eta, u = np.linalg.eigh(self.Heff)
   states = []
   for n2 in range(min(self.numeig, len(eta))):
