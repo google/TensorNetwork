@@ -119,11 +119,11 @@ def svd_decomposition(tf: Any,
   return u, s, vh, s_rest
 
 
-
-def qr_decomposition(tf: Any,
-                     tensor: Tensor,
-                     split_axis: int,
-                     ) -> Tuple[Tensor, Tensor]:
+def qr_decomposition(
+    tf: Any,
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix, 
@@ -159,15 +159,16 @@ def qr_decomposition(tf: Any,
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tensor)
   center_dim = tf.shape(q)[1]
-  q = tf.reshape(q, list(left_dims) + [center_dim])
-  r = tf.reshape(r, [center_dim] + list(right_dims))
+  q = tf.reshape(q, tf.concat([left_dims, [center_dim]], axis=-1))
+  r = tf.reshape(r, tf.concat([[center_dim], right_dims], axis=-1))
   return q, r
 
 
-def rq_decomposition(tf: Any,
-                     tensor: Tensor,
-                     split_axis: int,
-                     ) -> Tuple[Tensor, Tensor]:
+def rq_decomposition(
+    tf: Any,
+    tensor: Tensor,
+    split_axis: int,
+) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix, 
@@ -202,8 +203,9 @@ def rq_decomposition(tf: Any,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tf.conj(tf.transpose(tensor)))
-  r, q = tf.conj(tf.transpose(r)), tf.conj(tf.transpose(q))#M=r*q at this point
+  r, q = tf.conj(tf.transpose(r)), tf.conj(
+      tf.transpose(q))  #M=r*q at this point
   center_dim = tf.shape(r)[1]
-  r = tf.reshape(r, list(left_dims) + [center_dim])
-  q = tf.reshape(q, [center_dim] + list(right_dims))
+  r = tf.reshape(r, tf.concat([left_dims, [center_dim]], axis=-1))
+  q = tf.reshape(q, tf.concat([[center_dim], right_dims], axis=-1))
   return r, q
