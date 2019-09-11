@@ -255,12 +255,12 @@ def eigsh_lanczos(A: LinearOperator,
   eigvalsold = []
   while not converged:
     #normalize the current vector:
-    normvector_n = backend.sqrt(dot_product(
+    norm_vector_n = backend.sqrt(dot_product(
         vector_n, vector_n))  #conj has to be implemented by the user
-    if abs(normvector_n) < delta:
+    if abs(norm_vector_n) < delta:
       converged = True
       break
-    norms_vector_n.append(normvector_n)
+    norms_vector_n.append(norm_vector_n)
     vector_n = vector_n / norms_vector_n[-1]
     #store the Lanczos vector for later
     if reorthogonalize:
