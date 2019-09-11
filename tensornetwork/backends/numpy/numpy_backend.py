@@ -87,7 +87,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, self.np.ndarray) and
         not self.np.isscalar(tensor)):
-      raise ValueError("Expected a `np.array` or scalar. Got {}".format(
+      raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
     if self.dtype is not None and result.dtype != self.dtype:
