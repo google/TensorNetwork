@@ -148,8 +148,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
       return self.tf.complex(
           self.tf.random_normal(shape=shape, dtype=dtype.real_dtype),
           self.tf.random_normal(shape=shape, dtype=dtype.real_dtype))
-    else:
-      return self.tf.random_normal(shape=shape, dtype=dtype)
+    return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.tf.conj(tensor)

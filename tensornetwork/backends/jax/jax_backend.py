@@ -61,17 +61,16 @@ class JaxBackend(numpy_backend.NumPyBackend):
     if not dtype:
       dtype = numpy.float64
     if dtype is self.np.complex128:
-      print(dtype)
       key_2 = self.jax.random.PRNGKey(seed + 1)
       return self.jax.random.normal(
           key, shape,
           dtype=numpy.float64) + numpy.complex128(1j) * self.jax.random.normal(
               key_2, shape, dtype=numpy.float64)
-    elif dtype is self.np.complex64:
+    if dtype is self.np.complex64:
       key_2 = self.jax.random.PRNGKey(seed + 1)
       return self.jax.random.normal(
           key, shape,
           dtype=numpy.float32) + numpy.complex64(1j) * self.jax.random.normal(
               key_2, shape, dtype=numpy.float32)
-    else:
-      return self.jax.random.normal(key, shape).astype(dtype)
+
+    return self.jax.random.normal(key, shape).astype(dtype)
