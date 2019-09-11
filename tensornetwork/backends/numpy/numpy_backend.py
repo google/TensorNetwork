@@ -112,27 +112,21 @@ class NumPyBackend(base_backend.BaseBackend):
   def eye(self, N, dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = numpy.float64
+      dtype = self.dtype if self.dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = numpy.float64
+      dtype = self.dtype if self.dtype is not None else self.np.float64
 
     return self.np.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = numpy.float64
+      dtype = self.dtype if self.dtype is not None else self.np.float64
 
     return self.np.zeros(shape, dtype=dtype)
 
@@ -145,9 +139,8 @@ class NumPyBackend(base_backend.BaseBackend):
       self.np.random.seed(seed)
 
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = numpy.float64
+      dtype = self.dtype if self.dtype is not None else self.np.float64
+
     if (dtype is self.np.complex128) or (dtype is self.np.complex64):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
