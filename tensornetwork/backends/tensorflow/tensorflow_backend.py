@@ -136,7 +136,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None) -> Tensor:
+            dtype: Optional[Type[np.number]] = None,
+            seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.tf.random.set_random_seed(seed)
     if not dtype:
       dtype = self.dtype
     if not dtype:
