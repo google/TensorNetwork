@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork
 from tensornetwork import TensorNetwork
-from tensornetwork.sparse import lanczos as lanczos
+from tensornetwork.sparse import lanczos
 import numpy as np
 import tensorflow as tf
 import torch
@@ -57,7 +57,7 @@ def test_eigsh_lanczos_1(backend, dtype):
     n1[3] ^ n2[1]
     out_order = [n1[0], n1[1]]
     result = n1 @ n2
-
+    result.reorder_edges(out_order)
     return result.tensor
 
   def vv(a, b, backend):
@@ -104,7 +104,7 @@ def test_eigsh_lanczos_2(backend, dtype):
     n1[3] ^ n2[1]
     out_order = [n1[0], n1[1]]
     result = n1 @ n2
-
+    result.reorder_edges(out_order)
     return result.tensor
 
   def vv(a, b):
@@ -135,7 +135,8 @@ def test_eigsh_lanczos_2(backend, dtype):
     *list(zip(['jax'] * len(jax_dtypes), jax_dtypes)),
 ])
 def test_LinearOperator_1(backend, dtype):
-
+  # pylint: disable=unused-argument
+  # pylint: disable=unused-argument
   def mv(x, backend, c):
     pass
 
@@ -150,7 +151,8 @@ def test_LinearOperator_1(backend, dtype):
     *list(zip(['jax'] * len(jax_dtypes), jax_dtypes)),
 ])
 def test_LinearOperator_2(backend, dtype):
-
+  # pylint: disable=unused-argument
+  # pylint: disable=unused-argument
   def mv(backend, x):
     pass
 
