@@ -136,8 +136,14 @@ class NumPyBackend(base_backend.BaseBackend):
 
     return self.np.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int, ...],
-            dtype: Optional[numpy.dtype] = None) -> Tensor:
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[numpy.dtype] = None,
+            seed: Optional[int] = None) -> Tensor:
+
+    if seed:
+      self.np.random.seed(seed)
+
     if not dtype:
       dtype = self.dtype
     if not dtype:
