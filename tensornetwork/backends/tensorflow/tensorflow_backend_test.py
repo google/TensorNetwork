@@ -203,7 +203,6 @@ def test_eye_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_ones_dtype_2(dtype):
-  dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.ones((4, 4))
   assert a.dtype == dtype
@@ -211,7 +210,6 @@ def test_ones_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_zeros_dtype_2(dtype):
-  dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.zeros((4, 4))
   assert a.dtype == dtype
@@ -219,7 +217,6 @@ def test_zeros_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", tf_randn_dtypes)
 def test_randn_dtype_2(dtype):
-  dtype = tf.float32
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.randn((4, 4))
   assert a.dtype == dtype
