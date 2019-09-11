@@ -222,6 +222,14 @@ def test_randn_dtype_2(dtype):
   assert a.dtype == dtype
 
 
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_randn_seed(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.randn((4, 4), seed=10)
+  b = backend.randn((4, 4), seed=10)
+  np.testing.assert_allclose(a, b)
+
+
 def test_conj():
   backend = tensorflow_backend.TensorFlowBackend(dtype=tf.complex128)
   real = np.random.rand(2, 2, 2)
