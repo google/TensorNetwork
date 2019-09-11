@@ -24,8 +24,9 @@ Tensor = Any
 
 class LinearOperator:
 
-  def __init__(self, matvec: Callable,
-               shape: Tuple[Tuple[int]], backend: str, dtype: Type[np.number]):
+  def __init__(self, matvec: Callable, shape: Tuple[Tuple[int]], backend: str,
+               dtype: Type[np.number]):
+
     self.matvec = matvec
     self.shape = shape
     self.backend = backend_factory.get_backend(backend, dtype)
@@ -34,25 +35,35 @@ class LinearOperator:
   def dtype(self):
     return self.backend.dtype
 
+  def __call__(self, x):
+    return self.matvec(x, self.backend.name)
+
 
 def eigsh(A: LinearOperator,
           vv: Callable,
           v0: Optional[Tensor] = None,
           ncv: Optional[int] = 200,
+          numeig: Optional[int] = 1,
           tol: Optional[float] = 1E-8,
-          delta: Optional[float] = 1E-8
+          delta: Optional[float] = 1E-8,
           ndiag: Optional[int] = 20,
           reortho: Optional[bool] = False):
 
+  if ncv < numeig:
+    raise ValueError('`ncv` >= `numeig` required!')
+  backend = A.backend
   if v0 and (A.dtype is not v0.dtype):
     raise TypeError("A.dtype={} is different from v0.dtype={}".format(
         A.dtype, v0.dtype))
-  if v0:
-    xn = v0
-  else:
-    xn = self.backend.randn(self.shape[1])
 
-  Z = self.backend.norm(xn)
+  if v0 and (v0.shape != A.shape[1]):
+    raise ValueError("A.shape[1]={} and v0.shape={} are incompatible.".format(
+        A.shape[1], v0.shape))
+
+  if not v0:
+    v0 = backend.randn(A.shape[1])
+  xn = v0
+  Z = backend.norm(xn)
   xn /= Z
 
   converged = False
@@ -63,7 +74,8 @@ def eigsh(A: LinearOperator,
   first = True
   while converged == False:
     #normalize the current vector:
-    normxn = self.backend.sqrt(vv(xn, xn))
+    normxn = backend.sqrt(vv(
+        xn, xn, backend.name))  #conj has to be implemented by the user
     if normxn < delta:
       converged = True
       break
@@ -72,21 +84,21 @@ def eigsh(A: LinearOperator,
     #store the Lanczos vector for later
     if reortho == True:
       for v in krylov_vecs:
-        xn -= self.scalar_product(v, xn) * v
+        xn -= vv(v, xn, backend.name) * v
     krylov_vecs.append(xn)
-    Hxn = A.matvec(xn)
-    epsn.append(self.scalar_product(xn, Hxn))
+    Hxn = A(xn)
+    epsn.append(vv(xn, Hxn, backend.name))
 
-    if ((it > 0) and (it % self.Ndiag) == 0) & (len(epsn) >= self.numeig):
+    if ((it > 0) and (it % ndiag) == 0) and (len(epsn) >= numeig):
       #diagonalize the effective Hamiltonian
-      Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(np.conj(norms_xn[1:]), -1)
+      Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(
+          np.conj(norms_xn[1:]), -1)
       eta, u = np.linalg.eigh(Heff)
       if first == False:
-        if np.linalg.norm(eta[0:self.numeig] -
-                          etaold[0:self.numeig]) < self.deltaEta:
+        if np.linalg.norm(eta[0:numeig] - etaold[0:numeig]) < tol:
           converged = True
       first = False
-      etaold = eta[0:self.numeig]
+      etaold = eta[0:numeig]
     if it > 0:
       Hxn -= (krylov_vecs[-1] * epsn[-1])
       Hxn -= (krylov_vecs[-2] * norms_xn[-1])
@@ -94,27 +106,27 @@ def eigsh(A: LinearOperator,
       Hxn -= (krylov_vecs[-1] * epsn[-1])
     xn = Hxn
     it = it + 1
-    if it >= self.ncv:
+    if it >= ncv:
       break
 
-  if walltime_log:
-    walltime_log(
-        lan=[(time.time() - t1) / len(epsn)] * len(epsn),
-        QR=[],
-        add_layer=[],
-        num_lan=[len(epsn)])
-
-  self.Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(np.conj(norms_xn[1:]), -1)
-  eta, u = np.linalg.eigh(self.Heff)
+  Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(
+      np.conj(norms_xn[1:]), -1)
+  eta, u = np.linalg.eigh(Heff)
   states = []
-  for n2 in range(min(self.numeig, len(eta))):
-    if zeros is None:
-      state = initialstate.zeros(initialstate.shape, dtype=initialstate.dtype)
-    else:
-      state = copy.deepcopy(zeros)
+  for n2 in range(min(numeig, len(eta))):
+    state = backend.zeros(v0.shape, dtype=v0.dtype)
     for n1 in range(len(krylov_vecs)):
       state += krylov_vecs[n1] * u[n1, n2]
-    states.append(state / np.sqrt(self.scalar_product(state, state)))
+    states.append(state / backend.sqrt(vv(state, state, backend.name)))
+  print([eta[n].dtype for n in range(min(numeig, len(eta)))])
+  print(states[0].dtype)
+  eigvals = [
+      backend.convert_to_tensor(np.array(eta[n]))
+      for n in range(min(numeig, len(eta)))
+  ]
+  eig_states = [
+      backend.convert_to_tensor(states[n])
+      for n in range(min(numeig, len(eta)))
+  ]
 
-  return eta[0:min(self.numeig, len(eta))], states[0:min(self.numeig, len(eta)
-                                                        )], it  #,epsn,kn
+  return eigvals, eig_states
