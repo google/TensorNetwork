@@ -127,7 +127,7 @@ def test_einsum():
 
 def test_convert_bad_test():
   backend = numpy_backend.NumPyBackend()
-  with pytest.raises(ValueError):
+  with pytest.raises(TypeError):
     backend.convert_to_tensor(tf.ones((2, 2)))
 
 
