@@ -39,12 +39,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.dtype = dtype
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    jiter = self.jax.jit(lambda x: x)
-    try:
-      result = jiter(tensor)  #don't make a copy if not neccessary
-    except TypeError:
-      result = jiter(numpy.array(tensor))  #convert tf tensors to jax
-
+    result = self.jax.jit(lambda x: x)
     if self.dtype is not None and result.dtype != self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
