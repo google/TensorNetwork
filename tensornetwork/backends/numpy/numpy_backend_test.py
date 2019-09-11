@@ -213,7 +213,6 @@ def test_eye_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_ones_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.ones((4, 4))
   assert a.dtype == dtype
@@ -221,7 +220,6 @@ def test_ones_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_zeros_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.zeros((4, 4))
   assert a.dtype == dtype
@@ -229,10 +227,17 @@ def test_zeros_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.randn((4, 4))
   assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_randn_seed(dtype):
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.randn((4, 4), seed=10)
+  b = backend.randn((4, 4), seed=10)
+  np.testing.assert_allclose(a, b)
 
 
 def test_conj():
