@@ -155,6 +155,13 @@ def test_randn(dtype):
   assert a.shape == (4, 4)
 
 
+@pytest.mark.parametrize("dtype", [tf.complex64, tf.complex128])
+def test_randn_non_zero_imag(dtype):
+  backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert tf.math.greater(tf.linalg.norm(tf.imag(a)), 0.0)
+
+
 @pytest.mark.parametrize("dtype", tf_dtypes)
 def test_eye_dtype(dtype):
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
