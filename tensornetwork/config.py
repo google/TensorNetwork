@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-default_backend = "jax"
+default_backend = "numpy"
 default_dtype = None
 #for backwards compatibility default dtypes have to be `None`
 #changing this will cause tests to fail due backend.convert_to_tensor(tensor)
