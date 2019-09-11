@@ -211,8 +211,8 @@ def eigsh_lanczos(A: LinearOperator,
     (eigvals, eigvecs)
      eigvals: A list of `numeig` lowest eigenvalues
      eigvecs: A list of `numeig` lowest eigenvectors
-    
   """
+  #TODO: make this work for tensorflow in graph mode
   if ncv < numeig:
     raise ValueError('`ncv` >= `numeig` required!')
   if numeig > 1 and not reortho:
@@ -244,6 +244,7 @@ def eigsh_lanczos(A: LinearOperator,
   epsn = []
   krylov_vecs = []
   first = True
+  etaold = None
   while converged == False:
     #normalize the current vector:
     normxn = backend.sqrt(vv(xn, xn))  #conj has to be implemented by the user
