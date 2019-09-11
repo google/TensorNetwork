@@ -59,7 +59,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     if not dtype:
       dtype = self.dtype if self.dtype is not None else numpy.float64
 
-    def cmplx_randn(complex_dtype, real_dtype, seed):
+    def cmplx_randn(complex_dtype, real_dtype):
       key_2 = self.jax.random.PRNGKey(seed + 1)
       return self.jax.random.normal(
           key, shape,
