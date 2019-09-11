@@ -141,8 +141,12 @@ class TensorFlowBackend(base_backend.BaseBackend):
       dtype = self.dtype
     if not dtype:
       dtype = self.tf.float64
-
-    return self.tf.random_normal(shape=shape, dtype=dtype)
+    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
+      return self.tf.complex(
+          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype),
+          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype))
+    else:
+      return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.tf.conj(tensor)
