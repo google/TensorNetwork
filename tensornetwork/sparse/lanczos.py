@@ -109,18 +109,18 @@ class LinearOperator:
 
 class ScalarProduct:
 
-  def __init__(self, dotprod: Callable, dtype: Type[np.number],
+  def __init__(self, dot_product: Callable, dtype: Type[np.number],
                backend: Text) -> None:
     """
     Initialize a `ScalarProduct`
     Args:
-      dotprod: A function which implements a dot-product between two vectors
-        Allowed signatures are: `dotprod(x, y)`, `dotprod(x, y, backend)`
-          and `dotprod(x, y, backend=default)` with `default` 'numpy', 
+      dot_product: A function which implements a dot-product between two vectors
+        Allowed signatures are: `dot_product(x, y)`, `dot_product(x, y, backend)`
+          and `dot_product(x, y, backend=default)` with `default` 'numpy', 
           'tensorflow', 'pytorch', 'jax' or 'shell'.
-         `result = `dotprod` should return `result` of the same type as `x` 
+         `result = `dot_product` should return `result` of the same type as `x` 
           (i.e. a `Tensor` object)
-          Note that any default value for argument `backend` of `dotprod` 
+          Note that any default value for argument `backend` of `dot_product` 
           is overridden by the value of the `backend` argument of 
           `ScalarProduct.__init__`
       dtype: The data-type of the `ScalarProduct`.
@@ -129,77 +129,77 @@ class ScalarProduct:
     Returns: 
       None
     Raises:
-      ValueError if `dotprod` signature is other than the above mentioned.
+      ValueError if `dot_product` signature is other than the above mentioned.
     """
 
     self.backend = backend_factory.get_backend(backend, dtype)
-    args = inspect.getargspec(dotprod)
+    args = inspect.getargspec(dot_product)
     if len(args[0]) > 3:
       raise ValueError(
-          '`dotprod` can have at most 3 arguments; found args = {}'.format(
+          '`dot_product` can have at most 3 arguments; found args = {}'.format(
               args[0]))
     if (args[0][0] == 'backend') or (args[0][1] == 'backend'):
       raise ValueError(
-          "Found `backend` as first or second argument of `dotprod`. "
+          "Found `backend` as first or second argument of `dot_product`. "
           "It can only be the third argument!")
     if args[3] and (len(args[3]) != 1):
       N = len(args[0])
       params = [args[0][N - 1 - n] for n in range(len(args[3]))]
       defaults = [args[3][n] for n in reversed(range(len(args[3])))]
       raise ValueError(
-          "The only allowed argument to `dotprod` with defaults is `backend`. "
+          "The only allowed argument to `dot_product` with defaults is `backend`. "
           "Found arguments {} with default values {}!".format(
               params[::-1], defaults[::-1]))
 
     if args[3] and (len(args[3]) == 1):
       if args[3][0] not in ('tensorflow', 'numpy', 'jax', 'pytorch', 'shell'):
         raise ValueError(
-            "wrong default '{}' for argument `{}` of `dotprod`. "
+            "wrong default '{}' for argument `{}` of `dot_product`. "
             "Only allowed values are 'numpy', 'tensorflow', 'pytorch', "
             "'jax' and 'shell'".format(args[3][0], args[0][1]))
       if args[3][0] != self.backend.name:
         warnings.warn(
-            "default value of parameter `{0}` = '{1}' of `dotprod` is "
+            "default value of parameter `{0}` = '{1}' of `dot_product` is "
             "different from ScalarProduct.backend.name='{2}'."
             " Overriding the default to `{0}` = '{2}'".format(
                 args[0][1], args[3][0], self.backend.name))
 
-    if len(args[0]) == 2:  #dotprod takes only one argument
-      self.dotprod = dotprod
-    else:  #dotprod takes two arguments (x, backend)
+    if len(args[0]) == 2:  #dot_product takes only one argument
+      self.dot_product = dot_product
+    else:  #dot_product takes two arguments (x, backend)
 
-      def _dotprod(x, y):
-        return dotprod(x, y, self.backend.name)
+      def _dot_product(x, y):
+        return dot_product(x, y, self.backend.name)
 
-      self.dotprod = _dotprod
+      self.dot_product = _dot_product
 
   @property
   def dtype(self):
     return self.backend.dtype
 
   def __call__(self, x, y):
-    return self.dotprod(x, y)
+    return self.dot_product(x, y)
 
 
 def eigsh_lanczos(A: LinearOperator,
-                  vv: ScalarProduct,
-                  v0: Optional[Tensor] = None,
+                  dot_product: ScalarProduct,
+                  initial_state: Optional[Tensor] = None,
                   ncv: Optional[int] = 200,
                   numeig: Optional[int] = 1,
                   tol: Optional[float] = 1E-8,
                   delta: Optional[float] = 1E-8,
                   ndiag: Optional[int] = 20,
-                  reortho: Optional[bool] = False) -> Tuple[List, List]:
+                  reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
   """
   Lanczos method for finding the lowest eigenvector-eigenvalue pairs
   of a `LinearOperator` `A`.
   Args:
     A: A (sparse) implementation of a linear operator
-    vv: A (sparse) implementation of a scalar product
-    v0: An initial vector for the Lanczos algorithm
+    dot_product: A (sparse) implementation of a scalar product
+    initial_state: An initial vector for the Lanczos algorithm
     ncv: The number of iterations (number of krylov vectors).
     numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
-      If `numeig > 1`, `reortho` has to be `True`.
+      If `numeig > 1`, `reorthogonalize` has to be `True`.
     tol: The desired precision of the eigenvalus. Currently we use 
       `np.linalg.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
       as stopping criterion between two diagonalization steps of the
@@ -209,8 +209,8 @@ def eigsh_lanczos(A: LinearOperator,
       have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
     ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations to
       check convergence.
-    reortho: If `True`, Krylov vectors are kept orthogonal by 
-      explicit orthogonalization (this is more costly than `reortho=False`)
+    reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      explicit orthogonalization (this is more costly than `reorthogonalize=False`)
   Returns:
     (eigvals, eigvecs)
      eigvals: A list of `numeig` lowest eigenvalues
@@ -219,91 +219,97 @@ def eigsh_lanczos(A: LinearOperator,
   #TODO: make this work for tensorflow in graph mode
   if ncv < numeig:
     raise ValueError('`ncv` >= `numeig` required!')
-  if numeig > 1 and not reortho:
-    raise ValueError("Got numeig = {} > 1 and `reortho = False`. "
-                     "Use `reortho=True` for `numeig > 1`".format(numeig))
-  if A.backend.name != vv.backend.name:
-    raise ValueError("A.backend={} is different from vv.backend={}".format(
-        A.backend.name, vv.backend.name))
-  if A.dtype != vv.dtype:
-    raise ValueError("A.dtype={} is different from vv.dtype={}".format(
-        A.dtype, vv.dtype))
-  if v0 and (A.dtype is not v0.dtype):
-    raise TypeError("A.dtype={} is different from v0.dtype={}".format(
-        A.dtype, v0.dtype))
-  if v0 and (v0.shape != A.shape[1]):
-    raise ValueError("A.shape[1]={} and v0.shape={} are incompatible.".format(
-        A.shape[1], v0.shape))
+  if numeig > 1 and not reorthogonalize:
+    raise ValueError(
+        "Got numeig = {} > 1 and `reorthogonalize = False`. "
+        "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
+  if A.backend.name != dot_product.backend.name:
+    raise ValueError(
+        "A.backend={} is different from dot_product.backend={}".format(
+            A.backend.name, dot_product.backend.name))
+  if A.dtype != dot_product.dtype:
+    raise ValueError("A.dtype={} is different from dot_product.dtype={}".format(
+        A.dtype, dot_product.dtype))
+  if initial_state and (A.dtype is not initial_state.dtype):
+    raise TypeError(
+        "A.dtype={} is different from initial_state.dtype={}".format(
+            A.dtype, initial_state.dtype))
+  if initial_state and (initial_state.shape != A.shape[1]):
+    raise ValueError(
+        "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+            A.shape[1], initial_state.shape))
 
   backend = A.backend
-  if not v0:
-    v0 = backend.randn(A.shape[1])
-  xn = v0
-  Z = backend.norm(xn)
-  xn /= Z
+  if not initial_state:
+    initial_state = backend.randn(A.shape[1])
+  vector_n = initial_state
+  Z = backend.norm(vector_n)
+  vector_n /= Z
 
   converged = False
   it = 0
-  norms_xn = []
-  epsn = []
+  norms_vector_n = []
+  diag_elements = []
   krylov_vecs = []
   first = True
-  etaold = []
+  eigvalsold = []
   while not converged:
     #normalize the current vector:
-    normxn = backend.sqrt(vv(xn, xn))  #conj has to be implemented by the user
-    if abs(normxn) < delta:
+    normvector_n = backend.sqrt(dot_product(
+        vector_n, vector_n))  #conj has to be implemented by the user
+    if abs(normvector_n) < delta:
       converged = True
       break
-    norms_xn.append(normxn)
-    xn = xn / norms_xn[-1]
+    norms_vector_n.append(normvector_n)
+    vector_n = vector_n / norms_vector_n[-1]
     #store the Lanczos vector for later
-    if reortho:
+    if reorthogonalize:
       for v in krylov_vecs:
-        xn -= vv(v, xn) * v
-    krylov_vecs.append(xn)
-    Hxn = A(xn)
-    epsn.append(vv(xn, Hxn))
+        vector_n -= dot_product(v, vector_n) * v
+    krylov_vecs.append(vector_n)
+    A_vector_n = A(vector_n)
+    diag_elements.append(dot_product(vector_n, A_vector_n))
 
-    if ((it > 0) and (it % ndiag) == 0) and (len(epsn) >= numeig):
+    if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
       #diagonalize the effective Hamiltonian
-      Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(
-          np.conj(norms_xn[1:]), -1)
-      eta, u = np.linalg.eigh(Heff)
+      Heff = np.diag(diag_elements) + np.diag(norms_vector_n[1:], 1) + np.diag(
+          np.conj(norms_vector_n[1:]), -1)
+      eigvals, u = np.linalg.eigh(Heff)
       if first:
-        if np.linalg.norm(eta[0:numeig] - etaold[0:numeig]) < tol:
+        if np.linalg.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
           converged = True
       first = False
-      etaold = eta[0:numeig]
+      eigvalsold = eigvals[0:numeig]
     if it > 0:
-      Hxn -= (krylov_vecs[-1] * epsn[-1])
-      Hxn -= (krylov_vecs[-2] * norms_xn[-1])
+      A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
+      A_vector_n -= (krylov_vecs[-2] * norms_vector_n[-1])
     else:
-      Hxn -= (krylov_vecs[-1] * epsn[-1])
-    xn = Hxn
+      A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
+    vector_n = A_vector_n
     it = it + 1
     if it >= ncv:
       break
 
-  Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(
-      np.conj(norms_xn[1:]), -1)
-  eta, u = np.linalg.eigh(Heff)
-  states = []
-  if np.iscomplexobj(Heff):
-    eta = np.array(eta).astype(Heff.dtype)
+  Heff = np.diag(diag_elements) + np.diag(norms_vector_n[1:], 1) + np.diag(
+      np.conj(norms_vector_n[1:]), -1)
+  eigvals, u = np.linalg.eigh(Heff)
 
-  for n2 in range(min(numeig, len(eta))):
-    state = backend.zeros(v0.shape)
+  eigenvectors = []
+  if np.iscomplexobj(Heff):
+    eigvals = np.array(eigvals).astype(Heff.dtype)
+
+  for n2 in range(min(numeig, len(eigvals))):
+    state = backend.zeros(initial_state.shape)
     for n1, vec in enumerate(krylov_vecs):
       state += vec * u[n1, n2]
-    states.append(state / backend.sqrt(vv(state, state)))
-  eigvals = [
-      backend.convert_to_tensor(np.array(eta[n]))
-      for n in range(min(numeig, len(eta)))
+    eigenvectors.append(state / backend.sqrt(dot_product(state, state)))
+  final_eigenvalues = [
+      backend.convert_to_tensor(np.array(eigvals[n]))
+      for n in range(min(numeig, len(eigvals)))
   ]
-  eigvecs = [
-      backend.convert_to_tensor(states[n])
-      for n in range(min(numeig, len(eta)))
+  final_eigenvectors = [
+      backend.convert_to_tensor(eigenvectors[n])
+      for n in range(min(numeig, len(eigvals)))
   ]
 
-  return eigvals, eigvecs
+  return final_eigenvalues, final_eigenvectors
