@@ -54,7 +54,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
             dtype: Optional[numpy.dtype] = None,
             seed: Optional[int] = None) -> Tensor:
     if not seed:
-      seed = numpy.random.randint(0, 2**64 - 3)
+      seed = numpy.random.randint(0, 2**63)
     key = self.jax.random.PRNGKey(seed)
     if not dtype:
       dtype = self.dtype
