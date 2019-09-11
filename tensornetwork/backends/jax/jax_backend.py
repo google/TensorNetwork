@@ -29,7 +29,6 @@ class JaxBackend(numpy_backend.NumPyBackend):
     super(JaxBackend, self).__init__()
     try:
       import jax
-      jax.config.update("jax_enable_x64", True)
     except ImportError:
       raise ImportError("Jax not installed, please switch to a different "
                         "backend or install Jax.")
