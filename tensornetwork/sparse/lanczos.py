@@ -43,12 +43,14 @@ class LinearOperator:
           'pytorch', 'jax' or 'shell'.
          `result = `matvec` should return `result` of the same type as `x` (i.e.
           a `Tensor` object)
-          Note that any default value for argument `backend` of `matvec` is overridden
+          Note that any default value for argument `backend` of `matvec` is 
+          overridden
           by the value of the `backend` argument of `LinearOperator.__init__`
       shape: A tuple of outgoing and incoming shapes of the `LinearOperator`.
-        For example, if `matvec(x)` takes as input a tensor `x` of shape `x.shape = (2,3,4,5)`
-        and returns `result` with `result.shape = (4,5,2)`, then `shape` has to be 
-        `shape = ((4,5,2), (2,3,4,5))`.
+        For example, if `matvec(x)` takes as input a tensor `x` of shape 
+        `x.shape = (2,3,4,5)` and returns `result` with 
+         `result.shape = (4,5,2)`, then `shape` has to be 
+         `shape = ((4,5,2), (2,3,4,5))`.
       dtype: The data-type of the `LinearOperator`.
       backend: The backend to be used with this `LinearOperator`. 
         `backend` can be 'numpy', 'tensorflow', 'pytorch', 'jax' or 'shell'
@@ -64,7 +66,7 @@ class LinearOperator:
       raise ValueError(
           '`matvec` can have at most 2 arguments; found args = {}'.format(
               args[0]))
-    if (args[0][0] == 'backend'):
+    if args[0][0] == 'backend':
       raise ValueError("Found `backend` as first argument of `matvec`. "
                        "It can only be the second argument!")
 
@@ -81,8 +83,8 @@ class LinearOperator:
       if args[3][0] not in ('tensorflow', 'numpy', 'jax', 'pytorch', 'shell'):
         raise ValueError(
             "wrong default '{}' for argument `{}` of `matvec`. "
-            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', 'jax' and 'shell'"
-            .format(args[3][0], args[0][1]))
+            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', "
+            " 'jax' and 'shell'".format(args[3][0], args[0][1]))
       if args[3][0] != self.backend.name:
         warnings.warn("default value of parameter `{0}` = '{1}' of `matvec` is "
                       "different from LinearOperator.backend.name='{2}'."
@@ -114,12 +116,13 @@ class ScalarProduct:
     Args:
       dotprod: A function which implements a dot-product between two vectors
         Allowed signatures are: `dotprod(x, y)`, `dotprod(x, y, backend)`
-          and `dotprod(x, y, backend=default)` with `default` 'numpy', 'tensorflow'
-          'pytorch', 'jax' or 'shell'.
+          and `dotprod(x, y, backend=default)` with `default` 'numpy', 
+          'tensorflow', 'pytorch', 'jax' or 'shell'.
          `result = `dotprod` should return `result` of the same type as `x` 
           (i.e. a `Tensor` object)
-          Note that any default value for argument `backend` of `dotprod` is overridden
-          by the value of the `backend` argument of `ScalarProduct.__init__`
+          Note that any default value for argument `backend` of `dotprod` 
+          is overridden by the value of the `backend` argument of 
+          `ScalarProduct.__init__`
       dtype: The data-type of the `ScalarProduct`.
       backend: The backend to be used with this `ScalarProduct`. 
         `backend` can be 'numpy', 'tensorflow', 'pytorch', 'jax' or 'shell'
@@ -152,8 +155,8 @@ class ScalarProduct:
       if args[3][0] not in ('tensorflow', 'numpy', 'jax', 'pytorch', 'shell'):
         raise ValueError(
             "wrong default '{}' for argument `{}` of `dotprod`. "
-            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', 'jax' and 'shell'"
-            .format(args[3][0], args[0][1]))
+            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', "
+            "'jax' and 'shell'".format(args[3][0], args[0][1]))
       if args[3][0] != self.backend.name:
         warnings.warn(
             "default value of parameter `{0}` = '{1}' of `dotprod` is "
@@ -206,8 +209,8 @@ def eigsh_lanczos(A: LinearOperator,
       have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
     ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations to
       check convergence.
-    reortho: If `True`, Krylov vectors are kept orthogonal by explicit orthogonalization
-      (this is more costly than `reortho=False`)
+    reortho: If `True`, Krylov vectors are kept orthogonal by 
+      explicit orthogonalization (this is more costly than `reortho=False`)
   Returns:
     (eigvals, eigvecs)
      eigvals: A list of `numeig` lowest eigenvalues
@@ -217,9 +220,8 @@ def eigsh_lanczos(A: LinearOperator,
   if ncv < numeig:
     raise ValueError('`ncv` >= `numeig` required!')
   if numeig > 1 and not reortho:
-    raise ValueError(
-        'Got numeig = {} > 1 and `reortho = False`. Use `reortho=True` for `numeig > 1`'
-        .format(numeig))
+    raise ValueError("Got numeig = {} > 1 and `reortho = False`. "
+                     "Use `reortho=True` for `numeig > 1`".format(numeig))
   if A.backend.name != vv.backend.name:
     raise ValueError("A.backend={} is different from vv.backend={}".format(
         A.backend.name, vv.backend.name))
@@ -246,8 +248,8 @@ def eigsh_lanczos(A: LinearOperator,
   epsn = []
   krylov_vecs = []
   first = True
-  etaold = None
-  while converged == False:
+  etaold = []
+  while not converged:
     #normalize the current vector:
     normxn = backend.sqrt(vv(xn, xn))  #conj has to be implemented by the user
     if abs(normxn) < delta:
@@ -256,7 +258,7 @@ def eigsh_lanczos(A: LinearOperator,
     norms_xn.append(normxn)
     xn = xn / norms_xn[-1]
     #store the Lanczos vector for later
-    if reortho == True:
+    if reortho:
       for v in krylov_vecs:
         xn -= vv(v, xn) * v
     krylov_vecs.append(xn)
@@ -268,7 +270,7 @@ def eigsh_lanczos(A: LinearOperator,
       Heff = np.diag(epsn) + np.diag(norms_xn[1:], 1) + np.diag(
           np.conj(norms_xn[1:]), -1)
       eta, u = np.linalg.eigh(Heff)
-      if first == False:
+      if first:
         if np.linalg.norm(eta[0:numeig] - etaold[0:numeig]) < tol:
           converged = True
       first = False
@@ -292,8 +294,8 @@ def eigsh_lanczos(A: LinearOperator,
 
   for n2 in range(min(numeig, len(eta))):
     state = backend.zeros(v0.shape)
-    for n1 in range(len(krylov_vecs)):
-      state += krylov_vecs[n1] * u[n1, n2]
+    for n1, vec in enumerate(krylov_vecs):
+      state += vec * u[n1, n2]
     states.append(state / backend.sqrt(vv(state, state)))
   eigvals = [
       backend.convert_to_tensor(np.array(eta[n]))
