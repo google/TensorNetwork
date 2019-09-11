@@ -1,6 +1,4 @@
 numpy>=1.16
-jax>=0.1.0
-jaxlib>=0.1.27
 graphviz>=0.11.1
 opt_einsum>=2.3.0
 h5py>=2.9.0
