@@ -222,16 +222,17 @@ def eigsh_lanczos(A: LinearOperator,
   if A.backend.name != vv.backend.name:
     raise ValueError("A.backend={} is different from vv.backend={}".format(
         A.backend.name, vv.backend.name))
-
-  backend = A.backend
+  if A.dtype != vv.dtype:
+    raise ValueError("A.dtype={} is different from vv.dtype={}".format(
+        A.dtype, vv.dtype))
   if v0 and (A.dtype is not v0.dtype):
     raise TypeError("A.dtype={} is different from v0.dtype={}".format(
         A.dtype, v0.dtype))
-
   if v0 and (v0.shape != A.shape[1]):
     raise ValueError("A.shape[1]={} and v0.shape={} are incompatible.".format(
         A.shape[1], v0.shape))
 
+  backend = A.backend
   if not v0:
     v0 = backend.randn(A.shape[1])
   xn = v0
@@ -248,7 +249,7 @@ def eigsh_lanczos(A: LinearOperator,
   while converged == False:
     #normalize the current vector:
     normxn = backend.sqrt(vv(xn, xn))  #conj has to be implemented by the user
-    if normxn < delta:
+    if abs(normxn) < delta:
       converged = True
       break
     norms_xn.append(normxn)
@@ -285,8 +286,11 @@ def eigsh_lanczos(A: LinearOperator,
       np.conj(norms_xn[1:]), -1)
   eta, u = np.linalg.eigh(Heff)
   states = []
+  if np.iscomplexobj(Heff):  #only possible if backend
+    eta = np.array(eta).astype(Heff.dtype)
+
   for n2 in range(min(numeig, len(eta))):
-    state = backend.zeros(v0.shape, dtype=v0.dtype)
+    state = backend.zeros(v0.shape)
     for n1 in range(len(krylov_vecs)):
       state += krylov_vecs[n1] * u[n1, n2]
     states.append(state / backend.sqrt(vv(state, state)))
