@@ -272,9 +272,9 @@ def eigsh_lanczos(A: LinearOperator,
 
     if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
       #diagonalize the effective Hamiltonian
-      Heff = np.diag(diag_elements) + np.diag(norms_vector_n[1:], 1) + np.diag(
-          np.conj(norms_vector_n[1:]), -1)
-      eigvals, u = np.linalg.eigh(Heff)
+      A_tridiag = np.diag(diag_elements) + np.diag(
+          norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
+      eigvals, u = np.linalg.eigh(A_tridiag)
       if first:
         if np.linalg.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
           converged = True
@@ -290,13 +290,13 @@ def eigsh_lanczos(A: LinearOperator,
     if it >= ncv:
       break
 
-  Heff = np.diag(diag_elements) + np.diag(norms_vector_n[1:], 1) + np.diag(
+  A_tridiag = np.diag(diag_elements) + np.diag(norms_vector_n[1:], 1) + np.diag(
       np.conj(norms_vector_n[1:]), -1)
-  eigvals, u = np.linalg.eigh(Heff)
+  eigvals, u = np.linalg.eigh(A_tridiag)
 
   eigenvectors = []
-  if np.iscomplexobj(Heff):
-    eigvals = np.array(eigvals).astype(Heff.dtype)
+  if np.iscomplexobj(A_tridiag):
+    eigvals = np.array(eigvals).astype(A_tridiag.dtype)
 
   for n2 in range(min(numeig, len(eigvals))):
     state = backend.zeros(initial_state.shape)
