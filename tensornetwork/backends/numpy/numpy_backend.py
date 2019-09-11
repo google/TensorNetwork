@@ -142,8 +142,11 @@ class NumPyBackend(base_backend.BaseBackend):
       dtype = self.dtype
     if not dtype:
       dtype = numpy.float64
-
-    return self.np.random.randn(*shape).astype(dtype)
+    if (dtype is self.np.complex128) or (dtype is self.np.complex64):
+      return self.np.random.randn(*shape).astype(
+          dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
+    else:
+      return self.np.random.randn(*shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
