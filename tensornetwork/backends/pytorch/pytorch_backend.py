@@ -20,7 +20,6 @@ from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
 
-
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 Tensor = Any
@@ -111,9 +110,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self,
-          N: int,
-          dtype: Optional[Any] = None,
+  def eye(self, N: int, dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
@@ -123,8 +120,7 @@ class PyTorchBackend(base_backend.BaseBackend):
       M = N  #torch crashes if one passes M = None with dtype!=None
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
-           dtype: Optional[Any] = None) -> Tensor:
+  def ones(self, shape: Tuple[int, ...], dtype: Optional[Any] = None) -> Tensor:
     if not dtype:
       dtype = self.dtype
     if not dtype:
@@ -141,8 +137,13 @@ class PyTorchBackend(base_backend.BaseBackend):
 
     return self.torch.zeros(shape, dtype=dtype)
 
-  def randn(self, shape: Tuple[int, ...],
-            dtype: Optional[Any] = None) -> Tensor:
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[Any] = None,
+            seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.torch.manual_seed(seed)
+
     if not dtype:
       dtype = self.dtype
     if not dtype:

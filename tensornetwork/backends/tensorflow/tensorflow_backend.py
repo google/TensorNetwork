@@ -136,12 +136,18 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None) -> Tensor:
+            dtype: Optional[Type[np.number]] = None,
+            seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.tf.random.set_random_seed(seed)
     if not dtype:
       dtype = self.dtype
     if not dtype:
       dtype = self.tf.float64
-
+    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
+      return self.tf.complex(
+          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype),
+          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype))
     return self.tf.random_normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:

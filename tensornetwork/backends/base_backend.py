@@ -252,7 +252,10 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
 
-  def randn(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Type[np.number],
+            seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
        (numpy, torch, tensorflow) or a `ShapeType` object 
@@ -261,6 +264,7 @@ class BaseBackend:
        Args:
          shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
+         seed:  The seed for the random number generator
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))

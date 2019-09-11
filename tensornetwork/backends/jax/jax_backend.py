@@ -15,10 +15,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from tensornetwork.backends.numpy import numpy_backend
 import numpy
-
 
 Tensor = Any
 
@@ -30,6 +29,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     super(JaxBackend, self).__init__()
     try:
       import jax
+      jax.config.update("jax_enable_x64", True)
     except ImportError:
       raise ImportError("Jax not installed, please switch to a different "
                         "backend or install Jax.")
@@ -49,4 +49,28 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
 
-  #TODO: add initializers (randn, zeros, eye, ones)
+  def randn(self,
+            shape: Tuple[int, ...],
+            dtype: Optional[numpy.dtype] = None,
+            seed: Optional[int] = None) -> Tensor:
+    if not seed:
+      seed = numpy.random.randint(0, 2**63)
+    key = self.jax.random.PRNGKey(seed)
+    if not dtype:
+      dtype = self.dtype
+    if not dtype:
+      dtype = numpy.float64
+    if dtype is self.np.complex128:
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+      return self.jax.random.normal(
+          key, shape,
+          dtype=numpy.float64) + numpy.complex128(1j) * self.jax.random.normal(
+              key_2, shape, dtype=numpy.float64)
+    if dtype is self.np.complex64:
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+      return self.jax.random.normal(
+          key, shape,
+          dtype=numpy.float32) + numpy.complex64(1j) * self.jax.random.normal(
+              key_2, shape, dtype=numpy.float32)
+
+    return self.jax.random.normal(key, shape).astype(dtype)
