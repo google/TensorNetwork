@@ -17,30 +17,126 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from tensornetwork.backends import backend_factory
+import inspect
+import warnings
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, Callable
 import numpy as np
 Tensor = Any
 
 
 class LinearOperator:
+  """
+  A linear operator class
+  """
 
-  def __init__(self, matvec: Callable, shape: Tuple[Tuple[int]], backend: str,
-               dtype: Type[np.number]):
-
-    self.matvec = matvec
+  def __init__(self, matvec: Callable, shape: Tuple[Tuple[int]],
+               dtype: Type[np.number], backend: str) -> None:
+    """
+    Initialize a `LinearOperator`
+    """
     self.shape = shape
     self.backend = backend_factory.get_backend(backend, dtype)
+    args = inspect.getargspec(matvec)
+    if len(args[0]) > 2:
+      raise ValueError(
+          '`matvec` can have at most 2 arguments; found args = {}'.format(
+              args[0]))
+    if (args[0][0] == 'backend'):
+      raise ValueError("Found `backend` as first argument of `matvec`. "
+                       "It can only be the second argument!")
+
+    if args[3] and (len(args[3]) != 1):
+      N = len(args[0])
+      params = [args[0][N - 1 - n] for n in range(len(args[3]))]
+      defaults = [args[3][n] for n in reversed(range(len(args[3])))]
+      raise ValueError(
+          "The only allowed argument to `matvec` with defaults is `backend`. "
+          "Found arguments {} with default values {}!".format(
+              params[::-1], defaults[::-1]))
+
+    if args[3] and (len(args[3]) == 1):
+      if args[3][0] not in ('tensorflow', 'numpy', 'jax', 'pytorch', 'shell'):
+        raise ValueError(
+            "wrong default '{}' for argument `{}` of `matvec`. "
+            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', 'jax' and 'shell'"
+            .format(args[3][0], args[0][1]))
+      if args[3][0] != self.backend.name:
+        warnings.warn("default value of parameter `{0}` = '{1}' of `matvec` is "
+                      "different from LinearOperator.backend.name='{2}'."
+                      " Overriding the default to `{0}` = '{2}'".format(
+                          args[0][1], args[3][0], self.backend.name))
+    if len(args[0]) == 1:  #matvec takes only one argument
+      self.matvec = matvec
+    else:  #matvec takes two arguments (x, backend)
+
+      def _matvec(x):
+        return matvec(x, self.backend.name)
+
+      self.matvec = _matvec
 
   @property
   def dtype(self):
     return self.backend.dtype
 
   def __call__(self, x):
-    return self.matvec(x, self.backend.name)
+    return self.matvec(x)
+
+
+class ScalarProduct:
+
+  def __init__(self, vecvec: Callable, dtype: Type[np.number],
+               backend: str) -> None:
+
+    self.backend = backend_factory.get_backend(backend, dtype)
+    args = inspect.getargspec(vecvec)
+    if len(args[0]) > 3:
+      raise ValueError(
+          '`vecvec` can have at most 3 arguments; found args = {}'.format(
+              args[0]))
+    if (args[0][0] == 'backend') or (args[0][1] == 'backend'):
+      raise ValueError(
+          "Found `backend` as first or second argument of `vecvec`. "
+          "It can only be the third argument!")
+    if args[3] and (len(args[3]) != 1):
+      N = len(args[0])
+      params = [args[0][N - 1 - n] for n in range(len(args[3]))]
+      defaults = [args[3][n] for n in reversed(range(len(args[3])))]
+      raise ValueError(
+          "The only allowed argument to `vecvec` with defaults is `backend`. "
+          "Found arguments {} with default values {}!".format(
+              params[::-1], defaults[::-1]))
+
+    if args[3] and (len(args[3]) == 1):
+      if args[3][0] not in ('tensorflow', 'numpy', 'jax', 'pytorch', 'shell'):
+        raise ValueError(
+            "wrong default '{}' for argument `{}` of `vecvec`. "
+            "Only allowed values are 'numpy', 'tensorflow', 'pytorch', 'jax' and 'shell'"
+            .format(args[3][0], args[0][1]))
+      if args[3][0] != self.backend.name:
+        warnings.warn("default value of parameter `{0}` = '{1}' of `vecvec` is "
+                      "different from LinearOperator.backend.name='{2}'."
+                      " Overriding the default to `{0}` = '{2}'".format(
+                          args[0][1], args[3][0], self.backend.name))
+
+    if len(args[0]) == 2:  #vecvec takes only one argument
+      self.vecvec = vecvec
+    else:  #vecvec takes two arguments (x, backend)
+
+      def _vecvec(x, y):
+        return vecvec(x, y, self.backend.name)
+
+      self.vecvec = _vecvec
+
+  @property
+  def dtype(self):
+    return self.backend.dtype
+
+  def __call__(self, x, y):
+    return self.vecvec(x, y)
 
 
 def eigsh(A: LinearOperator,
-          vv: Callable,
+          vv: ScalarProduct,
           v0: Optional[Tensor] = None,
           ncv: Optional[int] = 200,
           numeig: Optional[int] = 1,
@@ -51,6 +147,11 @@ def eigsh(A: LinearOperator,
 
   if ncv < numeig:
     raise ValueError('`ncv` >= `numeig` required!')
+
+  if A.backend.name != vv.backend.name:
+    raise ValueError("A.backend={} is different from vv.backend={}".format(
+        A.backend.name, vv.backend.name))
+
   backend = A.backend
   if v0 and (A.dtype is not v0.dtype):
     raise TypeError("A.dtype={} is different from v0.dtype={}".format(
@@ -74,8 +175,7 @@ def eigsh(A: LinearOperator,
   first = True
   while converged == False:
     #normalize the current vector:
-    normxn = backend.sqrt(vv(
-        xn, xn, backend.name))  #conj has to be implemented by the user
+    normxn = backend.sqrt(vv(xn, xn))  #conj has to be implemented by the user
     if normxn < delta:
       converged = True
       break
@@ -84,10 +184,10 @@ def eigsh(A: LinearOperator,
     #store the Lanczos vector for later
     if reortho == True:
       for v in krylov_vecs:
-        xn -= vv(v, xn, backend.name) * v
+        xn -= vv(v, xn) * v
     krylov_vecs.append(xn)
     Hxn = A(xn)
-    epsn.append(vv(xn, Hxn, backend.name))
+    epsn.append(vv(xn, Hxn))
 
     if ((it > 0) and (it % ndiag) == 0) and (len(epsn) >= numeig):
       #diagonalize the effective Hamiltonian
@@ -117,9 +217,7 @@ def eigsh(A: LinearOperator,
     state = backend.zeros(v0.shape, dtype=v0.dtype)
     for n1 in range(len(krylov_vecs)):
       state += krylov_vecs[n1] * u[n1, n2]
-    states.append(state / backend.sqrt(vv(state, state, backend.name)))
-  print([eta[n].dtype for n in range(min(numeig, len(eta)))])
-  print(states[0].dtype)
+    states.append(state / backend.sqrt(vv(state, state)))
   eigvals = [
       backend.convert_to_tensor(np.array(eta[n]))
       for n in range(min(numeig, len(eta)))
