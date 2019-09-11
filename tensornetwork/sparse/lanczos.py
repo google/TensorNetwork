@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Implementation of TensorNetwork structure."""
+"""Implementation of sparse Lanczos tridiagonalization"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -289,7 +289,7 @@ def eigsh_lanczos(A: LinearOperator,
       np.conj(norms_xn[1:]), -1)
   eta, u = np.linalg.eigh(Heff)
   states = []
-  if np.iscomplexobj(Heff):  #only possible if backend
+  if np.iscomplexobj(Heff):
     eta = np.array(eta).astype(Heff.dtype)
 
   for n2 in range(min(numeig, len(eta))):
