@@ -108,19 +108,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
           dtype: Optional[Type[np.number]] = None,
           M: Optional[int] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = self.tf.float64
-
+      dtype = self.dtype if self.dtype is not None else self.tf.float64
     return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
   def ones(self,
            shape: Tuple[int, ...],
            dtype: Optional[Type[np.number]] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = self.tf.float64
+      dtype = self.dtype if self.dtype is not None else self.tf.float64
 
     return self.tf.ones(shape=shape, dtype=dtype)
 
@@ -128,9 +123,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
             shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = self.tf.float64
+      dtype = self.dtype if self.dtype is not None else self.tf.float64
 
     return self.tf.zeros(shape, dtype=dtype)
 
@@ -140,10 +133,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
             seed: Optional[int] = None) -> Tensor:
     if seed:
       self.tf.random.set_random_seed(seed)
+
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = self.tf.float64
+      dtype = self.dtype if self.dtype is not None else self.tf.float64
+
     if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
       return self.tf.complex(
           self.tf.random_normal(shape=shape, dtype=dtype.real_dtype),
