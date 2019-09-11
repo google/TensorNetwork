@@ -31,7 +31,8 @@ class LinearOperator:
   all supported backends.
   """
 
-  def __init__(self, matvec: Callable, shape: Tuple[Tuple[int]],
+  def __init__(self, matvec: Callable,
+               shape: Tuple[Tuple[int, ...], Tuple[int, ...]],
                dtype: Type[np.number], backend: Text) -> None:
     """
     Initialize a `LinearOperator`
@@ -185,7 +186,7 @@ def eigsh_lanczos(A: LinearOperator,
                   tol: Optional[float] = 1E-8,
                   delta: Optional[float] = 1E-8,
                   ndiag: Optional[int] = 20,
-                  reortho: Optional[bool] = False) -> Tuple[List]:
+                  reortho: Optional[bool] = False) -> Tuple[List, List]:
   """
   Lanczos method for finding the lowest eigenvector-eigenvalue pairs
   of a `LinearOperator` `A`.
