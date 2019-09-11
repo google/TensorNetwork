@@ -177,15 +177,15 @@ class ScalarProduct:
     return self.dotprod(x, y)
 
 
-def eigsh(A: LinearOperator,
-          vv: ScalarProduct,
-          v0: Optional[Tensor] = None,
-          ncv: Optional[int] = 200,
-          numeig: Optional[int] = 1,
-          tol: Optional[float] = 1E-8,
-          delta: Optional[float] = 1E-8,
-          ndiag: Optional[int] = 20,
-          reortho: Optional[bool] = False) -> Tuple[List]:
+def eigsh_lanczos(A: LinearOperator,
+                  vv: ScalarProduct,
+                  v0: Optional[Tensor] = None,
+                  ncv: Optional[int] = 200,
+                  numeig: Optional[int] = 1,
+                  tol: Optional[float] = 1E-8,
+                  delta: Optional[float] = 1E-8,
+                  ndiag: Optional[int] = 20,
+                  reortho: Optional[bool] = False) -> Tuple[List]:
   """
   Lanczos method for finding the lowest eigenvector-eigenvalue pairs
   of a `LinearOperator` `A`.
