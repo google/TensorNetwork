@@ -21,7 +21,7 @@ from typing import Any, List, Optional, Text, Type, Union, Dict
 Tensor = Any
 
 
-class FiniteMPS(TensorNetwork):
+class FiniteMPS:
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
@@ -68,17 +68,25 @@ class FiniteMPS(TensorNetwork):
       raise ValueError(
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
-    super().__init__(backend=backend, dtype=dtype)
+    self._net = TensorNetwork(backend=backend, dtype=dtype)
     self._nodes = [
-        self.add_node(tensors[n], name='node{}'.format(n))
+        self._net.add_node(tensors[n], name='node{}'.format(n))
         for n in range(len(tensors))
     ]  #redundant?!
     for site in range(len(self._nodes) - 1):
-      self.connect(self._nodes[site][2], self._nodes[site + 1][0])
+      self._net.connect(self._nodes[site][2], self._nodes[site + 1][0])
     self.center_position = center_position
 
   def save(self, path: str):
     raise NotImplementedError()
+
+  @property
+  def backend(self):
+    return self._net.backend
+
+  @property
+  def dtype(self):
+    return self._net.dtype
 
   @property
   def nodes(self):
@@ -120,14 +128,15 @@ class FiniteMPS(TensorNetwork):
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = self.split_node_qr(
+        Q, R = self._net.split_node_qr(
             self._nodes[n],
             left_edges=[self._nodes[n][0], self._nodes[n][1]],
             right_edges=[self._nodes[n][2]],
             left_name=self._nodes[n].name)
 
         self._nodes[n] = Q  #Q is a left-isometric tensor of rank 3
-        self._nodes[n + 1] = self.contract(R[1], name=self._nodes[n + 1].name)
+        self._nodes[n + 1] = self._net.contract(
+            R[1], name=self._nodes[n + 1].name)
         Z = self.backend.norm(self._nodes[n + 1].tensor)
 
         # for an mps with > O(10) sites one needs to normalize to avoid
@@ -140,7 +149,7 @@ class FiniteMPS(TensorNetwork):
     #shift center_position to the left using RQ decomposition
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
-        R, Q = self.split_node_rq(
+        R, Q = self._net.split_node_rq(
             self._nodes[n],
             left_edges=[self._nodes[n][0]],
             right_edges=[self._nodes[n][1], self._nodes[n][2]],
@@ -149,7 +158,8 @@ class FiniteMPS(TensorNetwork):
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self._nodes[n] = Q  #Q is a right-isometric tensor of rank 3
-        self._nodes[n - 1] = self.contract(R[0], name=self._nodes[n - 1].name)
+        self._nodes[n - 1] = self._net.contract(
+            R[0], name=self._nodes[n - 1].name)
         Z = self.backend.norm(self._nodes[n - 1].tensor)
         if normalize:
           self._nodes[n - 1].tensor /= Z
@@ -398,14 +408,14 @@ class FiniteMPS(TensorNetwork):
           'is applied at the center position of the MPS'.format(
               self.center_position, site1, site2))
 
-    gate_node = self.add_node(gate)
+    gate_node = self._net.add_node(gate)
     gate_node[2] ^ self._nodes[site1][1]
     gate_node[3] ^ self._nodes[site2][1]
     left_edges = [self._nodes[site1][0], gate_node[0]]
     right_edges = [gate_node[1], self._nodes[site2][2]]
-    result = self.contract_between(self._nodes[site1], self._nodes[site2])
-    result = self.contract_between(result, gate_node)
-    U, S, V, tw = self.split_node_full_svd(
+    result = self._net.contract_between(self._nodes[site1], self._nodes[site2])
+    result = self._net.contract_between(result, gate_node)
+    U, S, V, tw = self._net.split_node_full_svd(
         result,
         left_edges=left_edges,
         right_edges=right_edges,
@@ -415,7 +425,7 @@ class FiniteMPS(TensorNetwork):
         right_name=self._nodes[site2].name)
     V.reorder_edges([S[1]] + right_edges)
     left_edges = left_edges + [S[1]]
-    self._nodes[site1] = self.contract_between(
+    self._nodes[site1] = self._net.contract_between(
         U, S, name=U.name).reorder_edges(left_edges)
     self._nodes[site2] = V
     return tw
@@ -436,10 +446,10 @@ class FiniteMPS(TensorNetwork):
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = self.add_node(gate)
+    gate_node = self._net.add_node(gate)
     gate_node[1] ^ self._nodes[site][1]
     edge_order = [self._nodes[site][0], gate_node[0], self._nodes[site][2]]
-    self._nodes[site] = self.contract_between(
+    self._nodes[site] = self._net.contract_between(
         gate_node, self._nodes[site],
         name=self._nodes[site].name).reorder_edges(edge_order)
 
