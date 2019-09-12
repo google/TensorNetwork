@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-default_backend = "tensorflow"
+default_backend = "numpy"
 default_dtype = None
