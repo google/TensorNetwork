@@ -93,6 +93,11 @@ class FiniteMPS:
     return self._nodes
 
   @property
+  def network(self):
+    """ Return the TensorNetwork object of the FiniteMPS"""
+    return self._net
+
+  @property
   def bond_dimensions(self) -> List:
     """
     Return a list of bond dimensions of FiniteMPS
