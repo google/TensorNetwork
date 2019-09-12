@@ -20,6 +20,7 @@ import pytest
 import numpy as np
 import tensorflow as tf
 import torch
+import jax
 from jax.config import config
 import tensornetwork.config as config_file
 
@@ -27,11 +28,16 @@ import tensornetwork.config as config_file
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
-np_dtypes = config_file.supported_numpy_dtypes
-tf_dtypes = config_file.supported_tensorflow_dtypes
-torch_dtypes = config_file.supported_pytorch_dtypes
-jax_dtypes = config_file.supported_jax_dtypes
-
+np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
+tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
+torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
+jax_dtypes = [
+    jax.numpy.float32, 
+    jax.numpy.float64, 
+    jax.numpy.complex64, 
+    jax.numpy.complex128, 
+    jax.numpy.int32
+]
 
 def test_network_copy_reordered(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -1048,16 +1054,6 @@ def test_network_backend_dtype_1(backend, dtype):
   net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
   n1 = net.add_node(net.backend.zeros((2, 2)))
   assert n1.tensor.dtype == dtype
-
-
-@pytest.mark.parametrize("backend,dtype", [('numpy', tf.float32),
-                                           ('tensorflow', np.float32),
-                                           ('pytorch', np.float32),
-                                           ('jax', tf.float32)])
-def test_network_backend_dtype_2(backend, dtype):
-  with pytest.raises(TypeError):
-    tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
-
 
 @pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
                                            ('tensorflow', tf.float32),

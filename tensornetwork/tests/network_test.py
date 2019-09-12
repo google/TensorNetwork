@@ -19,6 +19,8 @@ import tensornetwork
 import pytest
 import numpy as np
 import tensorflow as tf
+import torch
+import jax
 from jax.config import config
 import tensornetwork.config as config_file
 
@@ -26,10 +28,16 @@ import tensornetwork.config as config_file
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
-np_dtypes = config_file.supported_numpy_dtypes
-tf_dtypes = config_file.supported_tensorflow_dtypes
-torch_dtypes = config_file.supported_pytorch_dtypes
-jax_dtypes = config_file.supported_jax_dtypes
+np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
+tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
+torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
+jax_dtypes = [
+    jax.numpy.float32, 
+    jax.numpy.float64, 
+    jax.numpy.complex64, 
+    jax.numpy.complex128, 
+    jax.numpy.int32
+]
 
 
 @pytest.mark.parametrize("backend, dtype", [

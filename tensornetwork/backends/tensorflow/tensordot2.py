@@ -16,18 +16,17 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from typing import Optional, Union, Text, Sequence, Tuple, List
+from typing import Any, Optional, Union, Text, Sequence, Tuple, List
 import numpy as np
-import tensorflow as tf
 
-AXES_TYPE = Union[int, tf.Tensor, Sequence[Union[int, Sequence[int]]]]
-AXES_ENTRY_TYPE = Union[Sequence[int], tf.Tensor]
+Tensor = Any
 
 
-def tensordot(a: tf.Tensor,
-              b: tf.Tensor,
-              axes: AXES_TYPE,
-              name: Optional[Text] = None) -> tf.Tensor:
+def tensordot(tf, 
+              a,
+              b,
+              axes,
+              name: Optional[Text] = None) -> Tensor:
   r"""Tensor contraction of a and b along specified axes.
   Tensordot (also known as tensor contraction) sums the product of elements
   from `a` and `b` over the indices specified by `a_axes` and `b_axes`.
@@ -48,6 +47,8 @@ def tensordot(a: tf.Tensor,
   \\( c_{jklm} = \sum_i a_{ijk} b_{lmi} \\).
   In general, `order(c) = order(a) + order(b) - 2*len(axes[0])`.
   Args:
+    tf: The TensorFlow module. This must be passed in instead of imported
+      since we don't assume users have TensorFlow installed.
     a: `Tensor` of type `float32` or `float64`.
     b: `Tensor` with the same type as `a`.
     axes: Either a scalar `N`, or a list or an `int32` `Tensor` of shape [2, k].
@@ -82,7 +83,7 @@ def tensordot(a: tf.Tensor,
       return bool(np.mean(contraction_axes) < np.mean(free_axes))
     return False
 
-  def _tranpose_if_necessary(tensor: tf.Tensor, perm: List[int]) -> tf.Tensor:
+  def _tranpose_if_necessary(tensor: Tensor, perm: List[int]) -> Tensor:
     """Like transpose(), but avoids creating a new tensor if possible.
     Although the graph optimizer should kill trivial transposes, it is best not
     to add them in the first place!
@@ -91,8 +92,8 @@ def tensordot(a: tf.Tensor,
       return tensor
     return tf.transpose(tensor, perm)
 
-  def _reshape_if_necessary(tensor: tf.Tensor,
-                            new_shape: List[int]) -> tf.Tensor:
+  def _reshape_if_necessary(tensor: Tensor,
+                            new_shape: List[int]) -> Tensor:
     """Like reshape(), but avoids creating a new tensor if possible.
     Assumes shapes are both fully specified."""
     cur_shape = tensor.get_shape().as_list()
@@ -102,8 +103,8 @@ def tensordot(a: tf.Tensor,
     return tf.reshape(tensor, new_shape)
 
   def _tensordot_reshape(
-      a: tf.Tensor, axes: Union[Sequence[int], tf.Tensor], is_right_term=False
-  ) -> Tuple[tf.Tensor, Union[List[int], tf.Tensor], Optional[List[int]], bool]:
+      a: Tensor, axes: Union[Sequence[int], Tensor], is_right_term=False
+  ) -> Tuple[Tensor, Union[List[int], Tensor], Optional[List[int]], bool]:
     """Helper method to perform transpose and reshape for contraction op.
     This method is helpful in reducing `math_ops.tensordot` to `math_ops.matmul`
     using `array_ops.transpose` and `array_ops.reshape`. The method takes a
@@ -186,8 +187,8 @@ def tensordot(a: tf.Tensor,
     transpose_needed = (not flipped) if is_right_term else flipped
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
-  def _tensordot_axes(a: tf.Tensor, axes: AXES_TYPE
-                     ) -> Tuple[AXES_ENTRY_TYPE, AXES_ENTRY_TYPE]:
+  def _tensordot_axes(a: Tensor, axes
+                     ) -> Tuple[Any, Any]:
     """Generates two sets of contraction axes for the two tensor arguments."""
     a_shape = a.get_shape()
     if isinstance(axes, tf.compat.integral_types):

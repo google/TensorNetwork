@@ -7,14 +7,9 @@ from tensornetwork.backends.pytorch import pytorch_backend
 import torch
 import pytest
 import tensornetwork.config as config_file
-torch_dtypes = [
-    dtype for dtype in config_file.supported_pytorch_dtypes
-    if dtype is not torch.bool
-]
-torch_eye_dtypes = [
-    dtype for dtype in config_file.supported_pytorch_dtypes
-    if dtype not in (torch.bool, torch.float16)
-]
+
+torch_dtypes = [torch.float32, torch.float64, torch.int32]
+torch_eye_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
 torch_randn_dtypes = [torch.float32, torch.float64]
 
 
