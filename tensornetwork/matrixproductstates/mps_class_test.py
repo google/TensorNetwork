@@ -131,7 +131,7 @@ def test_apply_two_site_gate(backend_dtype_values):
   mps.apply_two_site_gate(gate, 5, 6)
   tmp = np.tensordot(tensors[5], tensors[6], ([2], [0]))
   actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
-  res = mps.contract_between(mps.nodes[5], mps.nodes[6])
+  res = mps._net.contract_between(mps.nodes[5], mps.nodes[6])
   np.testing.assert_allclose(res.tensor, actual)
 
 
