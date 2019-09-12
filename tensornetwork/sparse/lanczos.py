@@ -115,7 +115,7 @@ class ScalarProduct:
     Initialize a `ScalarProduct`
     Args:
       dot_product: A function which implements a dot-product between two vectors
-        Allowed signatures are: `dot_product(x, y)`, `dot_product(x, y, backend)`
+        Allowed signatures: `dot_product(x, y)`, `dot_product(x, y, backend)`
           and `dot_product(x, y, backend=default)` with `default` 'numpy', 
           'tensorflow', 'pytorch', 'jax' or 'shell'.
          `result = `dot_product` should return `result` of the same type as `x` 
@@ -147,8 +147,8 @@ class ScalarProduct:
       params = [args[0][N - 1 - n] for n in range(len(args[3]))]
       defaults = [args[3][n] for n in reversed(range(len(args[3])))]
       raise ValueError(
-          "The only allowed argument to `dot_product` with defaults is `backend`. "
-          "Found arguments {} with default values {}!".format(
+          "The only allowed argument to `dot_product` with defaults is "
+          "`backend`. Found arguments {} with default values {}!".format(
               params[::-1], defaults[::-1]))
 
     if args[3] and (len(args[3]) == 1):
@@ -210,7 +210,7 @@ def eigsh_lanczos(A: LinearOperator,
     ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations to
       check convergence.
     reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
-      explicit orthogonalization (this is more costly than `reorthogonalize=False`)
+      explicit orthogonalization (more costly than `reorthogonalize=False`)
   Returns:
     (eigvals, eigvecs)
      eigvals: A list of `numeig` lowest eigenvalues
