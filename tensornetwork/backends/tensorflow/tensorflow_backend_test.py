@@ -9,9 +9,8 @@ import tensornetwork.config as config_file
 from tensornetwork.backends.tensorflow import tensorflow_backend
 tf.compat.v1.enable_v2_behavior()
 
-tf_dtypes = config_file.supported_tensorflow_dtypes
 tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
-
+tf_dtypes = tf_randn_dtypes + [tf.complex128, tf.complex64]
 
 def test_tensordot():
   backend = tensorflow_backend.TensorFlowBackend()

@@ -50,7 +50,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
     b_axes = [0]
     # Invalid static shapes.
     with self.assertRaises(tf.errors.InvalidArgumentError):
-      tensordot2.tensordot(a, b, (a_axes, b_axes))
+      tensordot2.tensordot(tf, a, b, (a_axes, b_axes))
     # Invalid dynamic shapes.
     # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
@@ -60,7 +60,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
           a_ph = tf.compat.v1.placeholder(tf.float32)
           b_ph = tf.compat.v1.placeholder(tf.float32)
           axes_ph = tf.compat.v1.placeholder(tf.int32)
-          output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
+          output = tensordot2.tensordot(tf, a_ph, b_ph, axes_ph)
           _ = sess.run([output],
                        feed_dict={
                            a_ph: a,
@@ -76,16 +76,16 @@ class TensordotTest(tf.compat.v1.test.TestCase):
       # Invalid static axes.
       for axes_value in -1, 3, [1], [[1]], [[1], [0, 1]]:
         with self.assertRaises(ValueError):
-          tensordot2.tensordot(a, b, axes_value)
+          tensordot2.tensordot(tf, a, b, axes_value)
 
       with self.assertRaises(IndexError):
-        tensordot2.tensordot(a, b, [[0], [7]])
+        tensordot2.tensordot(tf, a, b, [[0], [7]])
 
       # Invalid dynamic axes.
       a_ph = tf.compat.v1.placeholder(tf.float32)
       b_ph = tf.compat.v1.placeholder(tf.float32)
       axes_ph = tf.compat.v1.placeholder(tf.int32)
-      output = tensordot2.tensordot(a_ph, b_ph, axes_ph)
+      output = tensordot2.tensordot(tf, a_ph, b_ph, axes_ph)
       # Note: We don't support scalar Tensor values for axes.
       for axes_value in 1, [1], [0, 1], [[1]], [[0, 1]], [[0], [7]]:
         with self.cached_session() as sess:
@@ -107,7 +107,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
 
         tf_a = tf.ones((3, 3), dtype=tf.float32)
         tf_b = tf.constant([2, 3, 1], dtype=tf.float32)[None, None]
-        tf_ans = tensordot2.tensordot(tf_a, tf_b, axes_value)
+        tf_ans = tensordot2.tensordot(tf, tf_a, tf_b, axes_value)
 
         self.assertAllEqual(tf_ans.shape, np_ans.shape)
         self.assertAllEqual(tf_ans, np_ans)
@@ -118,11 +118,11 @@ class TensordotTest(tf.compat.v1.test.TestCase):
       for axes in ([1], [0]), 1:
         a = tf.compat.v1.placeholder(tf.float32)
         b = tf.compat.v1.placeholder(tf.float32)
-        output = tensordot2.tensordot(a, b, axes)
+        output = tensordot2.tensordot(tf, a, b, axes)
         self.assertEqual(output.get_shape().ndims, None)
         a.set_shape([None, 2])
         b.set_shape([2, 3])
-        output = tensordot2.tensordot(a, b, axes)
+        output = tensordot2.tensordot(tf, a, b, axes)
         output_shape = output.get_shape()
         self.assertEqual(output_shape.ndims, 2)
         output_shape = output_shape.as_list()
@@ -132,7 +132,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         b = tf.compat.v1.placeholder(tf.float32)
         a.set_shape([2, 2])
         b.set_shape([2, None])
-        output = tensordot2.tensordot(a, b, axes)
+        output = tensordot2.tensordot(tf, a, b, axes)
         output_shape = output.get_shape()
         self.assertEqual(output_shape.ndims, 2)
         output_shape = output_shape.as_list()
@@ -185,7 +185,7 @@ def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
     all_axes.append(a_np.ndim - 1)
   for axes in all_axes:
     np_ans = np.tensordot(a_np, b_np, axes=axes)
-    tf_ans = tensordot2.tensordot(a_np, b_np, axes=axes)
+    tf_ans = tensordot2.tensordot(tf, a_np, b_np, axes=axes)
     np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
     assert tf_ans.shape == np_ans.shape
 
@@ -208,6 +208,6 @@ def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
     a_np, b_np, a_dims_np, b_dims_np = _generate_random_tensors_and_dims(
         dtype_, rank_a_, rank_b_, num_dims_)
     np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
-    tf_ans = tensordot2.tensordot(a_np, b_np, (a_dims_np, b_dims_np))
+    tf_ans = tensordot2.tensordot(tf, a_np, b_np, (a_dims_np, b_dims_np))
     np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
     assert tf_ans.shape == np_ans.shape

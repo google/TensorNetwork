@@ -18,6 +18,8 @@ from __future__ import print_function
 from typing import Optional, Any, Sequence, Tuple, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
+from tensornetwork.backends.tensorflow import tensordot2
+
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
 import numpy as np
@@ -26,7 +28,6 @@ Tensor = Any
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
-  from tensornetwork.backends.tensorflow import tensordot2
 
   def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
@@ -40,7 +41,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     self.dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
-    return self.tensordot2.tensordot(a, b, axes)
+    return tensordot2.tensordot(self.tf, a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
     return self.tf.reshape(tensor, shape)
@@ -95,7 +96,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.linalg.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.tensordot2.tensordot(tensor1, tensor2, 0)
+    return tensordot2.tensordot(self.tf, tensor1, tensor2, 0)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     return self.tf.einsum(expression, *tensors)
