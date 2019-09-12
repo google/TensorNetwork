@@ -34,7 +34,4 @@ _BACKENDS = {
 def get_backend(name, dtype):
   if name not in _BACKENDS:
     raise ValueError("Backend {} does not exist".format(name))
-  if not any([dtype is d for d in config_file.supported_dtypes[name]]):
-    raise TypeError("Backend {} does not support dtype={} of type {}".format(
-        name, dtype, type(dtype)))
   return _BACKENDS[name](dtype)

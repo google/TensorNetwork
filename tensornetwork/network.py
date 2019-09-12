@@ -190,8 +190,6 @@ class TensorNetwork:
           "Can only switch backends when the current "
           "backend is 'numpy'. Current backend is '{}'".format(
               self.backend.name))
-    if dtype is None:
-      dtype = config.default_dtypes[new_backend]
     self.backend = backend_factory.get_backend(new_backend, dtype)
     for node in self.nodes_set:
       node.tensor = self.backend.convert_to_tensor(node.tensor)
