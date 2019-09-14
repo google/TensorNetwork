@@ -27,7 +27,7 @@ def trace(rho):
     compute the trace of `rho`
     """
     dim = len(rho.shape) // 2
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
     r = net.add_node(rho)
 
     edges = [net.connect(r[n], r[n + dim]) for n in range(dim)]
@@ -63,7 +63,7 @@ def scalar_product(bottom, top):
         tf.Tensor:  the inner product
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
     b = net.add_node(tf.conj(bottom))
     t = net.add_node(top)
     edges = [net.connect(b[n], t[n]) for n in range(len(bottom.shape))]
