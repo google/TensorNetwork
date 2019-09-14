@@ -9,10 +9,8 @@ import pytest
 from tensornetwork.backends.jax import jax_backend
 import tensornetwork.config as config_file
 
-np_dtypes = config_file.supported_numpy_dtypes
-np_randn_dtypes = [
-    np.float32, np.float16, np.float64, np.complex64, np.complex128
-]
+np_randn_dtypes = [np.float32, np.float16, np.float64]
+np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
 
 def test_tensordot():
