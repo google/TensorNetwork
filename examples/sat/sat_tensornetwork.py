@@ -79,7 +79,7 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
   for clause in clauses:
     if 0 in clause:
       raise ValueError("0's are not allowed in the clauses.")
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork("tensorflow")
   var_set = set()
   for clause in clauses:
     var_set |= {abs(x) for x in clause}

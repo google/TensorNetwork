@@ -22,6 +22,7 @@ import experiments.MERA.binary_mera as bm
 import experiments.MERA.misc_mera as misc_mera
 import pytest
 import copy
+tn.set_default_backend("tensorflow")
 tf.enable_v2_behavior()
 
 @pytest.mark.parametrize("chi", [4, 6])
