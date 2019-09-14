@@ -197,7 +197,7 @@ def two_site_ascending_super_operator(operator, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -244,7 +244,7 @@ def two_site_descending_super_operator(rho, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -291,7 +291,7 @@ def left_ascending_super_operator(hamiltonian, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -367,7 +367,7 @@ def right_ascending_super_operator(hamiltonian, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -444,7 +444,7 @@ def left_descending_super_operator(reduced_density, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -523,7 +523,7 @@ def right_descending_super_operator(reduced_density, isometry, unitary):
         tf.Tensor
     """
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -610,7 +610,7 @@ def descending_super_operator(rho, isometry, unitary):
 
 @tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -677,7 +677,7 @@ def get_env_disentangler_1(hamiltonian, reduced_density, isometry, unitary):
 
 @tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_2(hamiltonian, reduced_density, isometry, unitary):
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -743,7 +743,7 @@ def get_env_disentangler_2(hamiltonian, reduced_density, isometry, unitary):
 
 @tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_3(hamiltonian, reduced_density, isometry, unitary):
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -809,7 +809,7 @@ def get_env_disentangler_3(hamiltonian, reduced_density, isometry, unitary):
 
 @tf.contrib.eager.defun(autograph=False)
 def get_env_disentangler_4(hamiltonian, reduced_density, isometry, unitary):
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -897,7 +897,7 @@ def get_env_disentangler(ham, rho, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_c = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -964,7 +964,7 @@ def get_env_isometry_1(hamiltonian, reduced_density, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_c = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -1033,7 +1033,7 @@ def get_env_isometry_2(hamiltonian, reduced_density, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -1099,7 +1099,7 @@ def get_env_isometry_3(hamiltonian, reduced_density, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_r = net.add_node(isometry)
@@ -1167,7 +1167,7 @@ def get_env_isometry_4(hamiltonian, reduced_density, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -1236,7 +1236,7 @@ def get_env_isometry_5(hamiltonian, reduced_density, isometry, unitary):
 @tf.contrib.eager.defun(autograph=False)
 def get_env_isometry_6(hamiltonian, reduced_density, isometry, unitary):
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
 
     iso_l = net.add_node(isometry)
     iso_c = net.add_node(isometry)
@@ -1561,7 +1561,7 @@ def initialize_TFI_hams(dtype=tf.float64):
     sZ = np.array([[1, 0], [0, -1]]).astype(dtype.as_numpy_dtype)
     eye = np.eye(2).astype(dtype.as_numpy_dtype)
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
     X1 = net.add_node(sX)
     X2 = net.add_node(sX)
     I3 = net.add_node(eye)
@@ -1569,7 +1569,7 @@ def initialize_TFI_hams(dtype=tf.float64):
     t1 = net.outer_product(net.outer_product(X1, X2), I3)
     t1 = t1.reorder_edges(out_order).get_tensor()
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
     Z1 = net.add_node(sZ)
     I2 = net.add_node(eye)
     I3 = net.add_node(eye)
@@ -1577,7 +1577,7 @@ def initialize_TFI_hams(dtype=tf.float64):
     t2 = net.outer_product(net.outer_product(Z1, I2), I3)
     t2 = t2.reorder_edges(out_order).get_tensor() / 2
 
-    net = tn.TensorNetwork()
+    net = tn.TensorNetwork("tensorflow")
     I1 = net.add_node(eye)
     Z2 = net.add_node(sZ)
     I3 = net.add_node(eye)
@@ -1676,7 +1676,7 @@ def optimize_binary_mera(ham_0,
         if verbose > 0:
             if np.mod(k, 10) == 1:
                 Z = misc_mera.trace(rho[0])
-                net = tn.TensorNetwork()
+                net = tn.TensorNetwork("tensorflow")
                 r = net.add_node(rho[0])
                 h = net.add_node(ham[0])
                 edges = [net.connect(r[n], h[n]) for n in range(6)]

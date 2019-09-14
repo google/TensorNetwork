@@ -112,7 +112,7 @@ class Environment:
       var_nodes: List of the two MPS nodes.
       data_nodes: Tuple of the two data nodes.
     """
-    net = batchtensornetwork.BatchTensorNetwork()
+    net = batchtensornetwork.BatchTensorNetwork("tensorflow")
 
     # Connect the bond edges of the MPS tensors
     var_nodes = [net.add_node(self.vector), net.add_node(self.matrices)]
