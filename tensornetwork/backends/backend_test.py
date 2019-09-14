@@ -15,7 +15,7 @@ def clean_tensornetwork_modules():
 def clean_backend_import():
   #never do this outside testing
   clean_tensornetwork_modules()
-  yield # use as teardown
+  yield  # use as teardown
   clean_tensornetwork_modules()
 
 
@@ -109,4 +109,3 @@ def test_basic_network_without_backends_raises_error():
     tensornetwork.TensorNetwork(backend="tensorflow")
   with pytest.raises(ImportError):
     tensornetwork.TensorNetwork(backend="pytorch")
->>>>>>> upstream/master
