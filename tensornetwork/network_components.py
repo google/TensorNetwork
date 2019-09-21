@@ -55,6 +55,7 @@ class BaseNode(ABC):
   def __init__(self,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
+               network: Optional[TensorNetwork] = None,
                backend: Optional["Backend"] = None,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node for the TensorNetwork. Should be subclassed before usage
@@ -70,7 +71,7 @@ class BaseNode(ABC):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    self.network = None
+    self.network = network
     self.is_disabled = False
     self.name = name if name is not None else '__unnamed_node__'
     self.backend = backend
@@ -346,6 +347,8 @@ class BaseNode(ABC):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
     if self.is_disabled:
       raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
+    if self.network and other.network:
+      return self.network.contract_between(self, other)
     return tn.contract_between(self, other)
 
   @property
@@ -482,6 +485,7 @@ class Node(BaseNode):
                tensor: Tensor,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
+               network: Optional[TensorNetwork] = None,
                backend: Optional[Text] = None) -> None:
     """Create a node for the TensorNetwork.
 
@@ -505,6 +509,7 @@ class Node(BaseNode):
     super().__init__(
         name=name,
         axis_names=axis_names,
+        network=network,
         backend=backend,
         shape=backend.shape_tuple(self._tensor))
     if not self.backend.dtype:
@@ -541,23 +546,20 @@ class Node(BaseNode):
     node_group.create_dataset('tensor', data=self._tensor)
 
   @classmethod
-  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
 
     Args:
+      net: The network the node will be added to
       node_data: h5py group that contains the serialized node data
 
     Returns:
       The added node.
     """
-    name, signature, _, axis_names, backend = cls._load_node_data(node_data)
-    if isinstance(axis_names, np.int32) and (axis_names == 123456789):
-      axis_names = None
-    else:
-      axis_names = [ax for ax in axis_names]
+    name, signature, _, axis_names, _ = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
-    node = Node(
-        tensor=tensor, name=name, axis_names=axis_names, backend=backend)
+    node = net.add_node(
+        value=tensor, name=name, axis_names=[ax for ax in axis_names])
     node.set_signature(signature)
     return node
 
@@ -569,6 +571,7 @@ class CopyNode(BaseNode):
                dimension: int,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
+               network: Optional[TensorNetwork] = None,
                backend: Optional["Backend"] = None,
                dtype: Type[np.number] = None) -> None:
 
@@ -586,6 +589,7 @@ class CopyNode(BaseNode):
     super().__init__(
         name=name,
         axis_names=axis_names,
+        network=network,
         backend=backend,
         shape=(dimension,) * rank)
 
@@ -690,7 +694,7 @@ class CopyNode(BaseNode):
     super()._save_node(node_group)
 
   @classmethod
-  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     """Add a node to a network based on hdf5 data.
 
     Args:
@@ -700,13 +704,12 @@ class CopyNode(BaseNode):
     Returns:
       The added node.
     """
-    name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
-    node = CopyNode(
+    name, signature, shape, axis_names, _ = cls._load_node_data(node_data)
+    node = net.add_copy_node(
         name=name,
         axis_names=[ax for ax in axis_names],
         rank=len(shape),
-        dimension=shape[0],
-        backend=backend)
+        dimension=shape[0])
     node.set_signature(signature)
     return node
 
