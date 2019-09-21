@@ -145,6 +145,7 @@ def flatten_edges(edges: List[network_components.Edge],
   # necessary to compare the first edge against the rest.
   expected_nodes = set(edges[0].get_nodes())
   for edge in edges:
+    print(edge.get_nodes())
     if expected_nodes != set(edge.get_nodes()):
       raise ValueError(
           "Two edges do not share the same nodes. "
@@ -156,10 +157,10 @@ def flatten_edges(edges: List[network_components.Edge],
   # Flatten standard or dangling edges.
   new_dangling_edges = []
   for node in expected_nodes:
-    axis_names = node.axis_names
     # Required for dangling case.
     if node is None:
       continue
+    axis_names = node.axis_names
     perm_back = []
     for edge in edges:
       # There will only be 1 edge since we are in the standard edge case.
@@ -1413,12 +1414,12 @@ class TensorNetwork:
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
 
-  def copy(self, conjugate: bool = False) -> Tuple["TensorNetwork", dict, dict]:
+  def copy(self, conj: bool = False) -> Tuple["TensorNetwork", dict, dict]:
     """
 
     Return a copy of the TensorNetwork.
     Args:
-      conjugate: Boolean. Whether to conjugate all of the nodes in the
+      conj: Boolean. Whether to conjugate all of the nodes in the
         `TensorNetwork` (useful for calculating norms and reduced density
         matrices).
     Returns:
@@ -1431,7 +1432,7 @@ class TensorNetwork:
     """
     new_net = TensorNetwork(backend=self.backend.name)
     #TODO: add support for copying CopyTensor
-    if conjugate:
+    if conj:
       node_dict = {
           node: new_net.add_node(
               self.backend.conj(node.tensor),
@@ -1572,7 +1573,7 @@ class TensorNetwork:
       if self.backend.dtype is None:
         self.backend.dtype = value.dtype
       new_node = network_components.Node(
-          value, name, axis_names, backend=self.backend.name)
+          value, name, axis_names, backend=self.backend.name, network=self)
       new_node.network = self  #set network manually
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
@@ -1612,6 +1613,7 @@ class TensorNetwork:
         dimension=dimension,
         name=name,
         axis_names=axis_names,
+        network=self,
         backend=self.backend.name,
         dtype=dtype)
     new_node.set_signature(self.node_increment)
@@ -2334,7 +2336,7 @@ class TensorNetwork:
     """Check that the network is structured correctly.
 
     Args:
-      check_connected: Check if the network is connected.
+      check_connections: Check if the network is connected.
 
     Raises:
       ValueError: If the tensor network is not correctly structured.
