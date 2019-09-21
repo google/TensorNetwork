@@ -24,7 +24,6 @@ import jax
 from jax.config import config
 import tensornetwork.config as config_file
 
-
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
@@ -32,11 +31,8 @@ np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
 torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
 jax_dtypes = [
-    jax.numpy.float32, 
-    jax.numpy.float64, 
-    jax.numpy.complex64, 
-    jax.numpy.complex128, 
-    jax.numpy.int32
+    jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
+    jax.numpy.complex128, jax.numpy.int32
 ]
 
 
@@ -86,8 +82,8 @@ def test_network_copy_conj(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.array([1.0 + 2.0j, 2.0 - 1.0j]))
   _, nodes, _ = net.copy(conj=True)
-  np.testing.assert_allclose(
-      nodes[a].tensor, np.array([1.0 - 2.0j, 2.0 + 1.0j]))
+  np.testing.assert_allclose(nodes[a].tensor, np.array([1.0 - 2.0j,
+                                                        2.0 + 1.0j]))
 
 
 def test_network_copy(backend):
@@ -270,7 +266,7 @@ def test_disconnect_edge(backend):
   e = net.connect(a[0], b[0])
   assert not e.is_dangling()
   dangling_edge_1, dangling_edge_2 = net.disconnect(e)
-  net.check_correct(check_connected=False)
+  net.check_correct(check_connections=False)
   assert dangling_edge_1.is_dangling()
   assert dangling_edge_2.is_dangling()
   assert a.get_edge(0) == dangling_edge_1
@@ -453,6 +449,7 @@ def test_get_all_edges(backend):
   a = net.add_node(np.eye(2))
   b = net.add_node(np.eye(2))
   assert {a[0], a[1], b[0], b[1]} == net.get_all_edges()
+
 
 def test_outer_product_final_nodes(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
