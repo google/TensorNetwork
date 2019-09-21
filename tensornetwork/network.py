@@ -145,7 +145,6 @@ def flatten_edges(edges: List[network_components.Edge],
   # necessary to compare the first edge against the rest.
   expected_nodes = set(edges[0].get_nodes())
   for edge in edges:
-    print(edge.get_nodes())
     if expected_nodes != set(edge.get_nodes()):
       raise ValueError(
           "Two edges do not share the same nodes. "
