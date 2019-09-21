@@ -24,7 +24,6 @@ import jax
 from jax.config import config
 import tensornetwork.config as config_file
 
-
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 
@@ -32,12 +31,10 @@ np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
 torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
 jax_dtypes = [
-    jax.numpy.float32, 
-    jax.numpy.float64, 
-    jax.numpy.complex64, 
-    jax.numpy.complex128, 
-    jax.numpy.int32
+    jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
+    jax.numpy.complex128, jax.numpy.int32
 ]
+
 
 def test_network_copy_reordered(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
@@ -240,7 +237,6 @@ def test_with_tensors(backend):
   val = net.contract(e2)
   net.check_correct()
   np.testing.assert_allclose(val.tensor, 12.0)
-
 
 
 def test_node2_contract_trace(backend):
@@ -483,14 +479,14 @@ def test_contract_between_output_order(backend):
   with pytest.raises(ValueError):
     d = net.contract_between(
         a, b, name="New Node", output_edge_order=[a[2], b[2], a[0]])
-  net.check_correct(check_connected=False)
+  net.check_correct(check_connections=False)
   with pytest.raises(ValueError):
     d = net.contract_between(
         a, b, name="New Node", output_edge_order=[a[2], b[2], c[0]])
-  net.check_correct(check_connected=False)
+  net.check_correct(check_connections=False)
   d = net.contract_between(
       a, b, name="New Node", output_edge_order=[b[2], a[2]])
-  net.check_correct(check_connected=False)
+  net.check_correct(check_connections=False)
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(b_flat, a_flat.T)
@@ -1054,6 +1050,7 @@ def test_network_backend_dtype_1(backend, dtype):
   net = tensornetwork.TensorNetwork(backend=backend, dtype=dtype)
   n1 = net.add_node(net.backend.zeros((2, 2)))
   assert n1.tensor.dtype == dtype
+
 
 @pytest.mark.parametrize("backend,dtype", [('numpy', np.float32),
                                            ('tensorflow', tf.float32),
