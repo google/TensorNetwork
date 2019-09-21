@@ -21,6 +21,8 @@ import pytest
 from typing import List, Optional, Tuple
 from tensornetwork.contractors import greedy_contractor
 from tensornetwork import network
+import tensorflow as tf
+tf.enable_v2_behavior()
 
 
 def test_greedy_sanity_check(backend):
