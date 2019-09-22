@@ -18,11 +18,8 @@ import tensorflow as tf
 import numpy as np
 import tensornetwork as tn
 import experiments.MERA.binary_mera_lib as bml
-import experiments.MERA.binary_mera as bm
 import experiments.MERA.misc_mera as misc_mera
 import pytest
-import copy
-tf.enable_v2_behavior()
 
 
 @pytest.fixture(autouse=True)

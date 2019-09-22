@@ -15,15 +15,11 @@
 unittests
 """
 import tensorflow as tf
-import tensornetwork as tn
-import experiments.MPS.misc_mps as misc_mps
 import experiments.MPS.matrixproductstates as MPS
 import experiments.MPS.DMRG as DMRG
 import experiments.MPS.matrixproductoperators as MPO
 import pytest
 import numpy as np
-
-tf.enable_v2_behavior()
 
 
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
