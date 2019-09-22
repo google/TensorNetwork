@@ -89,7 +89,7 @@ class StochasticTest(tf.test.TestCase):
     edge2 = c[0]
     net.connect(c[1], d[0])
     net = stochastic_contractor.stochastic(net, 2)
-    net.check_correct(check_connected=False)
+    net.check_correct(check_connections=False)
     node1, node2 = edge1.node1, edge2.node1
     self.assertAllClose(node1.get_tensor(), 6 * np.ones([4, 5]))
     self.assertAllClose(node2.get_tensor(), 4 * np.ones([3, 3]))
