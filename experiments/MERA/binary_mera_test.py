@@ -22,8 +22,15 @@ import experiments.MERA.binary_mera as bm
 import experiments.MERA.misc_mera as misc_mera
 import pytest
 import copy
-tn.set_default_backend("tensorflow")
 tf.enable_v2_behavior()
+
+
+@pytest.fixture(autouse=True)
+def backend_tensorflow():
+    tn.set_default_backend("tensorflow")
+    yield
+    tn.set_default_backend("numpy")
+
 
 @pytest.mark.parametrize("chi", [4, 6])
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
