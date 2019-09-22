@@ -23,8 +23,8 @@ from tensornetwork import network
 from tensornetwork import network_components
 
 
-def find_parallel(edge: network_components.Edge
-                 ) -> Tuple[Set[network_components.Edge], int]:
+def find_parallel(
+    edge: network_components.Edge) -> Tuple[Set[network_components.Edge], int]:
   """Finds all edges shared between the nodes connected with the given edge.
 
   Args:
@@ -78,11 +78,15 @@ def contract_trace_edges(
   for node in initial_node_set:
     trace_edges, flag_none, total_dim = set(), False, 1
     new_node = node
-    for edge, dim in zip(node.edges, list(node.get_tensor().shape)):
+    # makes sure node_edges points to the original edges
+    # even after contracting the trace
+    node_edges = [e for e in node.edges]
+    node_dims = list(node.get_tensor().shape)
+    for edge, dim in zip(node_edges, node_dims):
       if edge.node1 is edge.node2:
         if edge not in trace_edges:
           # Contract trace edge
-          new_node = net.contract(edge)
+          new_node = net.contract(edge, name=node.name)
           trace_edges.add(edge)
       else:
         if dim is None:
