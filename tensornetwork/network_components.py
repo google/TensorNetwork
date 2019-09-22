@@ -71,6 +71,10 @@ class BaseNode(ABC):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
+    if network and backend and (network.backend.name != backend.name):
+      raise ValueError(
+          'network.backend.name={} is different from backend={}'.format(
+              network.backend.name, backend.name))
     self.network = network
     self.is_disabled = False
     self.name = name if name is not None else '__unnamed_node__'
@@ -500,18 +504,25 @@ class Node(BaseNode):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-
-    if backend is None:
-      backend = config.default_backend
-    backend = backend_factory.get_backend(backend, dtype=None)
-    self._tensor = backend.convert_to_tensor(tensor)
-
+    if network:  #if a network is passed, use its backend
+      if backend and (network.backend.name != backend):
+        raise ValueError(
+            'network.backend.name={} is different from backend={}'.format(
+                network.backend.name, backend))
+      backend_obj = network.backend
+    else:
+      if not backend:
+        backend = config.default_backend
+      #use dtype=None here; the backend dtype will be deduced from the
+      #tensor dtype.
+      backend_obj = backend_factory.get_backend(backend, dtype=None)
+    self._tensor = backend_obj.convert_to_tensor(tensor)
     super().__init__(
         name=name,
         axis_names=axis_names,
         network=network,
-        backend=backend,
-        shape=backend.shape_tuple(self._tensor))
+        backend=backend_obj,
+        shape=backend_obj.shape_tuple(self._tensor))
     if not self.backend.dtype:
       self.backend.dtype = self._tensor.dtype
 
@@ -572,25 +583,46 @@ class CopyNode(BaseNode):
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
                network: Optional[TensorNetwork] = None,
-               backend: Optional["Backend"] = None,
-               dtype: Type[np.number] = None) -> None:
+               backend: Optional[Text] = None,
+               dtype: Type[np.number] = np.float64) -> None:
+    """
+    Initialize a CopyNode:
+    Args:
+      rank: The rank of the tensor.
+      dimension: The dimension of each leg.
+      name: A name for the node.
+      axis_names:  axis_names for the node.
+      network: An optional network for the node.
+      backend: An optional backend for the node. If `None`, a default
+        backend is used
+      dtype: The dtype used to initialize a numpy-copy node.
+        Note that this dtype has to be a numpy dtype, and it has to be 
+        compatible with the dtype of the backend, e.g. for a tensorflow
+        backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
+    """
+    if network:  #if a network is passed, use its backend
+      if backend and (network.backend.name != backend):
+        raise ValueError(
+            'network.backend.name={} is different from backend={}'.format(
+                network.backend.name, backend))
+      backend_obj = network.backend
+    else:
+      if not backend:
+        backend = config.default_backend
+      #use dtype=None here; the backend dtype will be deduced from the
+      #tensor dtype.
+      backend_obj = backend_factory.get_backend(backend, dtype=None)
 
     self.rank = rank
     self.dimension = dimension
     self._tensor = None
-    if dtype is None:
-      dtype = config.default_dtype
-    # backend.dtype is initialized from config.py (currently `None`)
-    # if `backend.dtype = None`, the backend dtype is set to the type
-    # of `tensor`.
-    if backend is None:
-      backend = config.default_backend
-    backend = backend_factory.get_backend(backend, dtype)
+    self.copy_node_dtype = dtype
+
     super().__init__(
         name=name,
         axis_names=axis_names,
         network=network,
-        backend=backend,
+        backend=backend_obj,
         shape=(dimension,) * rank)
 
   def get_tensor(self):
@@ -606,9 +638,8 @@ class CopyNode(BaseNode):
   @property
   def tensor(self) -> Tensor:
     if self._tensor is None:
-      copy_tensor = self.make_copy_tensor(self.rank, self.dimension, self.dtype)
-      print(copy_tensor)
-      print(self.backend)
+      copy_tensor = self.make_copy_tensor(self.rank, self.dimension,
+                                          self.copy_node_dtype)
       self._tensor = self.backend.convert_to_tensor(copy_tensor)
     return self._tensor
 
