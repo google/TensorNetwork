@@ -207,8 +207,6 @@ def test_randn_dtype(dtype):
 def test_eye_dtype_2(dtype):
   backend = jax_backend.JaxBackend(dtype=dtype)
   a = backend.eye(N=4, M=4)
-  print('testing')
-  print(a.dtype)
   assert a.dtype == dtype
 
 
