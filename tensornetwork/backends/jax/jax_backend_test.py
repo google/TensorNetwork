@@ -10,7 +10,6 @@ from tensornetwork.backends.jax import jax_backend
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
-jax.config.update("jax_enable_x64", True)
 
 
 def test_tensordot():
