@@ -7,10 +7,10 @@ import numpy as np
 import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
-import tensornetwork.config as config_file
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+jax.config.update("jax_enable_x64", True)
 
 
 def test_tensordot():
@@ -207,6 +207,8 @@ def test_randn_dtype(dtype):
 def test_eye_dtype_2(dtype):
   backend = jax_backend.JaxBackend(dtype=dtype)
   a = backend.eye(N=4, M=4)
+  print('testing')
+  print(a.dtype)
   assert a.dtype == dtype
 
 
