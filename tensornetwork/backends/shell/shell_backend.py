@@ -207,7 +207,8 @@ class ShellBackend(base_backend.BaseBackend):
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None) -> Tensor:
+            dtype: Optional[Type[np.number]] = None,
+            seed: Optional[int] = None) -> Tensor:
     return ShellTensor(shape)
 
   def conj(self, tensor: Tensor) -> Tensor:

@@ -23,7 +23,9 @@ import copy
 import functools as fct
 import tensornetwork as tn
 from scipy.sparse.linalg import LinearOperator, lgmres, eigs
-ncon_defuned = tf.contrib.eager.defun(ncon_tn, autograph=False)
+import functools
+tf_ncon = functools.partial(ncon_tn, backend="tensorflow")
+ncon_defuned = tf.contrib.eager.defun(tf_ncon, autograph=False)
 
 
 def transfer_op(As, Bs, direction, x):
@@ -420,7 +422,7 @@ def prepare_tensor_SVD(tensor, direction, D=None, thresh=1E-32, normalize=False)
     assert (direction != 0), 'do NOT use direction=0!'
     [l1, l2, d] = tensor.shape
     if direction in (1, 'l', 'left'):
-        net = tn.TensorNetwork()
+        net = tn.TensorNetwork("tensorflow")
         node = net.add_node(tensor)
         u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0], node[1]], [node[2]], max_singular_values=D, max_truncation_err=thresh)
         Z = tf.linalg.norm(s_node.tensor)
@@ -429,7 +431,7 @@ def prepare_tensor_SVD(tensor, direction, D=None, thresh=1E-32, normalize=False)
         return u_node.tensor, s_node.tensor, v_node.tensor, Z
 
     if direction in (-1, 'r', 'right'):
-        net = tn.TensorNetwork()
+        net = tn.TensorNetwork("tensorflow")
         node = net.add_node(tensor)
         u_node, s_node, v_node, _ = net.split_node_full_svd(node, [node[0]], [node[1], node[2]], max_singular_values=D, max_truncation_err=thresh)
         Z = tf.linalg.norm(s_node.tensor)
@@ -471,7 +473,7 @@ def apply_2site_schmidt_canonical(op,
   L0_i = tf.matrix_inverse(L0)
   L2_i = tf.matrix_inverse(L2)
 
-  net = tn.TensorNetwork()
+  net = tn.TensorNetwork("tensorflow")
   nL0_i = net.add_node(L0_i, axis_names=["L", "R"])
   nL0 = net.add_node(L0, axis_names=["L", "R"])
   nG1 = net.add_node(G1, axis_names=["L", "p", "R"])
@@ -545,7 +547,7 @@ def apply_2site_generic(op, A1, A2, max_bond_dim=None, auto_trunc_max_err=0.0):
         op_shp[3],
         message="Operator dimensions do not match MPS physical dimensions.")
 
-  net = tn.TensorNetwork()
+  net = tn.TensorNetwork("tensorflow")
   nA1 = net.add_node(A1, axis_names=["L", "p", "R"])
   nA2 = net.add_node(A2, axis_names=["L", "p", "R"])
   nop = net.add_node(op, axis_names=["p_out_1", "p_out_2", "p_in_1", "p_in_2"])

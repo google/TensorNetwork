@@ -8,9 +8,9 @@ import pytest
 from tensornetwork.backends.numpy import numpy_backend
 import tensornetwork.config as config_file
 
-
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+
 
 def test_tensordot():
   backend = numpy_backend.NumPyBackend()
@@ -125,7 +125,7 @@ def test_einsum():
 
 def test_convert_bad_test():
   backend = numpy_backend.NumPyBackend()
-  with pytest.raises(ValueError):
+  with pytest.raises(TypeError):
     backend.convert_to_tensor(tf.ones((2, 2)))
 
 
@@ -161,6 +161,13 @@ def test_randn(dtype):
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.randn((4, 4))
   assert a.shape == (4, 4)
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_randn_non_zero_imag(dtype):
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.randn((4, 4))
+  assert np.linalg.norm(np.imag(a)) != 0.0
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -204,7 +211,6 @@ def test_eye_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_ones_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.ones((4, 4))
   assert a.dtype == dtype
@@ -212,7 +218,6 @@ def test_ones_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_zeros_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.zeros((4, 4))
   assert a.dtype == dtype
@@ -220,10 +225,17 @@ def test_zeros_dtype_2(dtype):
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_dtype_2(dtype):
-  dtype = np.float32
   backend = numpy_backend.NumPyBackend(dtype=dtype)
   a = backend.randn((4, 4))
   assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_randn_seed(dtype):
+  backend = numpy_backend.NumPyBackend(dtype=dtype)
+  a = backend.randn((4, 4), seed=10)
+  b = backend.randn((4, 4), seed=10)
+  np.testing.assert_allclose(a, b)
 
 
 def test_conj():

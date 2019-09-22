@@ -93,3 +93,14 @@ def test_basic_numpy_network_without_backends():
     import tensorflow as tf
   with pytest.raises(ImportError):
     import jax
+
+
+@pytest.mark.usefixtures('no_backend_dependency')
+def test_basic_network_without_backends_raises_error():
+  import tensornetwork
+  with pytest.raises(ImportError):
+    tensornetwork.TensorNetwork(backend="jax")
+  with pytest.raises(ImportError):
+    tensornetwork.TensorNetwork(backend="tensorflow")
+  with pytest.raises(ImportError):
+    tensornetwork.TensorNetwork(backend="pytorch")

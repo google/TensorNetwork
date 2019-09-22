@@ -16,7 +16,7 @@ class FftTest(tf.test.TestCase):
 
   def test_fft(self):
     n = 3
-    net = tensornetwork.TensorNetwork()
+    net = tensornetwork.TensorNetwork("tensorflow")
 
     initial_state = [complex(0)] * (1 << n)
     initial_state[1] = 1j

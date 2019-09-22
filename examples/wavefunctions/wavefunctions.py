@@ -59,7 +59,7 @@ def apply_op(psi, op, n1, pbc=False):
     Returns:
       psi_final: The result of applying `op` to `psi`.
   """
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork("tensorflow")
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
 
@@ -101,7 +101,7 @@ def expval(psi, op, n1, pbc=False):
     Returns:
       expval: The expectation value.
   """
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork("tensorflow")
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
 
@@ -245,7 +245,7 @@ def apply_circuit(psi, layers):
   """
   num_sites = len(psi.shape)
 
-  net = tensornetwork.TensorNetwork()
+  net = tensornetwork.TensorNetwork("tensorflow")
   n_psi = net.add_node(psi)
   site_edges = n_psi.get_all_edges()
   nodes = [n_psi]
