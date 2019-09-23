@@ -25,12 +25,13 @@ import tensornetwork.backends.backend_factory as backend_factory
 Tensor = Any
 
 
-def ncon(tensors: Sequence[Tensor],
+def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
          out_order: Optional[Sequence] = None,
          backend: Optional[Text] = None) -> Tensor:
-  r"""Contracts a list of tensors according to a tensor network specification.
+  r"""Contracts a list of tensors or nodes according to a tensor network 
+    specification.
 
     The network is provided as a list of lists, one for each
     tensor, specifying labels for the edges connected to that tensor.
@@ -64,7 +65,7 @@ def ncon(tensors: Sequence[Tensor],
     supported in this implementation.
 
     Args:
-      tensors: List of `Tensor`s.
+      tensors: List of `Tensor`s or `BaseNode`s.
       network_structure: List of lists specifying the tensor network
         structure.
       con_order: List of edge labels specifying the contraction order.
@@ -73,7 +74,7 @@ def ncon(tensors: Sequence[Tensor],
         `tensornetwork.config.default_backend`.
 
     Returns:
-      A `Tensor` resulting from the contraction of the tensor network.
+      A `Node` resulting from the contraction of the tensor network.
     """
   if backend and (backend not in backend_factory._BACKENDS):
     raise ValueError("Backend '{}' does not exist".format(backend))
