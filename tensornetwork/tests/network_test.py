@@ -211,7 +211,7 @@ def test_add_node_in_network(backend):
 
 def test_add_node_twice_raise_value_error(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  a = net.add_node(tensornetwork.CopyNode(3, 3, backend=backend))
   with pytest.raises(ValueError):
     net.add_node(a)
 
@@ -219,7 +219,8 @@ def test_add_node_twice_raise_value_error(backend):
 def test_add_copy_node(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(
-      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+      tensornetwork.CopyNode(
+          3, 3, name="TestName", axis_names=['a', 'b', 'c'], backend=backend))
   assert a in net
 
 

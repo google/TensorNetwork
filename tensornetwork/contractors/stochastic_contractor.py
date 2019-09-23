@@ -83,11 +83,13 @@ def contract_trace_edges(
     node_edges = [e for e in node.edges]
     node_dims = list(node.get_tensor().shape)
     for edge, dim in zip(node_edges, node_dims):
-      if edge.node1 is edge.node2:
+      if (not edge.is_disabled) and (edge.node1 is edge.node2):
         if edge not in trace_edges:
           # Contract trace edge
           new_node = net.contract(edge, name=node.name)
           trace_edges.add(edge)
+      elif edge.is_disabled:  #edge has been contracted; don't skip it
+        continue
       else:
         if dim is None:
           total_dim *= none_value

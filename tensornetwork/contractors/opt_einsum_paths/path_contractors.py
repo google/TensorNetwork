@@ -1,3 +1,4 @@
+# pylint: disable=cyclic-import
 # Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +16,15 @@
 
 import functools
 import opt_einsum
-from tensornetwork import network
-from tensornetwork import network_components
+from tensornetwork.network import TensorNetwork
+from tensornetwork.network_components import Edge
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence
 
 
-def base(net: network.TensorNetwork,
+def base(net: TensorNetwork,
          algorithm: utils.Algorithm,
-         output_edge_order: Optional[Sequence[network_components.Edge]] = None
-        ) -> network.TensorNetwork:
+         output_edge_order: Optional[Sequence[Edge]] = None) -> TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -73,9 +73,9 @@ def base(net: network.TensorNetwork,
   return net
 
 
-def optimal(net: network.TensorNetwork,
-            output_edge_order: Sequence[network_components.Edge] = None,
-            memory_limit: Optional[int] = None) -> network.TensorNetwork:
+def optimal(net: TensorNetwork,
+            output_edge_order: Sequence[Edge] = None,
+            memory_limit: Optional[int] = None) -> TensorNetwork:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -99,10 +99,10 @@ def optimal(net: network.TensorNetwork,
   return base(net, alg, output_edge_order)
 
 
-def branch(net: network.TensorNetwork,
-           output_edge_order: Sequence[network_components.Edge] = None,
+def branch(net: TensorNetwork,
+           output_edge_order: Sequence[Edge] = None,
            memory_limit: Optional[int] = None,
-           nbranch: Optional[int] = None) -> network.TensorNetwork:
+           nbranch: Optional[int] = None) -> TensorNetwork:
   """Branch contraction path via `opt_einsum`.
 
   This method uses the DFS approach of `optimal` while sorting potential
@@ -131,9 +131,9 @@ def branch(net: network.TensorNetwork,
   return base(net, alg, output_edge_order)
 
 
-def greedy(net: network.TensorNetwork,
-           output_edge_order: Sequence[network_components.Edge] = None,
-           memory_limit: Optional[int] = None) -> network.TensorNetwork:
+def greedy(net: TensorNetwork,
+           output_edge_order: Sequence[Edge] = None,
+           memory_limit: Optional[int] = None) -> TensorNetwork:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
@@ -159,9 +159,9 @@ def greedy(net: network.TensorNetwork,
   return base(net, alg, output_edge_order)
 
 
-def auto(net: network.TensorNetwork,
-         output_edge_order: Sequence[network_components.Edge] = None,
-         memory_limit: Optional[int] = None) -> network.TensorNetwork:
+def auto(net: TensorNetwork,
+         output_edge_order: Sequence[Edge] = None,
+         memory_limit: Optional[int] = None) -> TensorNetwork:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -205,10 +205,10 @@ def auto(net: network.TensorNetwork,
   return greedy(net, output_edge_order, memory_limit)
 
 
-def custom(net: network.TensorNetwork,
+def custom(net: TensorNetwork,
            optimizer: Any,
-           output_edge_order: Sequence[network_components.Edge] = None,
-           memory_limit: Optional[int] = None) -> network.TensorNetwork:
+           output_edge_order: Sequence[Edge] = None,
+           memory_limit: Optional[int] = None) -> TensorNetwork:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.

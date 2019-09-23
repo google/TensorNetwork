@@ -67,7 +67,8 @@ def test_add_node_names(backend):
 def test_add_copy_node_from_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(
-      tensornetwork.CopyNode(3, 3, name="TestName", axis_names=['a', 'b', 'c']))
+      tensornetwork.CopyNode(
+          3, 3, name="TestName", axis_names=['a', 'b', 'c'], backend=backend))
   assert a in net
   assert a.shape == (3, 3, 3)
   assert isinstance(a, tensornetwork.CopyNode)
@@ -81,7 +82,7 @@ def test_add_copy_node_from_node_object(backend):
 
 def test_default_names_add_node_object(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(tensornetwork.CopyNode(3, 3))
+  a = net.add_node(tensornetwork.CopyNode(3, 3, backend=backend))
   assert a.name is not None
   assert len(a.axis_names) == 3
 
@@ -560,9 +561,13 @@ def test_double_trace_disable(backend):
   e1 = net.connect(node[0], node[2], name='e1')
   net.connect(node[1], node[3], name='e2')
 
-  net.contract(e1, name='b')
+  # contract disables contracted edges;
+  # if we have to access them, we need
+  # to do it beforehand.
   node1 = e1.node1
   node2 = e1.node2
+
+  net.contract(e1, name='b')
 
   with pytest.raises(ValueError):
     node.edges[0]
@@ -596,9 +601,13 @@ def test_trace_disable(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   node = net.add_node(np.random.rand(2, 2, 2, 2), name='node1')
   e = net.connect(node[0], node[2], name='e1')
-  net._contract_trace(e, name='b')
+  # _contract_trace disables contracted edges;
+  # if we have to access them, we need
+  # to do it beforehand.
   node1 = e.node1
   node2 = e.node2
+
+  net._contract_trace(e, name='b')
 
   with pytest.raises(ValueError):
     node.edges[0]
@@ -641,6 +650,10 @@ def test_weakref(backend):
     e.node2
 
 
+# This test no longer tests weakref behaviour
+# since contraction methods now automatically
+# disable contracted edges by setting Edge.node1 and
+# Edge.node2 to None.
 def test_weakref_complex(backend):
   net = tensornetwork.TensorNetwork(backend=backend)
   a = net.add_node(np.eye(2))
@@ -650,8 +663,29 @@ def test_weakref_complex(backend):
   e2 = net.connect(b[1], c[0])
   net.contract(e1)
   net.contract(e2)
-  # This won't raise an exception since we still have a referance to 'a'.
-  e1.node1
+  # This now raises an exception because we contract disables contracted edges
+  # and raises a ValueError if we try to access the nodes
+  with pytest.raises(ValueError):
+    e1.node1
+  # This raises an exception since the intermediate node created when doing
+  # `net.contract(e2)` was garbage collected.
+  with pytest.raises(ValueError):
+    e2.node1
+
+
+def test_edge_disable_complex(backend):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.eye(2))
+  b = net.add_node(np.eye(2))
+  c = net.add_node(np.eye(2))
+  e1 = net.connect(a[0], b[0])
+  e2 = net.connect(b[1], c[0])
+  net.contract(e1)
+  net.contract(e2)
+  # This now raises an exception because we contract disables contracted edges
+  # and raises a ValueError if we try to access the nodes
+  with pytest.raises(ValueError):
+    e1.node1
   # This raises an exception since the intermediate node created when doing
   # `net.contract(e2)` was garbage collected.
   with pytest.raises(ValueError):
