@@ -23,10 +23,11 @@ import numpy as np
 import weakref
 from abc import ABC, abstractmethod
 import h5py
-import tensornetwork as tn
+import tensornetwork.network as network
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
 from tensornetwork.backends import backend_factory
+from tensornetwork.backends.base_backend import BaseBackend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
@@ -56,7 +57,7 @@ class BaseNode(ABC):
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
                network: Optional[TensorNetwork] = None,
-               backend: Optional["Backend"] = None,
+               backend: Optional[BaseBackend] = None,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node for the TensorNetwork. Should be subclassed before usage
     and a limited number of abstract methods and properties implemented.
@@ -353,7 +354,7 @@ class BaseNode(ABC):
       raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
     if self.network and other.network:
       return self.network.contract_between(self, other)
-    return tn.contract_between(self, other)
+    return network.contract_between(self, other)
 
   @property
   def edges(self):
@@ -414,7 +415,8 @@ class BaseNode(ABC):
     return
 
   @classmethod
-  def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:
+  def _load_node_data(cls,
+                      node_data: h5py.Group) -> Tuple[Any, Any, Any, Any, Any]:
     """Common method to enable adding nodes to a network based on hdf5 data.
        Only a common functionality to load node properties is implemented.
 
@@ -523,7 +525,7 @@ class Node(BaseNode):
         network=network,
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
-    if not self.backend.dtype:
+    if self.backend and not self.backend.dtype:
       self.backend.dtype = self._tensor.dtype
 
   def get_tensor(self):
@@ -1030,7 +1032,7 @@ class Edge:
     return edge
 
   def __xor__(self, other: "Edge") -> "Edge":
-    return tn.connect(self, other, self.name)
+    return network.connect(self, other, self.name)
 
   def __lt__(self, other):
     if not isinstance(other, Edge):
@@ -1042,10 +1044,9 @@ class Edge:
       return self.name
     return '__unnamed_edge__'
 
-  def disconnect(
-      self,
-      edge1_name: Optional[Text] = None,
-      edge2_name: Optional[Text] = None) -> Tuple[BaseNode, BaseNode]:
+  def disconnect(self,
+                 edge1_name: Optional[Text] = None,
+                 edge2_name: Optional[Text] = None) -> Tuple["Edge", "Edge"]:
     """
     Break an existing non-dangling edge.
     This updates both Edge.node1 and Edge.node2 by removing the 
@@ -1074,10 +1075,10 @@ class Edge:
     node2.add_edge(new_edge2, self.axis2, override=True)
     return new_edge1, new_edge2
 
-  def __or__(self, other: "Edge") -> "Edge":
+  def __or__(self, other: "Edge") -> Tuple["Edge", "Edge"]:
     """
     Break apart two edges if they are connected
     """
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
-    return self.disconnect('__Edge__', '__Edge__')
+    return self.disconnect('__unnamed_edge__', '__unnamed_dge__')
