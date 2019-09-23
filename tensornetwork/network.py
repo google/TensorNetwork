@@ -23,6 +23,7 @@ from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type,
 import numpy as np
 import weakref
 from tensornetwork import config
+# pylint:disable=useless-import-alias
 import tensornetwork.network_components as network_components
 from tensornetwork.backends import backend_factory
 
@@ -714,9 +715,8 @@ def connect(edge1: network_components.Edge,
   return new_edge
 
 
-def disconnect(
-    edge, edge1_name: Optional[Text], edge2_name: Optional[Text]
-) -> Tuple[network_components.BaseNode, network_components.BaseNode]:
+def disconnect(edge, edge1_name: Optional[Text], edge2_name: Optional[Text]
+              ) -> Tuple[network_components.Edge, network_components.Edge]:
   """
   Break an existing non-dangling edge.
   This updates both Edge.node1 and Edge.node2 by removing the 
@@ -777,14 +777,17 @@ def transpose(
   if not hasattr(node, 'backend'):
     raise TypeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
+
+  perm = [node.get_axis_number(p) for p in permutation]
   if not axis_names:
     axis_names = node.axis_names
+
   new_node = network_components.Node(
       node.tensor,
       name=name,
       axis_names=node.axis_names,
       backend=node.backend.name)
-  return new_node.reorder_axes(permutation)
+  return new_node.reorder_axes(perm)
 
 
 def split_node(
@@ -1196,7 +1199,8 @@ def reachable(nodes: Union[network_components
   return reachable_nodes
 
 
-def reachable_deque(node: network_components.BaseNode) -> None:
+def reachable_deque(
+    node: network_components.BaseNode) -> Set[network_components.BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges. This function uses 
   itertools.deque.
@@ -1221,8 +1225,8 @@ def reachable_deque(node: network_components.BaseNode) -> None:
   return seen_nodes
 
 
-def reachable_recursive(node: network_components.BaseNode
-                       ) -> Collection[network_components.BaseNode]:
+def reachable_recursive(
+    node: network_components.BaseNode) -> Set[network_components.BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges. This function uses 
   recursion
@@ -1250,8 +1254,8 @@ def reachable_recursive(node: network_components.BaseNode
   return reachable_nodes
 
 
-def reachable_iterative(node: network_components.BaseNode
-                       ) -> Collection[network_components.BaseNode]:
+def reachable_iterative(
+    node: network_components.BaseNode) -> Set[network_components.BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges. This function uses 
   an iterative strategy.
@@ -1413,6 +1417,7 @@ class TensorNetwork:
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
 
+  # pylint: disable=redefined-outer-name
   def copy(self, conj: bool = False) -> Tuple["TensorNetwork", dict, dict]:
     """
 
@@ -1646,7 +1651,7 @@ class TensorNetwork:
                  edge: network_components.Edge,
                  dangling_edge_name_1: Optional[Text] = None,
                  dangling_edge_name_2: Optional[Text] = None
-                ) -> List[network_components.Edge]:
+                ) -> Tuple[network_components.Edge, network_components.Edge]:
     """Break a edge into two dangling edges.
 
     Args:
@@ -1973,7 +1978,7 @@ class TensorNetwork:
     """
     return flatten_edges_between(node1, node2)
 
-  def flatten_all_edges(self) -> List[network_components.Edge]:
+  def flatten_all_edges(self) -> List[Optional[network_components.Edge]]:
     """Flatten all edges in the network.
 
     Returns:

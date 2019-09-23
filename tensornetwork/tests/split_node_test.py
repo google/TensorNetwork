@@ -22,7 +22,6 @@ import tensorflow as tf
 from jax.config import config
 import tensornetwork.config as config_file
 
-
 config.update("jax_enable_x64", True)
 tf.compat.v1.enable_v2_behavior()
 

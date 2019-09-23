@@ -18,8 +18,8 @@ from tensornetwork import network_components
 from typing import Any, Callable, Dict, List, Set, Tuple
 
 # `opt_einsum` algorithm method typing
-Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]],
-                     List[Tuple[int, int]]]
+Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]], List[
+    Tuple[int, int]]]
 
 
 def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
@@ -27,9 +27,9 @@ def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
   return [i for j, i in enumerate(elems) if j not in indices]
 
 
-def get_path(net: network.TensorNetwork, algorithm: Algorithm
-             ) -> Tuple[List[Tuple[int, int]],
-                        List[network_components.BaseNode]]:
+def get_path(
+    net: network.TensorNetwork, algorithm: Algorithm
+) -> Tuple[List[Tuple[int, int]], List[network_components.BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:

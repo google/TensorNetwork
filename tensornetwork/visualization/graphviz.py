@@ -21,6 +21,8 @@ from typing import Optional, Text
 from tensornetwork import network
 
 
+#pylint: disable=no-member
+#pylint: disable=no-member
 def to_graphviz(net: network.TensorNetwork,
                 graph: Optional[graphviz.Graph] = None,
                 include_all_names: bool = False,
@@ -40,6 +42,7 @@ def to_graphviz(net: network.TensorNetwork,
     The `graphviz.Graph` object.
   """
   if graph is None:
+    #pylint: disable=no-member
     graph = graphviz.Graph('G', engine=engine)
   for node in net.nodes_set:
     if not node.name.startswith("__") or include_all_names:

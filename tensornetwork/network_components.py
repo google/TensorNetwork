@@ -23,7 +23,8 @@ import numpy as np
 import weakref
 from abc import ABC, abstractmethod
 import h5py
-import tensornetwork.network as network
+# pylint:disable=useless-import-alias
+import tensornetwork.network as tensor_network
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
 from tensornetwork.backends import backend_factory
@@ -354,7 +355,7 @@ class BaseNode(ABC):
       raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
     if self.network and other.network:
       return self.network.contract_between(self, other)
-    return network.contract_between(self, other)
+    return tensor_network.contract_between(self, other)
 
   @property
   def edges(self):
@@ -411,7 +412,7 @@ class BaseNode(ABC):
 
   @classmethod
   @abstractmethod
-  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
     return
 
   @classmethod
@@ -1032,7 +1033,7 @@ class Edge:
     return edge
 
   def __xor__(self, other: "Edge") -> "Edge":
-    return network.connect(self, other, self.name)
+    return tensor_network.connect(self, other, self.name)
 
   def __lt__(self, other):
     if not isinstance(other, Edge):

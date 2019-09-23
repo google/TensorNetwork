@@ -94,7 +94,7 @@ test_list = [
     ("optimal", "matrix_chain", [(2, 3), (1, 2), (0, 1)]),
     ("branch", "matrix_chain", [(2, 3), (1, 2), (0, 1)]),
     ("greedy", "matrix_chain", [(0, 1), (0, 2), (0, 1)]),
-    ]
+]
 
 
 @pytest.mark.parametrize("params", test_list)

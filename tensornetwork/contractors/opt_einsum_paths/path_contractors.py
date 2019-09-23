@@ -21,9 +21,10 @@ from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence
 
 
-def base(net: network.TensorNetwork, algorithm: utils.Algorithm,
+def base(net: network.TensorNetwork,
+         algorithm: utils.Algorithm,
          output_edge_order: Optional[Sequence[network_components.Edge]] = None
-         ) -> network.TensorNetwork:
+        ) -> network.TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -59,8 +60,7 @@ def base(net: network.TensorNetwork, algorithm: utils.Algorithm,
   # output_edge_order has to be specified
   final_node = net.get_final_node()
   if (len(final_node.edges) <= 1) and (output_edge_order is None):
-    output_edge_order = list((net.get_all_edges() -
-                              net.get_all_nondangling()))
+    output_edge_order = list((net.get_all_edges() - net.get_all_nondangling()))
   elif (len(final_node.edges) > 1) and (output_edge_order is None):
     raise ValueError("if the final node has more than one dangling edge"
                      " `output_edge_order` has to be provided")
@@ -126,8 +126,8 @@ def branch(net: network.TensorNetwork,
   Returns:
     The network after full contraction.
   """
-  alg = functools.partial(opt_einsum.paths.branch,
-                          memory_limit=memory_limit, nbranch=nbranch)
+  alg = functools.partial(
+      opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
   return base(net, alg, output_edge_order)
 
 
@@ -186,8 +186,8 @@ def auto(net: network.TensorNetwork,
     net.contract_parallel(edges.pop())
     final_node = net.get_final_node()
     if (len(final_node.edges) <= 1) and (output_edge_order is None):
-      output_edge_order = list((net.get_all_edges() -
-                                net.get_all_nondangling()))
+      output_edge_order = list(
+          (net.get_all_edges() - net.get_all_nondangling()))
     elif (len(final_node.edges) > 1) and (output_edge_order is None):
       raise ValueError("if the final node has more than one dangling edge"
                        ", `output_edge_order` has to be provided")

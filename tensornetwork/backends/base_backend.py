@@ -34,6 +34,7 @@ class BaseBackend:
 
   @dtype.setter
   def dtype(self, dtype):
+    #pylint: disable=attribute-defined-outside-init
     self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor,
