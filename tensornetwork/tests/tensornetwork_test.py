@@ -21,12 +21,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 import jax
-from jax.config import config
-import tensornetwork.config as config_file
 
-
-config.update("jax_enable_x64", True)
-tf.compat.v1.enable_v2_behavior()
 
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]

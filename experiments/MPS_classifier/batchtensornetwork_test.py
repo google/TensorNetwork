@@ -18,10 +18,7 @@ from __future__ import print_function
 
 import pytest
 import numpy as np
-import tensorflow as tf
 from experiments.MPS_classifier import batchtensornetwork
-
-tf.enable_v2_behavior()
 
 
 @pytest.fixture(

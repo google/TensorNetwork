@@ -6,7 +6,7 @@ import numpy as np
 from tensornetwork.backends.pytorch import pytorch_backend
 import torch
 import pytest
-import tensornetwork.config as config_file
+
 
 torch_dtypes = [torch.float32, torch.float64, torch.int32]
 torch_eye_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
