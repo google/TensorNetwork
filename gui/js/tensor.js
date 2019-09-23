@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let app = new Vue({
-    el: '#app',
-    data: {
-        state: initialState // now state object is reactive, whereas initialState is not
-    },
-    template: `
-        <tensor :state="state"/>
-    `
-});
+Vue.component(
+    'tensor',
+    {
+        props: {
+            state: Object
+        },
+        template: `
+        <p>I'm a tensor! My state is {{state.tensorState}}</p>
+        `
+    }
+);
