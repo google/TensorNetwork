@@ -790,7 +790,7 @@ def test_broken_edge_contraction(backend):
 def test_disconnect_magicmethod(backend):
   n1 = Node(np.random.rand(2), backend=backend)
   n2 = Node(np.random.rand(2), backend=backend)
-  e = n1[0] ^ n2[0]
+  _ = n1[0] ^ n2[0]
   n1[0] | n2[0]
 
   assert n1[0].is_dangling()
@@ -800,7 +800,7 @@ def test_disconnect_magicmethod(backend):
 def test_broken_edge_contraction_magicmethod(backend):
   n1 = Node(np.random.rand(2), backend=backend)
   n2 = Node(np.random.rand(2), backend=backend)
-  e = n1[0] ^ n2[0]
+  _ = n1[0] ^ n2[0]
   n1[0] | n2[0]
   with pytest.raises(ValueError):
     n1 @ n2
