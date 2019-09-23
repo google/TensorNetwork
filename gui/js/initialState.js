@@ -13,6 +13,18 @@
 // limitations under the License.
 
 let initialState = {
-    message: "Hello from initialState.js",
-    tensorState: "TOTALLY AWESOME"
+    tensors: [
+        {
+            name: 'A',
+            axes: [null, 'a named axis'] // null values for axes correspond to unnamed axes
+        },
+        {
+            name: 'B',
+            axes: ['a named axis', 'foo', 'a free index'] // can have duplicate names for axes across tensors
+        }
+    ],
+    edges: [
+        [['A', 0], ['B', 1]], // connects axis 0 of tensor A to axis 1 of tensor B
+        [['B', 0], ['A', 1], 'a named edge'] // optional third element describes edge name
+    ]
 };
