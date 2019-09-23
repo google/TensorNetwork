@@ -20,12 +20,6 @@ from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
 
 
-#TODO: fix jax backend and add to fixture
-@pytest.fixture(name="backend", params=["numpy", "tensorflow", "pytorch"])
-def backend_fixure(request):
-  return request.param
-
-
 def test_sanity_check(backend):
   result = ncon_interface.ncon([np.ones(
       (2, 2)), np.ones((2, 2))], [(-1, 1), (1, -2)],
