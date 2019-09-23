@@ -28,6 +28,7 @@ import h5py
 import tensornetwork.config as config
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
+#pylint: disable=useless-import-alias
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
@@ -1091,3 +1092,43 @@ class Edge:
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
     return self.disconnect('__unnamed_edge__', '__unnamed_dge__')
+
+
+def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
+  for edge in [edge1, edge2]:
+    if not edge.is_dangling():
+      raise ValueError("Edge '{}' is not a dangling edge. "
+                       "This edge points to nodes: '{}' and '{}'".format(
+                           edge, edge.node1, edge.node2))
+  if edge1 is edge2:
+    raise ValueError("Cannot connect and edge '{}' to itself.".format(edge1))
+
+  if edge1.dimension != edge2.dimension:
+    raise ValueError("Cannot connect edges of unequal dimension. "
+                     "Dimension of edge '{}': {}, "
+                     "Dimension of edge '{}': {}.".format(
+                         edge1, edge2.dimension, edge2, edge2.dimension))
+
+  #edge1 and edg2 are always dangling in this case
+  node1 = edge1.node1
+  node2 = edge2.node1
+  axis1_num = node1.get_axis_number(edge1.axis1)
+  axis2_num = node2.get_axis_number(edge2.axis1)
+
+  new_edge = Edge(
+      node1=node1, axis1=axis1_num, name=name, node2=node2, axis2=axis2_num)
+
+  node1.add_edge(new_edge, axis1_num, override=True)
+  node2.add_edge(new_edge, axis2_num, override=True)
+  return new_edge
+
+
+def disconnect(edge, edge1_name: Optional[Text],
+               edge2_name: Optional[Text]) -> Tuple[Edge, Edge]:
+  """
+  Break an existing non-dangling edge.
+  This updates both Edge.node1 and Edge.node2 by removing the 
+  connecting edge from `Edge.node1.edges` and `Edge.node2.edges`
+  and adding new dangling edges instead
+  """
+  return edge.disconnect(edge1_name, edge2_name)
