@@ -18,6 +18,8 @@ let app = new Vue({
         state: initialState // now state object is reactive, whereas initialState is not
     },
     template: `
-        <tensor :state="state"/>
+        <div>
+            <tensor :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+        </div>
     `
 });
