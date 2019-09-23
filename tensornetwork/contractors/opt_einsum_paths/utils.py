@@ -17,7 +17,7 @@ from tensornetwork.network import TensorNetwork
 from tensornetwork.network_components import BaseNode, Edge
 from typing import Any, Callable, Dict, List, Set, Tuple
 # `opt_einsum` algorithm method typing
-Algorithm = Callable[[List[Set[int]], Set[Edge], Dict[int, int]], List[
+Algorithm = Callable[[List[Set[Edge]], Set[Edge], Dict[Edge, Any]], List[
     Tuple[int, int]]]
 
 
