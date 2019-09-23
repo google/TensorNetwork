@@ -17,43 +17,41 @@ from __future__ import division
 from __future__ import print_function
 import pytest
 import numpy as np
-import tensorflow as tf
-tf.compat.v1.enable_v2_behavior()
 from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
 
 
 def test_sanity_check():
-  result = ncon_interface.ncon([tf.ones(
-      (2, 2)), tf.ones((2, 2))], [(-1, 1), (1, -2)])
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([np.ones(
+      (2, 2)), np.ones((2, 2))], [(-1, 1), (1, -2)])
+  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
 
 def test_order_spec():
-  a = tf.ones((2, 2))
+  a = np.ones((2, 2))
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2])
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1])
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
                                out_order=[-1, -2])
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
 
 def test_order_spec_noninteger():
-  a = tf.ones((2, 2))
+  a = np.ones((2, 2))
   result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
                                con_order=['i'],
                                out_order=['o1', 'o2'])
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
 
 def test_invalid_network():
-  a = tf.ones((2, 2))
+  a = np.ones((2, 2))
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)])
   with pytest.raises(ValueError):
@@ -71,7 +69,7 @@ def test_invalid_network():
 
 
 def test_invalid_order():
-  a = tf.ones((2, 2))
+  a = np.ones((2, 2))
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3])
   with pytest.raises(ValueError):
@@ -91,7 +89,7 @@ def test_invalid_order():
 
 
 def test_out_of_order_contraction():
-  a = tf.ones((2, 2, 2))
+  a = np.ones((2, 2, 2))
   with pytest.warns(UserWarning, match='Suboptimal ordering'):
     ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)])
 
@@ -108,13 +106,13 @@ def test_outer_product():
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)])
   np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
   res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)])
-  assert res.numpy() == 196
+  np.testing.assert_allclose(res, 196)
 
 
 def test_trace():
-  a = tf.ones((2, 2))
+  a = np.ones((2, 2))
   res = ncon_interface.ncon([a], [(1, 1)])
-  assert res.numpy() == 2
+  np.testing.assert_allclose(res, 2)
 
 
 def test_small_matmul():
