@@ -23,267 +23,121 @@ from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
 
 
-def test_sanity_check_numpy_backend():
-  result = ncon_interface.ncon([np.ones(
-      (2, 2)), np.ones((2, 2))], [(-1, 1), (1, -2)], backend='numpy')
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+def test_sanity_check():
+  result = ncon_interface.ncon([tf.ones(
+      (2, 2)), tf.ones((2, 2))], [(-1, 1), (1, -2)])
+  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
 
-def test_order_spec_numpy_backend():
-  a = np.ones((2, 2))
+def test_order_spec():
+  a = tf.ones((2, 2))
 
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2],
-                               backend='numpy')
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2])
+  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1],
-                               backend='numpy')
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1])
+  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
-                               out_order=[-1, -2],
-                               backend='numpy')
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+                               out_order=[-1, -2])
+  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
 
-def test_order_spec_noninteger_numpy_backend():
-  a = np.ones((2, 2))
+def test_order_spec_noninteger():
+  a = tf.ones((2, 2))
   result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
                                con_order=['i'],
-                               out_order=['o1', 'o2'],
-                               backend='numpy')
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+                               out_order=['o1', 'o2'])
+  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
 
 
-def test_invalid_network_numpy_backend():
-  a = np.ones((2, 2))
+def test_invalid_network():
+  a = tf.ones((2, 2))
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 2)])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (3, 1)])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 't')], backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 't')])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend='numpy')
+    ncon_interface.ncon([a, a], [(0, 1), (1, 0)])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend='numpy')
+    ncon_interface.ncon([a, a], [(1,), (1, 2)])
 
 
-def test_invalid_order_numpy_backend():
-  a = np.ones((2, 2))
+def test_invalid_order():
+  a = tf.ones((2, 2))
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3],
-                        backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3])
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1],
-                        backend='numpy')
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1])
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
                         con_order=['i1'],
-                        out_order=[],
-                        backend='numpy')
+                        out_order=[])
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
                         con_order=['i1', 'i2'],
-                        out_order=['i1'],
-                        backend='numpy')
+                        out_order=['i1'])
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
                         con_order=['i1', 'i1', 'i2'],
-                        out_order=[],
-                        backend='numpy')
+                        out_order=[])
 
 
-def test_out_of_order_contraction_numpy_backend():
-  a = np.ones((2, 2, 2))
+def test_out_of_order_contraction():
+  a = tf.ones((2, 2, 2))
   with pytest.warns(UserWarning, match='Suboptimal ordering'):
-    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
-                        backend='numpy')
+    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)])
 
 
-def test_output_order_numpy_backend():
+def test_output_order():
   a = np.random.randn(2, 2)
-  res = ncon_interface.ncon([a], [(-2, -1)], backend='numpy')
+  res = ncon_interface.ncon([a], [(-2, -1)])
   np.testing.assert_allclose(res, a.transpose())
 
 
-def test_outer_product_numpy_backend():
+def test_outer_product():
   a = np.array([1, 2, 3])
   b = np.array([1, 2])
-  res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend='numpy')
+  res = ncon_interface.ncon([a, b], [(-1,), (-2,)])
   np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
-  res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
-                            backend='numpy')
-  assert res == 196
+  res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)])
+  assert res.numpy() == 196
 
 
-def test_trace_numpy_backend():
-  a = np.ones((2, 2))
-  res = ncon_interface.ncon([a], [(1, 1)], backend='numpy')
-  assert res == 2
+def test_trace():
+  a = tf.ones((2, 2))
+  res = ncon_interface.ncon([a], [(1, 1)])
+  assert res.numpy() == 2
 
 
-def test_small_matmul_numpy_backend():
+def test_small_matmul():
   a = np.random.randn(2, 2)
   b = np.random.randn(2, 2)
-  res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend='numpy')
+  res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)])
   np.testing.assert_allclose(res, a.transpose() @ b)
 
 
-def test_contraction_numpy_backend():
+def test_contraction():
   a = np.random.randn(2, 2, 2)
-  res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
-                            backend='numpy')
+  res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)])
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res, res_np)
 
 
-def test_backend_network_numpy_backend():
+def test_backend_network():
   a = np.random.randn(2, 2, 2)
   tn, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
                                                      (3, -2, -3)],
                                          backend="numpy")
   assert tn.backend.name == "numpy"
-
-  res = naive(tn).get_final_node().get_tensor()
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res, res_np)
-
-
-def test_sanity_check_tensorflow_backend():
-  result = ncon_interface.ncon([tf.ones(
-      (2, 2)), tf.ones((2, 2))], [(-1, 1), (1, -2)], backend='tensorflow')
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
-
-
-def test_order_spec_tensorflow_backend():
-  a = tf.ones((2, 2))
-
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2],
-                               backend='tensorflow')
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
-
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1],
-                               backend='tensorflow')
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
-
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
-                               con_order=[1],
-                               out_order=[-1, -2],
-                               backend='tensorflow')
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
-
-
-def test_order_spec_noninteger_tensorflow_backend():
-  a = tf.ones((2, 2))
-  result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
-                               con_order=['i'],
-                               out_order=['o1', 'o2'],
-                               backend='tensorflow')
-  np.testing.assert_allclose(result, tf.ones((2, 2)) * 2)
-
-
-def test_invalid_network_tensorflow_backend():
-  a = tf.ones((2, 2))
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 't')], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend='tensorflow')
-
-
-def test_invalid_order_tensorflow_backend():
-  a = tf.ones((2, 2))
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3],
-                        backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1],
-                        backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1'],
-                        out_order=[],
-                        backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i2'],
-                        out_order=['i1'],
-                        backend='tensorflow')
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i1', 'i2'],
-                        out_order=[],
-                        backend='tensorflow')
-
-
-def test_out_of_order_contraction_tensorflow_backend():
-  a = tf.ones((2, 2, 2))
-  with pytest.warns(UserWarning, match='Suboptimal ordering'):
-    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
-                        backend='tensorflow')
-
-
-def test_output_order_tensorflow_backend():
-  a = np.random.randn(2, 2)
-  res = ncon_interface.ncon([a], [(-2, -1)], backend='tensorflow')
-  np.testing.assert_allclose(res, a.transpose())
-
-
-def test_outer_product_tensorflow_backend():
-  a = np.array([1, 2, 3])
-  b = np.array([1, 2])
-  res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend='tensorflow')
-  np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
-  res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
-                            backend='tensorflow')
-  assert res.numpy() == 196
-
-
-def test_trace_tensorflow_backend():
-  a = tf.ones((2, 2))
-  res = ncon_interface.ncon([a], [(1, 1)], backend='tensorflow')
-  assert res.numpy() == 2
-
-
-def test_small_matmul_tensorflow_backend():
-  a = np.random.randn(2, 2)
-  b = np.random.randn(2, 2)
-  res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend='tensorflow')
-  np.testing.assert_allclose(res, a.transpose() @ b)
-
-
-def test_contraction_tensorflow_backend():
-  a = np.random.randn(2, 2, 2)
-  res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
-                            backend='tensorflow')
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res, res_np)
-
-
-def test_backend_network_tensorflow_backend():
-  a = np.random.randn(2, 2, 2)
-  tn, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
-                                                     (3, -2, -3)],
-                                         backend="tensorflow")
-  assert tn.backend.name == "tensorflow"
 
   res = naive(tn).get_final_node().get_tensor()
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
