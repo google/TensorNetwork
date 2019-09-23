@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
-  overload, Collection, Sequence
+  overload, Sequence
 import numpy as np
 import weakref
 from abc import ABC, abstractmethod
@@ -1275,7 +1275,7 @@ def flatten_edges_between(
   return None
 
 
-def flatten_all_edges(nodes: Collection[BaseNode]) -> List[Edge]:
+def flatten_all_edges(nodes: List[BaseNode]) -> List[Edge]:
   """Flatten all edges in the network.
 
   Returns:
@@ -1495,7 +1495,7 @@ def contract(edge: Edge,
   return new_node
 
 
-def outer_product_final_nodes(nodes: Collection[BaseNode],
+def outer_product_final_nodes(nodes: Union[List[BaseNode], Set[BaseNode]],
                               edge_order: List[Edge]) -> BaseNode:
   """Get the outer product of `nodes`
 
@@ -2210,8 +2210,8 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def reachable(nodes: Union[BaseNode, Collection[BaseNode]],
-              strategy: Optional[Text] = 'recursive') -> Collection[BaseNode]:
+def reachable(nodes: Union[BaseNode, List[BaseNode]],
+              strategy: Optional[Text] = 'recursive') -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
@@ -2329,7 +2329,7 @@ def reachable_iterative(node: BaseNode) -> Set[BaseNode]:
   return reachable_nodes
 
 
-def check_correct(nodes: Collection[BaseNode],
+def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
                   check_connections: Optional[bool] = True) -> None:
   """
   Check if the network defined by `nodes` fulfills necessary
@@ -2367,7 +2367,7 @@ def check_correct(nodes: Collection[BaseNode],
     check_connected(nodes)
 
 
-def check_connected(nodes: Collection[BaseNode]) -> None:
+def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
   """
   Check if all nodes in `nodes` are connected.
   Args:
@@ -2381,7 +2381,8 @@ def check_connected(nodes: Collection[BaseNode]) -> None:
     raise ValueError("Non-connected graph")
 
 
-def get_all_nondangling(nodes: Collection[BaseNode]) -> Set[Edge]:
+def get_all_nondangling(
+    nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -2389,7 +2390,7 @@ def get_all_nondangling(nodes: Collection[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_all_nodes(edges: Collection[Edge]) -> Set[BaseNode]:
+def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
   """Return the set of nodes connected to edges."""
   nodes = set()
   for edge in edges:
@@ -2401,7 +2402,7 @@ def get_all_nodes(edges: Collection[Edge]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Collection[BaseNode]) -> Set[Edge]:
+def get_all_edges(nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:
