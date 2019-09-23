@@ -18,9 +18,8 @@ from __future__ import division
 from __future__ import print_function
 import h5py
 # pylint: disable=line-too-long
-from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, BinaryIO, Collection
+from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, BinaryIO
 import numpy as np
-import weakref
 from tensornetwork import config
 #pylint: disable=useless-import-alias
 import tensornetwork.network_components as network_components
