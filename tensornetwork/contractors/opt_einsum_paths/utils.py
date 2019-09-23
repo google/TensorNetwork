@@ -14,10 +14,10 @@
 """Helper methods for `path_contractors`."""
 
 from tensornetwork.network import TensorNetwork
-from tensornetwork.network_components import BaseNode
+from tensornetwork.network_components import BaseNode, Edge
 from typing import Any, Callable, Dict, List, Set, Tuple
 # `opt_einsum` algorithm method typing
-Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]], List[
+Algorithm = Callable[[List[Set[int]], Set[Edge], Dict[int, int]], List[
     Tuple[int, int]]]
 
 
@@ -41,6 +41,7 @@ def get_path(net: TensorNetwork, algorithm: Algorithm
 
   input_sets = [set(node.edges) for node in sorted_nodes]
   output_set = net.get_all_edges() - net.get_all_nondangling()
+  print(output_set)
   size_dict = {edge: edge.dimension for edge in net.get_all_edges()}
 
   return algorithm(input_sets, output_set, size_dict), sorted_nodes
