@@ -421,6 +421,12 @@ def contract(
       raise TypeError('Node {} of type {} has no `backend`'.format(
           node, type(node)))
 
+  if edge.node1.backend.name != edge.node3.backend.name:
+    raise ValueError("edge.node1 {} and edge.node2 {} have different backends "
+                     "{} and {}".format(edge.node1.name, edge.node2.name,
+                                        edge.node1.backend.name,
+                                        edge.node2.backend.name))
+
   if edge.node1:
     backend = edge.node1.backend
   else:
@@ -602,8 +608,10 @@ def contract_between(
           node, type(node)))
 
   if node1.backend.name != node2.backend.name:
-    raise ValueError("node {}  and node {} have different backends. "
-                     "Cannot perform outer product".format(node1, node2))
+    raise ValueError("node {} and node {} have different backends "
+                     "{} and {}.".format(node1.name, node2.name,
+                                         node1.backend.name,
+                                         node2.backend.name))
 
   backend = node1.backend
   # Trace edges cannot be contracted using tensordot.
@@ -1567,7 +1575,13 @@ class TensorNetwork:
       new_node = value
       if new_node.network is not None:
         raise ValueError("Given node is already part of a network.")
+      if new_node.backend.name != self.backend.name:
+        raise ValueError(
+            "Given node '{}' has Node.backend.name='{}' different from TensorNetwork.backend.name='{}'."
+            .format(new_node.name, new_node.backend.name, self.backend.name))
+
       new_node.network = self
+
       if new_node.axis_names is None or given_axis_name:
         new_node.axis_names = axis_names
       if new_node.name is None or given_node_name:
