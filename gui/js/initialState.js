@@ -13,5 +13,6 @@
 // limitations under the License.
 
 let initialState = {
-    message: "Hello from initialState.js"
+    message: "Hello from initialState.js",
+    tensorState: "TOTALLY AWESOME"
 };
