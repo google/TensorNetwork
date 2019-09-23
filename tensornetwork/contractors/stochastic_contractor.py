@@ -88,7 +88,7 @@ def contract_trace_edges(
           # Contract trace edge
           new_node = net.contract(edge, name=node.name)
           trace_edges.add(edge)
-      elif edge.is_disabled:  #edge has been contracted; don't skip it
+      elif edge.is_disabled:  #edge has been contracted; skip it
         continue
       else:
         if dim is None:
