@@ -23,6 +23,8 @@ import numpy as np
 from tensornetwork import config
 #pylint: disable=useless-import-alias
 import tensornetwork.network_components as network_components
+#pylint: disable=useless-import-alias
+import tensornetwork.network_operations as network_operations
 from tensornetwork.backends import backend_factory
 
 Tensor = Any
@@ -307,7 +309,7 @@ class TensorNetwork:
         and edge2 are the same edge.
     """
     name = self._new_edge_name(name)
-    new_edge = network_components.connect(edge1, edge2, name)
+    new_edge = network_operations.connect(edge1, edge2, name)
     new_edge.set_signature(self.edge_increment)
     return new_edge
 
@@ -329,7 +331,7 @@ class TensorNetwork:
     Raises:
      ValueError: If input edge is a dangling one.
     """
-    return network_components.disconnect(edge, dangling_edge_name_1,
+    return network_operations.disconnect(edge, dangling_edge_name_1,
                                          dangling_edge_name_2)
 
   def _remove_trace_edge(self, edge: network_components.Edge,
@@ -349,7 +351,7 @@ class TensorNetwork:
       ValueError: If edge is not a trace edge.
     """
 
-    network_components._remove_trace_edge(edge, new_node)
+    network_operations._remove_trace_edge(edge, new_node)
     node = edge.node1
     self.nodes_set.remove(edge.node1)
     node.disable()
@@ -375,7 +377,7 @@ class TensorNetwork:
     Raises:
       Value Error: If edge isn't in the network.
     """
-    network_components._remove_edges(edges, node1, node2, new_node)
+    network_operations._remove_edges(edges, node1, node2, new_node)
 
     if node1 in self.nodes_set:
       self.nodes_set.remove(node1)
@@ -406,7 +408,7 @@ class TensorNetwork:
     # _contract_trace disables contracted edges; if we have to access them,
     # we need to do it beforehand.
     node = edge.node1
-    new_node = self.add_node(network_components._contract_trace(edge, name))
+    new_node = self.add_node(network_operations._contract_trace(edge, name))
     self.nodes_set.remove(node)
     node.disable()
     self.nodes_set.add(new_node)
@@ -433,7 +435,7 @@ class TensorNetwork:
     node1 = edge.node1
     node2 = edge.node2
     new_node = self.add_node(
-        network_components.contract(edge, name, axis_names=None))
+        network_operations.contract(edge, name, axis_names=None))
     # disable nodes
     if trace_edge:
       self.nodes_set.remove(node1)
@@ -463,7 +465,7 @@ class TensorNetwork:
     """
     partners = copy_node.get_partners()
     new_node = self.add_node(
-        network_components.contract_copy_node(copy_node, name))
+        network_operations.contract_copy_node(copy_node, name))
     # Remove nodes
     for partner in partners:
       if partner in self.nodes_set:
@@ -498,7 +500,7 @@ class TensorNetwork:
       A new node. Its shape will be node1.shape + node2.shape
     """
     new_node = self.add_node(
-        network_components.outer_product(node1, node2, name, axis_names=None))
+        network_operations.outer_product(node1, node2, name, axis_names=None))
     # Remove the nodes from the set.
     if node1 in self.nodes_set:
       self.nodes_set.remove(node1)
@@ -534,11 +536,11 @@ class TensorNetwork:
 
   def get_all_nondangling(self):
     """Return the set of all non-dangling edges."""
-    return network_components.get_all_nondangling(self.nodes_set)
+    return network_operations.get_all_nondangling(self.nodes_set)
 
   def get_all_edges(self):
     """Return the set of all edges."""
-    return network_components.get_all_edges(self.nodes_set)
+    return network_operations.get_all_edges(self.nodes_set)
 
   def outer_product_final_nodes(self, edge_order: List[network_components.Edge]
                                ) -> network_components.BaseNode:
@@ -558,13 +560,13 @@ class TensorNetwork:
     Raises:
       ValueError: If any of the remaining nodes are not fully contracted.
     """
-    return network_components.outer_product_final_nodes(self.nodes_set,
+    return network_operations.outer_product_final_nodes(self.nodes_set,
                                                         edge_order)
 
   def check_connected(self) -> None:
     """Check if the network is connected."""
     # Fastest way to get a single item from a set.
-    network_components.check_connected(self.nodes_set)
+    network_operations.check_connected(self.nodes_set)
 
   def _flatten_trace_edges(
       self, edges: List[network_components.Edge],
@@ -578,7 +580,7 @@ class TensorNetwork:
     Returns:
       The new edge that represents the flattening of the given edges.
     """
-    return network_components._flatten_trace_edges(edges, new_edge_name)
+    return network_operations._flatten_trace_edges(edges, new_edge_name)
 
   def flatten_edges(
       self,
@@ -606,7 +608,7 @@ class TensorNetwork:
       ValueError: If one of the nodes connecting to these edges does not have
         edge definitions for all of its axes.
     """
-    return network_components.flatten_edges(edges, new_edge_name)
+    return network_operations.flatten_edges(edges, new_edge_name)
 
   def get_shared_edges(
       self, node1: network_components.BaseNode,
@@ -620,7 +622,7 @@ class TensorNetwork:
     Returns:
       A (possibly empty) `set` of `Edge`s shared by the nodes.
     """
-    return network_components.get_shared_edges(node1, node2)
+    return network_operations.get_shared_edges(node1, node2)
 
   def get_parallel_edges(
       self, edge: network_components.Edge) -> Set[network_components.Edge]:
@@ -649,7 +651,7 @@ class TensorNetwork:
         nodes, then the original edge is returned. If there where no edges
         between the nodes, a None is returned.
     """
-    return network_components.flatten_edges_between(node1, node2)
+    return network_operations.flatten_edges_between(node1, node2)
 
   def flatten_all_edges(self) -> List[Optional[network_components.Edge]]:
     """Flatten all edges in the network.
@@ -695,7 +697,7 @@ class TensorNetwork:
         `allow_outer_product` is set to `False`.
     """
     new_node = self.add_node(
-        network_components.contract_between(
+        network_operations.contract_between(
             node1,
             node2,
             name,
@@ -789,7 +791,7 @@ class TensorNetwork:
         truncated_singular_values: 
           The vector of truncated singular values.
     """
-    left, right, trun_vals = network_components.split_node(
+    left, right, trun_vals = network_operations.split_node(
         node, left_edges, right_edges, max_singular_values, max_truncation_err,
         left_name, right_name, edge_name)
     left_node = self.add_node(left)
@@ -836,7 +838,7 @@ class TensorNetwork:
           A new node created that connects to all of the `right_edges`.
           Its underlying tensor is :math:`R`
     """
-    q, r = network_components.split_node_qr(node, left_edges, right_edges,
+    q, r = network_operations.split_node_qr(node, left_edges, right_edges,
                                             left_name, right_name, edge_name)
     left_node = self.add_node(q)
     right_node = self.add_node(r)
@@ -882,7 +884,7 @@ class TensorNetwork:
           A new node created that connects to all of the `right_edges`.
           Its underlying tensor is :math:`R`
     """
-    r, q = network_components.split_node_rq(node, left_edges, right_edges,
+    r, q = network_operations.split_node_rq(node, left_edges, right_edges,
                                             left_name, right_name, edge_name)
     left_node = self.add_node(r)
     right_node = self.add_node(q)
@@ -964,7 +966,7 @@ class TensorNetwork:
         truncated_singular_values: 
           The vector of truncated singular values.
     """
-    U, S, V, trun_vals = network_components.split_node_full_svd(
+    U, S, V, trun_vals = network_operations.split_node_full_svd(
         node, left_edges, right_edges, max_singular_values, max_truncation_err,
         left_name, middle_name, right_name, left_edge_name, right_edge_name)
     left_node = self.add_node(U)
@@ -1018,7 +1020,7 @@ class TensorNetwork:
     Raises:
       ValueError: If the tensor network is not correctly structured.
     """
-    network_components.check_correct(self.nodes_set, check_connections)
+    network_operations.check_correct(self.nodes_set, check_connections)
 
   def save(self, path: Union[str, BinaryIO]):
     """Serialize the network to disk in hdf5 format.
