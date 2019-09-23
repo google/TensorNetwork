@@ -28,6 +28,14 @@ class BaseBackend:
   def __init__(self):
     self.name = 'base backend'
 
+  @property
+  def dtype(self):
+    return self._dtype
+
+  @dtype.setter
+  def dtype(self, dtype):
+    self._dtype = dtype
+
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.

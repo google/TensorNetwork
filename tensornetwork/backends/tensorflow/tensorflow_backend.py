@@ -38,7 +38,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         "different backend or install Tensorflow.")
     self.tf = tf
     self.name = "tensorflow"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return tensordot2.tensordot(self.tf, a, b, axes)

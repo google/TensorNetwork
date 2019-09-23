@@ -37,7 +37,7 @@ class PyTorchBackend(base_backend.BaseBackend):
                         "backend or install PyTorch.")
     self.torch = torch
     self.name = "pytorch"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.torch.tensordot(a, b, dims=axes)

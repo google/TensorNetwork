@@ -35,7 +35,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
