@@ -23,7 +23,7 @@ from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type,
 import numpy as np
 import weakref
 from tensornetwork import config
-from tensornetwork import network_components
+import tensornetwork.network_componentes as network_components
 from tensornetwork.backends import backend_factory
 
 Tensor = Any
