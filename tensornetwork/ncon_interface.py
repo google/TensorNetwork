@@ -80,7 +80,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
     raise ValueError("Backend '{}' does not exist".format(backend))
   if backend is None:
     backend = config.default_backend
-
+  all_nodes = all([isinstance(t, network_components.BaseNode) for t in tensors])
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
   if not all([n.backend.name == backend for n in nodes]):
     raise ValueError(
@@ -151,8 +151,9 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = network_components.outer_product_final_nodes(nodes, out_edges)
-
-  return res_node
+  if all_nodes:
+    return res_node
+  return res_node.tensor
 
 
 def ncon_network(tensors: Sequence[Tensor],
