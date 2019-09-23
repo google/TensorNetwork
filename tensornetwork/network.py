@@ -416,12 +416,15 @@ def contract(
     ValueError: When edge is a dangling edge or if it already has been
       contracted.
   """
+  if edge.is_dangling():
+    raise ValueError("Attempting to contract dangling edge")
+
   for node in [edge.node1, edge.node2]:
     if (node is not None) and (not hasattr(node, 'backend')):
       raise TypeError('Node {} of type {} has no `backend`'.format(
           node, type(node)))
 
-  if edge.node1.backend.name != edge.node3.backend.name:
+  if edge.node1.backend.name != edge.node2.backend.name:
     raise ValueError("edge.node1 {} and edge.node2 {} have different backends "
                      "{} and {}".format(edge.node1.name, edge.node2.name,
                                         edge.node1.backend.name,
@@ -433,8 +436,6 @@ def contract(
     raise ValueError("edge {} has no nodes. "
                      "Cannot perfrom a contraction".format(edge.name))
 
-  if edge.is_dangling():
-    raise ValueError("Attempting to contract dangling edge")
   backend = edge.node1.backend
   if edge.node1 is edge.node2:
     return _contract_trace(edge, name)
