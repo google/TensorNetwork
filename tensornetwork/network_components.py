@@ -811,11 +811,17 @@ class Edge:
     self._is_dangling = node2 is None
     self._signature = -1
 
+  # contraction methods now explicitly disable Edges by setting
+  # node1, node2 to None. This makes use of weakref for node1 and node2
+  # properties redundant:
+  # previously, storage of contracted edges in TensorNetwork caused
+  # node1 and node2 refs of those edges to be prevented from garbage
+  # collection. Once we set them to None explicitly, they will be garbage
+  # collected once their refcount goes to zero.
   def disable(self):
-    return  #disable disable for now
-    # self._node1 = None
-    # self._node2 = None
-    # self.is_disabled = True
+    self._node1 = None
+    self._node2 = None
+    self.is_disabled = True
 
   @property
   def name(self):
