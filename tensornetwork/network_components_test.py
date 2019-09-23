@@ -440,7 +440,8 @@ def test_copy_node_save_structure(tmp_path, backend):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {
-        "signature", 'name', 'backend', 'edges', 'shape', 'axis_names', "type"
+        "signature", 'name', 'backend', 'edges', 'shape', 'axis_names', "type",
+        'copy_node_dtype'
     }
 
 
@@ -454,6 +455,8 @@ def test_copy_node_save_data(tmp_path, backend):
     assert node_file['copier/type'][()] == type(node).__name__
     assert node_file['copier/name'][()] == node.name
     assert node_file['copier/backend'][()] == node.backend.name
+    assert node_file['copier/copy_node_dtype'][()] == np.dtype(
+        node.copy_node_dtype).name
     assert set(node_file['copier/shape'][()]) == set(node.shape)
     assert set(node_file['copier/axis_names'][()]) == set(node.axis_names)
     assert (set(node_file['copier/edges'][()]) == set(
@@ -467,6 +470,10 @@ def test_copy_node_load(tmp_path, backend):
     node_group = node_file.create_group('node_data')
     node_group.create_dataset('signature', data=node.signature)
     node_group.create_dataset('name', data=node.name)
+    node_group.create_dataset(
+        'copy_node_dtype', data=np.dtype(node.copy_node_dtype).name)
+    node_group.create_dataset(
+        'coy_node_dtype', data=np.dtype(node.copy_node_dtype).name)
     node_group.create_dataset('backend', data=node.backend.name)
     node_group.create_dataset('shape', data=node.shape)
     node_group.create_dataset(
@@ -480,6 +487,7 @@ def test_copy_node_load(tmp_path, backend):
     net = tensornetwork.TensorNetwork(backend=node.network.backend.name)
     loaded_node = CopyNode._load_node(net, node_file["node_data/"])
     assert loaded_node.name == node.name
+    assert loaded_node.copy_node_dtype == node.copy_node_dtype
     assert loaded_node.signature == node.signature
     assert loaded_node.backend.name == node.backend.name
     assert set(loaded_node.axis_names) == set(node.axis_names)
