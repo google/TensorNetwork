@@ -30,10 +30,12 @@ def test_sanity_check(backend):
 def test_order_spec(backend):
   a = np.ones((2, 2))
 
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], out_order=[-1, -2], backend=backend)
+  result = ncon_interface.ncon(
+      [a, a], [(-1, 1), (1, -2)], out_order=[-1, -2], backend=backend)
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
-  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)], con_order=[1], backend=backend)
+  result = ncon_interface.ncon(
+      [a, a], [(-1, 1), (1, -2)], con_order=[1], backend=backend)
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
@@ -71,11 +73,11 @@ def test_invalid_network(backend):
 def test_invalid_order(backend):
   a = np.ones((2, 2))
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], con_order=[2, 3], 
-        backend=backend)
+    ncon_interface.ncon(
+        [a, a], [(1, 2), (2, 1)], con_order=[2, 3], backend=backend)
   with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)], out_order=[-1], 
-        backend=backend)
+    ncon_interface.ncon(
+        [a, a], [(1, 2), (2, 1)], out_order=[-1], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
                         con_order=['i1'],
@@ -93,8 +95,8 @@ def test_invalid_order(backend):
 def test_out_of_order_contraction(backend):
   a = np.ones((2, 2, 2))
   with pytest.warns(UserWarning, match='Suboptimal ordering'):
-    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
-        backend=backend)
+    ncon_interface.ncon(
+        [a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)], backend=backend)
 
 
 def test_output_order(backend):
@@ -110,8 +112,8 @@ def test_outer_product(backend):
   b = np.array([1, 2])
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
   np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
-  res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
-      backend=backend)
+  res = ncon_interface.ncon(
+      [a, a, a, a], [(1,), (1,), (2,), (2,)], backend=backend)
   np.testing.assert_allclose(res, 196)
 
 
@@ -124,15 +126,15 @@ def test_trace(backend):
 def test_small_matmul(backend):
   a = np.random.randn(2, 2)
   b = np.random.randn(2, 2)
-  res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)],
-      backend=backend)
+  res = ncon_interface.ncon(
+      [a, b], [(1, -1), (1, -2)], backend=backend)
   np.testing.assert_allclose(res, a.transpose() @ b)
 
 
 def test_contraction(backend):
   a = np.random.randn(2, 2, 2)
-  res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
-      backend=backend)
+  res = ncon_interface.ncon(
+      [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend=backend)
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res, res_np)
