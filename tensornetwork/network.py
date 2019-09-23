@@ -244,7 +244,6 @@ class TensorNetwork:
         self.backend.dtype = value.dtype
       new_node = network_components.Node(
           value, name, axis_names, backend=self.backend.name, network=self)
-      new_node.network = self  #set network manually
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node
