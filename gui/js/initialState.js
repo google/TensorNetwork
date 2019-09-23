@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let app = new Vue({
-    el: '#app',
-    data: {
-        state: initialState // now state object is reactive, whereas initialState is not
-    },
-    template: `
-        <p>{{state.message}}</p>
-    `
-});
+let initialState = {
+    message: "Hello from initialState.js"
+};
