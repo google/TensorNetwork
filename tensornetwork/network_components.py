@@ -736,7 +736,7 @@ class CopyNode(BaseNode):
         name='copy_node_dtype', data=np.dtype(self.copy_node_dtype).name)
 
   @classmethod
-  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "CopyNode":
     """Add a node to a network based on hdf5 data.
 
     Args:
@@ -1447,7 +1447,7 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
   permutation = sorted(set(range(dims)) - set(axes)) + axes
   new_tensor = backend.trace(
       backend.transpose(edge.node1.tensor, perm=permutation))
-
+  name = name if name else edge.node1.name
   new_node = Node(new_tensor, name=name, backend=backend.name)
   _remove_trace_edge(edge, new_node)  #disables edge
   return new_node
