@@ -17,13 +17,8 @@ Tree tensor network unit tests.
 import pytest
 import numpy as np
 import tensorflow as tf
-from jax.config import config
-config.update("jax_enable_x64", True)
-import tensornetwork as tn
 import examples.wavefunctions.wavefunctions as wf
 import experiments.tree_tensor_network as ttn
-
-tf.enable_v2_behavior()
 
 
 def test_opt(backend):

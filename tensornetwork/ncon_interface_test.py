@@ -11,19 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import pytest
 import numpy as np
-import tensorflow as tf
 from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
-from tensornetwork.backends import backend_factory
-from jax.config import config
-config.update("jax_enable_x64", True)
-tf.compat.v1.enable_v2_behavior()
 
 
 #TODO: fix jax backend and add to fixture
@@ -54,8 +48,7 @@ def test_order_spec(backend):
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
-                               out_order=[-1, -2],
-                               backend=backend)
+                               out_order=[-1, -2])
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
 
@@ -127,10 +120,13 @@ def test_output_order(backend):
 
 
 def test_outer_product(backend):
+  if backend == "jax":
+    pytest.skip("Jax outer product support is currently broken.")
   a = np.array([1, 2, 3])
   b = np.array([1, 2])
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
   np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
+
   res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
                             backend=backend)
   np.testing.assert_allclose(res, 196)
@@ -158,14 +154,11 @@ def test_contraction(backend):
   np.testing.assert_allclose(res, res_np)
 
 
-def test_backend_network():
-
+def test_backend_network(backend):
   a = np.random.randn(2, 2, 2)
   tn, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
                                                      (3, -2, -3)],
-                                         backend="numpy")
-  assert tn.backend.name == "numpy"
-
+                                         backend=backend)
   res = naive(tn).get_final_node().get_tensor()
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))

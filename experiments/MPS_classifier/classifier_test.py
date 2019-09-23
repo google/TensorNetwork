@@ -19,7 +19,6 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from experiments.MPS_classifier import classifier
-tf.enable_v2_behavior()
 
 
 def test_random_initializer_shapes():

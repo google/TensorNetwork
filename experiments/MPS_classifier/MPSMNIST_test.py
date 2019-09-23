@@ -1,12 +1,8 @@
-import sys
-from sys import stdout
 import numpy as np
 import experiments.MPS.misc_mps as misc_mps
-import itertools
 import experiments.MPS_classifier.MPSMNIST as mm
 import pytest
 import tensorflow as tf
-tf.enable_v2_behavior()
 
 
 def test_predict():

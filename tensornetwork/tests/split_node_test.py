@@ -18,12 +18,6 @@ from __future__ import print_function
 import tensornetwork
 import pytest
 import numpy as np
-import tensorflow as tf
-from jax.config import config
-import tensornetwork.config as config_file
-
-config.update("jax_enable_x64", True)
-tf.compat.v1.enable_v2_behavior()
 
 
 def test_split_node_qr_disable(backend):

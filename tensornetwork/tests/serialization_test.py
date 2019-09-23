@@ -18,12 +18,7 @@ from __future__ import print_function
 import tensornetwork
 import io
 import numpy as np
-import tensorflow as tf
-from jax.config import config
 import h5py
-
-config.update("jax_enable_x64", True)
-tf.compat.v1.enable_v2_behavior()
 
 
 def test_save_makes_hdf5_file(tmp_path, backend):
