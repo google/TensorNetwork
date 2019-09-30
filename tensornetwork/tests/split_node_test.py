@@ -328,20 +328,6 @@ def test_split_node_rq_unitarity_float(backend):
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
-def test_split_node_rq(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  left, _ = net.split_node_rq(a, left_edges, right_edges)
-  net.check_correct()
-  np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
-
-
 def test_split_node_qr_unitarity_complex(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
