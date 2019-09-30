@@ -81,6 +81,51 @@ Vue.component(
     'tensor',
 	{
 		mixins: [mixinTensor],
+        data: function() {
+		    return {
+		        mouse: {
+                    x: null,
+                    y: null
+                },
+                width: 50,
+                height: 50,
+                rx: 10
+            }
+        },
+        methods: {
+		    onMouseDown: function(event) {
+		        document.addEventListener('mousemove', this.onMouseMove);
+		        document.addEventListener('mouseup', this.onMouseUp);
+		        this.mouse.x = event.pageX;
+		        this.mouse.y = event.pageY;
+            },
+            onMouseUp: function() {
+                document.removeEventListener('mousemove', this.onMouseMove);
+                document.removeEventListener('mouseup', this.onMouseUp);
+
+                let workspace = document.getElementsByClassName('workspace')[0].getBoundingClientRect();
+                if (this.tensor.position.x < this.width / 2) {
+                    this.tensor.position.x = this.width / 2;
+                }
+                if (this.tensor.position.y < this.height / 2) {
+                    this.tensor.position.y = this.height / 2;
+                }
+                if (this.tensor.position.x > workspace.width - this.width / 2) {
+                    this.tensor.position.x = workspace.width - this.width / 2;
+                }
+                if (this.tensor.position.y > workspace.height - this.height / 2) {
+                    this.tensor.position.y = workspace.height - this.height / 2;
+                }
+            },
+            onMouseMove: function(event) {
+                let dx = event.pageX - this.mouse.x;
+                let dy = event.pageY - this.mouse.y;
+                this.tensor.position.x += dx;
+                this.tensor.position.y += dy;
+                this.mouse.x = event.pageX;
+                this.mouse.y = event.pageY;
+            }
+        },
 		computed: {
 			translation: function() {
 				return 'translate(' + this.tensor.position.x + ' ' + this.tensor.position.y + ')';
@@ -91,8 +136,8 @@ Vue.component(
 			}
 		},
 		template: `
-			<g :transform="translation">
-				<rect x="-50" y="-50" width="100" height="100" rx="20" :style="style" />
+			<g class="tensor" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
+				<rect :x="-width / 2" :y="-height / 2" :width="width" :height="height" :rx="rx" :style="style" />
 				<text x="0" y="0">{{tensor.name}}</text>
 			</g>
 		`	

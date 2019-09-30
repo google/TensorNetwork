@@ -17,8 +17,12 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
-svg text {
-	font: bold 30px sans-serif;
+svg .tensor text {
+	font: bold 15px sans-serif;
 	text-anchor: middle;
 	dominant-baseline: middle;
+	user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-webkit-user-select: none;
 }

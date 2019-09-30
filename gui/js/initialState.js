@@ -22,7 +22,7 @@ let initialState = {
         {
             name: 'B',
             axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across tensors
-			position: {x: 500, y: 300}
+			position: {x: 300, y: 300}
         }
     ],
     edges: [
