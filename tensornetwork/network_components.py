@@ -572,11 +572,7 @@ class Node(BaseNode):
     """
     name, signature, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
-    node = Node(
-        tensor,
-        name=name,
-        axis_names=[ax for ax in axis_names],
-        backend=backend)
+    node = Node(tensor, name=name, axis_names=axis_names, backend=backend)
 
     if net:
       node = net.add_node(node)
@@ -752,7 +748,7 @@ class CopyNode(BaseNode):
         rank=len(shape),
         dimension=shape[0],
         name=name,
-        axis_names=[ax for ax in axis_names],
+        axis_names=axis_names,
         backend=backend,
         dtype=copy_node_dtype)
 
@@ -1329,8 +1325,7 @@ def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   for tmp_edge in node_edges:
     if tmp_edge in seen_edges:
       continue
-    else:
-      seen_edges.add(tmp_edge)
+    seen_edges.add(tmp_edge)
     if tmp_edge.node1 is edge.node1:
       to_reduce = 0
       to_reduce += 1 if tmp_edge.axis1 > axes[0] else 0

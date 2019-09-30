@@ -550,7 +550,7 @@ def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
   Raises:
     ValueError: If not all nodes in `nodes` are connected.
   """
-  nodes = [n for n in nodes]
+  nodes = list(nodes)
   if not set(nodes) <= reachable([nodes[0]]):
     raise ValueError("Non-connected graph")
 
