@@ -6,8 +6,6 @@ import h5py
 from tensornetwork.network_components import Node, CopyNode, Edge
 import tensornetwork as tn
 
-tf.compat.v1.enable_v2_behavior()
-
 string_type = h5py.special_dtype(vlen=str)
 
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')

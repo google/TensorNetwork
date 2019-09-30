@@ -246,19 +246,6 @@ class TensorNetwork:
         self.backend.dtype = value.dtype
       new_node = network_components.Node(
           value, name, axis_names, backend=self.backend.name, network=self)
-
-    # if isinstance(value, network_components.BaseNode):
-    #   if (value.axis_names is not None) and (not given_axis_name):
-    #     axis_names = value.axis_names
-    #   if (value.name is not None) and (not given_node_name):
-    #     name = value.name
-    #   value = value.tensor
-    # value = self.backend.convert_to_tensor(value)
-    # if self.backend.dtype is None:
-    #   self.backend.dtype = value.dtype
-    # new_node = network_components.Node(
-    #     value, name, axis_names, backend=self.backend.name, network=self)
-
     new_node.set_signature(self.node_increment)
     self.nodes_set.add(new_node)
     return new_node

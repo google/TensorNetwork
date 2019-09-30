@@ -21,7 +21,8 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence
 import numpy as np
 import weakref
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import h5py
 
 #pylint: disable=useless-import-alias
@@ -572,6 +573,7 @@ class Node(BaseNode):
     """
     name, signature, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
+    #pylint: disable=unnecessary-comprehension
     node = Node(
         tensor,
         name=name,
@@ -748,6 +750,7 @@ class CopyNode(BaseNode):
     """
     name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
+    #pylint: disable=unnecessary-comprehension
     node = CopyNode(
         rank=len(shape),
         dimension=shape[0],
@@ -1329,8 +1332,7 @@ def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   for tmp_edge in node_edges:
     if tmp_edge in seen_edges:
       continue
-    else:
-      seen_edges.add(tmp_edge)
+    seen_edges.add(tmp_edge)
     if tmp_edge.node1 is edge.node1:
       to_reduce = 0
       to_reduce += 1 if tmp_edge.axis1 > axes[0] else 0
