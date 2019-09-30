@@ -45,7 +45,7 @@ def test_split_node_full_svd_names(backend):
 
 
 def test_split_node_rq_names(backend):
-  a = tn.Node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])

@@ -465,7 +465,23 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def reachable(nodes: Union[BaseNode, List[BaseNode]]) -> Set[BaseNode]:
+def _reachable(node: BaseNode) -> Set[BaseNode]:
+  # Fastest way to get a single item from a set.
+  node_que = collections.deque()
+  seen_nodes = {node}
+  node_que.append(node)
+  while node_que:
+    node = node_que.popleft()
+    for e in node.edges:
+      for n in e.get_nodes():
+        if n is not None and n not in seen_nodes:
+          node_que.append(n)
+          seen_nodes.add(n)
+  return seen_nodes
+
+
+def reachable(nodes: Union[BaseNode, Union[List[BaseNode], Set[BaseNode]]]
+             ) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
@@ -477,23 +493,10 @@ def reachable(nodes: Union[BaseNode, List[BaseNode]]) -> Set[BaseNode]:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  def _reachable(node):
-    # Fastest way to get a single item from a set.
-    node_que = collections.deque()
-    seen_nodes = {node}
-    node_que.append(node)
-    while node_que:
-      node = node_que.popleft()
-      for e in node.edges:
-        for n in e.get_nodes():
-          if n is not None and n not in seen_nodes:
-            node_que.append(n)
-            seen_nodes.add(n)
-    return seen_nodes
-
   if isinstance(nodes, BaseNode):
-    nodes = [nodes]
-  reachable_nodes = {nodes[0]}
+    nodes = {nodes}
+
+  reachable_nodes = set()
   for node in nodes:
     reachable_nodes |= _reachable(node)
   return reachable_nodes
@@ -547,7 +550,8 @@ def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
   Raises:
     ValueError: If not all nodes in `nodes` are connected.
   """
-  if not set(nodes) <= reachable([list(nodes)[0]]):
+  nodes = [n for n in nodes]
+  if not set(nodes) <= reachable([nodes[0]]):
     raise ValueError("Non-connected graph")
 
 
