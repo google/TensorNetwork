@@ -572,7 +572,12 @@ class Node(BaseNode):
     """
     name, signature, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
-    node = Node(tensor, name=name, axis_names=axis_names, backend=backend)
+    #pylint: disable=unnecessary-comprehension
+    node = Node(
+        tensor,
+        name=name,
+        axis_names=[ax for ax in axis_names],
+        backend=backend)
 
     if net:
       node = net.add_node(node)
@@ -744,11 +749,12 @@ class CopyNode(BaseNode):
     """
     name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
+    #pylint: disable=unnecessary-comprehension
     node = CopyNode(
         rank=len(shape),
         dimension=shape[0],
         name=name,
-        axis_names=axis_names,
+        axis_names=[ax for ax in axis_names],
         backend=backend,
         dtype=copy_node_dtype)
 
