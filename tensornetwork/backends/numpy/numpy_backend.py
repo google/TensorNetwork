@@ -30,7 +30,7 @@ class NumPyBackend(base_backend.BaseBackend):
     self.np = numpy
     self.decompositions = decompositions
     self.name = "numpy"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)

@@ -32,13 +32,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
     try:
+      #pylint: disable=import-outside-toplevel
       import tensorflow as tf
     except ImportError:
       raise ImportError("Tensorflow not installed, please switch to a "
                         "different backend or install Tensorflow.")
     self.tf = tf
     self.name = "tensorflow"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return tensordot2.tensordot(self.tf, a, b, axes)
