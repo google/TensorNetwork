@@ -15,12 +15,18 @@
 Vue.component(
     'workspace',
 	{
+		data: function() {
+			return {
+				width: 400,
+				height: 400,
+			};
+		},
 		props: {
 			state: Object
 		},
 		template: `
-			<svg class="workspace" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="400" height="400">
-				<tensor :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+			<svg class="workspace" xmlns="http://www.w3.org/2000/svg" :width="width" :height="height">
+				<tensor v-for="tensor in state.tensors" :tensor="tensor" :state="state" />
 			</svg>
 		`
 	}
