@@ -13,6 +13,10 @@
 // limitations under the License.
 
 let mixinTensor = {
+	props: {
+        tensor: Object,
+    	state: Object,
+    },
     methods: {
         getNeighborsOf: function(name) {
             let neighbors = [];
@@ -48,41 +52,57 @@ let mixinTensor = {
             let [tensorName, axisIndex] = address;
             let tensor = this.getTensor(tensorName);
             return tensor.axes[axisIndex];
-        }
-    }
+        },
+		neighborAt: function(axis) {
+			for (let i = 0; i < this.neighbors.length; i++) {
+				if (this.neighbors[i].axis === axis) {
+					return this.neighbors[i].neighbor;
+				}
+			}
+			return null;
+		},
+		edgeNameAt: function(axis) {
+			for (let i = 0; i < this.neighbors.length; i++) {
+				if (this.neighbors[i].axis === axis) {
+					return this.neighbors[i].edgeName;
+				}
+			}
+			return null;
+		}
+    },
+	computed: {
+        neighbors: function() {
+			return this.getNeighborsOf(this.tensor.name);
+		}
+	},
 };
 
 Vue.component(
     'tensor',
+	{
+		mixins: [mixinTensor],
+		computed: {
+			translation: function() {
+				return 'translate(' + this.tensor.position.x + ' ' + this.tensor.position.y + ')';
+			},
+			style: function() {
+				hue = Math.random() * 360;
+				return 'fill: hsla(' + hue + ',100%,50%,0.3);'
+			}
+		},
+		template: `
+			<g :transform="translation">
+				<rect x="-50" y="-50" width="100" height="100" rx="20" :style="style" />
+				<text x="0" y="0">{{tensor.name}}</text>
+			</g>
+		`	
+	}
+);
+
+Vue.component(
+    'tensor-description',
     {
         mixins: [mixinTensor],
-        props: {
-            tensor: Object,
-            state: Object,
-        },
-        computed: {
-            neighbors: function() {
-                return this.getNeighborsOf(this.tensor.name);
-            }
-        },
-        methods: {
-            neighborAt: function(axis) {
-                for (let i = 0; i < this.neighbors.length; i++) {
-                    if (this.neighbors[i].axis === axis) {
-                        return this.neighbors[i].neighbor;
-                    }
-                }
-                return null;
-            },
-            edgeNameAt: function(axis) {
-                for (let i = 0; i < this.neighbors.length; i++) {
-                    if (this.neighbors[i].axis === axis) {
-                        return this.neighbors[i].edgeName;
-                    }
-                }
-                return null;
-            }
-        },
         template: `
             <p>Tensor {{tensor.name}} has {{tensor.axes.length}} axes:
                 <ul>

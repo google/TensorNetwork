@@ -16,11 +16,13 @@ let initialState = {
     tensors: [
         {
             name: 'A',
-            axes: [null, 'a named axis'] // null values for axes correspond to unnamed axes
+            axes: [null, 'a named axis'], // null values for axes correspond to unnamed axes
+			position: {x: 100, y: 200}
         },
         {
             name: 'B',
-            axes: ['a named axis', 'foo', 'a free index'] // can have duplicate names for axes across tensors
+            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across tensors
+			position: {x: 500, y: 300}
         }
     ],
     edges: [

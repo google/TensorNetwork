@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+Vue.component(
+    'workspace',
+	{
+		props: {
+			state: Object
+		},
+		template: `
+			<svg class="workspace" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="400" height="400">
+				<tensor :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+			</svg>
+		`
+	}
+);
+
 let app = new Vue({
     el: '#app',
     data: {
@@ -19,7 +33,10 @@ let app = new Vue({
     },
     template: `
         <div>
-            <tensor :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+            <tensor-description :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+			<workspace :state="state" />
         </div>
     `
 });
+
+
