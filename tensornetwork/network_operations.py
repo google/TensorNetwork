@@ -465,123 +465,39 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def reachable(nodes: Union[BaseNode, List[BaseNode]],
-              strategy: Optional[Text] = 'recursive') -> Set[BaseNode]:
+def reachable(nodes: Union[BaseNode, List[BaseNode]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
     node: A `BaseNode`
-    strategy: The strategy to be used to find all nodes. Currently 
-      if `recursive`, use a recursive approach, if `iterative`, use
-      and iterative approach, if 'deque' use an iterative approach 
-      using itertools.deque.
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
   """
+  def _reachable(node):
+    # Fastest way to get a single item from a set.
+    node_que = collections.deque()
+    seen_nodes = {node}
+    node_que.append(node)
+    while node_que:
+      node = node_que.popleft()
+      for e in node.edges:
+        for n in e.get_nodes():
+          if n is not None and n not in seen_nodes:
+            node_que.append(n)
+            seen_nodes.add(n)
+    return seen_nodes
+  
+    
   if isinstance(nodes, BaseNode):
     nodes = [nodes]
   reachable_nodes = {nodes[0]}
-  if strategy == 'recursive':
-    for node in nodes:
-      reachable_nodes |= reachable_recursive(node)
-  elif strategy == 'iterative':
-    for node in nodes:
-      reachable_nodes |= reachable_iterative(node)
-  elif strategy == 'deque':
-    for node in nodes:
-      reachable_nodes |= reachable_deque(node)
-  else:
-    raise ValueError("Unknown value '{}' for `strategy`.".format(strategy))
+  for node in nodes:
+    reachable_nodes |= _reachable(node)
   return reachable_nodes
 
-
-def reachable_deque(node: BaseNode) -> Set[BaseNode]:
-  """
-  Computes all nodes reachable from `node` by connected edges. 
-    This function uses itertools.deque.
-  Args:
-    node: A `BaseNode`
-  Returns:
-    A set of `BaseNode` objects that can be reached from `node`
-    via connected edges.
-
-  """
-  # Fastest way to get a single item from a set.
-  node_que = collections.deque()
-  seen_nodes = {node}
-  node_que.append(node)
-  while node_que:
-    node = node_que.popleft()
-    for e in node.edges:
-      for n in e.get_nodes():
-        if n is not None and n not in seen_nodes:
-          node_que.append(n)
-          seen_nodes.add(n)
-  return seen_nodes
-
-
-def reachable_recursive(node: BaseNode) -> Set[BaseNode]:
-  """
-  Computes all nodes reachable from `node` by connected edges. 
-  This function uses recursion
-  Args:
-    node: A `BaseNode`
-  Returns:
-    A set of `BaseNode` objects that can be reached from `node`
-    via connected edges.
-
-  """
-  reachable_nodes = {node}
-
-  def _reachable(node):
-    for edge in node.edges:
-      if edge.is_dangling():
-        continue
-      next_node = edge.node1 if edge.node1 is not node else edge.node2
-      if next_node in reachable_nodes:
-        continue
-      reachable_nodes.add(next_node)
-      _reachable(next_node)
-
-  _reachable(node)
-
-  return reachable_nodes
-
-
-def reachable_iterative(node: BaseNode) -> Set[BaseNode]:
-  """
-  Computes all nodes reachable from `node` by connected edges. 
-  This function uses an iterative strategy.
-  Args:
-    node: A `BaseNode`
-  Returns:
-    A list of `BaseNode` objects that can be reached from `node`
-    via connected edges.
-  """
-  #TODO: this is recursive; use while loop for better performance
-  reachable_nodes = {node}
-  depth = 0
-  while True:
-    old_depth = depth
-    for edge in node.edges:
-
-      if edge.is_dangling():
-        continue
-      next_node = edge.node1 if edge.node1 is not node else edge.node2
-      if next_node in reachable_nodes:
-        continue
-      reachable_nodes.add(next_node)
-      depth += 1
-      node = next_node
-      continue
-
-    depth -= 1 if depth == old_depth else 0
-    if depth == 0:
-      break
-  return reachable_nodes
 
 
 def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
