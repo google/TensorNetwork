@@ -12,4 +12,4 @@ from tensornetwork.utils import load
 
 def set_default_backend(backend: Text, dtype: Optional[Type] = None) -> None:
   config.default_backend = backend
-  config.default_dype = dtype
+  config.default_dtype = dtype
