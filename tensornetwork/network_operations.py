@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence
+    Sequence, Collection
 import numpy as np
 
 #pylint: disable=useless-import-alias
@@ -465,11 +465,12 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def _reachable(node: BaseNode) -> Set[BaseNode]:
-  # Fastest way to get a single item from a set.
+def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
+  if not nodes:
+    raise ValueError("Reachable requires atleast 1 node.")
   node_que = collections.deque()
-  seen_nodes = {node}
-  node_que.append(node)
+  seen_nodes = nodes
+  node_que.append(list(nodes)[0])
   while node_que:
     node = node_que.popleft()
     for e in node.edges:
@@ -480,12 +481,12 @@ def _reachable(node: BaseNode) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Union[List[BaseNode], Set[BaseNode]]]
+def reachable(nodes: Union[BaseNode, Union[Collection[BaseNode]]]
              ) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
-    node: A `BaseNode`
+    nodes: A `BaseNode` or collection of `BaseNodes`
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
@@ -495,11 +496,7 @@ def reachable(nodes: Union[BaseNode, Union[List[BaseNode], Set[BaseNode]]]
 
   if isinstance(nodes, BaseNode):
     nodes = {nodes}
-
-  reachable_nodes = set()
-  for node in nodes:
-    reachable_nodes |= _reachable(node)
-  return reachable_nodes
+  return _reachable(set(nodes))
 
 
 def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
