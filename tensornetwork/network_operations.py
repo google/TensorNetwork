@@ -476,6 +476,7 @@ def reachable(nodes: Union[BaseNode, List[BaseNode]]) -> Set[BaseNode]:
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
   """
+
   def _reachable(node):
     # Fastest way to get a single item from a set.
     node_que = collections.deque()
@@ -489,15 +490,13 @@ def reachable(nodes: Union[BaseNode, List[BaseNode]]) -> Set[BaseNode]:
             node_que.append(n)
             seen_nodes.add(n)
     return seen_nodes
-  
-    
+
   if isinstance(nodes, BaseNode):
     nodes = [nodes]
   reachable_nodes = {nodes[0]}
   for node in nodes:
     reachable_nodes |= _reachable(node)
   return reachable_nodes
-
 
 
 def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
@@ -548,7 +547,7 @@ def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
   Raises:
     ValueError: If not all nodes in `nodes` are connected.
   """
-  if not set(nodes) <= reachable_deque(list(nodes)[0]):
+  if not set(nodes) <= reachable([list(nodes)[0]]):
     raise ValueError("Non-connected graph")
 
 
