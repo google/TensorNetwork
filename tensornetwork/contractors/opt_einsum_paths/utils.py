@@ -13,13 +13,12 @@
 # limitations under the License.
 """Helper methods for `path_contractors`."""
 
-from tensornetwork import network
-from tensornetwork import network_components
+from tensornetwork.network import TensorNetwork
+from tensornetwork.network_components import BaseNode, Edge
 from typing import Any, Callable, Dict, List, Set, Tuple
-
 # `opt_einsum` algorithm method typing
-Algorithm = Callable[[List[Set[int]], Set[int], Dict[int, int]],
-                     List[Tuple[int, int]]]
+Algorithm = Callable[[List[Set[Edge]], Set[Edge], Dict[Edge, Any]], List[
+    Tuple[int, int]]]
 
 
 def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
@@ -27,9 +26,8 @@ def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
   return [i for j, i in enumerate(elems) if j not in indices]
 
 
-def get_path(net: network.TensorNetwork, algorithm: Algorithm
-             ) -> Tuple[List[Tuple[int, int]],
-                        List[network_components.BaseNode]]:
+def get_path(net: TensorNetwork, algorithm: Algorithm
+            ) -> Tuple[List[Tuple[int, int]], List[BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:
@@ -43,6 +41,7 @@ def get_path(net: network.TensorNetwork, algorithm: Algorithm
 
   input_sets = [set(node.edges) for node in sorted_nodes]
   output_set = net.get_all_edges() - net.get_all_nondangling()
+  print(output_set)
   size_dict = {edge: edge.dimension for edge in net.get_all_edges()}
 
   return algorithm(input_sets, output_set, size_dict), sorted_nodes

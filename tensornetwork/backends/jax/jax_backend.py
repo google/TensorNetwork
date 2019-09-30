@@ -28,6 +28,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
+      #pylint: disable=import-outside-toplevel
       import jax
     except ImportError:
       raise ImportError("Jax not installed, please switch to a different "
@@ -35,7 +36,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
