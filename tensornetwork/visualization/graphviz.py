@@ -22,7 +22,6 @@ from tensornetwork import network
 
 
 #pylint: disable=no-member
-#pylint: disable=no-member
 def to_graphviz(net: network.TensorNetwork,
                 graph: Optional[graphviz.Graph] = None,
                 include_all_names: bool = False,
