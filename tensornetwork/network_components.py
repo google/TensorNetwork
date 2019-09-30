@@ -21,7 +21,8 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence
 import numpy as np
 import weakref
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import h5py
 
 #pylint: disable=useless-import-alias
