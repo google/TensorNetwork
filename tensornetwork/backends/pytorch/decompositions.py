@@ -83,9 +83,6 @@ def svd_decomposition(torch: Any,
 
   if max_singular_values is None:
     max_singular_values = s.nelement()
-  else:
-    # pylint: disable=self-assigning-variable
-    max_singular_values = max_singular_values
 
   if max_truncation_error is not None:
     # Cumulative norms of singular values in ascending order
