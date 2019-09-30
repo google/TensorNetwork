@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Collection
+    Sequence, Iterable
 import numpy as np
 
 #pylint: disable=useless-import-alias
@@ -481,7 +481,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Union[Collection[BaseNode]]]
+def reachable(nodes: Union[BaseNode, Union[Iterable[BaseNode]]]
              ) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
