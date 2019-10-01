@@ -80,7 +80,6 @@ def contract_trace_edges(
     new_node = node
     # makes sure node_edges points to the original edges
     # even after contracting the trace
-    # pylint: disable=unnecessary-comprehension
     node_edges = [e for e in node.edges]
     node_dims = list(node.get_tensor().shape)
     for edge, dim in zip(node_edges, node_dims):

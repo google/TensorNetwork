@@ -481,8 +481,8 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Union[Iterable[BaseNode]]]
-             ) -> Set[BaseNode]:
+def reachable(
+    nodes: Union[BaseNode, Union[Iterable[BaseNode]]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
