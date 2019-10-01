@@ -240,7 +240,7 @@ def eigsh_lanczos(A: LinearOperator,
             A.shape[1], initial_state.shape))
 
   backend = A.backend
-  if not initial_state:
+  if initial_state is None:
     initial_state = backend.randn(A.shape[1])
   vector_n = initial_state
   Z = backend.norm(vector_n)
