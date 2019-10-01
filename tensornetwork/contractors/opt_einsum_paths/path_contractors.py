@@ -37,13 +37,13 @@ def _base_nodes(nodes: Iterable[BaseNode],
       final node in `nodes_set`
       are reordered into `output_edge_order`;
       if final node has more than one edge,
-      `output_edge_order` must be provided.
+      `output_edge_order` must be pronvided.
 
   Returns:
     Final node after full contraction.
   """
-  tn.check_connected(nodes)
-  nodes_set = {node for node in nodes}
+  nodes_set = set(nodes)
+  tn.check_connected(nodes_set)
   edges = tn.get_all_nondangling(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
