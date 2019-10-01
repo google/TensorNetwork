@@ -17,10 +17,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import warnings
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
 from tensornetwork import network
 from tensornetwork import network_components
+# pylint: disable=useless-import-alias
 import tensornetwork.config as config
+# pylint: disable=useless-import-alias
 import tensornetwork.backends.backend_factory as backend_factory
 Tensor = Any
 
@@ -74,20 +76,30 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
         `tensornetwork.config.default_backend`.
 
     Returns:
-      A `Node` resulting from the contraction of the tensor network.
+      The result of the contraction. The result if returned in a `Node` 
+        if all elements of `tensors` are `BaseNode` objects, else
+        it is returned as a `Tensor` object.
     """
   if backend and (backend not in backend_factory._BACKENDS):
     raise ValueError("Backend '{}' does not exist".format(backend))
   if backend is None:
     backend = config.default_backend
-  all_nodes = all([isinstance(t, network_components.BaseNode) for t in tensors])
+
+  are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
   if not all([n.backend.name == backend for n in nodes]):
     raise ValueError(
         "Some nodes have backends different from '{}'".format(backend))
 
+  _tensors = []
+  for t in tensors:
+    if isinstance(t, network_components.BaseNode):
+      _tensors.append(t.tensor)
+    else:
+      _tensors.append(t)
+
   nodes, con_edges, out_edges = ncon_network(
-      tensors,
+      _tensors,
       network_structure,
       con_order=con_order,
       out_order=out_order,
@@ -151,7 +163,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = network_components.outer_product_final_nodes(nodes, out_edges)
-  if all_nodes:
+  if all(are_nodes):
     return res_node
   return res_node.tensor
 
@@ -161,7 +173,7 @@ def ncon_network(tensors: Sequence[Tensor],
                  con_order: Optional[Sequence] = None,
                  out_order: Optional[Sequence] = None,
                  backend: Optional[Text] = None
-                ) -> Tuple[List[network_components.Node], List[
+                ) -> Tuple[Set[network_components.BaseNode], List[
                     network_components.Edge], List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
 
@@ -248,9 +260,8 @@ def ncon_network(tensors: Sequence[Tensor],
 
 def _build_network(
     tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
-    backend: Text
-) -> Tuple[List[network_components.BaseNode], Dict[Any, network_components
-                                                   .Edge]]:
+    backend: Text) -> Tuple[Set[network_components
+                                .BaseNode], Dict[Any, network_components.Edge]]:
   nodes = set()
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
