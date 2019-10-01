@@ -481,8 +481,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(
-    nodes: Union[BaseNode, Union[Iterable[BaseNode]]]) -> Set[BaseNode]:
+def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
@@ -499,7 +498,7 @@ def reachable(
   return _reachable(set(nodes))
 
 
-def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
+def check_correct(nodes: Iterable[BaseNode],
                   check_connections: Optional[bool] = True) -> None:
   """
   Check if the network defined by `nodes` fulfills necessary
@@ -537,7 +536,7 @@ def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
     check_connected(nodes)
 
 
-def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
+def check_connected(nodes: Iterable[BaseNode]) -> None:
   """
   Check if all nodes in `nodes` are connected.
   Args:
@@ -552,7 +551,7 @@ def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
     raise ValueError("Non-connected graph")
 
 
-def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
+def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
   """Return the set of nodes connected to edges."""
   nodes = set()
   for edge in edges:
@@ -564,7 +563,7 @@ def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:
