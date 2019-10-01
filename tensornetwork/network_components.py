@@ -1253,7 +1253,7 @@ def flatten_edges(edges: List[Edge],
     if axis_names:
       node.axis_names = [axis_names[n] for n in range(len(node.edges))]
     else:
-      node.axis_names = ["__unnamed_edge__" for n in range(len(node.edges))]
+      node.axis_names = [str(n) for n in range(len(node.edges))]
 
   node1, node2 = tuple(expected_nodes)
   # Sets are returned in a random order, so this is how we deal with
