@@ -16,21 +16,38 @@ from __future__ import division
 from __future__ import print_function
 import pytest
 import numpy as np
+import tensornetwork as tn
 from tensornetwork.network import TensorNetwork
 from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
 
 
 def test_sanity_check(backend):
-  result = ncon_interface.ncon([np.ones(
-      (2, 2)), np.ones((2, 2))], [(-1, 1), (1, -2)],
-                               backend=backend)
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  t1, t2 = np.ones((2, 2)), np.ones((2, 2))
+  result_1 = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
+  np.testing.assert_allclose(result_1, np.ones((2, 2)) * 2)
+
+
+def test_node_sanity_check(backend):
+  t1, t2 = np.ones((2, 2)), np.ones((2, 2))
+  n1, n2 = tn.Node(t1, backend=backend), tn.Node(t2, backend=backend)
+  result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
+  np.testing.assert_allclose(result_2.tensor, np.ones((2, 2)) * 2)
+
+
+def test_return_type(backend):
+  t1, t2 = np.ones((2, 2)), np.ones((2, 2))
+  n1, n2 = tn.Node(t1, backend=backend), tn.Node(t2, backend=backend)
+  result_1 = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
+  result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
+  result_3 = ncon_interface.ncon([n1, t2], [(-1, 1), (1, -2)], backend=backend)
+  assert type(result_1) == type(n1.backend.convert_to_tensor(t1))
+  assert type(result_2) == type(n1)
+  assert type(result_3) == type(n1.backend.convert_to_tensor(t1))
 
 
 def test_order_spec(backend):
   a = np.ones((2, 2))
-
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                out_order=[-1, -2],
                                backend=backend)
@@ -39,12 +56,36 @@ def test_order_spec(backend):
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
                                backend=backend)
+
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
-                               out_order=[-1, -2])
+                               out_order=[-1, -2],
+                               backend=backend)
+
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+
+
+def test_node_order_spec(backend):
+  node = tn.Node(np.ones((2, 2)), backend=backend)
+  result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
+                               out_order=[-1, -2],
+                               backend=backend)
+
+  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
+                               con_order=[1],
+                               backend=backend)
+
+  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+
+  result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
+                               con_order=[1],
+                               out_order=[-1, -2],
+                               backend=backend)
+
+  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
 
 
 def test_order_spec_noninteger(backend):
@@ -56,8 +97,35 @@ def test_order_spec_noninteger(backend):
   np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
 
 
+def test_node_order_spec_noninteger(backend):
+  node = tn.Node(np.ones((2, 2)), backend=backend)
+  result = ncon_interface.ncon([node, node], [('o1', 'i'), ('i', 'o2')],
+                               con_order=['i'],
+                               out_order=['o1', 'o2'],
+                               backend=backend)
+  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+
+
 def test_invalid_network(backend):
   a = np.ones((2, 2))
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 't')], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
+
+
+def test_node_invalid_network(backend):
+  a = tn.Node(np.ones((2, 2)), backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
   with pytest.raises(ValueError):
@@ -101,8 +169,42 @@ def test_invalid_order(backend):
                         backend=backend)
 
 
+def test_node_invalid_order(backend):
+  a = tn.Node(np.ones((2, 2)), backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[2, 3],
+                        backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        out_order=[-1],
+                        backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1'],
+                        out_order=[],
+                        backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1', 'i2'],
+                        out_order=['i1'],
+                        backend=backend)
+  with pytest.raises(ValueError):
+    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
+                        con_order=['i1', 'i1', 'i2'],
+                        out_order=[],
+                        backend=backend)
+
+
 def test_out_of_order_contraction(backend):
   a = np.ones((2, 2, 2))
+  with pytest.warns(UserWarning, match='Suboptimal ordering'):
+    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
+                        backend=backend)
+
+
+def test_node_out_of_order_contraction(backend):
+  a = tn.Node(np.ones((2, 2, 2)), backend=backend)
   with pytest.warns(UserWarning, match='Suboptimal ordering'):
     ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
                         backend=backend)
@@ -112,6 +214,13 @@ def test_output_order(backend):
   a = np.random.randn(2, 2)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
   np.testing.assert_allclose(res, a.transpose())
+
+
+def test_node_output_order(backend):
+  t = np.random.randn(2, 2)
+  a = tn.Node(t, backend=backend)
+  res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
+  np.testing.assert_allclose(res.tensor, t.transpose())
 
 
 def test_outer_product(backend):
@@ -127,10 +236,32 @@ def test_outer_product(backend):
   np.testing.assert_allclose(res, 196)
 
 
+def test_node_outer_product(backend):
+  if backend == "jax":
+    pytest.skip("Jax outer product support is currently broken.")
+
+  t1 = np.array([1, 2, 3])
+  t2 = np.array([1, 2])
+  a = tn.Node(t1, backend=backend)
+  b = tn.Node(t2, backend=backend)
+  res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
+  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape((3, 2)))
+
+  res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
+                            backend=backend)
+  np.testing.assert_allclose(res.tensor, 196)
+
+
 def test_trace(backend):
   a = np.ones((2, 2))
   res = ncon_interface.ncon([a], [(1, 1)], backend=backend)
   np.testing.assert_allclose(res, 2)
+
+
+def test_node_trace(backend):
+  a = tn.Node(np.ones((2, 2)), backend=backend)
+  res = ncon_interface.ncon([a], [(1, 1)], backend=backend)
+  np.testing.assert_allclose(res.tensor, 2)
 
 
 def test_small_matmul(backend):
@@ -140,6 +271,16 @@ def test_small_matmul(backend):
   np.testing.assert_allclose(res, a.transpose() @ b)
 
 
+def test_node_small_matmul(backend):
+  t1 = np.random.randn(2, 2)
+  t2 = np.random.randn(2, 2)
+
+  a = tn.Node(t1, backend=backend)
+  b = tn.Node(t2, backend=backend)
+  res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend=backend)
+  np.testing.assert_allclose(res.tensor, t1.transpose() @ t2)
+
+
 def test_contraction(backend):
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
@@ -147,6 +288,17 @@ def test_contraction(backend):
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res, res_np)
+
+
+def test_node_contraction(backend):
+  tensor = np.random.randn(2, 2, 2)
+  a = tn.Node(tensor, backend=backend)
+  res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
+                            backend=backend)
+  res_np = tensor.reshape((2, 4)) @ tensor.reshape((4, 2)) @ tensor.reshape(
+      (2, 4))
+  res_np = res_np.reshape((2, 2, 2))
+  np.testing.assert_allclose(res.tensor, res_np)
 
 
 # def test_backend_network(backend):
