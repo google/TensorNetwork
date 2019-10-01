@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
-  overload, Sequence
+  overload, Sequence, Iterable
 import numpy as np
 import weakref
 from abc import ABC
