@@ -59,7 +59,7 @@ def test_add_node_names(backend):
 
 def test_add_copy_node_from_node_object(backend):
   a = tn.CopyNode(
-          3, 3, name="TestName", axis_names=['a', 'b', 'c'], backend=backend)
+      3, 3, name="TestName", axis_names=['a', 'b', 'c'], backend=backend)
   assert a.shape == (3, 3, 3)
   assert isinstance(a, tn.CopyNode)
   assert a.name == "TestName"
@@ -315,7 +315,9 @@ def test_complicated_edge_reordering(backend):
 
 
 def test_edge_reorder_axis_names(backend):
-  a = tn.Node(np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], backend=backend)
+  a = tn.Node(
+      np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], 
+      backend=backend)
   edge_a = a["a"]
   edge_b = a["b"]
   edge_c = a["c"]
@@ -326,7 +328,9 @@ def test_edge_reorder_axis_names(backend):
 
 
 def test_add_axis_names(backend):
-  a = tn.Node(np.eye(2), name="A", axis_names=["ignore1", "ignore2"], backend=backend)
+  a = tn.Node(
+      np.eye(2), name="A", axis_names=["ignore1", "ignore2"], 
+      backend=backend)
   a.add_axis_names(["a", "b"])
   assert a.axis_names == ["a", "b"]
 
@@ -580,7 +584,9 @@ def test_bad_backend():
 
 
 def test_remove_node(backend):
-  a = tn.Node(np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"], backend=backend)
+  a = tn.Node(
+      np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"], 
+      backend=backend)
   b = tn.Node(np.ones((2, 2)), backend=backend)
   c = tn.Node(np.ones((2, 2)), backend=backend)
   tn.connect(a["test"], b[0])

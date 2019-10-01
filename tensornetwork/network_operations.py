@@ -23,6 +23,7 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
+#pylint: disable=line-too-long
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
@@ -91,13 +92,13 @@ def transpose(node: BaseNode,
       backend=node.backend.name)
   return new_node.reorder_axes(perm)
 
-def copy(nodes: Iterable[BaseNode], conj: bool = False) -> Tuple[dict, dict]:
+def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict]:
   """
 
   Return a copy of the TensorNetwork.
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
-    conj: Boolean. Whether to conjugate all of the nodes in the
+    conjugate: Boolean. Whether to conjugate all of the nodes in the
       `TensorNetwork` (useful for calculating norms and reduced density
       matrices).
   Returns:
@@ -108,7 +109,7 @@ def copy(nodes: Iterable[BaseNode], conj: bool = False) -> Tuple[dict, dict]:
                  network to the edges of the copy.
   """
   #TODO: add support for copying CopyTensor
-  if conj:
+  if conjugate:
     node_dict = {
         node: Node(
             node.backend.conj(node.tensor),
@@ -132,7 +133,7 @@ def copy(nodes: Iterable[BaseNode], conj: bool = False) -> Tuple[dict, dict]:
       node2 = edge.node2
       axis2 = edge.node2.get_axis_number(edge.axis2)
       new_edge = Edge(node_dict[node1], axis1, edge.name,
-                                         node_dict[node2], axis2)
+                      node_dict[node2], axis2)
       new_edge.set_signature(edge.signature)
     else:
       new_edge = Edge(node_dict[node1], axis1, edge.name)
@@ -642,7 +643,7 @@ def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+def get_all_edges(nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:

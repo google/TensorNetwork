@@ -84,7 +84,7 @@ def test_tnwork_copy_identities(backend):
 def test_connect_axis_names(backend):
   a = tn.Node(np.ones((3,)), name="a", axis_names=["one"], backend=backend)
   b = tn.Node(np.ones((3,)), name="b", axis_names=["one"], backend=backend)
-  edge = tn.connect(a["one"], b["one"])
+  tn.connect(a["one"], b["one"])
   assert a.edges == b.edges
 
 
@@ -155,7 +155,7 @@ def test_contract_edge_twice_value_error(backend):
 
 
 def test_contract_dangling_edge_value_error(backend):
-  a = tn.Node(np.array([1.0]))
+  a = tn.Node(np.array([1.0]), backend=backend)
   e = a[0]
   with pytest.raises(ValueError):
     tn.contract(e)
@@ -398,7 +398,7 @@ def test_contract_parallel(backend):
   a = tn.Node(np.eye(2), backend=backend)
   b = tn.Node(np.eye(2), backend=backend)
   edge1 = tn.connect(a[0], b[0])
-  edge2 = tn.connect(a[1], b[1])
+  tn.connect(a[1], b[1])
   c = tn.contract_parallel(edge1)
   np.testing.assert_allclose(c.tensor, 2.0)
 
