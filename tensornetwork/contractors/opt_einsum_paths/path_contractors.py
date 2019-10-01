@@ -22,6 +22,8 @@ from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable, Union
 
+#TODO: add return types of functions back once TensorNetwork is gone
+
 
 def _base_nodes(nodes: Iterable[BaseNode],
                 algorithm: utils.Algorithm,
@@ -136,7 +138,7 @@ def _base_network(
 def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
          algorithm: utils.Algorithm,
          output_edge_order: Optional[Sequence[Edge]] = None
-        ) -> Union[BaseNode, TensorNetwork]:
+        ):  # -> Union[BaseNode, TensorNetwork]:
 
   if isinstance(nodes, TensorNetwork):
     return _base_network(nodes, algorithm, output_edge_order)
@@ -147,7 +149,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 def optimal(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None) -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -174,7 +176,7 @@ nn  take longer than just contracting in a suboptimal way.
 def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
            output_edge_order: Sequence[Edge] = None,
            memory_limit: Optional[int] = None,
-           nbranch: Optional[int] = None) -> Union[BaseNode, TensorNetwork]:
+           nbranch: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Branch contraction path via `opt_einsum`.
 
   This method uses the DFS approach of `optimal` while sorting potential
@@ -206,7 +208,7 @@ def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 def greedy(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None) -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
@@ -232,9 +234,10 @@ def greedy(
   return base(nodes, alg, output_edge_order)
 
 
-def _auto_nodes(nodes: Iterable[BaseNode],
-                output_edge_order: Sequence[Edge] = None,
-                memory_limit: Optional[int] = None) -> BaseNode:
+def _auto_nodes(
+    nodes: Iterable[BaseNode],
+    output_edge_order: Sequence[Edge] = None,
+    memory_limit: Optional[int] = None) -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -251,7 +254,7 @@ def _auto_nodes(nodes: Iterable[BaseNode],
   Returns:
     Final node after full contraction.
   """
-  n = len(nodes)
+  n = len(list(nodes))
   if n <= 0:
     raise ValueError("Cannot contract empty tensor network.")
   if n == 1:
@@ -275,9 +278,10 @@ def _auto_nodes(nodes: Iterable[BaseNode],
   return greedy(nodes, output_edge_order, memory_limit)
 
 
-def _auto_network(net: TensorNetwork,
-                  output_edge_order: Sequence[Edge] = None,
-                  memory_limit: Optional[int] = None) -> TensorNetwork:
+def _auto_network(
+    net: TensorNetwork,
+    output_edge_order: Sequence[Edge] = None,
+    memory_limit: Optional[int] = None) -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -321,9 +325,10 @@ def _auto_network(net: TensorNetwork,
   return greedy(net, output_edge_order, memory_limit)
 
 
-def auto(nodes: Union[TensorNetwork, Iterable[BaseNode]],
-         output_edge_order: Sequence[Edge] = None,
-         memory_limit: Optional[int] = None) -> Union[BaseNode, TensorNetwork]:
+def auto(
+    nodes: Union[TensorNetwork, Iterable[BaseNode]],
+    output_edge_order: Sequence[Edge] = None,
+    memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
 
   if isinstance(nodes, TensorNetwork):
     return _auto_network(nodes, output_edge_order, memory_limit)
@@ -335,7 +340,7 @@ def custom(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     optimizer: Any,
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None) -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None):  #x -> Union[BaseNode, TensorNetwork]:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.
