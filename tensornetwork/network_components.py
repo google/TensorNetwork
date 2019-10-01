@@ -1074,9 +1074,9 @@ class Edge:
     if self.is_dangling():
       raise ValueError("Cannot break dangling edge {}.".format(self))
     if not edge1_name:
-      edge1_name = '__broke_edge1__{}'.format(self.name)
+      edge1_name = '__disconnected_edge1_of_{}__'.format(self.name)
     if not edge2_name:
-      edge2_name = '__broke_edge2__{}'.format(self.name)
+      edge2_name = '__disconnected_edge2_of_{}__'.format(self.name)
 
     node1 = self.node1
     node2 = self.node2
@@ -1093,8 +1093,7 @@ class Edge:
     """
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
-    return self.disconnect('__unnamed_edge__', '__unnamed_dge__')
-
+    return self.disconnect()
 
 def get_shared_edges(node1: BaseNode, node2: BaseNode) -> Set[Edge]:
   """Get all edges shared between two nodes.

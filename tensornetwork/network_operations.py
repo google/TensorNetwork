@@ -152,24 +152,24 @@ def remove_node(node: BaseNode
     node: The node to be removed.
 
   Returns:
-    broken_edges_by_name: A Dictionary mapping `node`'s axis names to
-      the newly broken edges.
-    broken_edges_by_axis: A Dictionary mapping `node`'s axis numbers
-      to the newly broken edges.
+    A tuple of:
+      disconnected_edges_by_name: A Dictionary mapping `node`'s axis names to
+        the newly broken edges.
+      disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
+        to the newly broken edges.
 
   Raises:
     ValueError: If the node isn't in the network.
   """
-  broken_edges_by_name = {}
-  broken_edges_by_axis = {}
+  disconnected_edges_by_name = {}
+  disconnected_edges_by_axis = {}
   for i, name in enumerate(node.axis_names):
     if not node[i].is_dangling() and not node[i].is_trace():
       edge1, edge2 = disconnect(node[i])
-      new_broken_edge = edge1 if edge1.node1 is not node else edge2
-      broken_edges_by_axis[i] = new_broken_edge
-      broken_edges_by_name[name] = new_broken_edge
-  node.disable()
-  return broken_edges_by_name, broken_edges_by_axis
+      new_disconnected_edge = edge1 if edge1.node1 is not node else edge2
+      disconnected_edges_by_axis[i] = new_disconnected_edge
+      disconnected_edges_by_name[name] = new_disconnected_edge
+  return disconnected_edges_by_name, disconnected_edges_by_axis
 
 def split_node(
     node: BaseNode,
