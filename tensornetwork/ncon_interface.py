@@ -20,7 +20,7 @@ import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
 from tensornetwork import network
 from tensornetwork import network_components
-from tensornetwor import config
+from tensornetwork import config
 from tensornetwork.backends import backend_factory
 Tensor = Any
 
