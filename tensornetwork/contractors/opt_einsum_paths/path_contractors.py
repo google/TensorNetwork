@@ -16,8 +16,9 @@
 
 import functools
 import opt_einsum
-import tensornetwork as tn
 from tensornetwork.network import TensorNetwork
+from tensornetwork.network_operations import check_connected, get_all_edges
+from tensornetwork.network_components import get_all_nondangling, contract_parallel
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable, Union
@@ -43,25 +44,25 @@ def _base_nodes(nodes: Iterable[BaseNode],
     Final node after full contraction.
   """
   nodes_set = set(nodes)
-  tn.check_connected(nodes_set)
-  edges = tn.get_all_nondangling(nodes_set)
+  check_connected(nodes_set)
+  edges = get_all_nondangling(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
   if output_edge_order is None:
     output_edge_order = list(
-        (tn.get_all_edges(nodes) - tn.get_all_nondangling(nodes)))
+        (get_all_edges(nodes) - get_all_nondangling(nodes)))
 
   if set(output_edge_order) != (
-      tn.get_all_edges(nodes) - tn.get_all_nondangling(nodes)):
+      get_all_edges(nodes) - get_all_nondangling(nodes)):
     raise ValueError("output edges are not all dangling.")
 
   for edge in edges:
     if not edge.is_disabled:  #if its disabled we already contracted it
       if edge.is_trace():
         nodes_set.remove(edge.node1)
-        nodes_set.add(tn.contract_parallel(edge))
+        nodes_set.add(contract_parallel(edge))
 
-  if not tn.get_all_nondangling(nodes_set):
+  if not get_all_nondangling(nodes_set):
     # There's nothing to contract.
     return list(nodes_set)[0]
 
@@ -258,13 +259,13 @@ def _auto_nodes(
   if n <= 0:
     raise ValueError("Cannot contract empty tensor network.")
   if n == 1:
-    edges = tn.get_all_nondangling(nodes)
+    edges = get_all_nondangling(nodes)
 
     if output_edge_order is None:
       output_edge_order = list(
-          (tn.get_all_edges(nodes) - tn.get_all_nondangling(nodes)))
+          (get_all_edges(nodes) - get_all_nondangling(nodes)))
 
-    final_node = tn.contract_parallel(edges.pop())
+    final_node = contract_parallel(edges.pop())
     final_node.reorder_edges(output_edge_order)
     return final_node
   if n < 5:
