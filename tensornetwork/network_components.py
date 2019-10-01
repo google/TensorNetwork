@@ -1128,8 +1128,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
   return get_shared_edges(edge.node1, edge.node2)
 
 
-def get_all_nondangling(
-    nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -1697,7 +1696,7 @@ def contract_between(
   return new_node
 
 
-def outer_product_final_nodes(nodes: Union[List[BaseNode], Set[BaseNode]],
+def outer_product_final_nodes(nodes: Iterable[BaseNode],
                               edge_order: List[Edge]) -> BaseNode:
   """Get the outer product of `nodes`
 
