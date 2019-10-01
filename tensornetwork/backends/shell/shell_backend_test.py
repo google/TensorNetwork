@@ -1,3 +1,4 @@
+# pytype: skip-file
 # Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

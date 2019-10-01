@@ -1,3 +1,4 @@
+# pytype: skip-file
 """Tests for graphmode_tensornetwork."""
 from __future__ import absolute_import
 from __future__ import division

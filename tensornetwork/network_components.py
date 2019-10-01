@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
-  overload, Sequence
+  overload, Sequence, Iterable
 import numpy as np
 from abc import ABC
 from abc import abstractmethod
@@ -1131,7 +1131,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
 
 
 def get_all_nondangling(
-    nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+    nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -1287,7 +1287,7 @@ def flatten_edges_between(
   return None
 
 
-def flatten_all_edges(nodes: List[BaseNode]) -> List[Edge]:
+def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
   """Flatten all edges in the network.
 
   Returns:
