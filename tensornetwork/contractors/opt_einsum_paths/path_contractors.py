@@ -18,6 +18,7 @@ import functools
 import opt_einsum
 from tensornetwork.network import TensorNetwork
 from tensornetwork.network_operations import check_connected, get_all_edges
+# pylint: disable=line-too-long
 from tensornetwork.network_components import get_all_nondangling, contract_parallel
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
@@ -235,6 +236,7 @@ def greedy(
   return base(nodes, alg, output_edge_order)
 
 
+# pylint: disable=too-many-return-statements
 def auto(nodes: Iterable[BaseNode],
          output_edge_order: Sequence[Edge] = None,
          memory_limit: Optional[int] = None) -> Union[TensorNetwork, BaseNode]:
@@ -258,7 +260,7 @@ def auto(nodes: Iterable[BaseNode],
     n = len(nodes.nodes_set)
     _nodes = nodes.nodes_set
   else:
-    n = len(nodes)
+    n = len(list(nodes))  #pytype thing
     _nodes = nodes
   if n <= 0:
     raise ValueError("Cannot contract empty tensor network.")
