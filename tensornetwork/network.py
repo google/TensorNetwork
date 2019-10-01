@@ -1000,7 +1000,7 @@ class TensorNetwork:
     for i, name in enumerate(node.axis_names):
       print(i, name)
       if not node[i].is_dangling() and not node[i].is_trace():
-        edge1, edge2 = disconnect(node[i])
+        edge1, edge2 = self.disconnect(node[i])
         new_broken_edge = edge1 if edge1.node1 is not node else edge2
         broken_edges_by_axis[i] = new_broken_edge
         broken_edges_by_name[name] = new_broken_edge
