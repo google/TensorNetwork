@@ -20,10 +20,8 @@ import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
 from tensornetwork import network
 from tensornetwork import network_components
-# pylint: disable=useless-import-alias
-import tensornetwork.config as config
-# pylint: disable=useless-import-alias
-import tensornetwork.backends.backend_factory as backend_factory
+from tensornetwork import config
+from tensornetwork.backends import backend_factory
 Tensor = Any
 
 
@@ -31,7 +29,8 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
          out_order: Optional[Sequence] = None,
-         backend: Optional[Text] = None) -> Tensor:
+         backend: Optional[Text] = None
+        ) -> Union[network_components.BaseNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
 
