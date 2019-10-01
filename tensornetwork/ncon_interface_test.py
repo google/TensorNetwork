@@ -17,6 +17,7 @@ from __future__ import print_function
 import pytest
 import numpy as np
 import tensornetwork as tn
+from tensornetwork.network_components import BaseNode
 from tensornetwork.network import TensorNetwork
 from tensornetwork import ncon_interface
 from tensornetwork.contractors.naive_contractor import naive
@@ -41,9 +42,9 @@ def test_return_type(backend):
   result_1 = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
   result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
   result_3 = ncon_interface.ncon([n1, t2], [(-1, 1), (1, -2)], backend=backend)
-  assert type(result_1) == type(n1.backend.convert_to_tensor(t1))
-  assert type(result_2) == type(n1)
-  assert type(result_3) == type(n1.backend.convert_to_tensor(t1))
+  assert isinstance(result_1, type(n1.backend.convert_to_tensor(t1)))
+  assert isinstance(result_2, BaseNode)
+  assert isinstance(result_3, type(n1.backend.convert_to_tensor(t1)))
 
 
 def test_order_spec(backend):
