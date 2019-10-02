@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper methods for `path_contractors`."""
-import tensornetwork as tn
+from tensornetwork.network_operations import get_all_edges
+# pylint: disable=line-too-long
+from tensornetwork.network_components import get_all_nondangling
 from tensornetwork.network import TensorNetwork
 from tensornetwork.network_components import BaseNode, Edge
 from typing import Any, Callable, Dict, List, Set, Tuple, Iterable, Union
