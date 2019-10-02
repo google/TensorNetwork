@@ -24,7 +24,9 @@ from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable, Union
 
-#TODO: add return types of functions back once TensorNetwork is gone
+#TODO (martin): add return types of functions back once TensorNetwork is gone
+#               remove _base_network
+#               _base_nodes -> base
 
 
 def _base_nodes(nodes: Iterable[BaseNode],
