@@ -308,6 +308,7 @@ def test_backend_network(backend):
                                             backend=backend)
 
   net = TensorNetwork(backend=backend)
+  # pylint: disable=expression-not-assigned
   [net.add_node(n) for n in nodes]
   res = naive(net).get_final_node().tensor
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
