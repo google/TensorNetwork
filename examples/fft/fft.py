@@ -2,24 +2,22 @@
 
 from typing import List
 import numpy as np
-import tensornetwork
+import tensornetwork as tn
 
 
 def add_fft(
-    net: tensornetwork.TensorNetwork,
-    inputs: List[tensornetwork.Edge],
-) -> List[tensornetwork.Edge]:
+    inputs: List[tn.Edge],
+) -> List[tn.Edge]:
   """Creates output node axes corresponding to the Fourier transform of inputs.
 
   Uses Cooley-Tukey"s FFT algorithm. All axes are expected to have length 2. The
   input axes must be (and output axes will be) binary.
 
   Args:
-    net: The tensor network to embed the fft network in.
     inputs: The node axes to act upon.
 
   Returns:
-    A list of node axes containing the result.
+    A list of `Edges` containing the result.
   """
   if not all(e.is_dangling() for e in inputs):
     raise ValueError("Inputs must be dangling edges.")
@@ -33,12 +31,12 @@ def add_fft(
 
   def inline_stitch(targets: List[int], tensor: np.ndarray, name: str):
     """Applies an operation to the targeted axis indices."""
-    op_node = net.add_node(tensor, name)
+    op_node = tn.Node(tensor, name)
     for k, t in enumerate(targets):
       incoming_state = state[t]
       receiving_port = op_node[k]
       output_port = op_node[k + len(targets)]
-      net.connect(incoming_state, receiving_port)
+      incoming_state ^ receiving_port
       state[t] = output_port
 
   state = list(inputs)
