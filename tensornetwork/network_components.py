@@ -18,9 +18,8 @@ from __future__ import division
 from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
-  overload, Sequence
+  overload, Sequence, Iterable
 import numpy as np
-import weakref
 from abc import ABC
 from abc import abstractmethod
 import h5py
@@ -97,7 +96,7 @@ class BaseNode(ABC):
     if axis_names is not None:
       self.add_axis_names(axis_names)
     else:
-      self._axis_names = None
+      self._axis_names = [str(i) for i in range(len(shape))]
 
     self._signature = -1
 
@@ -938,9 +937,9 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing node1 is no longer possible')
-    if self._node1() is None:
+    if self._node1 is None:
       raise ValueError("node1 for edge '{}' no longer exists.".format(self))
-    return self._node1()
+    return self._node1
 
   @property
   def node2(self) -> Optional[BaseNode]:
@@ -949,9 +948,9 @@ class Edge:
           'Edge has been disabled, accessing node2 is no longer possible')
     if self._is_dangling:
       return None
-    if self._node2() is None:
+    if self._node2 is None:
       raise ValueError("node2 for edge '{}' no longer exists.".format(self))
-    return self._node2()
+    return self._node2
 
   @node1.setter
   def node1(self, node: BaseNode) -> None:
@@ -959,7 +958,7 @@ class Edge:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
     # pylint: disable=attribute-defined-outside-init
-    self._node1 = weakref.ref(node)
+    self._node1 = node
 
   @node2.setter
   def node2(self, node: Optional[BaseNode]) -> None:
@@ -967,7 +966,7 @@ class Edge:
       raise ValueError(
           'Edge has been disabled, setting node2 is no longer possible')
     # pylint: disable=attribute-defined-outside-init
-    self._node2 = weakref.ref(node) if node else None
+    self._node2 = node
     if node is None:
       self._is_dangling = True
 
@@ -1074,9 +1073,9 @@ class Edge:
     if self.is_dangling():
       raise ValueError("Cannot break dangling edge {}.".format(self))
     if not edge1_name:
-      edge1_name = '__unnamed_edge__'
+      edge1_name = '__disconnected_edge1_of_{}__'.format(self.name)
     if not edge2_name:
-      edge2_name = '__unnamed_edge__'
+      edge2_name = '__disconnected_edge2_of_{}__'.format(self.name)
 
     node1 = self.node1
     node2 = self.node2
@@ -1093,8 +1092,7 @@ class Edge:
     """
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
-    return self.disconnect('__unnamed_edge__', '__unnamed_dge__')
-
+    return self.disconnect()
 
 def get_shared_edges(node1: BaseNode, node2: BaseNode) -> Set[Edge]:
   """Get all edges shared between two nodes.
@@ -1131,7 +1129,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
 
 
 def get_all_nondangling(
-    nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+    nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -1253,7 +1251,7 @@ def flatten_edges(edges: List[Edge],
     if axis_names:
       node.axis_names = [axis_names[n] for n in range(len(node.edges))]
     else:
-      node.axis_names = None
+      node.axis_names = [str(n) for n in range(len(node.edges))]
 
   node1, node2 = tuple(expected_nodes)
   # Sets are returned in a random order, so this is how we deal with
@@ -1287,7 +1285,7 @@ def flatten_edges_between(
   return None
 
 
-def flatten_all_edges(nodes: List[BaseNode]) -> List[Edge]:
+def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
   """Flatten all edges in the network.
 
   Returns:
@@ -1586,8 +1584,8 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
   return new_edge
 
 
-def disconnect(edge, edge1_name: Optional[Text],
-               edge2_name: Optional[Text]) -> Tuple[Edge, Edge]:
+def disconnect(edge, edge1_name: Optional[Text] = None,
+               edge2_name: Optional[Text] = None) -> Tuple[Edge, Edge]:
   """
   Break an existing non-dangling edge.
   This updates both Edge.node1 and Edge.node2 by removing the 

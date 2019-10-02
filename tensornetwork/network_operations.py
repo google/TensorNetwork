@@ -23,7 +23,8 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge
+#pylint: disable=line-too-long
+from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect
@@ -91,6 +92,84 @@ def transpose(node: BaseNode,
       backend=node.backend.name)
   return new_node.reorder_axes(perm)
 
+def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict]:
+  """
+
+  Return a copy of the TensorNetwork.
+  Args:
+    nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
+    conjugate: Boolean. Whether to conjugate all of the nodes in the
+      `TensorNetwork` (useful for calculating norms and reduced density
+      matrices).
+  Returns:
+    A tuple containing:
+      node_dict: A dictionary mapping the nodes of the original
+                 network to the nodes of the copy.
+      edge_dict: A dictionary mapping the edges of the original
+                 network to the edges of the copy.
+  """
+  #TODO: add support for copying CopyTensor
+  if conjugate:
+    node_dict = {
+        node: Node(
+            node.backend.conj(node.tensor),
+            name=node.name,
+            axis_names=node.axis_names,
+            backend=node.backend.name) for node in nodes
+    }
+  else:
+    node_dict = {
+        node: Node(
+            node.tensor, name=node.name, axis_names=node.axis_names, 
+            backend=node.backend.name)
+        for node in nodes
+    }
+  edge_dict = {}
+  for edge in get_all_edges(nodes):
+    node1 = edge.node1
+    axis1 = edge.node1.get_axis_number(edge.axis1)
+
+    if not edge.is_dangling():
+      node2 = edge.node2
+      axis2 = edge.node2.get_axis_number(edge.axis2)
+      new_edge = Edge(node_dict[node1], axis1, edge.name,
+                      node_dict[node2], axis2)
+      new_edge.set_signature(edge.signature)
+    else:
+      new_edge = Edge(node_dict[node1], axis1, edge.name)
+
+    node_dict[node1].add_edge(new_edge, axis1)
+    if not edge.is_dangling():
+      node_dict[node2].add_edge(new_edge, axis2)
+    edge_dict[edge] = new_edge
+  return node_dict, edge_dict
+
+def remove_node(node: BaseNode
+               ) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
+  """Remove a node from the network.
+
+  Args:
+    node: The node to be removed.
+
+  Returns:
+    A tuple of:
+      disconnected_edges_by_name: A Dictionary mapping `node`'s axis names to
+        the newly broken edges.
+      disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
+        to the newly broken edges.
+
+  Raises:
+    ValueError: If the node isn't in the network.
+  """
+  disconnected_edges_by_name = {}
+  disconnected_edges_by_axis = {}
+  for i, name in enumerate(node.axis_names):
+    if not node[i].is_dangling() and not node[i].is_trace():
+      edge1, edge2 = disconnect(node[i])
+      new_disconnected_edge = edge1 if edge1.node1 is not node else edge2
+      disconnected_edges_by_axis[i] = new_disconnected_edge
+      disconnected_edges_by_name[name] = new_disconnected_edge
+  return disconnected_edges_by_name, disconnected_edges_by_axis
 
 def split_node(
     node: BaseNode,
@@ -564,7 +643,7 @@ def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Union[List[BaseNode], Set[BaseNode]]) -> Set[Edge]:
+def get_all_edges(nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:
