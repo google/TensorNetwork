@@ -27,10 +27,9 @@ from typing import Any, Optional, Sequence, Iterable, Union
 #TODO: add return types of functions back once TensorNetwork is gone
 
 
-def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
-         algorithm: utils.Algorithm,
-         output_edge_order: Optional[Sequence[Edge]] = None
-        ) -> Union[TensorNetwork, BaseNode]:
+def _base_nodes(nodes: Iterable[BaseNode],
+                algorithm: utils.Algorithm,
+                output_edge_order: Optional[Sequence[Edge]] = None) -> BaseNode:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -45,26 +44,21 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
   Returns:
     Final node after full contraction.
   """
-  #TODO: get rid of TensorNetwork.
-  if isinstance(nodes, TensorNetwork):
-    nodes_set = nodes.nodes_set
-  else:
-    nodes_set = set(nodes)
-
+  nodes_set = set(nodes)
   check_connected(nodes_set)
   edges = get_all_nondangling(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
   if output_edge_order is None:
     output_edge_order = list(
-        (get_all_edges(nodes_set) - get_all_nondangling(nodes_set)))
+        (get_all_edges(nodes) - get_all_nondangling(nodes)))
     if len(output_edge_order) > 1:
       raise ValueError("The final node after contraction has more than "
                        "one dangling edge. In this case `output_edge_order` "
                        "has to be provided.")
 
   if set(output_edge_order) != (
-      get_all_edges(nodes_set) - get_all_nondangling(nodes_set)):
+      get_all_edges(nodes) - get_all_nondangling(nodes)):
     raise ValueError("output edges are not all dangling.")
 
   for edge in edges:
@@ -72,35 +66,162 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
       if edge.is_trace():
         nodes_set.remove(edge.node1)
         nodes_set.add(contract_parallel(edge))
+
   if not get_all_nondangling(nodes_set):
     # There's nothing to contract.
-    if isinstance(nodes, TensorNetwork):
-      #(martin) this is hacky, but i don't have better way of doing this
-      nodes.reset()
-      nodes.add_node(list(nodes_set)[0])
-      return nodes
     return list(nodes_set)[0]
 
   # Then apply `opt_einsum`'s algorithm
-  path, sorted_nodes = utils.get_path(nodes_set, algorithm)
+  path, nodes = utils.get_path(nodes_set, algorithm)
   for a, b in path:
-    new_node = sorted_nodes[a] @ sorted_nodes[b]
-    sorted_nodes.append(new_node)
-    sorted_nodes = utils.multi_remove(sorted_nodes, [a, b])
+    new_node = nodes[a] @ nodes[b]
+    nodes.append(new_node)
+    nodes = utils.multi_remove(nodes, [a, b])
 
   # if the final node has more than one edge,
   # output_edge_order has to be specified
-  final_node = sorted_nodes[0]  # nodes were connected, we checked this
+  final_node = nodes[0]  # nodes were connected, we checked this
   final_node.reorder_edges(output_edge_order)
-  if isinstance(nodes, TensorNetwork):
-    #(martin) sorted_nodes contains a sinle node with .network=net
-    #this is again hacky...
-    # we don't have to disable because @ disabled nodes already
-    nodes.reset()
-    [nodes.add_node(node) for node in sorted_nodes]
-    return nodes
-
   return final_node
+
+
+def _base_network(
+    net: TensorNetwork,
+    algorithm: utils.Algorithm,
+    output_edge_order: Optional[Sequence[Edge]] = None) -> TensorNetwork:
+  """Base method for all `opt_einsum` contractors.
+
+  Args:
+    net: a TensorNetwork object. Should be connected.
+    algorithm: `opt_einsum` contraction method to use.
+    output_edge_order: An optional list of edges. Edges of the
+      final node in `nodes_set`
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
+      `output_edge_order` must be provided.
+
+  Returns:
+    The network after full contraction.
+  """
+  net.check_connected()
+  # First contract all trace edges
+  edges = net.get_all_nondangling()
+  for edge in edges:
+    if edge in net and edge.is_trace():
+      net.contract_parallel(edge)
+  if not net.get_all_nondangling():
+    # There's nothing to contract.
+    return net
+
+  # Then apply `opt_einsum`'s algorithm
+  path, nodes = utils.get_path(net, algorithm)
+  for a, b in path:
+    new_node = nodes[a] @ nodes[b]
+    nodes.append(new_node)
+    nodes = utils.multi_remove(nodes, [a, b])
+
+  # if the final node has more than one edge,
+  # output_edge_order has to be specified
+  final_node = net.get_final_node()
+  if (len(final_node.edges) <= 1) and (output_edge_order is None):
+    output_edge_order = list((net.get_all_edges() - net.get_all_nondangling()))
+  elif (len(final_node.edges) > 1) and (output_edge_order is None):
+    raise ValueError("The final node after contraction has more than "
+                     "one dangling edge. In this case `output_edge_order` "
+                     "has to be provided.")
+  if set(output_edge_order) != (
+      net.get_all_edges() - net.get_all_nondangling()):
+    raise ValueError("output edges are not all dangling.")
+
+  final_node.reorder_edges(output_edge_order)
+  return net
+
+
+def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
+         algorithm: utils.Algorithm,
+         output_edge_order: Optional[Sequence[Edge]] = None
+        ):  # -> Union[BaseNode, TensorNetwork]:
+
+  if isinstance(nodes, TensorNetwork):
+    return _base_network(nodes, algorithm, output_edge_order)
+
+  return _base_nodes(nodes, algorithm, output_edge_order)
+
+
+# def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
+#          algorithm: utils.Algorithm,
+#          output_edge_order: Optional[Sequence[Edge]] = None
+#         ):  # -> Union[TensorNetwork, BaseNode]:
+#   """Base method for all `opt_einsum` contractors.
+
+#   Args:
+#     nodes: A collection of connected nodes.
+#     algorithm: `opt_einsum` contraction method to use.
+#     output_edge_order: An optional list of edges. Edges of the
+#       final node in `nodes_set`
+#       are reordered into `output_edge_order`;
+#       if final node has more than one edge,
+#       `output_edge_order` must be pronvided.
+
+#   Returns:
+#     Final node after full contraction.
+#   """
+#   #TODO: get rid of TensorNetwork.
+#   if isinstance(nodes, TensorNetwork):
+#     nodes_set = nodes.nodes_set
+#   else:
+#     nodes_set = set(nodes)
+
+#   check_connected(nodes_set)
+#   edges = get_all_nondangling(nodes_set)
+#   #output edge order has to be determinded before any contraction
+#   #(edges are refreshed after contractions)
+#   if output_edge_order is None:
+#     output_edge_order = list(
+#         (get_all_edges(nodes_set) - get_all_nondangling(nodes_set)))
+#     if len(output_edge_order) > 1:
+#       raise ValueError("The final node after contraction has more than "
+#                        "one dangling edge. In this case `output_edge_order` "
+#                        "has to be provided.")
+
+#   if set(output_edge_order) != (
+#       get_all_edges(nodes_set) - get_all_nondangling(nodes_set)):
+#     raise ValueError("output edges are not all dangling.")
+
+#   for edge in edges:
+#     if not edge.is_disabled:  #if its disabled we already contracted it
+#       if edge.is_trace():
+#         nodes_set.remove(edge.node1)
+#         nodes_set.add(contract_parallel(edge))
+#   if not get_all_nondangling(nodes_set):
+#     # There's nothing to contract.
+#     if isinstance(nodes, TensorNetwork):
+#       #(martin) this is hacky, but i don't have better way of doing this
+#       nodes.reset()
+#       nodes.add_node(list(nodes_set)[0])
+#       return nodes
+#     return list(nodes_set)[0]
+
+#   # Then apply `opt_einsum`'s algorithm
+#   path, sorted_nodes = utils.get_path(nodes_set, algorithm)
+#   for a, b in path:
+#     new_node = sorted_nodes[a] @ sorted_nodes[b]
+#     sorted_nodes.append(new_node)
+#     sorted_nodes = utils.multi_remove(sorted_nodes, [a, b])
+
+#   # if the final node has more than one edge,
+#   # output_edge_order has to be specified
+#   final_node = sorted_nodes[0]  # nodes were connected, we checked this
+#   final_node.reorder_edges(output_edge_order)
+#   if isinstance(nodes, TensorNetwork):
+#     #(martin) sorted_nodes contains a sinle node with .network=net
+#     #this is again hacky...
+#     # we don't have to disable because @ disabled nodes already
+#     nodes.reset()
+#     [nodes.add_node(node) for node in sorted_nodes]
+#     return nodes
+
+#   return final_node
 
 
 def optimal(
@@ -192,9 +313,10 @@ def greedy(
 
 
 # pylint: disable=too-many-return-statements
-def auto(nodes: Iterable[BaseNode],
-         output_edge_order: Sequence[Edge] = None,
-         memory_limit: Optional[int] = None) -> Union[TensorNetwork, BaseNode]:
+def auto(
+    nodes: Iterable[BaseNode],
+    output_edge_order: Sequence[Edge] = None,
+    memory_limit: Optional[int] = None):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
