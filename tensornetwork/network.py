@@ -77,6 +77,9 @@ class TensorNetwork:
   def dtype(self) -> Type[np.number]:
     return self.backend.dtype
 
+  def reset(self):
+    self.nodes_set = set()
+
   # pylint: disable=redefined-outer-name
   def copy(self, conj: bool = False) -> Tuple["TensorNetwork", dict, dict]:
     """
