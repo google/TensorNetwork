@@ -76,7 +76,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
     # There's nothing to contract.
     if isinstance(nodes, TensorNetwork):
       #(martin) this is hacky, but i don't have better way of doing this
-      nodes.nodes_set = set()
+      nodes.reset()
       nodes.add_node(list(nodes_set)[0])
       return nodes
     return list(nodes_set)[0]
@@ -96,7 +96,8 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
     #(martin) sorted_nodes contains a sinle node with .network=net
     #this is again hacky...
     # we don't have to disable because @ disabled nodes already
-    nodes.nodes_set = set(sorted_nodes)
+    nodes.reset()
+    [nodes.add_node(node) for node in sorted_nodes]
     return nodes
 
   return final_node
