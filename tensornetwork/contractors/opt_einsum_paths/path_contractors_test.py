@@ -18,8 +18,8 @@ import tensornetwork
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
 
 
-@pytest.fixture(name="path_algorithm",
-                params=["optimal", "branch", "greedy", "auto"])
+@pytest.fixture(
+    name="path_algorithm", params=["optimal", "branch", "greedy", "auto"])
 def path_algorithm_fixture(request):
   return getattr(path_contractors, request.param)
 
