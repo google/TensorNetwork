@@ -143,7 +143,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
       nodes.remove(node1)
       if node2 is not node1:
         nodes.remove(node2)
-      nodes.add(
+      nodes.append(
           network_components.contract_between(
               *nodes_to_contract,
               name="con({},{})".format(*nodes_to_contract),
@@ -156,7 +156,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
       nodes.remove(node1)
       if node2 is not node1:
         nodes.remove(node2)
-      nodes.add(
+      nodes.append(
           network_components.contract_between(
               *nodes_to_contract, name="con({},{})".format(*nodes_to_contract)))
 
@@ -172,7 +172,7 @@ def ncon_network(tensors: Sequence[Tensor],
                  con_order: Optional[Sequence] = None,
                  out_order: Optional[Sequence] = None,
                  backend: Optional[Text] = None
-                ) -> Tuple[Set[network_components.BaseNode], List[
+                ) -> Tuple[List[network_components.BaseNode], List[
                     network_components.Edge], List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
 
@@ -197,7 +197,8 @@ def ncon_network(tensors: Sequence[Tensor],
         TensorNetwork backend.
 
     Returns:
-      nodes: Result of the contraction.
+      nodes: List of constructed nodes in the same order as given in 
+        `tensors`.
       con_edges: List of internal `Edge` objects in contraction order.
       out_edges: List of dangling `Edge` objects in output order.
   """
@@ -261,7 +262,7 @@ def _build_network(
     tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
     backend: Text) -> Tuple[Set[network_components
                                 .BaseNode], Dict[Any, network_components.Edge]]:
-  nodes = set()
+  nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
     if len(tensor.shape) != len(edge_lbls):
@@ -273,7 +274,7 @@ def _build_network(
       node = network_components.Node(
           tensor, name="tensor_{}".format(i), backend=backend)
 
-    nodes.add(node)
+    nodes.append(node)
 
     for (axis_num, edge_lbl) in enumerate(edge_lbls):
       if edge_lbl not in edges:
