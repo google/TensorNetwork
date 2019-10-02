@@ -42,8 +42,8 @@ def _get_path_nodes(nodes: Iterable[BaseNode], algorithm: Algorithm
   sorted_nodes = sorted(nodes, key=lambda n: n.signature)
 
   input_sets = [set(node.edges) for node in sorted_nodes]
-  output_set = tn.get_all_edges(nodes) - tn.get_all_nondangling(nodes)
-  size_dict = {edge: edge.dimension for edge in tn.get_all_edges(nodes)}
+  output_set = get_all_edges(nodes) - get_all_nondangling(nodes)
+  size_dict = {edge: edge.dimension for edge in get_all_edges(nodes)}
 
   return algorithm(input_sets, output_set, size_dict), sorted_nodes
 
