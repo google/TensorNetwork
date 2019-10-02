@@ -45,6 +45,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
   Returns:
     Final node after full contraction.
   """
+  #TODO: get rid of TensorNetwork.
   if isinstance(nodes, TensorNetwork):
     nodes_set = nodes.nodes_set
   else:
