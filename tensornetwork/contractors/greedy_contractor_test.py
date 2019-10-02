@@ -21,6 +21,7 @@ from tensornetwork.contractors import greedy_contractor
 from tensornetwork import network
 import tensorflow as tf
 
+
 def test_greedy_sanity_check(backend):
   net = network.TensorNetwork(backend=backend)
   a = net.add_node(np.ones((2, 2, 2, 2, 2)))

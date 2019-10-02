@@ -28,7 +28,6 @@ import h5py
 import tensornetwork.config as config
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
-#pylint: disable=useless-import-alias
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
@@ -572,7 +571,7 @@ class Node(BaseNode):
     """
     name, signature, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
-    #pylint: disable=unnecessary-comprehension
+    # pylint: disable=unnecessary-comprehension
     node = Node(
         tensor,
         name=name,
@@ -749,7 +748,7 @@ class CopyNode(BaseNode):
     """
     name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
-    #pylint: disable=unnecessary-comprehension
+    # pylint: disable=unnecessary-comprehension
     node = CopyNode(
         rank=len(shape),
         dimension=shape[0],
