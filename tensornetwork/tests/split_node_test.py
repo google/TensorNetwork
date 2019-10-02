@@ -15,132 +15,49 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensornetwork
+import tensornetwork as tn
 import pytest
 import numpy as np
 
 
-def test_split_node_qr_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _ = net.split_node_qr(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_rq_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _ = net.split_node_rq(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _, _ = net.split_node(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
-def test_split_node_full_svd_disable(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
-  left_edges = []
-  for i in range(3):
-    left_edges.append(a[i])
-  right_edges = []
-  for i in range(3, 5):
-    right_edges.append(a[i])
-  _, _, _, _ = net.split_node_full_svd(a, left_edges, right_edges)
-  with pytest.raises(ValueError):
-    a.edges[0]
-  with pytest.raises(ValueError):
-    a.edges
-  with pytest.raises(ValueError):
-    a.signature
-  with pytest.raises(ValueError):
-    a.shape
-
-
 def test_split_node(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right, _ = net.split_node(a, left_edges, right_edges)
-  net.check_correct()
+  left, right, _ = tn.split_node(a, left_edges, right_edges)
+  tn.check_correct({left, right})
   np.testing.assert_allclose(left.tensor, np.zeros((2, 3, 4, 24)))
   np.testing.assert_allclose(right.tensor, np.zeros((24, 5, 6)))
 
 
 def test_split_node_mixed_order(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in [0, 2, 4]:
     left_edges.append(a[i])
   right_edges = []
   for i in [1, 3]:
     right_edges.append(a[i])
-  left, right, _ = net.split_node(a, left_edges, right_edges)
-  net.check_correct()
+  left, right, _ = tn.split_node(a, left_edges, right_edges)
+  tn.check_correct({left, right})
   np.testing.assert_allclose(left.tensor, np.zeros((2, 4, 6, 15)))
   np.testing.assert_allclose(right.tensor, np.zeros((15, 3, 5)))
 
 
 def test_split_node_full_svd(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
   unitary1 = np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2.0)
   unitary2 = np.array([[0.0, 1.0], [1.0, 0.0]])
   singular_values = np.array([9.1, 7.5], dtype=np.float32)
   val = np.dot(unitary1, np.dot(np.diag(singular_values), (unitary2.T)))
-  a = net.add_node(val)
+  a = tn.Node(val, backend=backend)
   e1 = a[0]
   e2 = a[1]
-  _, s, _, _, = net.split_node_full_svd(a, [e1], [e2])
-  net.check_correct()
+  _, s, _, _, = tn.split_node_full_svd(a, [e1], [e2])
+  tn.check_correct(tn.reachable(s))
   np.testing.assert_allclose(s.tensor, np.diag([9.1, 7.5]), rtol=1e-5)
 
 
@@ -148,32 +65,29 @@ def test_svd_consistency(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
 
-  net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array(
       [[1.0, 2.0j, 3.0, 4.0], [5.0, 6.0 + 1.0j, 3.0j, 2.0 + 1.0j]],
       dtype=np.complex64)
-  node = net.add_node(original_tensor)
-  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
-  final_node = net.contract_between(u, vh)
+  node = tn.Node(original_tensor, backend=backend)
+  u, vh, _ = tn.split_node(node, [node[0]], [node[1]])
+  final_node = tn.contract_between(u, vh)
   np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
 
 
 def test_svd_consistency_symmetric_real_matrix(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
   original_tensor = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 3.0, 2.0]],
                              dtype=np.float64)
-  node = net.add_node(original_tensor)
-  u, vh, _ = net.split_node(node, [node[0]], [node[1]])
-  final_node = net.contract_between(u, vh)
+  node = tn.Node(original_tensor, backend=backend)
+  u, vh, _ = tn.split_node(node, [node[0]], [node[1]])
+  final_node = tn.contract_between(u, vh)
   np.testing.assert_allclose(final_node.tensor, original_tensor, rtol=1e-6)
 
 
 def test_split_node_full_svd_names(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(10, 10))
+  a = tn.Node(np.random.rand(10, 10), backend=backend)
   e1 = a[0]
   e2 = a[1]
-  left, s, right, _, = net.split_node_full_svd(
+  left, s, right, _, = tn.split_node_full_svd(
       a, [e1], [e2],
       left_name='left',
       middle_name='center',
@@ -190,15 +104,14 @@ def test_split_node_full_svd_names(backend):
 
 
 def test_split_node_rq_names(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_rq(
+  left, right = tn.split_node_rq(
       a,
       left_edges,
       right_edges,
@@ -212,15 +125,14 @@ def test_split_node_rq_names(backend):
 
 
 def test_split_node_qr_names(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right = net.split_node_qr(
+  left, right = tn.split_node_qr(
       a,
       left_edges,
       right_edges,
@@ -234,15 +146,14 @@ def test_split_node_qr_names(backend):
 
 
 def test_split_node_names(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.zeros((2, 3, 4, 5, 6)))
+  a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, right, _ = net.split_node(
+  left, right, _ = tn.split_node(
       a,
       left_edges,
       right_edges,
@@ -256,31 +167,29 @@ def test_split_node_names(backend):
 
 
 def test_split_node_rq(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
+  a = tn.Node(np.random.rand(2, 3, 4, 5, 6), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, _ = net.split_node_rq(a, left_edges, right_edges)
-  net.check_correct()
-  np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+  left, _ = tn.split_node_rq(a, left_edges, right_edges)
+  tn.check_correct(tn.reachable(left))
+  np.testing.assert_allclose(a.tensor, tn.contract(left[3]).tensor)
 
 
 def test_split_node_qr(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(2, 3, 4, 5, 6))
+  a = tn.Node(np.random.rand(2, 3, 4, 5, 6), backend=backend)
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
   right_edges = []
   for i in range(3, 5):
     right_edges.append(a[i])
-  left, _ = net.split_node_qr(a, left_edges, right_edges)
-  net.check_correct()
-  np.testing.assert_allclose(a.tensor, net.contract(left[3]).tensor)
+  left, _ = tn.split_node_qr(a, left_edges, right_edges)
+  tn.check_correct(tn.reachable(left))
+  np.testing.assert_allclose(a.tensor, tn.contract(left[3]).tensor)
 
 
 def test_split_node_rq_unitarity_complex(backend):
@@ -289,40 +198,33 @@ def test_split_node_rq_unitarity_complex(backend):
   if backend == "jax":
     pytest.skip("Complex QR crashes jax")
 
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  net_1 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_1.add_node(q.tensor)
-  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  a = tn.Node(
+      np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  _, q = tn.split_node_rq(a, [a[0]], [a[1]])
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n1[1] ^ n2[1]
-  u1 = net_1.contract_between(n1, n2)
-
-  net_2 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_2.add_node(q.tensor)
-  n2 = net_2.add_node(net_2.backend.conj(q.tensor))
+  u1 = tn.contract_between(n1, n2)
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n2[0] ^ n1[0]
-  u2 = net_2.contract_between(n1, n2)
+  u2 = tn.contract_between(n1, n2)
 
   np.testing.assert_almost_equal(u1.tensor, np.eye(3))
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
 def test_split_node_rq_unitarity_float(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3))
-  _, q = net.split_node_rq(a, [a[0]], [a[1]])
-  net_1 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_1.add_node(q.tensor)
-  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  a = tn.Node(np.random.rand(3, 3), backend=backend)
+  _, q = tn.split_node_rq(a, [a[0]], [a[1]])
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n1[1] ^ n2[1]
-  u1 = net_1.contract_between(n1, n2)
-
-  net_2 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_2.add_node(q.tensor)
-  n2 = net_2.add_node(q.tensor)
+  u1 = tn.contract_between(n1, n2)
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.Node(q.tensor, backend=backend)
   n2[0] ^ n1[0]
-  u2 = net_2.contract_between(n1, n2)
+  u2 = tn.contract_between(n1, n2)
 
   np.testing.assert_almost_equal(u1.tensor, np.eye(3))
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
@@ -334,40 +236,35 @@ def test_split_node_qr_unitarity_complex(backend):
   if backend == "jax":
     pytest.skip("Complex QR crashes jax")
 
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3))
-  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  net_1 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_1.add_node(q.tensor)
-  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  a = tn.Node(
+      np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  q, _ = tn.split_node_qr(a, [a[0]], [a[1]])
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n1[1] ^ n2[1]
-  u1 = net_1.contract_between(n1, n2)
+  u1 = tn.contract_between(n1, n2)
 
-  net_2 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_2.add_node(q.tensor)
-  n2 = net_2.add_node(net_2.backend.conj(q.tensor))
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n2[0] ^ n1[0]
-  u2 = net_2.contract_between(n1, n2)
+  u2 = tn.contract_between(n1, n2)
 
   np.testing.assert_almost_equal(u1.tensor, np.eye(3))
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
 
 
 def test_split_node_qr_unitarity_float(backend):
-  net = tensornetwork.TensorNetwork(backend=backend)
-  a = net.add_node(np.random.rand(3, 3))
-  q, _ = net.split_node_qr(a, [a[0]], [a[1]])
-  net_1 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_1.add_node(q.tensor)
-  n2 = net_1.add_node(net_1.backend.conj(q.tensor))
+  a = tn.Node(np.random.rand(3, 3), backend=backend)
+  q, _ = tn.split_node_qr(a, [a[0]], [a[1]])
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.conj(q)
   n1[1] ^ n2[1]
-  u1 = net_1.contract_between(n1, n2)
+  u1 = tn.contract_between(n1, n2)
 
-  net_2 = tensornetwork.TensorNetwork(backend=backend)
-  n1 = net_2.add_node(q.tensor)
-  n2 = net_2.add_node(q.tensor)
+  n1 = tn.Node(q.tensor, backend=backend)
+  n2 = tn.Node(q.tensor, backend=backend)
   n2[0] ^ n1[0]
-  u2 = net_2.contract_between(n1, n2)
+  u2 = tn.contract_between(n1, n2)
 
   np.testing.assert_almost_equal(u1.tensor, np.eye(3))
   np.testing.assert_almost_equal(u2.tensor, np.eye(3))
