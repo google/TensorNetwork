@@ -240,7 +240,7 @@ def greedy(
 
 # pylint: disable=too-many-return-statements
 def auto(
-    nodes: Iterable[BaseNode],
+    nodes: Union[TensorNetwork, BaseNode],
     output_edge_order: Sequence[Edge] = None,
     memory_limit: Optional[int] = None):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
