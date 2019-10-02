@@ -301,15 +301,15 @@ def test_node_contraction(backend):
   np.testing.assert_allclose(res.tensor, res_np)
 
 
-# def test_backend_network(backend):
-#   a = np.random.randn(2, 2, 2)
-#   nodes, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
-#                                                         (3, -2, -3)],
-#                                             backend=backend)
+def test_backend_network(backend):
+  a = np.random.randn(2, 2, 2)
+  nodes, _, _ = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2), (1, 2, 3),
+                                                        (3, -2, -3)],
+                                            backend=backend)
 
-#   net = TensorNetwork(backend=backend)
-#   [net.add_node(n) for n in nodes]
-#   res = naive(net).get_final_node().tensor
-#   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-#   res_np = res_np.reshape((2, 2, 2))
-#   np.testing.assert_allclose(res, res_np)
+  net = TensorNetwork(backend=backend)
+  [net.add_node(n) for n in nodes]
+  res = naive(net).get_final_node().tensor
+  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
+  res_np = res_np.reshape((2, 2, 2))
+  np.testing.assert_allclose(res, res_np)
