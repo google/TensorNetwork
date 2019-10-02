@@ -88,7 +88,3 @@ def test_solutions():
   assert solutions[1][0][1] == 1
   assert solutions[1][1][0] == 1
   assert solutions[1][1][1] == 1
-
-
-if __name__ == '__main__':
-  tf.test.main()
