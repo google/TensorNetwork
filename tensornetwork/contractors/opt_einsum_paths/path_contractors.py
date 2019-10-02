@@ -94,6 +94,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
   if isinstance(nodes, TensorNetwork):
     #(martin) sorted_nodes contains a sinle node with .network=net
     #this is again hacky...
+    # we don't have to disable because @ disabled nodes already
     nodes.nodes_set = set(sorted_nodes)
     return nodes
 
