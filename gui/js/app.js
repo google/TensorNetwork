@@ -26,6 +26,7 @@ Vue.component(
 		},
 		template: `
 			<svg class="workspace" xmlns="http://www.w3.org/2000/svg" :width="width" :height="height">
+				<edge v-for="edge in state.edges" :edge="edge" :state="state" /> 
 				<tensor v-for="tensor in state.tensors" :tensor="tensor" :state="state" />
 			</svg>
 		`

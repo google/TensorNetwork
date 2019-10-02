@@ -18,41 +18,6 @@ let mixinTensor = {
     	state: Object,
     },
     methods: {
-        getNeighborsOf: function(name) {
-            let neighbors = [];
-            let edges = this.state.edges;
-            for (let i = 0; i < edges.length; i++) {
-                let edge = edges[i];
-                if (edge[0][0] === name) {
-                    neighbors.push({
-                        axis: edge[0][1],
-                        neighbor: edge[1],
-                        edgeName: edge[2]
-                    });
-                }
-                else if (edge[1][0] === name) {
-                    neighbors.push({
-                        axis: edge[1][1],
-                        neighbor: edge[0],
-                        edgeName: edge[2]
-                    });
-                }
-            }
-            return neighbors;
-        },
-        getTensor: function(name) {
-            for (let i = 0; i < this.state.tensors.length; i++) {
-                if (this.state.tensors[i].name === name) {
-                    return this.state.tensors[i];
-                }
-            }
-            return null;
-        },
-        getAxis: function(address) {
-            let [tensorName, axisIndex] = address;
-            let tensor = this.getTensor(tensorName);
-            return tensor.axes[axisIndex];
-        },
 		neighborAt: function(axis) {
 			for (let i = 0; i < this.neighbors.length; i++) {
 				if (this.neighbors[i].axis === axis) {
@@ -80,16 +45,13 @@ let mixinTensor = {
 Vue.component(
     'tensor',
 	{
-		mixins: [mixinTensor],
+		mixins: [mixinGet, mixinGeometry, mixinTensor],
         data: function() {
 		    return {
 		        mouse: {
                     x: null,
                     y: null
-                },
-                width: 50,
-                height: 50,
-                rx: 10
+                }
             }
         },
         methods: {
@@ -104,17 +66,17 @@ Vue.component(
                 document.removeEventListener('mouseup', this.onMouseUp);
 
                 let workspace = document.getElementsByClassName('workspace')[0].getBoundingClientRect();
-                if (this.tensor.position.x < this.width / 2) {
-                    this.tensor.position.x = this.width / 2;
+                if (this.tensor.position.x < this.tensorWidth / 2) {
+                    this.tensor.position.x = this.tensorWidth / 2;
                 }
-                if (this.tensor.position.y < this.height / 2) {
-                    this.tensor.position.y = this.height / 2;
+                if (this.tensor.position.y < this.tensorHeight / 2) {
+                    this.tensor.position.y = this.tensorHeight / 2;
                 }
-                if (this.tensor.position.x > workspace.width - this.width / 2) {
-                    this.tensor.position.x = workspace.width - this.width / 2;
+                if (this.tensor.position.x > workspace.width - this.tensorWidth / 2) {
+                    this.tensor.position.x = workspace.width - this.tensorWidth / 2;
                 }
-                if (this.tensor.position.y > workspace.height - this.height / 2) {
-                    this.tensor.position.y = workspace.height - this.height / 2;
+                if (this.tensor.position.y > workspace.height - this.tensorHeight / 2) {
+                    this.tensor.position.y = workspace.height - this.tensorHeight / 2;
                 }
             },
             onMouseMove: function(event) {
@@ -131,13 +93,19 @@ Vue.component(
 				return 'translate(' + this.tensor.position.x + ' ' + this.tensor.position.y + ')';
 			},
 			style: function() {
-				hue = Math.random() * 360;
-				return 'fill: hsla(' + hue + ',100%,50%,0.3);'
+				return 'fill: hsl(' + this.tensor.hue + ', 80%, 80%);'
 			}
 		},
+        created: function() {
+		    if (this.tensor.hue == null) {
+		        this.tensor.hue = Math.random() * 360;
+            }
+        },
 		template: `
 			<g class="tensor" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
-				<rect :x="-width / 2" :y="-height / 2" :width="width" :height="height" :rx="rx" :style="style" />
+			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i" />
+				<rect :x="-tensorWidth / 2" :y="-tensorHeight / 2" :width="tensorWidth"
+				    :height="tensorHeight" :rx="tensorCornerRadius" :style="style" />
 				<text x="0" y="0">{{tensor.name}}</text>
 			</g>
 		`	
@@ -145,9 +113,46 @@ Vue.component(
 );
 
 Vue.component(
+    'axis',
+    {
+        mixins: [mixinGeometry],
+        props: {
+            tensor: Object,
+            index: Number
+        },
+        methods: {
+            onMouseDown: function(event) {
+                event.stopPropagation();
+            }
+        },
+        computed: {
+            nAxes: function() {
+                return this.tensor.axes.length;
+            },
+            angle: function() {
+                return this.axisAngle(this.index, this.nAxes);
+            },
+            x: function() {
+                return this.axisX(this.angle);
+            },
+            y: function() {
+                return this.axisY(this.angle);
+            },
+            stroke: function() {
+                return 'hsl(' + this.tensor.hue + ', 80%, 80%)'
+            }
+        },
+        template: `
+            <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke" stroke-width="5" 
+                stroke-linecap="round" @mousedown="onMouseDown"/>
+        `
+    }
+);
+
+Vue.component(
     'tensor-description',
     {
-        mixins: [mixinTensor],
+        mixins: [mixinGet, mixinTensor],
         template: `
             <p>Tensor {{tensor.name}} has {{tensor.axes.length}} axes:
                 <ul>
