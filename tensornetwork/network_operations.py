@@ -92,7 +92,9 @@ def transpose(node: BaseNode,
       backend=node.backend.name)
   return new_node.reorder_axes(perm)
 
-def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict]:
+
+def copy(nodes: Iterable[BaseNode],
+         conjugate: bool = False) -> Tuple[dict, dict]:
   """
 
   Return a copy of the TensorNetwork.
@@ -120,9 +122,10 @@ def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict
   else:
     node_dict = {
         node: Node(
-            node.tensor, name=node.name, axis_names=node.axis_names, 
-            backend=node.backend.name)
-        for node in nodes
+            node.tensor,
+            name=node.name,
+            axis_names=node.axis_names,
+            backend=node.backend.name) for node in nodes
     }
   edge_dict = {}
   for edge in get_all_edges(nodes):
@@ -132,8 +135,8 @@ def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict
     if not edge.is_dangling():
       node2 = edge.node2
       axis2 = edge.node2.get_axis_number(edge.axis2)
-      new_edge = Edge(node_dict[node1], axis1, edge.name,
-                      node_dict[node2], axis2)
+      new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
+                      axis2)
       new_edge.set_signature(edge.signature)
     else:
       new_edge = Edge(node_dict[node1], axis1, edge.name)
@@ -144,8 +147,8 @@ def copy(nodes: Iterable[BaseNode], conjugate: bool = False) -> Tuple[dict, dict
     edge_dict[edge] = new_edge
   return node_dict, edge_dict
 
-def remove_node(node: BaseNode
-               ) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
+
+def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   """Remove a node from the network.
 
   Args:
@@ -170,6 +173,7 @@ def remove_node(node: BaseNode
       disconnected_edges_by_axis[i] = new_disconnected_edge
       disconnected_edges_by_name[name] = new_disconnected_edge
   return disconnected_edges_by_name, disconnected_edges_by_axis
+
 
 def split_node(
     node: BaseNode,
@@ -578,7 +582,7 @@ def reachable(
   return _reachable(set(nodes))
 
 
-def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
+def check_correct(nodes: Iterable[BaseNode],
                   check_connections: Optional[bool] = True) -> None:
   """
   Check if the network defined by `nodes` fulfills necessary
@@ -616,7 +620,7 @@ def check_correct(nodes: Union[List[BaseNode], Set[BaseNode]],
     check_connected(nodes)
 
 
-def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
+def check_connected(nodes: Iterable[BaseNode]) -> None:
   """
   Check if all nodes in `nodes` are connected.
   Args:
@@ -631,7 +635,7 @@ def check_connected(nodes: Union[List[BaseNode], Set[BaseNode]]) -> None:
     raise ValueError("Non-connected graph")
 
 
-def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
+def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
   """Return the set of nodes connected to edges."""
   nodes = set()
   for edge in edges:
@@ -643,7 +647,7 @@ def get_all_nodes(edges: Union[List[Edge], Set[Edge]]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
+def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:

@@ -1094,6 +1094,7 @@ class Edge:
       raise ValueError('Cannot break two unconnected edges')
     return self.disconnect()
 
+
 def get_shared_edges(node1: BaseNode, node2: BaseNode) -> Set[Edge]:
   """Get all edges shared between two nodes.
 
@@ -1128,8 +1129,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
   return get_shared_edges(edge.node1, edge.node2)
 
 
-def get_all_nondangling(
-    nodes: Union[Iterable[BaseNode]]) -> Set[Edge]:
+def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -1584,7 +1584,8 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
   return new_edge
 
 
-def disconnect(edge, edge1_name: Optional[Text] = None,
+def disconnect(edge,
+               edge1_name: Optional[Text] = None,
                edge2_name: Optional[Text] = None) -> Tuple[Edge, Edge]:
   """
   Break an existing non-dangling edge.
@@ -1697,7 +1698,7 @@ def contract_between(
   return new_node
 
 
-def outer_product_final_nodes(nodes: Union[List[BaseNode], Set[BaseNode]],
+def outer_product_final_nodes(nodes: Iterable[BaseNode],
                               edge_order: List[Edge]) -> BaseNode:
   """Get the outer product of `nodes`
 

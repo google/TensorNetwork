@@ -227,8 +227,8 @@ class TensorNetwork:
 
     if isinstance(value, network_components.BaseNode):
       new_node = value
-      if new_node.network is not None:
-        raise ValueError("Given node is already part of a network.")
+      if (new_node.network is not None) and (new_node.network is not self):
+        raise ValueError("Given node is already part of another network.")
       if new_node.backend.name != self.backend.name:
         raise ValueError(
             "Given node '{}' has Node.backend.name='{}' different from TensorNetwork.backend.name='{}'."
