@@ -9,7 +9,7 @@ from examples.fft import fft
 import tensornetwork as tn
 
 
-def test_fft(self):
+def test_fft():
   n = 3
   initial_state = [complex(0)] * (1 << n)
   initial_state[1] = 1j
@@ -21,4 +21,4 @@ def test_fft(self):
   tn.flatten_edges(fft_out)
   actual = result.tensor
   expected = np.fft.fft(initial_state, norm="ortho")
-  self.assertAllClose(expected, actual)
+  np.testing.assert_allclose(expected, actual)
