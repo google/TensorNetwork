@@ -217,3 +217,32 @@ def test_reachable(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(10)]
   _ = [nodes[n][0] ^ nodes[n + 1][1] for n in range(len(nodes) - 1)]
   assert set(nodes) == tn.reachable(nodes[0])
+
+
+def test_reachable_disconnected_1(backend):
+  nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
+  nodes[0][1] ^ nodes[1][0]
+  nodes[2][1] ^ nodes[3][0]
+  assert set(tn.reachable([nodes[0], nodes[2]])) == set(nodes)
+
+  assert set(tn.reachable([nodes[0]])) == {nodes[0], nodes[1]}
+  assert set(tn.reachable([nodes[1]])) == {nodes[0], nodes[1]}
+  assert set(tn.reachable([nodes[0], nodes[1]])) == {nodes[0], nodes[1]}
+
+  assert set(tn.reachable([nodes[2]])) == {nodes[2], nodes[3]}
+  assert set(tn.reachable([nodes[3]])) == {nodes[2], nodes[3]}
+  assert set(tn.reachable([nodes[2], nodes[3]])) == {nodes[2], nodes[3]}
+
+  assert set(tn.reachable([nodes[0], nodes[1], nodes[2]])) == set(nodes)
+  assert set(tn.reachable([nodes[0], nodes[1], nodes[3]])) == set(nodes)
+  assert set(tn.reachable([nodes[0], nodes[2], nodes[3]])) == set(nodes)
+  assert set(tn.reachable([nodes[1], nodes[2], nodes[3]])) == set(nodes)
+
+
+def test_reachable_disconnected_2(backend):
+  nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
+  nodes[1][1] ^ nodes[2][0]  #connect 2nd and third node
+  assert set(tn.reachable([nodes[0],
+                           nodes[1]])) == {nodes[0], nodes[1], nodes[2]}
+  nodes[2][1] ^ nodes[3][0]  #connect third and fourth node
+  assert set(tn.reachable([nodes[0], nodes[1]])) == set(nodes)

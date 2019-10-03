@@ -6,7 +6,6 @@ import h5py
 from tensornetwork import Node, CopyNode, Edge
 import tensornetwork
 
-
 string_type = h5py.special_dtype(vlen=str)
 
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
