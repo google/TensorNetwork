@@ -221,8 +221,8 @@ def test_reachable(backend):
 
 def test_reachable_disconnected(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
-  nodes[1][1] ^ nodes[2][0]
+  nodes[1][1] ^ nodes[2][0]  #connect 2nd and third node
   assert set(tn.reachable([nodes[0],
                            nodes[1]])) == {nodes[0], nodes[1], nodes[2]}
-  nodes[2][1] ^ nodes[3][0]
+  nodes[2][1] ^ nodes[3][0]  #connect third and fourth node
   assert set(tn.reachable([nodes[0], nodes[1]])) == set(nodes)
