@@ -28,7 +28,7 @@ def save_nodes(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]) -> None:
   Args:
     nodes: An iterable of connected nodes. All nodes have to connect within
       `nodes`.
-    path: path to folder where network is saved.
+    path: path to file where network is saved.
   """
   if reachable(nodes) > set(nodes):
     raise ValueError(
@@ -89,7 +89,7 @@ def load_nodes(path: str) -> Iterable[BaseNode]:
   Load a set of nodes from disk.
 
   Args:
-    path: path to folder where network is saved.
+    path: path to file where network is saved.
   Returns:
     An interable of `Node` objects
   """
@@ -130,7 +130,7 @@ def load(path: str):
   """Load a tensor network from disk.
 
   Args:
-    path: path to folder where network is saved.
+    path: path to file where network is saved.
   """
   with h5py.File(path, 'r') as net_file:
     net = TensorNetwork(backend=net_file["backend"][()])
