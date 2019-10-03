@@ -257,8 +257,9 @@ def ncon_network(tensors: Sequence[Tensor],
 
 def _build_network(
     tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
-    backend: Text) -> Tuple[List[network_components
-                                .BaseNode], Dict[Any, network_components.Edge]]:
+    backend: Text) -> Tuple[
+        List[network_components.BaseNode], 
+        Dict[Any, network_components.Edge]]:
   nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
