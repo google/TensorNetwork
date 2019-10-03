@@ -820,6 +820,17 @@ def test_save_nodes_raise(backend):
     tn.save_nodes([nodes[0], nodes[1]], 'test_file_save_nodes')
 
 
+def test_save_nodes_raise_2(backend):
+  node = Node(
+      np.random.rand(2, 2, 2, 2),
+      backend=backend,
+      name='Node',
+      axis_names=['node_1', 'node_2', 'node_3', 'node_4'])
+
+  with pytest.raises(ValueError):
+    tn.save_nodes([node, node], 'test_file_save_nodes')
+
+
 def test_save_load_nodes(backend):
   nodes = [
       Node(
@@ -827,8 +838,8 @@ def test_save_load_nodes(backend):
           backend=backend,
           name='Node{}'.format(n),
           axis_names=[
-              'node{}_1'.format(n), 'node_{}_2'.format(n),
-              'node_{}_3'.format(n), 'node_{}_4'.format(n)
+              'node{}_1'.format(n), 'node{}_2'.format(n), 'node{}_3'.format(n),
+              'node{}_4'.format(n)
           ]) for n in range(4)
   ]
 
