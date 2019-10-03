@@ -22,8 +22,6 @@ import pytest
 
 from tensornetwork import network
 from tensornetwork.contractors import naive_contractor
-import tensorflow as tf
-tf.enable_v2_behavior()
 naive = naive_contractor.naive
 
 

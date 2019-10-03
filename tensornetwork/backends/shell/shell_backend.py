@@ -43,7 +43,7 @@ class ShellBackend(base_backend.BaseBackend):
   def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(ShellBackend, self).__init__()
     self.name = "shell"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -207,7 +207,8 @@ class ShellBackend(base_backend.BaseBackend):
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None) -> Tensor:
+            dtype: Optional[Type[np.number]] = None,
+            seed: Optional[int] = None) -> Tensor:
     return ShellTensor(shape)
 
   def conj(self, tensor: Tensor) -> Tensor:

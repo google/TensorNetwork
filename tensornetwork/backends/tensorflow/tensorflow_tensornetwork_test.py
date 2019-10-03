@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
-tf.compat.v1.enable_v2_behavior()
 import tensornetwork
 
 
