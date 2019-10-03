@@ -34,7 +34,7 @@ def inner(psi1, psi2):
     Returns:
       inner_product: The vector inner product.
   """
-  return tf.reduce_sum(tf.conj(psi1) * psi2)
+  return tf.reduce_sum(tf.math.conj(psi1) * psi2)
 
 
 def apply_op(psi, op, n1, pbc=False):
@@ -109,7 +109,7 @@ def expval(psi, op, n1, pbc=False):
 
   n_op_psi = net.contract_between(n_op, n_psi)
 
-  n_psi_conj = net.add_node(tf.conj(psi))
+  n_psi_conj = net.add_node(tf.math.conj(psi))
   for i in range(len(site_edges)):
     net.connect(site_edges[i], n_psi_conj[i])
 
@@ -216,7 +216,8 @@ def evolve_trotter_defun(psi,
   return psi, t
 
 
-@tf.contrib.eager.defun(autograph=True)
+#@tf.contrib.eager.defun(autograph=True)
+@tf.function(autograph=True)
 def _evolve_trotter_gates_defun(psi,
                                 layers,
                                 step_size,
