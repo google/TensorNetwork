@@ -10,7 +10,7 @@ def add_fft(
 ) -> List[tn.Edge]:
   """Creates output node axes corresponding to the Fourier transform of inputs.
 
-  Uses Cooley-Tukey"s FFT algorithm. All axes are expected to have length 2. The
+  Uses Cooley-Tukey's FFT algorithm. All axes are expected to have length 2. The
   input axes must be (and output axes will be) binary.
 
   Args:
