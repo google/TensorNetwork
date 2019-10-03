@@ -239,7 +239,7 @@ def test_reachable_disconnected_1(backend):
                            nodes[3]])) == {nodes[2], nodes[3]}
   assert set(tn.reachable([nodes[0], nodes[2],
                            nodes[3]])) == {nodes[2], nodes[3]}
-    assert set(tn.reachable([nodes[1], nodes[2],
+  assert set(tn.reachable([nodes[1], nodes[2],
                            nodes[3]])) == {nodes[2], nodes[3]}
 
 
