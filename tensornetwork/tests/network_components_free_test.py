@@ -802,3 +802,35 @@ def test_broken_edge_contraction_magicmethod(backend):
   n1[0] | n2[0]
   with pytest.raises(ValueError):
     n1 @ n2
+
+
+def test_save_load_nodes(backend):
+  nodes = [
+      Node(
+          np.random.rand(2, 2, 2, 2),
+          backend=backend,
+          name='Node{}'.format(n),
+          axis_names=[
+              'node{}_1'.format(n), 'node_{}_2'.format(n),
+              'node_{}_3'.format(n), 'node_{}_4'.format(n)
+          ]) for n in range(4)
+  ]
+
+  nodes[0][0] ^ nodes[1][1]
+  nodes[2][1] ^ nodes[2][2]
+
+  tn.save_nodes(nodes, 'test_file_save_nodes')
+
+  loaded_nodes = tn.load_nodes('test_file_save_nodes')
+  for n in range(len(nodes)):
+    assert nodes[n].name == loaded_nodes[n].name
+    assert nodes[n].axis_names == loaded_nodes[n].axis_names
+    assert nodes[n].backend.name == loaded_nodes[n].backend.name
+    np.testing.assert_allclose(nodes[n].tensor, loaded_nodes[n].tensor)
+
+  res = nodes[0] @ nodes[1]
+  loaded_res = loaded_nodes[0] @ loaded_nodes[1]
+
+  trace = tn.contract_trace_edges(nodes[2])
+  loaded_trace = tn.contract_trace_edges(loaded_nodes[2])
+  np.testing.assert_allclose(trace.tensor, loaded_trace.tensor)
