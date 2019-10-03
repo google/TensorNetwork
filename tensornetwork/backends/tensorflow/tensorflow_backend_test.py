@@ -155,7 +155,7 @@ def test_randn(dtype):
 def test_randn_non_zero_imag(dtype):
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.randn((4, 4))
-  assert tf.math.greater(tf.linalg.norm(tf.imag(a)), 0.0)
+  assert tf.math.greater(tf.linalg.norm(tf.math.imag(a)), 0.0)
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)

@@ -14,7 +14,6 @@
 """Trotter evolution of exact wavefunctions: Example script."""
 
 import tensorflow as tf
-tf.enable_v2_behavior()
 
 from examples.wavefunctions import wavefunctions
 
