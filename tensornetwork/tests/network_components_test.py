@@ -3,7 +3,7 @@ import tensorflow as tf
 import pytest
 from collections import namedtuple
 import h5py
-from tensornetwork.network_components import Node, CopyNode, Edge
+from tensornetwork import Node, CopyNode, Edge
 import tensornetwork
 
 
@@ -731,3 +731,10 @@ def test_edge_load(tmp_path, double_node_edge):
     assert loaded_edge.axis2 == edge.axis2
     np.testing.assert_allclose(loaded_edge.node1.tensor, node1.tensor)
     np.testing.assert_allclose(loaded_edge.node2.tensor, node2.tensor)
+
+
+def test_get_all_dangling(backend):
+  a = tensornetwork.Node(np.eye(2), backend=backend)
+  b = tensornetwork.Node(np.eye(2), backend=backend)
+  a[0] ^ b[1]
+  assert {a[1], b[0]} == tensornetwork.get_all_dangling({a, b})

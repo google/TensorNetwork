@@ -13,9 +13,6 @@
 # limitations under the License.
 """Tensor Decomposition Numpy Implementation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from typing import Optional, Any, Tuple
 import numpy
 Tensor = Any

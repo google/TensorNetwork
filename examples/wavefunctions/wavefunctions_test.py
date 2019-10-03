@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import pytest
 import numpy as np
 import tensorflow as tf
-tf.enable_v2_behavior()
 import tensornetwork as tn
 from examples.wavefunctions import wavefunctions
 
@@ -65,11 +61,11 @@ def test_apply_op(num_sites):
     [(2, 3, False), (2, 3, True), (5, 2, False)])
 def test_evolve_trotter(num_sites, phys_dim, graph):
     psi = tf.complex(
-      tf.random_normal([phys_dim] * num_sites, dtype=tf.float64),
-      tf.random_normal([phys_dim] * num_sites, dtype=tf.float64))
+      tf.random.normal([phys_dim] * num_sites, dtype=tf.float64),
+      tf.random.normal([phys_dim] * num_sites, dtype=tf.float64))
     h = tf.complex(
-      tf.random_normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
-      tf.random_normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
+      tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
+      tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
     h = 0.5 * (h + tf.linalg.adjoint(h))
     h = tf.reshape(h, (phys_dim, phys_dim, phys_dim, phys_dim))
     H = [h] * (num_sites - 1)
@@ -95,11 +91,11 @@ def test_evolve_trotter(num_sites, phys_dim, graph):
     [(2, 3, False), (2, 3, True), (5, 2, False)])
 def test_evolve_trotter_euclidean(num_sites, phys_dim, graph):
     psi = tf.complex(
-      tf.random_normal([phys_dim] * num_sites, dtype=tf.float64),
-      tf.random_normal([phys_dim] * num_sites, dtype=tf.float64))
+      tf.random.normal([phys_dim] * num_sites, dtype=tf.float64),
+      tf.random.normal([phys_dim] * num_sites, dtype=tf.float64))
     h = tf.complex(
-      tf.random_normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
-      tf.random_normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
+      tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
+      tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
     h = 0.5 * (h + tf.linalg.adjoint(h))
     h = tf.reshape(h, (phys_dim, phys_dim, phys_dim, phys_dim))
     H = [h] * (num_sites - 1)

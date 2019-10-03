@@ -24,9 +24,6 @@ for the critical Ising model.
 For the scale-invairant MERA, see arXiv:1109.5334.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import jax
 import jax.config
 jax.config.update("jax_enable_x64", True)
