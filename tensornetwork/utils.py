@@ -1,3 +1,17 @@
+# Copyright 2019 The TensorNetwork Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import h5py
 from tensornetwork.network import TensorNetwork
 from tensornetwork.component_factory import get_component
@@ -8,7 +22,7 @@ import numpy as np
 string_type = h5py.special_dtype(vlen=str)
 
 
-def save(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]):
+def save_nodes(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]) -> None:
   """
   Save an iterable of nodes into hdf5 format.
   Args:
@@ -70,12 +84,14 @@ def save(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]):
     edges[n].set_name(old_edge_names[n])
 
 
-def load(path: str):
+def load_nodes(path: str) -> Iterable[BaseNode]:
   """
   Load a set of nodes from disk.
 
   Args:
     path: path to folder where network is saved.
+  Returns:
+    An interable of `Node` objects
   """
   nodes_list = []
   edges_list = []
@@ -110,7 +126,7 @@ def load(path: str):
   return nodes_list
 
 
-def load_net(path: str):
+def load(path: str):
   """Load a tensor network from disk.
 
   Args:
