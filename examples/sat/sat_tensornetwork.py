@@ -39,7 +39,7 @@ positions [1][1][1] and [0][0][0] and have value 0 eveywhere else.
 """
 
 import numpy as np
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Set
 import tensornetwork as tn
 
 
@@ -100,7 +100,7 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
 
 
 def sat_count_tn(
-    clauses: List[Tuple[int, int, int]]) -> Set[tn.Node]:
+    clauses: List[Tuple[int, int, int]]) -> Set[tn.BaseNode]:
   """Create a 3SAT Count TensorNetwork.
 
   After full contraction, the final node will be the count of all possible
