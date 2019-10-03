@@ -12,88 +12,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-import tensorflow as tf
-tf.enable_v2_behavior()
 import tensornetwork
 from examples.sat import sat_tensornetwork
 
 
-class SATTensorNetworkTest(tf.test.TestCase):
+def test_sanity_check():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 2, 3),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 7
 
-  def test_sanity_check(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 2, 3),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 7)
+def test_dual_clauses():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 2, 3),
+      (1, -2, 3),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 6
 
-  def test_dual_clauses(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 2, 3),
-        (1, -2, 3),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 6)
+def test_many_clauses():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 2, 3),
+      (1, 2, -3),
+      (1, -2, 3),
+      (1, -2, -3),
+      (-1, 2, 3),
+      (-1, 2, -3),
+      (-1, -2, 3),
+      (-1, -2, -3),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 0
 
-  def test_dual_clauses(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 2, 3),
-        (1, 2, -3),
-        (1, -2, 3),
-        (1, -2, -3),
-        (-1, 2, 3),
-        (-1, 2, -3),
-        (-1, -2, 3),
-        (-1, -2, -3),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 0)
+def test_four_variables():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 2, 3),
+      (1, 2, 4),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 13
 
-  def test_four_variables(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 2, 3),
-        (1, 2, 4),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 13)
+def test_four_variables_four_clauses():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 2, 3),
+      (1, 2, 4),
+      (-3, -4, 2),
+      (-1, 3, -2),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 9
 
-  def test_four_variables_four_clauses(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 2, 3),
-        (1, 2, 4),
-        (-3, -4, 2),
-        (-1, 3, -2),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 9)
+def test_single_variable():
+  nodes = sat_tensornetwork.sat_count_tn([
+      (1, 1, 1),
+  ])
+  count = tensornetwork.contractors.greedy(nodes).tensor
+  assert count == 1
 
-  def test_single_variable(self):
-    net = sat_tensornetwork.sat_count_tn([
-        (1, 1, 1),
-    ])
-    count = tensornetwork.contractors.naive(net).get_final_node().get_tensor()
-    self.assertEqual(count.numpy(), 1)
-
-  def test_solutions(self):
-    net, edge_order = sat_tensornetwork.sat_tn([
-        (1, 2, -3),
-    ])
-    network = tensornetwork.contractors.naive(net)
-    solutions_node = network.get_final_node().reorder_edges(edge_order)
-    solutions = solutions_node.get_tensor()
-    self.assertEqual(solutions.numpy()[0][0][0], 1)
-    # Only unaccepted value.
-    self.assertEqual(solutions.numpy()[0][0][1], 0)
-    self.assertEqual(solutions.numpy()[0][1][0], 1)
-    self.assertEqual(solutions.numpy()[0][1][1], 1)
-    self.assertEqual(solutions.numpy()[1][0][0], 1)
-    self.assertEqual(solutions.numpy()[1][0][1], 1)
-    self.assertEqual(solutions.numpy()[1][1][0], 1)
-    self.assertEqual(solutions.numpy()[1][1][1], 1)
-
-
-if __name__ == '__main__':
-  tf.test.main()
+def test_solutions():
+  edge_order = sat_tensornetwork.sat_tn([
+      (1, 2, -3),
+  ])
+  solutions = tensornetwork.contractors.greedy(
+      tensornetwork.reachable(edge_order[0].node1), edge_order).tensor
+  assert solutions[0][0][0] == 1
+  # Only unaccepted value.
+  assert solutions[0][0][1] == 0
+  assert solutions[0][1][0] == 1
+  assert solutions[0][1][1] == 1
+  assert solutions[1][0][0] == 1
+  assert solutions[1][0][1] == 1
+  assert solutions[1][1][0] == 1
+  assert solutions[1][1][1] == 1

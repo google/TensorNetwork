@@ -28,6 +28,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
+      #pylint: disable=import-outside-toplevel
       import jax
       jax.config.update("jax_enable_x64", True)
     except ImportError:
@@ -36,7 +37,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
@@ -57,20 +58,18 @@ class JaxBackend(numpy_backend.NumPyBackend):
       seed = numpy.random.randint(0, 2**63)
     key = self.jax.random.PRNGKey(seed)
     if not dtype:
-      dtype = self.dtype
-    if not dtype:
-      dtype = numpy.float64
+      dtype = self.dtype if self.dtype is not None else numpy.float64
+
+    def cmplx_randn(complex_dtype, real_dtype):
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+      return self.jax.random.normal(
+          key, shape,
+          dtype=real_dtype) + complex_dtype(1j) * self.jax.random.normal(
+              key_2, shape, dtype=real_dtype)
+
     if dtype is self.np.complex128:
-      key_2 = self.jax.random.PRNGKey(seed + 1)
-      return self.jax.random.normal(
-          key, shape,
-          dtype=numpy.float64) + numpy.complex128(1j) * self.jax.random.normal(
-              key_2, shape, dtype=numpy.float64)
+      return cmplx_randn(dtype, self.np.float64)
     if dtype is self.np.complex64:
-      key_2 = self.jax.random.PRNGKey(seed + 1)
-      return self.jax.random.normal(
-          key, shape,
-          dtype=numpy.float32) + numpy.complex64(1j) * self.jax.random.normal(
-              key_2, shape, dtype=numpy.float32)
+      return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)

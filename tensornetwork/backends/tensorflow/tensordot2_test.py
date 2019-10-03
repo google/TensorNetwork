@@ -37,7 +37,7 @@ import tensorflow as tf
 from tensornetwork.backends.tensorflow import tensordot2
 import pytest
 
-tf.compat.v1.enable_v2_behavior()
+
 _MAXDIM = 5
 
 
