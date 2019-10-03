@@ -549,7 +549,6 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   if not nodes:
     raise ValueError("Reachable requires at least 1 node.")
   node_que = collections.deque(nodes)
-  initial_node = list(nodes)[0]
   seen_nodes = set()
   while node_que:
     node = node_que.popleft()
