@@ -17,12 +17,12 @@ from tensornetwork.network import TensorNetwork
 from tensornetwork.component_factory import get_component
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.network_operations import reachable, get_all_edges
-from typing import Iterable, Union, BinaryIO
+from typing import List, Union, BinaryIO
 import numpy as np
 string_type = h5py.special_dtype(vlen=str)
 
 
-def save_nodes(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]) -> None:
+def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
   """
   Save an iterable of nodes into hdf5 format.
   Args:
@@ -32,8 +32,8 @@ def save_nodes(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]) -> None:
   """
   if reachable(nodes) > set(nodes):
     raise ValueError(
-        "Some nodes in `nodes` are connected to nodes not contained in `nodes`. "
-        "Saving not possible.")
+        "Some nodes in `nodes` are connected to nodes not contained in `nodes`."
+        " Saving not possible.")
   if len(set(nodes)) < len(list(nodes)):
     raise ValueError(
         'Some nodes in `nodes` appear more than once. This is not supported')
@@ -84,7 +84,7 @@ def save_nodes(nodes: Iterable[BaseNode], path: Union[str, BinaryIO]) -> None:
     edges[n].set_name(old_edge_names[n])
 
 
-def load_nodes(path: str) -> Iterable[BaseNode]:
+def load_nodes(path: str) -> List[BaseNode]:
   """
   Load a set of nodes from disk.
 
@@ -109,12 +109,12 @@ def load_nodes(path: str) -> Iterable[BaseNode]:
     edges = list(net_file["edges"].keys())
     #print(net_file["nodes"]['node_names'][()])
     #print(net_file["edges"]['edge_names'][()])
-    for n, node_name in enumerate(nodes):
+    for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
       node_type = get_component(node_data['type'][()])
       nodes_list.append(node_type._load_node(net=None, node_data=node_data))
     nodes_dict = {node.name: node for node in nodes_list}
-    for n, edge in enumerate(edges):
+    for edge in edges:
       edge_data = net_file["edges/" + edge]
       edges_list.append(Edge._load_edge(edge_data, nodes_dict))
 
