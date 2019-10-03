@@ -135,6 +135,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
             seed: Optional[int] = None) -> Tensor:
     if seed:
       self.tf.random.set_random_seed(seed)
+
     if not dtype:
       dtype = self.dtype if self.dtype is not None else self.tf.float64
 
