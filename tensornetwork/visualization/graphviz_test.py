@@ -13,9 +13,6 @@
 # limitations under the License.
 """Test of TensorNetwork Graphviz visualization."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import graphviz
 from tensornetwork.visualization.graphviz import to_graphviz
 import tensornetwork

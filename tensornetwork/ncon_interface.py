@@ -13,9 +13,6 @@
 # limitations under the License.
 """NCON interface to TensorNetwork."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
 from tensornetwork import network
