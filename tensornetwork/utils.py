@@ -107,8 +107,6 @@ def load_nodes(path: str) -> List[BaseNode]:
         for n, v in enumerate(net_file["edge_names"]['names'][()])
     }
     edges = list(net_file["edges"].keys())
-    #print(net_file["nodes"]['node_names'][()])
-    #print(net_file["edges"]['edge_names'][()])
     for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
       node_type = get_component(node_data['type'][()])
