@@ -38,10 +38,6 @@ Copy tensors are tensors of shape (2, 2, 2). These tensors have value 1 at
 positions [1][1][1] and [0][0][0] and have value 0 eveywhere else.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 from typing import List, Tuple, Optional, Set
 import tensornetwork as tn
