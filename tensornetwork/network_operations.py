@@ -27,7 +27,7 @@ import tensornetwork.config as config
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
-from tensornetwork.network_components import connect
+from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
 
 
@@ -653,3 +653,20 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   for node in nodes:
     edges |= set(node.edges)
   return edges
+
+
+def contract_trace_edges(node: BaseNode) -> BaseNode:
+  """
+  contract all trace edges of `node`.
+  Args:
+    node: A `BaseNode` obejct
+  Returns:
+    A new `BaseNode` obtained from contracting all 
+    trace edges.
+  Raises:
+    ValueError: If `node` has no trace edges
+  """
+  for edge in node.edges:
+    if edge.is_trace():
+      return contract_parallel(edge)
+  raise ValueError('`node` has no trace edges')
