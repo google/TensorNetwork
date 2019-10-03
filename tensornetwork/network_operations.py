@@ -551,12 +551,13 @@ def split_node_full_svd(
 def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   if not nodes:
     raise ValueError("Reachable requires atleast 1 node.")
-  node_que = collections.deque()
+  node_que = collections.deque(nodes)
   initial_node = list(nodes)[0]
-  seen_nodes = {initial_node}
-  node_que.append(initial_node)
+  seen_nodes = set()
   while node_que:
     node = node_que.popleft()
+    if node not in seen_nodes:
+      seen_nodes.add(node)
     for e in node.edges:
       for n in e.get_nodes():
         if n is not None and n not in seen_nodes:
