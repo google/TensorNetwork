@@ -48,11 +48,12 @@ class TensorNetwork:
              dtype of `None` defaults to float64
     """
     logging.warn(
-      "The TensorNetwork object has been DEPRECATED and will be removed "
-      "in future releases.\n"
-      "Updating your code is fairly easy. For a detailed tutorial, please "
-      "visit "
-      "https://medium.com/@keeper6928/upgrading-your-tensornetwork-code-b032f0ab3dd4")
+        "The TensorNetwork object has been DEPRECATED and will be removed "
+        "in future releases.\n"
+        "Updating your code is fairly easy. For a detailed tutorial, please "
+        "visit "
+        "https://medium.com/@keeper6928/upgrading-your-tensornetwork-code-b032f0ab3dd4"
+    )
     if backend is None:
       backend = config.default_backend
     if dtype is None:
