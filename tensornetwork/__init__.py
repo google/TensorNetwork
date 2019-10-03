@@ -14,7 +14,7 @@ from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork import config
 from typing import Text, Optional, Type
-from tensornetwork.utils import load
+from tensornetwork.utils import load, load_nodes, save_nodes
 
 
 def set_default_backend(backend: Text, dtype: Optional[Type] = None) -> None:
