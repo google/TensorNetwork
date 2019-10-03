@@ -21,10 +21,9 @@ import numpy as np
 from tensornetwork import network
 from tensornetwork import network_components
 from tensornetwork.contractors import bucket_contractor
-from tensornetwork.contractors import naive_contractor
+from tensornetwork.contractors import greedy
 
 bucket = bucket_contractor.bucket
-naive = naive_contractor.naive
 
 
 def add_cnot(net: network.TensorNetwork, q0: network_components.Edge,
@@ -73,7 +72,7 @@ def test_cnot_gate():
   # contractor.
   contraction_order = (copy_node,)
   net = bucket(net, contraction_order)
-  net = naive(net)
+  net = greedy(net)
   result = net.get_final_node()
   # Verify that CNOT has turned |11> into |10>.
   np.testing.assert_allclose(result.get_tensor(), 1.0)
@@ -93,10 +92,10 @@ def test_swap_gate():
   copy_node_3, q0_t3, q1_t3 = add_cnot(net, q0_t2, q1_t2)
   net.connect(q0_t3, q0_out[0])
   net.connect(q1_t3, q1_out[0])
-  # Contract the network, first Bucket Elimination, then naive to complete.
+  # Contract the network, first Bucket Elimination, then greedy to complete.
   contraction_order = (copy_node_1, copy_node_2, copy_node_3)
   net = bucket(net, contraction_order)
-  net = naive(net)
+  net = greedy(net)
   result = net.get_final_node()
   # Verify that SWAP has turned |10> into |01> and kept |00> unchanged.
   np.testing.assert_allclose(result.get_tensor(), 1.0)

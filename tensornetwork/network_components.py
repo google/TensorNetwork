@@ -305,6 +305,10 @@ class BaseNode(ABC):
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
+  def get_all_dangling(self):
+    """Return the set of dangling edges connected to this node."""
+    return {edge for edge in self.edges if edge.is_dangling()}
+
   def set_name(self, name):
     self.name = name
 
@@ -1131,6 +1135,14 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   edges = set()
   for node in nodes:
     edges |= node.get_all_nondangling()
+  return edges
+
+
+def get_all_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+  """Return the set of all dangling edges."""
+  edges = set()
+  for node in nodes:
+    edges |= node.get_all_dangling()
   return edges
 
 
