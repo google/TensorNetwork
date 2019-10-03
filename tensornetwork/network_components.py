@@ -13,9 +13,6 @@
 # limitations under the License.
 """Implementation of TensorNetwork structure."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence, Iterable

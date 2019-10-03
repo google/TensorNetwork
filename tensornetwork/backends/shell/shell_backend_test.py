@@ -14,9 +14,6 @@
 # limitations under the License.
 """Tests for tensornetwork.backends.shell.shell_backend"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import numpy as np
 from tensornetwork.backends.shell import shell_backend
