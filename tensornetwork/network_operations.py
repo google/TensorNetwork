@@ -552,7 +552,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   if not nodes:
     raise ValueError("Reachable requires atleast 1 node.")
   node_que = collections.deque()
-  seen_nodes = nodes
+  seen_nodes = set()
   node_que.append(list(nodes)[0])
   while node_que:
     node = node_que.popleft()
@@ -564,8 +564,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(
-    nodes: Union[BaseNode, Union[Iterable[BaseNode]]]) -> Set[BaseNode]:
+def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
