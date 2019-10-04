@@ -28,12 +28,16 @@ Vue.component(
                 event.preventDefault();
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
-                this.state.tensors.push({
+
+                let tensor = {
                     name: this.createTensorName,
                     position: {x: workspace.width / 2, y: workspace.height / 2},
                     axes: [null],
                     rotation: 0
-                });
+                };
+
+                this.state.tensors.push(tensor);
+                this.state.selectedNode = tensor;
 
                 this.createTensorName = "";
             },
