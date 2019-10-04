@@ -56,8 +56,8 @@ class FiniteMPS:
       tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
       backend: The name of the backend that should be used to perform 
-        contractions. See documentation of TensorNetwork.__init__ for 
-        a list of supported backends.
+        contractions. Available backends are currently 'numpy', 'tensorflow',
+        'pytorch', 'jax'
     Returns:
       None
 
