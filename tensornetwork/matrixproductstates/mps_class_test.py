@@ -60,7 +60,7 @@ def test_normalization(backend):
 
 @pytest.mark.parametrize("N, pos", [(10, -1), (10, 10)])
 def test_mps_init(backend, N, pos):
-  D, d, N = 10, 2, N
+  D, d = 10, 2
   tensors = [np.random.randn(1, d, D)] + [
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
