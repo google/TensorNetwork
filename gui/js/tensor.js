@@ -146,10 +146,11 @@ Vue.component(
         props: {
             tensor: Object,
             index: Number,
-            state: Object
+            state: Object,
         },
         data: function() {
             return {
+                dragging: false,
                 brightness: 80
             }
         },
@@ -157,13 +158,25 @@ Vue.component(
             onMouseDown: function(event) {
                 event.stopPropagation();
                 this.$emit('axismousedown');
+                this.dragging = true;
+                document.addEventListener('mouseup', this.onDragEnd);
             },
             onMouseUp: function() {
                 this.$emit('axismouseup');
             },
+            onDragEnd: function() {
+                this.dragging = false;
+                document.removeEventListener('mouseup', this.onDragEnd);
+            },
             onMouseEnter: function() {
-                if (this.state.draggingNode || this.neighborAt(this.index) != null) {
+                if (this.state.draggingNode) {
                     return;
+                }
+                if (this.neighborAt(this.index) != null) {
+                    return; // don't highlight an axis that is occupied
+                }
+                if (this.dragging) {
+                    return; // don't highlight self if self is being dragged
                 }
                 this.brightness = 50;
             },

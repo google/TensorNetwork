@@ -63,6 +63,10 @@ Vue.component(
                     if (this.axisOccupied(tensor, axis)) {
                         return;
                     }
+                    if (this.protoEdge.tensor.name === tensor.name
+                        && this.protoEdge.axis === axis) {
+                        return; // don't allow connection of an axis to itself
+                    }
                     this.state.edges.push([
                         [this.protoEdge.tensor.name, this.protoEdge.axis],
                         [tensor.name, axis]
