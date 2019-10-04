@@ -68,7 +68,8 @@ Vue.component(
                 document.removeEventListener('mouseup', this.onMouseUp);
                 this.state.draggingNode = false;
 
-                let workspace = document.getElementsByClassName('workspace')[0].getBoundingClientRect();
+                let workspace = document.getElementsByClassName('workspace')[0]
+                    .getBoundingClientRect();
                 if (this.tensor.position.x < this.tensorWidth / 2) {
                     this.tensor.position.x = this.tensorWidth / 2;
                 }
@@ -89,6 +90,12 @@ Vue.component(
                 this.tensor.position.y += dy;
                 this.mouse.x = event.pageX;
                 this.mouse.y = event.pageY;
+            },
+            onAxisMouseDown: function(axis) {
+		        this.$emit('axismousedown', axis);
+            },
+            onAxisMouseUp: function(axis) {
+		        this.$emit('axismouseup', axis);
             }
         },
 		computed: {
@@ -107,7 +114,8 @@ Vue.component(
 		template: `
 			<g class="tensor" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
 			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i"
-			        :state="state"/>
+			        :state="state" @axismousedown="onAxisMouseDown(i)"
+			        @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-tensorWidth / 2" :y="-tensorHeight / 2" :width="tensorWidth"
 				    :height="tensorHeight" :rx="tensorCornerRadius" :style="style" />
 				<text x="0" y="0">{{tensor.name}}</text>
@@ -119,7 +127,7 @@ Vue.component(
 Vue.component(
     'axis',
     {
-        mixins: [mixinGeometry],
+        mixins: [mixinGet, mixinGeometry, mixinTensor],
         props: {
             tensor: Object,
             index: Number,
@@ -133,16 +141,20 @@ Vue.component(
         methods: {
             onMouseDown: function(event) {
                 event.stopPropagation();
+                this.$emit('axismousedown');
+            },
+            onMouseUp: function() {
+                this.$emit('axismouseup');
             },
             onMouseEnter: function() {
-                if (this.state.draggingNode) {
+                if (this.state.draggingNode || this.neighborAt(this.index) != null) {
                     return;
                 }
                 this.brightness = 50;
             },
             onMouseLeave: function() {
                 this.brightness = 80;
-            }
+            },
         },
         computed: {
             nAxes: function() {
@@ -164,8 +176,8 @@ Vue.component(
         template: `
             <line class="axis" x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
                 stroke-width="5" stroke-linecap="round"
-                @mousedown="onMouseDown" @mouseenter="onMouseEnter"
-                @mouseleave="onMouseLeave"/>
+                @mousedown="onMouseDown" @mouseup="onMouseUp"
+                @mouseenter="onMouseEnter" @mouseleave="onMouseLeave"/>
         `
     }
 );

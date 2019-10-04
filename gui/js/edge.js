@@ -53,3 +53,30 @@ Vue.component(
     }
 );
 
+Vue.component(
+    'proto-edge',
+    {
+        mixins: [mixinGeometry],
+        props: {
+            x: Number,
+            y: Number,
+            tensor: Object,
+            axis: Number,
+        },
+        computed: {
+            angle: function() {
+                return this.axisAngle(this.axis, this.tensor.axes.length);
+            },
+            x0: function() {
+                return this.tensor.position.x + this.axisX(this.angle);
+            },
+            y0: function() {
+                return this.tensor.position.y + this.axisY(this.angle);
+            }
+        },
+        template: `
+            <line class="edge" :x1="x0" :y1="y0" :x2="x" :y2="y"
+                stroke="#bbb" stroke-width="5" stroke-linecap="round" />
+        `
+    }
+);
