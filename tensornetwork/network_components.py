@@ -506,6 +506,15 @@ class Node(BaseNode):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
+    if isinstance(tensor, BaseNode):
+
+      if backend and (tensor.backend.name != backend):
+        raise ValueError("tensor.backend.name={} of input Node `tensor`"
+                         " is different from backend={}".format(
+                             tensor.backend.name, backend))
+      #always use the `Node`'s backend
+      backend = tensor.backend.name
+      tensor = tensor.tensor
     if network:  #if a network is passed, use its backend
       if backend and (network.backend.name != backend):
         raise ValueError(
