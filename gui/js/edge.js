@@ -22,19 +22,13 @@ Vue.component(
         },
         computed: {
             tensor1: function() {
-                let name = this.edge[0][0];
-                let tensor = this.getTensor(name);
-                return tensor;
-                // return this.getTensor(this.edge[0][0]);
+                return this.getTensor(this.edge[0][0]);
             },
             tensor2: function() {
                 return this.getTensor(this.edge[1][0]);
             },
             angle1: function() {
-                let nAxes = this.tensor1.axes.length;
-                let index = this.edge[0][1];
-                let angle = this.axisAngle(index, nAxes);
-                return angle;
+                return this.axisAngle(this.edge[0][1], this.tensor1.axes.length);
             },
             angle2: function() {
                 return this.axisAngle(this.edge[1][1], this.tensor2.axes.length)
@@ -53,8 +47,8 @@ Vue.component(
             }
         },
         template: `
-            <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" stroke="#ddd" stroke-width="5"
-                stroke-linecap="round" />
+            <line class="edge" :x1="x1" :y1="y1" :x2="x2" :y2="y2"
+                stroke="#ddd" stroke-width="5" stroke-linecap="round" />
         `
     }
 );
