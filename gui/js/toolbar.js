@@ -44,7 +44,10 @@ Vue.component(
                 });
                 this.state.edges = survingEdges;
             },
-            rotate: function() {
+            rotateCounter: function() {
+                this.tensor.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
+            },
+            rotateClockwise: function() {
                 this.tensor.rotation += 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
             },
             leastCommonMultiple: function(a, b) {
@@ -73,8 +76,10 @@ Vue.component(
                         <button @click="addAxis">Add Axis</button>
                         <button @click="removeAxis">Remove Axis</button>
                     </div>
+                    <h4>Rotate</h4>
                     <div class="button-holder">
-                        <button @click="rotate">Rotate</button>
+                        <button @click="rotateCounter">Counterclockwise</button>
+                        <button @click="rotateClockwise">Clockwise</button>
                     </div>
                 </div>
                 <div v-else>Select a tensor to edit it</div>
