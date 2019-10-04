@@ -41,6 +41,22 @@ Vue.component(
 
                 this.createTensorName = "";
             },
+            deleteTensor: function() {
+                let selectedName = this.state.selectedNode.name;
+
+                this.state.edges = this.state.edges.filter(function(edge) {
+                    if (edge[0][0] === selectedName || edge[1][0] === selectedName) {
+                        return false;
+                    }
+                    else {
+                        return true;
+                    }
+                });
+                this.state.tensors = this.state.tensors.filter(function(tensor) {
+                    return tensor.name !== selectedName;
+                });
+                this.selectedNode = null;
+            },
             addAxis: function() {
                 this.tensor.rotation = 0;
                 this.tensor.axes.push(null);
@@ -53,7 +69,7 @@ Vue.component(
                 this.tensor.axes.pop();
                 let oldAxis = this.tensor.axes.length;
                 let tensor = this.tensor;
-                let survingEdges = this.state.edges.filter(function(edge) {
+                this.state.edges = this.state.edges.filter(function(edge) {
                     if (edge[0][0] === tensor.name && edge[0][1] === oldAxis) {
                         return false;
                     }
@@ -64,7 +80,6 @@ Vue.component(
                         return true;
                     }
                 });
-                this.state.edges = survingEdges;
             },
             rotateCounter: function() {
                 this.tensor.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
@@ -109,6 +124,9 @@ Vue.component(
                 </div>
                 <div v-if="tensor != null">
                     <h2>Tensor: {{tensor.name}}</h2>
+                    <div class="button-holder">
+                        <button @click="deleteTensor">Delete</button>
+                    </div>
                     <div class="button-holder">
                         <button @click="addAxis">Add Axis</button>
                         <button @click="removeAxis">Remove Axis</button>
