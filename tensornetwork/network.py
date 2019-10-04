@@ -13,9 +13,6 @@
 # limitations under the License.
 """Implementation of TensorNetwork structure."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import h5py
 # pylint: disable=line-too-long
 from typing import Any, Sequence, List, Set, Optional, Union, Text, Tuple, Type, Dict, BinaryIO
@@ -26,6 +23,7 @@ import tensornetwork.network_components as network_components
 #pylint: disable=useless-import-alias
 import tensornetwork.network_operations as network_operations
 from tensornetwork.backends import backend_factory
+import logging
 
 Tensor = Any
 string_type = h5py.special_dtype(vlen=str)
@@ -46,6 +44,13 @@ class TensorNetwork:
              initialization functions like `zeros`, `ones`, `randn` a 
              dtype of `None` defaults to float64
     """
+    logging.warn(
+        "The TensorNetwork object has been DEPRECATED and will be removed "
+        "in future releases.\n"
+        "Updating your code is fairly easy. For a detailed tutorial, please "
+        "visit "
+        "https://medium.com/@keeper6928/upgrading-your-tensornetwork-code-b032f0ab3dd4"
+    )
     if backend is None:
       backend = config.default_backend
     if dtype is None:

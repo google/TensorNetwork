@@ -802,3 +802,63 @@ def test_broken_edge_contraction_magicmethod(backend):
   n1[0] | n2[0]
   with pytest.raises(ValueError):
     n1 @ n2
+
+
+def test_save_nodes_raise(backend, tmp_path):
+  nodes = [
+      Node(
+          np.random.rand(2, 2, 2, 2),
+          backend=backend,
+          name='Node{}'.format(n),
+          axis_names=[
+              'node{}_1'.format(n), 'node_{}_2'.format(n),
+              'node_{}_3'.format(n), 'node_{}_4'.format(n)
+          ]) for n in range(4)
+  ]
+  _ = [nodes[n][0] ^ nodes[n + 1][1] for n in range(3)]
+  with pytest.raises(ValueError):
+    tn.save_nodes([nodes[0], nodes[1]], tmp_path / 'test_file_save_nodes')
+
+
+def test_save_nodes_raise_2(backend, tmp_path):
+  node = Node(
+      np.random.rand(2, 2, 2, 2),
+      backend=backend,
+      name='Node',
+      axis_names=['node_1', 'node_2', 'node_3', 'node_4'])
+
+  with pytest.raises(ValueError):
+    tn.save_nodes([node, node], tmp_path / 'test_file_save_nodes')
+
+
+def test_save_load_nodes(backend, tmp_path):
+  nodes = [
+      Node(
+          np.random.rand(2, 2, 2, 2),
+          backend=backend,
+          name='Node{}'.format(n),
+          axis_names=[
+              'node{}_1'.format(n), 'node{}_2'.format(n), 'node{}_3'.format(n),
+              'node{}_4'.format(n)
+          ]) for n in range(4)
+  ]
+
+  nodes[0][0] ^ nodes[1][1]
+  nodes[2][1] ^ nodes[2][2]
+
+  tn.save_nodes(nodes, tmp_path / 'test_file_save_nodes')
+
+  loaded_nodes = tn.load_nodes(tmp_path / 'test_file_save_nodes')
+  for n, node in enumerate(nodes):
+    assert node.name == loaded_nodes[n].name
+    assert node.axis_names == loaded_nodes[n].axis_names
+    assert node.backend.name == loaded_nodes[n].backend.name
+    np.testing.assert_allclose(node.tensor, loaded_nodes[n].tensor)
+
+  res = nodes[0] @ nodes[1]
+  loaded_res = loaded_nodes[0] @ loaded_nodes[1]
+  np.testing.assert_allclose(res.tensor, loaded_res.tensor)
+
+  trace = tn.contract_trace_edges(nodes[2])
+  loaded_trace = tn.contract_trace_edges(loaded_nodes[2])
+  np.testing.assert_allclose(trace.tensor, loaded_trace.tensor)

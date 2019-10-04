@@ -13,9 +13,6 @@
 # limitations under the License.
 """Implementation of TensorNetwork structure."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence, Iterable
@@ -308,6 +305,10 @@ class BaseNode(ABC):
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
+  def get_all_dangling(self):
+    """Return the set of dangling edges connected to this node."""
+    return {edge for edge in self.edges if edge.is_dangling()}
+
   def set_name(self, name):
     self.name = name
 
@@ -412,6 +413,16 @@ class BaseNode(ABC):
   @classmethod
   @abstractmethod
   def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
+    """Add a node to a network based on hdf5 data.
+
+    Args:
+      net: The network the node will be added to. If not `None` the loaded
+        node will be added to `net`.
+      node_data: h5py group that contains the serialized node data
+
+    Returns:
+      The loaded node.
+    """
     return
 
   @classmethod
@@ -575,11 +586,12 @@ class Node(BaseNode):
     """Add a node to a network based on hdf5 data.
 
     Args:
-      net: The network the node will be added to
+      net: The network the node will be added to. If not `None` the loaded
+        node will be added to `net`.
       node_data: h5py group that contains the serialized node data
 
     Returns:
-      The added node.
+      The loaded node.
     """
     name, signature, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
@@ -752,11 +764,12 @@ class CopyNode(BaseNode):
     """Add a node to a network based on hdf5 data.
 
     Args:
-      net: The network the node will be added to
+      net: The network the node will be added to. If not `None` the loaded
+        node will be added to `net`.
       node_data: h5py group that contains the serialized node data
 
     Returns:
-      The added node.
+      The loaded node.
     """
     name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
@@ -1146,6 +1159,14 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   edges = set()
   for node in nodes:
     edges |= node.get_all_nondangling()
+  return edges
+
+
+def get_all_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+  """Return the set of all dangling edges."""
+  edges = set()
+  for node in nodes:
+    edges |= node.get_all_dangling()
   return edges
 
 
