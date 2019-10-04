@@ -15,9 +15,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from tensornetwork.network_components import Node
-import tensornetwork as tn
 import numpy as np
+import tensornetwork as tn
 from typing import Any, List, Optional, Text, Type, Union, Dict
 Tensor = Any
 
@@ -67,7 +66,7 @@ class FiniteMPS:
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
     self.nodes = [
-        Node(tensors[n], backend=backend, name='node{}'.format(n))
+        tn.Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
     ]
     _ = [
@@ -519,7 +518,6 @@ class FiniteMPS:
     if right_sites:
       right_sites_mod = list({n % N for n in right_sites})
       rs = self.right_envs([site1] + right_sites_mod)
-    print([b for b in rs.values()])
     c = []
     if left_sites:
 
