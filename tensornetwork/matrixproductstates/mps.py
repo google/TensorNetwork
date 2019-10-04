@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensornetwork as tn
-from typing import Any, List, Optional, Text, Type, Union, Dict, Range
+from typing import Any, List, Optional, Text, Type, Union, Dict
 Tensor = Any
 
 
