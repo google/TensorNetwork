@@ -31,6 +31,21 @@ from tensornetwork.network_components import connect
 Tensor = Any
 
 
+def norm(node: BaseNode) -> Tensor:
+  """The L2 norm of `node`
+  Args:
+    node: A `BaseNode`. 
+  Returns:
+    The L2 norm 
+  Raises:
+    TypeError: If `node` has no `backend` attribute.
+  """
+  if not hasattr(node, 'backend'):
+    raise TypeError('Node {} of type {} has no `backend`'.format(
+        node, type(node)))
+  return node.backend.norm(node.tensor)
+
+
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
