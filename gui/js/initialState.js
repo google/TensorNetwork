@@ -13,6 +13,7 @@
 // limitations under the License.
 
 let initialState = {
+    draggingNode: false,
     tensors: [
         {
             name: 'A',
@@ -29,6 +30,6 @@ let initialState = {
     ],
     edges: [
         [['A', 0], ['B', 0]], // connects axis 0 of tensor A to axis 1 of tensor B
-        [['B', 1], ['A', 1], 'a named edge'] // optional third element describes edge name
+        [['B', 1], ['A', 1], 'a named edge'], // optional third element describes edge name
     ]
 };

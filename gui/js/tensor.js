@@ -58,12 +58,15 @@ Vue.component(
 		    onMouseDown: function(event) {
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
+                this.state.draggingNode = true;
+
 		        this.mouse.x = event.pageX;
 		        this.mouse.y = event.pageY;
             },
             onMouseUp: function() {
                 document.removeEventListener('mousemove', this.onMouseMove);
                 document.removeEventListener('mouseup', this.onMouseUp);
+                this.state.draggingNode = false;
 
                 let workspace = document.getElementsByClassName('workspace')[0].getBoundingClientRect();
                 if (this.tensor.position.x < this.tensorWidth / 2) {
@@ -103,7 +106,8 @@ Vue.component(
         },
 		template: `
 			<g class="tensor" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
-			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i" />
+			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i"
+			        :state="state"/>
 				<rect :x="-tensorWidth / 2" :y="-tensorHeight / 2" :width="tensorWidth"
 				    :height="tensorHeight" :rx="tensorCornerRadius" :style="style" />
 				<text x="0" y="0">{{tensor.name}}</text>
@@ -118,11 +122,26 @@ Vue.component(
         mixins: [mixinGeometry],
         props: {
             tensor: Object,
-            index: Number
+            index: Number,
+            state: Object
+        },
+        data: function() {
+            return {
+                brightness: 80
+            }
         },
         methods: {
             onMouseDown: function(event) {
                 event.stopPropagation();
+            },
+            onMouseEnter: function() {
+                if (this.state.draggingNode) {
+                    return;
+                }
+                this.brightness = 50;
+            },
+            onMouseLeave: function() {
+                this.brightness = 80;
             }
         },
         computed: {
@@ -139,12 +158,14 @@ Vue.component(
                 return this.axisY(this.angle);
             },
             stroke: function() {
-                return 'hsl(' + this.tensor.hue + ', 80%, 80%)'
+                return 'hsl(' + this.tensor.hue + ', 80%, ' + this.brightness + '%)';
             }
         },
         template: `
-            <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke" stroke-width="5" 
-                stroke-linecap="round" @mousedown="onMouseDown"/>
+            <line class="axis" x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
+                stroke-width="5" stroke-linecap="round"
+                @mousedown="onMouseDown" @mouseenter="onMouseEnter"
+                @mouseleave="onMouseLeave"/>
         `
     }
 );
