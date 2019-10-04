@@ -20,12 +20,14 @@ let initialState = {
             name: 'A',
             axes: [null, 'a named axis'], // null values for axes correspond to unnamed axes
 			position: {x: 100, y: 200},
+            rotation: 0,
             hue: 90
         },
         {
             name: 'B',
             axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across tensors
 			position: {x: 300, y: 300},
+            rotation: Math.PI / 2,
             hue: null
         }
     ],

@@ -189,7 +189,7 @@ Vue.component(
                 return this.tensor.axes.length;
             },
             angle: function() {
-                return this.axisAngle(this.index, this.nAxes);
+                return this.axisAngle(this.index, this.nAxes) + this.tensor.rotation;
             },
             x: function() {
                 return this.axisX(this.angle);

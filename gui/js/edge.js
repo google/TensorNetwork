@@ -28,10 +28,12 @@ Vue.component(
                 return this.getTensor(this.edge[1][0]);
             },
             angle1: function() {
-                return this.axisAngle(this.edge[0][1], this.tensor1.axes.length);
+                return this.axisAngle(this.edge[0][1], this.tensor1.axes.length)
+                    + this.tensor1.rotation;
             },
             angle2: function() {
                 return this.axisAngle(this.edge[1][1], this.tensor2.axes.length)
+                    + this.tensor2.rotation;
             },
             x1: function() {
                 return this.tensor1.position.x + this.axisX(this.angle1);
@@ -65,7 +67,8 @@ Vue.component(
         },
         computed: {
             angle: function() {
-                return this.axisAngle(this.axis, this.tensor.axes.length);
+                return this.axisAngle(this.axis, this.tensor.axes.length)
+                    + this.tensor.rotation;
             },
             x0: function() {
                 return this.tensor.position.x + this.axisX(this.angle);

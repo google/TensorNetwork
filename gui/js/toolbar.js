@@ -20,9 +20,11 @@ Vue.component(
         },
         methods: {
             addAxis: function() {
+                this.tensor.rotation = 0;
                 this.tensor.axes.push(null);
             },
             removeAxis: function() {
+                this.tensor.rotation = 0;
                 if (this.tensor.axes.length < 1) {
                     return;
                 }
@@ -41,6 +43,21 @@ Vue.component(
                     }
                 });
                 this.state.edges = survingEdges;
+            },
+            rotate: function() {
+                this.tensor.rotation += 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
+            },
+            leastCommonMultiple: function(a, b) {
+                // assumes a, b are positive integers
+                return a * b / this.greatestCommonDenominator(a, b);
+            },
+            greatestCommonDenominator: function(a, b) {
+                while (b !== 0) {
+                    let remainder = a % b;
+                    a = b;
+                    b = remainder;
+                }
+                return a;
             }
         },
         computed: {
@@ -52,8 +69,13 @@ Vue.component(
             <div class="toolbar">
                 <div v-if="tensor != null">
                     <h2>Tensor: {{tensor.name}}</h2>
-                    <button @click="addAxis">Add Axis</button>
-                    <button @click="removeAxis">Remove Axis</button>
+                    <div class="button-holder">
+                        <button @click="addAxis">Add Axis</button>
+                        <button @click="removeAxis">Remove Axis</button>
+                    </div>
+                    <div class="button-holder">
+                        <button @click="rotate">Rotate</button>
+                    </div>
                 </div>
                 <div v-else>Select a tensor to edit it</div>
             </div>
