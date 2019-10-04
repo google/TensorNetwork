@@ -55,7 +55,12 @@ Vue.component(
             }
         },
         methods: {
+		    onClick: function(event) {
+		        event.stopPropagation();
+            },
 		    onMouseDown: function(event) {
+                this.state.selectedNode = this.tensor;
+
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
                 this.state.draggingNode = true;
@@ -103,8 +108,16 @@ Vue.component(
 			translation: function() {
 				return 'translate(' + this.tensor.position.x + ' ' + this.tensor.position.y + ')';
 			},
+            brightness: function() {
+			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.tensor.name) {
+                    return 50;
+                }
+			    else {
+			        return 80;
+                }
+            },
 			style: function() {
-				return 'fill: hsl(' + this.tensor.hue + ', 80%, 80%);'
+				return 'fill: hsl(' + this.tensor.hue + ', 80%, ' + this.brightness + '%);'
 			}
 		},
         created: function() {
@@ -113,7 +126,8 @@ Vue.component(
             }
         },
 		template: `
-			<g class="tensor" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
+			<g class="tensor" :transform="translation" 
+                @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
 			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i"
 			        :state="state" @axismousedown="onAxisMouseDown(i)"
 			        @axismouseup="onAxisMouseUp(i)"/>

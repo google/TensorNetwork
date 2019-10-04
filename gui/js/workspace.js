@@ -94,21 +94,3 @@ Vue.component(
 	}
 );
 
-let app = new Vue({
-    el: '#app',
-    data: {
-        state: initialState // now state object is reactive, whereas initialState is not
-    },
-    template: `
-        <div>
-        <div class="app">
-			<workspace :state="state" />
-			<toolbar :state="state" />
-        </div>
-        <tensor-description :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
-        </div>
-
-    `
-});
-
-

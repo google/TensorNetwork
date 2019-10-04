@@ -13,6 +13,7 @@
 // limitations under the License.
 
 let initialState = {
+    selectedNode: null,
     draggingNode: false,
     tensors: [
         {
