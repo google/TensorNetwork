@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import tensornetwork as tn
-from typing import Any, List, Optional, Text, Type, Union, Dict, Iterable
+from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
 
@@ -196,7 +196,7 @@ class FiniteMPS:
         abs(result.tensor -
             self.backend.eye(N=result.shape[0], M=result.shape[1])))
 
-  def left_envs(self, sites: Iterable[int]) -> Dict:
+  def left_envs(self, sites: Sequence[int]) -> Dict:
     """
     Compute left reduced density matrices for site `sites`.
     This returns a dict `left_envs` mapping sites (int) to Tensors.
@@ -262,7 +262,7 @@ class FiniteMPS:
           left_envs[site + 1] = left_env
     return left_envs
 
-  def right_envs(self, sites: Iterable[int]) -> Dict:
+  def right_envs(self, sites: Sequence[int]) -> Dict:
     """
     Compute right reduced density matrices for site `sites.
     This returns a dict `right_envs` mapping sites (int) to Tensors.
@@ -450,7 +450,7 @@ class FiniteMPS:
         name=self.nodes[site].name).reorder_edges(edge_order)
 
   def measure_local_operator(self, ops: List[Tensor],
-                             sites: Iterable[int]) -> List:
+                             sites: Sequence[int]) -> List:
     """
     Measure the expectation value of local operators `ops` site `sites`.
     Args:
@@ -483,7 +483,7 @@ class FiniteMPS:
     return res
 
   def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
-                                  sites2: Iterable[int]) -> List:
+                                  sites2: Sequence[int]) -> List:
     """
     Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
     `sites2`. if `site1 == s`, op2 will be applied first
