@@ -98,8 +98,8 @@ let app = new Vue({
     },
     template: `
         <div>
-            <tensor-description :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
 			<workspace :state="state" />
+            <tensor-description :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
         </div>
     `
 });
