@@ -14,6 +14,7 @@
 
 from typing import Optional, Any, Sequence, Tuple
 from tensornetwork.backends import base_backend
+from tensornetwork.backends.numpy import decompositions
 import numpy
 Tensor = Any
 
@@ -23,9 +24,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def __init__(self, dtype: Optional[numpy.dtype] = None):
     super(NumPyBackend, self).__init__()
-    from tensornetwork.backends.numpy import decompositions
     self.np = numpy
-    self.decompositions = decompositions
     self.name = "numpy"
     self._dtype = dtype
 
@@ -44,7 +43,7 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return self.decompositions.svd_decomposition(
+    return decompositions.svd_decomposition(
         self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def qr_decomposition(
@@ -52,14 +51,14 @@ class NumPyBackend(base_backend.BaseBackend):
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return self.decompositions.qr_decomposition(self.np, tensor, split_axis)
+    return decompositions.qr_decomposition(self.np, tensor, split_axis)
 
   def rq_decomposition(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return self.decompositions.rq_decomposition(self.np, tensor, split_axis)
+    return decompositions.rq_decomposition(self.np, tensor, split_axis)
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
