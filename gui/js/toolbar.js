@@ -18,7 +18,25 @@ Vue.component(
         props: {
             state: Object
         },
+        data: function() {
+            return {
+                createTensorName: "",
+            }
+        },
         methods: {
+            createTensor: function(event) {
+                event.preventDefault();
+                let workspace = document.getElementsByClassName('workspace')[0]
+                    .getBoundingClientRect();
+                this.state.tensors.push({
+                    name: this.createTensorName,
+                    position: {x: workspace.width / 2, y: workspace.height / 2},
+                    axes: [null],
+                    rotation: 0
+                });
+
+                this.createTensorName = "";
+            },
             addAxis: function() {
                 this.tensor.rotation = 0;
                 this.tensor.axes.push(null);
@@ -66,10 +84,25 @@ Vue.component(
         computed: {
             tensor: function() {
                 return this.state.selectedNode;
+            },
+            nameTaken: function() {
+                for (let i = 0; i < this.state.tensors.length; i++) {
+                    if (this.createTensorName === this.state.tensors[i].name) {
+                        return true;
+                    }
+                }
+                return false;
             }
         },
         template: `
             <div class="toolbar">
+                <h2>Create New Tensor</h2>
+                <div class="button-holder">
+                    <form @submit="createTensor">
+                        <input type="text" v-model="createTensorName" />
+                        <input type="submit" value="Create" :disabled="nameTaken" />
+                    </form>
+                </div>
                 <div v-if="tensor != null">
                     <h2>Tensor: {{tensor.name}}</h2>
                     <div class="button-holder">
@@ -82,7 +115,7 @@ Vue.component(
                         <button @click="rotateClockwise">Clockwise</button>
                     </div>
                 </div>
-                <div v-else>Select a tensor to edit it</div>
+                <h2 v-else>Select a tensor to edit it</h2>
             </div>
         `
     }
