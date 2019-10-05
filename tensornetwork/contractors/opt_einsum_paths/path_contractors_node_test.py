@@ -16,8 +16,6 @@ import numpy as np
 import pytest
 import tensornetwork as tn
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
-import tensorflow as tf
-tf.enable_v2_behavior()
 
 
 @pytest.fixture(

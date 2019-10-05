@@ -24,7 +24,7 @@ import tensornetwork.config as config
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
-from tensornetwork.network_components import connect
+from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
 
 
@@ -547,12 +547,13 @@ def split_node_full_svd(
 
 def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   if not nodes:
-    raise ValueError("Reachable requires atleast 1 node.")
-  node_que = collections.deque()
-  seen_nodes = nodes
-  node_que.append(list(nodes)[0])
+    raise ValueError("Reachable requires at least 1 node.")
+  node_que = collections.deque(nodes)
+  seen_nodes = set()
   while node_que:
     node = node_que.popleft()
+    if node not in seen_nodes:
+      seen_nodes.add(node)
     for e in node.edges:
       for n in e.get_nodes():
         if n is not None and n not in seen_nodes:
@@ -561,8 +562,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(
-    nodes: Union[BaseNode, Union[Iterable[BaseNode]]]) -> Set[BaseNode]:
+def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` by connected edges.
   Args:
@@ -650,3 +650,20 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   for node in nodes:
     edges |= set(node.edges)
   return edges
+
+
+def contract_trace_edges(node: BaseNode) -> BaseNode:
+  """
+  contract all trace edges of `node`.
+  Args:
+    node: A `BaseNode` obejct
+  Returns:
+    A new `BaseNode` obtained from contracting all 
+    trace edges.
+  Raises:
+    ValueError: If `node` has no trace edges
+  """
+  for edge in node.edges:
+    if edge.is_trace():
+      return contract_parallel(edge)
+  raise ValueError('`node` has no trace edges')
