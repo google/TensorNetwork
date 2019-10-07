@@ -6,4 +6,4 @@ Contractors
 .. autofunction:: tensornetwork.contractors.branch
 .. autofunction:: tensornetwork.contractors.optimal
 .. autofunction:: tensornetwork.contractors.auto
-.. autofunction:: tensornetwork.contractors.optimal
+.. autofunction:: tensornetwork.contractors.custom
