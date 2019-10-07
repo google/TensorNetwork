@@ -23,6 +23,7 @@ import h5py
 
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
+from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 
@@ -538,6 +539,10 @@ class Node(BaseNode):
         shape=backend_obj.shape_tuple(self._tensor))
     if self.backend and not self.backend.dtype:
       self.backend.dtype = self._tensor.dtype
+
+    collection = ops.get_current_collection()
+    if collection is not None:
+      collection.add(self)
 
   def get_tensor(self):
     return self.tensor
