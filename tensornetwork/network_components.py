@@ -1806,3 +1806,23 @@ def outer_product(node1: BaseNode,
   node2.fresh_edges(node2_axis_names)
 
   return new_node
+
+
+class NodeCollection:
+
+  def __init__(self, container):
+    if not isinstance(container, (list, set)):
+      raise ValueError("Item passed to NodeCollection must be list or set")
+    self._container = container
+
+  def add(self, node):
+    if isinstance(self._container, set):
+      self._container.add(node)
+    else:
+      self._container.append(node)
+
+  def __enter__(self):
+    ops._default_collection_stack.stack.append(self)
+
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    ops._default_collection_stack.stack.pop()

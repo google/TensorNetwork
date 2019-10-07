@@ -3,9 +3,8 @@ import tensorflow as tf
 import pytest
 from collections import namedtuple
 import h5py
-from tensornetwork.network_components import Node, CopyNode, Edge
+from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection
 import tensornetwork as tn
-from tensornetwork.utils import NodeCollection
 
 string_type = h5py.special_dtype(vlen=str)
 
