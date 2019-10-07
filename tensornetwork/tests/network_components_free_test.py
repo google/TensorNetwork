@@ -3,6 +3,7 @@ import tensorflow as tf
 import pytest
 from collections import namedtuple
 import h5py
+#pylint: disable=line-too-long
 from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection
 import tensornetwork as tn
 

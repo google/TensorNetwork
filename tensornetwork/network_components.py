@@ -1830,7 +1830,8 @@ class NodeCollection:
     """Initialize the NodeCollection context manager
 
     Args:
-      container: The container to hold the created nodes, can be a list or a set.
+      container: The container to hold the created nodes, can be a list or a
+        set.
 
     Raises:
       ValueError: If container is not a list or set.
