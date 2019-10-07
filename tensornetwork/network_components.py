@@ -1590,7 +1590,7 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
     raise ValueError("Cannot connect edges of unequal dimension. "
                      "Dimension of edge '{}': {}, "
                      "Dimension of edge '{}': {}.".format(
-                         edge1, edge2.dimension, edge2, edge2.dimension))
+                         edge1, edge1.dimension, edge2, edge2.dimension))
 
   #edge1 and edg2 are always dangling in this case
   node1 = edge1.node1
