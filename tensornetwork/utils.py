@@ -153,19 +153,18 @@ def load(path: str):
 class NodeCollection:
 
   def __init__(self, container):
-    self.container = container
+    if not isinstance(container, (list, set)):
+      raise ValueError("Item passed to NodeCollection must be list or set")
+    self._container = container
 
   def add(self, node):
-    if isinstance(self.container, set):
-      self.container.add(node)
-    elif isinstance(self.container, list):
-      self.container.append(node)
+    if isinstance(self._container, set):
+      self._container.add(node)
+    else:
+      self._container.append(node)
 
   def __enter__(self):
-    # append to stack
     ops._default_collection_stack.stack.append(self)
-    pass
 
   def __exit__(self, exc_type, exc_val, exc_tb):
-    # pop from stack
-    ops._default_collection_stack.stack.remove(self)
+    ops._default_collection_stack.stack.pop()
