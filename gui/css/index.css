@@ -23,18 +23,6 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
-.toolbar {
-	font: 15px sans-serif;
-	min-width: 200px;
-	padding: 10px 20px 10px 20px;
-	height: 600px;
-	background-color: #fff;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-}
-
-.button-holder {
-	padding-bottom: 10px;
-}
 
 svg .node text {
 	font: bold 15px sans-serif;
@@ -44,4 +32,20 @@ svg .node text {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	-webkit-user-select: none;
+}
+
+.toolbar {
+	font: 15px sans-serif;
+	min-width: 200px;
+	padding: 10px 20px 10px 20px;
+	background-color: #fff;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.button-holder {
+	padding-bottom: 10px;
+}
+
+.code-output {
+	padding: 10px;
 }
