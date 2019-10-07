@@ -93,20 +93,21 @@ def transpose(node: BaseNode,
 
 def copy(nodes: Iterable[BaseNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
-  """Return a copy of the given nodes.
+  """Copy the given nodes and their edges.
+
+  This will return a dictionary linking original nodes/edges 
+  to their copies.
 
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
-    conjugate: Boolean. Whether to conjugate all of the nodes in the
-        `TensorNetwork` (useful for calculating norms and reduced density
+    conjugate: Boolean. Whether to conjugate all of the nodes
+        (useful for calculating norms and reduced density
         matrices).
 
   Returns:
     A tuple containing:
-      node_dict: A dictionary mapping the nodes of the original
-                 network to the nodes of the copy.
-      edge_dict: A dictionary mapping the edges of the original
-                 network to the edges of the copy.
+      node_dict: A dictionary mapping the nodes to their copies.
+      edge_dict: A dictionary mapping the edges to their copies.
   """
   #TODO: add support for copying CopyTensor
   if conjugate:

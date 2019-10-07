@@ -1483,7 +1483,7 @@ def contract(edge: Edge,
   `edge` is disabled before returning.
 
   Args:
-    edge: The edge contract next.
+    edge: The edge to contract.
     name: Name of the new node created.
 
   Returns:
