@@ -104,6 +104,9 @@ Vue.component(
             node: function() {
                 return this.state.selectedNode;
             },
+            createNodeDisabled: function() {
+                return this.nameTaken || this.createNodeName == null || this.createNodeName === '';
+            },
             nameTaken: function() {
                 for (let i = 0; i < this.state.nodes.length; i++) {
                     if (this.createNodeName === this.state.nodes[i].name) {
@@ -119,7 +122,7 @@ Vue.component(
                 <div class="button-holder">
                     <form @submit="createNode">
                         <input type="text" v-model="createNodeName" />
-                        <input type="submit" value="Create" :disabled="nameTaken" />
+                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
                     </form>
                 </div>
                 <div v-if="node != null">
