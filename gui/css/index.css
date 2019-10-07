@@ -16,6 +16,7 @@ limitations under the License.
 .app {
 	display: flex;
 	flex-direction: row;
+	font: normal 15px sans-serif;
 }
 
 svg.workspace {
@@ -35,7 +36,6 @@ svg .node text {
 }
 
 .toolbar {
-	font: 15px sans-serif;
 	min-width: 200px;
 	padding: 10px 20px 10px 20px;
 	background-color: #fff;
