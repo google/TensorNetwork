@@ -13,20 +13,25 @@
 // limitations under the License.
 
 let initialState = {
-    tensors: [
+    selectedNode: null,
+    draggingNode: false,
+    nodes: [
         {
             name: 'A',
             axes: [null, 'a named axis'], // null values for axes correspond to unnamed axes
-			position: {x: 100, y: 200}
+			position: {x: 100, y: 200},
+            rotation: 0,
+            hue: 90
         },
         {
             name: 'B',
-            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across tensors
-			position: {x: 300, y: 300}
+            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across nodes
+			position: {x: 300, y: 300},
+            rotation: Math.PI / 2,
+            hue: null
         }
     ],
     edges: [
-        [['A', 0], ['B', 1]], // connects axis 0 of tensor A to axis 1 of tensor B
-        [['B', 0], ['A', 1], 'a named edge'] // optional third element describes edge name
+        [['B', 1], ['A', 1], 'a named edge'], // optional third element describes edge name
     ]
 };
