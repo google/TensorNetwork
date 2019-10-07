@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let mixinTensor = {
+let mixinNode = {
 	props: {
-        tensor: Object,
+        node: Object,
     	state: Object,
     },
     methods: {
@@ -37,15 +37,15 @@ let mixinTensor = {
     },
 	computed: {
         neighbors: function() {
-			return this.getNeighborsOf(this.tensor.name);
+			return this.getNeighborsOf(this.node.name);
 		}
 	},
 };
 
 Vue.component(
-    'tensor',
+    'node',
 	{
-		mixins: [mixinGet, mixinGeometry, mixinTensor],
+		mixins: [mixinGet, mixinGeometry, mixinNode],
         data: function() {
 		    return {
 		        mouse: {
@@ -59,7 +59,7 @@ Vue.component(
 		        event.stopPropagation();
             },
 		    onMouseDown: function(event) {
-                this.state.selectedNode = this.tensor;
+                this.state.selectedNode = this.node;
 
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
@@ -71,8 +71,8 @@ Vue.component(
             onMouseMove: function(event) {
                 let dx = event.pageX - this.mouse.x;
                 let dy = event.pageY - this.mouse.y;
-                this.tensor.position.x += dx;
-                this.tensor.position.y += dy;
+                this.node.position.x += dx;
+                this.node.position.y += dy;
                 this.mouse.x = event.pageX;
                 this.mouse.y = event.pageY;
             },
@@ -84,17 +84,17 @@ Vue.component(
 
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
-                if (this.tensor.position.x < this.tensorWidth / 2) {
-                    this.tensor.position.x = this.tensorWidth / 2;
+                if (this.node.position.x < this.nodeWidth / 2) {
+                    this.node.position.x = this.nodeWidth / 2;
                 }
-                if (this.tensor.position.y < this.tensorHeight / 2) {
-                    this.tensor.position.y = this.tensorHeight / 2;
+                if (this.node.position.y < this.nodeHeight / 2) {
+                    this.node.position.y = this.nodeHeight / 2;
                 }
-                if (this.tensor.position.x > workspace.width - this.tensorWidth / 2) {
-                    this.tensor.position.x = workspace.width - this.tensorWidth / 2;
+                if (this.node.position.x > workspace.width - this.nodeWidth / 2) {
+                    this.node.position.x = workspace.width - this.nodeWidth / 2;
                 }
-                if (this.tensor.position.y > workspace.height - this.tensorHeight / 2) {
-                    this.tensor.position.y = workspace.height - this.tensorHeight / 2;
+                if (this.node.position.y > workspace.height - this.nodeHeight / 2) {
+                    this.node.position.y = workspace.height - this.nodeHeight / 2;
                 }
             },
             onAxisMouseDown: function(axis) {
@@ -106,10 +106,10 @@ Vue.component(
         },
 		computed: {
 			translation: function() {
-				return 'translate(' + this.tensor.position.x + ' ' + this.tensor.position.y + ')';
+				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
             brightness: function() {
-			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.tensor.name) {
+			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.node.name) {
                     return 50;
                 }
 			    else {
@@ -117,23 +117,23 @@ Vue.component(
                 }
             },
 			style: function() {
-				return 'fill: hsl(' + this.tensor.hue + ', 80%, ' + this.brightness + '%);'
+				return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);'
 			}
 		},
         created: function() {
-		    if (this.tensor.hue == null) {
-		        this.tensor.hue = Math.random() * 360;
+		    if (this.node.hue == null) {
+		        this.node.hue = Math.random() * 360;
             }
         },
 		template: `
-			<g class="tensor" :transform="translation" 
+			<g class="node" :transform="translation" 
                 @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
-			    <axis v-for="(axisName, i) in tensor.axes" :tensor="tensor" :index="i"
+			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i"
 			        :state="state" @axismousedown="onAxisMouseDown(i)"
 			        @axismouseup="onAxisMouseUp(i)"/>
-				<rect :x="-tensorWidth / 2" :y="-tensorHeight / 2" :width="tensorWidth"
-				    :height="tensorHeight" :rx="tensorCornerRadius" :style="style" />
-				<text x="0" y="0">{{tensor.name}}</text>
+				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
+				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
+				<text x="0" y="0">{{node.name}}</text>
 			</g>
 		`	
 	}
@@ -142,9 +142,9 @@ Vue.component(
 Vue.component(
     'axis',
     {
-        mixins: [mixinGet, mixinGeometry, mixinTensor],
+        mixins: [mixinGet, mixinGeometry, mixinNode],
         props: {
-            tensor: Object,
+            node: Object,
             index: Number,
             state: Object,
         },
@@ -186,10 +186,10 @@ Vue.component(
         },
         computed: {
             nAxes: function() {
-                return this.tensor.axes.length;
+                return this.node.axes.length;
             },
             angle: function() {
-                return this.axisAngle(this.index, this.nAxes) + this.tensor.rotation;
+                return this.axisAngle(this.index, this.nAxes) + this.node.rotation;
             },
             x: function() {
                 return this.axisX(this.angle);
@@ -198,7 +198,7 @@ Vue.component(
                 return this.axisY(this.angle);
             },
             stroke: function() {
-                return 'hsl(' + this.tensor.hue + ', 80%, ' + this.brightness + '%)';
+                return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
             }
         },
         template: `
@@ -211,17 +211,17 @@ Vue.component(
 );
 
 Vue.component(
-    'tensor-description',
+    'node-description',
     {
-        mixins: [mixinGet, mixinTensor],
+        mixins: [mixinGet, mixinNode],
         template: `
-            <p>Tensor {{tensor.name}} has {{tensor.axes.length}} axes:
+            <p>Node {{node.name}} has {{node.axes.length}} axes:
                 <ul>
-                    <li v-for="(axisName, i) in tensor.axes">
+                    <li v-for="(axisName, i) in node.axes">
                         Axis {{i}} <span v-if="axisName">({{axisName}})</span>
                         <span v-if="neighborAt(i)">is connected to axis {{neighborAt(i)[1]}}
                             <span v-if="getAxis(neighborAt(i))">({{getAxis(neighborAt(i))}})</span>
-                            of tensor {{getTensor(neighborAt(i)[0]).name}}
+                            of node {{getNode(neighborAt(i)[0]).name}}
                             <span v-if="edgeNameAt(i)">by edge "{{edgeNameAt(i)}}"</span>
                         </span>
                         <span v-else>is free</span>

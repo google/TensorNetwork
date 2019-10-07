@@ -36,18 +36,18 @@ let mixinGet = {
 			}
 			return neighbors;
 		},
-		getTensor: function(name) {
-			for (let i = 0; i < this.state.tensors.length; i++) {
-				if (this.state.tensors[i].name === name) {
-					return this.state.tensors[i];
+		getNode: function(name) {
+			for (let i = 0; i < this.state.nodes.length; i++) {
+				if (this.state.nodes[i].name === name) {
+					return this.state.nodes[i];
 				}
 			}
 			return null;
 		},
 		getAxis: function(address) {
-			let [tensorName, axisIndex] = address;
-			let tensor = this.getTensor(tensorName);
-			return tensor.axes[axisIndex];
+			let [nodeName, axisIndex] = address;
+			let node = this.getNode(nodeName);
+			return node.axes[axisIndex];
 		},
 	}
 };
@@ -56,9 +56,9 @@ let mixinGeometry = {
 	data: function() {
 		return {
 			axisLength: 50,
-			tensorWidth: 50,
-			tensorHeight: 50,
-			tensorCornerRadius: 10
+			nodeWidth: 50,
+			nodeHeight: 50,
+			nodeCornerRadius: 10
 		}
 	},
 	methods: {

@@ -15,7 +15,7 @@
 let initialState = {
     selectedNode: null,
     draggingNode: false,
-    tensors: [
+    nodes: [
         {
             name: 'A',
             axes: [null, 'a named axis'], // null values for axes correspond to unnamed axes
@@ -25,7 +25,7 @@ let initialState = {
         },
         {
             name: 'B',
-            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across tensors
+            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across nodes
 			position: {x: 300, y: 300},
             rotation: Math.PI / 2,
             hue: null

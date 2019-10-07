@@ -21,31 +21,31 @@ Vue.component(
             state: Object
         },
         computed: {
-            tensor1: function() {
-                return this.getTensor(this.edge[0][0]);
+            node1: function() {
+                return this.getNode(this.edge[0][0]);
             },
-            tensor2: function() {
-                return this.getTensor(this.edge[1][0]);
+            node2: function() {
+                return this.getNode(this.edge[1][0]);
             },
             angle1: function() {
-                return this.axisAngle(this.edge[0][1], this.tensor1.axes.length)
-                    + this.tensor1.rotation;
+                return this.axisAngle(this.edge[0][1], this.node1.axes.length)
+                    + this.node1.rotation;
             },
             angle2: function() {
-                return this.axisAngle(this.edge[1][1], this.tensor2.axes.length)
-                    + this.tensor2.rotation;
+                return this.axisAngle(this.edge[1][1], this.node2.axes.length)
+                    + this.node2.rotation;
             },
             x1: function() {
-                return this.tensor1.position.x + this.axisX(this.angle1);
+                return this.node1.position.x + this.axisX(this.angle1);
             },
             y1: function() {
-                return this.tensor1.position.y + this.axisY(this.angle1);
+                return this.node1.position.y + this.axisY(this.angle1);
             },
             x2: function() {
-                return this.tensor2.position.x + this.axisX(this.angle2);
+                return this.node2.position.x + this.axisX(this.angle2);
             },
             y2: function() {
-                return this.tensor2.position.y + this.axisY(this.angle2);
+                return this.node2.position.y + this.axisY(this.angle2);
             }
         },
         template: `
@@ -62,19 +62,19 @@ Vue.component(
         props: {
             x: Number,
             y: Number,
-            tensor: Object,
+            node: Object,
             axis: Number,
         },
         computed: {
             angle: function() {
-                return this.axisAngle(this.axis, this.tensor.axes.length)
-                    + this.tensor.rotation;
+                return this.axisAngle(this.axis, this.node.axes.length)
+                    + this.node.rotation;
             },
             x0: function() {
-                return this.tensor.position.x + this.axisX(this.angle);
+                return this.node.position.x + this.axisX(this.angle);
             },
             y0: function() {
-                return this.tensor.position.y + this.axisY(this.angle);
+                return this.node.position.y + this.axisY(this.angle);
             }
         },
         template: `

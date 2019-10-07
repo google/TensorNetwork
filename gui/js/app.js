@@ -25,7 +25,7 @@ Vue.component(
                 protoEdge: {
                     x: null,
                     y: null,
-                    tensor: null,
+                    node: null,
                     axis: null,
                     dragging: false
                 }
@@ -35,13 +35,13 @@ Vue.component(
             onClick: function() {
                 this.state.selectedNode = null;
             },
-		    onAxisMouseDown: function(tensor, axis) {
-                if (this.axisOccupied(tensor, axis)) {
+		    onAxisMouseDown: function(node, axis) {
+                if (this.axisOccupied(node, axis)) {
                     return;
                 }
                 document.addEventListener('mousemove', this.dragAxis);
                 document.addEventListener('mouseup', this.releaseAxisDrag);
-                this.protoEdge.tensor = tensor;
+                this.protoEdge.node = node;
                 this.protoEdge.axis = axis;
             },
             dragAxis: function(event) {
@@ -55,29 +55,29 @@ Vue.component(
                 document.removeEventListener('mousemove', this.dragAxis);
                 document.removeEventListener('mouseup', this.releaseAxisDrag);
                 this.protoEdge.dragging = false;
-                this.protoEdge.tensor = null;
+                this.protoEdge.node = null;
                 this.protoEdge.axis = null;
             },
-            onAxisMouseUp: function(tensor, axis) {
+            onAxisMouseUp: function(node, axis) {
 		        if (this.protoEdge.dragging) {
-                    if (this.axisOccupied(tensor, axis)) {
+                    if (this.axisOccupied(node, axis)) {
                         return;
                     }
-                    if (this.protoEdge.tensor.name === tensor.name
+                    if (this.protoEdge.node.name === node.name
                         && this.protoEdge.axis === axis) {
                         return; // don't allow connection of an axis to itself
                     }
                     this.state.edges.push([
-                        [this.protoEdge.tensor.name, this.protoEdge.axis],
-                        [tensor.name, axis]
+                        [this.protoEdge.node.name, this.protoEdge.axis],
+                        [node.name, axis]
                     ])
                 }
             },
-            axisOccupied: function(tensor, axis) {
+            axisOccupied: function(node, axis) {
                 for (let i = 0; i < this.state.edges.length; i++) {
                     let edge = this.state.edges[i];
-                    if ((tensor.name === edge[0][0] && axis === edge[0][1])
-                        || (tensor.name === edge[1][0] && axis === edge[1][1])) {
+                    if ((node.name === edge[0][0] && axis === edge[0][1])
+                        || (node.name === edge[1][0] && axis === edge[1][1])) {
                         return true;
                     }
                 }
@@ -88,11 +88,11 @@ Vue.component(
 			<svg class="workspace" xmlns="http://www.w3.org/2000/svg"
 			    :width="width" :height="height" @click="onClick">
                 <proto-edge v-if="protoEdge.dragging" :x="protoEdge.x" :y="protoEdge.y"
-				    :tensor="protoEdge.tensor" :axis="protoEdge.axis" />
+				    :node="protoEdge.node" :axis="protoEdge.axis" />
 				<edge v-for="edge in state.edges" :edge="edge" :state="state" /> 
-				<tensor v-for="tensor in state.tensors" :tensor="tensor" :state="state"
-				    @axismousedown="onAxisMouseDown(tensor, ...arguments)"
-				    @axismouseup="onAxisMouseUp(tensor, ...arguments)" />
+				<node v-for="node in state.nodes" :node="node" :state="state"
+				    @axismousedown="onAxisMouseDown(node, ...arguments)"
+				    @axismouseup="onAxisMouseUp(node, ...arguments)" />
 			</svg>
 		`
 	}
@@ -109,7 +109,7 @@ let app = new Vue({
 			<workspace :state="state" />
 			<toolbar :state="state" />
         </div>
-        <tensor-description :tensor="tensor" :state="state" v-for="tensor in state.tensors" />
+        <node-description :node="node" :state="state" v-for="node in state.nodes" />
         </div>
 
     `

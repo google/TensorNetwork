@@ -20,28 +20,28 @@ Vue.component(
         },
         data: function() {
             return {
-                createTensorName: "",
+                createNodeName: "",
             }
         },
         methods: {
-            createTensor: function(event) {
+            createNode: function(event) {
                 event.preventDefault();
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
 
-                let tensor = {
-                    name: this.createTensorName,
+                let node = {
+                    name: this.createNodeName,
                     position: {x: workspace.width / 2, y: workspace.height / 2},
                     axes: [null],
                     rotation: 0
                 };
 
-                this.state.tensors.push(tensor);
-                this.state.selectedNode = tensor;
+                this.state.nodes.push(node);
+                this.state.selectedNode = node;
 
-                this.createTensorName = "";
+                this.createNodeName = "";
             },
-            deleteTensor: function() {
+            deleteNode: function() {
                 let selectedName = this.state.selectedNode.name;
 
                 this.state.edges = this.state.edges.filter(function(edge) {
@@ -52,28 +52,28 @@ Vue.component(
                         return true;
                     }
                 });
-                this.state.tensors = this.state.tensors.filter(function(tensor) {
-                    return tensor.name !== selectedName;
+                this.state.nodes = this.state.nodes.filter(function(node) {
+                    return node.name !== selectedName;
                 });
                 this.selectedNode = null;
             },
             addAxis: function() {
-                this.tensor.rotation = 0;
-                this.tensor.axes.push(null);
+                this.node.rotation = 0;
+                this.node.axes.push(null);
             },
             removeAxis: function() {
-                this.tensor.rotation = 0;
-                if (this.tensor.axes.length < 1) {
+                this.node.rotation = 0;
+                if (this.node.axes.length < 1) {
                     return;
                 }
-                this.tensor.axes.pop();
-                let oldAxis = this.tensor.axes.length;
-                let tensor = this.tensor;
+                this.node.axes.pop();
+                let oldAxis = this.node.axes.length;
+                let node = this.node;
                 this.state.edges = this.state.edges.filter(function(edge) {
-                    if (edge[0][0] === tensor.name && edge[0][1] === oldAxis) {
+                    if (edge[0][0] === node.name && edge[0][1] === oldAxis) {
                         return false;
                     }
-                    else if (edge[1][0] === tensor.name && edge[1][1] === oldAxis) {
+                    else if (edge[1][0] === node.name && edge[1][1] === oldAxis) {
                         return false;
                     }
                     else {
@@ -82,10 +82,10 @@ Vue.component(
                 });
             },
             rotateCounter: function() {
-                this.tensor.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
+                this.node.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
             },
             rotateClockwise: function() {
-                this.tensor.rotation += 2 * Math.PI / this.leastCommonMultiple(4, this.tensor.axes.length);
+                this.node.rotation += 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
             },
             leastCommonMultiple: function(a, b) {
                 // assumes a, b are positive integers
@@ -101,12 +101,12 @@ Vue.component(
             }
         },
         computed: {
-            tensor: function() {
+            node: function() {
                 return this.state.selectedNode;
             },
             nameTaken: function() {
-                for (let i = 0; i < this.state.tensors.length; i++) {
-                    if (this.createTensorName === this.state.tensors[i].name) {
+                for (let i = 0; i < this.state.nodes.length; i++) {
+                    if (this.createNodeName === this.state.nodes[i].name) {
                         return true;
                     }
                 }
@@ -115,17 +115,17 @@ Vue.component(
         },
         template: `
             <div class="toolbar">
-                <h2>Create New Tensor</h2>
+                <h2>Create New Node</h2>
                 <div class="button-holder">
-                    <form @submit="createTensor">
-                        <input type="text" v-model="createTensorName" />
+                    <form @submit="createNode">
+                        <input type="text" v-model="createNodeName" />
                         <input type="submit" value="Create" :disabled="nameTaken" />
                     </form>
                 </div>
-                <div v-if="tensor != null">
-                    <h2>Tensor: {{tensor.name}}</h2>
+                <div v-if="node != null">
+                    <h2>Node: {{node.name}}</h2>
                     <div class="button-holder">
-                        <button @click="deleteTensor">Delete</button>
+                        <button @click="deleteNode">Delete</button>
                     </div>
                     <div class="button-holder">
                         <button @click="addAxis">Add Axis</button>
@@ -137,7 +137,7 @@ Vue.component(
                         <button @click="rotateClockwise">Clockwise</button>
                     </div>
                 </div>
-                <h2 v-else>Select a tensor to edit it</h2>
+                <h2 v-else>Select a node to edit it</h2>
             </div>
         `
     }

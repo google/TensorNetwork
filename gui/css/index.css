@@ -36,7 +36,7 @@ svg.workspace {
 	padding-bottom: 10px;
 }
 
-svg .tensor text {
+svg .node text {
 	font: bold 15px sans-serif;
 	text-anchor: middle;
 	dominant-baseline: middle;
