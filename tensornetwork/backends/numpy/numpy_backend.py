@@ -141,7 +141,7 @@ class NumPyBackend(base_backend.BaseBackend):
                else self.np.dtype(self.np.float64))
 
     if ((dtype is self.np.dtype(self.np.complex128))
-            or (dtype is self.np.dtype(self.np.complex64))):
+        or (dtype is self.np.dtype(self.np.complex64))):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
