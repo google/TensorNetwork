@@ -86,8 +86,6 @@ class NumPyBackend(base_backend.BaseBackend):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
-    print(self.np.dtype(result.dtype))
-    print(self.dtype)
     if self.dtype is not None and self.np.dtype(result.dtype) != self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
