@@ -9,6 +9,16 @@ np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_dtype(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
+
+  backend = numpy_backend.NumPyBackend(np.dtype(dtype))
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
+
 def test_tensordot():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(2 * np.ones((2, 3, 4)))
