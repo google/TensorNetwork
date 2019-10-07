@@ -25,7 +25,6 @@ More information can be found in our TensorNetwork papers:
 
 - [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
 
-The code for reproducing the results of these papers can be found in the [experiments](https://github.com/google/TensorNetwork/tree/master/experiments) directory.
 
 ## Installation
 ```
