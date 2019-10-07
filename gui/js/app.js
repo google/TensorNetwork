@@ -109,7 +109,7 @@ let app = new Vue({
 			<workspace :state="state" />
 			<toolbar :state="state" />
         </div>
-        <node-description :node="node" :state="state" v-for="node in state.nodes" />
+        <code-output :state="state" />
         </div>
 
     `
