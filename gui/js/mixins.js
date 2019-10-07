@@ -26,7 +26,7 @@ let mixinGet = {
 						edgeName: edge[2]
 					});
 				}
-				else if (edge[1][0] === name) {
+				if (edge[1][0] === name) {
 					neighbors.push({
 						axis: edge[1][1],
 						neighbor: edge[0],
