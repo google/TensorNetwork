@@ -2,10 +2,8 @@ Contractors
 ------------------
 
 
-.. autofunction:: tensornetwork.contractors.naive
-.. autofunction:: tensornetwork.contractors.stochastic
-.. autofunction:: tensornetwork.contractors.bucket
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+.. autofunction:: tensornetwork.contractors.greedy
+.. autofunction:: tensornetwork.contractors.branch
+.. autofunction:: tensornetwork.contractors.optimal
+.. autofunction:: tensornetwork.contractors.auto
+.. autofunction:: tensornetwork.contractors.optimal

@@ -31,7 +31,8 @@ Tensor = Any
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate `node`
+  """Conjugate `node`.
+
   Args:
     node: A `BaseNode`. 
     name: Optional name to give the new node.
@@ -92,14 +93,14 @@ def transpose(node: BaseNode,
 
 def copy(nodes: Iterable[BaseNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
-  """
+  """Return a copy of the given nodes.
 
-  Return a copy of the TensorNetwork.
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
     conjugate: Boolean. Whether to conjugate all of the nodes in the
-      `TensorNetwork` (useful for calculating norms and reduced density
-      matrices).
+        `TensorNetwork` (useful for calculating norms and reduced density
+        matrices).
+
   Returns:
     A tuple containing:
       node_dict: A dictionary mapping the nodes of the original
@@ -367,7 +368,7 @@ def split_node_rq(
   2 axes. Let :math:`QR = M^*` be the QR Decomposition of
   :math:`M^*`. This will split the network into 2 nodes. The left node's
   tensor will be :math:`R^*` (a lower triangular matrix) and the right 
-    node's tensor will be :math:`Q^*` (an orthonormal matrix)
+  node's tensor will be :math:`Q^*` (an orthonormal matrix)
 
   Args:
     node: The node you want to split.
