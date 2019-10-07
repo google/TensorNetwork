@@ -26,7 +26,7 @@ class NumPyBackend(base_backend.BaseBackend):
     super(NumPyBackend, self).__init__()
     self.np = numpy
     self.name = "numpy"
-    self._dtype = dtype
+    self._dtype = self.np.dtype(dtype)
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
@@ -135,9 +135,11 @@ class NumPyBackend(base_backend.BaseBackend):
       self.np.random.seed(seed)
 
     if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
+      dtype = (self.dtype if self.dtype is not None
+               else self.np.dtype(self.np.float64))
 
-    if (dtype is self.np.complex128) or (dtype is self.np.complex64):
+    if ((dtype is self.np.dtype(self.np.complex128))
+            or (dtype is self.np.dtype(self.np.complex64))):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
