@@ -13,7 +13,6 @@
 # limitations under the License.
 """Implementation of TensorNetwork structure."""
 
-import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence, Iterable
 import numpy as np
@@ -1809,13 +1808,39 @@ def outer_product(node1: BaseNode,
 
 
 class NodeCollection:
+  """Context manager for easy collection of a set or list of nodes.
 
-  def __init__(self, container):
+  The following examples are equivalent:
+  ```python
+  # 1. Using a NodeCollection context:
+  nodes_set = set()
+  with NodeCollection(nodes_set):
+    a = tn.Node(...)
+    b = tn.Node(...)
+  # 2. Explicitly adding each node to the set:
+  nodes_set = set()
+  a = tn.Node(...)
+  nodes_set.add(a)
+  b = tn.Node(...)
+  nodes_set.add(b)
+  ```
+  """
+
+  def __init__(self, container: Union[Set[BaseNode], List[BaseNode]]):
+    """Initialize the NodeCollection context manager
+
+    Args:
+      container: The container to hold the created nodes, can be a list or a set.
+
+    Raises:
+      ValueError: If container is not a list or set.
+    """
+
     if not isinstance(container, (list, set)):
       raise ValueError("Item passed to NodeCollection must be list or set")
     self._container = container
 
-  def add(self, node):
+  def add(self, node: BaseNode):
     if isinstance(self._container, set):
       self._container.add(node)
     else:
