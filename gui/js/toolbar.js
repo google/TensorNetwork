@@ -121,7 +121,7 @@ Vue.component(
                 <h2>Create New Node</h2>
                 <div class="button-holder">
                     <form @submit="createNode">
-                        <input type="text" v-model="createNodeName" />
+                        <input type="text" v-model="createNodeName" placeholder="name" />
                         <input type="submit" value="Create" :disabled="createNodeDisabled" />
                     </form>
                 </div>
