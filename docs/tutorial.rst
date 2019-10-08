@@ -102,8 +102,6 @@ The methods `contract_between` or `contract_parallel` will do this for you autom
     edge2 = node1[1] ^ node2[1]
     tn.contract(edge1)
     result = tn.contract(edge2)
-    # You can use `get_final_node` to make sure your network 
-    # is fully contracted.
     return result.tensor
 
   def use_contract_between(a, b):
@@ -114,8 +112,6 @@ The methods `contract_between` or `contract_parallel` will do this for you autom
     # This is the same as
     # tn.contract_between(node1, node2)
     result = node1 @ node2 
-    # You can use `get_final_node` to make sure your network 
-    # is fully contracted.
     return result.tensor
 
   a = np.ones((1000, 1000))
