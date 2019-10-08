@@ -67,7 +67,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
       complex_part = self.jax.random.normal(key_2, shape, dtype=real_dtype)
       unit = (np.complex64(1j) if complex_dtype == np.dtype(np.complex64)
               else np.complex128(1j))
-      return real_part + unit*complex_part
+      return real_part + unit * complex_part
 
     if dtype is np.dtype(self.np.complex128):
       return cmplx_randn(dtype, self.np.float64)
