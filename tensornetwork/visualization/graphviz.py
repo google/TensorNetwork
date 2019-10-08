@@ -14,13 +14,14 @@
 """Implementation of TensorNetwork Graphviz visualization."""
 
 import graphviz
-from typing import Optional, Text
+from typing import Optional, Text, Sequence
 from tensornetwork import network
 
 
 #pylint: disable=no-member
-def to_graphviz(net: network.TensorNetwork,
+def to_graphviz(net: network.TensorNetwork = None,
                 graph: Optional[graphviz.Graph] = None,
+                nodes: Optional[Sequence] = None,
                 include_all_names: bool = False,
                 engine: Text = "neato") -> graphviz.Graph:
   """Create a graphviz Graph that is isomorphic to the given TensorNetwork.
@@ -29,6 +30,9 @@ def to_graphviz(net: network.TensorNetwork,
     net: A `TensorNetwork`.
     graph: An optional `graphviz.Graph` object to write to. Use this only
       if you wish to set custom attributes for the graph.
+    nodes: An optinal Sequence object(list, numpy.array, set,etc). If only
+    nodes are known and if the Tensornet passed is none. This should be 
+    passed if net is none.
     include_all_names: Whether to include all of the names in the graph.
       If False, all names starting with '__' (which are almost always just
       the default generated names) will be dropped to reduce clutter.
@@ -40,36 +44,47 @@ def to_graphviz(net: network.TensorNetwork,
   if graph is None:
     #pylint: disable=no-member
     graph = graphviz.Graph('G', engine=engine)
-  for node in net.nodes_set:
-    if not node.name.startswith("__") or include_all_names:
-      label = node.name
+  if not net:
+    for node in net.nodes_set:
+      if not node.name.startswith("__") or include_all_names:
+        label = node.name
+      else:
+        label = ""
+      graph.node(str(node.signature), label=label)
+    seen_edges = set()
+    for node in net.nodes_set:
+      for i, edge in enumerate(node.edges):
+        if edge in seen_edges:
+          continue
+        seen_edges.add(edge)
+        if not edge.name.startswith("__") or include_all_names:
+          edge_label = edge.name
+        else:
+          edge_label = ""
+        if edge.is_dangling():
+          # We need to create an invisible node for the dangling edge
+          # to connect to.
+          graph.node(
+              "{}_{}".format(node.signature, i),
+              label="",
+              _attributes={"style": "invis"})
+          graph.edge(
+              "{}_{}".format(node.signature, i),
+              str(node.signature),
+              label=edge_label)
+        else:
+          graph.edge(
+              str(edge.node1.signature),
+              str(edge.node2.signature),
+              label=edge_label)
+  else:
+    if not nodes:
+      for node in nodes:
+        if not node.name.startswith("__") or include_all_names:
+          label = node.name
+        else:
+          label = ""
+        graph.node(str(node.signature), label=label)
     else:
-      label = ""
-    graph.node(str(node.signature), label=label)
-  seen_edges = set()
-  for node in net.nodes_set:
-    for i, edge in enumerate(node.edges):
-      if edge in seen_edges:
-        continue
-      seen_edges.add(edge)
-      if not edge.name.startswith("__") or include_all_names:
-        edge_label = edge.name
-      else:
-        edge_label = ""
-      if edge.is_dangling():
-        # We need to create an invisible node for the dangling edge
-        # to connect to.
-        graph.node(
-            "{}_{}".format(node.signature, i),
-            label="",
-            _attributes={"style": "invis"})
-        graph.edge(
-            "{}_{}".format(node.signature, i),
-            str(node.signature),
-            label=edge_label)
-      else:
-        graph.edge(
-            str(edge.node1.signature),
-            str(edge.node2.signature),
-            label=edge_label)
+      raise ValueError("attribute 'nodes' should be passed if attribute 'net' is not passed.")
   return graph
