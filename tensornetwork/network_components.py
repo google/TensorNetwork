@@ -1480,13 +1480,14 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
 def contract(edge: Edge,
              name: Optional[Text] = None,
              axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """
-  Contract an edge connecting two nodes.
+  """Contract an edge connecting two nodes.
+
   All edges of `node1` and `node2` are passed on to the new node,
   and `node1` and `node2` get a new set of dangling edges.
-  `edge is disabled before returning.
+  `edge` is disabled before returning.
+
   Args:
-    edge: The edge contract next.
+    edge: The edge to contract.
     name: Name of the new node created.
 
   Returns:
@@ -1593,7 +1594,7 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
     raise ValueError("Cannot connect edges of unequal dimension. "
                      "Dimension of edge '{}': {}, "
                      "Dimension of edge '{}': {}.".format(
-                         edge1, edge2.dimension, edge2, edge2.dimension))
+                         edge1, edge1.dimension, edge2, edge2.dimension))
 
   #edge1 and edg2 are always dangling in this case
   node1 = edge1.node1

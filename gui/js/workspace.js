@@ -63,10 +63,6 @@ Vue.component(
                     if (this.axisOccupied(node, axis)) {
                         return;
                     }
-                    if (this.protoEdge.node.name === node.name
-                        && this.protoEdge.axis === axis) {
-                        return; // don't allow connection of an axis to itself
-                    }
                     this.state.edges.push([
                         [this.protoEdge.node.name, this.protoEdge.axis],
                         [node.name, axis]
@@ -97,22 +93,4 @@ Vue.component(
 		`
 	}
 );
-
-let app = new Vue({
-    el: '#app',
-    data: {
-        state: initialState // now state object is reactive, whereas initialState is not
-    },
-    template: `
-        <div>
-        <div class="app">
-			<workspace :state="state" />
-			<toolbar :state="state" />
-        </div>
-        <code-output :state="state" />
-        </div>
-
-    `
-});
-
 
