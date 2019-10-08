@@ -15,6 +15,7 @@
 
 import graphviz
 from tensornetwork.visualization.graphviz import to_graphviz
+from tensornetwork.network_components import Node
 import tensornetwork
 import numpy as np
 
@@ -27,3 +28,8 @@ def test_sanity_check():
   g = to_graphviz(net)
   #pylint: disable=no-member
   assert isinstance(g, graphviz.Graph)
+  nodes = set([Node([2,3,4],name="s"+str(i)) for i in range(10)])
+  g = to_graphviz(nodes=nodes)
+  #pylint: disable=no-member
+  assert isinstance(g, graphviz.Graph)
+
