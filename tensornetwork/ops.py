@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class _DefaultStack:
+class _DefaultNodeCollectionStack:
   """A stack to keep track of contexts that were entered."""
 
   def __init__(self):
@@ -22,7 +22,7 @@ class _DefaultStack:
     return self.stack[-1] if self.stack else None
 
 
-_default_collection_stack = _DefaultStack()
+_default_collection_stack = _DefaultNodeCollectionStack()
 
 
 def get_current_collection():

@@ -97,6 +97,10 @@ class BaseNode(ABC):
 
     self._signature = -1
 
+    collection = ops.get_current_collection()
+    if collection is not None:
+      collection.add(self)
+
     super().__init__()
 
   @property
@@ -538,10 +542,6 @@ class Node(BaseNode):
         shape=backend_obj.shape_tuple(self._tensor))
     if self.backend and not self.backend.dtype:
       self.backend.dtype = self._tensor.dtype
-
-    collection = ops.get_current_collection()
-    if collection is not None:
-      collection.add(self)
 
   def get_tensor(self):
     return self.tensor

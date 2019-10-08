@@ -880,3 +880,29 @@ def test_add_to_node_collection_set():
     b = Node(np.eye(3))
 
   assert container == {a, b}
+
+def test_copy_node_add_to_node_collection():
+  container = set()
+  with NodeCollection(container):
+    a = tn.CopyNode(
+        rank=4,
+        dimension=3,
+        name='copier1',
+        axis_names=[str(n) for n in range(4)])
+    b = tn.CopyNode(
+        rank=2,
+        dimension=3,
+        name='copier2',
+        axis_names=[str(n) for n in range(2)])
+  assert container == {a, b}
+
+def test_add_to_node_collection_nested():
+  container1 = set()
+  container2 = set()
+  with NodeCollection(container1):
+    with NodeCollection(container2):
+      a = Node(np.eye(2))
+      b = Node(np.eye(3))
+
+  assert container1 == set()
+  assert container2 == {a, b}
