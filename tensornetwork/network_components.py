@@ -13,7 +13,6 @@
 # limitations under the License.
 """Implementation of TensorNetwork structure."""
 
-import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence, Iterable
 import numpy as np
@@ -23,6 +22,7 @@ import h5py
 
 #pylint: disable=useless-import-alias
 import tensornetwork.config as config
+from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 
@@ -96,6 +96,10 @@ class BaseNode(ABC):
       self._axis_names = [str(i) for i in range(len(shape))]
 
     self._signature = -1
+
+    collection = ops.get_current_collection()
+    if collection is not None:
+      collection.add(self)
 
     super().__init__()
 
@@ -1590,7 +1594,7 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
     raise ValueError("Cannot connect edges of unequal dimension. "
                      "Dimension of edge '{}': {}, "
                      "Dimension of edge '{}': {}.".format(
-                         edge1, edge2.dimension, edge2, edge2.dimension))
+                         edge1, edge1.dimension, edge2, edge2.dimension))
 
   #edge1 and edg2 are always dangling in this case
   node1 = edge1.node1
@@ -1802,3 +1806,50 @@ def outer_product(node1: BaseNode,
   node2.fresh_edges(node2_axis_names)
 
   return new_node
+
+
+class NodeCollection:
+  """Context manager for easy collection of a set or list of nodes.
+
+  The following examples are equivalent:
+  ```python
+  # 1. Using a NodeCollection context:
+  nodes_set = set()
+  with NodeCollection(nodes_set):
+    a = tn.Node(...)
+    b = tn.Node(...)
+  # 2. Explicitly adding each node to the set:
+  nodes_set = set()
+  a = tn.Node(...)
+  nodes_set.add(a)
+  b = tn.Node(...)
+  nodes_set.add(b)
+  ```
+  """
+
+  def __init__(self, container: Union[Set[BaseNode], List[BaseNode]]):
+    """Initialize the NodeCollection context manager
+
+    Args:
+      container: The container to hold the created nodes, can be a list or a
+        set.
+
+    Raises:
+      ValueError: If container is not a list or set.
+    """
+
+    if not isinstance(container, (list, set)):
+      raise ValueError("Item passed to NodeCollection must be list or set")
+    self._container = container
+
+  def add(self, node: BaseNode):
+    if isinstance(self._container, set):
+      self._container.add(node)
+    else:
+      self._container.append(node)
+
+  def __enter__(self):
+    ops._default_collection_stack.stack.append(self)
+
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    ops._default_collection_stack.stack.pop()

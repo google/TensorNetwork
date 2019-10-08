@@ -3,7 +3,8 @@ import tensorflow as tf
 import pytest
 from collections import namedtuple
 import h5py
-from tensornetwork.network_components import Node, CopyNode, Edge
+#pylint: disable=line-too-long
+from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection
 import tensornetwork as tn
 
 string_type = h5py.special_dtype(vlen=str)
@@ -862,3 +863,46 @@ def test_save_load_nodes(backend, tmp_path):
   trace = tn.contract_trace_edges(nodes[2])
   loaded_trace = tn.contract_trace_edges(loaded_nodes[2])
   np.testing.assert_allclose(trace.tensor, loaded_trace.tensor)
+
+
+def test_add_to_node_collection_list():
+  container = []
+  with NodeCollection(container):
+    a = Node(np.eye(2))
+    b = Node(np.eye(3))
+
+  assert container == [a, b]
+
+def test_add_to_node_collection_set():
+  container = set()
+  with NodeCollection(container):
+    a = Node(np.eye(2))
+    b = Node(np.eye(3))
+
+  assert container == {a, b}
+
+def test_copy_node_add_to_node_collection():
+  container = set()
+  with NodeCollection(container):
+    a = tn.CopyNode(
+        rank=4,
+        dimension=3,
+        name='copier1',
+        axis_names=[str(n) for n in range(4)])
+    b = tn.CopyNode(
+        rank=2,
+        dimension=3,
+        name='copier2',
+        axis_names=[str(n) for n in range(2)])
+  assert container == {a, b}
+
+def test_add_to_node_collection_nested():
+  container1 = set()
+  container2 = set()
+  with NodeCollection(container1):
+    with NodeCollection(container2):
+      a = Node(np.eye(2))
+      b = Node(np.eye(3))
+
+  assert container1 == set()
+  assert container2 == {a, b}

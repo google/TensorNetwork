@@ -63,7 +63,7 @@ def transpose(node: BaseNode,
   """Transpose `node`
   Args:
     node: A `BaseNode`. 
-    permutation: A list of int ro str. The permutation of the axis
+    permutation: A list of int or str. The permutation of the axis
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
   Returns:
