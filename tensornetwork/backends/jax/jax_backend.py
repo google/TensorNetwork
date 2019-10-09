@@ -14,7 +14,7 @@
 
 from typing import Any, Optional, Tuple
 from tensornetwork.backends.numpy import numpy_backend
-import numpy
+import numpy as np
 
 Tensor = Any
 
@@ -22,7 +22,7 @@ Tensor = Any
 class JaxBackend(numpy_backend.NumPyBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype] = None):
+  def __init__(self, dtype: Optional[np.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
@@ -33,7 +33,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
-    self._dtype = dtype
+    self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
@@ -44,29 +44,34 @@ class JaxBackend(numpy_backend.NumPyBackend):
     return result
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
-    return numpy.concatenate(values, axis)
+    return np.concatenate(values, axis)
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[numpy.dtype] = None,
+            dtype: Optional[np.dtype] = None,
             seed: Optional[int] = None) -> Tensor:
     if not seed:
-      seed = numpy.random.randint(0, 2**63)
+      seed = np.random.randint(0, 2**63)
     key = self.jax.random.PRNGKey(seed)
 
     if not dtype:
-      dtype = self.dtype if self.dtype is not None else numpy.float64
+      dtype = self.dtype if self.dtype is not None else np.dtype(np.float64)
 
     def cmplx_randn(complex_dtype, real_dtype):
-      key_2 = self.jax.random.PRNGKey(seed + 1)
-      return self.jax.random.normal(
-          key, shape,
-          dtype=real_dtype) + complex_dtype(1j) * self.jax.random.normal(
-              key_2, shape, dtype=real_dtype)
+      real_dtype = np.dtype(real_dtype)
+      complex_dtype = np.dtype(complex_dtype)
 
-    if dtype is self.np.complex128:
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+
+      real_part = self.jax.random.normal(key, shape, dtype=real_dtype)
+      complex_part = self.jax.random.normal(key_2, shape, dtype=real_dtype)
+      unit = (np.complex64(1j) if complex_dtype == np.dtype(np.complex64)
+              else np.complex128(1j))
+      return real_part + unit * complex_part
+
+    if dtype is np.dtype(self.np.complex128):
       return cmplx_randn(dtype, self.np.float64)
-    if dtype is self.np.complex64:
+    if dtype is np.dtype(self.np.complex64):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
