@@ -19,8 +19,6 @@ import torch
 import jax
 from jax.config import config
 
-from tensornetwork import Edge
-
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
 torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]

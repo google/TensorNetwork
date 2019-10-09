@@ -96,7 +96,8 @@ def copy(nodes: Iterable[BaseNode],
   """Copy the given nodes and their edges.
 
   This will return a dictionary linking original nodes/edges 
-  to their copies. If nodes A and B are connected but only A is passed in to be copied, the edge between them will become a dangling edge.
+  to their copies. If nodes A and B are connected but only A is passed in to be
+  copied, the edge between them will become a dangling edge.
 
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
