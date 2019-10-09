@@ -96,7 +96,7 @@ def copy(nodes: Iterable[BaseNode],
   """Copy the given nodes and their edges.
 
   This will return a dictionary linking original nodes/edges 
-  to their copies.
+  to their copies. If nodes A and B are connected but only A is passed in to be copied, the edge between them will become a dangling edge.
 
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
@@ -131,18 +131,17 @@ def copy(nodes: Iterable[BaseNode],
     node1 = edge.node1
     axis1 = edge.node1.get_axis_number(edge.axis1)
 
-    if not edge.is_dangling():
+    if not edge.is_dangling() and edge.node2 in node_dict:
       node2 = edge.node2
       axis2 = edge.node2.get_axis_number(edge.axis2)
       new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
                       axis2)
       new_edge.set_signature(edge.signature)
+      node_dict[node2].add_edge(new_edge, axis2)
     else:
       new_edge = Edge(node_dict[node1], axis1, edge.name)
 
     node_dict[node1].add_edge(new_edge, axis1)
-    if not edge.is_dangling():
-      node_dict[node2].add_edge(new_edge, axis2)
     edge_dict[edge] = new_edge
   return node_dict, edge_dict
 

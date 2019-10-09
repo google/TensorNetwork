@@ -85,11 +85,13 @@ def test_tnwork_copy_subgraph(backend):
   b = tn.Node(np.random.rand(3, 3, 3), name='b', backend=backend)
   c = tn.Node(np.random.rand(3, 3, 3), name='c', backend=backend)
   a[0] ^ b[1]
-  b[2] ^ c[0]
+  edge2 = b[2] ^ c[0]
   node_dict, edge_dict = tn.copy({a, b})
-  expected_edge = Edge(node_dict[a], 0, 'a', node_dict[b], 1)
-  assert tn.get_all_nondangling(node_dict.values()) == {expected_edge}
-  assert a.get_all_nondangling() == {expected_edge}
+  cut_edge: Edge = edge_dict[edge2]
+  assert edge_dict[edge2].is_dangling()
+  assert cut_edge.axis1 == 2
+  assert cut_edge.get_nodes() == [node_dict[b], None]
+  assert len(a.get_all_nondangling()) == 1
 
 
 def test_connect_axis_names(backend):
