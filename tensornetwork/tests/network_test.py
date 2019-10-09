@@ -19,6 +19,8 @@ import torch
 import jax
 from jax.config import config
 
+from tensornetwork import Edge
+
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
 torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
@@ -76,6 +78,18 @@ def test_tnwork_copy_identities(backend):
     assert not node_dict[node] is node
   for edge in tn.get_all_edges({a, b, c}):
     assert not edge_dict[edge] is edge
+
+
+def test_tnwork_copy_subgraph(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name='a', backend=backend)
+  b = tn.Node(np.random.rand(3, 3, 3), name='b', backend=backend)
+  c = tn.Node(np.random.rand(3, 3, 3), name='c', backend=backend)
+  a[0] ^ b[1]
+  b[2] ^ c[0]
+  node_dict, edge_dict = tn.copy({a, b})
+  expected_edge = Edge(node_dict[a], 0, 'a', node_dict[b], 1)
+  assert tn.get_all_nondangling(node_dict.values()) == {expected_edge}
+  assert a.get_all_nondangling() == {expected_edge}
 
 
 def test_connect_axis_names(backend):
