@@ -131,19 +131,30 @@ def copy(nodes: Iterable[BaseNode],
   for edge in get_all_edges(nodes):
     node1 = edge.node1
     axis1 = edge.node1.get_axis_number(edge.axis1)
-
-    if not edge.is_dangling() and edge.node2 in node_dict:
-      node2 = edge.node2
-      axis2 = edge.node2.get_axis_number(edge.axis2)
-      new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
-                      axis2)
-      new_edge.set_signature(edge.signature)
-      node_dict[node2].add_edge(new_edge, axis2)
-    else:
+    # edge dangling or node2 does not need to be copied
+    if edge.is_dangling() or edge.node2 not in node_dict:
       new_edge = Edge(node_dict[node1], axis1, edge.name)
+      node_dict[node1].add_edge(new_edge, axis1)
+      edge_dict[edge] = new_edge
+      continue
 
+    node2 = edge.node2
+    axis2 = edge.node2.get_axis_number(edge.axis2)
+    # copy node2 but not node1
+    if node1 not in node_dict:
+      new_edge = Edge(node_dict[node2], axis2, edge.name)
+      node_dict[node2].add_edge(new_edge, axis2)
+      edge_dict[edge] = new_edge
+      continue
+
+    # both nodes should be copied
+    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
+                    axis2)
+    new_edge.set_signature(edge.signature)
+    node_dict[node2].add_edge(new_edge, axis2)
     node_dict[node1].add_edge(new_edge, axis1)
     edge_dict[edge] = new_edge
+
   return node_dict, edge_dict
 
 
