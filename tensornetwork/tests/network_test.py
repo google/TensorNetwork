@@ -85,7 +85,7 @@ def test_tnwork_copy_subgraph(backend):
   a[0] ^ b[1]
   edge2 = b[2] ^ c[0]
   node_dict, edge_dict = tn.copy({a, b})
-  cut_edge: Edge = edge_dict[edge2]
+  cut_edge = edge_dict[edge2]
   assert edge_dict[edge2].is_dangling()
   assert cut_edge.axis1 == 2
   assert cut_edge.get_nodes() == [node_dict[b], None]
