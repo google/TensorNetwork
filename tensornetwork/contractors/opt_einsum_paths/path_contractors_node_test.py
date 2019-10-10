@@ -96,3 +96,28 @@ def test_custom_sanity_check(backend):
   optimizer = PathOptimizer()
   final_node = path_contractors.custom(nodes, optimizer)
   np.testing.assert_allclose(final_node.tensor, np.ones(5) * 2.0)
+
+
+def test_subgraph_contraction(backend, path_algorithm):
+  a = tn.Node(np.ones((2, 2)), backend=backend)
+  b = tn.Node(np.ones((2, 2)), backend=backend)
+  c = tn.Node(np.ones((2, 2)), backend=backend)
+  a[0] ^ b[0]
+  c[0] ^ b[1]
+  result = path_algorithm({a, b}, [a[1], b[1]])
+  final = result @ c
+  np.testing.assert_allclose(final.tensor, np.ones((2, 2)) * 4)
+
+def test_multiple_partial_contractions(backend, path_algorithm):
+  a = tn.Node(np.eye(2), backend=backend)
+  b = tn.Node(np.eye(2), backend=backend)
+  c = tn.Node(np.eye(2), backend=backend)  
+  d = tn.Node(np.eye(2), backend=backend)
+  a[0] ^ b[1]
+  b[0] ^ c[1]
+  c[0] ^ d[1]
+  d[0] ^ a[1]
+  ab = path_algorithm({a, b}, list(tn.get_subgraph_dangling({a, b})))
+  cd = path_algorithm({c, d}, list(tn.get_subgraph_dangling({c, d})))
+  result = path_algorithm({ab, cd})
+  np.testing.assert_allclose(result.tensor, 2.0)
