@@ -136,7 +136,7 @@ print(n.tensor)
 ```
 
 ## Different backend support.
-Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends. 
+Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends. 
 
 To change the default global backend, you can do:
 ```python
