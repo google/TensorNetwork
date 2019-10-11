@@ -1325,7 +1325,7 @@ def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
 
 
 def _split_trace_edge(edge: Edge,
-                      shape: Tuple[int],
+                      shape: Tuple[int, ...],
                       new_edge_names: Optional[List[Text]] = None,
                       ) -> List[Edge]:
   """Split trace edges into single edge.
