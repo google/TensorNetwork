@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper methods for `path_contractors`."""
-from tensornetwork.network_operations import get_all_edges
 # pylint: disable=line-too-long
+from tensornetwork.network_operations import get_all_edges, get_subgraph_dangling
 from tensornetwork.network_components import get_all_nondangling
 from tensornetwork.network import TensorNetwork
 from tensornetwork.network_components import BaseNode, Edge
@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, List, Set, Tuple, Iterable, Union
 # `opt_einsum` algorithm method typing
 Algorithm = Callable[[List[Set[Edge]], Set[Edge], Dict[Edge, Any]], List[
     Tuple[int, int]]]
-
 
 def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
   """Remove multiple indicies in a list at once."""
@@ -42,7 +41,7 @@ def _get_path_nodes(nodes: Iterable[BaseNode], algorithm: Algorithm
   sorted_nodes = sorted(nodes, key=lambda n: n.signature)
 
   input_sets = [set(node.edges) for node in sorted_nodes]
-  output_set = get_all_edges(nodes) - get_all_nondangling(nodes)
+  output_set = get_subgraph_dangling(nodes)
   size_dict = {edge: edge.dimension for edge in get_all_edges(nodes)}
 
   return algorithm(input_sets, output_set, size_dict), sorted_nodes

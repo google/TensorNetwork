@@ -96,3 +96,41 @@ def test_custom_sanity_check(backend):
   optimizer = PathOptimizer()
   final_node = path_contractors.custom(nodes, optimizer)
   np.testing.assert_allclose(final_node.tensor, np.ones(5) * 2.0)
+
+
+def test_subgraph_contraction(backend, path_algorithm):
+  a_tensor = np.arange(4).reshape((2, 2))
+  b_tensor = np.arange(4).reshape((2, 2)) + 10
+  c_tensor = np.arange(4).reshape((2, 2)) + 20
+  a = tn.Node(a_tensor, backend=backend)
+  b = tn.Node(b_tensor, backend=backend)
+  c = tn.Node(c_tensor, backend=backend)
+  a[0] ^ b[1]
+  c[1] ^ b[0]
+  remaining_edges = [c[0], a[1]]
+  result = path_algorithm({a, b}, [b[0], a[1]])
+  np.testing.assert_allclose(result.tensor, b_tensor @ a_tensor)
+  final = (c @ result).reorder_edges(remaining_edges)
+  np.testing.assert_allclose(final.tensor, c_tensor @ b_tensor @ a_tensor)
+
+
+def test_multiple_partial_contractions(backend, path_algorithm):
+  a_tensor = np.arange(4).reshape((2, 2))
+  b_tensor = np.arange(4).reshape((2, 2)) + 10
+  c_tensor = np.arange(4).reshape((2, 2)) + 20
+  d_tensor = np.arange(4).reshape((2, 2)) + 30
+  a = tn.Node(a_tensor, backend=backend)
+  b = tn.Node(b_tensor, backend=backend)
+  c = tn.Node(c_tensor, backend=backend)  
+  d = tn.Node(d_tensor, backend=backend)
+  a[1] ^ b[0]
+  b[1] ^ c[0]
+  c[1] ^ d[0]
+  d[1] ^ a[0]
+  ab = path_algorithm({a, b}, [a[0], b[1]])
+  np.testing.assert_allclose(ab.tensor, a_tensor @ b_tensor)
+  cd = path_algorithm({c, d}, [c[0], d[1]])
+  np.testing.assert_allclose(cd.tensor, c_tensor @ d_tensor)
+  result = path_algorithm({ab, cd})
+  np.testing.assert_allclose(
+      result.tensor, np.trace(a_tensor @ b_tensor @ c_tensor @ d_tensor))

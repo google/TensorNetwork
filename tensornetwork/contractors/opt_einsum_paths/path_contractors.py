@@ -17,7 +17,8 @@
 import functools
 import opt_einsum
 from tensornetwork.network import TensorNetwork
-from tensornetwork.network_operations import check_connected, get_all_edges
+# pylint: disable=line-too-long
+from tensornetwork.network_operations import check_connected, get_all_edges, get_subgraph_dangling
 # pylint: disable=line-too-long
 from tensornetwork.network_components import get_all_nondangling, contract_parallel
 from tensornetwork.network_components import Edge, BaseNode
@@ -48,20 +49,21 @@ def _base_nodes(nodes: Iterable[BaseNode],
   """
   nodes_set = set(nodes)
   check_connected(nodes_set)
-  edges = get_all_nondangling(nodes_set)
+  edges = get_all_edges(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
   if output_edge_order is None:
-    output_edge_order = list(
-        (get_all_edges(nodes) - get_all_nondangling(nodes)))
+    output_edge_order = list(get_subgraph_dangling(nodes))
     if len(output_edge_order) > 1:
       raise ValueError("The final node after contraction has more than "
-                       "one dangling edge. In this case `output_edge_order` "
+                       "one remaining edge. In this case `output_edge_order` "
                        "has to be provided.")
 
-  if set(output_edge_order) != (
-      get_all_edges(nodes) - get_all_nondangling(nodes)):
-    raise ValueError("output edges are not all dangling.")
+  if set(output_edge_order) != get_subgraph_dangling(nodes):
+    raise ValueError(
+        "output edges are not equal to the remaining "
+        "non-contracted edges of the final node."
+    )
 
   for edge in edges:
     if not edge.is_disabled:  #if its disabled we already contracted it
@@ -69,7 +71,7 @@ def _base_nodes(nodes: Iterable[BaseNode],
         nodes_set.remove(edge.node1)
         nodes_set.add(contract_parallel(edge))
 
-  if not get_all_nondangling(nodes_set):
+  if len(nodes_set) == 1:
     # There's nothing to contract.
     return list(nodes_set)[0]
 
