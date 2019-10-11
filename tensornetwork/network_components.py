@@ -1367,7 +1367,7 @@ def _split_trace_edge(edge: Edge,
 
 
 def split_edge(edge: Edge,
-               shape: Tuple[int],
+               shape: Tuple[int, ...],
                new_edge_names: Optional[List[Text]] = None) ->  List[Edge]:
   """Split an `Edge` into multiple edges according to `shape`. Reshapes
   the underlying tensors connected to the edge accordingly. 
