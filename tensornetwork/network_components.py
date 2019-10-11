@@ -28,7 +28,7 @@ from tensornetwork.backends.base_backend import BaseBackend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
-# This is required because of the circular dependancy between
+# This is required because of the circular dependency between
 # network_components.py and network.py types.
 TensorNetwork = Any
 
