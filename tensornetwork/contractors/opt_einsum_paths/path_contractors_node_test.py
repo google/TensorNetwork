@@ -133,4 +133,4 @@ def test_multiple_partial_contractions(backend, path_algorithm):
   np.testing.assert_allclose(cd.tensor, c_tensor @ d_tensor)
   result = path_algorithm({ab, cd})
   np.testing.assert_allclose(
-    result.tensor, np.trace(a_tensor @ b_tensor @ c_tensor @ d_tensor))
+      result.tensor, np.trace(a_tensor @ b_tensor @ c_tensor @ d_tensor))
