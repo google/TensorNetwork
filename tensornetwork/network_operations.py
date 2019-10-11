@@ -664,6 +664,24 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
     edges |= set(node.edges)
   return edges
 
+def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+  """Get all of the edges that are "relatively dangling" to the given nodes.
+
+  A "relatively dangling" edge is an edge that is either actually dangling
+  or is connected to another node that is outside of the given collection
+  of `nodes`.
+  
+  Args:
+    nodes: A set of nodes.
+
+  Returns:
+    The set of "relatively danlging edges.
+  """
+  output = set()
+  for edge in get_all_edges(nodes):
+    if edge.is_dangling() or not set(edge.get_nodes()) <= set(nodes):
+      output.add(edge)
+  return output
 
 def contract_trace_edges(node: BaseNode) -> BaseNode:
   """
