@@ -1360,7 +1360,8 @@ def _split_trace_edge(edge: Edge,
     node.edges[len(perm_front) + idx] = edge1
     node.edges[len(perm_front) + len(shape) + idx] = edge2
     new_edges.append(connect(edge1, edge2,
-        new_edge_names[idx] if new_edge_names is not None else None))
+                             new_edge_names[idx] if new_edge_names is not None
+                             else None))
   # pylint: disable=expression-not-assigned
   edge.disable() # disable old edge!
   return new_edges
@@ -1394,8 +1395,8 @@ def split_edge(edge: Edge,
   # Check if reshape operation is possible.
   if not np.prod(shape) == edge.dimension:
     raise ValueError(
-          "Edge {} with dimension {} cannot be split according to "
-          "shape {}.".format(edge, edge.dimension, shape))
+        "Edge {} with dimension {} cannot be split according to "
+        "shape {}.".format(edge, edge.dimension, shape))
 
   # Handle trace edge case separately.
   if edge.is_trace():
@@ -1426,8 +1427,8 @@ def split_edge(edge: Edge,
     # Create new dangling edges.    
     for idx in range(len(shape)):
       new_dangling_edge = Edge(node1=node, axis1=len(perm_front) + idx,
-                                name=new_edge_names[idx] if new_edge_names
-                                  is not None else None)
+                               name=new_edge_names[idx] if new_edge_names
+                               is not None else None)
       node.edges += [new_dangling_edge]      
       new_dangling_edges.append(new_dangling_edge)
 
@@ -1445,7 +1446,7 @@ def split_edge(edge: Edge,
     new_edges.append(connect(new_dangling_edges[idx],
                              new_dangling_edges[len(shape) + idx],
                              new_edge_names[idx] if new_edge_names
-                              is not None else None))  
+                             is not None else None))  
   return new_edges
   
 
