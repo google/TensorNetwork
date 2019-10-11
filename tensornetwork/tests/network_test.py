@@ -293,6 +293,66 @@ def test_flatten_edges_different_nodes_value_error(backend):
     tn.flatten_edges([e1, e2])
 
 
+def test_split_trace_edge(backend):
+  a = tn.Node(np.zeros((2, 6, 4, 6, 5, 5)), backend=backend)
+  c = tn.Node(np.zeros((2, 4)), backend=backend)
+  e1 = tn.connect(a[1], a[3])
+  e2 = tn.connect(a[4], a[5])
+  external_1 = tn.connect(a[0], c[0])
+  external_2 = tn.connect(c[1], a[2])
+  shape = (2, 1, 3)
+  new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
+  new_edges = tn.split_edge(e1, shape, new_edge_names)  
+  assert a.shape == (2, 4, 5, 5) + shape + shape
+  assert a.edges == [external_1, external_2, e2, e2, *new_edges, *new_edges]
+  for i, new_edge in enumerate(new_edges):
+    assert new_edge.name == new_edge_names[i]
+  tn.check_correct({a, c})
+
+
+def test_split_edges_standard(backend):
+  a = tn.Node(np.zeros((6, 3, 5)), name="A", backend=backend)
+  b = tn.Node(np.zeros((2, 4, 6, 3)), name="B", backend=backend)
+  e1 = tn.connect(a[0], b[2], "Edge_1_1") # to be split
+  e2 = tn.connect(a[1], b[3], "Edge_1_2") # background standard edge
+  edge_a_2 = a[2] # dangling
+  edge_b_0 = b[0] # dangling
+  edge_b_1 = b[1] # dangling
+  shape = (2, 1, 3)
+  new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
+  new_edges = tn.split_edge(e1, shape, new_edge_names)
+  assert a.shape == (3, 5) + shape
+  assert b.shape == (2, 4, 3) + shape
+  assert a.edges == [e2, edge_a_2, *new_edges]
+  assert b.edges == [edge_b_0, edge_b_1, e2, *new_edges]
+  for i, new_edge in enumerate(new_edges):
+    assert new_edge.name == new_edge_names[i]
+  tn.check_correct({a, b})
+
+
+def test_split_edges_dangling(backend):
+  a = tn.Node(np.zeros((2, 10, 4, 5)), name="A", backend=backend)
+  e1 = a[0]
+  e2 = a[1]
+  e3 = a[2]
+  e4 = a[3]
+  shape = (2, 5)
+  new_edge_names = ["New Edge 2", "New Edge 5"]
+  new_edges = tn.split_edge(e2, shape, new_edge_names)
+  assert a.shape == (2, 4, 5, 2, 5)
+  assert a.edges == [e1, e3, e4, *new_edges]
+  for i, new_edge in enumerate(new_edges):
+    assert new_edge.name == new_edge_names[i]
+  tn.check_correct({a})
+
+
+def test_split_edges_dimension_mismatch_value_error(backend):
+  a = tn.Node(np.eye(5), backend=backend)
+  e1 = tn.connect(a[0], a[1])
+  with pytest.raises(ValueError):
+    tn.split_edge(e1, (2, 2))
+
+
 def test_get_shared_edges(backend):
   a = tn.Node(np.ones((2, 2, 2)), backend=backend)
   b = tn.Node(np.ones((2, 2, 2)), backend=backend)
