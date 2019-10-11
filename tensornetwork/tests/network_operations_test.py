@@ -247,6 +247,7 @@ def test_reachable_disconnected_2(backend):
   nodes[2][1] ^ nodes[3][0]  #connect third and fourth node
   assert set(tn.reachable([nodes[0], nodes[1]])) == set(nodes)
 
+
 def test_subgraph_sanity(backend):
   a = tn.Node(np.eye(2), backend=backend)
   b = tn.Node(np.eye(2), backend=backend)
@@ -263,6 +264,7 @@ def test_subgraph_disconnected_nodes(backend):
   b[1] ^ c[1]
   edges = tn.get_subgraph_dangling({a, c})
   assert edges == {a[0], a[1], c[0], c[1]}
+
 
 def test_full_graph_subgraph_dangling(backend):
   a = tn.Node(np.eye(2), backend=backend)
