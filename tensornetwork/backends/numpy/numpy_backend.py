@@ -167,7 +167,8 @@ class NumPyBackend(base_backend.BaseBackend):
       A: A (sparse) implementation of a linear operator
       dot_product: A (sparse) implementation of a scalar product
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` method
+        a random initial `Tensor` is created using the `numpy.random.randn` 
+        method
       ncv: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
@@ -179,8 +180,8 @@ class NumPyBackend(base_backend.BaseBackend):
         If two successive Krylov vectors `x_m` and `x_n`
         have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
         It means that an (approximate) invariant subspace has been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations to
-        check convergence.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations 
+        to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:

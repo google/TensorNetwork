@@ -266,13 +266,10 @@ def test_eigsh_lanczos_1():
 def test_eigsh_lanczos_raises():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend(dtype=dtype)
-  D = 16
-  np.random.seed(10)
-  init = backend.randn((D,))
   with pytest.raises(AttributeError):
-    eta1, U1 = backend.eigsh_lanczos(lambda x: x, lambda x: x)
+    backend.eigsh_lanczos(lambda x: x, lambda x: x)
   with pytest.raises(ValueError):
-    eta1, U1 = backend.eigsh_lanczos(lambda x: x, lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, lambda x: x, numeig=10, ncv=9)
   with pytest.raises(ValueError):
-    eta1, U1 = backend.eigsh_lanczos(
+    backend.eigsh_lanczos(
         lambda x: x, lambda x: x, numeig=2, reorthogonalize=False)

@@ -172,8 +172,8 @@ class PyTorchBackend(base_backend.BaseBackend):
         If two successive Krylov vectors `x_m` and `x_n`
         have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
         It means that an (approximate) invariant subspace has been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations to
-        check convergence.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+        iterations to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
