@@ -267,7 +267,13 @@ class BaseNode(ABC):
       edge = self.edges[position]
       edge.update_axis(position, self, i, self)
       tmp_edges.append(edge)
-    self.edges = tmp_edges
+    self.edges = tmp_edges    
+    if self.axis_names is not None:      
+      # Permute axis names accordingly.
+      tmp_axis_names = []
+      for i in perm:
+        tmp_axis_names.append(self.axis_names[i])
+      self.axis_names = tmp_axis_names
     return self
 
   def get_axis_number(self, axis: Union[Text, int]) -> int:
@@ -1347,8 +1353,8 @@ def _split_trace_edge(edge: Edge,
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   node.reorder_axes(perm_front + perm_back)
-  unaffected_shape = backend.shape_tuple(node.tensor)[:len(perm_front)]
-  new_shape = unaffected_shape + shape + shape
+  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
+  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
   node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None] 
@@ -1397,6 +1403,9 @@ def split_edge(edge: Edge,
     raise ValueError(
         "Edge {} with dimension {} cannot be split according to "
         "shape {}.".format(edge, edge.dimension, shape))
+  # Check if possible reshape operation is trivial.
+  if len(shape) == 1:
+    return edge
 
   # Handle trace edge case separately.
   if edge.is_trace():
@@ -1406,21 +1415,22 @@ def split_edge(edge: Edge,
   if not all([b.name == backends[0].name for b in backends]):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
-  expected_nodes = set(edge.get_nodes())
-
+  
   # Split standard or dangling edge.
   new_dangling_edges = []
+  expected_nodes = set(edge.get_nodes())
   for node in expected_nodes:
     # Required for dangling case.
     if node is None:
       continue
+    axis_names = node.axis_names
     # Permute until edge axes to be split are at the back and reshape.
     perm_back = [node.edges.index(edge)]
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
-    node.reorder_axes(perm_front + perm_back)
-    unaffected_shape = backend.shape_tuple(node.tensor)[:len(perm_front)]
-    new_shape = unaffected_shape + shape
+    node.reorder_axes(perm_front + perm_back)   
+    unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
+    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
     node.tensor = backend.reshape(node.tensor, new_shape) # in-place update    
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]
@@ -1431,6 +1441,17 @@ def split_edge(edge: Edge,
                                is not None else None)
       node.edges += [new_dangling_edge]      
       new_dangling_edges.append(new_dangling_edge)
+    # TODO: Allow renaming of new axes (possibly distinct from new_edge_names).
+    if axis_names:
+      new_axis_names = [axis_names[n] for n in range(len(unaffected_shape))]
+      if new_edge_names:
+        new_axis_names.extend(new_edge_names)
+      else:
+        new_axis_names.extend([str(n) for n in range(len(unaffected_shape),
+                                                     len(node.edges))])
+      node.axis_names = new_axis_names      
+    else:
+      node.axis_names = [str(n) for n in range(len(node.edges))]
 
   node1, node2 = tuple(expected_nodes)
   # pylint: disable=expression-not-assigned

@@ -332,8 +332,10 @@ def test_split_trace_edge(backend):
   new_edges = tn.split_edge(e1, shape, new_edge_names)  
   assert a.shape == (2, 4, 5, 5) + shape + shape
   assert a.edges == [external_1, external_2, e2, e2, *new_edges, *new_edges]
-  for i, new_edge in enumerate(new_edges):
-    assert new_edge.name == new_edge_names[i]
+  for new_edge, dim in zip(new_edges, shape):
+    assert new_edge.dimension == dim
+  for new_edge, new_name in zip(new_edges, new_edge_names):
+    assert new_edge.name == new_name
   tn.check_correct({a, c})
 
 
@@ -352,9 +354,25 @@ def test_split_edges_standard(backend):
   assert b.shape == (2, 4, 3) + shape
   assert a.edges == [e2, edge_a_2, *new_edges]
   assert b.edges == [edge_b_0, edge_b_1, e2, *new_edges]
-  for i, new_edge in enumerate(new_edges):
-    assert new_edge.name == new_edge_names[i]
+  for new_edge, dim in zip(new_edges, shape):
+    assert new_edge.dimension == dim
+  for new_edge, new_name in zip(new_edges, new_edge_names):
+    assert new_edge.name == new_name
   tn.check_correct({a, b})
+
+
+def test_split_edges_standard_contract_between(backend):
+  a = tn.Node(np.random.randn(6, 3, 5), name="A", backend=backend)
+  b = tn.Node(np.random.randn(2, 4, 6, 3), name="B", backend=backend)
+  e1 = tn.connect(a[0], b[2], "Edge_1_1") # to be split
+  tn.connect(a[1], b[3], "Edge_1_2") # background standard edge
+  node_dict, _ = tn.copy({a, b})
+  c_prior = node_dict[a] @ node_dict[b]
+  shape = (2, 1, 3)
+  tn.split_edge(e1, shape)
+  tn.check_correct({a, b})
+  c_post = tn.contract_between(a, b)
+  np.testing.assert_allclose(c_prior.tensor, c_post.tensor)
 
 
 def test_split_edges_dangling(backend):
@@ -368,8 +386,10 @@ def test_split_edges_dangling(backend):
   new_edges = tn.split_edge(e2, shape, new_edge_names)
   assert a.shape == (2, 4, 5, 2, 5)
   assert a.edges == [e1, e3, e4, *new_edges]
-  for i, new_edge in enumerate(new_edges):
-    assert new_edge.name == new_edge_names[i]
+  for new_edge, dim in zip(new_edges, shape):
+    assert new_edge.dimension == dim
+  for new_edge, new_name in zip(new_edges, new_edge_names):
+    assert new_edge.name == new_name
   tn.check_correct({a})
 
 
