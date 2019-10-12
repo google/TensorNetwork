@@ -1405,7 +1405,7 @@ def split_edge(edge: Edge,
         "shape {}.".format(edge, edge.dimension, shape))
   # Check if possible reshape operation is trivial.
   if len(shape) == 1:
-    return edge
+    return [edge]
 
   # Handle trace edge case separately.
   if edge.is_trace():
