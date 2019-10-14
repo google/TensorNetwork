@@ -220,5 +220,17 @@ class ShellBackend(base_backend.BaseBackend):
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-    raise NotImplementedError(
-        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is not None:
+      return ShellTensor(initial_state.shape)
+
+    if hasattr(A, 'shape'):
+      return ShellTensor(A.shape)
+
+    raise ValueError('`A` has no attribut shape adn no `initial_state` is given.'):
