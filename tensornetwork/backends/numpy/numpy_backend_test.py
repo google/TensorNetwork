@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
 
-
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
@@ -18,6 +17,7 @@ def test_dtype(dtype):
   backend = numpy_backend.NumPyBackend(np.dtype(dtype))
   assert backend.dtype == np.dtype(dtype)
   assert isinstance(backend.dtype, np.dtype)
+
 
 def test_tensordot():
   backend = numpy_backend.NumPyBackend()
@@ -260,3 +260,63 @@ def test_backend_dtype_exception():
   tensor = np.random.rand(2, 2, 2)
   with pytest.raises(TypeError):
     _ = backend.convert_to_tensor(tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_1(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,))
+  tmp = backend.randn((D, D))
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x):
+    return np.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_2(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  D = 16
+  np.random.seed(10)
+  tmp = backend.randn((D, D))
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return np.dot(H, x)
+
+  mv = LinearOperator(((D,), (D,)))
+  eta1, U1 = backend.eigsh_lanczos(mv)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_lanczos_raises():
+  dtype = np.float64
+  backend = numpy_backend.NumPyBackend(dtype)
+  with pytest.raises(AttributeError):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
