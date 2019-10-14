@@ -121,7 +121,7 @@ def test_multiple_partial_contractions(backend, path_algorithm):
   d_tensor = np.arange(4).reshape((2, 2)) + 30
   a = tn.Node(a_tensor, backend=backend)
   b = tn.Node(b_tensor, backend=backend)
-  c = tn.Node(c_tensor, backend=backend)  
+  c = tn.Node(c_tensor, backend=backend)
   d = tn.Node(d_tensor, backend=backend)
   a[1] ^ b[0]
   b[1] ^ c[0]
@@ -134,3 +134,11 @@ def test_multiple_partial_contractions(backend, path_algorithm):
   result = path_algorithm({ab, cd})
   np.testing.assert_allclose(
       result.tensor, np.trace(a_tensor @ b_tensor @ c_tensor @ d_tensor))
+
+
+def test_single_node_reorder(backend, path_algorithm):
+  a = tn.Node(np.arange(4).reshape((2, 2)))
+  expected_edge_order = [a[1], a[0]]
+  result = path_algorithm({a}, expected_edge_order)
+  assert result.edges == expected_edge_order
+  np.testing.assert_allclose(result.tensor, np.arange(4).reshape((2, 2)).T)

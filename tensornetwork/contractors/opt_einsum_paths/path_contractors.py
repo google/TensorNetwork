@@ -73,7 +73,7 @@ def _base_nodes(nodes: Iterable[BaseNode],
 
   if len(nodes_set) == 1:
     # There's nothing to contract.
-    return list(nodes_set)[0]
+    return list(nodes_set)[0].reorder_edges(output_edge_order)
 
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
@@ -279,7 +279,10 @@ def auto(
                          "has to be provided.")
 
     edges = get_all_nondangling(_nodes)
-    final_node = contract_parallel(edges.pop())
+    if edges:
+      final_node = contract_parallel(edges.pop())
+    else:
+      final_node = list(_nodes)[0]
     final_node.reorder_edges(output_edge_order)
     if isinstance(nodes, TensorNetwork):
       node = list(_nodes)[0]
