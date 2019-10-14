@@ -187,7 +187,6 @@ class NumPyBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
-    #TODO: make this work for tensorflow in graph mode
     if ncv < numeig:
       raise ValueError('`ncv` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
