@@ -289,7 +289,6 @@ def test_eigsh_lanczos_2(dtype):
   backend = numpy_backend.NumPyBackend(dtype)
   D = 16
   np.random.seed(10)
-  init = backend.randn((D,))
   tmp = backend.randn((D, D))
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 

@@ -163,15 +163,14 @@ def test_eigsh_lanczos_1():
   init = backend.randn((D,))
   eigvals, eigvecs = backend.eigsh_lanczos(
       lambda x: x, init, numeig=3, reorthogonalize=True)
-  for n in range(len(eigvals)):
+  for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
-    assert eigvals[n].shape == tuple()
+    assert ev.shape == tuple()
 
 
 def test_eigsh_lanczos_2():
   backend = shell_backend.ShellBackend()
   D = 16
-  init = backend.randn((D,))
 
   class LinearOperator:
 
@@ -183,9 +182,9 @@ def test_eigsh_lanczos_2():
 
   mv = LinearOperator(shape=((D,), (D,)))
   eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, reorthogonalize=True)
-  for n in range(len(eigvals)):
+  for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
-    assert eigvals[n].shape == tuple()
+    assert ev.shape == tuple()
 
 
 def test_eigsh_lanczos_raises():

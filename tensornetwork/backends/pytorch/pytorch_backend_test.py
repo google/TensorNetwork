@@ -260,11 +260,10 @@ def test_eigsh_lanczos_1():
   np.testing.assert_allclose(v1, v2)
 
 
-def test_eigsh_lanczos_1():
+def test_eigsh_lanczos_2():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend(dtype=dtype)
   D = 16
-  init = backend.randn((D,))
   tmp = backend.randn((D, D))
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
