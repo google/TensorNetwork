@@ -284,6 +284,34 @@ def test_eigsh_lanczos_1(dtype):
   np.testing.assert_allclose(v1, v2)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_2(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,))
+  tmp = backend.randn((D, D))
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return np.dot(H, x)
+
+  mv = LinearOperator(((D,), (D,)))
+  eta1, U1 = backend.eigsh_lanczos(mv)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
 def test_eigsh_lanczos_raises():
   dtype = np.float64
   backend = numpy_backend.NumPyBackend(dtype)

@@ -221,16 +221,32 @@ class ShellBackend(base_backend.BaseBackend):
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
 
+    if ncv < numeig:
+      raise ValueError('`ncv` >= `numeig` required!')
+
+    if numeig > 1 and not reorthogonalize:
+      raise ValueError(
+          "Got numeig = {} > 1 and `reorthogonalize = False`. "
+          "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
+
     if (initial_state is not None) and hasattr(A, 'shape'):
       if initial_state.shape != A.shape[1]:
         raise ValueError(
             "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
                 A.shape[1], initial_state.shape))
 
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(A.shape[0]) for _ in range(numeig)
+      ]
+
     if initial_state is not None:
-      return ShellTensor(initial_state.shape)
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
 
-    if hasattr(A, 'shape'):
-      return ShellTensor(A.shape)
-
-    raise ValueError('`A` has no attribut shape adn no `initial_state` is given.'):
+    raise ValueError(
+        '`A` has no attribut shape adn no `initial_state` is given.')

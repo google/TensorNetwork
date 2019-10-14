@@ -14,8 +14,8 @@
 # limitations under the License.
 """Tests for tensornetwork.backends.shell.shell_backend"""
 
-
 import numpy as np
+import pytest
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.numpy import numpy_backend
 
@@ -155,3 +155,44 @@ def test_ones():
 def test_randn():
   args = {"shape": (10, 4)}
   assertBackendsAgree("randn", args)
+
+
+def test_eigsh_lanczos_1():
+  backend = shell_backend.ShellBackend()
+  D = 16
+  init = backend.randn((D,))
+  eigvals, eigvecs = backend.eigsh_lanczos(
+      lambda x: x, init, numeig=3, reorthogonalize=True)
+  for n in range(len(eigvals)):
+    assert eigvecs[n].shape == (D,)
+    assert eigvals[n].shape == tuple()
+
+
+def test_eigsh_lanczos_2():
+  backend = shell_backend.ShellBackend()
+  D = 16
+  init = backend.randn((D,))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = LinearOperator(shape=((D,), (D,)))
+  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, reorthogonalize=True)
+  for n in range(len(eigvals)):
+    assert eigvecs[n].shape == (D,)
+    assert eigvals[n].shape == tuple()
+
+
+def test_eigsh_lanczos_raises():
+  backend = shell_backend.ShellBackend()
+  with pytest.raises(AttributeError):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
