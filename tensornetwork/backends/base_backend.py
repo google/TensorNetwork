@@ -301,12 +301,12 @@ class BaseBackend:
     Args:
       A: A (sparse) implementation of a linear operator. 
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `torch.randn` method
+        a random initial `Tensor` is created using the `backend.randn` method
       ncv: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Currently we use 
-        `torch.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
+        `backend.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
