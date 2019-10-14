@@ -305,7 +305,7 @@ class BaseBackend:
       ncv: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
-      tol: The desired precision of the eigenvalus. Currently we use 
+      tol: The desired precision of the eigenvalus. Uses
         `backend.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
