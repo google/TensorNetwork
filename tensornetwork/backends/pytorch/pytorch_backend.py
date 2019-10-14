@@ -145,7 +145,6 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
-      dot_product: Callable,
       initial_state: Optional[Tensor] = None,
       ncv: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -158,7 +157,6 @@ class PyTorchBackend(base_backend.BaseBackend):
     of a `LinearOperator` `A`.
     Args:
       A: A (sparse) implementation of a linear operator
-      dot_product: A (sparse) implementation of a scalar product
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
       ncv: The number of iterations (number of krylov vectors).
@@ -212,8 +210,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     eigvalsold = []
     for it in range(ncv):
       #normalize the current vector:
-      norm_vector_n = self.sqrt(dot_product(
-          vector_n, vector_n))  #conj has to be implemented by the user
+      norm_vector_n = self.torch.norm(vector_n)
       if abs(norm_vector_n) < delta:
         break
       norms_vector_n.append(norm_vector_n)
@@ -221,10 +218,10 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= dot_product(v, vector_n) * v
+          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * v
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n)
-      diag_elements.append(dot_product(vector_n, A_vector_n))
+      diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
@@ -255,5 +252,5 @@ class PyTorchBackend(base_backend.BaseBackend):
       state = self.zeros(initial_state.shape)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
-      eigenvectors.append(state / self.sqrt(dot_product(state, state)))
+      eigenvectors.append(state / self.torch.norm(state))
     return eigvals[0:numeig], eigenvectors

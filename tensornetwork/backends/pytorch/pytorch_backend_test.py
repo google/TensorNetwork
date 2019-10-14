@@ -250,10 +250,7 @@ def test_eigsh_lanczos_1():
   def mv(x):
     return H.mv(x)
 
-  def vv(a, b):
-    return a.dot(b)
-
-  eta1, U1 = backend.eigsh_lanczos(mv, vv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
   eta2, U2 = H.symeig()
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -267,9 +264,8 @@ def test_eigsh_lanczos_raises():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend(dtype=dtype)
   with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x, lambda x: x)
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(
-        lambda x: x, lambda x: x, numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)

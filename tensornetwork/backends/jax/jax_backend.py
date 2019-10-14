@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Callable, List
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
 
@@ -65,8 +65,9 @@ class JaxBackend(numpy_backend.NumPyBackend):
 
       real_part = self.jax.random.normal(key, shape, dtype=real_dtype)
       complex_part = self.jax.random.normal(key_2, shape, dtype=real_dtype)
-      unit = (np.complex64(1j) if complex_dtype == np.dtype(np.complex64)
-              else np.complex128(1j))
+      unit = (
+          np.complex64(1j)
+          if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
       return real_part + unit * complex_part
 
     if dtype is np.dtype(self.np.complex128):
@@ -75,3 +76,16 @@ class JaxBackend(numpy_backend.NumPyBackend):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))

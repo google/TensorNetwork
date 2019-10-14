@@ -274,10 +274,7 @@ def test_eigsh_lanczos_1(dtype):
   def mv(x):
     return np.dot(H, x)
 
-  def vv(a, b):
-    return np.dot(backend.conj(a), b)
-
-  eta1, U1 = backend.eigsh_lanczos(mv, vv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -291,9 +288,8 @@ def test_eigsh_lanczos_raises():
   dtype = np.float64
   backend = numpy_backend.NumPyBackend(dtype)
   with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x, lambda x: x)
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(
-        lambda x: x, lambda x: x, numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)

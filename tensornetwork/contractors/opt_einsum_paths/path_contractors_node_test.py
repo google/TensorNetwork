@@ -121,7 +121,7 @@ def test_multiple_partial_contractions(backend, path_algorithm):
   d_tensor = np.arange(4).reshape((2, 2)) + 30
   a = tn.Node(a_tensor, backend=backend)
   b = tn.Node(b_tensor, backend=backend)
-  c = tn.Node(c_tensor, backend=backend)  
+  c = tn.Node(c_tensor, backend=backend)
   d = tn.Node(d_tensor, backend=backend)
   a[1] ^ b[0]
   b[1] ^ c[0]

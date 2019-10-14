@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List, Any, Union, Type
+from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable
 import numpy as np
 
 
@@ -210,3 +209,16 @@ class ShellBackend(base_backend.BaseBackend):
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable
+from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -288,7 +288,6 @@ class BaseBackend:
   def eigsh_lanczos(
       self,
       A: Callable,
-      dot_product: Callable,
       initial_state: Optional[Tensor] = None,
       ncv: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -301,7 +300,6 @@ class BaseBackend:
     of `A`. 
     Args:
       A: A (sparse) implementation of a linear operator. 
-      dot_product: A (sparse) implementation of a scalar product
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
       ncv: The number of iterations (number of krylov vectors).
