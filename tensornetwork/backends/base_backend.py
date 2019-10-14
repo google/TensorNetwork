@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from typing import Optional, Sequence, Tuple, Any, Union, Type
+from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -285,3 +284,43 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    """
+    Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of `A`. 
+    Args:
+      A: A (sparse) implementation of a linear operator. 
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      ncv: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+        `backend.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
+        as stopping criterion between two diagonalization steps of the
+        tridiagonal operator.
+      delta: Stopping criterion for Lanczos iteration.
+        If two successive Krylov vectors `x_m` and `x_n`
+        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
+        It means that an (approximate) invariant subspace has been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+        iterations to check convergence.
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+        explicit orthogonalization (more costly than `reorthogonalize=False`)
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` lowest eigenvalues
+       eigvecs: A list of `numeig` lowest eigenvectors
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
