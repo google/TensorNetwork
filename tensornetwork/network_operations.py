@@ -46,7 +46,8 @@ def norm(node: BaseNode) -> Tensor:
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate `node`
+  """Conjugate `node`.
+
   Args:
     node: A `BaseNode`. 
     name: Optional name to give the new node.
@@ -77,7 +78,7 @@ def transpose(node: BaseNode,
   """Transpose `node`
   Args:
     node: A `BaseNode`. 
-    permutation: A list of int ro str. The permutation of the axis
+    permutation: A list of int or str. The permutation of the axis
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
   Returns:
@@ -107,20 +108,22 @@ def transpose(node: BaseNode,
 
 def copy(nodes: Iterable[BaseNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
-  """
+  """Copy the given nodes and their edges.
 
-  Return a copy of the TensorNetwork.
+  This will return a dictionary linking original nodes/edges 
+  to their copies. If nodes A and B are connected but only A is passed in to be
+  copied, the edge between them will become a dangling edge.
+
   Args:
     nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
-    conjugate: Boolean. Whether to conjugate all of the nodes in the
-      `TensorNetwork` (useful for calculating norms and reduced density
-      matrices).
+    conjugate: Boolean. Whether to conjugate all of the nodes
+        (useful for calculating norms and reduced density
+        matrices).
+
   Returns:
     A tuple containing:
-      node_dict: A dictionary mapping the nodes of the original
-                 network to the nodes of the copy.
-      edge_dict: A dictionary mapping the edges of the original
-                 network to the edges of the copy.
+      node_dict: A dictionary mapping the nodes to their copies.
+      edge_dict: A dictionary mapping the edges to their copies.
   """
   #TODO: add support for copying CopyTensor
   if conjugate:
@@ -143,20 +146,30 @@ def copy(nodes: Iterable[BaseNode],
   for edge in get_all_edges(nodes):
     node1 = edge.node1
     axis1 = edge.node1.get_axis_number(edge.axis1)
-
-    if not edge.is_dangling():
-      node2 = edge.node2
-      axis2 = edge.node2.get_axis_number(edge.axis2)
-      new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
-                      axis2)
-      new_edge.set_signature(edge.signature)
-    else:
+    # edge dangling or node2 does not need to be copied
+    if edge.is_dangling() or edge.node2 not in node_dict:
       new_edge = Edge(node_dict[node1], axis1, edge.name)
+      node_dict[node1].add_edge(new_edge, axis1)
+      edge_dict[edge] = new_edge
+      continue
 
-    node_dict[node1].add_edge(new_edge, axis1)
-    if not edge.is_dangling():
+    node2 = edge.node2
+    axis2 = edge.node2.get_axis_number(edge.axis2)
+    # copy node2 but not node1
+    if node1 not in node_dict:
+      new_edge = Edge(node_dict[node2], axis2, edge.name)
       node_dict[node2].add_edge(new_edge, axis2)
+      edge_dict[edge] = new_edge
+      continue
+
+    # both nodes should be copied
+    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
+                    axis2)
+    new_edge.set_signature(edge.signature)
+    node_dict[node2].add_edge(new_edge, axis2)
+    node_dict[node1].add_edge(new_edge, axis1)
     edge_dict[edge] = new_edge
+
   return node_dict, edge_dict
 
 
@@ -382,7 +395,7 @@ def split_node_rq(
   2 axes. Let :math:`QR = M^*` be the QR Decomposition of
   :math:`M^*`. This will split the network into 2 nodes. The left node's
   tensor will be :math:`R^*` (a lower triangular matrix) and the right 
-    node's tensor will be :math:`Q^*` (an orthonormal matrix)
+  node's tensor will be :math:`Q^*` (an orthonormal matrix)
 
   Args:
     node: The node you want to split.
@@ -666,6 +679,24 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
     edges |= set(node.edges)
   return edges
 
+def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+  """Get all of the edges that are "relatively dangling" to the given nodes.
+
+  A "relatively dangling" edge is an edge that is either actually dangling
+  or is connected to another node that is outside of the given collection
+  of `nodes`.
+  
+  Args:
+    nodes: A set of nodes.
+
+  Returns:
+    The set of "relatively danlging edges.
+  """
+  output = set()
+  for edge in get_all_edges(nodes):
+    if edge.is_dangling() or not set(edge.get_nodes()) <= set(nodes):
+      output.add(edge)
+  return output
 
 def contract_trace_edges(node: BaseNode) -> BaseNode:
   """
