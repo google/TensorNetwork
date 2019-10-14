@@ -32,8 +32,7 @@ class NumPyBackend(base_backend.BaseBackend):
     return self.np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.np.reshape(tensor,
-                           tuple(self.np.array(shape).astype(self.np.int32)))
+    return self.np.reshape(tensor, self.np.asarray(shape).astype(self.np.int32))
 
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
