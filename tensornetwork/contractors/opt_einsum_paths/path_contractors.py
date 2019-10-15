@@ -73,7 +73,7 @@ def _base_nodes(nodes: Iterable[BaseNode],
 
   if len(nodes_set) == 1:
     # There's nothing to contract.
-    return list(nodes_set)[0]
+    return list(nodes_set)[0].reorder_edges(output_edge_order)
 
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
@@ -154,7 +154,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 
 def optimal(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Optimal contraction order via `opt_einsum`.
 
@@ -180,7 +180,7 @@ def optimal(
 
 
 def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
-           output_edge_order: Sequence[Edge] = None,
+           output_edge_order: Optional[Sequence[Edge]] = None,
            memory_limit: Optional[int] = None,
            nbranch: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Branch contraction path via `opt_einsum`.
@@ -213,7 +213,7 @@ def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 
 def greedy(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
   """Greedy contraction path via `opt_einsum`.
 
@@ -243,7 +243,7 @@ def greedy(
 # pylint: disable=too-many-return-statements
 def auto(
     nodes: Union[TensorNetwork, BaseNode],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
@@ -279,7 +279,10 @@ def auto(
                          "has to be provided.")
 
     edges = get_all_nondangling(_nodes)
-    final_node = contract_parallel(edges.pop())
+    if edges:
+      final_node = contract_parallel(edges.pop())
+    else:
+      final_node = list(_nodes)[0]
     final_node.reorder_edges(output_edge_order)
     if isinstance(nodes, TensorNetwork):
       node = list(_nodes)[0]
@@ -303,7 +306,7 @@ def auto(
 def custom(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     optimizer: Any,
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None):  #x -> Union[BaseNode, TensorNetwork]:
   """Uses a custom path optimizer created by the user to calculate paths.
 
