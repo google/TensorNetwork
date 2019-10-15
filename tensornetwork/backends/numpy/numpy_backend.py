@@ -16,7 +16,6 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
-import scipy
 Tensor = Any
 
 
