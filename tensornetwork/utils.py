@@ -91,7 +91,7 @@ def load_nodes(path: str) -> List[BaseNode]:
   Args:
     path: path to file where network is saved.
   Returns:
-    An interable of `Node` objects
+    An iterable of `Node` objects
   """
   nodes_list = []
   edges_list = []

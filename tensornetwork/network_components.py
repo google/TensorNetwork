@@ -1673,7 +1673,7 @@ def contract(edge: Edge,
     backend = edge.node1.backend
   else:
     raise ValueError("edge {} has no nodes. "
-                     "Cannot perfrom a contraction".format(edge.name))
+                     "Cannot perform a contraction".format(edge.name))
 
   backend = edge.node1.backend
   if edge.node1 is edge.node2:
