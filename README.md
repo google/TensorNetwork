@@ -35,6 +35,8 @@ pip3 install tensornetwork
 
 For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
+
+We also have a basic [tutorial colab](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu) for a more "hands-on" example.
 ## Basic Example
 
 Here, we build a simple 2 node contraction.
@@ -128,13 +130,13 @@ a = np.ones((2, 2))
 b = np.ones((2, 2))
 nodes, e_con, e_out = ncon_network([a, b], [(-1, 1), (1, -2)])
 for e in e_con:
-    n = net.contract(e) # Contract edges in order
+    n = tn.contract(e) # Contract edges in order
 n.reorder_edges(e_out) # Permute final tensor as necessary
 print(n.tensor)
 ```
 
 ## Different backend support.
-Currently, we support TensorFlow, JAX, and NumPy as TensorNetwork backends. 
+Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends. 
 
 To change the default global backend, you can do:
 ```python

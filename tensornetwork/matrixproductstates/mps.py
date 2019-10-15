@@ -16,7 +16,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import tensornetwork as tn
+from tensornetwork.network_components import Node, contract, contract_between
+# pylint: disable=line-too-long
+from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
@@ -66,7 +68,7 @@ class FiniteMPS:
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
     self.nodes = [
-        tn.Node(tensors[n], backend=backend, name='node{}'.format(n))
+        Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
     ]
     _ = [
@@ -129,15 +131,15 @@ class FiniteMPS:
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = tn.split_node_qr(
+        Q, R = split_node_qr(
             self.nodes[n],
             left_edges=[self.nodes[n][0], self.nodes[n][1]],
             right_edges=[self.nodes[n][2]],
             left_name=self.nodes[n].name)
 
         self.nodes[n] = Q  #Q is a left-isometric tensor of rank 3
-        self.nodes[n + 1] = tn.contract(R[1], name=self.nodes[n + 1].name)
-        Z = tn.norm(self.nodes[n + 1])
+        self.nodes[n + 1] = contract(R[1], name=self.nodes[n + 1].name)
+        Z = norm(self.nodes[n + 1])
 
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
@@ -149,7 +151,7 @@ class FiniteMPS:
     #shift center_position to the left using RQ decomposition
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
-        R, Q = tn.split_node_rq(
+        R, Q = split_node_rq(
             self.nodes[n],
             left_edges=[self.nodes[n][0]],
             right_edges=[self.nodes[n][1], self.nodes[n][2]],
@@ -158,8 +160,8 @@ class FiniteMPS:
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self.nodes[n] = Q  #Q is a right-isometric tensor of rank 3
-        self.nodes[n - 1] = tn.contract(R[0], name=self.nodes[n - 1].name)
-        Z = tn.norm(self.nodes[n - 1])
+        self.nodes[n - 1] = contract(R[0], name=self.nodes[n - 1].name)
+        Z = norm(self.nodes[n - 1])
         if normalize:
           self.nodes[n - 1].tensor /= Z
 
@@ -183,8 +185,8 @@ class FiniteMPS:
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = tn.Node(self.nodes[site], backend=self.backend.name)
-    n2 = tn.conj(n1)
+    n1 = Node(self.nodes[site], backend=self.backend.name)
+    n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
       n1[1] ^ n2[1]
@@ -224,7 +226,7 @@ class FiniteMPS:
     left_sites = sites[sites <= self.center_position]
     left_envs = {}
     for site in left_sites:
-      left_envs[site] = tn.Node(
+      left_envs[site] = Node(
           self.backend.eye(N=self.nodes[site].shape[0]),
           backend=self.backend.name)
 
@@ -234,8 +236,8 @@ class FiniteMPS:
       nodes = {}
       conj_nodes = {}
       for site in range(self.center_position, n2):
-        nodes[site] = tn.Node(self.nodes[site], backend=self.backend.name)
-        conj_nodes[site] = tn.conj(self.nodes[site])
+        nodes[site] = Node(self.nodes[site], backend=self.backend.name)
+        conj_nodes[site] = conj(self.nodes[site])
 
       nodes[self.center_position][0] ^ conj_nodes[self.center_position][0]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
@@ -248,15 +250,15 @@ class FiniteMPS:
       edges = {site: node[2] for site, node in nodes.items()}
       conj_edges = {site: node[2] for site, node in conj_nodes.items()}
 
-      left_env = tn.contract_between(nodes[self.center_position],
-                                     conj_nodes[self.center_position])
+      left_env = contract_between(nodes[self.center_position],
+                                  conj_nodes[self.center_position])
       left_env.reorder_edges(
           [edges[self.center_position], conj_edges[self.center_position]])
       if self.center_position + 1 in sites:
         left_envs[self.center_position + 1] = left_env
       for site in range(self.center_position + 1, n2):
-        left_env = tn.contract_between(left_env, nodes[site])
-        left_env = tn.contract_between(left_env, conj_nodes[site])
+        left_env = contract_between(left_env, nodes[site])
+        left_env = contract_between(left_env, conj_nodes[site])
         if site + 1 in sites:
           left_env.reorder_edges([edges[site], conj_edges[site]])
           left_envs[site + 1] = left_env
@@ -290,7 +292,7 @@ class FiniteMPS:
     right_sites = sites[sites >= self.center_position]
     right_envs = {}
     for site in right_sites:
-      right_envs[site] = tn.Node(
+      right_envs[site] = Node(
           self.backend.eye(N=self.nodes[site].shape[2]),
           backend=self.backend.name)
 
@@ -300,8 +302,8 @@ class FiniteMPS:
       nodes = {}
       conj_nodes = {}
       for site in reversed(range(n1 + 1, self.center_position + 1)):
-        nodes[site] = tn.Node(self.nodes[site], backend=self.backend.name)
-        conj_nodes[site] = tn.conj(self.nodes[site])
+        nodes[site] = Node(self.nodes[site], backend=self.backend.name)
+        conj_nodes[site] = conj(self.nodes[site])
 
       nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
@@ -314,15 +316,15 @@ class FiniteMPS:
       edges = {site: node[0] for site, node in nodes.items()}
       conj_edges = {site: node[0] for site, node in conj_nodes.items()}
 
-      right_env = tn.contract_between(nodes[self.center_position],
-                                      conj_nodes[self.center_position])
+      right_env = contract_between(nodes[self.center_position],
+                                   conj_nodes[self.center_position])
       if self.center_position - 1 in sites:
         right_env.reorder_edges(
             [edges[self.center_position], conj_edges[self.center_position]])
         right_envs[self.center_position - 1] = right_env
       for site in reversed(range(n1 + 1, self.center_position)):
-        right_env = tn.contract_between(right_env, nodes[site])
-        right_env = tn.contract_between(right_env, conj_nodes[site])
+        right_env = contract_between(right_env, nodes[site])
+        right_env = contract_between(right_env, conj_nodes[site])
         if site - 1 in sites:
           right_env.reorder_edges([edges[site], conj_edges[site]])
           right_envs[site - 1] = right_env
@@ -348,9 +350,9 @@ class FiniteMPS:
     Returns:
       Tensor: the result of applying the MPS transfer-operator to `matrix`
     """
-    mat = tn.Node(matrix, backend=self.backend.name)
-    node = tn.Node(self.nodes[site], backend=self.backend.name)
-    conj_node = tn.conj(node)
+    mat = Node(matrix, backend=self.backend.name)
+    node = Node(self.nodes[site], backend=self.backend.name)
+    conj_node = conj(node)
     node[1] ^ conj_node[1]
     if direction in (1, 'l', 'left'):
       mat[0] ^ node[0]
@@ -405,13 +407,13 @@ class FiniteMPS:
           'is applied at the center position of the MPS'.format(
               self.center_position, site1, site2))
 
-    gate_node = tn.Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend.name)
     gate_node[2] ^ self.nodes[site1][1]
     gate_node[3] ^ self.nodes[site2][1]
     left_edges = [self.nodes[site1][0], gate_node[0]]
     right_edges = [gate_node[1], self.nodes[site2][2]]
     result = self.nodes[site1] @ self.nodes[site2] @ gate_node
-    U, S, V, tw = tn.split_node_full_svd(
+    U, S, V, tw = split_node_full_svd(
         result,
         left_edges=left_edges,
         right_edges=right_edges,
@@ -421,7 +423,7 @@ class FiniteMPS:
         right_name=self.nodes[site2].name)
     V.reorder_edges([S[1]] + right_edges)
     left_edges = left_edges + [S[1]]
-    self.nodes[site1] = tn.contract_between(
+    self.nodes[site1] = contract_between(
         U, S, name=U.name).reorder_edges(left_edges)
     self.nodes[site2] = V
     return tw
@@ -442,10 +444,10 @@ class FiniteMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = tn.Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend.name)
     gate_node[1] ^ self.nodes[site][1]
     edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
-    self.nodes[site] = tn.contract_between(
+    self.nodes[site] = contract_between(
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
@@ -467,11 +469,11 @@ class FiniteMPS:
     left_envs = self.left_envs(sites)
     res = []
     for n, site in enumerate(sites):
-      O = tn.Node(ops[n], backend=self.backend.name)
+      O = Node(ops[n], backend=self.backend.name)
       R = right_envs[site]
       L = left_envs[site]
-      A = tn.Node(self.nodes[site], backend=self.backend.name)
-      conj_A = tn.conj(A)
+      A = Node(self.nodes[site], backend=self.backend.name)
+      conj_A = conj(A)
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
       R[0] ^ A[2]
@@ -525,9 +527,9 @@ class FiniteMPS:
       left_sites_mod = list({n % N for n in left_sites})
 
       ls = self.left_envs(left_sites_mod + [site1])
-      A = tn.Node(self.nodes[site1], backend=self.backend.name)
-      O1 = tn.Node(op1, backend=self.backend.name)
-      conj_A = tn.conj(A)
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend.name)
+      conj_A = conj(A)
       R = rs[site1]
       R[0] ^ A[2]
       R[1] ^ conj_A[2]
@@ -551,9 +553,9 @@ class FiniteMPS:
 
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
-          A = tn.Node(self.nodes[n % N], backend=self.backend.name)
-          conj_A = tn.conj(A)
-          O2 = tn.Node(op2, backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend.name)
+          conj_A = conj(A)
+          O2 = Node(op2, backend=self.backend.name)
           L = ls[n % N]
           L[0] ^ A[0]
           L[1] ^ conj_A[0]
@@ -571,12 +573,12 @@ class FiniteMPS:
 
     # compute <op2(site1)op1(site1)>
     if site1 in sites2:
-      O1 = tn.Node(op1, backend=self.backend.name)
-      O2 = tn.Node(op2, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend.name)
+      O2 = Node(op2, backend=self.backend.name)
       L = ls[site1]
       R = rs[site1]
-      A = tn.Node(self.nodes[site1], backend=self.backend.name)
-      conj_A = tn.conj(A)
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      conj_A = conj(A)
 
       O1[1] ^ O2[0]
       L[0] ^ A[0]
@@ -592,10 +594,10 @@ class FiniteMPS:
     # compute <op1(site1) op2(site2)> for site1 < site2
     right_sites = sorted(sites2[sites2 > site1])
     if right_sites:
-      A = tn.Node(self.nodes[site1], backend=self.backend.name)
-      conj_A = tn.conj(A)
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      conj_A = conj(A)
       L = ls[site1]
-      O1 = tn.Node(op1, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend.name)
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
       A[1] ^ O1[1]
@@ -619,9 +621,9 @@ class FiniteMPS:
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
           R = rs[n % N]
-          A = tn.Node(self.nodes[n % N], backend=self.backend.name)
-          conj_A = tn.conj(A)
-          O2 = tn.Node(op2, backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend.name)
+          conj_A = conj(A)
+          O2 = Node(op2, backend=self.backend.name)
           A[0] ^ L[0]
           conj_A[0] ^ L[1]
           O2[0] ^ conj_A[1]
