@@ -1,4 +1,5 @@
 from tensornetwork.network import TensorNetwork
+#pylint: disable=line-too-long
 from tensornetwork.network_components import Node, Edge, CopyNode, BaseNode, NodeCollection
 #pylint: disable=line-too-long
 from tensornetwork.network_operations import norm, conj, copy, transpose, split_node, split_node_qr, split_node_rq, split_node_full_svd, reachable, check_connected, check_correct, get_all_nodes, get_all_edges, remove_node, contract_trace_edges, get_subgraph_dangling
