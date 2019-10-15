@@ -27,7 +27,7 @@ class FiniteMPS:
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS._nodes`. Any external changes to this list will potentially corrupt 
+  `FiniteMPS.nodes`. Any external changes to this list will potentially corrupt 
   the mps. `FiniteMPS` has a central site. The position of this central site is
   stored in `FiniteMPS.center_position`. This center position can be  
   shifted using the `FiniteMPS.position` method. 
@@ -174,7 +174,7 @@ class FiniteMPS:
     Check orthonormality of tensor at site `site`.
     Args:
       which: if 'l' or 'left': check left orthogonality
-             if 'r' or'right': check right orthogonality
+             if 'r' or 'right': check right orthogonality
       site:  The site of the tensor.
     Returns:
       scalar Tensor: The L2 norm of the deviation from identity.
