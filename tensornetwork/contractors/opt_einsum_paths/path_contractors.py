@@ -32,7 +32,8 @@ from typing import Any, Optional, Sequence, Iterable, Union
 
 def _base_nodes(nodes: Iterable[BaseNode],
                 algorithm: utils.Algorithm,
-                output_edge_order: Optional[Sequence[Edge]] = None) -> BaseNode:
+                output_edge_order: Optional[Sequence[Edge]] = None,
+                ignore_edge_order: bool = False) -> BaseNode:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -43,6 +44,8 @@ def _base_nodes(nodes: Iterable[BaseNode],
       are reordered into `output_edge_order`;
       if final node has more than one edge,
       `output_edge_order` must be pronvided.
+    ignore_edge_order: An option to ignore the output edge
+      order.
 
   Returns:
     Final node after full contraction.
@@ -52,18 +55,20 @@ def _base_nodes(nodes: Iterable[BaseNode],
   edges = get_all_edges(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
-  if output_edge_order is None:
-    output_edge_order = list(get_subgraph_dangling(nodes))
-    if len(output_edge_order) > 1:
-      raise ValueError("The final node after contraction has more than "
-                       "one remaining edge. In this case `output_edge_order` "
-                       "has to be provided.")
 
-  if set(output_edge_order) != get_subgraph_dangling(nodes):
-    raise ValueError(
-        "output edges are not equal to the remaining "
-        "non-contracted edges of the final node."
-    )
+  if not ignore_edge_order:
+    if output_edge_order is None:
+      output_edge_order = list(get_subgraph_dangling(nodes))
+      if len(output_edge_order) > 1:
+        raise ValueError("The final node after contraction has more than "
+                         "one remaining edge. In this case `output_edge_order` "
+                         "has to be provided.")
+
+    if set(output_edge_order) != get_subgraph_dangling(nodes):
+      raise ValueError(
+          "output edges are not equal to the remaining "
+          "non-contracted edges of the final node."
+      )
 
   for edge in edges:
     if not edge.is_disabled:  #if its disabled we already contracted it
@@ -85,14 +90,17 @@ def _base_nodes(nodes: Iterable[BaseNode],
   # if the final node has more than one edge,
   # output_edge_order has to be specified
   final_node = nodes[0]  # nodes were connected, we checked this
-  final_node.reorder_edges(output_edge_order)
+  if not ignore_edge_order:
+    final_node.reorder_edges(output_edge_order)
   return final_node
 
 
 def _base_network(
     net: TensorNetwork,
     algorithm: utils.Algorithm,
-    output_edge_order: Optional[Sequence[Edge]] = None) -> TensorNetwork:
+    output_edge_order: Optional[Sequence[Edge]] = None,
+    ignore_edge_order: bool = False
+  ) -> TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -103,6 +111,8 @@ def _base_network(
       are reordered into `output_edge_order`;
       if final node has more than one edge,
       `output_edge_order` must be provided.
+    ignore_edge_order: An option to ignore the output edge
+      order.
 
   Returns:
     The network after full contraction.
@@ -127,35 +137,40 @@ def _base_network(
   # if the final node has more than one edge,
   # output_edge_order has to be specified
   final_node = net.get_final_node()
-  if (len(final_node.edges) <= 1) and (output_edge_order is None):
-    output_edge_order = list((net.get_all_edges() - net.get_all_nondangling()))
-  elif (len(final_node.edges) > 1) and (output_edge_order is None):
-    raise ValueError("The final node after contraction has more than "
-                     "one dangling edge. In this case `output_edge_order` "
-                     "has to be provided.")
-  if set(output_edge_order) != (
-      net.get_all_edges() - net.get_all_nondangling()):
-    raise ValueError("output edges are not all dangling.")
 
-  final_node.reorder_edges(output_edge_order)
+  if not ignore_edge_order:
+    if (len(final_node.edges) <= 1) and (output_edge_order is None):
+      output_edge_order = list((net.get_all_edges() - net.get_all_nondangling()))
+    elif (len(final_node.edges) > 1) and (output_edge_order is None):
+      raise ValueError("The final node after contraction has more than "
+                       "one dangling edge. In this case `output_edge_order` "
+                       "has to be provided.")
+    if set(output_edge_order) != (
+        net.get_all_edges() - net.get_all_nondangling()):
+      raise ValueError("output edges are not all dangling.")
+
+    final_node.reorder_edges(output_edge_order)
   return net
 
 
 def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
          algorithm: utils.Algorithm,
-         output_edge_order: Optional[Sequence[Edge]] = None
+         output_edge_order: Optional[Sequence[Edge]] = None,
+         ignore_edge_order: bool = False
         ):  # -> Union[BaseNode, TensorNetwork]:
 
   if isinstance(nodes, TensorNetwork):
-    return _base_network(nodes, algorithm, output_edge_order)
+    return _base_network(nodes, algorithm, output_edge_order, ignore_edge_order)
 
-  return _base_nodes(nodes, algorithm, output_edge_order)
+  return _base_nodes(nodes, algorithm, output_edge_order, ignore_edge_order)
 
 
 def optimal(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None,
+    ignore_edge_order: bool = False
+  ):  # -> Union[BaseNode, TensorNetwork]:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -171,18 +186,20 @@ def optimal(
       if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
+    ignore_edge_order: An option to ignore the output edge order.
 
   Returns:
     The network after full contraction.
   """
   alg = functools.partial(opt_einsum.paths.optimal, memory_limit=memory_limit)
-  return base(nodes, alg, output_edge_order)
+  return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
 def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
            output_edge_order: Sequence[Edge] = None,
            memory_limit: Optional[int] = None,
-           nbranch: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
+           nbranch: Optional[int] = None,
+           ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
   """Branch contraction path via `opt_einsum`.
 
   This method uses the DFS approach of `optimal` while sorting potential
@@ -202,19 +219,21 @@ def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
     nbranch: Number of best contractions to explore.
       If None it explores all inner products starting with those that
       have the best cost heuristic.
+    ignore_edge_order: An option to ignore the output edge order.
 
   Returns:
     The network after full contraction.
   """
   alg = functools.partial(
       opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
-  return base(nodes, alg, output_edge_order)
+  return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
 def greedy(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None):  # -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None,
+    ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
@@ -232,19 +251,21 @@ def greedy(
       if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
+    ignore_edge_order: An option to ignore the output edge order.
 
   Returns:
     The network after full contraction.
   """
   alg = functools.partial(opt_einsum.paths.greedy, memory_limit=memory_limit)
-  return base(nodes, alg, output_edge_order)
+  return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
 # pylint: disable=too-many-return-statements
 def auto(
     nodes: Union[TensorNetwork, BaseNode],
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None):  # -> Union[TensorNetwork, BaseNode]:
+    memory_limit: Optional[int] = None,
+    ignore_edge_order: bool = False):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -257,6 +278,7 @@ def auto(
       if final node has more than one edge,
       `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
+    ignore_edge_order: An option to ignore the output edge order.
 
   Returns:
     Final node after full contraction.
@@ -270,17 +292,19 @@ def auto(
   if n <= 0:
     raise ValueError("Cannot contract empty tensor network.")
   if n == 1:
-    if output_edge_order is None:
-      output_edge_order = list(
-          (get_all_edges(_nodes) - get_all_nondangling(_nodes)))
-      if len(output_edge_order) > 1:
-        raise ValueError("The final node after contraction has more than "
-                         "one dangling edge. In this case `output_edge_order` "
-                         "has to be provided.")
+    if not ignore_edge_order:
+      if output_edge_order is None:
+        output_edge_order = list(
+            (get_all_edges(_nodes) - get_all_nondangling(_nodes)))
+        if len(output_edge_order) > 1:
+          raise ValueError("The final node after contraction has more than "
+                           "one dangling edge. In this case `output_edge_order` "
+                           "has to be provided.")
 
     edges = get_all_nondangling(_nodes)
     final_node = contract_parallel(edges.pop())
-    final_node.reorder_edges(output_edge_order)
+    if not ignore_edge_order:
+      final_node.reorder_edges(output_edge_order)
     if isinstance(nodes, TensorNetwork):
       node = list(_nodes)[0]
       nodes.nodes_set = set()
@@ -290,21 +314,23 @@ def auto(
 
     return final_node
   if n < 5:
-    return optimal(nodes, output_edge_order, memory_limit)
+    return optimal(nodes, output_edge_order, memory_limit, ignore_edge_order)
   if n < 7:
-    return branch(nodes, output_edge_order, memory_limit)
+    return branch(nodes, output_edge_order, memory_limit, ignore_edge_order)
   if n < 9:
-    return branch(nodes, output_edge_order, memory_limit, nbranch=2)
+    return branch(nodes, output_edge_order, memory_limit, nbranch=2, ignore_edge_order=ignore_edge_order)
   if n < 15:
-    return branch(nodes, output_edge_order, nbranch=1)
-  return greedy(nodes, output_edge_order, memory_limit)
+    return branch(nodes, output_edge_order, nbranch=1, ignore_edge_order=ignore_edge_order)
+  return greedy(nodes, output_edge_order, memory_limit, ignore_edge_order)
 
 
 def custom(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     optimizer: Any,
     output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None):  #x -> Union[BaseNode, TensorNetwork]:
+    memory_limit: Optional[int] = None,
+    ignore_edge_order: bool = False
+  ):  #x -> Union[BaseNode, TensorNetwork]:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.
@@ -320,9 +346,10 @@ def custom(
       output_edge_order` must be provided.
     optimizer: A custom `opt_einsum.PathOptimizer` object.
     memory_limit: Maximum number of elements in an array during contractions.
+    ignore_edge_order: An option to ignore the output edge order.
 
   Returns:
     The network after full contraction.
   """
   alg = functools.partial(optimizer, memory_limit=memory_limit)
-  return base(nodes, alg, output_edge_order)
+  return base(nodes, alg, output_edge_order, ignore_edge_order)
