@@ -250,3 +250,8 @@ class ShellBackend(base_backend.BaseBackend):
 
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    a = np.ones(tensor1.shape)
+    b = np.ones(tensor2.shape)
+    return ShellTensor((a * b).shape)
