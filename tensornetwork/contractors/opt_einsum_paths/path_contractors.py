@@ -78,7 +78,10 @@ def _base_nodes(nodes: Iterable[BaseNode],
 
   if len(nodes_set) == 1:
     # There's nothing to contract.
-    return list(nodes_set)[0]
+    if ignore_edge_order:
+      return list(nodes_set)[0]
+    else:
+      return list(nodes_set)[0].reorder_edges(output_edge_order)
 
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
@@ -167,7 +170,7 @@ def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 
 def optimal(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
     ignore_edge_order: bool = False
   ):  # -> Union[BaseNode, TensorNetwork]:
@@ -263,9 +266,10 @@ def greedy(
 # pylint: disable=too-many-return-statements
 def auto(
     nodes: Union[TensorNetwork, BaseNode],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False):  # -> Union[TensorNetwork, BaseNode]:
+    ignore_edge_order: bool = False
+):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -302,7 +306,10 @@ def auto(
                            "has to be provided.")
 
     edges = get_all_nondangling(_nodes)
-    final_node = contract_parallel(edges.pop())
+    if edges:
+      final_node = contract_parallel(edges.pop())
+    else:
+      final_node = list(_nodes)[0]
     if not ignore_edge_order:
       final_node.reorder_edges(output_edge_order)
     if isinstance(nodes, TensorNetwork):
