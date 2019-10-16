@@ -509,7 +509,7 @@ class Node(BaseNode):
   """
 
   def __init__(self,
-               tensor: Tensor,
+               tensor: Union[Tensor, BaseNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
                network: Optional[TensorNetwork] = None,
@@ -517,8 +517,11 @@ class Node(BaseNode):
     """Create a node for the TensorNetwork.
 
     Args:
-      tensor: The concrete tensor that is represented by this node. Can be
-        either a numpy array or a tensorflow tensor.
+      tensor: The concrete that is represented by this node, or a `BaseNode` 
+        object. If a tensor is passed, it can be 
+        be either a numpy array or the tensor-type of the used backend.
+        If a `BaseNode` is passed, the passed node has to have the same \
+        backend as given by `backend`.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
       backend: The name of the backend.
@@ -527,6 +530,15 @@ class Node(BaseNode):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
+    if isinstance(tensor, BaseNode):
+
+      if backend and (tensor.backend.name != backend):
+        raise ValueError("`tensor.backend.name`='{}' of input Node `tensor`"
+                         " is different from `backend`='{}'".format(
+                             tensor.backend.name, backend))
+      #always use the `Node`'s backend
+      backend = tensor.backend.name
+      tensor = tensor.tensor
     if network:  #if a network is passed, use its backend
       if backend and (network.backend.name != backend):
         raise ValueError(

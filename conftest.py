@@ -18,9 +18,9 @@ import tensornetwork
 import tensorflow as tf
 
 
-@pytest.fixture(name="backend", params=["numpy", "tensorflow",
-                                        "jax", "pytorch"])
-def backend_fixure(request):
+@pytest.fixture(
+    name="backend", params=["numpy", "tensorflow", "jax", "pytorch"])
+def backend_fixture(request):
   return request.param
 
 
