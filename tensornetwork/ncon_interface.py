@@ -133,7 +133,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
       # If this already produces the final output, order the edges
       # here to avoid transposes in some cases.
 
-      #protect nodes_to_contract agains
+      #protect nodes_to_contract against
       #garbage collector
       node1 = nodes_to_contract[0]
       node2 = nodes_to_contract[1]
@@ -146,7 +146,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
               name="con({},{})".format(*nodes_to_contract),
               output_edge_order=out_edges))
     else:
-      #protect nodes_to_contract agains
+      #protect nodes_to_contract against
       #garbage collector
       node1 = nodes_to_contract[0]
       node2 = nodes_to_contract[1]

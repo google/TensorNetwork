@@ -28,6 +28,21 @@ from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
 
 
+def norm(node: BaseNode) -> Tensor:
+  """The L2 norm of `node`
+  Args:
+    node: A `BaseNode`. 
+  Returns:
+    The L2 norm 
+  Raises:
+    TypeError: If `node` has no `backend` attribute.
+  """
+  if not hasattr(node, 'backend'):
+    raise TypeError('Node {} of type {} has no `backend`'.format(
+        node, type(node)))
+  return node.backend.norm(node.tensor)
+
+
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
@@ -229,7 +244,7 @@ def split_node(
     left_name: The name of the new left node. If `None`, a name will be 
       generated automatically.
     right_name: The name of the new right node. If `None`, a name will be 
-      genenerated automatically.
+      generated automatically.
     edge_name: The name of the new `Edge` connecting the new left and 
       right node. If `None`, a name will be generated automatically. 
       The new axis will get the same name as the edge.
@@ -675,7 +690,7 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
     nodes: A set of nodes.
 
   Returns:
-    The set of "relatively danlging edges.
+    The set of "relatively dangling edges.
   """
   output = set()
   for edge in get_all_edges(nodes):
@@ -687,7 +702,7 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
   """
   contract all trace edges of `node`.
   Args:
-    node: A `BaseNode` obejct
+    node: A `BaseNode` object
   Returns:
     A new `BaseNode` obtained from contracting all 
     trace edges.

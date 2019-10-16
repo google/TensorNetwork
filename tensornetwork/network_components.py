@@ -267,7 +267,13 @@ class BaseNode(ABC):
       edge = self.edges[position]
       edge.update_axis(position, self, i, self)
       tmp_edges.append(edge)
-    self.edges = tmp_edges
+    self.edges = tmp_edges    
+    if self.axis_names is not None:      
+      # Permute axis names accordingly.
+      tmp_axis_names = []
+      for i in perm:
+        tmp_axis_names.append(self.axis_names[i])
+      self.axis_names = tmp_axis_names
     return self
 
   def get_axis_number(self, axis: Union[Text, int]) -> int:
@@ -503,7 +509,7 @@ class Node(BaseNode):
   """
 
   def __init__(self,
-               tensor: Tensor,
+               tensor: Union[Tensor, BaseNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
                network: Optional[TensorNetwork] = None,
@@ -511,8 +517,11 @@ class Node(BaseNode):
     """Create a node for the TensorNetwork.
 
     Args:
-      tensor: The concrete tensor that is represented by this node. Can be
-        either a numpy array or a tensorflow tensor.
+      tensor: The concrete that is represented by this node, or a `BaseNode` 
+        object. If a tensor is passed, it can be 
+        be either a numpy array or the tensor-type of the used backend.
+        If a `BaseNode` is passed, the passed node has to have the same \
+        backend as given by `backend`.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
       backend: The name of the backend.
@@ -521,6 +530,15 @@ class Node(BaseNode):
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
+    if isinstance(tensor, BaseNode):
+
+      if backend and (tensor.backend.name != backend):
+        raise ValueError("`tensor.backend.name`='{}' of input Node `tensor`"
+                         " is different from `backend`='{}'".format(
+                             tensor.backend.name, backend))
+      #always use the `Node`'s backend
+      backend = tensor.backend.name
+      tensor = tensor.tensor
     if network:  #if a network is passed, use its backend
       if backend and (network.backend.name != backend):
         raise ValueError(
@@ -798,13 +816,13 @@ class Edge:
   Dangling Edge:
     A dangling edge is an edge that only connects to a single node and only one
     part of the edge connects to the node. The other end is left "dangling".
-    These types of edges can not be contrated and represent additional
+    These types of edges can not be contracted and represent additional
     dimensions on the underlying tensor. After all other edges are contracted,
     the final result will have the same rank as the number of dangling edges. If
     there are no dangling edges, then the final value will be a scalar.
 
   Trace Edges:
-    Trace edges are edges that connects a node to itself. These edges represent
+    Trace edges are edges that connect a node to itself. These edges represent
     a trace along the given axis. Once again, the axes must be the same
     dimension.
   """
@@ -1208,7 +1226,6 @@ def flatten_edges(edges: List[Edge],
 
   Args:
     edges: A list of edges to flatten.
-    backend: A backend object
     new_edge_name: Optional name to give to the newly created edge.
 
   Returns:
@@ -1301,7 +1318,7 @@ def flatten_edges_between(
 
   Returns:
     The flattened `Edge` object. If there was only one edge between the two
-      nodes, then the original edge is returned. If there where no edges
+      nodes, then the original edge is returned. If there were no edges
       between the nodes, a None is returned.
   """
   shared_edges = get_shared_edges(node1, node2)
@@ -1324,6 +1341,147 @@ def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
       flattened_edges.append(flat_edge)
   return flattened_edges
 
+
+def _split_trace_edge(edge: Edge,
+                      shape: Tuple[int, ...],
+                      new_edge_names: Optional[List[Text]] = None,
+                      ) -> List[Edge]:
+  """Split trace edges into single edge.
+
+  Args:
+    edge: Trace edge to split.
+    shape: Tuple of integers used to split trace edge into multiple edges.
+    new_edge_names: Optional names of the new edges created.
+
+  Returns:
+    A list of new edges where the product of the dimensions of the new
+    edges corresponds to the dimension of the edge before splitting.
+  """
+  node = edge.node1  # We are in the trace case, so this is the only node.
+  backend = node.backend
+  # Permute until edge axes to be split are at the back and reshape.
+  perm_back = [min(edge.axis1, edge.axis2)]
+  perm_back += [max(edge.axis1, edge.axis2)]
+  perm_front = set(range(len(node.edges))) - set(perm_back)
+  perm_front = sorted(perm_front)
+  node.reorder_axes(perm_front + perm_back)
+  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
+  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
+  node.tensor = backend.reshape(node.tensor, new_shape)
+  # Trim edges and add placeholder edges for new axes.
+  node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None] 
+  # Create new dangling edges and connect them to each other.
+  new_edges = []
+  for idx in range(len(shape)):
+    edge1 = Edge(node1=node, axis1=len(perm_front) + idx)
+    edge2 = Edge(node1=node, axis1=len(perm_front) + len(shape) + idx)
+    node.edges[len(perm_front) + idx] = edge1
+    node.edges[len(perm_front) + len(shape) + idx] = edge2
+    new_edges.append(connect(edge1, edge2,
+                             new_edge_names[idx] if new_edge_names is not None
+                             else None))
+  # pylint: disable=expression-not-assigned
+  edge.disable() # disable old edge!
+  return new_edges
+
+
+def split_edge(edge: Edge,
+               shape: Tuple[int, ...],
+               new_edge_names: Optional[List[Text]] = None) ->  List[Edge]:
+  """Split an `Edge` into multiple edges according to `shape`. Reshapes
+  the underlying tensors connected to the edge accordingly. 
+  
+  This method acts as the inverse operation of flattening edges and
+  distinguishes between the following edge cases when adding new edges:
+    1) standard edge connecting two different nodes: reshape node dimensions
+    2) dangling edge (node2 is None): reshape node1 dimension
+    3) trace edge (node1 is node2): reshape node1 dimension
+
+  Args:
+    edge: Edge to split.
+    shape: Tuple of integers used to split edge into multiple edges.
+
+  Returns:
+    A list of new edges where the product of the dimensions of the new
+    edges corresponds to the dimension of the edge before splitting.
+
+  Raises:
+    ValueError: If the edge dimension mismatches with the split shape.
+    ValueError: If the edge is connecting nodes with different backends.
+  """
+
+  # Check if reshape operation is possible.
+  if not np.prod(shape) == edge.dimension:
+    raise ValueError(
+        "Edge {} with dimension {} cannot be split according to "
+        "shape {}.".format(edge, edge.dimension, shape))
+  # Check if possible reshape operation is trivial.
+  if len(shape) == 1:
+    return [edge]
+
+  # Handle trace edge case separately.
+  if edge.is_trace():
+    return _split_trace_edge(edge, shape, new_edge_names)
+
+  backends = [node.backend for node in edge.get_nodes() if node is not None]
+  if not all([b.name == backends[0].name for b in backends]):
+    raise ValueError("Not all backends are the same.")
+  backend = backends[0]
+  
+  # Split standard or dangling edge.
+  new_dangling_edges = []
+  expected_nodes = set(edge.get_nodes())
+  for node in expected_nodes:
+    # Required for dangling case.
+    if node is None:
+      continue
+    axis_names = node.axis_names
+    # Permute until edge axes to be split are at the back and reshape.
+    perm_back = [node.edges.index(edge)]
+    perm_front = set(range(len(node.edges))) - set(perm_back)
+    perm_front = sorted(perm_front)
+    node.reorder_axes(perm_front + perm_back)   
+    unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
+    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
+    node.tensor = backend.reshape(node.tensor, new_shape) # in-place update    
+    # Trim edges.
+    node.edges = node.edges[:len(perm_front)]
+    # Create new dangling edges.    
+    for idx in range(len(shape)):
+      new_dangling_edge = Edge(node1=node, axis1=len(perm_front) + idx,
+                               name=new_edge_names[idx] if new_edge_names
+                               is not None else None)
+      node.edges += [new_dangling_edge]      
+      new_dangling_edges.append(new_dangling_edge)
+    # TODO: Allow renaming of new axes (possibly distinct from new_edge_names).
+    if axis_names:
+      new_axis_names = [axis_names[n] for n in range(len(unaffected_shape))]
+      if new_edge_names:
+        new_axis_names.extend(new_edge_names)
+      else:
+        new_axis_names.extend([str(n) for n in range(len(unaffected_shape),
+                                                     len(node.edges))])
+      node.axis_names = new_axis_names      
+    else:
+      node.axis_names = [str(n) for n in range(len(node.edges))]
+
+  node1, node2 = tuple(expected_nodes)
+  # pylint: disable=expression-not-assigned
+  edge.disable() # disable old edge
+
+  # Return new dangling edges for dangling case.
+  if node1 is None or node2 is None:
+    return new_dangling_edges
+
+  # Create connected edges between nodes for standard case.
+  new_edges = []
+  for idx in range(len(shape)):    
+    new_edges.append(connect(new_dangling_edges[idx],
+                             new_dangling_edges[len(shape) + idx],
+                             new_edge_names[idx] if new_edge_names
+                             is not None else None))  
+  return new_edges
+  
 
 def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   """Collapse a trace edge. `edge` is disabled before returning.
@@ -1515,7 +1673,7 @@ def contract(edge: Edge,
     backend = edge.node1.backend
   else:
     raise ValueError("edge {} has no nodes. "
-                     "Cannot perfrom a contraction".format(edge.name))
+                     "Cannot perform a contraction".format(edge.name))
 
   backend = edge.node1.backend
   if edge.node1 is edge.node2:
@@ -1596,7 +1754,7 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
                      "Dimension of edge '{}': {}.".format(
                          edge1, edge1.dimension, edge2, edge2.dimension))
 
-  #edge1 and edg2 are always dangling in this case
+  #edge1 and edge2 are always dangling in this case
   node1 = edge1.node1
   node2 = edge2.node1
   axis1_num = node1.get_axis_number(edge1.axis1)
