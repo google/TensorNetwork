@@ -199,7 +199,7 @@ def optimal(
 
 
 def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
-           output_edge_order: Sequence[Edge] = None,
+           output_edge_order: Optional[Sequence[Edge]] = None,
            memory_limit: Optional[int] = None,
            nbranch: Optional[int] = None,
            ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
@@ -234,7 +234,7 @@ def branch(nodes: Union[TensorNetwork, Iterable[BaseNode]],
 
 def greedy(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
-    output_edge_order: Sequence[Edge] = None,
+    output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
     ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
   """Greedy contraction path via `opt_einsum`.
