@@ -80,8 +80,7 @@ def _base_nodes(nodes: Iterable[BaseNode],
     # There's nothing to contract.
     if ignore_edge_order:
       return list(nodes_set)[0]
-    else:
-      return list(nodes_set)[0].reorder_edges(output_edge_order)
+    return list(nodes_set)[0].reorder_edges(output_edge_order)
 
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
@@ -102,8 +101,7 @@ def _base_network(
     net: TensorNetwork,
     algorithm: utils.Algorithm,
     output_edge_order: Optional[Sequence[Edge]] = None,
-    ignore_edge_order: bool = False
-  ) -> TensorNetwork:
+    ignore_edge_order: bool = False) -> TensorNetwork:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -159,8 +157,7 @@ def _base_network(
 def base(nodes: Union[TensorNetwork, Iterable[BaseNode]],
          algorithm: utils.Algorithm,
          output_edge_order: Optional[Sequence[Edge]] = None,
-         ignore_edge_order: bool = False
-        ):  # -> Union[BaseNode, TensorNetwork]:
+         ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
 
   if isinstance(nodes, TensorNetwork):
     return _base_network(nodes, algorithm, output_edge_order, ignore_edge_order)
@@ -172,8 +169,7 @@ def optimal(
     nodes: Union[TensorNetwork, Iterable[BaseNode]],
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False
-  ):  # -> Union[BaseNode, TensorNetwork]:
+    ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -268,8 +264,7 @@ def auto(
     nodes: Union[TensorNetwork, BaseNode],
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False
-):  # -> Union[TensorNetwork, BaseNode]:
+    ignore_edge_order: bool = False):  # -> Union[TensorNetwork, BaseNode]:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -336,8 +331,7 @@ def custom(
     optimizer: Any,
     output_edge_order: Sequence[Edge] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False
-  ):  #x -> Union[BaseNode, TensorNetwork]:
+    ignore_edge_order: bool = False):  #x -> Union[BaseNode, TensorNetwork]:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.

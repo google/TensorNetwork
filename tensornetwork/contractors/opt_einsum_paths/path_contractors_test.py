@@ -106,5 +106,7 @@ def test_ignore_edge_order(backend, path_algorithm):
   e0 = b[3]
   e1 = b[4]
 
-  final_node = path_algorithm(net, [e1, e0], ignore_edge_order=True).get_final_node()
+  final_node = path_algorithm(net,
+                              [e1, e0],
+                              ignore_edge_order=True).get_final_node()
   assert final_node.tensor.shape == (2, 3)
