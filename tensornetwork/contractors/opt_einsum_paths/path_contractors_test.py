@@ -92,3 +92,19 @@ def test_custom_sanity_check(backend):
   optimizer = PathOptimizer()
   final_node = path_contractors.custom(net, optimizer).get_final_node()
   np.testing.assert_allclose(final_node.tensor, np.ones(5) * 2.0)
+
+
+def test_ignore_edge_order(backend, path_algorithm):
+  net = tensornetwork.TensorNetwork(backend=backend)
+  a = net.add_node(np.ones((1, 1, 1)))
+  b = net.add_node(np.ones((1, 1, 1, 2, 3)))
+
+  a[0] ^ b[0]
+  a[1] ^ b[1]
+  a[2] ^ b[2]
+
+  e0 = b[3]
+  e1 = b[4]
+
+  final_node = path_algorithm(net, [e1, e0], ignore_edge_order=True).get_final_node()
+  assert final_node.tensor.shape == (2, 3)
