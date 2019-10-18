@@ -590,11 +590,11 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
+def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]) -> Set[BaseNode]:
   """
-  Computes all nodes reachable from `node` by connected edges.
+  Computes all nodes reachable from `node` or `edge.node1` by connected edges.
   Args:
-    nodes: A `BaseNode` or collection of `BaseNodes`
+    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`BaseEdges`
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
@@ -602,9 +602,11 @@ def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  if isinstance(nodes, BaseNode):
-    nodes = {nodes}
-  return _reachable(set(nodes))
+  if isinstance(inputs, BaseNode):
+    inputs = {inputs}
+  elif isinstance(inputs, Edge):
+    inputs = {inputs.node1}
+  return _reachable(set(inputs))
 
 
 def check_correct(nodes: Iterable[BaseNode],
