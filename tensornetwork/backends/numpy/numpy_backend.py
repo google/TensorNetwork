@@ -266,3 +266,6 @@ class NumPyBackend(base_backend.BaseBackend):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
     return eigvals[0:numeig], eigenvectors
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2

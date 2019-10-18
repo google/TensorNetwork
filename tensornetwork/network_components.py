@@ -1945,7 +1945,10 @@ def outer_product(node1: BaseNode,
                      "Cannot perform outer product".format(node1, node2))
 
   backend = node1.backend
-  new_tensor = backend.outer_product(node1.tensor, node2.tensor)
+  if node1.get_rank() == 0 or node2.get_rank() == 0:
+    new_tensor = backend.multiply(node1.tensor, node2.tensor)
+  else:
+    new_tensor = backend.outer_product(node1.tensor, node2.tensor)
   node1_axis_names = node1.axis_names
   node2_axis_names = node2.axis_names
   new_node = Node(
