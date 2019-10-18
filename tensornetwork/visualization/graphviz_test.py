@@ -15,15 +15,15 @@
 
 import graphviz
 from tensornetwork.visualization.graphviz import to_graphviz
-import tensornetwork
+import tensornetwork as tn
+from tensornetwork import connect
 import numpy as np
 
 
 def test_sanity_check():
-  net = tensornetwork.TensorNetwork(backend="tensorflow")
-  a = net.add_node(np.eye(2))
-  b = net.add_node(np.eye(2))
-  net.connect(a[0], b[0])
-  g = to_graphviz(net)
+  a = tn.Node(np.eye(2), backend="tensorflow")
+  b = tn.Node(np.eye(2), backend="tensorflow")
+  connect(a[0], b[0])
+  g = to_graphviz([a, b])
   #pylint: disable=no-member
   assert isinstance(g, graphviz.Graph)
