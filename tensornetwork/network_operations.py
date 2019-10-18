@@ -594,7 +594,7 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]])
   """
   Computes all nodes reachable from `node` or `edge.node1` by connected edges.
   Args:
-    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`BaseEdges`
+    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
