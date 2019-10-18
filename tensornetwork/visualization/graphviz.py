@@ -15,7 +15,7 @@
 
 import graphviz
 from typing import Optional, Text, Iterable
-from tensornetwork import BaseNode
+from tensornetwork.network_components import BaseNode
 
 
 #pylint: disable=no-member
