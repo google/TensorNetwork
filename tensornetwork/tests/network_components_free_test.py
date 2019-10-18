@@ -361,7 +361,7 @@ def test_node_load(tmp_path, single_node_edge):
         data=np.array([edge.name for edge in node.edges], dtype=object),
         dtype=string_type)
 
-    loaded_node = Node._load_node(net=None, node_data=node_file["node_data/"])
+    loaded_node = Node._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert loaded_node.backend.name == node.backend.name
@@ -477,8 +477,7 @@ def test_copy_node_load(tmp_path, backend):
         data=np.array([edge.name for edge in node.edges], dtype=object),
         dtype=string_type)
 
-    loaded_node = CopyNode._load_node(
-        net=None, node_data=node_file["node_data/"])
+    loaded_node = CopyNode._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert set(loaded_node.axis_names) == set(node.axis_names)
