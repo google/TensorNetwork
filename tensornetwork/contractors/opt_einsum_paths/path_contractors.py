@@ -22,7 +22,7 @@ from tensornetwork.network_operations import check_connected, get_all_edges, get
 from tensornetwork.network_components import get_all_nondangling, contract_parallel
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
-from typing import Any, Optional, Sequence, Iterable, Union
+from typing import Any, Optional, Sequence, Iterable
 
 #TODO (martin): add return types of functions back once TensorNetwork is gone
 #               remove _base_network
