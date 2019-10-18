@@ -2,7 +2,8 @@
 import numpy as np
 import tensorflow as tf
 import tensornetwork as tn
-from tensornetwork import contract, connect, flatten_edges_between
+from tensornetwork import (contract, connect, flatten_edges_between,
+                           contract_between)
 import pytest
 
 class GraphmodeTensorNetworkTest(tf.test.TestCase):
@@ -54,13 +55,12 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.function
     def f(x, n):
       x_slice = x[..., :n]
-      net = tensornetwork.TensorNetwork(backend="tensorflow")
-      n1 = net.add_node(x_slice)
-      n2 = net.add_node(x_slice)
-      net.connect(n1[0], n2[0])
-      net.connect(n1[1], n2[1])
-      net.connect(n1[2], n2[2])
-      return net.contract_between(n1, n2).get_tensor()
+      n1 = tn.Node(x_slice, backend="tensorflow")
+      n2 = tn.Node(x_slice, backend="tensorflow")
+      connect(n1[0], n2[0])
+      connect(n1[1], n2[1])
+      connect(n1[2], n2[2])
+      return contract_between(n1, n2).get_tensor()
 
     x = tf.ones((3, 4, 5))
     self.assertAllClose(f(x, tf.convert_to_tensor(2)), 24.0)
