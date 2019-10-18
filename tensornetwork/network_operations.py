@@ -730,8 +730,7 @@ def switch_backend(nodes: Iterable[BaseNode],
   backend = backend_factory.get_backend(new_backend, dtype)
   for node in nodes:
     if node.backend.name != "numpy":
-      raise NotImplementedError(
-        "Can only switch backends when the current "
-        "backend is 'numpy'. Current backend is '{}'".format(
-          node.backend.name))
+      raise NotImplementedError("Can only switch backends when the current "
+                                "backend is 'numpy'. Current backend "
+                                "is '{}'".format(node.backend.name))
     node.tensor = backend.convert_to_tensor(node.tensor)

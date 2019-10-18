@@ -475,8 +475,8 @@ class BaseNode(ABC):
 
 
 class Node(BaseNode):
-  """A Node represents a concrete tensor in a tensor network. The number of edges
-  for a node represents the rank of that tensor.
+  """A Node represents a concrete tensor in a tensor network.
+   The number of edges for a node represents the rank of that tensor.
 
   For example:
 
@@ -749,9 +749,9 @@ class CopyNode(BaseNode):
 
 
 class Edge:
-  """Each edge represents a vector space common to the tensors it connects and over
-  which a contraction may be performed. In numpy terms, each edge represents a
-  `tensordot` operation over the given axes.
+  """Each edge represents a vector space common to the tensors it connects and
+  over which a contraction may be performed. In numpy terms, each edge
+  represents a `tensordot` operation over the given axes.
   There are 3 main types of edges:
 
   Standard Edge:
