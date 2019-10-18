@@ -13,14 +13,12 @@
 # limitations under the License.
 """Implementation of TensorNetwork Graphviz visualization."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import graphviz
 from typing import Optional, Text
 from tensornetwork import network
 
 
+#pylint: disable=no-member
 def to_graphviz(net: network.TensorNetwork,
                 graph: Optional[graphviz.Graph] = None,
                 include_all_names: bool = False,
@@ -40,6 +38,7 @@ def to_graphviz(net: network.TensorNetwork,
     The `graphviz.Graph` object.
   """
   if graph is None:
+    #pylint: disable=no-member
     graph = graphviz.Graph('G', engine=engine)
   for node in net.nodes_set:
     if not node.name.startswith("__") or include_all_names:

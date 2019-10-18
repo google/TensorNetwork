@@ -12,13 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import pytest
+import jax
+import tensornetwork
+import tensorflow as tf
 
 
-@pytest.fixture(name="backend", params=["numpy", "tensorflow",
-                                        "jax", "pytorch"])
-def backend_fixure(request):
+@pytest.fixture(
+    name="backend", params=["numpy", "tensorflow", "jax", "pytorch"])
+def backend_fixture(request):
   return request.param
+
+
+@pytest.fixture(autouse=True)
+def reset_default_backend():
+  tensornetwork.set_default_backend("numpy")
+  yield
+  tensornetwork.set_default_backend("numpy")
+
+
+@pytest.fixture(autouse=True)
+def enable_jax_64():
+  jax.config.update("jax_enable_x64", True)
+  yield
+  jax.config.update("jax_enable_x64", True)
+
+
+@pytest.fixture(autouse=True)
+def tf_enable_v2_behaviour():
+  tf.compat.v1.enable_v2_behavior()
+  yield
+  tf.compat.v1.enable_v2_behavior()

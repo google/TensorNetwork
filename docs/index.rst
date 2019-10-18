@@ -7,13 +7,15 @@ Welcome to TensorNetwork's documentation!
 =========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Contents:
 
    tutorial
    tensornetwork
    contractors
    nodes
+   edges
+   ncon
 
 Indices and tables
 ==================

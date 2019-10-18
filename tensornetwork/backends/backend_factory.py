@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from tensornetwork.backends.tensorflow import tensorflow_backend
 from tensornetwork.backends.numpy import numpy_backend
@@ -33,5 +30,5 @@ _BACKENDS = {
 
 def get_backend(name, dtype):
   if name not in _BACKENDS:
-    raise ValueError("Backend {} does not exist".format(name))
+    raise ValueError("Backend '{}' does not exist".format(name))
   return _BACKENDS[name](dtype)

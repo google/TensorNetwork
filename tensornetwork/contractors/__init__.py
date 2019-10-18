@@ -1,6 +1,4 @@
 from tensornetwork.contractors.bucket_contractor import bucket
-from tensornetwork.contractors.naive_contractor import naive
-from tensornetwork.contractors.stochastic_contractor import stochastic
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import optimal
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import branch
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import greedy

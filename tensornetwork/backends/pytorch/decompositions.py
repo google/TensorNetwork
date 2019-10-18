@@ -13,9 +13,6 @@
 # limitations under the License.
 """Tensor Decomposition Implementations."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from typing import Optional, Tuple, Any
 import numpy as np
 
@@ -83,8 +80,6 @@ def svd_decomposition(torch: Any,
 
   if max_singular_values is None:
     max_singular_values = s.nelement()
-  else:
-    max_singular_values = max_singular_values
 
   if max_truncation_error is not None:
     # Cumulative norms of singular values in ascending order

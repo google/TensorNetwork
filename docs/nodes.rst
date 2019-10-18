@@ -7,5 +7,9 @@ Nodes
 .. autoclass:: tensornetwork.Node
     :members:
 
-.. autoclass:: tensornetwork.network_components.CopyNode
+.. autoclass:: tensornetwork.CopyNode
     :members:
+
+.. autoclass:: tensornetwork.BaseNode
+    :members:
+

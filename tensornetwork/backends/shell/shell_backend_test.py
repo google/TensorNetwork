@@ -1,3 +1,4 @@
+# pytype: skip-file
 # Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +14,8 @@
 # limitations under the License.
 """Tests for tensornetwork.backends.shell.shell_backend"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
+import pytest
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.numpy import numpy_backend
 
@@ -157,3 +155,52 @@ def test_ones():
 def test_randn():
   args = {"shape": (10, 4)}
   assertBackendsAgree("randn", args)
+
+
+def test_eigsh_lanczos_1():
+  backend = shell_backend.ShellBackend()
+  D = 16
+  init = backend.randn((D,))
+  eigvals, eigvecs = backend.eigsh_lanczos(
+      lambda x: x, init, numeig=3, reorthogonalize=True)
+  for n, ev in enumerate(eigvals):
+    assert eigvecs[n].shape == (D,)
+    assert ev.shape == tuple()
+
+
+def test_eigsh_lanczos_2():
+  backend = shell_backend.ShellBackend()
+  D = 16
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = LinearOperator(shape=((D,), (D,)))
+  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, reorthogonalize=True)
+  for n, ev in enumerate(eigvals):
+    assert eigvecs[n].shape == (D,)
+    assert ev.shape == tuple()
+
+
+def test_eigsh_lanczos_raises():
+  backend = shell_backend.ShellBackend()
+  with pytest.raises(AttributeError):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+
+
+@pytest.mark.parametrize("a, b",
+                         [pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
+                          pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
+                         ])
+def test_multiply(a, b):
+  args = {"tensor1": a, "tensor2": b}
+  assertBackendsAgree("multiply", args)

@@ -16,12 +16,10 @@ import numpy as np
 import pytest
 import tensornetwork
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
-import tensorflow as tf
-tf.enable_v2_behavior()
 
 
-@pytest.fixture(name="path_algorithm",
-                params=["optimal", "branch", "greedy", "auto"])
+@pytest.fixture(
+    name="path_algorithm", params=["optimal", "branch", "greedy", "auto"])
 def path_algorithm_fixture(request):
   return getattr(path_contractors, request.param)
 

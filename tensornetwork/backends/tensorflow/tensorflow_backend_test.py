@@ -1,13 +1,10 @@
+# pytype: skip-file
 """Tests for graphmode_tensornetwork."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import pytest
-import tensornetwork.config as config_file
 from tensornetwork.backends.tensorflow import tensorflow_backend
-tf.compat.v1.enable_v2_behavior()
+
 
 tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
 tf_dtypes = tf_randn_dtypes + [tf.complex128, tf.complex64]
@@ -158,7 +155,7 @@ def test_randn(dtype):
 def test_randn_non_zero_imag(dtype):
   backend = tensorflow_backend.TensorFlowBackend(dtype=dtype)
   a = backend.randn((4, 4))
-  assert tf.math.greater(tf.linalg.norm(tf.imag(a)), 0.0)
+  assert tf.math.greater(tf.linalg.norm(tf.math.imag(a)), 0.0)
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
@@ -244,3 +241,19 @@ def test_backend_dtype_exception():
   tensor = np.random.rand(2, 2, 2)
   with pytest.raises(TypeError):
     _ = backend.convert_to_tensor(tensor)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3))),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)),
+                                       2. * np.ones((1, 2, 3))),
+                          ])
+def test_multiply(a, b, expected):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+
+  np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)

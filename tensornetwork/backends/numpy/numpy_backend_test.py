@@ -1,15 +1,22 @@
 """Tests for graphmode_tensornetwork."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
-import tensornetwork.config as config_file
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_dtype(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
+
+  backend = numpy_backend.NumPyBackend(np.dtype(dtype))
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
 
 
 def test_tensordot():
@@ -253,3 +260,79 @@ def test_backend_dtype_exception():
   tensor = np.random.rand(2, 2, 2)
   with pytest.raises(TypeError):
     _ = backend.convert_to_tensor(tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_1(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,))
+  tmp = backend.randn((D, D))
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x):
+    return np.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_2(dtype):
+  backend = numpy_backend.NumPyBackend(dtype)
+  D = 16
+  np.random.seed(10)
+  tmp = backend.randn((D, D))
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return np.dot(H, x)
+
+  mv = LinearOperator(((D,), (D,)))
+  eta1, U1 = backend.eigsh_lanczos(mv)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_lanczos_raises():
+  dtype = np.float64
+  backend = numpy_backend.NumPyBackend(dtype)
+  with pytest.raises(AttributeError):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3))),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)),
+                                       2. * np.ones((1, 2, 3))),
+                         ])
+def test_multiply(a, b, expected):
+  backend = numpy_backend.NumPyBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+
+  np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)

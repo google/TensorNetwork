@@ -1,16 +1,24 @@
+# pytype: skip-file
 """Tests for graphmode_tensornetwork."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
-import tensornetwork.config as config_file
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_dtype(dtype):
+  backend = jax_backend.JaxBackend(dtype)
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
+
+  backend = jax_backend.JaxBackend(np.dtype(dtype))
+  assert backend.dtype == np.dtype(dtype)
+  assert isinstance(backend.dtype, np.dtype)
 
 
 def test_tensordot():

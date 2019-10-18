@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple, Type
+from typing import Optional, Any, Sequence, Tuple, Type, Callable, List
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
@@ -32,13 +29,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def __init__(self, dtype: Optional[Type[np.number]] = None):
     super(TensorFlowBackend, self).__init__()
     try:
+      #pylint: disable=import-outside-toplevel
       import tensorflow as tf
     except ImportError:
       raise ImportError("Tensorflow not installed, please switch to a "
                         "different backend or install Tensorflow.")
     self.tf = tf
     self.name = "tensorflow"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return tensordot2.tensordot(self.tf, a, b, axes)
@@ -133,16 +131,32 @@ class TensorFlowBackend(base_backend.BaseBackend):
             dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     if seed:
-      self.tf.random.set_random_seed(seed)
+      self.tf.random.set_seed(seed)
 
     if not dtype:
       dtype = self.dtype if self.dtype is not None else self.tf.float64
 
     if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
       return self.tf.complex(
-          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype),
-          self.tf.random_normal(shape=shape, dtype=dtype.real_dtype))
-    return self.tf.random_normal(shape=shape, dtype=dtype)
+          self.tf.random.normal(shape=shape, dtype=dtype.real_dtype),
+          self.tf.random.normal(shape=shape, dtype=dtype.real_dtype))
+    return self.tf.random.normal(shape=shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return self.tf.conj(tensor)
+    return self.tf.math.conj(tensor)
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2

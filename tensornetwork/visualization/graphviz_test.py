@@ -13,9 +13,6 @@
 # limitations under the License.
 """Test of TensorNetwork Graphviz visualization."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import graphviz
 from tensornetwork.visualization.graphviz import to_graphviz
 import tensornetwork
@@ -28,4 +25,5 @@ def test_sanity_check():
   b = net.add_node(np.eye(2))
   net.connect(a[0], b[0])
   g = to_graphviz(net)
+  #pylint: disable=no-member
   assert isinstance(g, graphviz.Graph)

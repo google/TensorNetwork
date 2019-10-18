@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from typing import Optional, Any, Sequence, Tuple
+from typing import Optional, Any, Sequence, Tuple, Callable, List
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -31,13 +28,14 @@ class PyTorchBackend(base_backend.BaseBackend):
   def __init__(self, dtype: Optional[Any] = None):
     super(PyTorchBackend, self).__init__()
     try:
+      #pylint: disable=import-outside-toplevel
       import torch
     except ImportError:
       raise ImportError("PyTorch not installed, please switch to a different "
                         "backend or install PyTorch.")
     self.torch = torch
     self.name = "pytorch"
-    self.dtype = dtype
+    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.torch.tensordot(a, b, dims=axes)
@@ -143,3 +141,119 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    """
+    Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of a `LinearOperator` `A`.
+    Args:
+      A: A (sparse) implementation of a linear operator
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `torch.randn` method
+      ncv: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+        `torch.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
+        as stopping criterion between two diagonalization steps of the
+        tridiagonal operator.
+      delta: Stopping criterion for Lanczos iteration.
+        If two successive Krylov vectors `x_m` and `x_n`
+        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
+        It means that an (approximate) invariant subspace has been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+        iterations to check convergence.
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+        explicit orthogonalization (more costly than `reorthogonalize=False`)
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` lowest eigenvalues
+       eigvecs: A list of `numeig` lowest eigenvectors
+    """
+    #TODO: make this work for tensorflow in graph mode
+    if ncv < numeig:
+      raise ValueError('`ncv` >= `numeig` required!')
+    if numeig > 1 and not reorthogonalize:
+      raise ValueError(
+          "Got numeig = {} > 1 and `reorthogonalize = False`. "
+          "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      initial_state = self.randn(A.shape[1])
+    else:
+      initial_state = self.convert_to_tensor(initial_state)
+    vector_n = initial_state
+    Z = self.norm(vector_n)
+    vector_n /= Z
+    norms_vector_n = []
+    diag_elements = []
+    krylov_vecs = []
+    first = True
+    eigvalsold = []
+    for it in range(ncv):
+      #normalize the current vector:
+      norm_vector_n = self.torch.norm(vector_n)
+      if abs(norm_vector_n) < delta:
+        break
+      norms_vector_n.append(norm_vector_n)
+      vector_n = vector_n / norms_vector_n[-1]
+      #store the Lanczos vector for later
+      if reorthogonalize:
+        for v in krylov_vecs:
+          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * v
+      krylov_vecs.append(vector_n)
+      A_vector_n = A(vector_n)
+      diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
+
+      if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
+        #diagonalize the effective Hamiltonian
+        A_tridiag = self.torch.diag(
+            self.torch.tensor(diag_elements)) + self.torch.diag(
+                self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
+                    self.torch.tensor(norms_vector_n[1:]), -1)
+        eigvals, u = A_tridiag.symeig()
+        if not first:
+          if self.torch.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
+            break
+        first = False
+        eigvalsold = eigvals[0:numeig]
+      if it > 0:
+        A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
+        A_vector_n -= (krylov_vecs[-2] * norms_vector_n[-1])
+      else:
+        A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
+      vector_n = A_vector_n
+
+    A_tridiag = self.torch.diag(
+        self.torch.tensor(diag_elements)) + self.torch.diag(
+            self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
+                self.torch.tensor(norms_vector_n[1:]), -1)
+    eigvals, u = A_tridiag.symeig()
+    eigenvectors = []
+    for n2 in range(min(numeig, len(eigvals))):
+      state = self.zeros(initial_state.shape)
+      for n1, vec in enumerate(krylov_vecs):
+        state += vec * u[n1, n2]
+      eigenvectors.append(state / self.torch.norm(state))
+    return eigvals[0:numeig], eigenvectors
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2
