@@ -100,7 +100,7 @@ def optimal(
   take longer than just contracting in a suboptimal way.
 
   Args:
-    net: a TensorNetwork object.
+    nodes: an iterable of Nodes
     output_edge_order: An optional list of edges.
       Edges of the final node in `nodes_set`
       are reordered into `output_edge_order`;
@@ -109,7 +109,7 @@ def optimal(
     memory_limit: Maximum number of elements in an array during contractions.
 
   Returns:
-    The network after full contraction.
+    The final node after full contraction.
   """
   alg = functools.partial(opt_einsum.paths.optimal, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order)
@@ -128,7 +128,7 @@ def branch(nodes: Iterable[BaseNode],
     https://optimized-einsum.readthedocs.io/en/latest/branching_path.html
 
   Args:
-    net: a TensorNetwork object.
+    nodes: an iterable of Nodes
     output_edge_order: An optional list of edges.
       Edges of the final node in `nodes_set`
        are reordered into `output_edge_order`;
@@ -140,7 +140,7 @@ def branch(nodes: Iterable[BaseNode],
       have the best cost heuristic.
 
   Returns:
-    The network after full contraction.
+    The final node after full contraction.
   """
   alg = functools.partial(
       opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
@@ -161,7 +161,7 @@ def greedy(
     https://optimized-einsum.readthedocs.io/en/latest/greedy_path.html
 
   Args:
-    net: a TensorNetwork object.
+    nodes: an iterable of Nodes
     output_edge_order: An optional list of edges.
       Edges of the final node in `nodes_set`
       are reordered into `output_edge_order`;
@@ -170,7 +170,7 @@ def greedy(
     memory_limit: Maximum number of elements in an array during contractions.
 
   Returns:
-    The network after full contraction.
+    The final node after full contraction.
   """
   alg = functools.partial(opt_einsum.paths.greedy, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order)
@@ -241,7 +241,7 @@ def custom(
     https://optimized-einsum.readthedocs.io/en/latest/custom_paths.html
 
   Args:
-    net: a TensorNetwork object.
+    nodes: an iterable of Nodes
     output_edge_order: An optional list of edges.
       Edges of the final node in `nodes_set`
       are reordered into `output_edge_order`;
@@ -251,7 +251,7 @@ def custom(
     memory_limit: Maximum number of elements in an array during contractions.
 
   Returns:
-    The network after full contraction.
+    Final node after full contraction.
   """
   alg = functools.partial(optimizer, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order)
