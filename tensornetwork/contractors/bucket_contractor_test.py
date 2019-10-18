@@ -28,7 +28,7 @@ bucket = bucket_contractor.bucket
 
 def add_cnot(q0: network_components.Edge,
              q1: network_components.Edge,
-             backend: str="numpy"
+             backend: str = "numpy"
             ) -> Tuple[network_components.CopyNode, network_components
                        .Edge, network_components.Edge]:
   """Adds the CNOT quantum gate to tensor network.
@@ -39,6 +39,7 @@ def add_cnot(q0: network_components.Edge,
   Args:
     q0: Input edge for the control qubit.
     q1: Input edge for the target qubit.
+    backend: backend to use
 
   Returns:
     Tuple with three elements:
