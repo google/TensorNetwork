@@ -51,8 +51,7 @@ def get_path(
     algorithm: Algorithm) -> Tuple[List[Tuple[int, int]], List[BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
   Args:
-    nodes: TensorNetwork object or an iterable of `BaseNode` objects
-      to contract.
+    nodes: an iterable of `BaseNode` objects to contract.
     algorithm: `opt_einsum` method to use for calculating the contraction path.
   Returns:
     The optimal contraction path as returned by `opt_einsum`.
