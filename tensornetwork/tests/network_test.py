@@ -230,6 +230,25 @@ def test_outer_product(backend):
   assert d.name == "D"
 
 
+@pytest.mark.parametrize("a, b, expected_val, expected_shape, expected_name",
+                         [pytest.param(np.ones((2, 4, 5)),
+                                       np.ones(()),
+                                       np.ones((2, 4, 5)), (2, 4, 5), "C"),
+                          pytest.param(np.ones(()),
+                                       np.ones((2, 4, 5)),
+                                       np.ones((2, 4, 5)), (2, 4, 5), "C"),
+                         ])
+def test_outer_product_without_legs(
+        a, b, expected_val, expected_shape, expected_name, backend):
+  node1 = tn.Node(a, name="A", backend=backend)
+  node2 = tn.Node(b, name="B", backend=backend)
+
+  node3 = tn.outer_product(node1, node2, name=expected_name)
+  np.testing.assert_allclose(node3.tensor, expected_val)
+  assert node3.shape == expected_shape
+  assert node3.name == expected_name
+
+
 def test_get_all_nondangling(backend):
   a = tn.Node(np.eye(2), backend=backend)
   b = tn.Node(np.eye(2), backend=backend)

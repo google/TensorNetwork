@@ -157,3 +157,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2

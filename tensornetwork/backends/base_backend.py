@@ -324,3 +324,16 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default multiplication of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented multiply.".format(self.name))

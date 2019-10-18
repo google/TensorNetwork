@@ -320,3 +320,19 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3))),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)),
+                                       2. * np.ones((1, 2, 3))),
+                         ])
+def test_multiply(a, b, expected):
+  backend = numpy_backend.NumPyBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+
+  np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
