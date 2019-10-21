@@ -38,6 +38,7 @@ def no_backend_dependency(monkeypatch):
 def test_backend_pytorch_missing_cannot_initialize_backend():
   #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.pytorch.pytorch_backend import PyTorchBackend
     PyTorchBackend()
 
@@ -46,6 +47,7 @@ def test_backend_pytorch_missing_cannot_initialize_backend():
 def test_backend_tensorflow_missing_cannot_initialize_backend():
   #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.tensorflow.tensorflow_backend \
       import TensorFlowBackend
     TensorFlowBackend()
@@ -55,6 +57,7 @@ def test_backend_tensorflow_missing_cannot_initialize_backend():
 def test_backend_jax_missing_cannot_initialize_backend():
   #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.jax.jax_backend import JaxBackend
     JaxBackend()
 
