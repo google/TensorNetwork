@@ -72,7 +72,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
         `tensornetwork.config.default_backend`.
 
     Returns:
-      The result of the contraction. The result if returned in a `Node` 
+      The result of the contraction. The result is returned as a `Node`
         if all elements of `tensors` are `BaseNode` objects, else
         it is returned as a `Tensor` object.
     """
@@ -100,6 +100,8 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
       con_order=con_order,
       out_order=out_order,
       backend=backend)
+
+  nodes = set(nodes)  # we don't need the ordering here
 
   # Reverse the list so we can pop from the end: O(1).
   con_edges = con_edges[::-1]
@@ -129,33 +131,19 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
               list(map(str, nodes_to_contract))))
       con_edges = [e for e in con_edges if e not in edges_to_contract]
 
-    if set(nodes_to_contract) == set(nodes):
-      # If this already produces the final output, order the edges
+    if set(nodes_to_contract) == nodes:
+      # This contraction produces the final output, so order the edges
       # here to avoid transposes in some cases.
-
-      #protect nodes_to_contract against
-      #garbage collector
-      node1 = nodes_to_contract[0]
-      node2 = nodes_to_contract[1]
-      nodes.remove(node1)
-      if node2 is not node1:
-        nodes.remove(node2)
-      nodes.append(
-          network_components.contract_between(
-              *nodes_to_contract,
-              name="con({},{})".format(*nodes_to_contract),
-              output_edge_order=out_edges))
+      contraction_output_order = out_edges
     else:
-      #protect nodes_to_contract against
-      #garbage collector
-      node1 = nodes_to_contract[0]
-      node2 = nodes_to_contract[1]
-      nodes.remove(node1)
-      if node2 is not node1:
-        nodes.remove(node2)
-      nodes.append(
-          network_components.contract_between(
-              *nodes_to_contract, name="con({},{})".format(*nodes_to_contract)))
+      contraction_output_order = None
+
+    nodes = nodes - set(nodes_to_contract)
+    nodes.add(
+        network_components.contract_between(
+            *nodes_to_contract,
+            name="con({},{})".format(*nodes_to_contract),
+            output_edge_order=contraction_output_order))
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = network_components.outer_product_final_nodes(nodes, out_edges)
