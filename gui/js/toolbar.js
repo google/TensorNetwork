@@ -57,30 +57,6 @@ Vue.component(
                 });
                 this.selectedNode = null;
             },
-            addAxis: function() {
-                this.node.rotation = 0;
-                this.node.axes.push(null);
-            },
-            removeAxis: function() {
-                this.node.rotation = 0;
-                if (this.node.axes.length < 1) {
-                    return;
-                }
-                this.node.axes.pop();
-                let oldAxis = this.node.axes.length;
-                let node = this.node;
-                this.state.edges = this.state.edges.filter(function(edge) {
-                    if (edge[0][0] === node.name && edge[0][1] === oldAxis) {
-                        return false;
-                    }
-                    else if (edge[1][0] === node.name && edge[1][1] === oldAxis) {
-                        return false;
-                    }
-                    else {
-                        return true;
-                    }
-                });
-            },
             rotateCounter: function() {
                 this.node.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
             },
@@ -118,29 +94,32 @@ Vue.component(
         },
         template: `
             <div class="toolbar">
-                <h2>Create New Node</h2>
-                <div class="button-holder">
-                    <form @submit="createNode">
-                        <input type="text" v-model="createNodeName" placeholder="name" />
-                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
-                    </form>
-                </div>
+                <section>
+                    <h2>Create New Node</h2>
+                    <div class="button-holder">
+                        <form @submit="createNode">
+                            <input type="text" v-model="createNodeName" placeholder="node name" />
+                            <input type="submit" value="Create" :disabled="createNodeDisabled" />
+                        </form>
+                    </div>
+                </section>
                 <div v-if="node != null">
-                    <h2>Node: {{node.name}}</h2>
-                    <div class="button-holder">
-                        <button @click="deleteNode">Delete</button>
-                    </div>
-                    <div class="button-holder">
-                        <button @click="addAxis">Add Axis</button>
-                        <button @click="removeAxis">Remove Axis</button>
-                    </div>
-                    <h4>Rotate</h4>
-                    <div class="button-holder">
-                        <button @click="rotateCounter">Counterclockwise</button>
-                        <button @click="rotateClockwise">Clockwise</button>
-                    </div>
+                    <section>
+                        <div>
+                            <a class="delete" href="" @click="deleteNode">delete</a>
+                            <h2>Node: {{node.name}}</h2>
+                        </div>
+                        <h4>Rotate</h4>
+                            <div class="button-holder">
+                                <button @click="rotateCounter">Counterclockwise</button>
+                                <button @click="rotateClockwise">Clockwise</button>
+                            </div>
+                    </section>
+                    <toolbar-axis-section :state="state" />
                 </div>
-                <h2 v-else>Select a node to edit it</h2>
+                <section v-else>
+                    <h2>Select a node to edit it</h2>
+                </section>
             </div>
         `
     }
