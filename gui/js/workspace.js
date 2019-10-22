@@ -48,8 +48,8 @@ Vue.component(
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
                 this.protoEdge.dragging = true;
-                this.protoEdge.x = event.pageX - workspace.left;
-                this.protoEdge.y = event.pageY - workspace.top;
+                this.protoEdge.x = event.clientX - workspace.left;
+                this.protoEdge.y = event.clientY - workspace.top;
             },
             releaseAxisDrag: function() {
                 document.removeEventListener('mousemove', this.dragAxis);
