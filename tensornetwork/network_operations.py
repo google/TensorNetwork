@@ -55,10 +55,10 @@ def conj(node: BaseNode,
   Returns:
     A new node. The complex conjugate of `node`.
   Raises:
-    TypeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
   backend = node.backend
   if not axis_names:
@@ -84,14 +84,14 @@ def transpose(node: BaseNode,
   Returns:
     A new node. The transpose of `node`.
   Raises:
-    TypeError: If `node` has no `backend` attribute.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
-    AttributeError: If `node` has no tensor.
+    AttributeError: If `node` has no tensor, or if `node` has no 
+      `backend` attribute.
   """
 
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   perm = [node.get_axis_number(p) for p in permutation]
@@ -163,8 +163,7 @@ def copy(nodes: Iterable[BaseNode],
       continue
 
     # both nodes should be copied
-    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
-                    axis2)
+    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2], axis2)
     new_edge.set_signature(edge.signature)
     node_dict[node2].add_edge(new_edge, axis2)
     node_dict[node1].add_edge(new_edge, axis1)
@@ -259,10 +258,12 @@ def split_node(
         Its underlying tensor is :math:`\\sqrt{S} V^*`
       truncated_singular_values: 
         The vector of truncated singular values.
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
   """
 
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -344,9 +345,12 @@ def split_node_qr(
       right_node:
         A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`R`
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
   """
+
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -412,13 +416,16 @@ def split_node_rq(
     A tuple containing:
       left_node:
         A new node created that connects to all of the `left_edges`.
-        Its underlying tensor is :math:`Q`
+        Its underlying tensor is :math:`R^*`
       right_node:
         A new node created that connects to all of the `right_edges`.
-        Its underlying tensor is :math:`R`
+        Its underlying tensor is :math:`Q^*`
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
   """
+
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -522,12 +529,14 @@ def split_node_full_svd(
         Its underlying tensor is :math:`V^*`
       truncated_singular_values:
         The vector of truncated singular values.
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
   """
+
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
-  if node.axis_names and left_edge_name and right_edge_name:
     left_axis_names = []
     right_axis_names = [right_edge_name]
     for edge in left_edges:
@@ -679,6 +688,7 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
     edges |= set(node.edges)
   return edges
 
+
 def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Get all of the edges that are "relatively dangling" to the given nodes.
 
@@ -697,6 +707,7 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
     if edge.is_dangling() or not set(edge.get_nodes()) <= set(nodes):
       output.add(edge)
   return output
+
 
 def contract_trace_edges(node: BaseNode) -> BaseNode:
   """
