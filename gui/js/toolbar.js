@@ -124,3 +124,42 @@ Vue.component(
         `
     }
 );
+
+Vue.component(
+    'toolbar-axis-section',
+    {
+        props: {
+            state: Object
+        },
+        methods: {
+            addAxis: function() {
+                this.node.axes.push(null);
+            },
+            deleteAxis: function(event, index) {
+                event.preventDefault();
+                this.node.axes.splice(index, 1);
+            }
+        },
+        computed: {
+            node: function() {
+                return this.state.selectedNode;
+            }
+        },
+        template: `
+            <section v-if="node != null">
+                <h3>Axes</h3>
+                <div v-for="(axis, index) in node.axes">
+                    <div>
+                        <a class="delete" href="" @click="deleteAxis(event, index)">delete</a>
+                        <h4>{{node.name}}[{{index}}]</h4>
+                    </div>
+                    <label for="axis-name-input">Name</label>
+                    <input id="axis-name-input" type="text" v-model="node.axes[index]" placeholder="axis name" />
+                </div>
+                <div class="button-holder">
+                    <button @click="addAxis">Add axis</button>
+                </div>
+            </section>
+        `
+    }
+);
