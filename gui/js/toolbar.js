@@ -115,12 +115,50 @@ Vue.component(
                                 <button @click="rotateClockwise">Clockwise</button>
                             </div>
                     </section>
+                    <toolbar-edge-section :state="state" />
                     <toolbar-axis-section :state="state" />
                 </div>
                 <section v-else>
                     <h2>Select a node to edit it</h2>
                 </section>
             </div>
+        `
+    }
+);
+
+Vue.component(
+    'toolbar-edge-section',
+    {
+        props: {
+            state: Object
+        },
+        methods: {
+            deleteEdge: function(event, edge) {
+                event.preventDefault();
+                this.state.edges = this.state.edges.filter(function(candidate) {
+                    return candidate !== edge;
+                });
+            }
+        },
+        computed: {
+            node: function() {
+                return this.state.selectedNode;
+            }
+        },
+        template: `
+            <section v-if="node != null">
+                <h3>Edges</h3>
+                <div v-for="edge in state.edges">
+                    <div v-if="edge[0][0] === node.name || edge[1][0] === node.name">
+                        <div>
+                            <a class="delete" href="" @click="deleteEdge(event, edge)">delete</a>
+                            <h4>{{edge[0][0]}}[{{edge[0][1]}}] to {{edge[1][0]}}[{{edge[1][1]}}]</h4>
+                        </div>
+                        <label for="edge-name-input">Name</label>
+                        <input id="edge-name-input" type="text" v-model="edge[2]" placeholder="edge name" />
+                    </div>
+                </div>
+            </section>
         `
     }
 );

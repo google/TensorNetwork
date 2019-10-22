@@ -24,9 +24,8 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
-
-svg .node text {
-	font: bold 15px sans-serif;
+svg text {
+	font: normal 15px sans-serif;
 	text-anchor: middle;
 	dominant-baseline: middle;
 	user-select: none;
@@ -35,8 +34,8 @@ svg .node text {
 	-webkit-user-select: none;
 }
 
-svg .axis text {
-	font: normal 15px sans-serif;
+svg .node > text {
+	font: bold 15px sans-serif;
 }
 
 svg .axis.highlighted text {

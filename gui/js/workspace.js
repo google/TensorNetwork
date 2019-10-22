@@ -69,7 +69,8 @@ Vue.component(
                     }
                     this.state.edges.push([
                         [this.protoEdge.node.name, this.protoEdge.axis],
-                        [node.name, axis]
+                        [node.name, axis],
+                        null
                     ])
                 }
             },
