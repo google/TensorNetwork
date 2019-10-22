@@ -177,6 +177,16 @@ Vue.component(
             deleteAxis: function(event, index) {
                 event.preventDefault();
                 this.node.axes.splice(index, 1);
+            },
+            deleteDisabled: function(index) {
+                for (let i = 0; i < this.state.edges.length; i++) {
+                    let edge = this.state.edges[i];
+                    if ((edge[0][0] === this.node.name && edge[0][1] === index)
+                        || (edge[1][0] === this.node.name && edge[1][1] === index)) {
+                        return true;
+                    }
+                }
+                return false;
             }
         },
         computed: {
@@ -189,7 +199,8 @@ Vue.component(
                 <h3>Axes</h3>
                 <div v-for="(axis, index) in node.axes">
                     <div>
-                        <a class="delete" href="" @click="deleteAxis(event, index)">delete</a>
+                        <span v-if="deleteDisabled(index)" class="delete disabled">part of edge</span>
+                        <a v-else class="delete" href="" @click="deleteAxis(event, index)">delete</a>
                         <h4>{{node.name}}[{{index}}]</h4>
                     </div>
                     <label for="axis-name-input">Name</label>

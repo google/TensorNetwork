@@ -59,6 +59,10 @@ section {
 	color: darkred;
 }
 
+.delete.disabled {
+	color: #999;
+}
+
 .button-holder {
 	padding: 20px 0;
 }
