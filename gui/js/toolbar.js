@@ -41,7 +41,8 @@ Vue.component(
 
                 this.createNodeName = "";
             },
-            deleteNode: function() {
+            deleteNode: function(event) {
+                event.preventDefault();
                 let selectedName = this.state.selectedNode.name;
 
                 this.state.edges = this.state.edges.filter(function(edge) {
@@ -106,7 +107,7 @@ Vue.component(
                 <div v-if="node != null">
                     <section>
                         <div>
-                            <a class="delete" href="" @click="deleteNode">delete</a>
+                            <a class="delete" href="" @click="deleteNode(event)">delete</a>
                             <h2>Node: {{node.name}}</h2>
                         </div>
                         <h4>Rotate</h4>
