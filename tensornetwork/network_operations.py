@@ -35,10 +35,10 @@ def norm(node: BaseNode) -> Tensor:
   Returns:
     The L2 norm 
   Raises:
-    TypeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
   return node.backend.norm(node.tensor)
 
@@ -84,10 +84,10 @@ def transpose(node: BaseNode,
   Returns:
     A new node. The transpose of `node`.
   Raises:
+    AttributeError: If `node` has no `backend` attribute, or if 
+      `node` has no tensor.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
-    AttributeError: If `node` has no tensor, or if `node` has no 
-      `backend` attribute.
   """
 
   if not hasattr(node, 'backend'):
@@ -259,7 +259,7 @@ def split_node(
       truncated_singular_values: 
         The vector of truncated singular values.
   Raises:
-    AttributeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no backend attribute
   """
 
   if not hasattr(node, 'backend'):
@@ -346,9 +346,8 @@ def split_node_qr(
         A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`R`
   Raises:
-    AttributeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no backend attribute
   """
-
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -415,15 +414,15 @@ def split_node_rq(
   Returns:
     A tuple containing:
       left_node:
-        A new node created that connects to all of the `left_edges`.
+        A new node that connects to all of the `left_edges`.
         Its underlying tensor is :math:`R^*`
       right_node:
-        A new node created that connects to all of the `right_edges`.
+        A new node that connects to all of the `right_edges`.
         Its underlying tensor is :math:`Q^*`
   Raises:
-    AttributeError: If `node` has no `backend` attribute.
-  """
+    AttributeError: If `node` has no backend attribute
 
+  """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -530,13 +529,13 @@ def split_node_full_svd(
       truncated_singular_values:
         The vector of truncated singular values.
   Raises:
-    AttributeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no backend attribute
   """
-
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
+  if node.axis_names and left_edge_name and right_edge_name:
     left_axis_names = []
     right_axis_names = [right_edge_name]
     for edge in left_edges:
