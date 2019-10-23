@@ -32,6 +32,6 @@ let initialState = {
         }
     ],
     edges: [
-        [['B', 1], ['A', 1], 'a named edge'], // optional third element describes edge name
+        [['B', 1], ['A', 1], 'a named edge'],
     ]
 };
