@@ -56,27 +56,26 @@ def apply_op(psi, op, n1, pbc=False):
     Returns:
       psi_final: The result of applying `op` to `psi`.
   """
-  net = tensornetwork.TensorNetwork("tensorflow")
-  n_psi = net.add_node(psi)
+  n_psi = tensornetwork.Node(psi, backend="tensorflow")
   site_edges = n_psi.get_all_edges()
 
-  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1, pbc)
+  site_edges, n_op = _apply_op_network(site_edges, op, n1, pbc)
 
-  n_res = net.contract_between(n_op, n_psi)
-  n_res.reorder_edges(site_edges)
+  n_res = tensornetwork.contract_between(
+      n_op, n_psi, output_edge_order=site_edges)
 
   return n_res.tensor
 
 
-def _apply_op_network(net, site_edges, op, n1, pbc=False):
+def _apply_op_network(site_edges, op, n1, pbc=False):
   N = len(site_edges)
   op_sites = len(op.shape) // 2
-  n_op = net.add_node(op)
+  n_op = tensornetwork.Node(op, backend="tensorflow")
   for m in range(op_sites):
     target_site = (n1 + m) % N if pbc else n1 + m
-    net.connect(n_op[op_sites + m], site_edges[target_site])
+    tensornetwork.connect(n_op[op_sites + m], site_edges[target_site])
     site_edges[target_site] = n_op[m]
-  return net, site_edges, n_op
+  return site_edges, n_op
 
 
 def expval(psi, op, n1, pbc=False):
@@ -98,19 +97,18 @@ def expval(psi, op, n1, pbc=False):
     Returns:
       expval: The expectation value.
   """
-  net = tensornetwork.TensorNetwork("tensorflow")
-  n_psi = net.add_node(psi)
+  n_psi = tensornetwork.Node(psi, backend="tensorflow")
   site_edges = n_psi.get_all_edges()
 
-  net, site_edges, n_op = _apply_op_network(net, site_edges, op, n1, pbc)
+  site_edges, n_op = _apply_op_network(site_edges, op, n1, pbc)
 
-  n_op_psi = net.contract_between(n_op, n_psi)
+  n_op_psi = n_op @ n_psi
 
-  n_psi_conj = net.add_node(tf.math.conj(psi))
+  n_psi_conj = tensornetwork.Node(tf.math.conj(psi), backend="tensorflow")
   for i in range(len(site_edges)):
-    net.connect(site_edges[i], n_psi_conj[i])
+    tensornetwork.connect(site_edges[i], n_psi_conj[i])
 
-  res = net.contract_between(n_psi_conj, n_op_psi)
+  res = n_psi_conj @ n_op_psi
 
   return res.tensor
 
@@ -243,8 +241,7 @@ def apply_circuit(psi, layers):
   """
   num_sites = len(psi.shape)
 
-  net = tensornetwork.TensorNetwork("tensorflow")
-  n_psi = net.add_node(psi)
+  n_psi = tensornetwork.Node(psi, backend="tensorflow")
   site_edges = n_psi.get_all_edges()
   nodes = [n_psi]
 
@@ -262,7 +259,7 @@ def apply_circuit(psi, layers):
               "Overlapping gates in same layer at site {}!".format(n))
         skip -= 1
       elif gate is not None:
-        net, site_edges, n_gate = _apply_op_network(net, site_edges, gate, n)
+        site_edges, n_gate = _apply_op_network(site_edges, gate, n)
         nodes.append(n_gate)
 
         # keep track of how many sites this gate included
@@ -270,7 +267,7 @@ def apply_circuit(psi, layers):
         skip = op_sites - 1
 
   # NOTE: This may not be the optimal order if transpose costs are considered.
-  n_psi = reduce(net.contract_between, nodes)
+  n_psi = reduce(tensornetwork.contract_between, nodes)
   n_psi.reorder_edges(site_edges)
 
   return n_psi.tensor
