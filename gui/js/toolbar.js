@@ -41,7 +41,8 @@ Vue.component(
 
                 this.createNodeName = "";
             },
-            deleteNode: function() {
+            deleteNode: function(event) {
+                event.preventDefault();
                 let selectedName = this.state.selectedNode.name;
 
                 this.state.edges = this.state.edges.filter(function(edge) {
@@ -56,30 +57,6 @@ Vue.component(
                     return node.name !== selectedName;
                 });
                 this.selectedNode = null;
-            },
-            addAxis: function() {
-                this.node.rotation = 0;
-                this.node.axes.push(null);
-            },
-            removeAxis: function() {
-                this.node.rotation = 0;
-                if (this.node.axes.length < 1) {
-                    return;
-                }
-                this.node.axes.pop();
-                let oldAxis = this.node.axes.length;
-                let node = this.node;
-                this.state.edges = this.state.edges.filter(function(edge) {
-                    if (edge[0][0] === node.name && edge[0][1] === oldAxis) {
-                        return false;
-                    }
-                    else if (edge[1][0] === node.name && edge[1][1] === oldAxis) {
-                        return false;
-                    }
-                    else {
-                        return true;
-                    }
-                });
             },
             rotateCounter: function() {
                 this.node.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
@@ -118,30 +95,121 @@ Vue.component(
         },
         template: `
             <div class="toolbar">
-                <h2>Create New Node</h2>
-                <div class="button-holder">
-                    <form @submit="createNode">
-                        <input type="text" v-model="createNodeName" placeholder="name" />
-                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
-                    </form>
-                </div>
+                <section>
+                    <h2>Create New Node</h2>
+                    <div class="button-holder">
+                        <form @submit="createNode">
+                            <input type="text" v-model="createNodeName" placeholder="node name" />
+                            <input type="submit" value="Create" :disabled="createNodeDisabled" />
+                        </form>
+                    </div>
+                </section>
                 <div v-if="node != null">
-                    <h2>Node: {{node.name}}</h2>
-                    <div class="button-holder">
-                        <button @click="deleteNode">Delete</button>
-                    </div>
-                    <div class="button-holder">
-                        <button @click="addAxis">Add Axis</button>
-                        <button @click="removeAxis">Remove Axis</button>
-                    </div>
-                    <h4>Rotate</h4>
-                    <div class="button-holder">
-                        <button @click="rotateCounter">Counterclockwise</button>
-                        <button @click="rotateClockwise">Clockwise</button>
+                    <section>
+                        <div>
+                            <a class="delete" href="" @click="deleteNode(event)">delete</a>
+                            <h2>Node: {{node.name}}</h2>
+                        </div>
+                        <h4>Rotate</h4>
+                            <div class="button-holder">
+                                <button @click="rotateCounter">Counterclockwise</button>
+                                <button @click="rotateClockwise">Clockwise</button>
+                            </div>
+                    </section>
+                    <toolbar-edge-section :state="state" />
+                    <toolbar-axis-section :state="state" />
+                </div>
+                <section v-else>
+                    <h2>Select a node to edit it</h2>
+                </section>
+            </div>
+        `
+    }
+);
+
+Vue.component(
+    'toolbar-edge-section',
+    {
+        props: {
+            state: Object
+        },
+        methods: {
+            deleteEdge: function(event, edge) {
+                event.preventDefault();
+                this.state.edges = this.state.edges.filter(function(candidate) {
+                    return candidate !== edge;
+                });
+            }
+        },
+        computed: {
+            node: function() {
+                return this.state.selectedNode;
+            }
+        },
+        template: `
+            <section v-if="node != null">
+                <h3>Edges</h3>
+                <div v-for="edge in state.edges">
+                    <div v-if="edge[0][0] === node.name || edge[1][0] === node.name">
+                        <div>
+                            <a class="delete" href="" @click="deleteEdge(event, edge)">delete</a>
+                            <h4>{{edge[0][0]}}[{{edge[0][1]}}] to {{edge[1][0]}}[{{edge[1][1]}}]</h4>
+                        </div>
+                        <label for="edge-name-input">Name</label>
+                        <input id="edge-name-input" type="text" v-model="edge[2]" placeholder="edge name" />
                     </div>
                 </div>
-                <h2 v-else>Select a node to edit it</h2>
-            </div>
+            </section>
+        `
+    }
+);
+
+Vue.component(
+    'toolbar-axis-section',
+    {
+        props: {
+            state: Object
+        },
+        methods: {
+            addAxis: function() {
+                this.node.axes.push(null);
+            },
+            deleteAxis: function(event, index) {
+                event.preventDefault();
+                this.node.axes.splice(index, 1);
+            },
+            deleteDisabled: function(index) {
+                for (let i = 0; i < this.state.edges.length; i++) {
+                    let edge = this.state.edges[i];
+                    if ((edge[0][0] === this.node.name && edge[0][1] === index)
+                        || (edge[1][0] === this.node.name && edge[1][1] === index)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        },
+        computed: {
+            node: function() {
+                return this.state.selectedNode;
+            }
+        },
+        template: `
+            <section v-if="node != null">
+                <h3>Axes</h3>
+                <div v-for="(axis, index) in node.axes">
+                    <div>
+                        <span v-if="deleteDisabled(index)" class="delete disabled">part of edge</span>
+                        <a v-else class="delete" href="" @click="deleteAxis(event, index)">delete</a>
+                        <h4>{{node.name}}[{{index}}]</h4>
+                    </div>
+                    <label for="axis-name-input">Name</label>
+                    <input id="axis-name-input" type="text" v-model="node.axes[index]" placeholder="axis name" />
+                </div>
+                <div class="button-holder">
+                    <button @click="addAxis">Add axis</button>
+                </div>
+            </section>
         `
     }
 );
