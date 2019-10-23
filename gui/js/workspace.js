@@ -48,8 +48,8 @@ Vue.component(
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
                 this.protoEdge.dragging = true;
-                this.protoEdge.x = event.pageX - workspace.left;
-                this.protoEdge.y = event.pageY - workspace.top;
+                this.protoEdge.x = event.clientX - workspace.left;
+                this.protoEdge.y = event.clientY - workspace.top;
             },
             releaseAxisDrag: function() {
                 document.removeEventListener('mousemove', this.dragAxis);
@@ -63,9 +63,14 @@ Vue.component(
                     if (this.axisOccupied(node, axis)) {
                         return;
                     }
+                    if (this.protoEdge.node.name === node.name
+                        && this.protoEdge.axis === axis) {
+                        return; // don't allow connection of an axis to itself
+                    }
                     this.state.edges.push([
                         [this.protoEdge.node.name, this.protoEdge.axis],
-                        [node.name, axis]
+                        [node.name, axis],
+                        null
                     ])
                 }
             },

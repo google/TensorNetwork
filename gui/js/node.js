@@ -151,7 +151,7 @@ Vue.component(
         data: function() {
             return {
                 dragging: false,
-                brightness: 80
+                highlighted: false
             }
         },
         methods: {
@@ -178,10 +178,10 @@ Vue.component(
                 if (this.dragging) {
                     return; // don't highlight self if self is being dragged
                 }
-                this.brightness = 50;
+                this.highlighted = true;
             },
             onMouseLeave: function() {
-                this.brightness = 80;
+                this.highlighted = false;
             },
         },
         computed: {
@@ -197,15 +197,24 @@ Vue.component(
             y: function() {
                 return this.axisY(this.angle);
             },
+            brightness: function() {
+                return this.highlighted ? 50 : 80;
+            },
             stroke: function() {
                 return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
-            }
+            },
         },
         template: `
-            <line class="axis" x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
-                stroke-width="5" stroke-linecap="round"
-                @mousedown="onMouseDown" @mouseup="onMouseUp"
-                @mouseenter="onMouseEnter" @mouseleave="onMouseLeave"/>
+            <g class="axis" :class="{'highlighted': highlighted}"
+                    @mousedown="onMouseDown" @mouseup="onMouseUp"
+                    @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
+                <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
+                    stroke-width="5" stroke-linecap="round" />
+                <text :x="x * axisLabelRadius" :y="y * axisLabelRadius">
+                    <tspan>{{index}}</tspan>
+                    <tspan v-if="node.axes[index]"> - {{node.axes[index]}}</tspan>
+                </text>
+            </g>
         `
     }
 );
