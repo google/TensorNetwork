@@ -152,9 +152,13 @@ def test_ignore_edge_order(backend, path_algorithm):
   a[1] ^ b[1]
   a[2] ^ b[2]
 
+  e0 = b[3]
+  e1 = b[4]
+
   final_node = path_algorithm({a, b},
                               ignore_edge_order=True)
-  assert final_node.tensor.shape == (2, 3)
+
+  assert set(final_node.edges) == {e0, e1}
 
 
 def test_ignore_edge_order_with_order(backend, path_algorithm):
@@ -171,4 +175,5 @@ def test_ignore_edge_order_with_order(backend, path_algorithm):
   final_node = path_algorithm({a, b},
                               [e1, e0],
                               ignore_edge_order=True)
-  assert final_node.tensor.shape == (2, 3)
+
+  assert set(final_node.edges) == {e0, e1}
