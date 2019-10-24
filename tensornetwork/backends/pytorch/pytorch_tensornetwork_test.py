@@ -15,7 +15,7 @@ def test_basic_graphmode():
 
 def test_gradient_decent():
   a = Node(torch.autograd.Variable(torch.ones(10), requires_grad=True),
-              backend="pytorch")
+           backend="pytorch")
   b = Node(torch.ones(10), backend="pytorch")
   e = connect(a[0], b[0])
   final_tensor = contract(e).get_tensor()
