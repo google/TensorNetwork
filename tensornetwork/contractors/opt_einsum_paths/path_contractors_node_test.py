@@ -145,8 +145,8 @@ def test_single_node_reorder(backend, path_algorithm):
 
 
 def test_ignore_edge_order(backend, path_algorithm):
-  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
-  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+  a = Node(np.ones((1, 1, 1)), backend=backend)
+  b = Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
 
   a[0] ^ b[0]
   a[1] ^ b[1]
@@ -162,8 +162,8 @@ def test_ignore_edge_order(backend, path_algorithm):
 
 
 def test_ignore_edge_order_with_order(backend, path_algorithm):
-  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
-  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+  a = Node(np.ones((1, 1, 1)), backend=backend)
+  b = Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
 
   a[0] ^ b[0]
   a[1] ^ b[1]
