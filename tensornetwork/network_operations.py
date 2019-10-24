@@ -606,8 +606,8 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]])
     inputs = {inputs}
   elif isinstance(inputs, Edge):
     inputs = {inputs.node1}
-  elif isinstance(inputs, list) and all(isinstance(_, Edge) for _ in inputs):
-    inputs = {_.node1 for _ in inputs}
+  elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
+    inputs = {x.node1 for x in inputs}
   return _reachable(set(inputs))
 
 
