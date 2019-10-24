@@ -142,3 +142,38 @@ def test_single_node_reorder(backend, path_algorithm):
   result = path_algorithm({a}, expected_edge_order)
   assert result.edges == expected_edge_order
   np.testing.assert_allclose(result.tensor, np.arange(4).reshape((2, 2)).T)
+
+
+def test_ignore_edge_order(backend, path_algorithm):
+  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
+  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+
+  a[0] ^ b[0]
+  a[1] ^ b[1]
+  a[2] ^ b[2]
+
+  e0 = b[3]
+  e1 = b[4]
+
+  final_node = path_algorithm({a, b},
+                              ignore_edge_order=True)
+
+  assert set(final_node.edges) == {e0, e1}
+
+
+def test_ignore_edge_order_with_order(backend, path_algorithm):
+  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
+  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+
+  a[0] ^ b[0]
+  a[1] ^ b[1]
+  a[2] ^ b[2]
+
+  e0 = b[3]
+  e1 = b[4]
+
+  final_node = path_algorithm({a, b},
+                              [e1, e0],
+                              ignore_edge_order=True)
+
+  assert set(final_node.edges) == {e0, e1}

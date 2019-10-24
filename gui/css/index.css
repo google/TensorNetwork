@@ -24,9 +24,8 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
-
-svg .node text {
-	font: bold 15px sans-serif;
+svg text {
+	font: normal 15px sans-serif;
 	text-anchor: middle;
 	dominant-baseline: middle;
 	user-select: none;
@@ -35,17 +34,43 @@ svg .node text {
 	-webkit-user-select: none;
 }
 
+svg .node > text {
+	font: bold 15px sans-serif;
+}
+
+svg .axis.highlighted text {
+	font: bold 15px sans-serif;
+}
+
 .toolbar {
-	min-width: 200px;
-	padding: 10px 20px 10px 20px;
+	min-width: 250px;
 	background-color: #fff;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.2);
 }
 
+section {
+	padding: 10px 20px;
+	border-bottom: 1px solid #ddd;
+}
+
+.delete {
+	text-align: right;
+	float: right;
+	color: darkred;
+}
+
+.delete.disabled {
+	color: #999;
+}
+
 .button-holder {
-	padding-bottom: 10px;
+	padding: 20px 0;
 }
 
 .code-output {
+	padding: 10px;
+}
+
+label {
 	padding: 10px;
 }
