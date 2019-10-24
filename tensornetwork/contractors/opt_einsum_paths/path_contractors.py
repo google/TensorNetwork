@@ -99,7 +99,7 @@ def optimal(
     nodes: Iterable[BaseNode],
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
+    ignore_edge_order: bool = False) -> BaseNode:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -128,7 +128,7 @@ def branch(nodes: Iterable[BaseNode],
            output_edge_order: Optional[Sequence[Edge]] = None,
            memory_limit: Optional[int] = None,
            nbranch: Optional[int] = None,
-           ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
+           ignore_edge_order: bool = False) -> BaseNode:
   """Branch contraction path via `opt_einsum`.
 
   This method uses the DFS approach of `optimal` while sorting potential
@@ -162,7 +162,7 @@ def greedy(
     nodes: Iterable[BaseNode],
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False):  # -> Union[BaseNode, TensorNetwork]:
+    ignore_edge_order: bool = False) -> BaseNode:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
@@ -194,7 +194,7 @@ def auto(
     nodes: BaseNode,
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False):  # -> Union[TensorNetwork, BaseNode]:
+    ignore_edge_order: bool = False) -> BaseNode:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -235,14 +235,8 @@ def auto(
     final_node.reorder_edges(output_edge_order)
     if not ignore_edge_order:
       final_node.reorder_edges(output_edge_order)
-    if isinstance(nodes, TensorNetwork):
-      node = list(_nodes)[0]
-      nodes.nodes_set = set()
-      nodes.add_node(final_node)
-      node.disable()  #for consistency
-      return nodes
-
     return final_node
+
   if n < 5:
     return optimal(nodes, output_edge_order, memory_limit, ignore_edge_order)
   if n < 7:
@@ -259,7 +253,7 @@ def custom(
     optimizer: Any,
     output_edge_order: Sequence[Edge] = None,
     memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False):  #x -> Union[BaseNode, TensorNetwork]:
+    ignore_edge_order: bool = False) -> BaseNode:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.
