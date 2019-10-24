@@ -26,5 +26,4 @@ class TensorNetwork:
     raise DeprecationWarning("The TensorNetwork object has been DEPRECATED "
                              "and will be removed in future releases.\n"
                              "Updating your code is fairly easy. For a "
-                             f"detailed tutorial, please visit {link}"
-    )
+                             f"detailed tutorial, please visit {link}")
