@@ -3,8 +3,7 @@ import builtins
 import sys
 import pytest
 import numpy as np
-import tensornetwork as tn
-from tensornetwork import connect, contract
+from tensornetwork import connect, contract, Node
 
 
 def clean_tensornetwork_modules():
@@ -115,8 +114,8 @@ def test_basic_numpy_network_without_backends():
   #pylint: disable=import-outside-toplevel
   #pylint: disable=reimported
   import tensornetwork
-  a = tn.Node(np.ones((10,)), backend="numpy")
-  b = tn.Node(np.ones((10,)), backend="numpy")
+  a = Node(np.ones((10,)), backend="numpy")
+  b = Node(np.ones((10,)), backend="numpy")
   edge = connect(a[0], b[0])
   final_node = contract(edge)
   assert final_node.tensor == np.array(10.)
@@ -140,8 +139,8 @@ def test_basic_network_without_backends_raises_error():
   #pylint: disable=reimported
   import tensornetwork
   with pytest.raises(ImportError):
-    tn.Node(np.ones((2, 2)), backend="jax")
+    Node(np.ones((2, 2)), backend="jax")
   with pytest.raises(ImportError):
-    tn.Node(np.ones((2, 2)), backend="tensorflow")
+    Node(np.ones((2, 2)), backend="tensorflow")
   with pytest.raises(ImportError):
-    tn.Node(np.ones((2, 2)), backend="pytorch")
+    Node(np.ones((2, 2)), backend="pytorch")
