@@ -1,18 +1,18 @@
 """Tests for graphmode_tensornetwork."""
 import numpy as np
 import tensorflow as tf
-import tensornetwork as tn
 from tensornetwork import (contract, connect, flatten_edges_between,
-                           contract_between)
+                           contract_between, Node)
 import pytest
+
 
 class GraphmodeTensorNetworkTest(tf.test.TestCase):
 
   def test_basic_graphmode(self):
     # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
-      a = tn.Node(tf.ones(10), backend="tensorflow")
-      b = tn.Node(tf.ones(10), backend="tensorflow")
+      a = Node(tf.ones(10), backend="tensorflow")
+      b = Node(tf.ones(10), backend="tensorflow")
       e = connect(a[0], b[0])
       final_tensor = contract(e).get_tensor()
 
@@ -23,8 +23,8 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
   def test_gradient_decent(self):
     # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
-      a = tn.Node(tf.Variable(tf.ones(10)), backend="tensorflow")
-      b = tn.Node(tf.ones(10), backend="tensorflow")
+      a = Node(tf.Variable(tf.ones(10)), backend="tensorflow")
+      b = Node(tf.ones(10), backend="tensorflow")
       e = connect(a[0], b[0])
       final_tensor = contract(e).get_tensor()
       opt = tf.compat.v1.train.GradientDescentOptimizer(0.001)
@@ -40,8 +40,8 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.function
     def f(x, n):
       x_slice = x[:n]
-      n1 = tn.Node(x_slice, backend="tensorflow")
-      n2 = tn.Node(x_slice, backend="tensorflow")
+      n1 = Node(x_slice, backend="tensorflow")
+      n2 = Node(x_slice, backend="tensorflow")
       e = connect(n1[0], n2[0])
       return contract(e).get_tensor()
 
@@ -55,8 +55,8 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.function
     def f(x, n):
       x_slice = x[..., :n]
-      n1 = tn.Node(x_slice, backend="tensorflow")
-      n2 = tn.Node(x_slice, backend="tensorflow")
+      n1 = Node(x_slice, backend="tensorflow")
+      n2 = Node(x_slice, backend="tensorflow")
       connect(n1[0], n2[0])
       connect(n1[1], n2[1])
       connect(n1[2], n2[2])
@@ -71,8 +71,8 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.function
     def f(x, n):
       x_slice = x[..., :n]
-      n1 = tn.Node(x_slice, backend="tensorflow")
-      n2 = tn.Node(x_slice, backend="tensorflow")
+      n1 = Node(x_slice, backend="tensorflow")
+      n2 = Node(x_slice, backend="tensorflow")
       connect(n1[0], n2[0])
       connect(n1[1], n2[1])
       connect(n1[2], n2[2])
@@ -87,7 +87,7 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
     @tf.function
     def f(x, n):
       x_slice = x[..., :n]
-      n1 = tn.Node(x_slice, backend="tensorflow")
+      n1 = Node(x_slice, backend="tensorflow")
       connect(n1[0], n1[2])
       connect(n1[1], n1[3])
       return contract(flatten_edges_between(n1, n1)).get_tensor()
@@ -99,8 +99,8 @@ class GraphmodeTensorNetworkTest(tf.test.TestCase):
   def test_batch_usage(self,):
 
     def build_tensornetwork(tensors):
-      a = tn.Node(tensors[0], backend="tensorflow")
-      b = tn.Node(tensors[1], backend="tensorflow")
+      a = Node(tensors[0], backend="tensorflow")
+      b = Node(tensors[1], backend="tensorflow")
       e = connect(a[0], b[0])
       return contract(e).get_tensor()
 
