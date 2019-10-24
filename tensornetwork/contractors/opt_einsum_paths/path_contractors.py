@@ -31,7 +31,8 @@ from typing import Any, Optional, Sequence, Iterable
 
 def base(nodes: Iterable[BaseNode],
          algorithm: utils.Algorithm,
-         output_edge_order: Optional[Sequence[Edge]] = None) -> BaseNode:
+         output_edge_order: Optional[Sequence[Edge]] = None,
+         ignore_edge_order: bool = False) -> BaseNode:
   """Base method for all `opt_einsum` contractors.
 
   Args:
