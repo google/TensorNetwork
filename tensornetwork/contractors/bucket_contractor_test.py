@@ -18,8 +18,7 @@ from typing import Tuple
 
 import numpy as np
 
-import tensornetwork as tn
-from tensornetwork import network_components
+from tensornetwork import network_components, CopyNode, Node
 from tensornetwork.contractors import bucket_contractor
 from tensornetwork.contractors import greedy
 
@@ -47,9 +46,9 @@ def add_cnot(q0: network_components.Edge,
     - output edge for the control qubit and
     - output edge for the target qubit.
   """
-  control = tn.CopyNode(rank=3, dimension=2, backend=backend)
+  control = CopyNode(rank=3, dimension=2, backend=backend)
   xor = np.array([[[1, 0], [0, 1]], [[0, 1], [1, 0]]], dtype=np.float64)
-  target = tn.Node(xor, backend=backend)
+  target = Node(xor, backend=backend)
   network_components.connect(q0, control[0])
   network_components.connect(q1, target[0])
   network_components.connect(control[1], target[1])
@@ -58,11 +57,11 @@ def add_cnot(q0: network_components.Edge,
 
 def test_cnot_gate():
   # Prepare input state: |11>
-  q0_in = tn.Node(np.array([0, 1], dtype=np.float64))
-  q1_in = tn.Node(np.array([0, 1], dtype=np.float64))
+  q0_in = Node(np.array([0, 1], dtype=np.float64))
+  q1_in = Node(np.array([0, 1], dtype=np.float64))
   # Prepare output state: |10>
-  q0_out = tn.Node(np.array([0, 1], dtype=np.float64))
-  q1_out = tn.Node(np.array([1, 0], dtype=np.float64))
+  q0_out = Node(np.array([0, 1], dtype=np.float64))
+  q1_out = Node(np.array([1, 0], dtype=np.float64))
   # Build quantum circuit
   copy_node, q0_t1, q1_t1 = add_cnot(q0_in[0], q1_in[0])
   network_components.connect(q0_t1, q0_out[0])
@@ -79,11 +78,11 @@ def test_cnot_gate():
 
 def test_swap_gate():
   # Prepare input state: 0.6|00> + 0.8|10>
-  q0_in = tn.Node(np.array([0.6, 0.8], dtype=np.float64), backend="jax")
-  q1_in = tn.Node(np.array([1, 0], dtype=np.float64), backend="jax")
+  q0_in = Node(np.array([0.6, 0.8], dtype=np.float64), backend="jax")
+  q1_in = Node(np.array([1, 0], dtype=np.float64), backend="jax")
   # Prepare output state: 0.6|00> + 0.8|01>
-  q0_out = tn.Node(np.array([1, 0], dtype=np.float64), backend="jax")
-  q1_out = tn.Node(np.array([0.6, 0.8], dtype=np.float64), backend="jax")
+  q0_out = Node(np.array([1, 0], dtype=np.float64), backend="jax")
+  q1_out = Node(np.array([0.6, 0.8], dtype=np.float64), backend="jax")
   # Build quantum circuit: three CNOTs implement a SWAP
   copy_node_1, q0_t1, q1_t1 = add_cnot(q0_in[0], q1_in[0], backend="jax")
   copy_node_2, q1_t2, q0_t2 = add_cnot(q1_t1, q0_t1, backend="jax")
