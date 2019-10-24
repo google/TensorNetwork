@@ -31,7 +31,7 @@ def ising_hamiltonian(N, dtype):
 
 
 def random_state(N, d, dtype):
-  psi = tf.cast(tf.random_uniform([d for n in range(N)]), dtype)
+  psi = tf.cast(tf.random.uniform([d for n in range(N)]), dtype)
   psi = tf.divide(psi, tf.norm(psi))
   return psi
 
