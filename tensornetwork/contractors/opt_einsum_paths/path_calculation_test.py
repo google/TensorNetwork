@@ -19,7 +19,7 @@ github.com/dgasmith/opt_einsum/blob/master/opt_einsum/tests/test_paths.py
 import numpy as np
 import opt_einsum
 import pytest
-import tensornetwork as tn
+from tensornetwork import Node
 from tensornetwork.contractors.opt_einsum_paths import utils
 
 
@@ -42,9 +42,9 @@ def check_path(calculated_path, correct_path):
 # `TensorNetwork`.
 def gemm_network():
   """Creates 'GEMM1' contraction from `opt_einsum` tests."""
-  x = tn.Node(np.ones([1, 2, 4]))
-  y = tn.Node(np.ones([1, 3]))
-  z = tn.Node(np.ones([2, 4, 3]))
+  x = Node(np.ones([1, 2, 4]))
+  y = Node(np.ones([1, 3]))
+  z = Node(np.ones([2, 4, 3]))
   # pylint: disable=pointless-statement
   x[0] ^ y[0]
   x[1] ^ z[0]
@@ -55,9 +55,9 @@ def gemm_network():
 
 def inner_network():
   """Creates a (modified) `Inner1` contraction from `opt_einsum` tests."""
-  x = tn.Node(np.ones([5, 2, 3, 4]))
-  y = tn.Node(np.ones([5, 3]))
-  z = tn.Node(np.ones([2, 4]))
+  x = Node(np.ones([5, 2, 3, 4]))
+  y = Node(np.ones([5, 3]))
+  z = Node(np.ones([2, 4]))
   # pylint: disable=pointless-statement
   x[0] ^ y[0]
   x[1] ^ z[0]
@@ -72,7 +72,7 @@ def matrix_chain():
   The `greedy` algorithm does not find the optimal path in this case!
   """
   d = [10, 8, 6, 4, 2]
-  nodes = [tn.Node(np.ones([d1, d2])) for d1, d2 in zip(d[:-1], d[1:])]
+  nodes = [Node(np.ones([d1, d2])) for d1, d2 in zip(d[:-1], d[1:])]
   for a, b in zip(nodes[:-1], nodes[1:]):
     # pylint: disable=pointless-statement
     a[1] ^ b[0]
