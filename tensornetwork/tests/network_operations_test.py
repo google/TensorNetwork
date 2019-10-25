@@ -310,7 +310,11 @@ def test_reduced_density_nondangling(backend):
     tn.reduced_density([a[0], b[1], c[1]])
 
 def test_reduced_density(backend):
-  a = tn.Node(np.array([[0.0, 1.0j], [-1.0j, 0.0]], dtype=np.complex64))
-  tn.reduce_density([a[0]])
-  result = tn.contractors.greedy(tn.reachable(a))
+  if backend == "pytorch":
+    pytest.skip("pytorch doesn't support complex numbers")
+  a = tn.Node(
+      np.array([[0.0, 1.0j], [-1.0j, 0.0]], dtype=np.complex64),
+      backend=backend)
+  tn.reduced_density([a[0]])
+  result = tn.contractors.greedy(tn.reachable(a), ignore_edge_order=True)
   np.testing.assert_allclose(result.tensor, np.eye(2))
