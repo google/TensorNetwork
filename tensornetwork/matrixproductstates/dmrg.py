@@ -215,8 +215,96 @@ class BaseDMRG:
     self.compute_right_envs()
     return self
 
+  def _optimize_1s_local(self,
+                         site,
+                         sweep_dir,
+                         ncv=40,
+                         Ndiag=10,
+                         landelta=1E-5,
+                         landeltaEta=1E-5,
+                         verbose=0):
 
-class DMRGUnitCellEngine(BaseDMRG):
+    initial = self.mps.nodes[self.center_position]
+    def mv(tensor):
+      mps=Node(tensor, backend=initial.backend.name)
+      L = self.left_envs[site]
+      R = self.right_envs[site]
+      mpo=self.mpo.nodes[site]
+      
+    initial.backend.eigsh_lanczos(
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False)
+    
+    nit, vecs, alpha, beta = LZ.do_lanczos(
+        L=self.left_envs[site],
+        mpo=self.mpo[site],
+        R=self.right_envs[site],
+        initial_state=initial,
+        ncv=np.min([
+            ncv,
+            int(initial.shape[0]) * int(initial.shape[1]) * int(
+                initial.shape[2])
+        ]),
+        delta=landelta)
+
+    e, opt = LZ.tridiag(vecs, alpha, beta)
+    Dnew = opt.shape[2]
+    # if verbose == (-1):
+    #     print(f"SS-DMRG  site={site}: optimized E={e}")
+
+    if verbose > 0:
+      stdout.write(
+          "\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f at D=%i" %
+          (self._it, self.Nsweeps, site, len(self.mps), np.real(e), np.imag(e),
+           Dnew))
+      stdout.flush()
+
+    if verbose > 1:
+      print("")
+
+    if self.walltime_log:
+      t1 = time.time()
+    if sweep_dir in (-1, 'r', 'right'):
+      A, mat, Z = misc_mps.prepare_tensor_QR(opt, direction='l')
+      A /= Z
+    elif sweep_dir in (1, 'l', 'left'):
+      mat, B, Z = misc_mps.prepare_tensor_QR(opt, direction='r')
+      B /= Z
+    if self.walltime_log:
+      self.walltime_log(lan=[], QR=[time.time() - t1], add_layer=[], num_lan=[])
+
+    self.mps.mat = mat
+    if sweep_dir in (-1, 'r', 'right'):
+      self.mps._tensors[site] = A
+      self.mps.pos += 1
+      self.left_envs[site + 1] = self.add_layer(
+          B=self.left_envs[site],
+          mps_tensor=self.mps[site],
+          mpo_tensor=self.mpo[site],
+          conj_mps_tensor=self.mps[site],
+          direction=1,
+          walltime_log=self.walltime_log)
+
+    elif sweep_dir in (1, 'l', 'left'):
+      self.mps._tensors[site] = B
+      self.mps.pos = site
+      self.right_envs[site - 1] = self.add_layer(
+          B=self.right_envs[site],
+          mps_tensor=self.mps[site],
+          mpo_tensor=self.mpo[site],
+          conj_mps_tensor=self.mps[site],
+          direction=-1,
+          walltime_log=self.walltime_log)
+    return e
+
+
+class FiniteDMRG(BaseDMRG):
   """
     DMRGUnitCellEngine
     simulation container for density matrix renormalization group optimization
