@@ -485,7 +485,7 @@ class FiniteMPS:
     return res
 
   def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
-                                  sites2: Sequence[int]) -> List:
+                                  sites2: Sequence[int]) -> np.ndarray:
     """
     Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
     `sites2`. if `site1 == s`, op2 will be applied first
