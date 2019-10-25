@@ -23,7 +23,100 @@ from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
 
-class FiniteMPS:
+class BaseMPS:
+
+  def __init__(self, tensors: List[Tensor],
+               backend: Optional[Text] = None) -> None:
+    """
+    Initialize a FiniteMPS.
+    Args:
+      tensors: A list of `Tensor` objects.
+      backend: The name of the backend that should be used to perform 
+        contractions. Available backends are currently 'numpy', 'tensorflow',
+        'pytorch', 'jax'
+    """
+
+    self.nodes = [
+        Node(tensors[n], backend=backend, name='node{}'.format(n))
+        for n in range(len(tensors))
+    ]
+    _ = [
+        self.nodes[site][2] ^ self.nodes[site + 1][0]
+        for site in range(len(self.nodes) - 1)
+    ]
+
+  @property
+  def backend(self):
+    if not all([
+        self.nodes[0].backend.name == node.backend.name for node in self.nodes
+    ]):
+      raise ValueError('not all backends in FiniteMPS.nodes are the same')
+    return self.nodes[0].backend
+
+  @property
+  def dtype(self):
+    if not all([self.nodes[0].dtype == node.dtype for node in self.nodes]):
+      raise ValueError('not all dtype in FiniteMPS.nodes are the same')
+
+    return self.nodes[0].dtype
+
+  def save(self, path: str):
+    raise NotImplementedError()
+
+  @property
+  def bond_dimensions(self) -> List:
+    """
+    Return a list of bond dimensions of FiniteMPS
+    """
+    return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
+
+  @property
+  def physical_dimensions(self) -> List:
+    """
+    Return a list of physical Hilbert-space dimensions of FiniteMPS
+    """
+
+    return [node.shape[1] for node in self.nodes]
+
+  def right_envs(self, sites: Sequence[int]) -> Dict:
+    raise NotImplementedError()
+
+  def left_envs(self, sites: Sequence[int]) -> Dict:
+    raise NotImplementedError()
+
+  def apply_transfer_operator(self, site: int, direction: Union[Text, int],
+                              matrix: Tensor) -> Tensor:
+    """
+    Compute the action of the MPS transfer-operator at site `site`.
+    Args:
+      site (int): a site of the MPS
+      direction (str or int): if 1, 'l' or 'left': compute the left-action 
+                                of the MPS transfer-operator at `site` on the
+                                input `matrix`
+                              if -1, 'r' or 'right': compute the right-action 
+                                of the MPS transfer-operator at `site` on the
+                                input `matrix`
+      matrix (Tensor): A rank-2 tensor or matrix.
+    Returns:
+      Tensor: the result of applying the MPS transfer-operator to `matrix`
+    """
+    mat = Node(matrix, backend=self.backend.name)
+    node = Node(self.nodes[site], backend=self.backend.name)
+    conj_node = conj(node)
+    node[1] ^ conj_node[1]
+    if direction in (1, 'l', 'left'):
+      mat[0] ^ node[0]
+      mat[1] ^ conj_node[0]
+      edge_order = [node[2], conj_node[2]]
+    elif direction in (-1, 'r', 'right'):
+      mat[0] ^ node[2]
+      mat[1] ^ conj_node[2]
+      edge_order = [node[0], conj_node[0]]
+    result = mat @ node @ conj_node
+    return result.reorder_edges(edge_order)
+
+
+class FiniteMPS(BaseMPS):
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
@@ -59,56 +152,13 @@ class FiniteMPS:
       backend: The name of the backend that should be used to perform 
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
-    Returns:
-      None
-
     """
+    super().__init__(tensors, backend)
     if center_position < 0 or center_position >= len(tensors):
       raise ValueError(
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
-    self.nodes = [
-        Node(tensors[n], backend=backend, name='node{}'.format(n))
-        for n in range(len(tensors))
-    ]
-    _ = [
-        self.nodes[site][2] ^ self.nodes[site + 1][0]
-        for site in range(len(self.nodes) - 1)
-    ]
     self.center_position = center_position
-
-  def save(self, path: str):
-    raise NotImplementedError()
-
-  @property
-  def backend(self):
-    if not all([
-        self.nodes[0].backend.name == node.backend.name for node in self.nodes
-    ]):
-      raise ValueError('not all backends in FiniteMPS.nodes are the same')
-    return self.nodes[0].backend
-
-  @property
-  def dtype(self):
-    if not all([self.nodes[0].dtype == node.dtype for node in self.nodes]):
-      raise ValueError('not all dtype in FiniteMPS.nodes are the same')
-
-    return self.nodes[0].dtype
-
-  @property
-  def bond_dimensions(self) -> List:
-    """
-    Return a list of bond dimensions of FiniteMPS
-    """
-    return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
-
-  @property
-  def physical_dimensions(self) -> List:
-    """
-    Return a list of physical Hilbert-space dimensions of FiniteMPS
-    """
-
-    return [node.shape[1] for node in self.nodes]
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
@@ -333,37 +383,6 @@ class FiniteMPS:
 
   def __len__(self):
     return len(self.nodes)
-
-  def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Tensor) -> Tensor:
-    """
-    Compute the action of the MPS transfer-operator at site `site`.
-    Args:
-      site (int): a site of the MPS
-      direction (str or int): if 1, 'l' or 'left': compute the left-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-                              if -1, 'r' or 'right': compute the right-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-      matrix (Tensor): A rank-2 tensor or matrix.
-    Returns:
-      Tensor: the result of applying the MPS transfer-operator to `matrix`
-    """
-    mat = Node(matrix, backend=self.backend.name)
-    node = Node(self.nodes[site], backend=self.backend.name)
-    conj_node = conj(node)
-    node[1] ^ conj_node[1]
-    if direction in (1, 'l', 'left'):
-      mat[0] ^ node[0]
-      mat[1] ^ conj_node[0]
-      edge_order = [node[2], conj_node[2]]
-    elif direction in (-1, 'r', 'right'):
-      mat[0] ^ node[2]
-      mat[1] ^ conj_node[2]
-      edge_order = [node[0], conj_node[0]]
-    result = mat @ node @ conj_node
-    return result.reorder_edges(edge_order)
 
   def apply_two_site_gate(self,
                           gate: Tensor,
