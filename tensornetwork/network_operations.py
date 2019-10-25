@@ -15,7 +15,7 @@
 
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Iterable
+    Sequence, Iterable, Type
 import numpy as np
 
 #pylint: disable=useless-import-alias
@@ -757,3 +757,24 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
     edge_dict[t_edge] = edge_dict[t_edge] ^ t_edge
 
   return node_dict, edge_dict
+
+
+def switch_backend(nodes: Iterable[BaseNode],
+                   new_backend: Text,
+                   dtype: Optional[Type[np.number]] = None) -> None:
+  """Change the backend of the nodes.
+
+  This will convert all node's tensors to the new backend's Tensor type.
+  Args:
+    nodes: iterable of nodes
+    new_backend (str): The new backend.
+    dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                       to config.py will be chosen.
+  """
+  backend = backend_factory.get_backend(new_backend, dtype)
+  for node in nodes:
+    if node.backend.name != "numpy":
+      raise NotImplementedError("Can only switch backends when the current "
+                                "backend is 'numpy'. Current backend "
+                                "is '{}'".format(node.backend.name))
+    node.tensor = backend.convert_to_tensor(node.tensor)

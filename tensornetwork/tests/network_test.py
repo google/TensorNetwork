@@ -12,12 +12,13 @@
 # limitations under the License.
 
 import tensornetwork as tn
+import tensornetwork.network
 import pytest
 import numpy as np
 import tensorflow as tf
 import torch
 import jax
-from jax.config import config
+
 
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
@@ -26,6 +27,11 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
+
+
+def test_network_raises_error():
+  with pytest.raises(DeprecationWarning):
+    tensornetwork.network.TensorNetwork()
 
 
 def test_tnwork_copy_conj(backend):

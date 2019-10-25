@@ -1,4 +1,3 @@
-from tensornetwork.network import TensorNetwork
 #pylint: disable=line-too-long
 from tensornetwork.network_components import Node, Edge, CopyNode, BaseNode, NodeCollection
 #pylint: disable=line-too-long
@@ -13,7 +12,7 @@ from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork import config
 from typing import Text, Optional, Type
-from tensornetwork.utils import load, load_nodes, save_nodes
+from tensornetwork.utils import load_nodes, save_nodes
 
 
 def set_default_backend(backend: Text, dtype: Optional[Type] = None) -> None:
