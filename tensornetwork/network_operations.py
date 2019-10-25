@@ -729,6 +729,36 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
   raise ValueError('`node` has no trace edges')
 
 
+def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
+  """
+  Given a list of dangling edges, make a copy of the reachable nodes and their edges.
+  Connects each given edge to its copy.
+
+  The traced out edges in `edge_dict` will be the newly non-dangling edges created.
+
+  Args:
+    traced_out_edges: A list of dangling edges
+  Returns:
+    A tuple containing:
+      node_dict: A dictionary mapping the nodes to their copies.
+      edge_dict: A dictionary mapping the edges to their copies.
+  """
+
+  if list(filter(lambda x: not x.is_dangling(), traced_out_edges)):
+    raise ValueError("traced_out_edges must only include dangling edges!")
+
+  # Get all reachable nodes.
+  old_nodes = reachable(get_all_nodes(traced_out_edges))
+
+  # Copy and conjugate all reachable nodes.
+  node_dict, edge_dict = copy(old_nodes, True)
+  for t_edge in traced_out_edges:
+    # Add each edge to the copied nodes as new edge.
+    edge_dict[t_edge] = edge_dict[t_edge] ^ t_edge
+
+  return node_dict, edge_dict
+
+
 def switch_backend(nodes: Iterable[BaseNode],
                    new_backend: Text,
                    dtype: Optional[Type[np.number]] = None) -> None:

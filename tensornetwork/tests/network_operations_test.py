@@ -285,3 +285,47 @@ def test_full_graph_subgraph_dangling(backend):
   b[1] ^ c[1]
   edges = tn.get_subgraph_dangling({a, b, c})
   assert edges == {a[1], c[0]}
+
+
+def test_reduced_density(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend=backend)
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend=backend)
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend=backend)
+  edges = tn.get_all_edges({a, b, c})
+
+  node_dict, edge_dict = tn.reduced_density([a[0], b[1], c[2]])
+
+  assert not a[0].is_dangling()
+  assert not b[1].is_dangling()
+  assert not c[2].is_dangling()
+  assert a[1].is_dangling() & a[2].is_dangling()
+  assert b[0].is_dangling() & b[2].is_dangling()
+  assert c[0].is_dangling() & c[1].is_dangling()
+
+  for node in {a, b, c}:
+    assert node_dict[node].name == node.name
+  for edge in edges:
+    assert edge_dict[edge].name == edge.name
+
+
+def test_reduced_density_nondangling(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend=backend)
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend=backend)
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend=backend)
+
+  a[0] ^ b[1]
+  b[2] ^ c[1]
+
+  err_msg = "traced_out_edges must only include dangling edges!"
+  with pytest.raises(ValueError, match=err_msg):
+    tn.reduced_density([a[0], b[1], c[1]])
+
+def test_reduced_density_contraction(backend):
+  if backend == "pytorch":
+    pytest.skip("pytorch doesn't support complex numbers")
+  a = tn.Node(
+      np.array([[0.0, 1.0j], [-1.0j, 0.0]], dtype=np.complex64),
+      backend=backend)
+  tn.reduced_density([a[0]])
+  result = tn.contractors.greedy(tn.reachable(a), ignore_edge_order=True)
+  np.testing.assert_allclose(result.tensor, np.eye(2))
