@@ -24,6 +24,6 @@ class TensorNetwork:
     link = ("https://medium.com/@keeper6928/" +
             "upgrading-your-tensornetwork-code-b032f0ab3dd4")
     raise DeprecationWarning("The TensorNetwork object has been DEPRECATED "
-                             "and will be removed in future releases.\n"
+                             "and has been removed.\n"
                              "Updating your code is fairly easy. For a "
                              f"detailed tutorial, please visit {link}")
