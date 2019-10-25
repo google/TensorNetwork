@@ -729,6 +729,9 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   """
   Given a list of dangling edges, make a copy of the reachable nodes and their edges.
   Connects each given edge to its copy.
+
+  The traced out edges in `edge_dict` will be the newly non-dangling edges created.
+
   Args:
     traced_out_edges: A list of dangling edges
   Returns:
@@ -745,8 +748,8 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
 
   # Copy and conjugate all reachable nodes.
   node_dict, edge_dict = copy(old_nodes, True)
-
-  # Add each edge to the copied nodes as new edge.
-  _ = [edge_dict[t_edge] ^ t_edge for t_edge in traced_out_edges]
+  for t_edge in traced_out_edges:
+    # Add each edge to the copied nodes as new edge.
+    edge_dict[t_edge] = edge_dict[t_edge] ^ t_edge
 
   return node_dict, edge_dict
