@@ -38,6 +38,7 @@ class BaseMPS:
         'pytorch', 'jax'
     """
     # we're no longer connecting MPS nodes because it's barely needed
+    # the dtype is deduced from the tensor object.
     self.nodes = [
         Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
@@ -49,8 +50,19 @@ class BaseMPS:
              D: List[int],
              dtype: Type[np.number],
              backend: Optional[Text] = None):
+    """
+    Initialize a random BaseMPS. The resulting state
+    is NOT normalized. 
+    Args:
+      d: A list of physical dimensions.
+      D: A list of bond dimensions.
+      dtype: A numpy dtype.
+      backend:L An optional backend.
 
-    #use numpy backend for tensor initialization
+    """
+    #use numpy backend for tensor initialization.
+    #tensors will be converted to backend type during
+    #call to __init__
     be = backend_factory.get_backend(name='numpy', dtype=dtype)
     tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
     cls(tensors=tensors, backend=backend)
@@ -177,7 +189,15 @@ class FiniteMPS(BaseMPS):
              D: List[int],
              dtype: Type[np.number],
              backend: Optional[Text] = None):
-
+    """
+    Initialize a random FiniteMPS. The resulting state
+    is NOT normalized. Its center-position is at 0.
+    Args:
+      d: A list of physical dimensions.
+      D: A list of bond dimensions.
+      dtype: A numpy dtype.
+      backend:L An optional backend.
+    """
     #use numpy backend for tensor initialization
     be = backend_factory.get_backend(name='numpy', dtype=dtype)
     if len(D) != len(d) - 1:
