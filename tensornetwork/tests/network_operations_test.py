@@ -219,6 +219,17 @@ def test_reachable(backend):
   assert set(nodes) == tn.reachable(nodes[0])
 
 
+def test_reachable_2(backend):
+  a = tn.Node(np.zeros((3, 5)), backend=backend)
+  b = tn.Node(np.zeros((3, 4, 5)), backend=backend)
+  e1 = tn.connect(a[0], b[0])
+  e2 = tn.connect(a[1], b[2])
+  nodes = [a, b]
+  edges = [e1, e2]
+  assert set(nodes) == tn.reachable(edges[0])
+  assert set(nodes) == tn.reachable(edges)
+
+
 def test_reachable_disconnected_1(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
   nodes[0][1] ^ nodes[1][0]
