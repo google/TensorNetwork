@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
@@ -25,12 +26,13 @@ Tensor = Any
 
 class BaseMPS:
 
-  def __init__(self, tensors: List[Tensor],
+  def __init__(self,
+               tensors: List[Union[BaseNode, Tensor]],
                backend: Optional[Text] = None) -> None:
     """
-    Initialize a FiniteMPS.
+    Initialize a BaseMPS.
     Args:
-      tensors: A list of `Tensor` objects.
+      tensors: A list of `Tensor` or `BaseNode` objects.
       backend: The name of the backend that should be used to perform 
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
@@ -40,6 +42,19 @@ class BaseMPS:
         Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
     ]
+
+  @classmethod
+  def random(cls,
+             d: List[int],
+             D: List[int],
+             dtype: Type[np.number],
+             backend: Optional[Text] = None):
+
+    #use numpy backend for tensor initialization
+    be = backend_factory.get_backend(name='numpy', dtype=dtype)
+    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    cls(tensors=tensors, backend=backend)
+    return cls
 
   @property
   def backend(self):
@@ -155,6 +170,23 @@ class FiniteMPS(BaseMPS):
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
     self.center_position = center_position
+
+  @classmethod
+  def random(cls,
+             d: List[int],
+             D: List[int],
+             dtype: Type[np.number],
+             backend: Optional[Text] = None):
+
+    #use numpy backend for tensor initialization
+    be = backend_factory.get_backend(name='numpy', dtype=dtype)
+    if len(D) != len(d) - 1:
+      raise ValueError('len(D) = {} is different from len(d) - 1 = {}'.format(
+          len(D),
+          len(d) - 1))
+    D = [1] + D + [1]
+    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    return cls(tensors=tensors, center_position=0, backend=backend)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
