@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, contract, contract_between
+from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
@@ -35,15 +35,16 @@ class BaseMPS:
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
-
+    # we're no longer connecting MPS nodes because it's barely needed
     self.nodes = [
         Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
     ]
-    _ = [
-        self.nodes[site][2] ^ self.nodes[site + 1][0]
-        for site in range(len(self.nodes) - 1)
-    ]
+
+    # _ = [
+    #     self.nodes[site][2] ^ self.nodes[site + 1][0]
+    #     for site in range(len(self.nodes) - 1)
+    # ]
 
   @property
   def backend(self):
@@ -186,9 +187,12 @@ class FiniteMPS(BaseMPS):
             left_edges=[self.nodes[n][0], self.nodes[n][1]],
             right_edges=[self.nodes[n][2]],
             left_name=self.nodes[n].name)
-
+        Q[2] | R[0]  #break the edge between Q and R
+        order = [R[0], self.nodes[n + 1][1], self.nodes[n + 1][2]]
+        R[1] ^ self.nodes[n + 1][0]  #connect R to the right node
         self.nodes[n] = Q  #Q is a left-isometric tensor of rank 3
         self.nodes[n + 1] = contract(R[1], name=self.nodes[n + 1].name)
+        self.nodes[n + 1].reorder_edges(order)
         Z = norm(self.nodes[n + 1])
 
         # for an mps with > O(10) sites one needs to normalize to avoid
@@ -201,16 +205,22 @@ class FiniteMPS(BaseMPS):
     #shift center_position to the left using RQ decomposition
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
+
         R, Q = split_node_rq(
             self.nodes[n],
             left_edges=[self.nodes[n][0]],
             right_edges=[self.nodes[n][1], self.nodes[n][2]],
             right_name=self.nodes[n].name)
+        #print(self.nodes[n].shape, R.shape, Q.shape)
+        R[1] | Q[0]  #break the edge between R and Q
+        R[0] ^ self.nodes[n - 1][2]  #connect R to the left node
+        order = [self.nodes[n - 1][0], self.nodes[n - 1][1], R[1]]
 
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self.nodes[n] = Q  #Q is a right-isometric tensor of rank 3
         self.nodes[n - 1] = contract(R[0], name=self.nodes[n - 1].name)
+        self.nodes[n - 1].reorder_edges(order)
         Z = norm(self.nodes[n - 1])
         if normalize:
           self.nodes[n - 1].tensor /= Z
@@ -235,7 +245,7 @@ class FiniteMPS(BaseMPS):
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = Node(self.nodes[site], backend=self.backend.name)
+    n1 = self.nodes[site]
     n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
@@ -385,7 +395,7 @@ class FiniteMPS(BaseMPS):
     return len(self.nodes)
 
   def apply_two_site_gate(self,
-                          gate: Tensor,
+                          gate: Union[BaseNode, Tensor],
                           site1: int,
                           site2: int,
                           max_singular_values: Optional[int] = None,
@@ -427,6 +437,8 @@ class FiniteMPS(BaseMPS):
               self.center_position, site1, site2))
 
     gate_node = Node(gate, backend=self.backend.name)
+
+    self.nodes[site1][2] ^ self.nodes[site2][0]
     gate_node[2] ^ self.nodes[site1][1]
     gate_node[3] ^ self.nodes[site2][1]
     left_edges = [self.nodes[site1][0], gate_node[0]]
@@ -445,9 +457,11 @@ class FiniteMPS(BaseMPS):
     self.nodes[site1] = contract_between(
         U, S, name=U.name).reorder_edges(left_edges)
     self.nodes[site2] = V
+    self.nodes[site1][2] | self.nodes[site2][0]
     return tw
 
-  def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
+  def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
+                          site: int) -> None:
     """
     Apply a one-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
@@ -470,7 +484,7 @@ class FiniteMPS(BaseMPS):
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
-  def measure_local_operator(self, ops: List[Tensor],
+  def measure_local_operator(self, ops: List[Union[BaseNode, Tensor]],
                              sites: Sequence[int]) -> List:
     """
     Measure the expectation value of local operators `ops` site `sites`.
@@ -503,7 +517,8 @@ class FiniteMPS(BaseMPS):
       res.append(result.tensor)
     return res
 
-  def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
+  def measure_two_body_correlator(self, op1: Union[BaseNode, Tensor],
+                                  op2: Union[BaseNode, Tensor], site1: int,
                                   sites2: Sequence[int]) -> List:
     """
     Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
