@@ -731,17 +731,27 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   """
-  Given a list of dangling edges, make a copy of the reachable nodes and their edges.
-  Connects each given edge to its copy.
+  Constructs the tensor network for a reduced density matrix, given a pure state.
 
-  The traced out edges in `edge_dict` will be the newly non-dangling edges created.
+  The tensor network connected to `traced_out_edges` is assumed to be a pure
+  quantum state (a state vector). This modifies the network so that it
+  describes the reduced density matrix obtained by "tracing out" the specified
+  edges.
+
+  This is done by making a conjugate copy of the original network and
+  connecting each edge in `traced_out_edges` with its conjugate counterpart.
+
+  The edges in `edge_dict` corresponding to `traced_out_edges` will be the
+  new non-dangling edges connecting the state with its conjugate.
 
   Args:
     traced_out_edges: A list of dangling edges
   Returns:
     A tuple containing:
-      node_dict: A dictionary mapping the nodes to their copies.
-      edge_dict: A dictionary mapping the edges to their copies.
+      node_dict: A dictionary mapping the nodes in the original network to
+        their conjugate copies.
+      edge_dict: A dictionary mapping edges in the original network to their
+        conjugate copies.
   """
 
   if list(filter(lambda x: not x.is_dangling(), traced_out_edges)):
