@@ -41,11 +41,6 @@ class BaseMPS:
         for n in range(len(tensors))
     ]
 
-    # _ = [
-    #     self.nodes[site][2] ^ self.nodes[site + 1][0]
-    #     for site in range(len(self.nodes) - 1)
-    # ]
-
   @property
   def backend(self):
     if not all([
