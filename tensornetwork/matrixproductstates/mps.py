@@ -144,10 +144,9 @@ class FiniteMPS(BaseMPS):
   """
   An MPS class for finite systems.
   `FiniteMPS` keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS.nodes`. Any external changes to this list will potentially corrupt 
-  the mps. `FiniteMPS` has a central site. The position of this central site is
-  stored in `FiniteMPS.center_position`. This center position can be  
-  shifted using the `FiniteMPS.position` method. 
+  `FiniteMPS.nodes`. `FiniteMPS` has a central site. The position of this 
+  central site is stored in `FiniteMPS.center_position`. This center position 
+  can be shifted using the `FiniteMPS.position` method. 
   If the state is initialized with `center_positon=0`, 
   then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the `center_position`
   to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. 
