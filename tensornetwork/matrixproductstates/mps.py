@@ -16,6 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
+# pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
@@ -717,3 +718,6 @@ class FiniteMPS(BaseMPS):
         if n < n2:
           L = self.apply_transfer_operator(n % N, 'left', L)
     return np.array(c)
+
+  def save(self, path: str):
+    raise NotImplementedError("save is not implemented")

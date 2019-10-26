@@ -133,6 +133,7 @@ def test_apply_two_site_gate(backend_dtype_values):
   mps.nodes[5][2] ^ mps.nodes[6][0]
   order = [mps.nodes[5][0], mps.nodes[5][1], mps.nodes[6][1], mps.nodes[6][2]]
   res = tn.contract_between(mps.nodes[5], mps.nodes[6])
+  res.reorder_edges(order)
   np.testing.assert_allclose(res.tensor, actual)
 
 
