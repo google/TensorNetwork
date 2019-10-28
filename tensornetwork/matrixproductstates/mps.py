@@ -125,7 +125,10 @@ class FiniteMPS:
                        ' 0 < site < N = {}'.format(site, len(self)))
     #nothing to do
     if site == self.center_position:
-      return self.backend.norm(self.nodes[self.center_position].tensor)
+      Z = self.backend.norm(self.nodes[self.center_position].tensor)
+      if normalize:
+        self.nodes[self.center_position].tensor /= Z
+      return Z
 
     #shift center_position to the right using QR decomposition
     if site > self.center_position:
@@ -169,6 +172,24 @@ class FiniteMPS:
     #return the norm of the last R tensor (useful for checks)
     return Z
 
+  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+    """
+    Bring the MPS into canonical form according to `FiniteMPS.center_position`.
+
+    Assuming nothing about the content of the current tensors, brings the
+    tensors into canonical form with a center site at
+    `FiniteMPS.center_position`.
+
+    Args:
+      normalize: If `True`, normalize matrices when shifting.
+    Returns:
+      Tensor: The norm of the MPS.
+    """
+    pos = self.center_position
+    self.position(0, normalize=False)
+    self.position(len(self.nodes)-1, normalize=False)
+    return self.position(pos, normalize=normalize)
+
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """
     Check orthonormality of tensor at site `site`.
@@ -197,6 +218,23 @@ class FiniteMPS:
     return self.backend.norm(
         abs(result.tensor -
             self.backend.eye(N=result.shape[0], M=result.shape[1])))
+
+  def check_canonical(self) -> Tensor:
+    """
+    Check whether the MPS is in the expected canonical form.
+    Returns:
+      The L2 norm of the vector of local deviations.
+    """
+    deviations = []
+    for site in range(len(self.nodes)):
+      if site < self.center_position:
+        deviation = self.check_orthonormality('l', site)
+      elif site > self.center_position:
+        deviation = self.check_orthonormality('r', site)
+      else:
+        continue
+      deviations.append(deviation**2)
+    return self.backend.sqrt(sum(deviations))
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
     """
