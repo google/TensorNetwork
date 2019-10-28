@@ -139,6 +139,193 @@ class BaseMPS:
     result = mat @ node @ conj_node
     return result.reorder_edges(edge_order)
 
+  def measure_local_operator(self, ops: List[Union[BaseNode, Tensor]],
+                             sites: Sequence[int]) -> List:
+    """
+    Measure the expectation value of local operators `ops` site `sites`.
+    Args:
+      ops: list Tensors of rank 2; the local operators to be measured
+      sites: sites where `ops` acts.
+    Returns:
+      List: measurements <op[n]> for n in `sites`
+    Raises:
+      ValueError if `len(ops) != len(sites)`
+    """
+    if not len(ops) == len(sites):
+      raise ValueError('measure_1site_ops: len(ops) has to be len(sites)!')
+    right_envs = self.right_envs(sites)
+    left_envs = self.left_envs(sites)
+    res = []
+    for n, site in enumerate(sites):
+      O = Node(ops[n], backend=self.backend.name)
+      R = right_envs[site]
+      L = left_envs[site]
+      A = Node(self.nodes[site], backend=self.backend.name)
+      conj_A = conj(A)
+      O[1] ^ A[1]
+      O[0] ^ conj_A[1]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      result = L @ A @ O @ conj_A @ R
+      res.append(result.tensor)
+    return res
+
+  def measure_two_body_correlator(self, op1: Union[BaseNode, Tensor],
+                                  op2: Union[BaseNode, Tensor], site1: int,
+                                  sites2: Sequence[int]) -> List:
+    """
+    Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
+    `sites2`. if `site1 == s`, op2 will be applied first
+    Args:
+      op1, op2: Tensors of rank 2; the local operators to be measured
+      site1: the site where `op1`  acts
+      sites2: sites where `op2` acts.
+    Returns:
+      List: correlator <op1, op2>
+    Raises:
+      ValueError if `site1` is out of range
+    """
+    N = len(self)
+    if site1 < 0:
+      raise ValueError(
+          "Site site1 out of range: {} not between 0 <= site < N = {}.".format(
+              site1, N))
+    sites2 = np.array(sites2)  #enable logical indexing
+
+    # we break the computation into two parts:
+    # first we get all correlators <op2(site2) op1(site1)> with site2 < site1
+    # then all correlators <op1(site1) op2(site2)> with site1 >= site1
+
+    # get all sites smaller than site1
+    left_sites = sorted(sites2[sites2 < site1])
+    # get all sites larger than site1
+    right_sites = sorted(sites2[sites2 > site1])
+
+    # compute all neccessary right reduced
+    # density matrices in one go. This is
+    # more efficient than calling right_envs
+    # for each site individually
+    if right_sites:
+      right_sites_mod = list({n % N for n in right_sites})
+      rs = self.right_envs([site1] + right_sites_mod)
+    c = []
+    if left_sites:
+
+      left_sites_mod = list({n % N for n in left_sites})
+
+      ls = self.left_envs(left_sites_mod + [site1])
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend.name)
+      conj_A = conj(A)
+      R = rs[site1]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
+      A[1] ^ O1[1]
+      conj_A[1] ^ O1[0]
+      R = ((R @ A) @ O1) @ conj_A
+      n1 = np.min(left_sites)
+      #          -- A--------
+      #             |        |
+      # compute   op1(site1) |
+      #             |        |
+      #          -- A*-------
+      # and evolve it to the left by contracting tensors at site2 < site1
+      # if site2 is in `sites2`, calculate the observable
+      #
+      #  ---A--........-- A--------
+      # |   |             |        |
+      # |  op2(site2)    op1(site1)|
+      # |   |             |        |
+      #  ---A--........-- A*-------
+
+      for n in range(site1 - 1, n1 - 1, -1):
+        if n in left_sites:
+          A = Node(self.nodes[n % N], backend=self.backend.name)
+          conj_A = conj(A)
+          O2 = Node(op2, backend=self.backend.name)
+          L = ls[n % N]
+          L[0] ^ A[0]
+          L[1] ^ conj_A[0]
+          O2[0] ^ conj_A[1]
+          O2[1] ^ A[1]
+          R[0] ^ A[2]
+          R[1] ^ conj_A[2]
+
+          res = (((L @ A) @ O2) @ conj_A) @ R
+          c.append(res.tensor)
+        if n > n1:
+          R = self.apply_transfer_operator(n % N, 'right', R)
+
+      c = list(reversed(c))
+
+    # compute <op2(site1)op1(site1)>
+    if site1 in sites2:
+      O1 = Node(op1, backend=self.backend.name)
+      O2 = Node(op2, backend=self.backend.name)
+      L = ls[site1]
+      R = rs[site1]
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      conj_A = conj(A)
+
+      O1[1] ^ O2[0]
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      R[0] ^ A[2]
+      R[1] ^ conj_A[2]
+      A[1] ^ O2[1]
+      conj_A[1] ^ O1[0]
+      O = O1 @ O2
+      res = (((L @ A) @ O) @ conj_A) @ R
+      c.append(res.tensor)
+
+    # compute <op1(site1) op2(site2)> for site1 < site2
+    right_sites = sorted(sites2[sites2 > site1])
+    if right_sites:
+      A = Node(self.nodes[site1], backend=self.backend.name)
+      conj_A = conj(A)
+      L = ls[site1]
+      O1 = Node(op1, backend=self.backend.name)
+      L[0] ^ A[0]
+      L[1] ^ conj_A[0]
+      A[1] ^ O1[1]
+      conj_A[1] ^ O1[0]
+      L = L @ A @ O1 @ conj_A
+      n2 = np.max(right_sites)
+      #          -- A--
+      #         |   |
+      # compute | op1(site1)
+      #         |   |
+      #          -- A*--
+      # and evolve it to the right by contracting tensors at site2 > site1
+      # if site2 is in `sites2`, calculate the observable
+      #
+      #  ---A--........-- A--------
+      # |   |             |        |
+      # |  op1(site1)    op2(site2)|
+      # |   |             |        |
+      #  ---A--........-- A*-------
+
+      for n in range(site1 + 1, n2 + 1):
+        if n in right_sites:
+          R = rs[n % N]
+          A = Node(self.nodes[n % N], backend=self.backend.name)
+          conj_A = conj(A)
+          O2 = Node(op2, backend=self.backend.name)
+          A[0] ^ L[0]
+          conj_A[0] ^ L[1]
+          O2[0] ^ conj_A[1]
+          O2[1] ^ A[1]
+          R[0] ^ A[2]
+          R[1] ^ conj_A[2]
+          res = L @ A @ O2 @ conj_A @ R
+          c.append(res.tensor)
+
+        if n < n2:
+          L = self.apply_transfer_operator(n % N, 'left', L)
+    return np.array(c)
+
 
 class FiniteMPS(BaseMPS):
   """
@@ -294,7 +481,7 @@ class FiniteMPS(BaseMPS):
     """
     pos = self.center_position
     self.position(0, normalize=False)
-    self.position(len(self.nodes)-1, normalize=False)
+    self.position(len(self.nodes) - 1, normalize=False)
     return self.position(pos, normalize=normalize)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
@@ -568,193 +755,6 @@ class FiniteMPS(BaseMPS):
     self.nodes[site] = contract_between(
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
-
-  def measure_local_operator(self, ops: List[Union[BaseNode, Tensor]],
-                             sites: Sequence[int]) -> List:
-    """
-    Measure the expectation value of local operators `ops` site `sites`.
-    Args:
-      ops: list Tensors of rank 2; the local operators to be measured
-      sites: sites where `ops` acts.
-    Returns:
-      List: measurements <op[n]> for n in `sites`
-    Raises:
-      ValueError if `len(ops) != len(sites)`
-    """
-    if not len(ops) == len(sites):
-      raise ValueError('measure_1site_ops: len(ops) has to be len(sites)!')
-    right_envs = self.right_envs(sites)
-    left_envs = self.left_envs(sites)
-    res = []
-    for n, site in enumerate(sites):
-      O = Node(ops[n], backend=self.backend.name)
-      R = right_envs[site]
-      L = left_envs[site]
-      A = Node(self.nodes[site], backend=self.backend.name)
-      conj_A = conj(A)
-      O[1] ^ A[1]
-      O[0] ^ conj_A[1]
-      R[0] ^ A[2]
-      R[1] ^ conj_A[2]
-      L[0] ^ A[0]
-      L[1] ^ conj_A[0]
-      result = L @ A @ O @ conj_A @ R
-      res.append(result.tensor)
-    return res
-
-  def measure_two_body_correlator(self, op1: Union[BaseNode, Tensor],
-                                  op2: Union[BaseNode, Tensor], site1: int,
-                                  sites2: Sequence[int]) -> List:
-    """
-    Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
-    `sites2`. if `site1 == s`, op2 will be applied first
-    Args:
-      op1, op2: Tensors of rank 2; the local operators to be measured
-      site1: the site where `op1`  acts
-      sites2: sites where `op2` acts.
-    Returns:
-      List: correlator <op1, op2>
-    Raises:
-      ValueError if `site1` is out of range
-    """
-    N = len(self)
-    if site1 < 0:
-      raise ValueError(
-          "Site site1 out of range: {} not between 0 <= site < N = {}.".format(
-              site1, N))
-    sites2 = np.array(sites2)  #enable logical indexing
-
-    # we break the computation into two parts:
-    # first we get all correlators <op2(site2) op1(site1)> with site2 < site1
-    # then all correlators <op1(site1) op2(site2)> with site1 >= site1
-
-    # get all sites smaller than site1
-    left_sites = sorted(sites2[sites2 < site1])
-    # get all sites larger than site1
-    right_sites = sorted(sites2[sites2 > site1])
-
-    # compute all neccessary right reduced
-    # density matrices in one go. This is
-    # more efficient than calling right_envs
-    # for each site individually
-    if right_sites:
-      right_sites_mod = list({n % N for n in right_sites})
-      rs = self.right_envs([site1] + right_sites_mod)
-    c = []
-    if left_sites:
-
-      left_sites_mod = list({n % N for n in left_sites})
-
-      ls = self.left_envs(left_sites_mod + [site1])
-      A = Node(self.nodes[site1], backend=self.backend.name)
-      O1 = Node(op1, backend=self.backend.name)
-      conj_A = conj(A)
-      R = rs[site1]
-      R[0] ^ A[2]
-      R[1] ^ conj_A[2]
-      A[1] ^ O1[1]
-      conj_A[1] ^ O1[0]
-      R = ((R @ A) @ O1) @ conj_A
-      n1 = np.min(left_sites)
-      #          -- A--------
-      #             |        |
-      # compute   op1(site1) |
-      #             |        |
-      #          -- A*-------
-      # and evolve it to the left by contracting tensors at site2 < site1
-      # if site2 is in `sites2`, calculate the observable
-      #
-      #  ---A--........-- A--------
-      # |   |             |        |
-      # |  op2(site2)    op1(site1)|
-      # |   |             |        |
-      #  ---A--........-- A*-------
-
-      for n in range(site1 - 1, n1 - 1, -1):
-        if n in left_sites:
-          A = Node(self.nodes[n % N], backend=self.backend.name)
-          conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
-          L = ls[n % N]
-          L[0] ^ A[0]
-          L[1] ^ conj_A[0]
-          O2[0] ^ conj_A[1]
-          O2[1] ^ A[1]
-          R[0] ^ A[2]
-          R[1] ^ conj_A[2]
-
-          res = (((L @ A) @ O2) @ conj_A) @ R
-          c.append(res.tensor)
-        if n > n1:
-          R = self.apply_transfer_operator(n % N, 'right', R)
-
-      c = list(reversed(c))
-
-    # compute <op2(site1)op1(site1)>
-    if site1 in sites2:
-      O1 = Node(op1, backend=self.backend.name)
-      O2 = Node(op2, backend=self.backend.name)
-      L = ls[site1]
-      R = rs[site1]
-      A = Node(self.nodes[site1], backend=self.backend.name)
-      conj_A = conj(A)
-
-      O1[1] ^ O2[0]
-      L[0] ^ A[0]
-      L[1] ^ conj_A[0]
-      R[0] ^ A[2]
-      R[1] ^ conj_A[2]
-      A[1] ^ O2[1]
-      conj_A[1] ^ O1[0]
-      O = O1 @ O2
-      res = (((L @ A) @ O) @ conj_A) @ R
-      c.append(res.tensor)
-
-    # compute <op1(site1) op2(site2)> for site1 < site2
-    right_sites = sorted(sites2[sites2 > site1])
-    if right_sites:
-      A = Node(self.nodes[site1], backend=self.backend.name)
-      conj_A = conj(A)
-      L = ls[site1]
-      O1 = Node(op1, backend=self.backend.name)
-      L[0] ^ A[0]
-      L[1] ^ conj_A[0]
-      A[1] ^ O1[1]
-      conj_A[1] ^ O1[0]
-      L = L @ A @ O1 @ conj_A
-      n2 = np.max(right_sites)
-      #          -- A--
-      #         |   |
-      # compute | op1(site1)
-      #         |   |
-      #          -- A*--
-      # and evolve it to the right by contracting tensors at site2 > site1
-      # if site2 is in `sites2`, calculate the observable
-      #
-      #  ---A--........-- A--------
-      # |   |             |        |
-      # |  op1(site1)    op2(site2)|
-      # |   |             |        |
-      #  ---A--........-- A*-------
-
-      for n in range(site1 + 1, n2 + 1):
-        if n in right_sites:
-          R = rs[n % N]
-          A = Node(self.nodes[n % N], backend=self.backend.name)
-          conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
-          A[0] ^ L[0]
-          conj_A[0] ^ L[1]
-          O2[0] ^ conj_A[1]
-          O2[1] ^ A[1]
-          R[0] ^ A[2]
-          R[1] ^ conj_A[2]
-          res = L @ A @ O2 @ conj_A @ R
-          c.append(res.tensor)
-
-        if n < n2:
-          L = self.apply_transfer_operator(n % N, 'left', L)
-    return np.array(c)
 
   def save(self, path: str):
     raise NotImplementedError("save is not implemented")
