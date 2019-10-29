@@ -45,6 +45,9 @@ class BaseMPS:
         for n in range(len(tensors))
     ]
 
+  def __len__(self):
+    return len(self.nodes)
+
   @classmethod
   def random(cls,
              d: List[int],
@@ -662,9 +665,6 @@ class FiniteMPS(BaseMPS):
           right_envs[site - 1] = right_env
 
     return right_envs
-
-  def __len__(self):
-    return len(self.nodes)
 
   def apply_two_site_gate(self,
                           gate: Union[BaseNode, Tensor],
