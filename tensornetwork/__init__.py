@@ -13,6 +13,7 @@ from tensornetwork import contractors
 from tensornetwork import config
 from typing import Text, Optional, Type
 from tensornetwork.utils import load_nodes, save_nodes
+from tensornetwork.matrixproductstates.mps import FiniteMPS
 
 
 def set_default_backend(backend: Text, dtype: Optional[Type] = None) -> None:
