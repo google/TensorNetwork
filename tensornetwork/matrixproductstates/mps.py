@@ -371,7 +371,16 @@ class FiniteMPS(BaseMPS):
       raise ValueError(
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
-    self.center_position = center_position
+    if center_position == 0:
+      self.center_position = len(self) - 1
+      self.position(center_position)
+    elif center_position == len(self) - 1:
+      self.center_position = 0
+      self.position(center_position)
+    else:
+      self.center_position = 0
+      self.position(len(self) - 1)
+      self.position(center_position)
 
   @classmethod
   def random(cls,
