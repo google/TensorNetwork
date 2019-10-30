@@ -356,31 +356,36 @@ class FiniteMPS(BaseMPS):
   def __init__(self,
                tensors: List[Tensor],
                center_position: int,
+               canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
     """
     Initialize a FiniteMPS.
     Args:
       tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
+      canonicalize: If `True` the mps is canonicalized at initialization.
       backend: The name of the backend that should be used to perform 
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
     super().__init__(tensors, backend)
-    if center_position < 0 or center_position >= len(tensors):
-      raise ValueError(
-          'center_position = {} not between 0 <= center_position < {}'.format(
-              center_position, len(tensors)))
-    if center_position == 0:
-      self.center_position = len(self) - 1
-      self.position(center_position)
-    elif center_position == len(self) - 1:
-      self.center_position = 0
-      self.position(center_position)
+    if not canonicalize:
+      self.center_position = center_position
     else:
-      self.center_position = 0
-      self.position(len(self) - 1)
-      self.position(center_position)
+      if center_position < 0 or center_position >= len(tensors):
+        raise ValueError(
+            'center_position = {} not between 0 <= center_position < {}'.format(
+                center_position, len(tensors)))
+      if center_position == 0:
+        self.center_position = len(self) - 1
+        self.position(center_position)
+      elif center_position == len(self) - 1:
+        self.center_position = 0
+        self.position(center_position)
+      else:
+        self.center_position = 0
+        self.position(len(self) - 1)
+        self.position(center_position)
 
   @classmethod
   def random(cls,
