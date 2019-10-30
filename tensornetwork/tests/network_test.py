@@ -19,7 +19,6 @@ import tensorflow as tf
 import torch
 import jax
 
-
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
 torch_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
@@ -96,6 +95,7 @@ def test_tnwork_copy_subgraph(backend):
   assert cut_edge.axis1 == 2
   assert cut_edge.get_nodes() == [node_dict[b], None]
   assert len(a.get_all_nondangling()) == 1
+
 
 def test_tnwork_copy_subgraph_2(backend):
   a = tn.Node(np.random.rand(3, 3, 3), name='a', backend=backend)
@@ -236,16 +236,14 @@ def test_outer_product(backend):
   assert d.name == "D"
 
 
-@pytest.mark.parametrize("a, b, expected_val, expected_shape, expected_name",
-                         [pytest.param(np.ones((2, 4, 5)),
-                                       np.ones(()),
-                                       np.ones((2, 4, 5)), (2, 4, 5), "C"),
-                          pytest.param(np.ones(()),
-                                       np.ones((2, 4, 5)),
-                                       np.ones((2, 4, 5)), (2, 4, 5), "C"),
-                         ])
-def test_outer_product_without_legs(
-        a, b, expected_val, expected_shape, expected_name, backend):
+@pytest.mark.parametrize("a, b, expected_val, expected_shape, expected_name", [
+    pytest.param(
+        np.ones((2, 4, 5)), np.ones(()), np.ones((2, 4, 5)), (2, 4, 5), "C"),
+    pytest.param(
+        np.ones(()), np.ones((2, 4, 5)), np.ones((2, 4, 5)), (2, 4, 5), "C"),
+])
+def test_outer_product_without_legs(a, b, expected_val, expected_shape,
+                                    expected_name, backend):
   node1 = tn.Node(a, name="A", backend=backend)
   node2 = tn.Node(b, name="B", backend=backend)
 
@@ -354,7 +352,7 @@ def test_split_trace_edge(backend):
   external_2 = tn.connect(c[1], a[2])
   shape = (2, 1, 3)
   new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
-  new_edges = tn.split_edge(e1, shape, new_edge_names)  
+  new_edges = tn.split_edge(e1, shape, new_edge_names)
   assert a.shape == (2, 4, 5, 5) + shape + shape
   assert a.edges == [external_1, external_2, e2, e2, *new_edges, *new_edges]
   for new_edge, dim in zip(new_edges, shape):
@@ -367,11 +365,11 @@ def test_split_trace_edge(backend):
 def test_split_edges_standard(backend):
   a = tn.Node(np.zeros((6, 3, 5)), name="A", backend=backend)
   b = tn.Node(np.zeros((2, 4, 6, 3)), name="B", backend=backend)
-  e1 = tn.connect(a[0], b[2], "Edge_1_1") # to be split
-  e2 = tn.connect(a[1], b[3], "Edge_1_2") # background standard edge
-  edge_a_2 = a[2] # dangling
-  edge_b_0 = b[0] # dangling
-  edge_b_1 = b[1] # dangling
+  e1 = tn.connect(a[0], b[2], "Edge_1_1")  # to be split
+  e2 = tn.connect(a[1], b[3], "Edge_1_2")  # background standard edge
+  edge_a_2 = a[2]  # dangling
+  edge_b_0 = b[0]  # dangling
+  edge_b_1 = b[1]  # dangling
   shape = (2, 1, 3)
   new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
   new_edges = tn.split_edge(e1, shape, new_edge_names)
@@ -389,8 +387,8 @@ def test_split_edges_standard(backend):
 def test_split_edges_standard_contract_between(backend):
   a = tn.Node(np.random.randn(6, 3, 5), name="A", backend=backend)
   b = tn.Node(np.random.randn(2, 4, 6, 3), name="B", backend=backend)
-  e1 = tn.connect(a[0], b[2], "Edge_1_1") # to be split
-  tn.connect(a[1], b[3], "Edge_1_2") # background standard edge
+  e1 = tn.connect(a[0], b[2], "Edge_1_1")  # to be split
+  tn.connect(a[1], b[3], "Edge_1_2")  # background standard edge
   node_dict, _ = tn.copy({a, b})
   c_prior = node_dict[a] @ node_dict[b]
   shape = (2, 1, 3)
