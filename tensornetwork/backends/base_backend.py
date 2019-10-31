@@ -337,3 +337,39 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the addition of two tensors.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+     """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented add.".format(self.name))
+
+  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the subtraction of two tensors.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+     """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented sub.".format(self.name))
+
+  def div(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the true division of two tensors.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+     """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented div.".format(self.name))

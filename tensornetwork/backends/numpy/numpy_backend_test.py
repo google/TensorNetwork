@@ -336,3 +336,35 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)),
+                                       2 * np.ones((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2,
+                                       3 * np.ones((1, 2, 3)))
+                         ])
+def test_add(a, b, expected):
+  backend = numpy_backend.NumPyBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+
+  np.testing.assert_allclose(backend.add(tensor1, tensor2), expected)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)),
+                                       np.zeros((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2,
+                                       -1 * np.ones((1, 2, 3)))
+                         ])
+def test_sub(a, b, expected):
+  backend = numpy_backend.NumPyBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+
+  np.testing.assert_allclose(backend.sub(tensor1, tensor2), expected)

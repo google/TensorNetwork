@@ -537,3 +537,19 @@ def test_remove_node(backend):
   broken_edges_by_name, broken_edges_by_axis = tn.remove_node(b)
   assert broken_edges_by_name == {"0": a[0]}
   assert broken_edges_by_axis == {0: a[0]}
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.eye(2),
+                                       np.eye(2),
+                                       2 * np.eye(2)),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2,
+                                       3 * np.ones((1, 2, 3)))
+                         ])
+def test_add(a, b, expected, backend):
+  if backend == "numpy":
+    n1 = tn.Node(a, backend=backend)
+    n2 = tn.Node(b, backend=backend)
+    n3 = n1 + n2
+    np.testing.assert_allclose(n3.tensor, expected)
