@@ -255,13 +255,6 @@ def test_conj():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_backend_dtype_exception():
-  backend = numpy_backend.NumPyBackend(dtype=np.float32)
-  tensor = np.random.rand(2, 2, 2)
-  with pytest.raises(TypeError):
-    _ = backend.convert_to_tensor(tensor)
-
-
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_lanczos_1(dtype):
   backend = numpy_backend.NumPyBackend(dtype)

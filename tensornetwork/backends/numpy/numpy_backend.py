@@ -75,21 +75,17 @@ class NumPyBackend(base_backend.BaseBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.np.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
+  def diag(self, tensor: Tensor,k=0) -> Tensor:
     if len(tensor.shape) != 1:
       raise TypeError("Only one dimensional tensors are allowed as input")
-    return self.np.diag(tensor)
+    return self.np.diag(tensor,k=k)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, self.np.ndarray) and
-        not self.np.isscalar(tensor)):
+        not self.np.isscalar(tensor) and not isinstance(tensor, list)):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
-    if self.dtype is not None and self.np.dtype(result.dtype) != self.dtype:
-      raise TypeError(
-          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
-              self.name, result.dtype, numpy.dtype(self.dtype)))
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
@@ -148,6 +144,18 @@ class NumPyBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2
+
+  def dot(self, matrix1, matrix2):
+    return self.np.dot(matrix1, matrix2)
+
+  def eigh(self, matrix):
+    return self.np.linalg.eigh(matrix)
+
+  def ravel(self, tensor):
+    return self.reshape(tensor, self.np.array((-1,)))
+
   def eigsh_lanczos(
       self,
       A: Callable,
@@ -167,7 +175,7 @@ class NumPyBackend(base_backend.BaseBackend):
         a random initial `Tensor` is created using the `numpy.random.randn` 
         method
       ncv: The number of iterations (number of krylov vectors).
-      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
         `np.linalg.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
@@ -186,6 +194,80 @@ class NumPyBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
+    initial_state = self._check_input_eigsh_lanczos(A, initial_state, ncv,
+                                                     numeig, reorthogonalize)
+
+    vector_n = initial_state
+    Z = self.norm(vector_n)
+    vector_n /= Z
+    norms_vector_n = []
+    diag_elements = []
+    krylov_vecs = []
+    first = True
+    eigvalsold = []
+
+    for it in range(ncv):
+      #normalize the current vector:
+      norm_vector_n = self.norm(vector_n)
+      if abs(norm_vector_n) < delta:
+        break
+      norms_vector_n.append(norm_vector_n)
+      vector_n = vector_n / norms_vector_n[-1]
+      #store the Lanczos vector for later
+      if reorthogonalize:
+        for v in krylov_vecs:
+          vector_n -= self.dot(self.ravel(self.conj(v)), vector_n) * v
+
+      krylov_vecs.append(vector_n)
+      A_vector_n = A(vector_n)
+
+      diag_elements.append(
+        self.dot(self.ravel(self.conj(vector_n)), self.ravel(A_vector_n)))
+
+      if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
+        #diagonalize the effective Hamiltonian
+        _, eigvals, u = self._diagonalize_tridiagonal_matrix(diag_elements,
+                                                          norms_vector_n)
+        if not first:
+          if self.norm(eigvals[0:numeig] -
+                       eigvalsold[0:numeig]) < tol:
+            break
+        first = False
+        eigvalsold = eigvals[0:numeig]
+
+      if it > 0:
+        A_vector_n -= self.multiply(krylov_vecs[-1], diag_elements[-1])
+        A_vector_n -= self.multiply(krylov_vecs[-2], norms_vector_n[-1])
+
+      else:
+        A_vector_n -= self.multiply(krylov_vecs[-1], diag_elements[-1])
+      vector_n = A_vector_n
+
+    A_tridiag, eigvals, u = self._diagonalize_tridiagonal_matrix(diag_elements,
+                                                                 norms_vector_n)
+
+    eigenvectors = []
+    if self.np.iscomplexobj(A_tridiag):
+      eigvals = self.np.array(eigvals).astype(A_tridiag.dtype)
+
+    for n2 in range(min(numeig, len(eigvals))):
+      state = self.zeros(initial_state.shape)
+      for n1, vec in enumerate(krylov_vecs):
+        state += vec * u[n1, n2]
+      eigenvectors.append(state / self.norm(state))
+    return eigvals[0:numeig], eigenvectors
+
+  def _diagonalize_tridiagonal_matrix(self, diag_elements, norms_vector_n):
+    norms_vector_n = self.convert_to_tensor(norms_vector_n)
+    diag_elements = self.convert_to_tensor(diag_elements)
+    A_tridiag = self.diag(diag_elements) + self.diag(
+        norms_vector_n[1:], 1) + self.diag(
+            self.conj(norms_vector_n[1:]), -1)
+    eigvals, u = self.eigh(A_tridiag)
+    return A_tridiag, eigvals, u
+
+  def _check_input_eigsh_lanczos(self, A, initial_state, ncv, numeig,
+                                 reorthogonalize):
     if ncv < numeig:
       raise ValueError('`ncv` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
@@ -207,65 +289,5 @@ class NumPyBackend(base_backend.BaseBackend):
     if not isinstance(initial_state, self.np.ndarray):
       raise TypeError("Expected a `np.array`. Got {}".format(
           type(initial_state)))
+    return initial_state
 
-    vector_n = initial_state
-    Z = self.norm(vector_n)
-    vector_n /= Z
-    norms_vector_n = []
-    diag_elements = []
-    krylov_vecs = []
-    first = True
-    eigvalsold = []
-    for it in range(ncv):
-      #normalize the current vector:
-      norm_vector_n = self.np.linalg.norm(vector_n)
-      if abs(norm_vector_n) < delta:
-        break
-      norms_vector_n.append(norm_vector_n)
-      vector_n = vector_n / norms_vector_n[-1]
-      #store the Lanczos vector for later
-      if reorthogonalize:
-        for v in krylov_vecs:
-          vector_n -= self.np.dot(self.np.ravel(self.np.conj(v)), vector_n) * v
-      krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
-      diag_elements.append(
-          self.np.dot(
-              self.np.ravel(self.np.conj(vector_n)), self.np.ravel(A_vector_n)))
-
-      if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
-        #diagonalize the effective Hamiltonian
-        A_tridiag = self.np.diag(diag_elements) + self.np.diag(
-            norms_vector_n[1:], 1) + self.np.diag(
-                self.np.conj(norms_vector_n[1:]), -1)
-        eigvals, u = self.np.linalg.eigh(A_tridiag)
-        if not first:
-          if self.np.linalg.norm(eigvals[0:numeig] -
-                                 eigvalsold[0:numeig]) < tol:
-            break
-        first = False
-        eigvalsold = eigvals[0:numeig]
-      if it > 0:
-        A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
-        A_vector_n -= (krylov_vecs[-2] * norms_vector_n[-1])
-      else:
-        A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
-      vector_n = A_vector_n
-
-    A_tridiag = self.np.diag(diag_elements) + self.np.diag(
-        norms_vector_n[1:], 1) + self.np.diag(
-            self.np.conj(norms_vector_n[1:]), -1)
-    eigvals, u = self.np.linalg.eigh(A_tridiag)
-    eigenvectors = []
-    if self.np.iscomplexobj(A_tridiag):
-      eigvals = self.np.array(eigvals).astype(A_tridiag.dtype)
-
-    for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape)
-      for n1, vec in enumerate(krylov_vecs):
-        state += vec * u[n1, n2]
-      eigenvectors.append(state / self.np.linalg.norm(state))
-    return eigvals[0:numeig], eigenvectors
-
-  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return tensor1 * tensor2
