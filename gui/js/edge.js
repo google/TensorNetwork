@@ -49,8 +49,13 @@ Vue.component(
             }
         },
         template: `
-            <line class="edge" :x1="x1" :y1="y1" :x2="x2" :y2="y2"
-                stroke="#ddd" stroke-width="5" stroke-linecap="round" />
+            <g>
+                <line class="edge" :x1="x1" :y1="y1" :x2="x2" :y2="y2"
+                    stroke="#ddd" stroke-width="5" stroke-linecap="round" />
+                <text v-if="edge[2]" :x="0.5 * (x1 + x2)" :y="0.5 * (y1 + y2)">
+                    {{edge[2]}}
+                </text>
+            </g>
         `
     }
 );
@@ -78,7 +83,7 @@ Vue.component(
             }
         },
         template: `
-            <line class="edge" :x1="x0" :y1="y0" :x2="x" :y2="y"
+            <line class="proto-edge" :x1="x0" :y1="y0" :x2="x" :y2="y"
                 stroke="#bbb" stroke-width="5" stroke-linecap="round" />
         `
     }

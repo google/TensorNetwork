@@ -15,7 +15,7 @@
 
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Iterable
+    Sequence, Iterable, Type
 import numpy as np
 
 #pylint: disable=useless-import-alias
@@ -35,10 +35,10 @@ def norm(node: BaseNode) -> Tensor:
   Returns:
     The L2 norm 
   Raises:
-    TypeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
   return node.backend.norm(node.tensor)
 
@@ -55,10 +55,10 @@ def conj(node: BaseNode,
   Returns:
     A new node. The complex conjugate of `node`.
   Raises:
-    TypeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
   backend = node.backend
   if not axis_names:
@@ -84,14 +84,14 @@ def transpose(node: BaseNode,
   Returns:
     A new node. The transpose of `node`.
   Raises:
-    TypeError: If `node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute, or if 
+      `node` has no tensor.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
-    AttributeError: If `node` has no tensor.
   """
 
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   perm = [node.get_axis_number(p) for p in permutation]
@@ -163,8 +163,7 @@ def copy(nodes: Iterable[BaseNode],
       continue
 
     # both nodes should be copied
-    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2],
-                    axis2)
+    new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2], axis2)
     new_edge.set_signature(edge.signature)
     node_dict[node2].add_edge(new_edge, axis2)
     node_dict[node1].add_edge(new_edge, axis1)
@@ -259,10 +258,12 @@ def split_node(
         Its underlying tensor is :math:`\\sqrt{S} V^*`
       truncated_singular_values: 
         The vector of truncated singular values.
+  Raises:
+    AttributeError: If `node` has no backend attribute
   """
 
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -344,9 +345,11 @@ def split_node_qr(
       right_node:
         A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`R`
+  Raises:
+    AttributeError: If `node` has no backend attribute
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -411,14 +414,17 @@ def split_node_rq(
   Returns:
     A tuple containing:
       left_node:
-        A new node created that connects to all of the `left_edges`.
-        Its underlying tensor is :math:`Q`
+        A new node that connects to all of the `left_edges`.
+        Its underlying tensor is :math:`R^*`
       right_node:
-        A new node created that connects to all of the `right_edges`.
-        Its underlying tensor is :math:`R`
+        A new node that connects to all of the `right_edges`.
+        Its underlying tensor is :math:`Q^*`
+  Raises:
+    AttributeError: If `node` has no backend attribute
+
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and edge_name:
@@ -522,9 +528,11 @@ def split_node_full_svd(
         Its underlying tensor is :math:`V^*`
       truncated_singular_values:
         The vector of truncated singular values.
+  Raises:
+    AttributeError: If `node` has no backend attribute
   """
   if not hasattr(node, 'backend'):
-    raise TypeError('Node {} of type {} has no `backend`'.format(
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
 
   if node.axis_names and left_edge_name and right_edge_name:
@@ -590,11 +598,11 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
+def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]) -> Set[BaseNode]:
   """
-  Computes all nodes reachable from `node` by connected edges.
+  Computes all nodes reachable from `node` or `edge.node1` by connected edges.
   Args:
-    nodes: A `BaseNode` or collection of `BaseNodes`
+    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
@@ -602,9 +610,13 @@ def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  if isinstance(nodes, BaseNode):
-    nodes = {nodes}
-  return _reachable(set(nodes))
+  if isinstance(inputs, BaseNode):
+    inputs = {inputs}
+  elif isinstance(inputs, Edge):
+    inputs = {inputs.node1}
+  elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
+    inputs = {x.node1 for x in inputs}
+  return _reachable(set(inputs))
 
 
 def check_correct(nodes: Iterable[BaseNode],
@@ -679,6 +691,7 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
     edges |= set(node.edges)
   return edges
 
+
 def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   """Get all of the edges that are "relatively dangling" to the given nodes.
 
@@ -698,6 +711,7 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
       output.add(edge)
   return output
 
+
 def contract_trace_edges(node: BaseNode) -> BaseNode:
   """
   contract all trace edges of `node`.
@@ -713,3 +727,64 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
     if edge.is_trace():
       return contract_parallel(edge)
   raise ValueError('`node` has no trace edges')
+
+
+def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
+  """
+  Constructs the tensor network for a reduced density matrix, given a pure state.
+
+  The tensor network connected to `traced_out_edges` is assumed to be a pure
+  quantum state (a state vector). This modifies the network so that it
+  describes the reduced density matrix obtained by "tracing out" the specified
+  edges.
+
+  This is done by making a conjugate copy of the original network and
+  connecting each edge in `traced_out_edges` with its conjugate counterpart.
+
+  The edges in `edge_dict` corresponding to `traced_out_edges` will be the
+  new non-dangling edges connecting the state with its conjugate.
+
+  Args:
+    traced_out_edges: A list of dangling edges
+  Returns:
+    A tuple containing:
+      node_dict: A dictionary mapping the nodes in the original network to
+        their conjugate copies.
+      edge_dict: A dictionary mapping edges in the original network to their
+        conjugate copies.
+  """
+
+  if list(filter(lambda x: not x.is_dangling(), traced_out_edges)):
+    raise ValueError("traced_out_edges must only include dangling edges!")
+
+  # Get all reachable nodes.
+  old_nodes = reachable(get_all_nodes(traced_out_edges))
+
+  # Copy and conjugate all reachable nodes.
+  node_dict, edge_dict = copy(old_nodes, True)
+  for t_edge in traced_out_edges:
+    # Add each edge to the copied nodes as new edge.
+    edge_dict[t_edge] = edge_dict[t_edge] ^ t_edge
+
+  return node_dict, edge_dict
+
+
+def switch_backend(nodes: Iterable[BaseNode],
+                   new_backend: Text,
+                   dtype: Optional[Type[np.number]] = None) -> None:
+  """Change the backend of the nodes.
+
+  This will convert all node's tensors to the new backend's Tensor type.
+  Args:
+    nodes: iterable of nodes
+    new_backend (str): The new backend.
+    dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                       to config.py will be chosen.
+  """
+  backend = backend_factory.get_backend(new_backend, dtype)
+  for node in nodes:
+    if node.backend.name != "numpy":
+      raise NotImplementedError("Can only switch backends when the current "
+                                "backend is 'numpy'. Current backend "
+                                "is '{}'".format(node.backend.name))
+    node.tensor = backend.convert_to_tensor(node.tensor)

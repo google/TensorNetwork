@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Implementation of TensorNetwork structure."""
+"""Implementation of Network Components."""
 
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Type, Union, \
   overload, Sequence, Iterable
@@ -30,7 +30,6 @@ string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
 # This is required because of the circular dependency between
 # network_components.py and network.py types.
-TensorNetwork = Any
 
 
 class BaseNode(ABC):
@@ -53,27 +52,21 @@ class BaseNode(ABC):
   def __init__(self,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               network: Optional[TensorNetwork] = None,
                backend: Optional[BaseBackend] = None,
                shape: Optional[Tuple[int]] = None) -> None:
-    """Create a node for the TensorNetwork. Should be subclassed before usage
+    """Create a node. Should be subclassed before usage
     and a limited number of abstract methods and properties implemented.
 
     Args:
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
-      network: The TensorNetwork this Node belongs to.
       shape: the shape of the tensor, as tuple of integers.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    if network and backend and (network.backend.name != backend.name):
-      raise ValueError(
-          'network.backend.name={} is different from backend={}'.format(
-              network.backend.name, backend.name))
-    self.network = network
+
     self.is_disabled = False
     self.name = name if name is not None else '__unnamed_node__'
     self.backend = backend
@@ -112,8 +105,7 @@ class BaseNode(ABC):
   def set_signature(self, signature: int) -> None:
     """Set the signature for the node.
 
-    Signatures are numbers that uniquely identify a node inside of a
-    TensorNetwork.
+    Signatures are numbers that uniquely identify a node.
     """
     self.signature = signature
 
@@ -363,8 +355,6 @@ class BaseNode(ABC):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
     if self.is_disabled:
       raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
-    if self.network and other.network:
-      return self.network.contract_between(self, other)
     return contract_between(self, other)
 
   @property
@@ -413,21 +403,14 @@ class BaseNode(ABC):
   def disable(self):
     if self.is_disabled:
       raise ValueError('Node {} is already disabled'.format(self.name))
-    if self.network and self in self.network.nodes_set:
-      raise ValueError(
-          'Node {} is part of a network. Disabelling not allowed'.format(
-              self.name))
-
     self.is_disabled = True
 
   @classmethod
   @abstractmethod
-  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
-    """Add a node to a network based on hdf5 data.
+  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+    """load a node based on hdf5 data.
 
     Args:
-      net: The network the node will be added to. If not `None` the loaded
-        node will be added to `net`.
       node_data: h5py group that contains the serialized node data
 
     Returns:
@@ -438,7 +421,7 @@ class BaseNode(ABC):
   @classmethod
   def _load_node_data(cls,
                       node_data: h5py.Group) -> Tuple[Any, Any, Any, Any, Any]:
-    """Common method to enable adding nodes to a network based on hdf5 data.
+    """Common method to enable loading nodes based on hdf5 data.
        Only a common functionality to load node properties is implemented.
 
     Args:
@@ -492,10 +475,8 @@ class BaseNode(ABC):
 
 
 class Node(BaseNode):
-  """Node for the TensorNetwork graph.
-
-  A Node represents a concrete tensor in a tensor network. The number of edges
-  for a node represents the rank of that tensor.
+  """A Node represents a concrete tensor in a tensor network.
+   The number of edges for a node represents the rank of that tensor.
 
   For example:
 
@@ -512,9 +493,8 @@ class Node(BaseNode):
                tensor: Union[Tensor, BaseNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               network: Optional[TensorNetwork] = None,
                backend: Optional[Text] = None) -> None:
-    """Create a node for the TensorNetwork.
+    """Create a node.
 
     Args:
       tensor: The concrete that is represented by this node, or a `BaseNode` 
@@ -531,31 +511,18 @@ class Node(BaseNode):
         doesn't match the shape of the tensor.
     """
     if isinstance(tensor, BaseNode):
-
-      if backend and (tensor.backend.name != backend):
-        raise ValueError("`tensor.backend.name`='{}' of input Node `tensor`"
-                         " is different from `backend`='{}'".format(
-                             tensor.backend.name, backend))
       #always use the `Node`'s backend
       backend = tensor.backend.name
       tensor = tensor.tensor
-    if network:  #if a network is passed, use its backend
-      if backend and (network.backend.name != backend):
-        raise ValueError(
-            'network.backend.name={} is different from backend={}'.format(
-                network.backend.name, backend))
-      backend_obj = network.backend
-    else:
-      if not backend:
-        backend = config.default_backend
-      #use dtype=None here; the backend dtype will be deduced from the
-      #tensor dtype.
-      backend_obj = backend_factory.get_backend(backend, dtype=None)
+    if not backend:
+      backend = config.default_backend
+    #use dtype=None here; the backend dtype will be deduced from the
+    #tensor dtype.
+    backend_obj = backend_factory.get_backend(backend, dtype=None)
     self._tensor = backend_obj.convert_to_tensor(tensor)
     super().__init__(
         name=name,
         axis_names=axis_names,
-        network=network,
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
     if self.backend and not self.backend.dtype:
@@ -592,12 +559,10 @@ class Node(BaseNode):
     node_group.create_dataset('tensor', data=self._tensor)
 
   @classmethod
-  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "BaseNode":
-    """Add a node to a network based on hdf5 data.
+  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+    """Load a node based on hdf5 data.
 
     Args:
-      net: The network the node will be added to. If not `None` the loaded
-        node will be added to `net`.
       node_data: h5py group that contains the serialized node data
 
     Returns:
@@ -611,9 +576,6 @@ class Node(BaseNode):
         name=name,
         axis_names=[ax for ax in axis_names],
         backend=backend)
-
-    if net:
-      node = net.add_node(node)
     node.set_signature(signature)
     return node
 
@@ -625,7 +587,6 @@ class CopyNode(BaseNode):
                dimension: int,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               network: Optional[TensorNetwork] = None,
                backend: Optional[Text] = None,
                dtype: Type[np.number] = np.float64) -> None:
     """
@@ -635,7 +596,6 @@ class CopyNode(BaseNode):
       dimension: The dimension of each leg.
       name: A name for the node.
       axis_names:  axis_names for the node.
-      network: An optional network for the node.
       backend: An optional backend for the node. If `None`, a default
         backend is used
       dtype: The dtype used to initialize a numpy-copy node.
@@ -643,18 +603,13 @@ class CopyNode(BaseNode):
         compatible with the dtype of the backend, e.g. for a tensorflow
         backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
     """
-    if network:  #if a network is passed, use its backend
-      if backend and (network.backend.name != backend):
-        raise ValueError(
-            'network.backend.name={} is different from backend={}'.format(
-                network.backend.name, backend))
-      backend_obj = network.backend
-    else:
-      if not backend:
-        backend = config.default_backend
-      #use dtype=None here; the backend dtype will be deduced from the
-      #tensor dtype.
-      backend_obj = backend_factory.get_backend(backend, dtype=None)
+
+
+    if not backend:
+      backend = config.default_backend
+    #use dtype=None here; the backend dtype will be deduced from the
+    #tensor dtype.
+    backend_obj = backend_factory.get_backend(backend, dtype=None)
 
     self.rank = rank
     self.dimension = dimension
@@ -664,7 +619,6 @@ class CopyNode(BaseNode):
     super().__init__(
         name=name,
         axis_names=axis_names,
-        network=network,
         backend=backend_obj,
         shape=(dimension,) * rank)
 
@@ -770,12 +724,10 @@ class CopyNode(BaseNode):
         name='copy_node_dtype', data=np.dtype(self.copy_node_dtype).name)
 
   @classmethod
-  def _load_node(cls, net: TensorNetwork, node_data: h5py.Group) -> "CopyNode":
-    """Add a node to a network based on hdf5 data.
+  def _load_node(cls, node_data: h5py.Group) -> "CopyNode":
+    """Load a node based on hdf5 data.
 
     Args:
-      net: The network the node will be added to. If not `None` the loaded
-        node will be added to `net`.
       node_data: h5py group that contains the serialized node data
 
     Returns:
@@ -792,19 +744,14 @@ class CopyNode(BaseNode):
         backend=backend,
         dtype=copy_node_dtype)
 
-    if net:
-      node = net.add_node(node)
-
     node.set_signature(signature)
     return node
 
 
 class Edge:
-  """Edge for the TensorNetwork graph.
-
-  Each edge represents a vector space common to the tensors it connects and over
-  which a contraction may be performed. In numpy terms, each edge represents a
-  `tensordot` operation over the given axes.
+  """Each edge represents a vector space common to the tensors it connects and
+  over which a contraction may be performed. In numpy terms, each edge
+  represents a `tensordot` operation over the given axes.
   There are 3 main types of edges:
 
   Standard Edge:
@@ -1050,11 +997,11 @@ class Edge:
 
   @classmethod
   def _load_edge(cls, edge_data: h5py.Group, nodes_dict: Dict[Text, BaseNode]):
-    """Add an edge to a network based on hdf5 data.
+    """load an edge based on hdf5 data.
 
     Args:
       edge_data: h5py group that contains the serialized edge data
-      nodes: dictionary of node's name, node of all the nodes in the network
+      nodes: dictionary of node's name, node
 
     Returns:
       The added edge.
@@ -1328,7 +1275,7 @@ def flatten_edges_between(
 
 
 def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
-  """Flatten all edges in the network.
+  """Flatten all edges that belong to the nodes.
 
   Returns:
     A list of all the flattened edges. If there was only one edge between

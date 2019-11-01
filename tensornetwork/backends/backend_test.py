@@ -3,6 +3,7 @@ import builtins
 import sys
 import pytest
 import numpy as np
+from tensornetwork import connect, contract, Node
 
 
 def clean_tensornetwork_modules():
@@ -34,14 +35,18 @@ def no_backend_dependency(monkeypatch):
 
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_backend_pytorch_missing_cannot_initialize_backend():
+  #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.pytorch.pytorch_backend import PyTorchBackend
     PyTorchBackend()
 
 
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_backend_tensorflow_missing_cannot_initialize_backend():
+  #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.tensorflow.tensorflow_backend \
       import TensorFlowBackend
     TensorFlowBackend()
@@ -49,7 +54,9 @@ def test_backend_tensorflow_missing_cannot_initialize_backend():
 
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_backend_jax_missing_cannot_initialize_backend():
+  #pylint: disable=import-outside-toplevel
   with pytest.raises(ImportError):
+    # pylint: disable=import-outside-toplevel
     from tensornetwork.backends.jax.jax_backend import JaxBackend
     JaxBackend()
 
@@ -78,6 +85,7 @@ def test_config_backend_missing_can_import_config():
 def test_import_tensornetwork_without_backends():
   #pylint: disable=import-outside-toplevel
   #pylint: disable=unused-variable
+  #pylint: disable=reimported
   import tensornetwork
   #pylint: disable=import-outside-toplevel
   import tensornetwork.backends.pytorch.pytorch_backend
@@ -104,12 +112,12 @@ def test_import_tensornetwork_without_backends():
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_basic_numpy_network_without_backends():
   #pylint: disable=import-outside-toplevel
+  #pylint: disable=reimported
   import tensornetwork
-  net = tensornetwork.TensorNetwork(backend="numpy")
-  a = net.add_node(np.ones((10,)))
-  b = net.add_node(np.ones((10,)))
-  edge = net.connect(a[0], b[0])
-  final_node = net.contract(edge)
+  a = Node(np.ones((10,)), backend="numpy")
+  b = Node(np.ones((10,)), backend="numpy")
+  edge = connect(a[0], b[0])
+  final_node = contract(edge)
   assert final_node.tensor == np.array(10.)
   with pytest.raises(ImportError):
     #pylint: disable=unused-variable
@@ -128,10 +136,11 @@ def test_basic_numpy_network_without_backends():
 @pytest.mark.usefixtures('no_backend_dependency')
 def test_basic_network_without_backends_raises_error():
   #pylint: disable=import-outside-toplevel
+  #pylint: disable=reimported
   import tensornetwork
   with pytest.raises(ImportError):
-    tensornetwork.TensorNetwork(backend="jax")
+    Node(np.ones((2, 2)), backend="jax")
   with pytest.raises(ImportError):
-    tensornetwork.TensorNetwork(backend="tensorflow")
+    Node(np.ones((2, 2)), backend="tensorflow")
   with pytest.raises(ImportError):
-    tensornetwork.TensorNetwork(backend="pytorch")
+    Node(np.ones((2, 2)), backend="pytorch")

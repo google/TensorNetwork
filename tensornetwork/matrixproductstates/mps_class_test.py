@@ -102,6 +102,20 @@ def test_right_orthonormalization(backend_dtype_values):
   ])
 
 
+def test_canonical(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+  D, d, N = 10, 2, 10
+  tensors = [get_random_np((1, d, D), dtype)] + [
+      get_random_np((D, d, D), dtype) for _ in range(N - 2)
+  ] + [get_random_np((D, d, 1), dtype)]
+  mps = FiniteMPS(
+      tensors, center_position=N // 2, backend=backend, canonicalize=False)
+  assert mps.check_canonical() > 1E-12
+  mps.canonicalize()
+  assert mps.check_canonical() < 1E-12
+
+
 def test_apply_one_site_gate(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -111,9 +125,10 @@ def test_apply_one_site_gate(backend_dtype_values):
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  tensor = mps.nodes[5].tensor
   gate = get_random_np((2, 2), dtype)
   mps.apply_one_site_gate(gate, 5)
-  actual = np.transpose(np.tensordot(tensors[5], gate, ([1], [1])), (0, 2, 1))
+  actual = np.transpose(np.tensordot(tensor, gate, ([1], [1])), (0, 2, 1))
   np.testing.assert_allclose(mps.nodes[5].tensor, actual)
 
 
@@ -127,10 +142,16 @@ def test_apply_two_site_gate(backend_dtype_values):
   ] + [get_random_np((D, d, 1), dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2, 2, 2), dtype)
+  tensor1 = mps.nodes[5].tensor
+  tensor2 = mps.nodes[6].tensor
+
   mps.apply_two_site_gate(gate, 5, 6)
-  tmp = np.tensordot(tensors[5], tensors[6], ([2], [0]))
+  tmp = np.tensordot(tensor1, tensor2, ([2], [0]))
   actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
+  mps.nodes[5][2] ^ mps.nodes[6][0]
+  order = [mps.nodes[5][0], mps.nodes[5][1], mps.nodes[6][1], mps.nodes[6][2]]
   res = tn.contract_between(mps.nodes[5], mps.nodes[6])
+  res.reorder_edges(order)
   np.testing.assert_allclose(res.tensor, actual)
 
 
