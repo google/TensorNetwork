@@ -270,18 +270,14 @@ class NumPyBackend(base_backend.BaseBackend):
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
 
-  def multiply(self, tensor: Tensor, scalar) -> Tensor:
-    return self.np.multiply(tensor, scalar)
-
-  # divide vs true_divide
-  def true_divide(self, tensor: Tensor, scalar) -> Tensor:
-    return self.np.true_divide(tensor, scalar)
-
   def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    print("add output")
-    tensor = self.np.add(tensor1, tensor2)
-    print(tensor)
     return self.np.add(tensor1, tensor2)
 
   def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.np.subtract(tensor1, tensor2)
+
+  def scalar_multiply(self, tensor: Tensor, scalar) -> Tensor:
+    return self.np.multiply(tensor, scalar)
+
+  def scalar_divide(self, tensor: Tensor, scalar) -> Tensor:
+    return self.np.true_divide(tensor, scalar)
