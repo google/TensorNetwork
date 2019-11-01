@@ -1,39 +1,39 @@
-# Byte-compiled / optimized / DLL files	
-__pycache__/	
-*.py[cod]	
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
 
-# C extensions	
-*.so	
+# C extensions
+*.so
 
-# Distribution / packaging	
-bin/	
-build/	
-develop-eggs/	
-dist/	
-eggs/	
-lib/	
-lib64/	
-parts/	
-sdist/	
-var/	
-.pytype/	
-.pytest_cache/	
-*.egg-info/	
-.installed.cfg	
-*.egg	
-docs/_*	
-docs/clean	
+# Distribution / packaging
+bin/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+.pytype/
+.pytest_cache/
+*.egg-info/
+.installed.cfg
+*.egg
+docs/_*
+docs/clean
 
-# Installer logs	
-pip-log.txt	
-pip-delete-this-directory.txt	
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Unit test / coverage reports	
-.tox/	
-.coverage	
-.cache	
-nosetests.xml	
-coverage.xml	
+# Unit test / coverage reports
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
 
-# Max OS	
+# Max OS
 .DS_Store
