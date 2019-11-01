@@ -342,7 +342,8 @@ class BaseBackend:
       """
       Return the addition of `tensor` with another `tensor`
       Args:
-        tensor: A tensor.
+        tensor1: A tensor.
+        tensor2: A tensor.
       Returns:
         Tensor
       """
@@ -353,7 +354,8 @@ class BaseBackend:
       """
       Return the addition of `tensor` with another `tensor`
       Args:
-        tensor: A tensor.
+        tensor1: A tensor.
+        tensor2: A tensor.
       Returns:
         Tensor
       """
@@ -365,6 +367,7 @@ class BaseBackend:
       Return the multiplication of `tensor` with a scalar value
       Args:
         tensor: A tensor.
+        scalar: A numeric value.
       Returns:
         Tensor
       """
@@ -376,6 +379,7 @@ class BaseBackend:
       Return the division of `tensor` with a scalar value
       Args:
         tensor: A tensor.
+        scalar: A numeric value.
       Returns:
         Tensor
       """
