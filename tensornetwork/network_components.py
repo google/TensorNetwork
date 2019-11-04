@@ -534,7 +534,6 @@ class Node(BaseNode):
   def set_tensor(self, tensor):
     self.tensor = tensor
 
-  @overload
   def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
     if not hasattr(self, '_tensor'):
       raise AttributeError("Please provide a valid tensor for this Node.")
@@ -544,6 +543,20 @@ class Node(BaseNode):
     else:
       other_tensor = self.backend.convert_to_tensor(other)
     new_tensor = self.backend.add(self.get_tensor(), other_tensor)
+    new_node = Node(
+        tensor=new_tensor, name=self.name, axis_names=self.axis_names,
+        backend=self.backend.name)
+    return new_node
+
+  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+
+    if isinstance(other, BaseNode):
+      other_tensor = other.get_tensor()
+    else:
+      other_tensor = self.backend.convert_to_tensor(other)
+    new_tensor = self.backend.sub(self.get_tensor(), other_tensor)
     new_node = Node(
         tensor=new_tensor, name=self.name, axis_names=self.axis_names,
         backend=self.backend.name)

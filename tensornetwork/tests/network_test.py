@@ -548,8 +548,22 @@ def test_remove_node(backend):
                                        3 * np.ones((1, 2, 3)))
                          ])
 def test_add(a, b, expected, backend):
-  if backend == "numpy":
-    n1 = tn.Node(a, backend=backend)
-    n2 = tn.Node(b, backend=backend)
-    n3 = n1 + n2
-    np.testing.assert_allclose(n3.tensor, expected)
+  n1 = tn.Node(a, backend=backend)
+  n2 = tn.Node(b, backend=backend)
+  n3 = n1 + n2
+  np.testing.assert_allclose(n3.tensor, expected)
+
+
+@pytest.mark.parametrize("a, b, expected",
+                         [pytest.param(np.eye(2),
+                                       np.eye(2),
+                                       np.zeros((2, 2))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2,
+                                       -1 * np.ones((1, 2, 3)))
+                         ])
+def test_sub(a, b, expected, backend):
+  n1 = tn.Node(a, backend=backend)
+  n2 = tn.Node(b, backend=backend)
+  n3 = n1 - n2
+  np.testing.assert_allclose(n3.tensor, expected)

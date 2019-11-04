@@ -257,3 +257,9 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2

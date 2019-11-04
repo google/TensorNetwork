@@ -255,3 +255,13 @@ class ShellBackend(base_backend.BaseBackend):
     a = np.ones(tensor1.shape)
     b = np.ones(tensor2.shape)
     return ShellTensor((a * b).shape)
+
+  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    a = np.ones(tensor1.shape)
+    b = np.ones(tensor2.shape)
+    return ShellTensor((a + b).shape)
+
+  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    a = np.ones(tensor1.shape)
+    b = np.ones(tensor2.shape)
+    return ShellTensor((a - b).shape)

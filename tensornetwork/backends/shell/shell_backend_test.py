@@ -204,3 +204,18 @@ def test_eigsh_lanczos_raises():
 def test_multiply(a, b):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree("multiply", args)
+
+
+@pytest.mark.parametrize("a, b, ops",
+                         [pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)), 'add'),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)), 'add'),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       np.ones((1, 2, 3)), 'sub'),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)), 'sub')
+                         ])
+def test_add_sub(a, b, ops):
+  args = {"tensor1": a, "tensor2": b}
+  assertBackendsAgree(ops, args)

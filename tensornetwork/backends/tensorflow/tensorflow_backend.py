@@ -83,7 +83,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.linalg.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.tf.convert_to_tensor(tensor)
+    if isinstance(tensor, (float, int)):
+      result = self.tf.convert_to_tensor(tensor, dtype=self.tf.float64)
+    else:
+      result = self.tf.convert_to_tensor(tensor)
     if self.dtype is not None and result.dtype is not self.dtype:
       raise TypeError(
           "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
@@ -160,3 +163,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2

@@ -275,6 +275,3 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 - tensor2
-
-  def div(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return tensor1 / tensor2
