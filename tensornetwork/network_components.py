@@ -492,7 +492,7 @@ class Node(BaseNode):
                tensor: Union[Tensor, BaseNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Text, BaseBackend] = None) -> None:
     """Create a node.
 
     Args:
@@ -503,7 +503,7 @@ class Node(BaseNode):
         backend as given by `backend`.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
-      backend: The name of the backend.
+      backend: The name of the backend or an instance of a `BaseBackend`.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
