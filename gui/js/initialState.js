@@ -17,21 +17,53 @@ let initialState = {
     draggingNode: false,
     nodes: [
         {
-            name: 'A',
-            axes: [null, null],
-			position: {x: 100, y: 200},
+            name: 't1',
+            axes: [
+                {name: null, angle: 0},
+                {name: null, angle: Math.PI / 2},
+                {name: null, angle: Math.PI},
+            ],
+			position: {x: 200, y: 300},
             rotation: 0,
-            hue: null
+            hue: 30
         },
         {
-            name: 'B',
-            axes: [null, null, null],
-			position: {x: 300, y: 300},
-            rotation: Math.PI / 2,
-            hue: null
+            name: 't2',
+            axes: [
+                {name: null, angle: 0},
+                {name: null, angle: Math.PI / 2},
+                {name: null, angle: Math.PI},
+            ],
+            position: {x: 367, y: 300},
+            rotation: 0,
+            hue: 30
+        },
+        {
+            name: 't3',
+            axes: [
+                {name: null, angle: 0},
+                {name: null, angle: Math.PI / 2},
+                {name: null, angle: Math.PI},
+            ],
+            position: {x: 533, y: 300},
+            rotation: 0,
+            hue: 30
+        },
+        {
+            name: 't4',
+            axes: [
+                {name: null, angle: 0},
+                {name: null, angle: Math.PI / 2},
+                {name: null, angle: Math.PI},
+            ],
+            position: {x: 700, y: 300},
+            rotation: 0,
+            hue: 30
         }
     ],
     edges: [
-        [['B', 1], ['A', 1], null],
+        [['t1', 0], ['t2', 2], null],
+        [['t2', 0], ['t3', 2], null],
+        [['t3', 0], ['t4', 2], null],
     ]
 };

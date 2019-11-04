@@ -53,6 +53,10 @@ section {
 	border-bottom: 1px solid #ddd;
 }
 
+.tensor-creator .svg-container {
+	height: 200px;
+}
+
 .delete {
 	text-align: right;
 	float: right;

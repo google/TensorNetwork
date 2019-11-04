@@ -24,23 +24,6 @@ Vue.component(
             }
         },
         methods: {
-            createNode: function(event) {
-                event.preventDefault();
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
-
-                let node = {
-                    name: this.createNodeName,
-                    position: {x: workspace.width / 2, y: workspace.height / 2},
-                    axes: [null],
-                    rotation: 0
-                };
-
-                this.state.nodes.push(node);
-                this.state.selectedNode = node;
-
-                this.createNodeName = "";
-            },
             deleteNode: function(event) {
                 event.preventDefault();
                 let selectedName = this.state.selectedNode.name;
@@ -58,23 +41,11 @@ Vue.component(
                 });
                 this.selectedNode = null;
             },
-            rotateCounter: function() {
-                this.node.rotation -= 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
+            rotate: function(angle) {
+                this.node.rotation += angle;
             },
-            rotateClockwise: function() {
-                this.node.rotation += 2 * Math.PI / this.leastCommonMultiple(4, this.node.axes.length);
-            },
-            leastCommonMultiple: function(a, b) {
-                // assumes a, b are positive integers
-                return a * b / this.greatestCommonDenominator(a, b);
-            },
-            greatestCommonDenominator: function(a, b) {
-                while (b !== 0) {
-                    let remainder = a % b;
-                    a = b;
-                    b = remainder;
-                }
-                return a;
+            deselectNode: function() {
+                this.state.selectedNode = null;
             }
         },
         computed: {
@@ -95,16 +66,12 @@ Vue.component(
         },
         template: `
             <div class="toolbar">
-                <section>
-                    <h2>Create New Node</h2>
-                    <div class="button-holder">
-                        <form @submit="createNode">
-                            <input type="text" v-model="createNodeName" placeholder="node name" />
-                            <input type="submit" value="Create" :disabled="createNodeDisabled" />
-                        </form>
-                    </div>
-                </section>
                 <div v-if="node != null">
+                    <section>
+                        <div class="button-holder">
+                            <button @click="deselectNode">Create new node</button>
+                        </div>
+                    </section>
                     <section>
                         <div>
                             <a class="delete" href="" @click="deleteNode(event)">delete</a>
@@ -112,20 +79,122 @@ Vue.component(
                         </div>
                         <h4>Rotate</h4>
                             <div class="button-holder">
-                                <button @click="rotateCounter">Counterclockwise</button>
-                                <button @click="rotateClockwise">Clockwise</button>
+                                <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
+                                <button @click="rotate(Math.PI / 4)">Clockwise</button>
                             </div>
                     </section>
                     <toolbar-edge-section :state="state" />
                     <toolbar-axis-section :state="state" />
                 </div>
-                <section v-else>
-                    <h2>Select a node to edit it</h2>
-                </section>
+                <div v-else>
+                    <tensor-creator :state="state" />
+                    <section>
+                        <h3>Select a node to edit it</h3>
+                    </section>
+                </div>
             </div>
         `
     }
 );
+
+Vue.component(
+    'tensor-creator',
+    {
+        props: {
+            state: Object
+        },
+        data: function() {
+            return {
+                nodeInitial: {
+                    name: "",
+                    axes: [],
+                    position: {x: 100, y: 100},
+                    rotation: 0,
+                    hue: null
+                },
+                node: {},
+                nodeShadow: {
+                    name: "",
+                    axes: [
+                            {name: null, angle: 0},
+                            {name: null, angle: Math.PI / 4},
+                            {name: null, angle: Math.PI / 2},
+                            {name: null, angle: 3 * Math.PI / 4},
+                            {name: null, angle: Math.PI},
+                            {name: null, angle: 5 * Math.PI / 4},
+                            {name: null, angle: 3 * Math.PI / 2},
+                            {name: null, angle: 7 * Math.PI / 4},
+                    ],
+                    position: {x: 100, y: 100},
+                    rotation: 0,
+                    hue: null
+                },
+                edges: [],
+                width: 200,
+                height: 200,
+            };
+        },
+        created: function() {
+            this.node = JSON.parse(JSON.stringify(this.nodeInitial));
+            this.node.hue = Math.random() * 360;
+        },
+        methods: {
+            createNode: function(event) {
+                event.preventDefault();
+                let workspace = document.getElementsByClassName('workspace')[0]
+                    .getBoundingClientRect();
+
+                this.node.position = {x: workspace.width / 2, y: workspace.height / 2};
+
+                this.state.nodes.push(this.node);
+
+                this.node = JSON.parse(JSON.stringify(this.nodeInitial));
+                this.node.hue = Math.random() * 360;
+            },
+            onShadowAxisMouseDown: function(node, axis) {
+                this.node.axes.push(JSON.parse(JSON.stringify(this.nodeShadow.axes[axis])));
+            },
+            onNodeAxisMouseDown: function(node, axis) {
+                this.node.axes.splice(axis, 1);
+            },
+        },
+        computed: {
+            createNodeDisabled: function() {
+                return this.nameTaken || this.node.name == null || this.node.name === '';
+            },
+            nameTaken: function() {
+                for (let i = 0; i < this.state.nodes.length; i++) {
+                    if (this.node.name === this.state.nodes[i].name) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        },
+        template: `
+            <section class="tensor-creator">
+                <h2>Create New Node</h2>
+                <div class="button-holder">
+                    <form @submit="createNode">
+                        <input type="text" v-model="node.name" placeholder="node name" />
+                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
+                    </form>
+                </div>
+                <p>Click on an axis to add or remove it.</p>
+                <div class="svg-container">
+                    <svg class="workspace" xmlns="http://www.w3.org/2000/svg"
+                        :width="width" :height="height">
+                        <node :node="nodeShadow" :state="state" :disableDragging="true" :shadow="true"
+                            @axismousedown="onShadowAxisMouseDown(node, ...arguments)" />
+                        <node :node="node" :state="state" :disableDragging="true"
+                            @axismousedown="onNodeAxisMouseDown(node, ...arguments)"/>
+                    </svg>
+                </div>
+            </section>
+            
+        `
+    }
+)
 
 Vue.component(
     'toolbar-edge-section',
@@ -170,35 +239,6 @@ Vue.component(
         props: {
             state: Object
         },
-        methods: {
-            addAxis: function() {
-                this.node.axes.push(null);
-            },
-            deleteAxis: function(event, index) {
-                event.preventDefault();
-                this.node.axes.splice(index, 1);
-                for (let i = 0; i < this.state.edges.length; i++) {
-                    let edge = this.state.edges[i];
-                    if (edge[0][0] === this.node.name) {
-                        if (edge[0][1] === index) {
-                            this.state.edges[i] = null;  // Mark for deletion.
-                        }
-                        else if (edge[0][1] > index) {
-                            edge[0][1] -= 1;  // Shift down which axis this edge is pointed to.
-                        }
-                    }
-                    if (edge[1][0] === this.node.name) {
-                        if (edge[1][1] === index) {
-                            this.state.edges[i] = null;  // Mark for deletion.
-                        }
-                        else if (edge[1][1] > index) {
-                            edge[1][1] -= 1;  // Shift down which axis this edge is pointed to.
-                        }
-                    }
-                }
-                this.state.edges = this.state.edges.filter(function(edge) { return edge !== null; });
-            },
-        },
         computed: {
             node: function() {
                 return this.state.selectedNode;
@@ -209,14 +249,10 @@ Vue.component(
                 <h3>Axes</h3>
                 <div v-for="(axis, index) in node.axes">
                     <div>
-                        <a class="delete" href="" @click="deleteAxis(event, index)">delete</a>
                         <h4>{{node.name}}[{{index}}]</h4>
                     </div>
                     <label for="axis-name-input">Name</label>
-                    <input id="axis-name-input" type="text" v-model="node.axes[index]" placeholder="axis name" />
-                </div>
-                <div class="button-holder">
-                    <button @click="addAxis">Add axis</button>
+                    <input id="axis-name-input" type="text" v-model="node.axes[index].name" placeholder="axis name" />
                 </div>
             </section>
         `

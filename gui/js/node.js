@@ -46,6 +46,16 @@ Vue.component(
     'node',
 	{
 		mixins: [mixinGet, mixinGeometry, mixinNode],
+        props: {
+		    disableDragging: {
+		        type: Boolean,
+                default: false
+            },
+            shadow: {
+                type: Boolean,
+                default: false
+            }
+        },
         data: function() {
 		    return {
 		        mouse: {
@@ -59,6 +69,9 @@ Vue.component(
 		        event.stopPropagation();
             },
 		    onMouseDown: function(event) {
+		        if (this.disableDragging) {
+		            return;
+                }
                 this.state.selectedNode = this.node;
 
 		        document.addEventListener('mousemove', this.onMouseMove);
@@ -117,7 +130,12 @@ Vue.component(
                 }
             },
 			style: function() {
-				return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);'
+			    if (this.shadow) {
+			        return 'fill: #ddd';
+                }
+			    else {
+                    return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);';
+                }
 			}
 		},
         created: function() {
@@ -128,9 +146,8 @@ Vue.component(
 		template: `
 			<g class="node" :transform="translation" 
                 @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
-			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i"
-			        :state="state" @axismousedown="onAxisMouseDown(i)"
-			        @axismouseup="onAxisMouseUp(i)"/>
+			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
+			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
 				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
 				<text x="0" y="0">{{node.name}}</text>
@@ -147,6 +164,10 @@ Vue.component(
             node: Object,
             index: Number,
             state: Object,
+            shadow: {
+                type: Boolean,
+                default: false
+            },
         },
         data: function() {
             return {
@@ -185,11 +206,8 @@ Vue.component(
             },
         },
         computed: {
-            nAxes: function() {
-                return this.node.axes.length;
-            },
             angle: function() {
-                return this.axisAngle(this.index, this.nAxes) + this.node.rotation;
+                return this.node.axes[this.index].angle + this.node.rotation;
             },
             x: function() {
                 return this.axisX(this.angle);
@@ -201,7 +219,12 @@ Vue.component(
                 return this.highlighted ? 50 : 80;
             },
             stroke: function() {
-                return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                if (this.shadow) {
+                    return this.highlighted ? '#bbb' : '#ddd';
+                }
+                else {
+                    return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                }
             },
         },
         template: `
@@ -210,9 +233,9 @@ Vue.component(
                     @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
                 <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
                     stroke-width="5" stroke-linecap="round" />
-                <text :x="x * axisLabelRadius" :y="y * axisLabelRadius">
+                <text v-if="!shadow" :x="x * axisLabelRadius" :y="y * axisLabelRadius">
                     <tspan>{{index}}</tspan>
-                    <tspan v-if="node.axes[index]"> - {{node.axes[index]}}</tspan>
+                    <tspan v-if="node.axes[index].name"> - {{node.axes[index].name}}</tspan>
                 </text>
             </g>
         `
