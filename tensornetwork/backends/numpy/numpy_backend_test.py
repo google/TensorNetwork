@@ -263,7 +263,6 @@ def test_eigsh_lanczos_2(dtype):
 
 
 def test_eigsh_lanczos_raises():
-  dtype = np.float64
   backend = numpy_backend.NumPyBackend()
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)

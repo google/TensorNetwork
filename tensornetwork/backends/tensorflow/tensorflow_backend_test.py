@@ -189,8 +189,8 @@ def test_randn_dtype(dtype):
 @pytest.mark.parametrize("dtype", tf_randn_dtypes)
 def test_randn_seed(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.randn((4, 4), seed=10)
-  b = backend.randn((4, 4), seed=10)
+  a = backend.randn((4, 4), seed=10, dtype=dtype)
+  b = backend.randn((4, 4), seed=10, dtype=dtype)
   np.testing.assert_allclose(a, b)
 
 

@@ -68,7 +68,9 @@ class BaseMPS:
     #tensors will be converted to backend type during
     #call to __init__
     be = backend_factory.get_backend(name='numpy')
-    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    tensors = [
+        be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
+    ]
     cls(tensors=tensors, backend=backend)
     return cls
 
