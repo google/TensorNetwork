@@ -77,6 +77,11 @@ Vue.component(
                         }
                     }
                 });
+                this.state.selectedNodes.sort(function(node1, node2) {
+                    let distance1 = (node1.position.x - x1) ** 2 + (node1.position.y - y1) ** 2;
+                    let distance2 = (node2.position.x - x1) ** 2 + (node2.position.y - y1) ** 2;
+                    return distance1 - distance2;
+                })
             },
             onAxisMouseDown: function(node, axis) {
                 if (this.axisOccupied(node, axis)) {
