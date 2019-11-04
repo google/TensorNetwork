@@ -511,12 +511,14 @@ class Node(BaseNode):
     """
     if isinstance(tensor, BaseNode):
       #always use the `Node`'s backend
-      backend = tensor.backend.name
+      backend = tensor.backend
       tensor = tensor.tensor
     if not backend:
       backend = config.default_backend
-
-    backend_obj = backend_factory.get_backend(backend)
+    if isinstance(backend, BaseBackend):
+      backend_obj = backend
+    else:
+      backend_obj = backend_factory.get_backend(backend)
     self._tensor = backend_obj.convert_to_tensor(tensor)
     super().__init__(
         name=name,
@@ -1570,7 +1572,7 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
   new_tensor = backend.trace(
       backend.transpose(edge.node1.tensor, perm=permutation))
   name = name if name else edge.node1.name
-  new_node = Node(new_tensor, name=name, backend=backend.name)
+  new_node = Node(new_tensor, name=name, backend=backend)
   _remove_trace_edge(edge, new_node)  #disables edge
   return new_node
 
@@ -1814,7 +1816,7 @@ def contract_between(
 
   new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
   new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend.name)
+      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
   # node1 and node2 get new edges in _remove_edges
   _remove_edges(shared_edges, node1, node2, new_node)
   if output_edge_order:
@@ -1892,7 +1894,7 @@ def outer_product(node1: BaseNode,
   node1_axis_names = node1.axis_names
   node2_axis_names = node2.axis_names
   new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend.name)
+      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
   additional_axes = len(node1.tensor.shape)
 
   for i, edge in enumerate(node1.edges):
