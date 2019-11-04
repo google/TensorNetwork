@@ -79,6 +79,14 @@ Vue.component(
                         this.state.selectedNodes = [this.node];
                     }
                 }
+		        else {
+                    if (event.shiftKey) {
+                        let t = this;
+                        this.state.selectedNodes = this.state.selectedNodes.filter(function(node) {
+                            return node !== t.node;
+                        });
+                    }
+                }
 
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);

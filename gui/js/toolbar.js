@@ -339,6 +339,7 @@ Vue.component(
                     <div v-for="node in state.selectedNodes">
                         <p><strong>{{node.name}}</strong> - <em>x</em>: {{node.position.x}}, <em>y</em>: {{node.position.y}}</p>
                     </div>
+                    <em>Shift-click a node in the workspace to deselect it.</em>
                 </section>
                 <section>
                     <h3>Align Vertically</h3>
