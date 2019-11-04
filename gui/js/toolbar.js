@@ -80,7 +80,10 @@ Vue.component(
                 <div v-if="state.selectedNodes.length === 0">
                     <tensor-creator :state="state" />
                     <section>
-                        <h3>Select a node to edit it</h3>
+                        <h3>Select one or more nodes to edit</h3>
+                        <p>Select a single node by clicking on it.</p>
+                        <p>Select multiple nodes by shift-clicking them in order to drag as a group and adjust alignment
+                        and spacing.</p>
                     </section>
                 </div>
                 <div v-else-if="state.selectedNodes.length === 1">
