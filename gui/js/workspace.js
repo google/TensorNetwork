@@ -33,7 +33,7 @@ Vue.component(
 		},
         methods: {
             onClick: function() {
-                this.state.selectedNode = null;
+                this.state.selectedNodes = [];
             },
 		    onAxisMouseDown: function(node, axis) {
                 if (this.axisOccupied(node, axis)) {

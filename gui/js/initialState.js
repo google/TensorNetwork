@@ -13,7 +13,7 @@
 // limitations under the License.
 
 let initialState = {
-    selectedNode: null,
+    selectedNodes: [],
     draggingNode: false,
     nodes: [
         {

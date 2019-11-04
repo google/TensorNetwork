@@ -72,7 +72,15 @@ Vue.component(
 		        if (this.disableDragging) {
 		            return;
                 }
-                this.state.selectedNode = this.node;
+
+		        if (!this.state.selectedNodes.includes(this.node)) {
+                    if (event.shiftKey) {
+                        this.state.selectedNodes.push(this.node);
+                    }
+                    else {
+                        this.state.selectedNodes = [this.node];
+                    }
+                }
 
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
@@ -84,10 +92,12 @@ Vue.component(
             onMouseMove: function(event) {
                 let dx = event.pageX - this.mouse.x;
                 let dy = event.pageY - this.mouse.y;
-                this.node.position.x += dx;
-                this.node.position.y += dy;
                 this.mouse.x = event.pageX;
                 this.mouse.y = event.pageY;
+                this.state.selectedNodes.forEach(function(node) {
+                    node.position.x += dx;
+                    node.position.y += dy;
+                });
             },
             onMouseUp: function() {
                 document.removeEventListener('mousemove', this.onMouseMove);
@@ -97,18 +107,21 @@ Vue.component(
 
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
-                if (this.node.position.x < this.nodeWidth / 2) {
-                    this.node.position.x = this.nodeWidth / 2;
-                }
-                if (this.node.position.y < this.nodeHeight / 2) {
-                    this.node.position.y = this.nodeHeight / 2;
-                }
-                if (this.node.position.x > workspace.width - this.nodeWidth / 2) {
-                    this.node.position.x = workspace.width - this.nodeWidth / 2;
-                }
-                if (this.node.position.y > workspace.height - this.nodeHeight / 2) {
-                    this.node.position.y = workspace.height - this.nodeHeight / 2;
-                }
+                let t = this;
+                this.state.selectedNodes.forEach(function(node) {
+                    if (node.position.x < t.nodeWidth / 2) {
+                        node.position.x = t.nodeWidth / 2;
+                    }
+                    if (node.position.y < t.nodeHeight / 2) {
+                        node.position.y = t.nodeHeight / 2;
+                    }
+                    if (node.position.x > workspace.width - t.nodeWidth / 2) {
+                        node.position.x = workspace.width - t.nodeWidth / 2;
+                    }
+                    if (node.position.y > workspace.height - t.nodeHeight / 2) {
+                        node.position.y = workspace.height - t.nodeHeight / 2;
+                    }
+                });
             },
             onAxisMouseDown: function(axis) {
 		        this.$emit('axismousedown', axis);
@@ -122,7 +135,7 @@ Vue.component(
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
             brightness: function() {
-			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.node.name) {
+			    if (this.state.selectedNodes.includes(this.node)) {
                     return 50;
                 }
 			    else {

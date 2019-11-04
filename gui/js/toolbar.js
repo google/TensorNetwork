@@ -25,11 +25,11 @@ Vue.component(
         },
         methods: {
             deselectNode: function() {
-                this.state.selectedNode = null;
+                this.state.selectedNodes = [];
             },
             deleteNode: function(event) {
                 event.preventDefault();
-                let selectedName = this.state.selectedNode.name;
+                let selectedName = this.state.selectedNodes[0].name;
 
                 this.state.edges = this.state.edges.filter(function(edge) {
                     if (edge[0][0] === selectedName || edge[1][0] === selectedName) {
@@ -42,7 +42,7 @@ Vue.component(
                 this.state.nodes = this.state.nodes.filter(function(node) {
                     return node.name !== selectedName;
                 });
-                this.selectedNode = null;
+                this.selectedNodes = [];
             },
             copyNode: function(event) {
                 event.preventDefault();
@@ -61,7 +61,7 @@ Vue.component(
         },
         computed: {
             node: function() {
-                return this.state.selectedNode;
+                return this.state.selectedNodes[0];
             },
             copyNodeDisabled: function() {
                 return this.nameTaken || this.copyNodeName == null || this.copyNodeName === '';
@@ -77,7 +77,13 @@ Vue.component(
         },
         template: `
             <div class="toolbar">
-                <div v-if="node != null">
+                <div v-if="state.selectedNodes.length === 0">
+                    <tensor-creator :state="state" />
+                    <section>
+                        <h3>Select a node to edit it</h3>
+                    </section>
+                </div>
+                <div v-else-if="state.selectedNodes.length === 1">
                     <section>
                         <div class="button-holder">
                             <button @click="deselectNode">Create new node</button>
@@ -103,10 +109,7 @@ Vue.component(
                     <toolbar-axis-section :state="state" />
                 </div>
                 <div v-else>
-                    <tensor-creator :state="state" />
-                    <section>
-                        <h3>Select a node to edit it</h3>
-                    </section>
+                    <toolbar-multinode-section :state="state" />
                 </div>
             </div>
         `
@@ -228,11 +231,11 @@ Vue.component(
         },
         computed: {
             node: function() {
-                return this.state.selectedNode;
+                return this.state.selectedNodes[0];
             }
         },
         template: `
-            <section v-if="node != null">
+            <section>
                 <h3>Edges</h3>
                 <div v-for="edge in state.edges">
                     <div v-if="edge[0][0] === node.name || edge[1][0] === node.name">
@@ -257,11 +260,11 @@ Vue.component(
         },
         computed: {
             node: function() {
-                return this.state.selectedNode;
+                return this.state.selectedNodes[0];
             }
         },
         template: `
-            <section v-if="node != null">
+            <section>
                 <h3>Axes</h3>
                 <div v-for="(axis, index) in node.axes">
                     <div>
@@ -271,6 +274,98 @@ Vue.component(
                     <input id="axis-name-input" type="text" v-model="node.axes[index].name" placeholder="axis name" />
                 </div>
             </section>
+        `
+    }
+);
+
+Vue.component(
+    'toolbar-multinode-section',
+    {
+        props: {
+            state: Object
+        },
+        data: function() {
+            return {
+                alignmentY: null,
+                alignmentX: null,
+                spacingY: null,
+                spacingX: null
+            }
+        },
+        created: function() {
+            this.alignmentY = this.state.selectedNodes[0].position.y;
+            this.alignmentX = this.state.selectedNodes[0].position.x;
+            this.spacingY = this.state.selectedNodes[1].position.y - this.state.selectedNodes[0].position.y;
+            this.spacingX = this.state.selectedNodes[1].position.x - this.state.selectedNodes[0].position.x;
+        },
+        methods: {
+            alignVertically: function(event) {
+                event.preventDefault();
+                for (let i = 0; i < this.state.selectedNodes.length; i++) {
+                    this.state.selectedNodes[i].position.y = parseFloat(this.alignmentY);
+                }
+            },
+            alignHorizontally: function(event) {
+                event.preventDefault();
+                for (let i = 0; i < this.state.selectedNodes.length; i++) {
+                    this.state.selectedNodes[i].position.x = parseFloat(this.alignmentX);
+                }
+            },
+            spaceVertically: function(event) {
+                event.preventDefault();
+                let baseline = this.state.selectedNodes[0].position.y;
+                for (let i = 1; i < this.state.selectedNodes.length; i++) {
+                    this.state.selectedNodes[i].position.y = baseline + i * parseFloat(this.spacingY);
+                }
+            },
+            spaceHorizontally: function(event) {
+                event.preventDefault();
+                let baseline = this.state.selectedNodes[0].position.x;
+                for (let i = 1; i < this.state.selectedNodes.length; i++) {
+                    this.state.selectedNodes[i].position.x = baseline + i * parseFloat(this.spacingX);
+                }
+            },
+            disabledFor: function(length) {
+                return length == null || length == "" || isNaN(parseFloat(length));
+            }
+        },
+        template: `
+            <div>
+                <section>
+                    <h2>Multiple Nodes</h2>
+                    <div v-for="node in state.selectedNodes">
+                        <p><strong>{{node.name}}</strong> - <em>x</em>: {{node.position.x}}, <em>y</em>: {{node.position.y}}</p>
+                    </div>
+                </section>
+                <section>
+                    <h3>Align Vertically</h3>
+                    <form @submit="alignVertically">
+                        <input type="number" v-model="alignmentY" />
+                        <input type="submit" value="Align" :disabled="disabledFor(alignmentY)" />
+                    </form>
+                </section>
+                <section>
+                    <h3>Align Horizontally</h3>
+                    <form @submit="alignHorizontally">
+                        <input type="number" v-model="alignmentX" />
+                        <input type="submit" value="Align" :disabled="disabledFor(alignmentX)" />
+                    </form>
+                </section>
+                <section>
+                    <h3>Space Vertically</h3>
+                    <form @submit="spaceVertically">
+                        <input type="number" v-model="spacingY" />
+                        <input type="submit" value="Space" :disabled="disabledFor(spacingY)" />
+                    </form>
+                </section>
+                <section>
+                    <h3>Space Horizontally</h3>
+                    <form @submit="spaceHorizontally">
+                        <input type="number" v-model="spacingX" />
+                        <input type="submit" value="Space" :disabled="disabledFor(spacingX)" />
+                    </form>
+                </section>
+            </div>
         `
     }
 );
