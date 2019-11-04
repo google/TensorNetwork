@@ -64,6 +64,9 @@ section {
 }
 
 .code-output {
+	position: absolute;
+	top: 600px;
+	width: 900px;
 	padding: 10px;
 }
 
