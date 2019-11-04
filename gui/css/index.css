@@ -24,6 +24,12 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
+svg.workspace .drag-selector {
+	stroke: #fff;
+	stroke-width: 2;
+	fill: rgba(200, 200, 200, 0.5);
+}
+
 svg text {
 	font: normal 15px sans-serif;
 	text-anchor: middle;

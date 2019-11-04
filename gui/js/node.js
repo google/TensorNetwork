@@ -65,10 +65,8 @@ Vue.component(
             }
         },
         methods: {
-		    onClick: function(event) {
-		        event.stopPropagation();
-            },
 		    onMouseDown: function(event) {
+		        event.stopPropagation();
 		        if (this.disableDragging) {
 		            return;
                 }
@@ -157,8 +155,7 @@ Vue.component(
             }
         },
 		template: `
-			<g class="node" :transform="translation" 
-                @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
+			<g class="node" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
 			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
 			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
