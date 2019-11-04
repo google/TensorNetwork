@@ -196,12 +196,6 @@ Vue.component(
         template: `
             <section class="tensor-creator">
                 <h2>Create New Node</h2>
-                <div class="button-holder">
-                    <form @submit="createNode">
-                        <input type="text" v-model="node.name" placeholder="node name" />
-                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
-                    </form>
-                </div>
                 <p>Click on an axis to add or remove it.</p>
                 <div class="svg-container">
                     <svg class="workspace" xmlns="http://www.w3.org/2000/svg"
@@ -211,6 +205,12 @@ Vue.component(
                         <node :node="node" :state="state" :disableDragging="true"
                             @axismousedown="onNodeAxisMouseDown(node, ...arguments)"/>
                     </svg>
+                </div>
+                <div class="button-holder">
+                    <form @submit="createNode">
+                        <input type="text" v-model="node.name" placeholder="node name" />
+                        <input type="submit" value="Create" :disabled="createNodeDisabled" />
+                    </form>
                 </div>
             </section>
             
