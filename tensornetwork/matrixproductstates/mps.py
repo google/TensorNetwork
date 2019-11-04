@@ -67,7 +67,7 @@ class BaseMPS:
     #use numpy backend for tensor initialization.
     #tensors will be converted to backend type during
     #call to __init__
-    be = backend_factory.get_backend(name='numpy', dtype=dtype)
+    be = backend_factory.get_backend(name='numpy')
     tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
     cls(tensors=tensors, backend=backend)
     return cls
@@ -327,7 +327,7 @@ class BaseMPS:
 
         if n < n2:
           L = self.apply_transfer_operator(n % N, 'left', L)
-    return np.array(c)
+    return c
 
 
 class FiniteMPS(BaseMPS):
@@ -403,7 +403,7 @@ class FiniteMPS(BaseMPS):
       backend:L An optional backend.
     """
     #use numpy backend for tensor initialization
-    be = backend_factory.get_backend(name='numpy', dtype=dtype)
+    be = backend_factory.get_backend(name='numpy')
     if len(D) != len(d) - 1:
       raise ValueError('len(D) = {} is different from len(d) - 1 = {}'.format(
           len(D),
@@ -527,8 +527,8 @@ class FiniteMPS(BaseMPS):
       n1[1] ^ n2[1]
     result = n1 @ n2
     return self.backend.norm(
-        abs(result.tensor -
-            self.backend.eye(N=result.shape[0], M=result.shape[1])))
+        abs(result.tensor - self.backend.eye(
+            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
   def check_canonical(self) -> Tensor:
     """
@@ -576,7 +576,7 @@ class FiniteMPS(BaseMPS):
     left_envs = {}
     for site in left_sites:
       left_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[0]),
+          self.backend.eye(N=self.nodes[site].shape[0], dtype=self.dtype),
           backend=self.backend.name)
 
     # left reduced density matrices at sites > center_position
@@ -642,7 +642,7 @@ class FiniteMPS(BaseMPS):
     right_envs = {}
     for site in right_sites:
       right_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[2]),
+          self.backend.eye(N=self.nodes[site].shape[2], dtype=self.dtype),
           backend=self.backend.name)
 
     # right reduced density matrices at sites < center_position
