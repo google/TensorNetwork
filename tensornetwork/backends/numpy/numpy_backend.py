@@ -125,8 +125,8 @@ class NumPyBackend(base_backend.BaseBackend):
     if seed:
       self.np.random.seed(seed)
     dtype = dtype if dtype is not None else self.np.float64
-    if ((dtype is self.np.dtype(self.np.complex128)) or
-        (dtype is self.np.dtype(self.np.complex64))):
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
@@ -189,7 +189,13 @@ class NumPyBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      initial_state = self.randn(A.shape[1])
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
     if not isinstance(initial_state, self.np.ndarray):
       raise TypeError("Expected a `np.array`. Got {}".format(
           type(initial_state)))
@@ -247,7 +253,7 @@ class NumPyBackend(base_backend.BaseBackend):
       eigvals = self.np.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape)
+      state = self.zeros(initial_state.shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
