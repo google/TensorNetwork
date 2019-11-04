@@ -51,17 +51,6 @@ Vue.component(
         computed: {
             node: function() {
                 return this.state.selectedNode;
-            },
-            createNodeDisabled: function() {
-                return this.nameTaken || this.createNodeName == null || this.createNodeName === '';
-            },
-            nameTaken: function() {
-                for (let i = 0; i < this.state.nodes.length; i++) {
-                    if (this.createNodeName === this.state.nodes[i].name) {
-                        return true;
-                    }
-                }
-                return false;
             }
         },
         template: `
