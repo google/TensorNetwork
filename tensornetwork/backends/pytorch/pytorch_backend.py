@@ -168,7 +168,8 @@ class PyTorchBackend(base_backend.BaseBackend):
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector `x_n` has an L2 norm ||x_n|| < delta, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has been found.
+        is stopped. It means that an (approximate) invariant subspace has been 
+        found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
         iterations to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
