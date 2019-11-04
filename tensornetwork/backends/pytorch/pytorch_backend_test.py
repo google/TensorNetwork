@@ -228,7 +228,7 @@ def test_eigsh_lanczos_2():
       self.dtype = dtype
 
     def __call__(self, x):
-      return np.dot(H, x)
+      return H.mv(x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(mv)
