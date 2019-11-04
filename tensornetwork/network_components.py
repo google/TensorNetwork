@@ -99,7 +99,7 @@ class BaseNode(ABC):
   @property
   def dtype(self):
     if self.backend:
-      return self.backend.dtype
+      return self.tensor.dtype
     return None
 
   def set_signature(self, signature: int) -> None:
@@ -259,8 +259,8 @@ class BaseNode(ABC):
       edge = self.edges[position]
       edge.update_axis(position, self, i, self)
       tmp_edges.append(edge)
-    self.edges = tmp_edges    
-    if self.axis_names is not None:      
+    self.edges = tmp_edges
+    if self.axis_names is not None:
       # Permute axis names accordingly.
       tmp_axis_names = []
       for i in perm:
@@ -603,7 +603,6 @@ class CopyNode(BaseNode):
         compatible with the dtype of the backend, e.g. for a tensorflow
         backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
     """
-
 
     if not backend:
       backend = config.default_backend
@@ -1289,10 +1288,11 @@ def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
   return flattened_edges
 
 
-def _split_trace_edge(edge: Edge,
-                      shape: Tuple[int, ...],
-                      new_edge_names: Optional[List[Text]] = None,
-                      ) -> List[Edge]:
+def _split_trace_edge(
+    edge: Edge,
+    shape: Tuple[int, ...],
+    new_edge_names: Optional[List[Text]] = None,
+) -> List[Edge]:
   """Split trace edges into single edge.
 
   Args:
@@ -1316,7 +1316,7 @@ def _split_trace_edge(edge: Edge,
   new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
-  node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None] 
+  node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None]
   # Create new dangling edges and connect them to each other.
   new_edges = []
   for idx in range(len(shape)):
@@ -1324,17 +1324,17 @@ def _split_trace_edge(edge: Edge,
     edge2 = Edge(node1=node, axis1=len(perm_front) + len(shape) + idx)
     node.edges[len(perm_front) + idx] = edge1
     node.edges[len(perm_front) + len(shape) + idx] = edge2
-    new_edges.append(connect(edge1, edge2,
-                             new_edge_names[idx] if new_edge_names is not None
-                             else None))
+    new_edges.append(
+        connect(edge1, edge2,
+                new_edge_names[idx] if new_edge_names is not None else None))
   # pylint: disable=expression-not-assigned
-  edge.disable() # disable old edge!
+  edge.disable()  # disable old edge!
   return new_edges
 
 
 def split_edge(edge: Edge,
                shape: Tuple[int, ...],
-               new_edge_names: Optional[List[Text]] = None) ->  List[Edge]:
+               new_edge_names: Optional[List[Text]] = None) -> List[Edge]:
   """Split an `Edge` into multiple edges according to `shape`. Reshapes
   the underlying tensors connected to the edge accordingly. 
   
@@ -1359,9 +1359,8 @@ def split_edge(edge: Edge,
 
   # Check if reshape operation is possible.
   if not np.prod(shape) == edge.dimension:
-    raise ValueError(
-        "Edge {} with dimension {} cannot be split according to "
-        "shape {}.".format(edge, edge.dimension, shape))
+    raise ValueError("Edge {} with dimension {} cannot be split according to "
+                     "shape {}.".format(edge, edge.dimension, shape))
   # Check if possible reshape operation is trivial.
   if len(shape) == 1:
     return [edge]
@@ -1374,7 +1373,7 @@ def split_edge(edge: Edge,
   if not all([b.name == backends[0].name for b in backends]):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
-  
+
   # Split standard or dangling edge.
   new_dangling_edges = []
   expected_nodes = set(edge.get_nodes())
@@ -1387,18 +1386,19 @@ def split_edge(edge: Edge,
     perm_back = [node.edges.index(edge)]
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
-    node.reorder_axes(perm_front + perm_back)   
+    node.reorder_axes(perm_front + perm_back)
     unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
     new_shape = backend.concat([unaffected_shape, shape], axis=-1)
-    node.tensor = backend.reshape(node.tensor, new_shape) # in-place update    
+    node.tensor = backend.reshape(node.tensor, new_shape)  # in-place update
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]
-    # Create new dangling edges.    
+    # Create new dangling edges.
     for idx in range(len(shape)):
-      new_dangling_edge = Edge(node1=node, axis1=len(perm_front) + idx,
-                               name=new_edge_names[idx] if new_edge_names
-                               is not None else None)
-      node.edges += [new_dangling_edge]      
+      new_dangling_edge = Edge(
+          node1=node,
+          axis1=len(perm_front) + idx,
+          name=new_edge_names[idx] if new_edge_names is not None else None)
+      node.edges += [new_dangling_edge]
       new_dangling_edges.append(new_dangling_edge)
     # TODO: Allow renaming of new axes (possibly distinct from new_edge_names).
     if axis_names:
@@ -1406,15 +1406,15 @@ def split_edge(edge: Edge,
       if new_edge_names:
         new_axis_names.extend(new_edge_names)
       else:
-        new_axis_names.extend([str(n) for n in range(len(unaffected_shape),
-                                                     len(node.edges))])
-      node.axis_names = new_axis_names      
+        new_axis_names.extend(
+            [str(n) for n in range(len(unaffected_shape), len(node.edges))])
+      node.axis_names = new_axis_names
     else:
       node.axis_names = [str(n) for n in range(len(node.edges))]
 
   node1, node2 = tuple(expected_nodes)
   # pylint: disable=expression-not-assigned
-  edge.disable() # disable old edge
+  edge.disable()  # disable old edge
 
   # Return new dangling edges for dangling case.
   if node1 is None or node2 is None:
@@ -1422,13 +1422,12 @@ def split_edge(edge: Edge,
 
   # Create connected edges between nodes for standard case.
   new_edges = []
-  for idx in range(len(shape)):    
-    new_edges.append(connect(new_dangling_edges[idx],
-                             new_dangling_edges[len(shape) + idx],
-                             new_edge_names[idx] if new_edge_names
-                             is not None else None))  
+  for idx in range(len(shape)):
+    new_edges.append(
+        connect(new_dangling_edges[idx], new_dangling_edges[len(shape) + idx],
+                new_edge_names[idx] if new_edge_names is not None else None))
   return new_edges
-  
+
 
 def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   """Collapse a trace edge. `edge` is disabled before returning.
