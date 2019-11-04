@@ -24,15 +24,6 @@ class BaseBackend:
   def __init__(self):
     self.name = 'base backend'
 
-  @property
-  def dtype(self):
-    return self._dtype
-
-  @dtype.setter
-  def dtype(self, dtype):
-    #pylint: disable=attribute-defined-outside-init
-    self._dtype = dtype
-
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.
@@ -285,16 +276,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    ncv: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
