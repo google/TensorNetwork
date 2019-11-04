@@ -98,9 +98,8 @@ class BaseNode(ABC):
 
   @property
   def dtype(self):
-    if self.backend:
-      return self.tensor.dtype
-    return None
+    #any derived instance of BaseNode always has to have a tensor
+    return self.tensor.dtype
 
   def set_signature(self, signature: int) -> None:
     """Set the signature for the node.
@@ -516,17 +515,14 @@ class Node(BaseNode):
       tensor = tensor.tensor
     if not backend:
       backend = config.default_backend
-    #use dtype=None here; the backend dtype will be deduced from the
-    #tensor dtype.
-    backend_obj = backend_factory.get_backend(backend, dtype=None)
+
+    backend_obj = backend_factory.get_backend(backend)
     self._tensor = backend_obj.convert_to_tensor(tensor)
     super().__init__(
         name=name,
         axis_names=axis_names,
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
-    if self.backend and not self.backend.dtype:
-      self.backend.dtype = self._tensor.dtype
 
   def get_tensor(self):
     return self.tensor
@@ -606,9 +602,7 @@ class CopyNode(BaseNode):
 
     if not backend:
       backend = config.default_backend
-    #use dtype=None here; the backend dtype will be deduced from the
-    #tensor dtype.
-    backend_obj = backend_factory.get_backend(backend, dtype=None)
+    backend_obj = backend_factory.get_backend(backend)
 
     self.rank = rank
     self.dimension = dimension
