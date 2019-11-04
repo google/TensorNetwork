@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from tensornetwork.backends.tensorflow import tensorflow_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
@@ -28,7 +27,7 @@ _BACKENDS = {
 }
 
 
-def get_backend(name, dtype):
+def get_backend(name):
   if name not in _BACKENDS:
     raise ValueError("Backend '{}' does not exist".format(name))
-  return _BACKENDS[name](dtype)
+  return _BACKENDS[name]()

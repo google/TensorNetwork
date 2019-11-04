@@ -22,11 +22,10 @@ Tensor = Any
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype] = None):
+  def __init__(self):
     super(NumPyBackend, self).__init__()
     self.np = numpy
     self.name = "numpy"
-    self._dtype = self.np.dtype(dtype) if dtype is not None else None
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
@@ -43,8 +42,9 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
-        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
+    return decompositions.svd_decomposition(self.np, tensor, split_axis,
+                                            max_singular_values,
+                                            max_truncation_error)
 
   def qr_decomposition(
       self,
@@ -86,10 +86,6 @@ class NumPyBackend(base_backend.BaseBackend):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
-    if self.dtype is not None and self.np.dtype(result.dtype) != self.dtype:
-      raise TypeError(
-          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
-              self.name, result.dtype, numpy.dtype(self.dtype)))
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
@@ -107,23 +103,18 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def eye(self, N, dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
+    dtype = dtype if dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
-
+    dtype = dtype if dtype is not None else self.np.float64
     return self.np.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
-
+    dtype = dtype if dtype is not None else self.np.float64
     return self.np.zeros(shape, dtype=dtype)
 
   def randn(self,
@@ -133,14 +124,9 @@ class NumPyBackend(base_backend.BaseBackend):
 
     if seed:
       self.np.random.seed(seed)
-
-    if not dtype:
-      dtype = (
-          self.dtype
-          if self.dtype is not None else self.np.dtype(self.np.float64))
-
-    if ((dtype is self.np.dtype(self.np.complex128)) or
-        (dtype is self.np.dtype(self.np.complex64))):
+    dtype = dtype if dtype is not None else self.np.float64
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
@@ -148,16 +134,16 @@ class NumPyBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    ncv: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -203,7 +189,13 @@ class NumPyBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      initial_state = self.randn(A.shape[1])
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
     if not isinstance(initial_state, self.np.ndarray):
       raise TypeError("Expected a `np.array`. Got {}".format(
           type(initial_state)))
@@ -261,7 +253,7 @@ class NumPyBackend(base_backend.BaseBackend):
       eigvals = self.np.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape)
+      state = self.zeros(initial_state.shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
