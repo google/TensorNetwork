@@ -20,10 +20,13 @@ Vue.component(
         },
         data: function() {
             return {
-                createNodeName: "",
+                copyNodeName: '',
             }
         },
         methods: {
+            deselectNode: function() {
+                this.state.selectedNode = null;
+            },
             deleteNode: function(event) {
                 event.preventDefault();
                 let selectedName = this.state.selectedNode.name;
@@ -41,16 +44,35 @@ Vue.component(
                 });
                 this.selectedNode = null;
             },
+            copyNode: function(event) {
+                event.preventDefault();
+                let workspace = document.getElementsByClassName('workspace')[0]
+                    .getBoundingClientRect();
+
+                let node = JSON.parse(JSON.stringify(this.node));
+                node.name = this.copyNodeName;
+                node.position = {x: workspace.width / 2, y: workspace.height / 2};
+
+                this.state.nodes.push(node);
+            },
             rotate: function(angle) {
                 this.node.rotation += angle;
-            },
-            deselectNode: function() {
-                this.state.selectedNode = null;
             }
         },
         computed: {
             node: function() {
                 return this.state.selectedNode;
+            },
+            copyNodeDisabled: function() {
+                return this.nameTaken || this.copyNodeName == null || this.copyNodeName === '';
+            },
+            nameTaken: function() {
+                for (let i = 0; i < this.state.nodes.length; i++) {
+                    if (this.copyNodeName === this.state.nodes[i].name) {
+                        return true;
+                    }
+                }
+                return false;
             }
         },
         template: `
@@ -66,11 +88,16 @@ Vue.component(
                             <a class="delete" href="" @click="deleteNode(event)">delete</a>
                             <h2>Node: {{node.name}}</h2>
                         </div>
+                        <div class="button-holder">
+                            <h4>Copy Node</h4>
+                            <form @submit="copyNode">
+                                <input type="text" v-model="copyNodeName" placeholder="name of copy" />
+                                <input type="submit" value="Copy" :disabled="copyNodeDisabled" />
+                            </form>
+                        </div>
                         <h4>Rotate</h4>
-                            <div class="button-holder">
-                                <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
-                                <button @click="rotate(Math.PI / 4)">Clockwise</button>
-                            </div>
+                            <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
+                            <button @click="rotate(Math.PI / 4)">Clockwise</button>
                     </section>
                     <toolbar-edge-section :state="state" />
                     <toolbar-axis-section :state="state" />
