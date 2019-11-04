@@ -492,7 +492,7 @@ class Node(BaseNode):
                tensor: Union[Tensor, BaseNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               backend: Optional[Text, BaseBackend] = None) -> None:
+               backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """Create a node.
 
     Args:
