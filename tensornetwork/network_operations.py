@@ -283,9 +283,8 @@ def split_node(
   backend = node.backend
   node.reorder_edges(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   sqrt_s = backend.sqrt(s)
   u_s = u * sqrt_s
   # We have to do this since we are doing element-wise multiplication against
@@ -555,9 +554,8 @@ def split_node_full_svd(
   backend = node.backend
 
   node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend.name)
   singular_values_node = Node(
@@ -600,8 +598,7 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
-             ) -> Set[BaseNode]:
+def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]) -> Set[BaseNode]:
   """
   Computes all nodes reachable from `node` or `edge.node1` by connected edges.
   Args:
@@ -772,15 +769,19 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   return node_dict, edge_dict
 
 
-def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
+def switch_backend(nodes: Iterable[BaseNode],
+                   new_backend: Text,
+                   dtype: Optional[Type[np.number]] = None) -> None:
   """Change the backend of the nodes.
 
   This will convert all node's tensors to the new backend's Tensor type.
   Args:
     nodes: iterable of nodes
     new_backend (str): The new backend.
+    dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                       to config.py will be chosen.
   """
-  backend = backend_factory.get_backend(new_backend)
+  backend = backend_factory.get_backend(new_backend, dtype)
   for node in nodes:
     if node.backend.name != "numpy":
       raise NotImplementedError("Can only switch backends when the current "

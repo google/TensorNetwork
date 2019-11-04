@@ -22,7 +22,7 @@ Tensor = Any
 class JaxBackend(numpy_backend.NumPyBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self, dtype: Optional[np.dtype] = None):
     super(JaxBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
@@ -33,9 +33,14 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.jax = jax
     self.np = self.jax.numpy
     self.name = "jax"
+    self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.jax.jit(lambda x: x)(tensor)
+    if self.dtype is not None and result.dtype != self.dtype:
+      raise TypeError(
+          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
+              self.name, result.dtype, self.dtype))
     return result
 
   def concat(self, values: Tensor, axis: int) -> Tensor:
@@ -49,7 +54,8 @@ class JaxBackend(numpy_backend.NumPyBackend):
       seed = np.random.randint(0, 2**63)
     key = self.jax.random.PRNGKey(seed)
 
-    dtype = dtype if dtype is not None else np.dtype(np.float64)
+    if not dtype:
+      dtype = self.dtype if self.dtype is not None else np.dtype(np.float64)
 
     def cmplx_randn(complex_dtype, real_dtype):
       real_dtype = np.dtype(real_dtype)
@@ -64,22 +70,22 @@ class JaxBackend(numpy_backend.NumPyBackend):
           if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
       return real_part + unit * complex_part
 
-    if np.dtype(dtype) is np.dtype(self.np.complex128):
+    if dtype is np.dtype(self.np.complex128):
       return cmplx_randn(dtype, self.np.float64)
-    if np.dtype(dtype) is np.dtype(self.np.complex64):
+    if dtype is np.dtype(self.np.complex64):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
