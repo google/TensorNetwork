@@ -301,7 +301,8 @@ class BaseBackend:
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector `x_n` has an L2 norm ||x_n|| < delta, the iteration 
+        If a Krylov vector :math: `x_n` has an L2 norm 
+        :math:`\\lVert x_n\\rVert < delta`, the iteration 
         is stopped. It means that an (approximate) invariant subspace has 
         been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
