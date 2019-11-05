@@ -49,7 +49,7 @@ svg .axis.highlighted text {
 }
 
 .toolbar {
-	width: 250px;
+	width: 300px;
 	background-color: #fff;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.2);
 }
@@ -61,6 +61,10 @@ section {
 
 .tensor-creator .svg-container {
 	height: 200px;
+}
+
+.tensor-creator .radio-container label {
+	padding: 0 10px 0 0;
 }
 
 .delete {

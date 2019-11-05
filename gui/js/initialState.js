@@ -18,10 +18,11 @@ let initialState = {
     nodes: [
         {
             name: 't1',
+            size: [1, 1],
             axes: [
-                {name: null, angle: 0},
-                {name: null, angle: Math.PI / 2},
-                {name: null, angle: Math.PI},
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
             ],
 			position: {x: 200, y: 300},
             rotation: 0,
@@ -29,10 +30,11 @@ let initialState = {
         },
         {
             name: 't2',
+            size: [1, 1],
             axes: [
-                {name: null, angle: 0},
-                {name: null, angle: Math.PI / 2},
-                {name: null, angle: Math.PI},
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
             ],
             position: {x: 367, y: 300},
             rotation: 0,
@@ -40,10 +42,11 @@ let initialState = {
         },
         {
             name: 't3',
+            size: [1, 1],
             axes: [
-                {name: null, angle: 0},
-                {name: null, angle: Math.PI / 2},
-                {name: null, angle: Math.PI},
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
             ],
             position: {x: 533, y: 300},
             rotation: 0,
@@ -51,10 +54,11 @@ let initialState = {
         },
         {
             name: 't4',
+            size: [1, 1],
             axes: [
-                {name: null, angle: 0},
-                {name: null, angle: Math.PI / 2},
-                {name: null, angle: Math.PI},
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
             ],
             position: {x: 700, y: 300},
             rotation: 0,

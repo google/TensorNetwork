@@ -56,18 +56,17 @@ let mixinGeometry = {
 	data: function() {
 		return {
 			axisLength: 50,
-			nodeWidth: 50,
-			nodeHeight: 50,
+			baseNodeWidth: 50,
 			nodeCornerRadius: 10,
 			axisLabelRadius: 1.2
 		}
 	},
 	methods: {
-		axisX: function(angle) {
-			return this.axisLength * Math.cos(angle);
+		axisX: function(position, angle) {
+			return position * this.baseNodeWidth + this.axisLength * Math.cos(angle);
 		},
-		axisY: function(angle) {
-			return this.axisLength * Math.sin(angle);
+		axisY: function(position, angle) {
+			return position * this.baseNodeWidth + this.axisLength * Math.sin(angle);
 		}
 	}
 };
