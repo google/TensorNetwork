@@ -250,7 +250,7 @@ class BaseBackend:
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Type[np.number],
+            dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 

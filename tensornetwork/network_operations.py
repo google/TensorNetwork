@@ -68,7 +68,7 @@ def conj(node: BaseNode,
       backend.conj(node.tensor),
       name=name,
       axis_names=axis_names,
-      backend=backend.name)
+      backend=backend)
 
 
 def transpose(node: BaseNode,
@@ -102,7 +102,7 @@ def transpose(node: BaseNode,
       node.tensor,
       name=name,
       axis_names=node.axis_names,
-      backend=node.backend.name)
+      backend=node.backend)
   return new_node.reorder_axes(perm)
 
 
@@ -132,7 +132,7 @@ def copy(nodes: Iterable[BaseNode],
             node.backend.conj(node.tensor),
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend.name) for node in nodes
+            backend=node.backend) for node in nodes
     }
   else:
     node_dict = {
@@ -140,7 +140,7 @@ def copy(nodes: Iterable[BaseNode],
             node.tensor,
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend.name) for node in nodes
+            backend=node.backend) for node in nodes
     }
   edge_dict = {}
   for edge in get_all_edges(nodes):
@@ -296,12 +296,12 @@ def split_node(
       [backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
   vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
   left_node = Node(
-      u_s, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      u_s, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      vh_s, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      vh_s, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -371,12 +371,12 @@ def split_node_qr(
   node.reorder_edges(left_edges + right_edges)
   q, r = backend.qr_decomposition(node.tensor, len(left_edges))
   left_node = Node(
-      q, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      q, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      r, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      r, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -445,12 +445,12 @@ def split_node_rq(
   node.reorder_edges(left_edges + right_edges)
   r, q = backend.rq_decomposition(node.tensor, len(left_edges))
   left_node = Node(
-      r, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      r, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      q, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      q, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -559,15 +559,15 @@ def split_node_full_svd(
                                                   max_singular_values,
                                                   max_truncation_err)
   left_node = Node(
-      u, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
       backend.diag(s),
       name=middle_name,
       axis_names=center_axis_names,
-      backend=backend.name)
+      backend=backend)
 
   right_node = Node(
-      vh, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      vh, name=right_name, axis_names=right_axis_names, backend=backend)
 
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
@@ -787,5 +787,5 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
     if node.backend.name != "numpy":
       raise NotImplementedError("Can only switch backends when the current "
                                 "backend is 'numpy'. Current backend "
-                                "is '{}'".format(node.backend.name))
+                                "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
