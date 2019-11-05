@@ -34,16 +34,16 @@ Vue.component(
                 return this.node2.axes[this.edge[1][1]].angle + this.node2.rotation;
             },
             x1: function() {
-                return this.node1.position.x + this.axisX(this.angle1);
+                return this.node1.position.x + this.axisX(this.node1.axes[this.edge[0][1]].position[0], this.angle1);
             },
             y1: function() {
-                return this.node1.position.y + this.axisY(this.angle1);
+                return this.node1.position.y + this.axisY(this.node1.axes[this.edge[0][1]].position[1], this.angle1);
             },
             x2: function() {
-                return this.node2.position.x + this.axisX(this.angle2);
+                return this.node2.position.x + this.axisX(this.node2.axes[this.edge[1][1]].position[0], this.angle2);
             },
             y2: function() {
-                return this.node2.position.y + this.axisY(this.angle2);
+                return this.node2.position.y + this.axisY(this.node2.axes[this.edge[1][1]].position[1], this.angle2);
             }
         },
         template: `
@@ -74,10 +74,10 @@ Vue.component(
                     + this.node.rotation;
             },
             x0: function() {
-                return this.node.position.x + this.axisX(this.angle);
+                return this.node.position.x + this.axisX(this.node.axes[this.axis].position[0], this.angle);
             },
             y0: function() {
-                return this.node.position.y + this.axisY(this.angle);
+                return this.node.position.y + this.axisY(this.node.axes[this.axis].position[1], this.angle);
             }
         },
         template: `

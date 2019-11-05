@@ -127,40 +127,30 @@ Vue.component(
         },
         data: function() {
             return {
-                nodeInitial: {
-                    name: "",
-                    axes: [],
-                    position: {x: 100, y: 100},
-                    rotation: 0,
-                    hue: null
-                },
+                size1: 1,
+                size2: 1,
+                hue: null,
                 node: {},
-                nodeShadow: {
-                    name: "",
-                    axes: [
-                            {name: null, angle: 0},
-                            {name: null, angle: Math.PI / 4},
-                            {name: null, angle: Math.PI / 2},
-                            {name: null, angle: 3 * Math.PI / 4},
-                            {name: null, angle: Math.PI},
-                            {name: null, angle: 5 * Math.PI / 4},
-                            {name: null, angle: 3 * Math.PI / 2},
-                            {name: null, angle: 7 * Math.PI / 4},
-                    ],
-                    position: {x: 100, y: 100},
-                    rotation: 0,
-                    hue: null
-                },
-                edges: [],
-                width: 200,
-                height: 200,
+                width: 250,
+                height: 250,
             };
         },
         created: function() {
-            this.node = JSON.parse(JSON.stringify(this.nodeInitial));
-            this.node.hue = Math.random() * 360;
+            this.reset();
+        },
+        watch: {
+            size1: function() {
+                this.reset();
+            },
+            size2: function() {
+                this.reset();
+            }
         },
         methods: {
+            reset: function() {
+                this.hue = Math.random() * 360;
+                this.node = JSON.parse(JSON.stringify(this.nodeInitial));
+            },
             createNode: function(event) {
                 event.preventDefault();
                 let workspace = document.getElementsByClassName('workspace')[0]
@@ -169,9 +159,7 @@ Vue.component(
                 this.node.position = {x: workspace.width / 2, y: workspace.height / 2};
 
                 this.state.nodes.push(this.node);
-
-                this.node = JSON.parse(JSON.stringify(this.nodeInitial));
-                this.node.hue = Math.random() * 360;
+                this.reset();
             },
             onShadowAxisMouseDown: function(node, axis) {
                 this.node.axes.push(JSON.parse(JSON.stringify(this.nodeShadow.axes[axis])));
@@ -179,6 +167,45 @@ Vue.component(
             onNodeAxisMouseDown: function(node, axis) {
                 this.node.axes.splice(axis, 1);
             },
+            axes: function(size1, size2) {
+                let makeAxis = function(direction, position) {
+                    return {name: null, angle: direction * Math.PI / 4, position: position};
+                };
+
+                let output = [];
+                for (let n = 0; n < size1; n++) {
+                    let x = -(size1 - 1) / 2 + n;
+                    for (let m = 0; m < size2; m++) {
+                        let y = -(size2 - 1) / 2 + m;
+                        if (n === 0) {
+                            output.push(makeAxis(4, [x, y]))
+                        }
+                        if (n === size1 - 1) {
+                            output.push(makeAxis(0, [x, y]))
+                        }
+                        if (m === 0) {
+                            output.push(makeAxis(6, [x, y]))
+                        }
+                        if (m === size2 - 1) {
+                            output.push(makeAxis(2, [x, y]))
+                        }
+                        if (n === 0 && m === 0) {
+                            output.push(makeAxis(5, [x, y]))
+                        }
+                        if (n === 0 && m === size2 - 1) {
+                            output.push(makeAxis(3, [x, y]))
+                        }
+                        if (n === size1 - 1 && m === 0) {
+                            output.push(makeAxis(7, [x, y]))
+                        }
+                        if (n === size1 - 1 && m === size2 - 1) {
+                            output.push(makeAxis(1, [x, y]))
+                        }
+
+                    }
+                }
+                return output;
+            }
         },
         computed: {
             createNodeDisabled: function() {
@@ -191,7 +218,27 @@ Vue.component(
                     }
                 }
                 return false;
-            }
+            },
+            nodeInitial: function() {
+                return {
+                    name: "",
+                    size: [this.size1, this.size2],
+                    axes: [],
+                    position: {x: 125, y: 125},
+                    rotation: 0,
+                    hue: this.hue
+                };
+            },
+            nodeShadow: function() {
+                return {
+                    name: "",
+                    size: [this.size1, this.size2],
+                    axes: this.axes(this.size1, this.size2),
+                    position: {x: 125, y: 125},
+                    rotation: 0,
+                    hue: null
+                };
+            },
         },
         template: `
             <section class="tensor-creator">
@@ -205,6 +252,24 @@ Vue.component(
                         <node :node="node" :state="state" :disableDragging="true"
                             @axismousedown="onNodeAxisMouseDown(node, ...arguments)"/>
                     </svg>
+                </div>
+                <div class="radio-container">
+                    <label>Width</label>
+                    <input type="radio" id="x1" v-model="size1" :value="1">
+                    <label for="x1">1</label>
+                    <input type="radio" id="x2" v-model="size1" :value="2">
+                    <label for="x2">2</label>
+                    <input type="radio" id="x3" v-model="size1" :value="3">
+                    <label for="x3">3</label>
+                </div>
+                <div class="radio-container">
+                    <label>Height</label>
+                    <input type="radio" id="y1" v-model="size2" :value="1">
+                    <label for="y1">1</label>
+                    <input type="radio" id="y2" v-model="size2" :value="2">
+                    <label for="y2">2</label>
+                    <input type="radio" id="y3" v-model="size2" :value="3">
+                    <label for="y3">3</label>
                 </div>
                 <div class="button-holder">
                     <form @submit="createNode">
