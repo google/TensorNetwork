@@ -13,7 +13,7 @@
 # limitations under the License.
 """Abstractions for quantum states and operators."""
 
-from tensornetwork.network_components import connect
+from tensornetwork.network_components import Edge, connect
 from tensornetwork.network_operations import reachable, get_all_nodes, copy, get_subgraph_dangling
 
 
@@ -65,14 +65,6 @@ class QuantumOperator():
   def __init__(self, out_edges, in_edges):
     self.out_edges = list(out_edges)
     self.in_edges = list(in_edges)
-
-  @classmethod
-  def from_local(cls, operator, out_indices, in_indices, system_edges):
-    """Construct a global operator from a local one.
-    """
-    # FIXME: Would be natural to do this with nodeless Edges, but an Edge
-    #        is currently assumed to have at least one Node attached.
-    raise NotImplementedError()
 
   @property
   def nodes(self):
@@ -162,6 +154,22 @@ class QuantumOperator():
     out_edges = [edge_dict[e] for e in self.out_edges]
 
     return QuantumConstructor(out_edges, in_edges)
+
+  def tensor(self, other):
+    """Tensor product with another operator.
+    """
+    _, edges_dict = copy(self.nodes | other.nodes, False)
+
+    in_edges = [edges_dict[e] for e in (self.in_edges + other.in_edges)]
+    out_edges = [edges_dict[e] for e in (self.out_edges + other.out_edges)]
+
+    return QuantumConstructor(out_edges, in_edges)
+
+
+class QuantumIdentity(QuantumOperator):
+  def __init__(self, num_subsystems):
+    edges = [Edge(None, None) for _ in range(num_subsystems)]
+    super().__init__(edges, edges)
 
 
 class QuantumKet(QuantumOperator):
