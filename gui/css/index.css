@@ -24,6 +24,12 @@ svg.workspace {
     background-color: #f9f9f9;
 }
 
+svg.workspace .drag-selector {
+	stroke: #fff;
+	stroke-width: 2;
+	fill: rgba(200, 200, 200, 0.5);
+}
+
 svg text {
 	font: normal 15px sans-serif;
 	text-anchor: middle;
@@ -43,7 +49,7 @@ svg .axis.highlighted text {
 }
 
 .toolbar {
-	min-width: 250px;
+	width: 250px;
 	background-color: #fff;
 	box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.2);
 }
@@ -51,6 +57,10 @@ svg .axis.highlighted text {
 section {
 	padding: 10px 20px;
 	border-bottom: 1px solid #ddd;
+}
+
+.tensor-creator .svg-container {
+	height: 200px;
 }
 
 .delete {
@@ -64,6 +74,9 @@ section {
 }
 
 .code-output {
+	position: absolute;
+	top: 600px;
+	width: 900px;
 	padding: 10px;
 }
 

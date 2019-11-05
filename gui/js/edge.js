@@ -28,12 +28,10 @@ Vue.component(
                 return this.getNode(this.edge[1][0]);
             },
             angle1: function() {
-                return this.axisAngle(this.edge[0][1], this.node1.axes.length)
-                    + this.node1.rotation;
+                return this.node1.axes[this.edge[0][1]].angle + this.node1.rotation;
             },
             angle2: function() {
-                return this.axisAngle(this.edge[1][1], this.node2.axes.length)
-                    + this.node2.rotation;
+                return this.node2.axes[this.edge[1][1]].angle + this.node2.rotation;
             },
             x1: function() {
                 return this.node1.position.x + this.axisX(this.angle1);
@@ -72,7 +70,7 @@ Vue.component(
         },
         computed: {
             angle: function() {
-                return this.axisAngle(this.axis, this.node.axes.length)
+                return this.node.axes[this.axis].angle
                     + this.node.rotation;
             },
             x0: function() {
