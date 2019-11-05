@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, Text
 from tensornetwork.backends.tensorflow import tensorflow_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
+from tensornetwork.backends import base_backend
 import tensornetwork.config as config_file
+
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
@@ -27,7 +30,11 @@ _BACKENDS = {
 }
 
 
-def get_backend(name):
-  if name not in _BACKENDS:
-    raise ValueError("Backend '{}' does not exist".format(name))
-  return _BACKENDS[name]()
+def get_backend(
+    backend: Union[Text, base_backend.BaseBackend]
+    ) -> base_backend.BaseBackend:
+  if isinstance(backend, base_backend.BaseBackend):
+    return backend
+  if backend not in _BACKENDS:
+    raise ValueError("Backend '{}' does not exist".format(backend))
+  return _BACKENDS[backend]()

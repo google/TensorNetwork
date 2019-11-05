@@ -46,6 +46,16 @@ Vue.component(
     'node',
 	{
 		mixins: [mixinGet, mixinGeometry, mixinNode],
+        props: {
+		    disableDragging: {
+		        type: Boolean,
+                default: false
+            },
+            shadow: {
+                type: Boolean,
+                default: false
+            }
+        },
         data: function() {
 		    return {
 		        mouse: {
@@ -55,11 +65,28 @@ Vue.component(
             }
         },
         methods: {
-		    onClick: function(event) {
-		        event.stopPropagation();
-            },
 		    onMouseDown: function(event) {
-                this.state.selectedNode = this.node;
+		        event.stopPropagation();
+		        if (this.disableDragging) {
+		            return;
+                }
+
+		        if (!this.state.selectedNodes.includes(this.node)) {
+                    if (event.shiftKey) {
+                        this.state.selectedNodes.push(this.node);
+                    }
+                    else {
+                        this.state.selectedNodes = [this.node];
+                    }
+                }
+		        else {
+                    if (event.shiftKey) {
+                        let t = this;
+                        this.state.selectedNodes = this.state.selectedNodes.filter(function(node) {
+                            return node !== t.node;
+                        });
+                    }
+                }
 
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
@@ -71,10 +98,12 @@ Vue.component(
             onMouseMove: function(event) {
                 let dx = event.pageX - this.mouse.x;
                 let dy = event.pageY - this.mouse.y;
-                this.node.position.x += dx;
-                this.node.position.y += dy;
                 this.mouse.x = event.pageX;
                 this.mouse.y = event.pageY;
+                this.state.selectedNodes.forEach(function(node) {
+                    node.position.x += dx;
+                    node.position.y += dy;
+                });
             },
             onMouseUp: function() {
                 document.removeEventListener('mousemove', this.onMouseMove);
@@ -84,18 +113,21 @@ Vue.component(
 
                 let workspace = document.getElementsByClassName('workspace')[0]
                     .getBoundingClientRect();
-                if (this.node.position.x < this.nodeWidth / 2) {
-                    this.node.position.x = this.nodeWidth / 2;
-                }
-                if (this.node.position.y < this.nodeHeight / 2) {
-                    this.node.position.y = this.nodeHeight / 2;
-                }
-                if (this.node.position.x > workspace.width - this.nodeWidth / 2) {
-                    this.node.position.x = workspace.width - this.nodeWidth / 2;
-                }
-                if (this.node.position.y > workspace.height - this.nodeHeight / 2) {
-                    this.node.position.y = workspace.height - this.nodeHeight / 2;
-                }
+                let t = this;
+                this.state.selectedNodes.forEach(function(node) {
+                    if (node.position.x < t.nodeWidth / 2) {
+                        node.position.x = t.nodeWidth / 2;
+                    }
+                    if (node.position.y < t.nodeHeight / 2) {
+                        node.position.y = t.nodeHeight / 2;
+                    }
+                    if (node.position.x > workspace.width - t.nodeWidth / 2) {
+                        node.position.x = workspace.width - t.nodeWidth / 2;
+                    }
+                    if (node.position.y > workspace.height - t.nodeHeight / 2) {
+                        node.position.y = workspace.height - t.nodeHeight / 2;
+                    }
+                });
             },
             onAxisMouseDown: function(axis) {
 		        this.$emit('axismousedown', axis);
@@ -109,7 +141,7 @@ Vue.component(
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
             brightness: function() {
-			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.node.name) {
+			    if (this.state.selectedNodes.includes(this.node)) {
                     return 50;
                 }
 			    else {
@@ -117,7 +149,12 @@ Vue.component(
                 }
             },
 			style: function() {
-				return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);'
+			    if (this.shadow) {
+			        return 'fill: #ddd';
+                }
+			    else {
+                    return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);';
+                }
 			}
 		},
         created: function() {
@@ -126,11 +163,9 @@ Vue.component(
             }
         },
 		template: `
-			<g class="node" :transform="translation" 
-                @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
-			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i"
-			        :state="state" @axismousedown="onAxisMouseDown(i)"
-			        @axismouseup="onAxisMouseUp(i)"/>
+			<g class="node" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
+			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
+			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
 				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
 				<text x="0" y="0">{{node.name}}</text>
@@ -147,6 +182,10 @@ Vue.component(
             node: Object,
             index: Number,
             state: Object,
+            shadow: {
+                type: Boolean,
+                default: false
+            },
         },
         data: function() {
             return {
@@ -185,11 +224,8 @@ Vue.component(
             },
         },
         computed: {
-            nAxes: function() {
-                return this.node.axes.length;
-            },
             angle: function() {
-                return this.axisAngle(this.index, this.nAxes) + this.node.rotation;
+                return this.node.axes[this.index].angle + this.node.rotation;
             },
             x: function() {
                 return this.axisX(this.angle);
@@ -201,7 +237,12 @@ Vue.component(
                 return this.highlighted ? 50 : 80;
             },
             stroke: function() {
-                return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                if (this.shadow) {
+                    return this.highlighted ? '#bbb' : '#ddd';
+                }
+                else {
+                    return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                }
             },
         },
         template: `
@@ -210,9 +251,9 @@ Vue.component(
                     @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
                 <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
                     stroke-width="5" stroke-linecap="round" />
-                <text :x="x * axisLabelRadius" :y="y * axisLabelRadius">
+                <text v-if="!shadow" :x="x * axisLabelRadius" :y="y * axisLabelRadius">
                     <tspan>{{index}}</tspan>
-                    <tspan v-if="node.axes[index]"> - {{node.axes[index]}}</tspan>
+                    <tspan v-if="node.axes[index].name"> - {{node.axes[index].name}}</tspan>
                 </text>
             </g>
         `

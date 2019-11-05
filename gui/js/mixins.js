@@ -63,9 +63,6 @@ let mixinGeometry = {
 		}
 	},
 	methods: {
-		axisAngle: function(index, nAxes) {
-			return (index / nAxes) * 2 * Math.PI;
-		},
 		axisX: function(angle) {
 			return this.axisLength * Math.cos(angle);
 		},
