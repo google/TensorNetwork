@@ -67,7 +67,7 @@ class BaseMPS:
     #use numpy backend for tensor initialization.
     #tensors will be converted to backend type during
     #call to __init__
-    be = backend_factory.get_backend(name='numpy')
+    be = backend_factory.get_backend('numpy')
     tensors = [
         be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
     ]
@@ -405,7 +405,7 @@ class FiniteMPS(BaseMPS):
       backend:L An optional backend.
     """
     #use numpy backend for tensor initialization
-    be = backend_factory.get_backend(name='numpy')
+    be = backend_factory.get_backend('numpy')
     if len(D) != len(d) - 1:
       raise ValueError('len(D) = {} is different from len(d) - 1 = {}'.format(
           len(D),

@@ -638,3 +638,28 @@ def test_remove_after_flatten(backend):
   tn.connect(a[1], b[1])
   tn.flatten_all_edges({a, b})
   tn.remove_node(a)
+
+
+def test_custom_backend():
+  # pylint: disable=abstract-method
+  class StringBackend(tn.BaseBackend):
+    def __init__(self):
+      super().__init__()
+      self.name = "string_backend"
+
+    def tensordot(self, a, b, axes):
+      return a + b
+
+    def convert_to_tensor(self, tensor):
+      return tensor
+
+    def shape_tuple(self, tensor):
+      return (1,)
+
+  backend = StringBackend()
+  assert isinstance(backend, tn.BaseBackend)
+  a = tn.Node("Hello ", backend=backend)
+  b = tn.Node("world!", backend=backend)
+  a[0] ^ b[0]
+  c = a @ b
+  assert c.tensor == "Hello world!"
