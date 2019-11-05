@@ -13,11 +13,13 @@
 // limitations under the License.
 
 let initialState = {
+    renderLaTeX: true,
     selectedNodes: [],
     draggingNode: false,
     nodes: [
         {
             name: 't1',
+            displayName: 't_1',
             size: [1, 1],
             axes: [
                 {name: null, angle: 0, position: [0, 0]},
@@ -30,6 +32,7 @@ let initialState = {
         },
         {
             name: 't2',
+            displayName: 't_2',
             size: [1, 1],
             axes: [
                 {name: null, angle: 0, position: [0, 0]},
@@ -42,6 +45,7 @@ let initialState = {
         },
         {
             name: 't3',
+            displayName: 't_3',
             size: [1, 1],
             axes: [
                 {name: null, angle: 0, position: [0, 0]},
@@ -54,6 +58,7 @@ let initialState = {
         },
         {
             name: 't4',
+            displayName: 't_4',
             size: [1, 1],
             axes: [
                 {name: null, angle: 0, position: [0, 0]},

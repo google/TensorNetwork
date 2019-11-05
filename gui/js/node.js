@@ -61,7 +61,33 @@ Vue.component(
 		        mouse: {
                     x: null,
                     y: null
+                },
+                render: true,
+                labelOpacity: 1
+            }
+        },
+        mounted: function() {
+            window.MathJax.typeset();
+        },
+        watch: {
+		    'node.displayName': function() {
+		        if (!this.renderLaTeX) {
+		            return;
                 }
+                // Ugly race condition to make sure MathJax renders, and old renders are discarded
+                this.render = false;
+                this.labelOpacity = 0;
+		        if (this.renderTimeout) {
+                    clearTimeout(this.renderTimeout);
+                }
+		        let t = this;
+                this.renderTimeout = setTimeout(function() {
+                    t.render = true;
+                }, 50);
+                this.renderTimeout = setTimeout(function() {
+                    window.MathJax.typeset();
+                    t.labelOpacity = 1;
+                }, 100);
             }
         },
         methods: {
@@ -161,7 +187,16 @@ Vue.component(
 			    else {
                     return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);';
                 }
-			}
+			},
+            renderLaTeX: function() {
+		        return this.state.renderLaTeX && window.MathJax;
+            },
+            label: function() {
+		        return '\\(\\displaystyle{' + this.node.displayName + '}\\)';
+            },
+            labelStyle: function() {
+		        return 'opacity: ' + this.labelOpacity + ';';
+            }
 		},
         created: function() {
 		    if (this.node.hue == null) {
@@ -174,7 +209,13 @@ Vue.component(
 			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
 				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
-				<text x="0" y="0">{{node.name}}</text>
+                <text v-if="!renderLaTeX || !node.displayName" x="0" y="0">{{node.name}}</text>
+                <foreignObject v-else-if="render" :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
+				    :height="nodeHeight" :style="labelStyle">
+                    <div class="jax-container">
+                        {{label}}
+                    </div>
+                </foreignObject>
 			</g>
 		`	
 	}

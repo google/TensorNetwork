@@ -54,6 +54,7 @@ Vue.component(
                 node.position = {x: workspace.width / 2, y: workspace.height / 2};
 
                 this.state.nodes.push(node);
+                this.copyNodeName = '';
             },
             rotate: function(angle) {
                 this.node.rotation += angle;
@@ -97,16 +98,16 @@ Vue.component(
                             <a class="delete" href="" @click="deleteNode(event)">delete</a>
                             <h2>Node: {{node.name}}</h2>
                         </div>
-                        <div class="button-holder">
-                            <h4>Copy Node</h4>
-                            <form @submit="copyNode">
-                                <input type="text" v-model="copyNodeName" placeholder="name of copy" />
-                                <input type="submit" value="Copy" :disabled="copyNodeDisabled" />
-                            </form>
-                        </div>
+                        <h4>Set LaTeX Label</h4>
+                        <input type="text" v-model="node.displayName" placeholder="LaTeX label" />
+                        <h4>Copy Node</h4>
+                        <form @submit="copyNode">
+                            <input type="text" v-model="copyNodeName" placeholder="name of copy" />
+                            <input type="submit" value="Copy" :disabled="copyNodeDisabled" />
+                        </form>
                         <h4>Rotate</h4>
-                            <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
-                            <button @click="rotate(Math.PI / 4)">Clockwise</button>
+                        <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
+                        <button @click="rotate(Math.PI / 4)">Clockwise</button>
                     </section>
                     <toolbar-edge-section :state="state" />
                     <toolbar-axis-section :state="state" />
@@ -144,7 +145,7 @@ Vue.component(
             },
             size2: function() {
                 this.reset();
-            }
+            },
         },
         methods: {
             reset: function() {
@@ -239,6 +240,10 @@ Vue.component(
                     hue: null
                 };
             },
+            renderLaTeX: function() {
+                return this.state.renderLaTeX && window.MathJax;
+
+            }
         },
         template: `
             <section class="tensor-creator">
@@ -274,6 +279,7 @@ Vue.component(
                 <div class="button-holder">
                     <form @submit="createNode">
                         <input type="text" v-model="node.name" placeholder="node name" />
+                        <input type="text" v-if="renderLaTeX" v-model="node.displayName" placeholder="LaTeX label" />
                         <input type="submit" value="Create" :disabled="createNodeDisabled" />
                     </form>
                 </div>

@@ -48,6 +48,13 @@ svg .axis.highlighted text {
 	font: bold 15px sans-serif;
 }
 
+svg .node .jax-container {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
 .toolbar {
 	width: 300px;
 	background-color: #fff;
