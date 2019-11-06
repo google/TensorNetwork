@@ -25,7 +25,7 @@ Tensor = Any
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[Any] = None):
+  def __init__(self):
     super(PyTorchBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
@@ -35,7 +35,6 @@ class PyTorchBackend(base_backend.BaseBackend):
                         "backend or install PyTorch.")
     self.torch = torch
     self.name = "pytorch"
-    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.torch.tensordot(a, b, dims=axes)
@@ -90,10 +89,6 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = self.torch.as_tensor(tensor)
-    if self.dtype is not None and result.dtype is not self.dtype:
-      raise TypeError(
-          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
-              self.name, result.dtype, self.dtype))
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
@@ -110,21 +105,18 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def eye(self, N: int, dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.torch.float64
+    dtype = dtype if dtype is not None else self.torch.float64
     if not M:
       M = N  #torch crashes if one passes M = None with dtype!=None
     return self.torch.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...], dtype: Optional[Any] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.torch.float64
+    dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.torch.float64
+    dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.zeros(shape, dtype=dtype)
 
   def randn(self,
@@ -133,25 +125,22 @@ class PyTorchBackend(base_backend.BaseBackend):
             seed: Optional[int] = None) -> Tensor:
     if seed:
       self.torch.manual_seed(seed)
-
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.torch.float64
-
+    dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.randn(shape, dtype=dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    ncv: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -167,9 +156,10 @@ class PyTorchBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If two successive Krylov vectors `x_m` and `x_n`
-        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
-        It means that an (approximate) invariant subspace has been found.
+        If a Krylov vector :math: `x_n` has an L2 norm 
+        :math:`\\lVert x_n\\rVert < delta`, the iteration 
+        is stopped. It means that an (approximate) invariant subspace has 
+        been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
         iterations to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
@@ -192,12 +182,17 @@ class PyTorchBackend(base_backend.BaseBackend):
         raise ValueError(
             "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
                 A.shape[1], initial_state.shape))
-
     if initial_state is None:
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      initial_state = self.randn(A.shape[1])
+
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+      initial_state = self.randn(A.shape[1], A.dtype)
     else:
       initial_state = self.convert_to_tensor(initial_state)
     vector_n = initial_state
@@ -249,7 +244,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     eigvals, u = A_tridiag.symeig()
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape)
+      state = self.zeros(initial_state.shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.torch.norm(state))

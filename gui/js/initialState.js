@@ -13,25 +13,61 @@
 // limitations under the License.
 
 let initialState = {
-    selectedNode: null,
+    selectedNodes: [],
     draggingNode: false,
     nodes: [
         {
-            name: 'A',
-            axes: [null, 'a named axis'], // null values for axes correspond to unnamed axes
-			position: {x: 100, y: 200},
+            name: 't1',
+            size: [1, 1],
+            axes: [
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
+            ],
+			position: {x: 200, y: 300},
             rotation: 0,
-            hue: 90
+            hue: 30
         },
         {
-            name: 'B',
-            axes: ['a named axis', 'foo', 'a free index'], // can have duplicate names for axes across nodes
-			position: {x: 300, y: 300},
-            rotation: Math.PI / 2,
-            hue: null
+            name: 't2',
+            size: [1, 1],
+            axes: [
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
+            ],
+            position: {x: 367, y: 300},
+            rotation: 0,
+            hue: 30
+        },
+        {
+            name: 't3',
+            size: [1, 1],
+            axes: [
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
+            ],
+            position: {x: 533, y: 300},
+            rotation: 0,
+            hue: 30
+        },
+        {
+            name: 't4',
+            size: [1, 1],
+            axes: [
+                {name: null, angle: 0, position: [0, 0]},
+                {name: null, angle: Math.PI / 2, position: [0, 0]},
+                {name: null, angle: Math.PI, position: [0, 0]},
+            ],
+            position: {x: 700, y: 300},
+            rotation: 0,
+            hue: 30
         }
     ],
     edges: [
-        [['B', 1], ['A', 1], 'a named edge'],
+        [['t1', 0], ['t2', 2], null],
+        [['t2', 0], ['t3', 2], null],
+        [['t3', 0], ['t4', 2], null],
     ]
 };

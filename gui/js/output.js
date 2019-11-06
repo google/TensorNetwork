@@ -56,7 +56,7 @@ Vue.component(
                 let code = `, axis_names=[`;
                 let willOutput = false;
                 for (let i = 0; i < node.axes.length; i++) {
-                    let axis = node.axes[i];
+                    let axis = node.axes[i].name;
                     if (axis) {
                         willOutput = true;
                         code += `"${axis}", `
