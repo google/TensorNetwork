@@ -30,8 +30,8 @@ class NumPyBackend(base_backend.BaseBackend):
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.np.reshape(tensor, self.np.asarray(shape).astype(self.np.int32))
+  def reshape_tensor(self, tensor: Tensor, shape: Tensor):
+    return self.np.reshape_tensor(tensor, self.np.asarray(shape).astype(self.np.int32))
 
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
@@ -60,17 +60,17 @@ class NumPyBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.np, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> Tensor:
-    return self.np.prod(values)
+  def shape_prod(self, values: Tensor) -> Tensor:
+    return self.np.shape_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.np.sqrt(tensor)

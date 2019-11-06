@@ -159,7 +159,7 @@ class BaseNode(ABC):
 
   @property
   @abstractmethod
-  def shape(self):
+  def shape_tensor(self):
     if self._shape is None:
       raise ValueError('Please ensure this Node has a well-defined shape')
     return self._shape
@@ -533,7 +533,7 @@ class Node(BaseNode):
     self.tensor = tensor
 
   @property
-  def shape(self):
+  def shape_tensor(self):
     if self.is_disabled:
       raise ValueError('Node {} has been disabled. '
                        'Access its shape via self.tensor'.format(self.name))
@@ -624,7 +624,7 @@ class CopyNode(BaseNode):
     self.tensor = tensor
 
   @property
-  def shape(self):
+  def shape_tensor(self):
     return (self.dimension,) * self.rank
 
   @property
@@ -1141,11 +1141,11 @@ def _flatten_trace_edges(edges: List[Edge],
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   perm = perm_front + perm_back
-  new_dim = backend.prod([backend.shape(node.tensor)[e.axis1] for e in edges])
+  new_dim = backend.shape_prod([backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
-  node.tensor = backend.reshape(node.tensor, new_shape)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+  node.tensor = backend.reshape_tensor(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
   node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
@@ -1216,13 +1216,13 @@ def flatten_edges(edges: List[Edge],
       perm_back.append(node.edges.index(edge))
     perm_front = sorted(set(range(len(node.edges))) - set(perm_back))
     node.reorder_axes(perm_front + perm_back)
-    old_tensor_shape = backend.shape(node.tensor)
+    old_tensor_shape = backend.shape_tensor(node.tensor)
     # Calculate the new axis dimension as a product of the other
     # axes dimensions.
-    flattened_axis_dim = backend.prod(old_tensor_shape[len(perm_front):])
-    new_tensor_shape = backend.concat(
+    flattened_axis_dim = backend.shape_prod(old_tensor_shape[len(perm_front):])
+    new_tensor_shape = backend.shape_concat(
         [old_tensor_shape[:len(perm_front)], [flattened_axis_dim]], axis=-1)
-    new_tensor = backend.reshape(node.tensor, new_tensor_shape)
+    new_tensor = backend.reshape_tensor(node.tensor, new_tensor_shape)
     # Modify the node in place. Currently, this is they only method that
     # modifies a node's tensor.
     node.tensor = new_tensor
@@ -1308,9 +1308,9 @@ def _split_trace_edge(
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   node.reorder_axes(perm_front + perm_back)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
-  node.tensor = backend.reshape(node.tensor, new_shape)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat([unaffected_shape, shape, shape], axis=-1)
+  node.tensor = backend.reshape_tensor(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
   node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None]
   # Create new dangling edges and connect them to each other.
@@ -1354,7 +1354,7 @@ def split_edge(edge: Edge,
   """
 
   # Check if reshape operation is possible.
-  if not np.prod(shape) == edge.dimension:
+  if not np.shape_prod(shape) == edge.dimension:
     raise ValueError("Edge {} with dimension {} cannot be split according to "
                      "shape {}.".format(edge, edge.dimension, shape))
   # Check if possible reshape operation is trivial.
@@ -1383,9 +1383,9 @@ def split_edge(edge: Edge,
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
     node.reorder_axes(perm_front + perm_back)
-    unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
-    node.tensor = backend.reshape(node.tensor, new_shape)  # in-place update
+    unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+    new_shape = backend.shape_concat([unaffected_shape, shape], axis=-1)
+    node.tensor = backend.reshape_tensor(node.tensor, new_shape)  # in-place update
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]
     # Create new dangling edges.

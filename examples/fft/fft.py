@@ -27,7 +27,7 @@ def add_fft(
   def cz(p: int) -> np.ndarray:
     result = np.eye(4, dtype=np.complex128)
     result[3, 3] = np.exp(-1j * np.pi / 2**p)
-    return result.reshape((2,) * 4)
+    return result.reshape_tensor((2,) * 4)
 
   def inline_stitch(targets: List[int], tensor: np.ndarray, name: str):
     """Applies an operation to the targeted axis indices."""

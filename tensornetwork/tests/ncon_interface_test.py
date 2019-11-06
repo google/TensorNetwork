@@ -225,7 +225,7 @@ def test_outer_product(backend):
   a = np.array([1, 2, 3])
   b = np.array([1, 2])
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
-  np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
+  np.testing.assert_allclose(res, np.kron(a, b).reshape_tensor((3, 2)))
 
   res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
                             backend=backend)
@@ -241,7 +241,7 @@ def test_node_outer_product(backend):
   a = Node(t1, backend=backend)
   b = Node(t2, backend=backend)
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
-  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape((3, 2)))
+  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape_tensor((3, 2)))
 
   res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
                             backend=backend)
@@ -281,8 +281,8 @@ def test_contraction(backend):
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
                             backend=backend)
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
+  res_np = a.reshape_tensor((2, 4)) @ a.reshape_tensor((4, 2)) @ a.reshape_tensor((2, 4))
+  res_np = res_np.reshape_tensor((2, 2, 2))
   np.testing.assert_allclose(res, res_np)
 
 
@@ -291,9 +291,9 @@ def test_node_contraction(backend):
   a = Node(tensor, backend=backend)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
                             backend=backend)
-  res_np = tensor.reshape((2, 4)) @ tensor.reshape((4, 2)) @ tensor.reshape(
+  res_np = tensor.reshape_tensor((2, 4)) @ tensor.reshape_tensor((4, 2)) @ tensor.reshape_tensor(
       (2, 4))
-  res_np = res_np.reshape((2, 2, 2))
+  res_np = res_np.reshape_tensor((2, 2, 2))
   np.testing.assert_allclose(res.tensor, res_np)
 
 
@@ -302,6 +302,6 @@ def test_backend_network(backend):
   nodes, _, out_edges = ncon_interface.ncon_network(
       [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend=backend)
   res = greedy(nodes, out_edges).tensor
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
+  res_np = a.reshape_tensor((2, 4)) @ a.reshape_tensor((4, 2)) @ a.reshape_tensor((2, 4))
+  res_np = res_np.reshape_tensor((2, 2, 2))
   np.testing.assert_allclose(res, res_np)

@@ -71,12 +71,12 @@ def svd_decomposition(tf: Any,
     s_rest: Vector of discarded singular values (length zero if no
             truncation).
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape_tensor(tensor)[:split_axis]
+  right_dims = tf.shape_tensor(tensor)[split_axis:]
 
-  tensor = tf.reshape(tensor,
-                      [tf.reduce_prod(left_dims),
-                       tf.reduce_prod(right_dims)])
+  tensor = tf.reshape_tensor(tensor,
+                      [tf.reduce_shape_prod(left_dims),
+                       tf.reduce_shape_prod(right_dims)])
   s, u, v = tf.linalg.svd(tensor)
 
   if max_singular_values is None:
@@ -109,9 +109,9 @@ def svd_decomposition(tf: Any,
 
   vh = tf.linalg.adjoint(v)
 
-  dim_s = tf.shape(s)[0]  # must use tf.shape (not s.shape) to compile
-  u = tf.reshape(u, tf.concat([left_dims, [dim_s]], axis=-1))
-  vh = tf.reshape(vh, tf.concat([[dim_s], right_dims], axis=-1))
+  dim_s = tf.shape_tensor(s)[0]  # must use tf.shape (not s.shape) to compile
+  u = tf.reshape_tensor(u, tf.shape_concat([left_dims, [dim_s]], axis=-1))
+  vh = tf.reshape_tensor(vh, tf.shape_concat([[dim_s], right_dims], axis=-1))
 
   return u, s, vh, s_rest
 
@@ -148,16 +148,16 @@ def qr_decomposition(
     Q: Left tensor factor.
     R: Right tensor factor.
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape_tensor(tensor)[:split_axis]
+  right_dims = tf.shape_tensor(tensor)[split_axis:]
 
-  tensor = tf.reshape(tensor,
-                      [tf.reduce_prod(left_dims),
-                       tf.reduce_prod(right_dims)])
+  tensor = tf.reshape_tensor(tensor,
+                      [tf.reduce_shape_prod(left_dims),
+                       tf.reduce_shape_prod(right_dims)])
   q, r = tf.linalg.qr(tensor)
-  center_dim = tf.shape(q)[1]
-  q = tf.reshape(q, tf.concat([left_dims, [center_dim]], axis=-1))
-  r = tf.reshape(r, tf.concat([[center_dim], right_dims], axis=-1))
+  center_dim = tf.shape_tensor(q)[1]
+  q = tf.reshape_tensor(q, tf.shape_concat([left_dims, [center_dim]], axis=-1))
+  r = tf.reshape_tensor(r, tf.shape_concat([[center_dim], right_dims], axis=-1))
   return q, r
 
 
@@ -193,16 +193,16 @@ def rq_decomposition(
     Q: Left tensor factor.
     R: Right tensor factor.
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape_tensor(tensor)[:split_axis]
+  right_dims = tf.shape_tensor(tensor)[split_axis:]
 
-  tensor = tf.reshape(tensor,
-                      [tf.reduce_prod(left_dims),
-                       tf.reduce_prod(right_dims)])
+  tensor = tf.reshape_tensor(tensor,
+                      [tf.reduce_shape_prod(left_dims),
+                       tf.reduce_shape_prod(right_dims)])
   q, r = tf.linalg.qr(tf.math.conj(tf.transpose(tensor)))
   r, q = tf.math.conj(tf.transpose(r)), tf.math.conj(
       tf.transpose(q))  #M=r*q at this point
-  center_dim = tf.shape(r)[1]
-  r = tf.reshape(r, tf.concat([left_dims, [center_dim]], axis=-1))
-  q = tf.reshape(q, tf.concat([[center_dim], right_dims], axis=-1))
+  center_dim = tf.shape_tensor(r)[1]
+  r = tf.reshape_tensor(r, tf.shape_concat([left_dims, [center_dim]], axis=-1))
+  q = tf.reshape_tensor(q, tf.shape_concat([[center_dim], right_dims], axis=-1))
   return r, q

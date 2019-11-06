@@ -40,8 +40,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return tensordot2.tensordot(self.tf, a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.tf.reshape(tensor, shape)
+  def reshape_tensor(self, tensor: Tensor, shape: Tensor):
+    return self.tf.reshape_tensor(tensor, shape)
 
   def transpose(self, tensor, perm):
     return self.tf.transpose(tensor, perm)
@@ -64,17 +64,17 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        split_axis: int) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
-    return self.tf.concat(values, axis)
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
+    return self.tf.shape_concat(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
-    return self.tf.shape(tensor)
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
+    return self.tf.shape_tensor(tensor)
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
 
-  def prod(self, values: Tensor) -> Tensor:
-    return self.tf.reduce_prod(values)
+  def shape_prod(self, values: Tensor) -> Tensor:
+    return self.tf.reduce_shape_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.tf.sqrt(tensor)

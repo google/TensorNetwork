@@ -39,7 +39,7 @@ class BaseBackend:
 
   # We use `Tensor` for the shape type here since the shape could
   # be a tensor.
-  def reshape(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
+  def reshape_tensor(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
     """Reshape tensor to the given shape.
     Args:
       tensor: A tensor.
@@ -135,12 +135,12 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented rq_decomposition.".format(self.name))
 
-  def concat(self, values: Sequence[Tensor], axis) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
     raise NotImplementedError("Backend '{}' has not implemented concat.".format(
         self.name))
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     """Get the shape of a tensor.
 
     Args:
@@ -163,7 +163,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
-  def prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))

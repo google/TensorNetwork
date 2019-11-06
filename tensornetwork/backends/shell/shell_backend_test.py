@@ -34,7 +34,7 @@ def test_tensordot():
   assertBackendsAgree("tensordot", args)
 
 
-def test_reshape():
+def test_reshape_tensor():
   args = {"tensor": np.ones([3, 5, 2]), "shape": np.array([3, 10])}
   assertBackendsAgree("reshape", args)
 
@@ -62,7 +62,7 @@ def test_svd_decomposition_with_max_values():
     assert x.shape == y.shape
 
 
-def test_concat():
+def test_shape_concat():
   args = {
       "values": [np.ones([3, 2, 5]),
                  np.zeros([3, 2, 5]),
@@ -74,16 +74,16 @@ def test_concat():
   assertBackendsAgree("concat", args)
 
 
-def test_concat_shape():
+def test_concat_shape_tensor():
   shapes = [(5, 2), (3,), (4, 6)]
-  result = shell_backend.ShellBackend().concat_shape(shapes)
+  result = shell_backend.ShellBackend().concat_shape_tensor(shapes)
   assert result == (5, 2, 3, 4, 6)
 
 
-def test_shape():
+def test_shape_tensor():
   tensor = np.ones([3, 5, 2])
-  np_result = numpy_backend.NumPyBackend().shape(tensor)
-  sh_result = shell_backend.ShellBackend().shape(tensor)
+  np_result = numpy_backend.NumPyBackend().shape_tensor(tensor)
+  sh_result = shell_backend.ShellBackend().shape_tensor(tensor)
   assert np_result == sh_result
 
 
@@ -94,8 +94,8 @@ def test_shape_tuple():
   assert np_result == sh_result
 
 
-def test_prod():
-  result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))
+def test_shape_prod():
+  result = shell_backend.ShellBackend().shape_prod(np.ones([3, 5, 2]))
   assert result == 30
 
 

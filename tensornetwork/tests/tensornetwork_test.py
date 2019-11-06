@@ -387,8 +387,8 @@ def test_flatten_consistent_tensor(backend):
   tn.check_correct({a, b})
 
   # Check expected values.
-  a_final = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
-  b_final = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
+  a_final = np.reshape_tensor(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
+  b_final = np.reshape_tensor(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   np.testing.assert_allclose(a.tensor, a_final)
   np.testing.assert_allclose(b.tensor, b_final)
 
@@ -419,7 +419,7 @@ def test_flatten_trace_consistent_tensor(backend):
   tn.flatten_edges([e2, e1])
   tn.check_correct({a})
   # Check expected values.
-  a_final = np.reshape(np.transpose(a_val, (1, 2, 0, 3, 4)), (3, 20, 20))
+  a_final = np.reshape_tensor(np.transpose(a_val, (1, 2, 0, 3, 4)), (3, 20, 20))
   np.testing.assert_allclose(a.tensor, a_final)
 
 
@@ -444,8 +444,8 @@ def test_contract_between_output_order(backend):
   d = tn.contract_between(
       a, b, name="New Node", output_edge_order=[b[2], a[2]])
   tn.check_correct({c, d}, check_connections=False)
-  a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
-  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
+  a_flat = np.reshape_tensor(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
+  b_flat = np.reshape_tensor(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(b_flat, a_flat.T)
   np.testing.assert_allclose(d.tensor, final_val)
   assert d.name == "New Node"

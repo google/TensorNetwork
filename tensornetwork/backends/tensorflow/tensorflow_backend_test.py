@@ -18,10 +18,10 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_reshape():
+def test_reshape_tensor():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
-  actual = backend.shape_tuple(backend.reshape(a, np.array((6, 4, 1))))
+  actual = backend.shape_tuple(backend.reshape_tensor(a, np.array((6, 4, 1))))
   assert actual == (6, 4, 1)
 
 
@@ -34,20 +34,20 @@ def test_transpose():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_concat():
+def test_shape_concat():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
-  expected = backend.concat((a, b), axis=1)
+  expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
   np.testing.assert_allclose(expected, actual)
 
 
-def test_shape():
+def test_shape_tensor():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
-  assert isinstance(backend.shape(a), type(a))
-  actual = backend.shape(a)
+  assert isinstance(backend.shape_tensor(a), type(a))
+  actual = backend.shape_tensor(a)
   expected = np.array([2, 3, 4])
   np.testing.assert_allclose(expected, actual)
 
@@ -59,10 +59,10 @@ def test_shape_tuple():
   assert actual == (2, 3, 4)
 
 
-def test_prod():
+def test_shape_prod():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(2 * np.ones([1, 2, 3, 4]))
-  actual = np.array(backend.prod(a))
+  actual = np.array(backend.shape_prod(a))
   assert actual == 2**24
 
 

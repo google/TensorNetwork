@@ -28,7 +28,7 @@ def test_descend(random_tensors):
   s = simple_mera.descend(h, s, iso, dis)
   assert len(s.shape) == 6
   D = s.shape[0]
-  smat = np.reshape(s, [D**3] * 2)
+  smat = np.reshape_tensor(s, [D**3] * 2)
   assert np.isclose(np.trace(smat), 1.0)
   assert np.isclose(np.linalg.norm(smat - np.conj(np.transpose(smat))), 0.0)
   spec, _ = np.linalg.eigh(smat)
@@ -40,16 +40,16 @@ def test_ascend(random_tensors):
   h = simple_mera.ascend(h, s, iso, dis)
   assert len(h.shape) == 6
   D = h.shape[0]
-  hmat = np.reshape(h, [D**3] * 2)
+  hmat = np.reshape_tensor(h, [D**3] * 2)
   assert np.isclose(np.linalg.norm(hmat - np.conj(np.transpose(hmat))), 0.0)
 
 
 def test_energy(wavelet_tensors):
   h, iso, dis = wavelet_tensors
-  s = np.reshape(np.eye(2**3) / 2**3, [2]*6)
+  s = np.reshape_tensor(np.eye(2**3) / 2**3, [2]*6)
   for _ in range(20):
     s = simple_mera.descend(h, s, iso, dis)
-  en = np.trace(np.reshape(s, [2**3, -1]) @ np.reshape(h, [2**3, -1]))
+  en = np.trace(np.reshape_tensor(s, [2**3, -1]) @ np.reshape_tensor(h, [2**3, -1]))
   assert np.isclose(en, -1.242, rtol=1e-3, atol=1e-3)
   en = simple_mera.binary_mera_energy(h, s, iso, dis)
   assert np.isclose(en, -1.242, rtol=1e-3, atol=1e-3)
@@ -57,11 +57,11 @@ def test_energy(wavelet_tensors):
 
 def test_opt(wavelet_tensors):
   h, iso, dis = wavelet_tensors
-  s = np.reshape(np.eye(2**3) / 2**3, [2]*6)
+  s = np.reshape_tensor(np.eye(2**3) / 2**3, [2]*6)
   for _ in range(20):
     s = simple_mera.descend(h, s, iso, dis)
   s, iso, dis = simple_mera.optimize_linear(h, s, iso, dis, 100)
-  en = np.trace(np.reshape(s, [2**3, -1]) @ np.reshape(h, [2**3, -1]))
+  en = np.trace(np.reshape_tensor(s, [2**3, -1]) @ np.reshape_tensor(h, [2**3, -1]))
   assert en < -1.25
 
 
@@ -72,17 +72,17 @@ def random_tensors(request):
 
   h = jax.random.normal(key, shape=[D**3] * 2)
   h = 0.5 * (h + np.conj(np.transpose(h)))
-  h = np.reshape(h, [D] * 6)
+  h = np.reshape_tensor(h, [D] * 6)
 
   s = jax.random.normal(key, shape=[D**3] * 2)
   s = s @ np.conj(np.transpose(s))
   s /= np.trace(s)
-  s = np.reshape(s, [D] * 6)
+  s = np.reshape_tensor(s, [D] * 6)
 
   a = jax.random.normal(key, shape=[D**2] * 2)
   u, _, vh = np.linalg.svd(a)
-  dis = np.reshape(u, [D] * 4)
-  iso = np.reshape(vh, [D] * 4)[:,:,:,0]
+  dis = np.reshape_tensor(u, [D] * 4)
+  iso = np.reshape_tensor(vh, [D] * 4)[:,:,:,0]
 
   return (h, s, iso, dis)
 
@@ -112,8 +112,8 @@ def wavelet_tensors(request):
     1.j/4 * np.kron(X, Y) +
     1.j/4 * np.kron(Y, X))
 
-  w = np.reshape(wmat_un, (D,D,D,D))[:,0,:,:]
-  u = np.reshape(umat, (D,D,D,D))
+  w = np.reshape_tensor(wmat_un, (D,D,D,D))[:,0,:,:]
+  u = np.reshape_tensor(umat, (D,D,D,D))
 
   w = np.transpose(w, [1, 2, 0])
   u = np.transpose(u, [2, 3, 0, 1])

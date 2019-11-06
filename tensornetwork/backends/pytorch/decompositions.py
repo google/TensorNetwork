@@ -75,7 +75,7 @@ def svd_decomposition(torch: Any,
   left_dims = list(tensor.shape)[:split_axis]
   right_dims = list(tensor.shape)[split_axis:]
 
-  tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
+  tensor = torch.reshape_tensor(tensor, (np.shape_prod(left_dims), np.shape_prod(right_dims)))
   u, s, v = torch.svd(tensor)
 
   if max_singular_values is None:
@@ -105,8 +105,8 @@ def svd_decomposition(torch: Any,
   vh = torch.transpose(v, 0, 1)
 
   dim_s = s.shape[0]
-  u = torch.reshape(u, left_dims + [dim_s])
-  vh = torch.reshape(vh, [dim_s] + right_dims)
+  u = torch.reshape_tensor(u, left_dims + [dim_s])
+  vh = torch.reshape_tensor(vh, [dim_s] + right_dims)
 
   return u, s, vh, s_rest
 
@@ -147,11 +147,11 @@ def qr_decomposition(
   left_dims = list(tensor.shape)[:split_axis]
   right_dims = list(tensor.shape)[split_axis:]
 
-  tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
+  tensor = torch.reshape_tensor(tensor, (np.shape_prod(left_dims), np.shape_prod(right_dims)))
   q, r = torch.qr(tensor)
   center_dim = q.shape[1]
-  q = torch.reshape(q, list(left_dims) + [center_dim])
-  r = torch.reshape(r, [center_dim] + list(right_dims))
+  q = torch.reshape_tensor(q, list(left_dims) + [center_dim])
+  r = torch.reshape_tensor(r, [center_dim] + list(right_dims))
   return q, r
 
 
@@ -190,12 +190,12 @@ def rq_decomposition(
 
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
-  tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
+  tensor = torch.reshape_tensor(tensor, [np.shape_prod(left_dims), np.shape_prod(right_dims)])
   #torch has currently no support for complex dtypes
   q, r = torch.qr(torch.transpose(tensor, 0, 1))
   r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,
                                                    1)  #M=r*q at this point
   center_dim = r.shape[1]
-  r = torch.reshape(r, list(left_dims) + [center_dim])
-  q = torch.reshape(q, [center_dim] + list(right_dims))
+  r = torch.reshape_tensor(r, list(left_dims) + [center_dim])
+  q = torch.reshape_tensor(q, [center_dim] + list(right_dims))
   return r, q

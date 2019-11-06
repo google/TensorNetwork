@@ -21,11 +21,11 @@ from examples.wavefunctions import wavefunctions
 
 @pytest.mark.parametrize("num_sites", [2, 3, 4])
 def test_expval(num_sites):
-  op = np.kron(np.array([[1.0, 0.0], [0.0, -1.0]]), np.eye(2)).reshape([2]*4)
+  op = np.kron(np.array([[1.0, 0.0], [0.0, -1.0]]), np.eye(2)).reshape_tensor([2]*4)
   op = tf.convert_to_tensor(op)
   for j in range(num_sites):
     psi = np.zeros([2] * num_sites)
-    psi_vec = psi.reshape((2**num_sites,))
+    psi_vec = psi.reshape_tensor((2**num_sites,))
     psi_vec[2**j] = 1.0
     psi = tf.convert_to_tensor(psi)
     for i in range(num_sites):
@@ -39,13 +39,13 @@ def test_expval(num_sites):
 @pytest.mark.parametrize("num_sites", [2, 3, 4])
 def test_apply_op(num_sites):
   psi1 = np.zeros([2] * num_sites)
-  psi1_vec = psi1.reshape((2**num_sites,))
+  psi1_vec = psi1.reshape_tensor((2**num_sites,))
   psi1_vec[0] = 1.0
   psi1 = tf.convert_to_tensor(psi1)
 
   for j in range(num_sites):
     psi2 = np.zeros([2] * num_sites)
-    psi2_vec = psi2.reshape((2**num_sites,))
+    psi2_vec = psi2.reshape_tensor((2**num_sites,))
     psi2_vec[2**j] = 1.0
     psi2 = tf.convert_to_tensor(psi2)
 
@@ -67,7 +67,7 @@ def test_evolve_trotter(num_sites, phys_dim, graph):
       tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
       tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
     h = 0.5 * (h + tf.linalg.adjoint(h))
-    h = tf.reshape(h, (phys_dim, phys_dim, phys_dim, phys_dim))
+    h = tf.reshape_tensor(h, (phys_dim, phys_dim, phys_dim, phys_dim))
     H = [h] * (num_sites - 1)
 
     norm1 = wavefunctions.inner(psi, psi)
@@ -97,7 +97,7 @@ def test_evolve_trotter_euclidean(num_sites, phys_dim, graph):
       tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64),
       tf.random.normal((phys_dim**2, phys_dim**2), dtype=tf.float64))
     h = 0.5 * (h + tf.linalg.adjoint(h))
-    h = tf.reshape(h, (phys_dim, phys_dim, phys_dim, phys_dim))
+    h = tf.reshape_tensor(h, (phys_dim, phys_dim, phys_dim, phys_dim))
     H = [h] * (num_sites - 1)
 
     norm1 = wavefunctions.inner(psi, psi)

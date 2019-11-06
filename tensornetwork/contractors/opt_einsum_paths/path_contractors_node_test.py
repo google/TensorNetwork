@@ -99,9 +99,9 @@ def test_custom_sanity_check(backend):
 
 
 def test_subgraph_contraction(backend, path_algorithm):
-  a_tensor = np.arange(4).reshape((2, 2))
-  b_tensor = np.arange(4).reshape((2, 2)) + 10
-  c_tensor = np.arange(4).reshape((2, 2)) + 20
+  a_tensor = np.arange(4).reshape_tensor((2, 2))
+  b_tensor = np.arange(4).reshape_tensor((2, 2)) + 10
+  c_tensor = np.arange(4).reshape_tensor((2, 2)) + 20
   a = Node(a_tensor, backend=backend)
   b = Node(b_tensor, backend=backend)
   c = Node(c_tensor, backend=backend)
@@ -115,10 +115,10 @@ def test_subgraph_contraction(backend, path_algorithm):
 
 
 def test_multiple_partial_contractions(backend, path_algorithm):
-  a_tensor = np.arange(4).reshape((2, 2))
-  b_tensor = np.arange(4).reshape((2, 2)) + 10
-  c_tensor = np.arange(4).reshape((2, 2)) + 20
-  d_tensor = np.arange(4).reshape((2, 2)) + 30
+  a_tensor = np.arange(4).reshape_tensor((2, 2))
+  b_tensor = np.arange(4).reshape_tensor((2, 2)) + 10
+  c_tensor = np.arange(4).reshape_tensor((2, 2)) + 20
+  d_tensor = np.arange(4).reshape_tensor((2, 2)) + 30
   a = Node(a_tensor, backend=backend)
   b = Node(b_tensor, backend=backend)
   c = Node(c_tensor, backend=backend)
@@ -137,11 +137,11 @@ def test_multiple_partial_contractions(backend, path_algorithm):
 
 
 def test_single_node_reorder(backend, path_algorithm):
-  a = Node(np.arange(4).reshape((2, 2)), backend=backend)
+  a = Node(np.arange(4).reshape_tensor((2, 2)), backend=backend)
   expected_edge_order = [a[1], a[0]]
   result = path_algorithm({a}, expected_edge_order)
   assert result.edges == expected_edge_order
-  np.testing.assert_allclose(result.tensor, np.arange(4).reshape((2, 2)).T)
+  np.testing.assert_allclose(result.tensor, np.arange(4).reshape_tensor((2, 2)).T)
 
 
 def test_ignore_edge_order(backend, path_algorithm):

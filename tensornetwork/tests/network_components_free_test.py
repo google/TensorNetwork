@@ -147,7 +147,7 @@ def test_node_set_tensor(single_node_edge):
   np.testing.assert_allclose(node.get_tensor(), tensor2)
 
 
-def test_node_shape(single_node_edge):
+def test_node_shape_tensor(single_node_edge):
   node = single_node_edge.node
   assert node.shape == (1, 2, 2)
 
@@ -379,7 +379,7 @@ def test_copy_node_init(copy_node):
   assert copy_node._tensor is None
 
 
-def test_copy_node_shape(copy_node):
+def test_copy_node_shape_tensor(copy_node):
   assert copy_node.shape == (2, 2, 2, 2)
 
 

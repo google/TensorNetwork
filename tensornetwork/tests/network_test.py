@@ -496,8 +496,8 @@ def test_contract_between(backend):
   c.reorder_edges([edge_a, edge_b])
   tn.check_correct({c})
   # Check expected values.
-  a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
-  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
+  a_flat = np.reshape_tensor(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
+  b_flat = np.reshape_tensor(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
   final_val = np.matmul(a_flat, b_flat.T)
   assert c.name == "New Node"
   np.testing.assert_allclose(c.tensor, final_val)

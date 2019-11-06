@@ -46,11 +46,11 @@ def trotter_prepare_gates(H, step_size, num_sites, euclidean):
     if len(h.shape) != 4:
       raise ValueError("H must be nearest-neighbor.")
 
-    h_shp = tf.shape(h)
-    h_r = tf.reshape(h, (h_shp[0] * h_shp[1], h_shp[2] * h_shp[3]))
+    h_shp = tf.shape_tensor(h)
+    h_r = tf.reshape_tensor(h, (h_shp[0] * h_shp[1], h_shp[2] * h_shp[3]))
 
     eh_r = tf.linalg.expm(step_size * h_r)
-    eH.append(tf.reshape(eh_r, h_shp))
+    eH.append(tf.reshape_tensor(eh_r, h_shp))
 
   eh_even = [None] * num_sites
   eh_odd = [None] * num_sites

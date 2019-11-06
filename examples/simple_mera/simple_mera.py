@@ -261,11 +261,11 @@ def shift_ham(hamiltonian, shift=None):
   Returns:
     The shifted Hamiltonian.
   """
-  hmat = np.reshape(hamiltonian, (2**3, -1))
+  hmat = np.reshape_tensor(hamiltonian, (2**3, -1))
   if shift is None:
     shift = np.amax(np.linalg.eigh(hmat)[0])
   hmat -= shift * np.eye(2**3)
-  return np.reshape(hmat, [2]*6)
+  return np.reshape_tensor(hmat, [2]*6)
 
 
 def optimize_linear(hamiltonian, state, isometry, disentangler, num_itr):
@@ -311,15 +311,15 @@ def ham_ising():
   Z = np.array([[1, 0], [0, -1]])
   hmat = np.kron(X, np.kron(Z, X))
   hmat -= 0.5 * (np.kron(np.kron(X, X), E) + np.kron(E, np.kron(X, X)))
-  return np.reshape(hmat, [2]*6)
+  return np.reshape_tensor(hmat, [2]*6)
 
 
 if __name__ == '__main__':
   # Starting from a very simple initial MERA, optimize for the critical Ising
   # model.
   h = ham_ising()
-  s = np.reshape(np.eye(2**3), [2]*6) / 2**3
-  dis = np.reshape(np.eye(2**2), [2]*4)
+  s = np.reshape_tensor(np.eye(2**3), [2]*6) / 2**3
+  dis = np.reshape_tensor(np.eye(2**2), [2]*4)
   iso = dis[:,:,:,0]
 
   s, iso, dis = optimize_linear(h, s, iso, dis, 100)

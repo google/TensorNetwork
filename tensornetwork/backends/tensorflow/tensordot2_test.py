@@ -40,7 +40,7 @@ _MAXDIM = 5
 
 class TensordotTest(tf.compat.v1.test.TestCase):
 
-  def test_invalid_shape(self):
+  def test_invalid_shape_tensor(self):
     a = [[1, 2], [3, 4]]
     b = [[1, 2], [3, 4], [5, 6]]
     a_axes = [1]
@@ -116,21 +116,21 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         a = tf.compat.v1.placeholder(tf.float32)
         b = tf.compat.v1.placeholder(tf.float32)
         output = tensordot2.tensordot(tf, a, b, axes)
-        self.assertEqual(output.get_shape().ndims, None)
-        a.set_shape([None, 2])
-        b.set_shape([2, 3])
+        self.assertEqual(output.get_shape_tensor().ndims, None)
+        a.set_shape_tensor([None, 2])
+        b.set_shape_tensor([2, 3])
         output = tensordot2.tensordot(tf, a, b, axes)
-        output_shape = output.get_shape()
+        output_shape = output.get_shape_tensor()
         self.assertEqual(output_shape.ndims, 2)
         output_shape = output_shape.as_list()
         self.assertEqual(output_shape[0], None)
         self.assertEqual(output_shape[1], 3)
         a = tf.compat.v1.placeholder(tf.float32)
         b = tf.compat.v1.placeholder(tf.float32)
-        a.set_shape([2, 2])
-        b.set_shape([2, None])
+        a.set_shape_tensor([2, 2])
+        b.set_shape_tensor([2, None])
         output = tensordot2.tensordot(tf, a, b, axes)
-        output_shape = output.get_shape()
+        output_shape = output.get_shape_tensor()
         self.assertEqual(output_shape.ndims, 2)
         output_shape = output_shape.as_list()
         self.assertEqual(output_shape[0], 2)
@@ -153,9 +153,9 @@ def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
     a_shape[a_dims[i]] = shared_shape[i]
     b_shape[b_dims[i]] = shared_shape[i]
   a = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(a_shape)).reshape_tensor(a_shape).astype(dtype_)
   b = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(b_shape)).reshape_tensor(b_shape).astype(dtype_)
   return a, b, a_dims, b_dims
 
 
@@ -174,9 +174,9 @@ def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
     tol = 1e-12
   shape = [5] * num_dims_
   a_np = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(shape)).reshape_tensor(shape).astype(dtype_)
   b_np = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(shape)).reshape_tensor(shape).astype(dtype_)
   all_axes = [0, 1]
   if a_np.ndim > 2:
     all_axes.append(a_np.ndim - 1)

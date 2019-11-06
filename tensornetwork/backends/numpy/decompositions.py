@@ -32,7 +32,7 @@ def svd_decomposition(
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
 
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  tensor = np.reshape_tensor(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   u, s, vh = np.linalg.svd(tensor)
 
   if max_singular_values is None:
@@ -62,8 +62,8 @@ def svd_decomposition(
   vh = vh[:num_sing_vals_keep, :]
 
   dim_s = s.shape[0]
-  u = np.reshape(u, list(left_dims) + [dim_s])
-  vh = np.reshape(vh, [dim_s] + list(right_dims))
+  u = np.reshape_tensor(u, list(left_dims) + [dim_s])
+  vh = np.reshape_tensor(vh, [dim_s] + list(right_dims))
 
   return u, s, vh, s_rest
 
@@ -79,11 +79,11 @@ def qr_decomposition(
   """
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  tensor = np.reshape_tensor(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   q, r = np.linalg.qr(tensor)
   center_dim = q.shape[1]
-  q = np.reshape(q, list(left_dims) + [center_dim])
-  r = np.reshape(r, [center_dim] + list(right_dims))
+  q = np.reshape_tensor(q, list(left_dims) + [center_dim])
+  r = np.reshape_tensor(r, [center_dim] + list(right_dims))
   return q, r
 
 
@@ -98,11 +98,11 @@ def rq_decomposition(
   """
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  tensor = np.reshape_tensor(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
   r, q = np.conj(np.transpose(r)), np.conj(
       np.transpose(q))  #M=r*q at this point
   center_dim = r.shape[1]
-  r = np.reshape(r, list(left_dims) + [center_dim])
-  q = np.reshape(q, [center_dim] + list(right_dims))
+  r = np.reshape_tensor(r, list(left_dims) + [center_dim])
+  q = np.reshape_tensor(q, [center_dim] + list(right_dims))
   return r, q

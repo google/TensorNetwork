@@ -17,10 +17,10 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_reshape():
+def test_reshape_tensor():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
-  actual = backend.shape_tuple(backend.reshape(a, np.array((6, 4, 1))))
+  actual = backend.shape_tuple(backend.reshape_tensor(a, np.array((6, 4, 1))))
   assert actual == (6, 4, 1)
 
 
@@ -33,20 +33,20 @@ def test_transpose():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_concat():
+def test_shape_concat():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
-  expected = backend.concat((a, b), axis=1)
+  expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
   np.testing.assert_allclose(expected, actual)
 
 
-def test_shape():
+def test_shape_tensor():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
-  assert isinstance(backend.shape(a), tuple)
-  actual = backend.shape(a)
+  assert isinstance(backend.shape_tensor(a), tuple)
+  actual = backend.shape_tensor(a)
   expected = np.array([2, 3, 4])
   np.testing.assert_allclose(expected, actual)
 
@@ -58,10 +58,10 @@ def test_shape_tuple():
   assert actual == (2, 3, 4)
 
 
-def test_prod():
+def test_shape_prod():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(2 * np.ones([1, 2, 3, 4]))
-  actual = np.array(backend.prod(a))
+  actual = np.array(backend.shape_prod(a))
   assert actual == 2**24
 
 
@@ -228,7 +228,7 @@ def test_eigsh_lanczos_1(dtype):
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
+  v1 = np.reshape_tensor(U1[0], (D))
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
@@ -256,7 +256,7 @@ def test_eigsh_lanczos_2(dtype):
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
+  v1 = np.reshape_tensor(U1[0], (D))
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)

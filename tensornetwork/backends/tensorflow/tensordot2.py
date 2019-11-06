@@ -91,15 +91,15 @@ def tensordot(tf,
 
   def _reshape_if_necessary(tensor: Tensor,
                             new_shape: List[int]) -> Tensor:
-    """Like reshape(), but avoids creating a new tensor if possible.
+    """Like reshape_tensor(), but avoids creating a new tensor if possible.
     Assumes shapes are both fully specified."""
-    cur_shape = tensor.get_shape().as_list()
+    cur_shape = tensor.get_shape_tensor().as_list()
     if (len(new_shape) == len(cur_shape) and
         all(d0 == d1 for d0, d1 in zip(cur_shape, new_shape))):
       return tensor
-    return tf.reshape(tensor, new_shape)
+    return tf.reshape_tensor(tensor, new_shape)
 
-  def _tensordot_reshape(
+  def _tensordot_reshape_tensor(
       a: Tensor, axes: Union[Sequence[int], Tensor], is_right_term=False
   ) -> Tuple[Tensor, Union[List[int], Tensor], Optional[List[int]], bool]:
     """Helper method to perform transpose and reshape for contraction op.
@@ -123,24 +123,24 @@ def tensordot(tf,
       `transpose_needed` indicates whether `reshaped_a` must be transposed,
       or not, when calling `matmul`.
     """
-    if a.get_shape().is_fully_defined() and isinstance(axes, (list, tuple)):
-      shape_a = a.get_shape().as_list()
+    if a.get_shape_tensor().is_fully_defined() and isinstance(axes, (list, tuple)):
+      shape_a = a.get_shape_tensor().as_list()
       # NOTE: This will fail if axes contains any tensors
       axes = [i if i >= 0 else i + len(shape_a) for i in axes]
       free = [i for i in range(len(shape_a)) if i not in axes]
       flipped = _tensordot_should_flip(axes, free)
 
       free_dims = [shape_a[i] for i in free]
-      prod_free = int(np.prod([shape_a[i] for i in free]))
-      prod_axes = int(np.prod([shape_a[i] for i in axes]))
+      prod_free = int(np.shape_prod([shape_a[i] for i in free]))
+      prod_axes = int(np.shape_prod([shape_a[i] for i in axes]))
       perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
       transposed_a = _tranpose_if_necessary(a, perm)
       reshaped_a = _reshape_if_necessary(transposed_a, new_shape)
       transpose_needed = (not flipped) if is_right_term else flipped
       return reshaped_a, free_dims, free_dims, transpose_needed
-    if a.get_shape().ndims is not None and isinstance(axes, (list, tuple)):
-      shape_a = a.get_shape().as_list()
+    if a.get_shape_tensor().ndims is not None and isinstance(axes, (list, tuple)):
+      shape_a = a.get_shape_tensor().as_list()
       axes = [i if i >= 0 else i + len(shape_a) for i in axes]
       free = [i for i in range(len(shape_a)) if i not in axes]
       flipped = _tensordot_should_flip(axes, free)
@@ -151,11 +151,11 @@ def tensordot(tf,
       free_dims_static = free_dims
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
-      shape_a = tf.shape(a)
+      shape_a = tf.shape_tensor(a)
       transposed_a = _tranpose_if_necessary(a, perm)
     else:
       free_dims_static = None
-      shape_a = tf.shape(a)
+      shape_a = tf.shape_tensor(a)
       rank_a = tf.rank(a)
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       axes = tf.where(axes >= 0, axes, axes + rank_a)
@@ -168,26 +168,26 @@ def tensordot(tf,
       #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
       perm = (
-          tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0))
+          tf.shape_concat([axes, free], 0) if flipped else tf.shape_concat([free, axes], 0))
       transposed_a = tf.transpose(a, perm)
 
     free_dims = tf.gather(shape_a, free)
     axes_dims = tf.gather(shape_a, axes)
-    prod_free_dims = tf.reduce_prod(free_dims)
-    prod_axes_dims = tf.reduce_prod(axes_dims)
+    prod_free_dims = tf.reduce_shape_prod(free_dims)
+    prod_axes_dims = tf.reduce_shape_prod(axes_dims)
 
     if flipped:
       new_shape = tf.stack([prod_axes_dims, prod_free_dims])
     else:
       new_shape = tf.stack([prod_free_dims, prod_axes_dims])
-    reshaped_a = tf.reshape(transposed_a, new_shape)
+    reshaped_a = tf.reshape_tensor(transposed_a, new_shape)
     transpose_needed = (not flipped) if is_right_term else flipped
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
   def _tensordot_axes(a: Tensor, axes
                      ) -> Tuple[Any, Any]:
     """Generates two sets of contraction axes for the two tensor arguments."""
-    a_shape = a.get_shape()
+    a_shape = a.get_shape_tensor()
     if isinstance(axes, tf.compat.integral_types):
       if axes < 0:
         raise ValueError("'axes' must be at least 0.")
@@ -230,20 +230,20 @@ def tensordot(tf,
     a = tf.convert_to_tensor(a, name="a")
     b = tf.convert_to_tensor(b, name="b")
     a_axes, b_axes = _tensordot_axes(a, axes)
-    a_reshape, a_free_dims, a_free_dims_static, a_transp = _tensordot_reshape(
+    a_reshape, a_free_dims, a_free_dims_static, a_transp = _tensordot_reshape_tensor(
         a, a_axes)
-    b_reshape, b_free_dims, b_free_dims_static, b_transp = _tensordot_reshape(
+    b_reshape, b_free_dims, b_free_dims_static, b_transp = _tensordot_reshape_tensor(
         b, b_axes, is_right_term=True)
 
     ab_matmul = tf.matmul(
         a_reshape, b_reshape, transpose_a=a_transp, transpose_b=b_transp)
 
     if isinstance(a_free_dims, list) and isinstance(b_free_dims, list):
-      return tf.reshape(ab_matmul, a_free_dims + b_free_dims, name=_name)
+      return tf.reshape_tensor(ab_matmul, a_free_dims + b_free_dims, name=_name)
     a_free_dims = tf.convert_to_tensor(a_free_dims, dtype=tf.dtypes.int32)
     b_free_dims = tf.convert_to_tensor(b_free_dims, dtype=tf.dtypes.int32)
-    product = tf.reshape(
-        ab_matmul, tf.concat([a_free_dims, b_free_dims], 0), name=_name)
+    product = tf.reshape_tensor(
+        ab_matmul, tf.shape_concat([a_free_dims, b_free_dims], 0), name=_name)
     if a_free_dims_static is not None and b_free_dims_static is not None:
-      product.set_shape(a_free_dims_static + b_free_dims_static)
+      product.set_shape_tensor(a_free_dims_static + b_free_dims_static)
     return product
