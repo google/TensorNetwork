@@ -27,7 +27,16 @@ def QuantumConstructor(out_edges, in_edges, ref_nodes=None):
   return QuantumOperator(out_edges, in_edges)
 
 
-def check_hilberts(edges_1, edges_2):
+def check_spaces(edges_1, edges_2):
+  """Check the vector spaces represented by two lists of edges are compatible.
+
+  The number of edges must be the same and the dimensions of each pair of edges
+  must match. Otherwise, an exception is raised.
+
+  Args:
+    edges_1: List of edges representing a many-body Hilbert space.
+    edges_2: List of edges representing a many-body Hilbert space.
+  """
   if len(edges_1) != len(edges_2):
     raise ValueError("Hilbert-space mismatch: Cannot connect {} subsystems "
       "with {} subsystems.".format(len(edges_1), len(edges_2)))
@@ -117,7 +126,7 @@ class QuantumOperator():
     Returns:
       A new QuantumOperator or QuantumScalar representing the result.
     """
-    check_hilberts(self.in_edges, self.out_edges)
+    check_spaces(self.in_edges, self.out_edges)
 
     out_edges_trace = [self.out_edges[i] for i in subsystems_to_trace_out]
     in_edges_trace = [self.in_edges[i] for i in subsystems_to_trace_out]
@@ -138,7 +147,7 @@ class QuantumOperator():
     return QuantumConstructor(out_edges, in_edges, ref_nodes)
 
   def __matmul__(self, other):
-    check_hilberts(self.in_edges, other.out_edges)
+    check_spaces(self.in_edges, other.out_edges)
 
     # copy all nodes involved in the two operators
     net = reachable(get_all_nodes(
