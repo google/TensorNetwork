@@ -334,25 +334,25 @@ class BaseMPS:
 
 class FiniteMPS(BaseMPS):
   """
-  An MPS class for finite systems.
-  `FiniteMPS` keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS.nodes`. `FiniteMPS` has a central site. The position of this 
-  central site is stored in `FiniteMPS.center_position`. This center position 
-  can be shifted using the `FiniteMPS.position` method. 
-  If the state is initialized with `center_positon=0`, 
-  then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the `center_position`
-  to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. 
-  `center_position` is moved from left to right), then all sites that are 
-  visited in between are left in left-orthogonal form. If the shift is a 
-  "left-shift" (i.e. `center_position` is shifted from right to left), 
-  then all sites that are visited in between are left in right-orthogonal form. 
-  For random initial tensors `tensors` and `center_position=0`, 
-  doing one sweep from left to right and a successive sweep from right to left 
-  brings the state into central canonical form. In this state, 
-  all sites to the left of `center_position` are left orthogonal, 
-  and all sites to the right of `center_position` are right orthogonal, 
-  and the state is normalized. Due to efficiency reasons, the state upon 
-  initialization is usually NOT brought into the central canonical form.
+  An MPS class for finite systems. 
+
+  MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
+  attribute.
+  `FiniteMPS` has a central site, also called orthogonality center. 
+  The position of this central site is stored in `FiniteMPS.center_position`, 
+  and it can be be shifted using the `FiniteMPS.position` method. 
+  `FiniteMPS.position` uses QR and RQ methods to shift `center_position`.
+  
+  `FiniteMPS` can be initialized either from a `list` of tensors, or
+  by calling the classmethod `FiniteMPS.random`.
+  
+  By default, `FiniteMPS` is initialized in *canonical* form, i.e.
+  the state is normalized, and all tensors to the left of 
+  `center_position` are left orthogonal, and all tensors 
+  to the right of `center_position` are right orthogonal.
+
+  Note that canonicalization can be computationally relatively 
+  costly and scales as :math: N * D^3.
   """
 
   def __init__(self,
