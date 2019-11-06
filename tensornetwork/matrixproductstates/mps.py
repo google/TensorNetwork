@@ -417,7 +417,6 @@ class FiniteMPS(BaseMPS):
       backend: An optional backend.
     Returns:
       `FiniteMPS`
-
     """
     #use numpy backend for tensor initialization
     be = backend_factory.get_backend('numpy')
