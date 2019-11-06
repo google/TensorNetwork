@@ -64,7 +64,7 @@ class BaseMPS:
       dtype: A numpy dtype.
       backend: An optional backend.
     Returns:
-      BaseMPS
+      `BaseMPS`
     """
     #use numpy backend for tensor initialization.
     #tensors will be converted to backend type during
@@ -359,10 +359,11 @@ class FiniteMPS(BaseMPS):
   By default, `FiniteMPS` is initialized in *canonical* form, i.e.
   the state is normalized, and all tensors to the left of 
   `center_position` are left orthogonal, and all tensors 
-  to the right of `center_position` are right orthogonal.
+  to the right of `center_position` are right orthogonal. The tensor
+  at `FiniteMPS.center_position` is neither left nor right orthogonal.
 
   Note that canonicalization can be computationally relatively 
-  costly and scales as :math: N * D^3.
+  costly and scales :math:`\\propto ND^3`.
   """
 
   def __init__(self,
@@ -406,13 +407,17 @@ class FiniteMPS(BaseMPS):
              dtype: Type[np.number],
              backend: Optional[Text] = None):
     """
-    Initialize a random FiniteMPS. The resulting state
-    is NOT normalized. Its center-position is at 0.
+    Initialize a random `FiniteMPS`. The resulting state
+    is normalized. Its center-position is at 0.
+
     Args:
       d: A list of physical dimensions.
       D: A list of bond dimensions.
       dtype: A numpy dtype.
-      backend:L An optional backend.
+      backend: An optional backend.
+    Returns:
+      `FiniteMPS`
+
     """
     #use numpy backend for tensor initialization
     be = backend_factory.get_backend('numpy')
@@ -426,12 +431,13 @@ class FiniteMPS(BaseMPS):
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
-    Shift FiniteMPS.center_position to `site`.
+    Shift `FiniteMPS.center_position` to `site`.
+
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
     Returns:
-      Tensor: The norm of the tensor at FiniteMPS.center_position
+      `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
     """
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.nodes) or site < 0:
@@ -506,7 +512,7 @@ class FiniteMPS(BaseMPS):
     Args:
       normalize: If `True`, normalize matrices when shifting.
     Returns:
-      Tensor: The norm of the MPS.
+      `Tensor`: The norm of the MPS.
     """
     pos = self.center_position
     self.position(0, normalize=False)
@@ -518,11 +524,11 @@ class FiniteMPS(BaseMPS):
     Check orthonormality of tensor at site `site`.
 
     Args:
-      which: if 'l' or 'left': check left orthogonality
-             if 'r' or 'right': check right orthogonality
+      which: * if `'l'` or `'left'`: check left orthogonality
+             * if `'r`' or `'right'`: check right orthogonality
       site:  The site of the tensor.
     Returns:
-      scalar Tensor: The L2 norm of the deviation from identity.
+      scalar `Tensor`: The L2 norm of the deviation from identity.
     Raises:
       ValueError: If which is different from 'l','left', 'r' or 'right'.
     """
@@ -566,10 +572,11 @@ class FiniteMPS(BaseMPS):
     This returns a dict `left_envs` mapping sites (int) to Tensors.
     `left_envs[site]` is the left-reduced density matrix to the left of
     site `site`.
+
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      dict maping int to Tensor: The left-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The left-reduced density matrices 
         at each  site in `sites`.
 
     """
@@ -632,12 +639,12 @@ class FiniteMPS(BaseMPS):
     This returns a dict `right_envs` mapping sites (int) to Tensors.
     `right_envs[site]` is the right-reduced density matrix to the right of
     site `site`.
+
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      dict maping int to Tensors: The right-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The right-reduced density matrices 
         at each  site in `sites`.
-
     """
 
     n1 = min(sites)
@@ -702,13 +709,16 @@ class FiniteMPS(BaseMPS):
     """
     Apply a two-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using `FiniteMPS.position`
+    the user can restore it using `FiniteMPS.position`.
 
     Args:
       gate (Tensor): a two-body gate
       site1, site2 (int, int): the sites where the gate should be applied
       max_singular_values (int): The maximum number of singular values to keep.
       max_truncation_err (float): The maximum allowed truncation error.
+    Returns:
+      scalar `Tensor`: the truncated weight of the truncation.
+    
     """
     if len(gate.shape) != 4:
       raise ValueError('rank of gate is {} but has to be 4'.format(
