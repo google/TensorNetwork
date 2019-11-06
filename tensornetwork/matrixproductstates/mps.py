@@ -53,16 +53,18 @@ class BaseMPS:
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Text] = None):
+             backend: Optional[Text] = None) -> "BaseMPS":
     """
-    Initialize a random BaseMPS. The resulting state
+    Initialize a random BaseMPS of length `N=len(d)`. The resulting state
     is NOT normalized. 
-    Args:
-      d: A list of physical dimensions.
-      D: A list of bond dimensions.
-      dtype: A numpy dtype.
-      backend:L An optional backend.
 
+    Args:
+      d: A list of `N` physical dimensions.
+      D: A list of `N` bond dimensions.
+      dtype: A numpy dtype.
+      backend: An optional backend.
+    Returns:
+      BaseMPS
     """
     #use numpy backend for tensor initialization.
     #tensors will be converted to backend type during
@@ -95,14 +97,14 @@ class BaseMPS:
   @property
   def bond_dimensions(self) -> List:
     """
-    Return a list of bond dimensions of FiniteMPS
+    A list of bond dimensions of `BaseMPS`
     """
     return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
 
   @property
   def physical_dimensions(self) -> List:
     """
-    Return a list of physical Hilbert-space dimensions of FiniteMPS
+    A list of physical Hilbert-space dimensions of `BaseMPS`
     """
 
     return [node.shape[1] for node in self.nodes]
@@ -114,20 +116,20 @@ class BaseMPS:
     raise NotImplementedError()
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Tensor) -> Tensor:
+                              matrix: Tensor) -> Node:
     """
     Compute the action of the MPS transfer-operator at site `site`.
+
     Args:
-      site (int): a site of the MPS
-      direction (str or int): if 1, 'l' or 'left': compute the left-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-                              if -1, 'r' or 'right': compute the right-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-      matrix (Tensor): A rank-2 tensor or matrix.
+      site: a site of the MPS
+      direction: 
+        * if `1, 'l'` or `'left'`: compute the left-action 
+          of the MPS transfer-operator at `site` on the input `matrix`.
+        * if `-1, 'r'` or `'right'`: compute the right-action 
+          of the MPS transfer-operator at `site` on the input `matrix`
+      matrix: A rank-2 tensor or matrix.
     Returns:
-      Tensor: the result of applying the MPS transfer-operator to `matrix`
+      `Node`: the result of applying the MPS transfer-operator to `matrix`
     """
     mat = Node(matrix, backend=self.backend.name)
     node = Node(self.nodes[site], backend=self.backend.name)
@@ -148,11 +150,13 @@ class BaseMPS:
                              sites: Sequence[int]) -> List:
     """
     Measure the expectation value of local operators `ops` site `sites`.
+
     Args:
-      ops: list Tensors of rank 2; the local operators to be measured
-      sites: sites where `ops` acts.
+      ops: A list Tensors of rank 2; the local operators to be measured.
+      sites: Sites where `ops` act.
+
     Returns:
-      List: measurements <op[n]> for n in `sites`
+      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle` for n in `sites`
     Raises:
       ValueError if `len(ops) != len(sites)`
     """
@@ -181,14 +185,20 @@ class BaseMPS:
                                   op2: Union[BaseNode, Tensor], site1: int,
                                   sites2: Sequence[int]) -> List:
     """
-    Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
-    `sites2`. if `site1 == s`, op2 will be applied first
+    Compute the correlator 
+    :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
+    between `site1` and all sites `s` in `sites2`. if `s==site1`, 
+    `op2[s]` will be applied first
+
     Args:
-      op1, op2: Tensors of rank 2; the local operators to be measured
-      site1: the site where `op1`  acts
-      sites2: sites where `op2` acts.
+      op1: Tensor of rank 2; the local operator at `site1`
+      op2: List of tensors of rank 2; the local operators 
+        at `sites2`.
+      site1: The site where `op1`  acts
+      sites2: Sites where operators `op2` act.
     Returns:
-      List: correlator <op1, op2>
+      List: Correlator :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
+        for `s` :math:`\\in` `sites2`.
     Raises:
       ValueError if `site1` is out of range
     """
@@ -506,6 +516,7 @@ class FiniteMPS(BaseMPS):
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """
     Check orthonormality of tensor at site `site`.
+
     Args:
       which: if 'l' or 'left': check left orthogonality
              if 'r' or 'right': check right orthogonality
@@ -691,7 +702,8 @@ class FiniteMPS(BaseMPS):
     """
     Apply a two-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using MPS.position
+    the user can restore it using `FiniteMPS.position`
+
     Args:
       gate (Tensor): a two-body gate
       site1, site2 (int, int): the sites where the gate should be applied
@@ -753,10 +765,11 @@ class FiniteMPS(BaseMPS):
     """
     Apply a one-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using MPS.position
+    the user can restore it using `FiniteMPS.position`
+
     Args:
-      gate (Tensor): a one-body gate
-      site (int): the site where the gate should be applied
+      gate: a one-body gate
+      site: the site where the gate should be applied
       
     """
     if len(gate.shape) != 2:
