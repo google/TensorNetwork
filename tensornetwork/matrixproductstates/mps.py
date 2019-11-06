@@ -116,7 +116,7 @@ class BaseMPS:
     raise NotImplementedError()
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Tensor) -> Node:
+                              matrix: Tensor) -> BaseNode:
     """
     Compute the action of the MPS transfer-operator at site `site`.
 
