@@ -287,22 +287,23 @@ def test_multiply(a, b, expected):
 def find(which, vector):
   if which == 'LM':
     index = np.argmax(np.abs(vector))
-    return np.abs(vector[index]), index
+    val = np.abs(vector[index])
   if which == 'SM':
     index = np.argmin(np.abs(vector))
-    return np.abs(vector[index]), index
+    val = np.abs(vector[index])
   if which == 'LR':
     index = np.argmax(np.real(vector))
-    return np.real(vector[index]), index
+    val = np.real(vector[index])
   if which == 'SR':
     index = np.argmin(np.real(vector))
-    return np.real(vector[index]), index
+    val = np.real(vector[index])
   if which == 'LI':
     index = np.argmax(np.imag(vector))
-    return np.imag(vector[index]), index
+    val = np.imag(vector[index])
   if which == 'SI':
     index = np.argmin(np.imag(vector))
-    return np.imag(vector[index]), index
+    val = np.imag(vector[index])
+  return val, index
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -323,7 +324,7 @@ def test_eigs(dtype, which):
   val, index = find(which, eta2)
   v2 = U2[:, index]
   v2 = v2 / sum(v2)
-  v1 = np.reshape(U1, (D))
+  v1 = np.reshape(U1[0], (D))
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)

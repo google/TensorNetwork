@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#pylint: disable=line-too-long
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List, Text
 import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
@@ -283,7 +283,7 @@ class BaseBackend:
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+           maxiter: Optional[int] = None) -> List[Tensor]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a 
@@ -313,7 +313,8 @@ class BaseBackend:
        `Tensor`: An array of `numeig` lowest eigenvalues
        `Tensor`: An array of `numeig` lowest eigenvectors
     """
-    raise NotImplementedError()
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
 
   def eigsh_lanczos(self,
                     A: Callable,

@@ -15,6 +15,7 @@
 import functools
 import operator
 from tensornetwork.backends import base_backend
+#pylint: disable=line-too-long
 from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
 
@@ -216,7 +217,7 @@ class ShellBackend(base_backend.BaseBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
 
     if (initial_state is not None) and hasattr(A, 'shape'):
       if initial_state.shape != A.shape[1]:

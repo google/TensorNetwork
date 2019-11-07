@@ -139,11 +139,10 @@ class NumPyBackend(base_backend.BaseBackend):
            A: Callable,
            initial_state: Optional[Tensor] = None,
            ncv: Optional[int] = 200,
-           numeig: Optional[int] = 1,
+           numeig: Optional[int] = 6,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None
-          ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a 
@@ -162,19 +161,23 @@ class NumPyBackend(base_backend.BaseBackend):
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
-      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI' | 'SI']
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI']
         Which `k` eigenvectors and eigenvalues to find:
             'LM' : largest magnitude
             'SM' : smallest magnitude
             'LR' : largest real part
             'SR' : smallest real part
             'LI' : largest imaginary part
-            'SI' : smallest imaginary part
       maxiter: The maximum number of iterations.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
        `np.ndarray`: An array of `numeig` lowest eigenvectors
     """
+    if which == 'SI':
+      raise ValueError('which = SI is currently not supported.')
+    if which == 'LI':
+      raise ValueError('which = LI is currently not supported.')
+
     if (initial_state is not None) and hasattr(A, 'shape'):
       if initial_state.shape != A.shape[1]:
         raise ValueError(
@@ -202,7 +205,7 @@ class NumPyBackend(base_backend.BaseBackend):
         dtype=initial_state.dtype,
         shape=(initial_state.shape[0], initial_state.shape[0]),
         matvec=A)
-    return scipy.sparse.linalg.eigs(
+    eta, U = scipy.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -210,6 +213,7 @@ class NumPyBackend(base_backend.BaseBackend):
         ncv=ncv,
         tol=tol,
         maxiter=maxiter)
+    return list(eta), [U[:, n] for n in range(numeig)]
 
   def eigsh_lanczos(self,
                     A: Callable,

@@ -79,7 +79,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
     raise NotImplementedError()
 
   def eigsh_lanczos(self,
