@@ -21,17 +21,31 @@ the vectors and operators are represented by tensor networks.
 """
 
 from tensornetwork.network_components import Edge, connect
-from tensornetwork.network_operations import reachable, get_all_nodes, copy, get_subgraph_dangling
+from tensornetwork.network_operations import reachable, get_all_nodes, copy
+from tensornetwork.network_operations import get_subgraph_dangling
 
 
-def QuantumConstructor(out_edges, in_edges, ref_nodes=None):
+def quantum_constructor(out_edges, in_edges, ref_nodes=None):
+  """Constructs an appropriately specialized QuOperator or QuScalar.
+
+  If there are no edges, creates a QuScalar. If the are only output (input)
+  edges, construct a QuVector (QuAdjointVector). Otherwise construct a
+  QuOperator.
+
+  Args:
+    out_edges: output edges.
+    in_edges: in edges.
+    ref_nodes: reference nodes for the tensor network (in case scalar).
+  Returns:
+    The object.
+  """
   if len(out_edges) == 0 and len(in_edges) == 0:
-    return QuantumScalar(ref_nodes)
+    return QuScalar(ref_nodes)
   elif len(out_edges) == 0:
-    return QuantumBra(in_edges)
+    return QuAdjointVector(in_edges)
   elif len(in_edges) == 0:
-    return QuantumKet(out_edges)
-  return QuantumOperator(out_edges, in_edges)
+    return QuVector(out_edges)
+  return QuOperator(out_edges, in_edges)
 
 
 def check_spaces(edges_1, edges_2):
@@ -46,18 +60,21 @@ def check_spaces(edges_1, edges_2):
   """
   if len(edges_1) != len(edges_2):
     raise ValueError("Hilbert-space mismatch: Cannot connect {} subsystems "
-      "with {} subsystems.".format(len(edges_1), len(edges_2)))
+                     "with {} subsystems.".format(len(edges_1), len(edges_2)))
 
   for (i, (e1, e2)) in enumerate(zip(edges_1, edges_2)):
     if e1.dimension != e2.dimension:
       raise ValueError("Hilbert-space mismatch on subsystems {}: Input "
-        "dimension {} != output dimension {}.".format(
-          i, e1.dimension, e2.dimension))
+                       "dimension {} != output dimension {}.".format(
+                           i, e1.dimension, e2.dimension))
 
 
-class QuantumScalar():
+class QuScalar():
   def __init__(self, ref_nodes):
-    self.ref_nodes = ref_nodes
+    if not ref_nodes:
+      raise ValueError("At least one reference node is required for a "
+                       "QuScalar. None provided!")
+    self.ref_nodes = set(ref_nodes)
     self.check_scalar()
 
   @property
@@ -69,16 +86,20 @@ class QuantumScalar():
   def check_scalar(self):
     """Check that the defining network is scalar valued.
     """
-    dangling_edges = get_subgraph_dangling(self.nodes())
+    dangling_edges = get_subgraph_dangling(self.nodes)
     return len(dangling_edges) == 0
 
 
-class QuantumOperator():
+class QuOperator():
   """Represents an operator via a tensor network.
 
   Can be used to do simple linear algebra with tensor networks.
   """
   def __init__(self, out_edges, in_edges):
+    # TODO: Decide whether the user must also supply all nodes involved.
+    #       More flexible if not (e.g. a QuOperator can represent a vector
+    #       of operators if there is an extra dangling Edge), better error
+    #       checking if so.
     self.out_edges = list(out_edges)
     self.in_edges = list(in_edges)
 
@@ -99,13 +120,13 @@ class QuantumOperator():
   def adjoint(self):
     """The adjoint of the operator.
 
-    This creates a new `QuantumOperator` with complex-conjugate copies of all
+    This creates a new `QuOperator` with complex-conjugate copies of all
     tensors in the network and with the input and output edges switched.
     """
     _, edge_dict = copy(self.nodes, True)
     out_edges = [edge_dict[e] for e in self.in_edges]
     in_edges = [edge_dict[e] for e in self.out_edges]
-    return QuantumConstructor(out_edges, in_edges)
+    return quantum_constructor(out_edges, in_edges)
 
   def trace(self):
     """The trace of the operator.
@@ -121,7 +142,7 @@ class QuantumOperator():
   def partial_trace(self, subsystems_to_trace_out):
     """The partial trace of the operator.
 
-    Subsystems to trace out are supplied as indicies, so that dangling edges
+    Subsystems to trace out are supplied as indices, so that dangling edges
     are connected to eachother as:
       `out_edges[i] ^ in_edges[i] for i in subsystems_to_trace_out`
 
@@ -131,7 +152,7 @@ class QuantumOperator():
     Args:
       subsystems_to_trace_out: Indices of subsystems to trace out.
     Returns:
-      A new QuantumOperator or QuantumScalar representing the result.
+      A new QuOperator or QuScalar representing the result.
     """
     check_spaces(self.in_edges, self.out_edges)
 
@@ -146,12 +167,12 @@ class QuantumOperator():
     out_edges_trace = set(out_edges_trace)
     in_edges_trace = set(in_edges_trace)
     out_edges = [edge_dict[e] for e in self.out_edges
-      if e not in out_edges_trace]
+                 if e not in out_edges_trace]
     in_edges = [edge_dict[e] for e in self.in_edges
-      if e not in in_edges_trace]
+                if e not in in_edges_trace]
     ref_nodes = [n for _, n in nodes_dict.items()]
 
-    return QuantumConstructor(out_edges, in_edges, ref_nodes)
+    return quantum_constructor(out_edges, in_edges, ref_nodes)
 
   def __matmul__(self, other):
     check_spaces(self.in_edges, other.out_edges)
@@ -169,7 +190,7 @@ class QuantumOperator():
     in_edges = [edge_dict[e] for e in other.in_edges]
     out_edges = [edge_dict[e] for e in self.out_edges]
 
-    return QuantumConstructor(out_edges, in_edges)
+    return quantum_constructor(out_edges, in_edges, ref_nodes)
 
   def tensor(self, other):
     """Tensor product with another operator.
@@ -182,13 +203,13 @@ class QuantumOperator():
     return QuantumConstructor(out_edges, in_edges)
 
 
-class QuantumIdentity(QuantumOperator):
+class QuIdentity(QuOperator):
   def __init__(self, num_subsystems):
     edges = [Edge(None, None) for _ in range(num_subsystems)]
     super().__init__(edges, edges)
 
 
-class QuantumKet(QuantumOperator):
+class QuVector(QuOperator):
   def __init__(self, subsystem_edges):
     super().__init__(subsystem_edges, [])
 
@@ -204,7 +225,7 @@ class QuantumKet(QuantumOperator):
     return rho.partial_trace(subsystems_to_trace_out)
 
 
-class QuantumBra(QuantumOperator):
+class QuAdjointVector(QuOperator):
   def __init__(self, subsystem_edges):
     super().__init__([], subsystem_edges)
 
