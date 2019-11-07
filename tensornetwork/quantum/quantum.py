@@ -89,6 +89,21 @@ class QuScalar():
     dangling_edges = get_subgraph_dangling(self.nodes)
     return len(dangling_edges) == 0
 
+  def trace(self):
+    return self
+
+  def __mul__(self, other):
+    if isinstance(other, QuScalar):
+      nodes_dict1, _ = copy(self.nodes, False)
+      nodes_dict2, _ = copy(other.nodes, False)
+      ref_nodes = ([n for _, n in nodes_dict1.items()] +
+                  [n for _, n in nodes_dict2.items()])
+      return QuScalar(ref_nodes)
+    elif isinstance(other, QuOperator):
+      raise NotImplementedError("Not yet sure how best to handle scalars... "
+                                "Perhaps they should be folded into "
+                                "QuOperator.")
+
 
 class QuOperator():
   """Represents an operator via a tensor network.
