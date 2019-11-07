@@ -26,18 +26,59 @@ Tensor = Any
 
 
 class BaseMPS:
+  """
+  The base class for MPS. All MPS should be derived from BaseMPS
+  `BaseMPS` is an infinite matrix product state with a 
+  finite unitcell.
+
+  Important attributes:
+  * `BaseMPS.nodes`: stores the tensors in a list of `Node` objects
+  * `BaseMPS.center_position`: the location of the orthogonality site
+  * `BaseMPS.connector_matrix`: a rank-2 `Tensor` stored in a `Node`.
+    `BaseMPS.connector_matrix` connects unit cells back to themselves.
+     To stack different unit cells, the `BaseMPS.connector_matrix` is
+     absorbed into the rightmost (by convention) mps tensor prior
+     to stacking.
+
+  To obtain a sequence of `Node` objects `[node_1,...,node_N]`
+  which can be arbitrarily stacked, i.e.
+  ```python 
+  stacked_nodes `[node_1,...,node_N, node_1, ..., node_N,...]`
+  ```
+  use the `BaseMPS.get_node` function. This function automatically
+  absorbs `BaseNode.connector_matrix` into the correct `Node` object
+  to ensure that `Node`s (i.e. the mps tensors) can be consistently
+  stacked.
+
+  The orthogonality center can be be shifted using the 
+  `BaseMPS.position` method, which uses uses QR and RQ methods to shift 
+  `center_position`.
+
+  
+  """
 
   def __init__(self,
                tensors: List[Union[BaseNode, Tensor]],
+               center_position: int,
+               connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
                backend: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPS.
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
+      center_position: The initial position of the center site.
+      connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
+        different unitcells. A value `None` is equivalent to an identity
+        `connector_matrix`.
       backend: The name of the backend that should be used to perform 
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
+    if center_position < 0 or center_position >= len(tensors):
+      raise ValueError(
+          'center_position = {} not between 0 <= center_position < {}'.format(
+              center_position, len(tensors)))
+
     # we're no longer connecting MPS nodes because it's barely needed
     # the dtype is deduced from the tensor object.
     self.nodes = [
@@ -45,36 +86,113 @@ class BaseMPS:
         for n in range(len(tensors))
     ]
 
+    self.connector_matrix = Node(
+        connector_matrix,
+        backend=backend) if connector_matrix is not None else connector_matrix
+    self.center_position = center_position
+
   def __len__(self):
     return len(self.nodes)
 
-  @classmethod
-  def random(cls,
-             d: List[int],
-             D: List[int],
-             dtype: Type[np.number],
-             backend: Optional[Text] = None) -> "BaseMPS":
+  def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
-    Initialize a random BaseMPS of length `N=len(d)`. The resulting state
-    is NOT normalized. 
+    Shift `FiniteMPS.center_position` to `site`.
 
     Args:
-      d: A list of `N` physical dimensions.
-      D: A list of `N` bond dimensions.
-      dtype: A numpy dtype.
-      backend: An optional backend.
+      site: The site to which FiniteMPS.center_position should be shifted
+      normalize: If `True`, normalize matrices when shifting.
     Returns:
-      `BaseMPS`
+      `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
     """
-    #use numpy backend for tensor initialization.
-    #tensors will be converted to backend type during
-    #call to __init__
-    be = backend_factory.get_backend('numpy')
-    tensors = [
-        be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
-    ]
-    cls(tensors=tensors, backend=backend)
-    return cls
+    #`site` has to be between 0 and len(mps) - 1
+    if site >= len(self.nodes) or site < 0:
+      raise ValueError('site = {} not between values'
+                       ' 0 < site < N = {}'.format(site, len(self)))
+    #nothing to do
+    if site == self.center_position:
+      Z = self.backend.norm(self.nodes[self.center_position].tensor)
+      if normalize:
+        self.nodes[self.center_position].tensor /= Z
+      return Z
+
+    #shift center_position to the right using QR decomposition
+    if site > self.center_position:
+      n = self.center_position
+      for n in range(self.center_position, site):
+        Q, R = split_node_qr(
+            self.nodes[n],
+            left_edges=[self.nodes[n][0], self.nodes[n][1]],
+            right_edges=[self.nodes[n][2]],
+            left_name=self.nodes[n].name)
+        Q[2] | R[0]  #break the edge between Q and R
+        order = [R[0], self.nodes[n + 1][1], self.nodes[n + 1][2]]
+        R[1] ^ self.nodes[n + 1][0]  #connect R to the right node
+        self.nodes[n] = Q  #Q is a left-isometric tensor of rank 3
+        self.nodes[n + 1] = contract(R[1], name=self.nodes[n + 1].name)
+        self.nodes[n + 1].reorder_edges(order)
+        Z = norm(self.nodes[n + 1])
+
+        # for an mps with > O(10) sites one needs to normalize to avoid
+        # over or underflow errors; this takes care of the normalization
+        if normalize:
+          self.nodes[n + 1].tensor /= Z
+
+      self.center_position = site
+
+    #shift center_position to the left using RQ decomposition
+    elif site < self.center_position:
+      for n in reversed(range(site + 1, self.center_position + 1)):
+
+        R, Q = split_node_rq(
+            self.nodes[n],
+            left_edges=[self.nodes[n][0]],
+            right_edges=[self.nodes[n][1], self.nodes[n][2]],
+            right_name=self.nodes[n].name)
+        #print(self.nodes[n].shape, R.shape, Q.shape)
+        R[1] | Q[0]  #break the edge between R and Q
+        R[0] ^ self.nodes[n - 1][2]  #connect R to the left node
+        order = [self.nodes[n - 1][0], self.nodes[n - 1][1], R[1]]
+
+        # for an mps with > O(10) sites one needs to normalize to avoid
+        # over or underflow errors; this takes care of the normalization
+        self.nodes[n] = Q  #Q is a right-isometric tensor of rank 3
+        self.nodes[n - 1] = contract(R[0], name=self.nodes[n - 1].name)
+        self.nodes[n - 1].reorder_edges(order)
+        Z = norm(self.nodes[n - 1])
+        if normalize:
+          self.nodes[n - 1].tensor /= Z
+
+      self.center_position = site
+    #return the norm of the last R tensor (useful for checks)
+    return Z
+
+  # @classmethod
+  # def random(cls,
+  #            d: List[int],
+  #            D: List[int],
+  #            dtype: Type[np.number],
+  #            backend: Optional[Text] = None) -> "BaseMPS":
+  #   """
+  #   Initialize a random BaseMPS of length `N=len(d)`. The resulting state
+  #   is NOT normalized.
+
+  #   Args:
+  #     d: A list of `N` physical dimensions.
+  #     D: A list of `N` bond dimensions.
+  #     dtype: A numpy dtype.
+  #     backend: An optional backend.
+  #   Returns:
+  #     `BaseMPS`
+  #   """
+  #   #use numpy backend for tensor initialization.
+  #   #tensors will be converted to backend type during
+  #   #call to __init__
+  #   be = backend_factory.get_backend('numpy')
+  #   tensors = [
+  #       be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
+  #   ]
+  #   cls(tensors=tensors, backend=backend)
+  #   return cls
 
   @property
   def backend(self):
@@ -341,6 +459,101 @@ class BaseMPS:
           L = self.apply_transfer_operator(n % N, 'left', L)
     return c
 
+  def apply_two_site_gate(self,
+                          gate: Union[BaseNode, Tensor],
+                          site1: int,
+                          site2: int,
+                          max_singular_values: Optional[int] = None,
+                          max_truncation_err: Optional[float] = None) -> Tensor:
+    """
+    Apply a two-site gate to an MPS. This routine will in general 
+    destroy any canonical form of the state. If a canonical form is needed, 
+    the user can restore it using `FiniteMPS.position`.
+
+    Args:
+      gate (Tensor): a two-body gate
+      site1, site2 (int, int): the sites where the gate should be applied
+      max_singular_values (int): The maximum number of singular values to keep.
+      max_truncation_err (float): The maximum allowed truncation error.
+    Returns:
+      scalar `Tensor`: the truncated weight of the truncation.
+    
+    """
+    if len(gate.shape) != 4:
+      raise ValueError('rank of gate is {} but has to be 4'.format(
+          len(gate.shape)))
+    if site1 < 0 or site1 >= len(self) - 1:
+      raise ValueError(
+          'site1 = {} is not between 0 <= site < N - 1 = {}'.format(
+              site1, len(self)))
+    if site2 < 1 or site2 >= len(self):
+      raise ValueError('site2 = {} is not between 1 <= site < N = {}'.format(
+          site2, len(self)))
+    if site2 <= site1:
+      raise ValueError('site2 = {} has to be larger than site2 = {}'.format(
+          site2, site1))
+    if site2 != site1 + 1:
+      raise ValueError(
+          'site2 ={} != site1={}. Only nearest neighbor gates are currently '
+          'supported'.format(site2, site1))
+
+    if (max_singular_values or
+        max_truncation_err) and self.center_position not in (site1, site2):
+      raise ValueError(
+          'center_position = {}, but gate is applied at sites {}, {}. '
+          'Truncation should only be done if the gate '
+          'is applied at the center position of the MPS'.format(
+              self.center_position, site1, site2))
+
+    gate_node = Node(gate, backend=self.backend.name)
+
+    self.nodes[site1][2] ^ self.nodes[site2][0]
+    gate_node[2] ^ self.nodes[site1][1]
+    gate_node[3] ^ self.nodes[site2][1]
+    left_edges = [self.nodes[site1][0], gate_node[0]]
+    right_edges = [gate_node[1], self.nodes[site2][2]]
+    result = self.nodes[site1] @ self.nodes[site2] @ gate_node
+    U, S, V, tw = split_node_full_svd(
+        result,
+        left_edges=left_edges,
+        right_edges=right_edges,
+        max_singular_values=max_singular_values,
+        max_truncation_err=max_truncation_err,
+        left_name=self.nodes[site1].name,
+        right_name=self.nodes[site2].name)
+    V.reorder_edges([S[1]] + right_edges)
+    left_edges = left_edges + [S[1]]
+    self.nodes[site1] = contract_between(
+        U, S, name=U.name).reorder_edges(left_edges)
+    self.nodes[site2] = V
+    self.nodes[site1][2] | self.nodes[site2][0]
+    return tw
+
+  def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
+                          site: int) -> None:
+    """
+    Apply a one-site gate to an MPS. This routine will in general 
+    destroy any canonical form of the state. If a canonical form is needed, 
+    the user can restore it using `FiniteMPS.position`
+
+    Args:
+      gate: a one-body gate
+      site: the site where the gate should be applied
+      
+    """
+    if len(gate.shape) != 2:
+      raise ValueError('rank of gate is {} but has to be 2'.format(
+          len(gate.shape)))
+    if site < 0 or site >= len(self):
+      raise ValueError('site = {} is not between 0 <= site < N={}'.format(
+          site, len(self)))
+    gate_node = Node(gate, backend=self.backend.name)
+    gate_node[1] ^ self.nodes[site][1]
+    edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
+    self.nodes[site] = contract_between(
+        gate_node, self.nodes[site],
+        name=self.nodes[site].name).reorder_edges(edge_order)
+
 
 class FiniteMPS(BaseMPS):
   """
@@ -367,7 +580,7 @@ class FiniteMPS(BaseMPS):
   """
 
   def __init__(self,
-               tensors: List[Tensor],
+               tensors: List[Union[BaseNode, Tensor]],
                center_position: int,
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
@@ -381,14 +594,13 @@ class FiniteMPS(BaseMPS):
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
-    super().__init__(tensors, backend)
-    if not canonicalize:
-      self.center_position = center_position
-    else:
-      if center_position < 0 or center_position >= len(tensors):
-        raise ValueError(
-            'center_position = {} not between 0 <= center_position < {}'.format(
-                center_position, len(tensors)))
+
+    super().__init__(
+        tensors=tensors,
+        center_position=center_position,
+        connector_matrix=None,
+        backend=backend)
+    if canonicalize:
       if center_position == 0:
         self.center_position = len(self) - 1
         self.position(center_position)
@@ -427,78 +639,6 @@ class FiniteMPS(BaseMPS):
     D = [1] + D + [1]
     tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
     return cls(tensors=tensors, center_position=0, backend=backend)
-
-  def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
-    """
-    Shift `FiniteMPS.center_position` to `site`.
-
-    Args:
-      site: The site to which FiniteMPS.center_position should be shifted
-      normalize: If `True`, normalize matrices when shifting.
-    Returns:
-      `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
-    """
-    #`site` has to be between 0 and len(mps) - 1
-    if site >= len(self.nodes) or site < 0:
-      raise ValueError('site = {} not between values'
-                       ' 0 < site < N = {}'.format(site, len(self)))
-    #nothing to do
-    if site == self.center_position:
-      Z = self.backend.norm(self.nodes[self.center_position].tensor)
-      if normalize:
-        self.nodes[self.center_position].tensor /= Z
-      return Z
-
-    #shift center_position to the right using QR decomposition
-    if site > self.center_position:
-      n = self.center_position
-      for n in range(self.center_position, site):
-        Q, R = split_node_qr(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0], self.nodes[n][1]],
-            right_edges=[self.nodes[n][2]],
-            left_name=self.nodes[n].name)
-        Q[2] | R[0]  #break the edge between Q and R
-        order = [R[0], self.nodes[n + 1][1], self.nodes[n + 1][2]]
-        R[1] ^ self.nodes[n + 1][0]  #connect R to the right node
-        self.nodes[n] = Q  #Q is a left-isometric tensor of rank 3
-        self.nodes[n + 1] = contract(R[1], name=self.nodes[n + 1].name)
-        self.nodes[n + 1].reorder_edges(order)
-        Z = norm(self.nodes[n + 1])
-
-        # for an mps with > O(10) sites one needs to normalize to avoid
-        # over or underflow errors; this takes care of the normalization
-        if normalize:
-          self.nodes[n + 1].tensor /= Z
-
-      self.center_position = site
-
-    #shift center_position to the left using RQ decomposition
-    elif site < self.center_position:
-      for n in reversed(range(site + 1, self.center_position + 1)):
-
-        R, Q = split_node_rq(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0]],
-            right_edges=[self.nodes[n][1], self.nodes[n][2]],
-            right_name=self.nodes[n].name)
-        #print(self.nodes[n].shape, R.shape, Q.shape)
-        R[1] | Q[0]  #break the edge between R and Q
-        R[0] ^ self.nodes[n - 1][2]  #connect R to the left node
-        order = [self.nodes[n - 1][0], self.nodes[n - 1][1], R[1]]
-
-        # for an mps with > O(10) sites one needs to normalize to avoid
-        # over or underflow errors; this takes care of the normalization
-        self.nodes[n] = Q  #Q is a right-isometric tensor of rank 3
-        self.nodes[n - 1] = contract(R[0], name=self.nodes[n - 1].name)
-        self.nodes[n - 1].reorder_edges(order)
-        Z = norm(self.nodes[n - 1])
-        if normalize:
-          self.nodes[n - 1].tensor /= Z
-
-      self.center_position = site
-    #return the norm of the last R tensor (useful for checks)
-    return Z
 
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
     """
@@ -698,101 +838,6 @@ class FiniteMPS(BaseMPS):
           right_envs[site - 1] = right_env
 
     return right_envs
-
-  def apply_two_site_gate(self,
-                          gate: Union[BaseNode, Tensor],
-                          site1: int,
-                          site2: int,
-                          max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None) -> Tensor:
-    """
-    Apply a two-site gate to an MPS. This routine will in general 
-    destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using `FiniteMPS.position`.
-
-    Args:
-      gate (Tensor): a two-body gate
-      site1, site2 (int, int): the sites where the gate should be applied
-      max_singular_values (int): The maximum number of singular values to keep.
-      max_truncation_err (float): The maximum allowed truncation error.
-    Returns:
-      scalar `Tensor`: the truncated weight of the truncation.
-    
-    """
-    if len(gate.shape) != 4:
-      raise ValueError('rank of gate is {} but has to be 4'.format(
-          len(gate.shape)))
-    if site1 < 0 or site1 >= len(self) - 1:
-      raise ValueError(
-          'site1 = {} is not between 0 <= site < N - 1 = {}'.format(
-              site1, len(self)))
-    if site2 < 1 or site2 >= len(self):
-      raise ValueError('site2 = {} is not between 1 <= site < N = {}'.format(
-          site2, len(self)))
-    if site2 <= site1:
-      raise ValueError('site2 = {} has to be larger than site2 = {}'.format(
-          site2, site1))
-    if site2 != site1 + 1:
-      raise ValueError(
-          'site2 ={} != site1={}. Only nearest neighbor gates are currently '
-          'supported'.format(site2, site1))
-
-    if (max_singular_values or
-        max_truncation_err) and self.center_position not in (site1, site2):
-      raise ValueError(
-          'center_position = {}, but gate is applied at sites {}, {}. '
-          'Truncation should only be done if the gate '
-          'is applied at the center position of the MPS'.format(
-              self.center_position, site1, site2))
-
-    gate_node = Node(gate, backend=self.backend.name)
-
-    self.nodes[site1][2] ^ self.nodes[site2][0]
-    gate_node[2] ^ self.nodes[site1][1]
-    gate_node[3] ^ self.nodes[site2][1]
-    left_edges = [self.nodes[site1][0], gate_node[0]]
-    right_edges = [gate_node[1], self.nodes[site2][2]]
-    result = self.nodes[site1] @ self.nodes[site2] @ gate_node
-    U, S, V, tw = split_node_full_svd(
-        result,
-        left_edges=left_edges,
-        right_edges=right_edges,
-        max_singular_values=max_singular_values,
-        max_truncation_err=max_truncation_err,
-        left_name=self.nodes[site1].name,
-        right_name=self.nodes[site2].name)
-    V.reorder_edges([S[1]] + right_edges)
-    left_edges = left_edges + [S[1]]
-    self.nodes[site1] = contract_between(
-        U, S, name=U.name).reorder_edges(left_edges)
-    self.nodes[site2] = V
-    self.nodes[site1][2] | self.nodes[site2][0]
-    return tw
-
-  def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
-                          site: int) -> None:
-    """
-    Apply a one-site gate to an MPS. This routine will in general 
-    destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using `FiniteMPS.position`
-
-    Args:
-      gate: a one-body gate
-      site: the site where the gate should be applied
-      
-    """
-    if len(gate.shape) != 2:
-      raise ValueError('rank of gate is {} but has to be 2'.format(
-          len(gate.shape)))
-    if site < 0 or site >= len(self):
-      raise ValueError('site = {} is not between 0 <= site < N={}'.format(
-          site, len(self)))
-    gate_node = Node(gate, backend=self.backend.name)
-    gate_node[1] ^ self.nodes[site][1]
-    edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
-    self.nodes[site] = contract_between(
-        gate_node, self.nodes[site],
-        name=self.nodes[site].name).reorder_edges(edge_order)
 
   def save(self, path: str):
     raise NotImplementedError("save is not implemented")
