@@ -177,28 +177,33 @@ class QuOperator():
   def __matmul__(self, other):
     check_spaces(self.in_edges, other.out_edges)
 
-    # copy all nodes involved in the two operators
-    net = reachable(get_all_nodes(
-      self.out_edges + self.in_edges + other.out_edges + other.in_edges))
-
-    _, edge_dict = copy(net, False)
+    # Copy all nodes involved in the two operators.
+    # We must do this separately for self and other, in case self and other
+    # were define via the same network components (e.g. if self === other).
+    nodes_dict1, edge_dict1 = copy(self.nodes, False)
+    nodes_dict2, edge_dict2 = copy(other.nodes, False)
 
     # connect edges to create network for the result
     for (e1, e2) in zip(self.in_edges, other.out_edges):
-      edge_dict[e1] = edge_dict[e1] ^ edge_dict[e2]
+      _ = edge_dict1[e1] ^ edge_dict2[e2]
 
-    in_edges = [edge_dict[e] for e in other.in_edges]
-    out_edges = [edge_dict[e] for e in self.out_edges]
+    in_edges = [edge_dict2[e] for e in other.in_edges]
+    out_edges = [edge_dict1[e] for e in self.out_edges]
+    ref_nodes = [n for _, n in nodes_dict1.items()]
+    ref_nodes += [n for _, n in nodes_dict2.items()]
 
     return quantum_constructor(out_edges, in_edges, ref_nodes)
 
   def tensor(self, other):
     """Tensor product with another operator.
     """
-    _, edges_dict = copy(self.nodes | other.nodes, False)
+    _, edges_dict1 = copy(self.nodes, False)
+    _, edges_dict2 = copy(other.nodes, False)
 
-    in_edges = [edges_dict[e] for e in (self.in_edges + other.in_edges)]
-    out_edges = [edges_dict[e] for e in (self.out_edges + other.out_edges)]
+    in_edges = ([edges_dict1[e] for e in self.in_edges] +
+                [edges_dict2[e] for e in other.in_edges])
+    out_edges = ([edges_dict1[e] for e in self.out_edges] +
+                 [edges_dict2[e] for e in other.out_edges])
 
     return quantum_constructor(out_edges, in_edges)
 
