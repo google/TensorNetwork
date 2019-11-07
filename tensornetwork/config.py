@@ -13,4 +13,3 @@
 # limitations under the License.
 
 default_backend = "numpy"
-default_dtype = None
