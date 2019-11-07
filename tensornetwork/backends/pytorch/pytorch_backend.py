@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Any, Sequence, Tuple, Callable, List
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
