@@ -200,7 +200,7 @@ class QuOperator():
     in_edges = [edges_dict[e] for e in (self.in_edges + other.in_edges)]
     out_edges = [edges_dict[e] for e in (self.out_edges + other.out_edges)]
 
-    return QuantumConstructor(out_edges, in_edges)
+    return quantum_constructor(out_edges, in_edges)
 
 
 class QuIdentity(QuOperator):
