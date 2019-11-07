@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #pylint: disable=line-too-long
-from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text, Type
+from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2

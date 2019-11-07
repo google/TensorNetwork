@@ -16,7 +16,7 @@ import functools
 import operator
 from tensornetwork.backends import base_backend
 #pylint: disable=line-too-long
-from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text, Type
+from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
 
 
