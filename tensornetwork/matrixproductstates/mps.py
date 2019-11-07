@@ -58,7 +58,7 @@ class BaseMPS:
 
   def __init__(self,
                tensors: List[Union[BaseNode, Tensor]],
-               center_position: int,
+               center_position: Optional[int] = 0,
                connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
                backend: Optional[Text] = None) -> None:
     """
@@ -233,7 +233,7 @@ class BaseMPS:
     raise NotImplementedError()
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Tensor) -> BaseNode:
+                              matrix: Union[BaseNode, Tensor]) -> BaseNode:
     """
     Compute the action of the MPS transfer-operator at site `site`.
 
@@ -583,7 +583,7 @@ class BaseMPS:
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
-  def get_node(self, int: site) -> BaseNode:
+  def get_node(self, site: int) -> BaseNode:
     """
     Returns the `Node` object at `site`.
     If `site==len(self) - 1` `BaseMPS.connector_matrix`
@@ -595,12 +595,14 @@ class BaseMPS:
     Returns:
       `Node`: The node at `site`.
     """
-    if site > len(self):
-      raise ValueError('site={} is larger than len(BaseMPS) - 1 = {}'.format(
-          site,
-          len(self) - 1))
+    if site >= len(self):
+      raise IndexError(
+          'index `site` = {} is out of range for len(mps)= {}'.format(
+              site, len(self)))
     if site < 0:
-      raise ValueError('site = {} is smaller than 0'.format(site))
+      raise ValueError(
+          'index `site` has to be larger than 0 (found `site`={}).'.format(
+              site))
     if (site == len(self) - 1) and (self.connector_matrix is not None):
       self.nodes[site][2] ^ self.connector_matrix[0]
       order = [
@@ -638,6 +640,89 @@ class BaseMPS:
     raise NotImplementedError()
 
 
+class InfiniteMPS(BaseMPS):
+  """
+  An MPS class for infinite systems. 
+
+  MPS tensors are stored as a list of `Node` objects in the `InfiniteMPS.nodes`
+  attribute.
+  `InfiniteMPS` has a central site, also called orthogonality center. 
+  The position of this central site is stored in `InfiniteMPS.center_position`, 
+  and it can be be shifted using the `InfiniteMPS.position` method. 
+  `InfiniteMPS.position` uses QR and RQ methods to shift `center_position`.
+  
+  `InfiniteMPS` can be initialized either from a `list` of tensors, or
+  by calling the classmethod `InfiniteMPS.random`.
+  """
+
+  def __init__(self,
+               tensors: List[Union[BaseNode, Tensor]],
+               center_position: Optional[int] = 0,
+               connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
+               backend: Optional[Text] = None) -> None:
+    """
+    Initialize a FiniteMPS.
+    Args:
+      tensors: A list of `Tensor` or `BaseNode` objects.
+      center_position: The initial position of the center site.
+      connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
+        different unitcells. A value `None` is equivalent to an identity
+        `connector_matrix`.
+      backend: The name of the backend that should be used to perform 
+        contractions. Available backends are currently 'numpy', 'tensorflow',
+        'pytorch', 'jax'
+    """
+
+    super().__init__(
+        tensors=tensors,
+        center_position=center_position,
+        connector_matrix=connector_matrix,
+        backend=backend)
+
+  @classmethod
+  def random(cls,
+             d: List[int],
+             D: List[int],
+             dtype: Type[np.number],
+             backend: Optional[Text] = None):
+    """
+    Initialize a random `FiniteMPS`. The resulting state
+    is normalized. Its center-position is at 0.
+
+    Args:
+      d: A list of physical dimensions.
+      D: A list of bond dimensions.
+      dtype: A numpy dtype.
+      backend: An optional backend.
+    Returns:
+      `FiniteMPS`
+    """
+    #use numpy backend for tensor initialization
+    be = backend_factory.get_backend('numpy')
+    if len(D) != len(d) + 1:
+      raise ValueError('len(D) = {} is different from len(d) + 1= {}'.format(
+          len(D),
+          len(d) + 1))
+    if D[-1] != D[0]:
+      raise ValueError('D[0]={} != D[-1]={}.'.format(D[0], D[-1]))
+
+    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    return cls(tensors=tensors, center_position=0, backend=backend)
+
+  def unit_cell_transfer_operator(self, direction: Union[Text, int],
+                                  matrix: Union[BaseNode, Tensor]) -> BaseNode:
+    sites = range(len(self))
+    if direction in (-1, 'r', 'right'):
+      sites = reversed(sites)
+
+    for site in sites:
+      matrix = self.apply_transfer_operator(site, direction, matrix)
+    return matrix
+
+  def TMeigs(self, direction: Union[Text, int]):
+    pass
+
+
 class FiniteMPS(BaseMPS):
   """
   An MPS class for finite systems. 
@@ -664,13 +749,13 @@ class FiniteMPS(BaseMPS):
 
   def __init__(self,
                tensors: List[Union[BaseNode, Tensor]],
-               center_position: int,
+               center_position: Optional[int] = 0,
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
     """
     Initialize a FiniteMPS.
     Args:
-      tensors: A list of `Tensor` objects.
+      tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
       canonicalize: If `True` the mps is canonicalized at initialization.
       backend: The name of the backend that should be used to perform 
