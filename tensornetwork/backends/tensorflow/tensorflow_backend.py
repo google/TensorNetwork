@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #pylint: disable=line-too-long
-from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text
+from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
@@ -142,7 +142,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None,
-           dtype: Optional = None) -> Tuple[List, List]:
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
     raise NotImplementedError()
 
   def eigsh_lanczos(self,
