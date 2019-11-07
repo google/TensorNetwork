@@ -15,14 +15,15 @@
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable
+from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
 
 
 class ShellTensor:
 
-  def __init__(self, shape: Tuple[int, ...]):
+  def __init__(self, shape: Tuple[int, ...], dtype=None):
     self.shape = shape
+    self.dtype = dtype
 
   def reshape(self, new_shape: Tuple[int, ...]):
     self.shape = new_shape
@@ -207,6 +208,35 @@ class ShellBackend(base_backend.BaseBackend):
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           ncv: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(A.shape[0]) for _ in range(numeig)]
+
+    if initial_state is not None:
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
+
+    raise ValueError(
+        '`A` has no attribut shape and no `initial_state` is given.')
 
   def eigsh_lanczos(self,
                     A: Callable,
