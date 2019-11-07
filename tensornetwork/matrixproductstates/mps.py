@@ -16,6 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
+import functools
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 from tensornetwork.backends import backend_factory
@@ -249,7 +250,7 @@ class BaseMPS:
       `Node`: the result of applying the MPS transfer-operator to `matrix`
     """
     mat = Node(matrix, backend=self.backend.name)
-    node = Node(self.nodes[site], backend=self.backend.name)
+    node = self.get_node(site)
     conj_node = conj(node)
     node[1] ^ conj_node[1]
     if direction in (1, 'l', 'left'):
@@ -615,28 +616,7 @@ class BaseMPS:
           output_edge_order=order)
     return self.nodes[site]
 
-  def canonicalize(self, *args, **kwargs) -> np.number:
-    """
-    Bring the MPS into canonical form according to `FiniteMPS.center_position`.
-
-    Assuming nothing about the content of the current tensors, brings the
-    tensors into canonical form with a center site at
-    `FiniteMPS.center_position`.
-
-    Args:
-      normalize: If `True`, normalize matrices when shifting.
-    Returns:
-      `Tensor`: The norm of the MPS.
-    """
-    raise NotImplementedError()
-
-  def left_envs(self, *args, **kwargs) -> Dict:
-    raise NotImplementedError()
-
-  def right_envs(self, *args, **kwargs) -> Dict:
-    raise NotImplementedError()
-
-  def save(self, *args, **kwargs):
+  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
     raise NotImplementedError()
 
 
@@ -706,7 +686,9 @@ class InfiniteMPS(BaseMPS):
     if D[-1] != D[0]:
       raise ValueError('D[0]={} != D[-1]={}.'.format(D[0], D[-1]))
 
-    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    tensors = [
+        be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
+    ]
     return cls(tensors=tensors, center_position=0, backend=backend)
 
   def unit_cell_transfer_operator(self, direction: Union[Text, int],
@@ -719,8 +701,71 @@ class InfiniteMPS(BaseMPS):
       matrix = self.apply_transfer_operator(site, direction, matrix)
     return matrix
 
-  def TMeigs(self, direction: Union[Text, int]):
-    pass
+  def TMeigs(self,
+             direction: Union[Text, int],
+             initial_state: Optional[Union[BaseNode, Tensor]] = None,
+             ncv: Optional[int] = 30,
+             tol: Optional[float] = 1E-10,
+             maxiter: Optional[int] = None):
+    """
+    Compute the dominant eigenvector of the MPS transfer matrix.
+    
+    Ars:
+      direction: 
+        * If `'1','l''left'`: return the left dominant eigenvalue
+          and eigenvector
+        * If `'-1','r''right'`: return the right dominant eigenvalue
+          and eigenvector
+      initial_state: An optional initial state.
+      ncv: Number of Krylov vectors to be used in `eigs`.
+      tol: The desired tolerance of the eigen value.
+      maxiter: The maximum number of iterations.
+    Returns:
+      `float` or `complex`: The dominant eigenvalue.
+      Node: The dominant eigenvector.
+    """
+    D = self.bond_dimensions[0]
+
+    def mv(vector):
+      result = self.unit_cell_transfer_operator(
+          direction, self.backend.reshape(vector, (D, D)))
+      return self.backend.reshape(result.tensor, (D * D,))
+
+    if not initial_state:
+      initial_state = self.backend.randn((self.bond_dimensions[0]**2,),
+                                         dtype=self.dtype)
+    else:
+      if isinstance(initial_state, BaseNode):
+        initial_state = initial_state.tensor
+      initial_state = self.backend.reshape(initial_state,
+                                           (self.bond_dimensions[0]**2,))
+
+    #note: for real dtype eta and dens are real.
+    #but scipy.linalg.eigs returns complex dtypes in any case
+    #since we know that for an MPS transfer matrix the largest
+    #eigenvalue and corresponding eigenvector are real
+    # we cast them.
+    eta, dens = self.backend.eigs(
+        A=mv,
+        initial_state=initial_state,
+        ncv=ncv,
+        numeig=1,
+        tol=tol,
+        which='LR',
+        maxiter=maxiter,
+        dtype=self.dtype)
+    result = self.backend.reshape(
+        dens[0], (self.bond_dimensions[0], self.bond_dimensions[0]))
+    return eta[0], Node(result, backend=self.backend.name)
+
+  def right_envs(self, sites: Sequence[int]) -> Dict:
+    raise NotImplementedError()
+
+  def left_envs(self, sites: Sequence[int]) -> Dict:
+    raise NotImplementedError()
+
+  def save(self, path: str):
+    raise NotImplementedError()
 
 
 class FiniteMPS(BaseMPS):
@@ -805,7 +850,9 @@ class FiniteMPS(BaseMPS):
           len(D),
           len(d) - 1))
     D = [1] + D + [1]
-    tensors = [be.randn((D[n], d[n], D[n + 1])) for n in range(len(d))]
+    tensors = [
+        be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
+    ]
     return cls(tensors=tensors, center_position=0, backend=backend)
 
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
@@ -976,3 +1023,6 @@ class FiniteMPS(BaseMPS):
           right_envs[site - 1] = right_env
 
     return right_envs
+
+  def save(self, path: str):
+    raise NotImplementedError()
