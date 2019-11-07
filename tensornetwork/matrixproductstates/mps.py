@@ -32,23 +32,22 @@ class BaseMPS:
   finite unitcell.
 
   Important attributes:
-  * `BaseMPS.nodes`: stores the tensors in a list of `Node` objects
-  * `BaseMPS.center_position`: the location of the orthogonality site
-  * `BaseMPS.connector_matrix`: a rank-2 `Tensor` stored in a `Node`.
-    `BaseMPS.connector_matrix` connects unit cells back to themselves.
-     To stack different unit cells, the `BaseMPS.connector_matrix` is
-     absorbed into the rightmost (by convention) mps tensor prior
-     to stacking.
+
+    * `BaseMPS.nodes`: stores the tensors in a list of `Node` objects
+    * `BaseMPS.center_position`: the location of the orthogonality site
+    * `BaseMPS.connector_matrix`: a rank-2 `Tensor` stored in a `Node`.
+      `BaseMPS.connector_matrix` connects unit cells back to themselves.
+       To stack different unit cells, the `BaseMPS.connector_matrix` is
+       absorbed into the rightmost (by convention) mps tensor prior
+       to stacking.
 
   To obtain a sequence of `Node` objects `[node_1,...,node_N]`
   which can be arbitrarily stacked, i.e.
-  ```python 
-  stacked_nodes `[node_1,...,node_N, node_1, ..., node_N,...]`
-  ```
+  `stacked_nodes=[node_1,...,node_N, node_1, ..., node_N,...]`
   use the `BaseMPS.get_node` function. This function automatically
   absorbs `BaseNode.connector_matrix` into the correct `Node` object
   to ensure that `Node`s (i.e. the mps tensors) can be consistently
-  stacked.
+  stacked without gauge jumps.
 
   The orthogonality center can be be shifted using the 
   `BaseMPS.position` method, which uses uses QR and RQ methods to shift 
@@ -554,6 +553,90 @@ class BaseMPS:
         gate_node, self.nodes[site],
         name=self.nodes[site].name).reorder_edges(edge_order)
 
+  def check_orthonormality(self, which: Text, site: int) -> Tensor:
+    """
+    Check orthonormality of tensor at site `site`.
+
+    Args:
+      which: * if `'l'` or `'left'`: check left orthogonality
+             * if `'r`' or `'right'`: check right orthogonality
+      site:  The site of the tensor.
+    Returns:
+      scalar `Tensor`: The L2 norm of the deviation from identity.
+    Raises:
+      ValueError: If which is different from 'l','left', 'r' or 'right'.
+    """
+    if which not in ('l', 'left', 'r', 'right'):
+      raise ValueError(
+          "Wrong value `which`={}. "
+          "`which` as to be 'l','left', 'r' or 'right.".format(which))
+    n1 = self.nodes[site]
+    n2 = conj(n1)
+    if which in ('l', 'left'):
+      n1[0] ^ n2[0]
+      n1[1] ^ n2[1]
+    elif which in ('r', 'right'):
+      n1[2] ^ n2[2]
+      n1[1] ^ n2[1]
+    result = n1 @ n2
+    return self.backend.norm(
+        abs(result.tensor - self.backend.eye(
+            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+
+  def get_node(self, int: site) -> BaseNode:
+    """
+    Returns the `Node` object at `site`.
+    If `site==len(self) - 1` `BaseMPS.connector_matrix`
+    is absorbed fromt the right-hand side into the returned 
+    `Node` object.
+
+    Args:
+      site: The site for which to return the `Node`.
+    Returns:
+      `Node`: The node at `site`.
+    """
+    if site > len(self):
+      raise ValueError('site={} is larger than len(BaseMPS) - 1 = {}'.format(
+          site,
+          len(self) - 1))
+    if site < 0:
+      raise ValueError('site = {} is smaller than 0'.format(site))
+    if (site == len(self) - 1) and (self.connector_matrix is not None):
+      self.nodes[site][2] ^ self.connector_matrix[0]
+      order = [
+          self.nodes[site][0], self.nodes[site][1], self.connector_matrix[1]
+      ]
+      return contract_between(
+          self.nodes[site],
+          self.connector_matrix,
+          name=self.nodes[site].name,
+          output_edge_order=order)
+    return self.nodes[site]
+
+  def canonicalize(self, *args, **kwargs) -> np.number:
+    """
+    Bring the MPS into canonical form according to `FiniteMPS.center_position`.
+
+    Assuming nothing about the content of the current tensors, brings the
+    tensors into canonical form with a center site at
+    `FiniteMPS.center_position`.
+
+    Args:
+      normalize: If `True`, normalize matrices when shifting.
+    Returns:
+      `Tensor`: The norm of the MPS.
+    """
+    raise NotImplementedError()
+
+  def left_envs(self, *args, **kwargs) -> Dict:
+    raise NotImplementedError()
+
+  def right_envs(self, *args, **kwargs) -> Dict:
+    raise NotImplementedError()
+
+  def save(self, *args, **kwargs):
+    raise NotImplementedError()
+
 
 class FiniteMPS(BaseMPS):
   """
@@ -657,36 +740,6 @@ class FiniteMPS(BaseMPS):
     self.position(0, normalize=False)
     self.position(len(self.nodes) - 1, normalize=False)
     return self.position(pos, normalize=normalize)
-
-  def check_orthonormality(self, which: Text, site: int) -> Tensor:
-    """
-    Check orthonormality of tensor at site `site`.
-
-    Args:
-      which: * if `'l'` or `'left'`: check left orthogonality
-             * if `'r`' or `'right'`: check right orthogonality
-      site:  The site of the tensor.
-    Returns:
-      scalar `Tensor`: The L2 norm of the deviation from identity.
-    Raises:
-      ValueError: If which is different from 'l','left', 'r' or 'right'.
-    """
-    if which not in ('l', 'left', 'r', 'right'):
-      raise ValueError(
-          "Wrong value `which`={}. "
-          "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = self.nodes[site]
-    n2 = conj(n1)
-    if which in ('l', 'left'):
-      n1[0] ^ n2[0]
-      n1[1] ^ n2[1]
-    elif which in ('r', 'right'):
-      n1[2] ^ n2[2]
-      n1[1] ^ n2[1]
-    result = n1 @ n2
-    return self.backend.norm(
-        abs(result.tensor - self.backend.eye(
-            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
   def check_canonical(self) -> Tensor:
     """
@@ -838,6 +891,3 @@ class FiniteMPS(BaseMPS):
           right_envs[site - 1] = right_env
 
     return right_envs
-
-  def save(self, path: str):
-    raise NotImplementedError("save is not implemented")
