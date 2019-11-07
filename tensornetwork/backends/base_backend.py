@@ -276,6 +276,45 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
 
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           ncv: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` can be either a 
+    scipy.sparse.linalg.LinearOperator object or a regular callable.
+    If no `initial_state` is provided then `A` has to have an attribute 
+    `shape` so that a suitable initial state can be randomly generated.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn` 
+        method.
+      ncv: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI' | 'SI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+            'SI' : smallest imaginary part
+      maxiter: The maximum number of iterations.
+    Returns:
+       `Tensor`: An array of `numeig` lowest eigenvalues
+       `Tensor`: An array of `numeig` lowest eigenvectors
+    """
+    raise NotImplementedError()
+
   def eigsh_lanczos(self,
                     A: Callable,
                     initial_state: Optional[Tensor] = None,

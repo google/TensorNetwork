@@ -131,6 +131,16 @@ class PyTorchBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
 
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           ncv: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[Tensor, Tensor]:
+    raise NotImplementedError()
+
   def eigsh_lanczos(self,
                     A: Callable,
                     initial_state: Optional[Tensor] = None,
