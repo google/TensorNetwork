@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Any, Sequence, Tuple, Callable, List
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -130,6 +130,16 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           ncv: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    raise NotImplementedError()
 
   def eigsh_lanczos(self,
                     A: Callable,

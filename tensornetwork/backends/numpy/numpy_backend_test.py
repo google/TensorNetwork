@@ -282,3 +282,49 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+def find(which, vector):
+  if which == 'LM':
+    index = np.argmax(np.abs(vector))
+    val = np.abs(vector[index])
+  if which == 'SM':
+    index = np.argmin(np.abs(vector))
+    val = np.abs(vector[index])
+  if which == 'LR':
+    index = np.argmax(np.real(vector))
+    val = np.real(vector[index])
+  if which == 'SR':
+    index = np.argmin(np.real(vector))
+    val = np.real(vector[index])
+  if which == 'LI':
+    index = np.argmax(np.imag(vector))
+    val = np.imag(vector[index])
+  if which == 'SI':
+    index = np.argmin(np.imag(vector))
+    val = np.imag(vector[index])
+  return val, index
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs(dtype, which):
+
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype)
+  M = backend.randn((D, D), dtype=dtype)
+
+  def mv(x):
+    return np.dot(M, x)
+
+  eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(M)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)

@@ -16,7 +16,5 @@ from tensornetwork.utils import load_nodes, save_nodes
 from tensornetwork.matrixproductstates.mps import FiniteMPS, InfiniteMPS
 
 
-def set_default_backend(backend: Union[Text, BaseBackend],
-                        dtype: Optional[Type] = None) -> None:
+def set_default_backend(backend: Union[Text, BaseBackend]) -> None:
   config.default_backend = backend
-  config.default_dtype = dtype

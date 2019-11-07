@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable, List
+from typing import Any, Optional, Tuple, Callable, List, Text
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
 
@@ -71,6 +71,16 @@ class JaxBackend(numpy_backend.NumPyBackend):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           ncv: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    raise NotImplementedError()
 
   def eigsh_lanczos(self,
                     A: Callable,
