@@ -11,7 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Abstractions for quantum states and operators."""
+"""Abstractions for quantum vectors and operators.
+
+Quantum mechanics involves a lot of linear algebra on vector spaces that often
+have a preferred tensor-product factorization. Tensor networks are a natural
+way to represent vectors and operators (matrices) involving these spaces. Hence
+we provide some simple abstractions to ease linear algebra operations in which
+the vectors and operators are represented by tensor networks.
+"""
 
 from tensornetwork.network_components import Edge, connect
 from tensornetwork.network_operations import reachable, get_all_nodes, copy, get_subgraph_dangling
