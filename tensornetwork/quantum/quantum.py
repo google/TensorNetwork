@@ -150,7 +150,7 @@ class QuOperator():
 
   def norm(self):
     """The norm of the operator.
-    This is the 2-norm (Frobenius norm), or Hilbert-Schmidt norm.
+    This is the 2-norm (also known as the Frobenius or Hilbert-Schmidt norm).
     """
     return (self.adjoint() @ self).trace()
 
