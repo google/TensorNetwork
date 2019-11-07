@@ -283,7 +283,8 @@ class BaseBackend:
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> List[Tensor]:
+           maxiter: Optional[int] = None,
+           dtype: Optional = None) -> List[Tensor]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a 
