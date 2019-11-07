@@ -287,7 +287,7 @@ class BaseBackend:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a 
-    scipy.sparse.linalg.LinearOperator object or a regular callable.
+    linear operator type object or a regular callable.
     If no `initial_state` is provided then `A` has to have an attribute 
     `shape` so that a suitable initial state can be randomly generated.
 
