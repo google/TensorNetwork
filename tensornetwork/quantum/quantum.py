@@ -20,12 +20,12 @@ we provide some simple abstractions to ease linear algebra operations in which
 the vectors and operators are represented by tensor networks.
 """
 
-from tensornetwork.network_components import Edge, connect
-from tensornetwork.network_operations import reachable, get_all_nodes, copy
+from tensornetwork.network_components import Edge, connect, CopyNode
+from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling
 
 
-def quantum_constructor(out_edges, in_edges, ref_nodes=None):
+def quantum_constructor(out_edges, in_edges, ref_nodes=None, ignore_edges=None):
   """Constructs an appropriately specialized QuOperator or QuScalar.
 
   If there are no edges, creates a QuScalar. If the are only output (input)
@@ -35,17 +35,27 @@ def quantum_constructor(out_edges, in_edges, ref_nodes=None):
   Args:
     out_edges: output edges.
     in_edges: in edges.
-    ref_nodes: reference nodes for the tensor network (in case scalar).
+    ref_nodes: reference nodes for the tensor network (needed if there is a
+      scalar component).
+    ignore_edges: edges to ignore when checking the dimensionality of the
+      tensor network.
   Returns:
     The object.
   """
   if len(out_edges) == 0 and len(in_edges) == 0:
-    return QuScalar(ref_nodes)
+    return QuScalar(ref_nodes, ignore_edges)
   elif len(out_edges) == 0:
-    return QuAdjointVector(in_edges)
+    return QuAdjointVector(in_edges, ref_nodes, ignore_edges)
   elif len(in_edges) == 0:
-    return QuVector(out_edges)
-  return QuOperator(out_edges, in_edges)
+    return QuVector(out_edges, ref_nodes, ignore_edges)
+  return QuOperator(out_edges, in_edges, ref_nodes, ignore_edges)
+
+
+def identity(shape):
+  nodes = [CopyNode(2, d) for d in shape]
+  out_edges = [n[0] for n in nodes]
+  in_edges = [n[1] for n in nodes]
+  return quantum_constructor(out_edges, in_edges)
 
 
 def check_spaces(edges_1, edges_2):
@@ -69,60 +79,31 @@ def check_spaces(edges_1, edges_2):
                            i, e1.dimension, e2.dimension))
 
 
-class QuScalar():
-  def __init__(self, ref_nodes):
-    if not ref_nodes:
-      raise ValueError("At least one reference node is required for a "
-                       "QuScalar. None provided!")
-    self.ref_nodes = set(ref_nodes)
-    self.check_scalar()
-
-  @property
-  def nodes(self):
-    """All tensor-network nodes involved in the scalar.
-    """
-    return reachable(self.ref_nodes)
-
-  def check_scalar(self):
-    """Check that the defining network is scalar valued.
-    """
-    dangling_edges = get_subgraph_dangling(self.nodes)
-    return len(dangling_edges) == 0
-
-  def trace(self):
-    return self
-
-  def __mul__(self, other):
-    if isinstance(other, QuScalar):
-      nodes_dict1, _ = copy(self.nodes, False)
-      nodes_dict2, _ = copy(other.nodes, False)
-      ref_nodes = ([n for _, n in nodes_dict1.items()] +
-                  [n for _, n in nodes_dict2.items()])
-      return QuScalar(ref_nodes)
-    elif isinstance(other, QuOperator):
-      raise NotImplementedError("Not yet sure how best to handle scalars... "
-                                "Perhaps they should be folded into "
-                                "QuOperator.")
-
-
 class QuOperator():
   """Represents an operator via a tensor network.
 
   Can be used to do simple linear algebra with tensor networks.
   """
-  def __init__(self, out_edges, in_edges):
+  def __init__(self, out_edges, in_edges, ref_nodes=None, ignore_edges=None):
     # TODO: Decide whether the user must also supply all nodes involved.
     #       More flexible if not (e.g. a QuOperator can represent a vector
     #       of operators if there is an extra dangling Edge), better error
     #       checking if so.
+    if len(in_edges) == 0 and len(out_edges) == 0 and not ref_nodes:
+      raise ValueError("At least one reference node is required to specify a "
+                       "scalar. None provided!")
     self.out_edges = list(out_edges)
     self.in_edges = list(in_edges)
+    self.ignore_edges = set(ignore_edges) if ignore_edges else set()
+    self.ref_nodes = set(ref_nodes) if ref_nodes else set()
+    self.check_network()
 
   @property
   def nodes(self):
     """All tensor-network nodes involved in the operator.
     """
-    return reachable(get_all_nodes(self.out_edges + self.in_edges))
+    return reachable(
+        get_all_nodes(self.out_edges + self.in_edges) | self.ref_nodes)
 
   @property
   def shape_in(self):
@@ -132,16 +113,38 @@ class QuOperator():
   def shape_out(self):
     return [e.dimension for e in self.out_edges]
 
+  @property
+  def is_scalar(self):
+    return len(self.out_edges) == 0 and len(self.in_edges) == 0
+
+  @property
+  def is_vector(self):
+    return len(self.out_edges) > 0 and len(self.in_edges) == 0
+
+  @property
+  def is_adjoint_vector(self):
+    return len(self.out_edges) == 0 and len(self.in_edges) > 0
+
+  def check_network(self):
+    known_edges = set(self.in_edges) | set(self.out_edges) | self.ignore_edges
+    all_dangling_edges = get_subgraph_dangling(self.nodes)
+    if known_edges != all_dangling_edges:
+      raise ValueError("The network includes unexpected dangling edges (that "
+                       "are not members of ignore_edges).")
+
   def adjoint(self):
     """The adjoint of the operator.
 
     This creates a new `QuOperator` with complex-conjugate copies of all
     tensors in the network and with the input and output edges switched.
     """
-    _, edge_dict = copy(self.nodes, True)
+    nodes_dict, edge_dict = copy(self.nodes, True)
     out_edges = [edge_dict[e] for e in self.in_edges]
     in_edges = [edge_dict[e] for e in self.out_edges]
-    return quantum_constructor(out_edges, in_edges)
+    ref_nodes = [nodes_dict[n] for n in self.ref_nodes]
+    ignore_edges = [edge_dict[e] for e in self.ignore_edges]
+    return quantum_constructor(
+        out_edges, in_edges, ref_nodes, ignore_edges)
 
   def trace(self):
     """The trace of the operator.
@@ -186,52 +189,59 @@ class QuOperator():
     in_edges = [edge_dict[e] for e in self.in_edges
                 if e not in in_edges_trace]
     ref_nodes = [n for _, n in nodes_dict.items()]
+    ignore_edges = [edge_dict[e] for e in self.ignore_edges]
 
-    return quantum_constructor(out_edges, in_edges, ref_nodes)
+    return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
   def __matmul__(self, other):
     check_spaces(self.in_edges, other.out_edges)
 
     # Copy all nodes involved in the two operators.
     # We must do this separately for self and other, in case self and other
-    # were define via the same network components (e.g. if self === other).
-    nodes_dict1, edge_dict1 = copy(self.nodes, False)
-    nodes_dict2, edge_dict2 = copy(other.nodes, False)
+    # are defined via the same network components (e.g. if self === other).
+    nodes_dict1, edges_dict1 = copy(self.nodes, False)
+    nodes_dict2, edges_dict2 = copy(other.nodes, False)
 
     # connect edges to create network for the result
     for (e1, e2) in zip(self.in_edges, other.out_edges):
-      _ = edge_dict1[e1] ^ edge_dict2[e2]
+      _ = edges_dict1[e1] ^ edges_dict2[e2]
 
-    in_edges = [edge_dict2[e] for e in other.in_edges]
-    out_edges = [edge_dict1[e] for e in self.out_edges]
-    ref_nodes = [n for _, n in nodes_dict1.items()]
-    ref_nodes += [n for _, n in nodes_dict2.items()]
+    in_edges = [edges_dict2[e] for e in other.in_edges]
+    out_edges = [edges_dict1[e] for e in self.out_edges]
+    ref_nodes = ([n for _, n in nodes_dict1.items()] +
+                 [n for _, n in nodes_dict2.items()])
+    ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
+                    [edges_dict2[e] for e in other.ignore_edges])
 
-    return quantum_constructor(out_edges, in_edges, ref_nodes)
+    return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def tensor(self, other):
+  def __mul__(self, other):
+    if self.is_scalar or other.is_scalar:
+      return self @ other
+    raise ValueError("Elementwise multiplication is only supported if at "
+                     "least one of the arguments is a scalar.")
+
+  def tensor_prod(self, other):
     """Tensor product with another operator.
     """
-    _, edges_dict1 = copy(self.nodes, False)
-    _, edges_dict2 = copy(other.nodes, False)
+    nodes_dict1, edges_dict1 = copy(self.nodes, False)
+    nodes_dict2, edges_dict2 = copy(other.nodes, False)
 
     in_edges = ([edges_dict1[e] for e in self.in_edges] +
                 [edges_dict2[e] for e in other.in_edges])
     out_edges = ([edges_dict1[e] for e in self.out_edges] +
                  [edges_dict2[e] for e in other.out_edges])
+    ref_nodes = ([n for _, n in nodes_dict1.items()] +
+                 [n for _, n in nodes_dict2.items()])
+    ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
+                    [edges_dict2[e] for e in other.ignore_edges])
 
-    return quantum_constructor(out_edges, in_edges)
-
-
-class QuIdentity(QuOperator):
-  def __init__(self, num_subsystems):
-    edges = [Edge(None, None) for _ in range(num_subsystems)]
-    super().__init__(edges, edges)
+    return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
 
 class QuVector(QuOperator):
-  def __init__(self, subsystem_edges):
-    super().__init__(subsystem_edges, [])
+  def __init__(self, subsystem_edges, ref_nodes=None, ignore_edges=None):
+    super().__init__(subsystem_edges, [], ref_nodes, ignore_edges)
 
   @property
   def subsystem_edges(self):
@@ -246,9 +256,37 @@ class QuVector(QuOperator):
 
 
 class QuAdjointVector(QuOperator):
-  def __init__(self, subsystem_edges):
-    super().__init__([], subsystem_edges)
+  def __init__(self, subsystem_edges, ref_nodes=None, ignore_edges=None):
+    super().__init__([], subsystem_edges, ref_nodes, ignore_edges)
 
   @property
   def subsystem_edges(self):
     return self.in_edges
+
+  def projector(self):
+    return self.adjoint() @ self
+
+  def reduced_density(self, subsystems_to_trace_out):
+    rho = self.projector()
+    return rho.partial_trace(subsystems_to_trace_out)
+
+
+class QuScalar(QuOperator):
+  def __init__(self, ref_nodes, ignore_edges=None):
+    super().__init__([], [], ref_nodes, ignore_edges)
+    self.check_scalar()
+
+  @property
+  def nodes(self):
+    """All tensor-network nodes involved in the scalar.
+    """
+    return reachable(self.ref_nodes)
+
+  def check_scalar(self):
+    """Check that the defining network is scalar valued.
+    """
+    dangling_edges = get_subgraph_dangling(self.nodes)
+    return len(dangling_edges) == 0
+
+  def trace(self):
+    return self
