@@ -177,3 +177,21 @@ def test_ignore_edge_order_with_order(backend, path_algorithm):
                               ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
+
+def test_disconnected_network(backend, path_algorithm):
+  a = Node(np.eye(2), backend=backend)
+  b = Node(np.eye(2), backend=backend)
+  c = Node(np.eye(2), backend=backend)
+  d = Node(np.eye(2), backend=backend)
+  e = Node(np.eye(2), backend=backend)
+  f = Node(np.eye(2), backend=backend)
+  g = Node(np.eye(2), backend=backend)
+  a[1] ^ b[0]
+  c[0] ^ d[1]
+  e[0] ^ f[0]
+  g[0] ^ f[1]
+  final_edges = [a[0], b[1], c[1], d[0], e[1], g[1]]
+  result = path_algorithm(
+      {a, b, c, d, e, f, g}, 
+      final_edges)
+  assert result.edges == final_edges
