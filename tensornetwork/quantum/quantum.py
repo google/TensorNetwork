@@ -26,7 +26,8 @@ from tensornetwork.network_operations import get_subgraph_dangling
 from tensornetwork.contractors import greedy
 
 
-def quantum_constructor(out_edges, in_edges, ref_nodes=None, ignore_edges=None):
+def quantum_constructor(out_edges, in_edges, ref_nodes=None,
+                        ignore_edges=None):
   """Constructs an appropriately specialized QuOperator or QuScalar.
 
   If there are no edges, creates a QuScalar. If the are only output (input)
@@ -134,6 +135,12 @@ class QuOperator():
     return len(self.out_edges) == 0 and len(self.in_edges) > 0
 
   def check_network(self):
+    """Check that the network has the expected dimensionality.
+
+    This checks that all input and output edges are dangling and that there
+    are no other dangling edges (except any specified in `ignore_edges`).
+    If not, an exception is raised.
+    """
     for (i, e) in enumerate(self.out_edges):
       if not e.is_dangling():
         raise ValueError("Output edge {} is not dangling!".format(i))
