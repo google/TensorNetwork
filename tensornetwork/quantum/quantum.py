@@ -23,6 +23,7 @@ the vectors and operators are represented by tensor networks.
 from tensornetwork.network_components import Edge, connect, CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling
+from tensornetwork.contractors import greedy
 
 
 def quantum_constructor(out_edges, in_edges, ref_nodes=None, ignore_edges=None):
@@ -126,6 +127,13 @@ class QuOperator():
     return len(self.out_edges) == 0 and len(self.in_edges) > 0
 
   def check_network(self):
+    for (i, e) in enumerate(self.out_edges):
+      if not e.is_dangling():
+        raise ValueError("Output edge {} is not dangling!".format(i))
+    for (i, e) in enumerate(self.in_edges):
+      if not e.is_dangling():
+        raise ValueError("Input edge {} is not dangling!".format(i))
+
     known_edges = set(self.in_edges) | set(self.out_edges) | self.ignore_edges
     all_dangling_edges = get_subgraph_dangling(self.nodes)
     if known_edges != all_dangling_edges:
@@ -237,6 +245,22 @@ class QuOperator():
                     [edges_dict2[e] for e in other.ignore_edges])
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
+
+  def contract(self, contractor=greedy):
+    """Contract the tensor network in place.
+    """
+    self.ref_nodes = set([contractor(self.nodes)])
+    return self
+
+  def eval(self):
+    """Contracts the tensor network in place and returns the final tensor.
+    """
+    self.contract()
+    nodes = self.nodes
+    if len(nodes) != 1:
+      raise ValueError("Node count '{}' > 1 after contraction!".format(
+          len(nodes)))
+    return list(nodes)[0].tensor
 
 
 class QuVector(QuOperator):
