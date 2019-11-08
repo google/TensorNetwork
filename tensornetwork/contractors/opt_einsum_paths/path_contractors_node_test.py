@@ -57,20 +57,6 @@ def test_trace_edge(backend, path_algorithm):
   np.testing.assert_allclose(node.tensor, np.ones(2) * 32.0)
 
 
-def test_disconnected_network(backend, path_algorithm):
-  a = Node(np.array([2, 2]), backend=backend)
-  b = Node(np.array([2, 2]), backend=backend)
-  c = Node(np.array([2, 2]), backend=backend)
-  d = Node(np.array([2, 2]), backend=backend)
-
-  # pylint: disable=pointless-statement
-  a[0] ^ b[0]
-  c[0] ^ d[0]
-  nodes = [a, b, c, d]
-  with pytest.raises(ValueError):
-    path_algorithm(nodes)
-
-
 def test_single_node(backend, path_algorithm):
   a = Node(np.ones((2, 2, 2)), backend=backend)
   # pylint: disable=pointless-statement
