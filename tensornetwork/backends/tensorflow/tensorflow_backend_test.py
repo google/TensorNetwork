@@ -257,3 +257,17 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+def test_scalar_multiply():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(np.array([4., 9.]))
+  actual = backend.scalar_multiply(a, 2)
+  expected = np.array([8, 18])
+  np.testing.assert_allclose(expected, actual)
+
+def test_scalar_divide():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(np.array([4., 9.]))
+  actual = backend.scalar_divide(a, 2)
+  expected = np.array([2, 4.5])
+  np.testing.assert_allclose(expected, actual)

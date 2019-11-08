@@ -262,3 +262,17 @@ def test_backend_dtype_exception():
   tensor = np.random.rand(2, 2, 2)
   with pytest.raises(TypeError):
     _ = backend.convert_to_tensor(tensor)
+
+def test_scalar_multiply():
+  backend = jax_backend.JaxBackend()
+  a = backend.convert_to_tensor(np.array([4., 9.]))
+  actual = backend.scalar_multiply(a, 2)
+  expected = np.array([8, 18])
+  np.testing.assert_allclose(expected, actual)
+
+def test_scalar_divide():
+  backend = jax_backend.JaxBackend()
+  a = backend.convert_to_tensor(np.array([4., 9.]))
+  actual = backend.scalar_divide(a, 2)
+  expected = np.array([2, 4.5])
+  np.testing.assert_allclose(expected, actual)

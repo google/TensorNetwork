@@ -89,3 +89,9 @@ class JaxBackend(numpy_backend.NumPyBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def scalar_multiply(self, tensor: Tensor, scalar) -> Tensor:
+    return self.np.multiply(tensor, scalar)
+
+  def scalar_divide(self, tensor: Tensor, scalar) -> Tensor:
+    return self.np.true_divide(tensor, scalar)
