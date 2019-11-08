@@ -274,19 +274,3 @@ class QuAdjointVector(QuOperator):
 class QuScalar(QuOperator):
   def __init__(self, ref_nodes, ignore_edges=None):
     super().__init__([], [], ref_nodes, ignore_edges)
-    self.check_scalar()
-
-  @property
-  def nodes(self):
-    """All tensor-network nodes involved in the scalar.
-    """
-    return reachable(self.ref_nodes)
-
-  def check_scalar(self):
-    """Check that the defining network is scalar valued.
-    """
-    dangling_edges = get_subgraph_dangling(self.nodes)
-    return len(dangling_edges) == 0
-
-  def trace(self):
-    return self
