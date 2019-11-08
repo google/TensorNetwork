@@ -109,7 +109,7 @@ class QuOperator():
     n = Node(tensor, backend=backend)
     out_edges = [n[i] for i in out_axes]
     in_edges = [n[i] for i in in_axes]
-    return cls(out_edges, in_edges, set(n))
+    return cls(out_edges, in_edges, set([n]))
 
   @property
   def nodes(self):
@@ -335,4 +335,4 @@ class QuScalar(QuOperator):
   @classmethod
   def from_tensor(cls, tensor: Tensor, backend: Optional[Text] = None):
     n = Node(tensor, backend=backend)
-    return cls(set(n))
+    return cls(set([n]))
