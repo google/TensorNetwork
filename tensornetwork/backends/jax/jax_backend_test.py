@@ -10,17 +10,6 @@ np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
 
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_dtype(dtype):
-  backend = jax_backend.JaxBackend(dtype)
-  assert backend.dtype == np.dtype(dtype)
-  assert isinstance(backend.dtype, np.dtype)
-
-  backend = jax_backend.JaxBackend(np.dtype(dtype))
-  assert backend.dtype == np.dtype(dtype)
-  assert isinstance(backend.dtype, np.dtype)
-
-
 def test_tensordot():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(2 * np.ones((2, 3, 4)))
@@ -146,119 +135,80 @@ def test_norm():
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_eye(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.eye(N=4, M=5)
+  backend = jax_backend.JaxBackend()
+  a = backend.eye(N=4, M=5, dtype=dtype)
   np.testing.assert_allclose(np.eye(N=4, M=5, dtype=dtype), a)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_ones(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.ones((4, 4))
+  backend = jax_backend.JaxBackend()
+  a = backend.ones((4, 4), dtype=dtype)
   np.testing.assert_allclose(np.ones((4, 4), dtype=dtype), a)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_zeros(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.zeros((4, 4))
+  backend = jax_backend.JaxBackend()
+  a = backend.zeros((4, 4), dtype=dtype)
   np.testing.assert_allclose(np.zeros((4, 4), dtype=dtype), a)
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.randn((4, 4))
+  backend = jax_backend.JaxBackend()
+  a = backend.randn((4, 4), dtype=dtype)
   assert a.shape == (4, 4)
 
 
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 def test_randn_non_zero_imag(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.randn((4, 4))
+  backend = jax_backend.JaxBackend()
+  a = backend.randn((4, 4), dtype=dtype)
   assert np.linalg.norm(np.imag(a)) != 0.0
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_eye_dtype(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  dtype_2 = np.float32
-  a = backend.eye(N=4, M=4, dtype=dtype_2)
-  assert a.dtype == dtype_2
+  backend = jax_backend.JaxBackend()
+  a = backend.eye(N=4, M=4, dtype=dtype)
+  assert a.dtype == dtype
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_ones_dtype(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  dtype_2 = np.float32
-  a = backend.ones((4, 4), dtype=dtype_2)
-  assert a.dtype == dtype_2
+  backend = jax_backend.JaxBackend()
+  a = backend.ones((4, 4), dtype=dtype)
+  assert a.dtype == dtype
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_zeros_dtype(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  dtype_2 = np.float32
-  a = backend.zeros((4, 4), dtype=dtype_2)
-  assert a.dtype == dtype_2
+  backend = jax_backend.JaxBackend()
+  a = backend.zeros((4, 4), dtype=dtype)
+  assert a.dtype == dtype
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_dtype(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  dtype_2 = np.float32
-  a = backend.randn((4, 4), dtype=dtype_2)
-  assert a.dtype == dtype_2
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_eye_dtype_2(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.eye(N=4, M=4)
-  assert a.dtype == dtype
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_ones_dtype_2(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.ones((4, 4))
-  assert a.dtype == dtype
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_zeros_dtype_2(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.zeros((4, 4))
-  assert a.dtype == dtype
-
-
-@pytest.mark.parametrize("dtype", np_randn_dtypes)
-def test_randn_dtype_2(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.randn((4, 4))
+  backend = jax_backend.JaxBackend()
+  a = backend.randn((4, 4), dtype=dtype)
   assert a.dtype == dtype
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_seed(dtype):
-  backend = jax_backend.JaxBackend(dtype=dtype)
-  a = backend.randn((4, 4), seed=10)
-  b = backend.randn((4, 4), seed=10)
+  backend = jax_backend.JaxBackend()
+  a = backend.randn((4, 4), seed=10, dtype=dtype)
+  b = backend.randn((4, 4), seed=10, dtype=dtype)
   np.testing.assert_allclose(a, b)
 
 
 def test_conj():
-  backend = jax_backend.JaxBackend(np.complex128)
+  backend = jax_backend.JaxBackend()
   real = np.random.rand(2, 2, 2)
   imag = np.random.rand(2, 2, 2)
   a = backend.convert_to_tensor(real + 1j * imag)
   actual = backend.conj(a)
   expected = real - 1j * imag
   np.testing.assert_allclose(expected, actual)
-
-
-def test_backend_dtype_exception():
-  backend = jax_backend.JaxBackend(dtype=np.float32)
-  tensor = np.random.rand(2, 2, 2)
-  with pytest.raises(TypeError):
-    _ = backend.convert_to_tensor(tensor)

@@ -24,15 +24,6 @@ class BaseBackend:
   def __init__(self):
     self.name = 'base backend'
 
-  @property
-  def dtype(self):
-    return self._dtype
-
-  @dtype.setter
-  def dtype(self, dtype):
-    #pylint: disable=attribute-defined-outside-init
-    self._dtype = dtype
-
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.
@@ -259,7 +250,7 @@ class BaseBackend:
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Type[np.number],
+            dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
@@ -285,16 +276,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    ncv: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -310,9 +301,10 @@ class BaseBackend:
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If two successive Krylov vectors `x_m` and `x_n`
-        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
-        It means that an (approximate) invariant subspace has been found.
+        If a Krylov vector :math: `x_n` has an L2 norm 
+        :math:`\\lVert x_n\\rVert < delta`, the iteration 
+        is stopped. It means that an (approximate) invariant subspace has 
+        been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
         iterations to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
