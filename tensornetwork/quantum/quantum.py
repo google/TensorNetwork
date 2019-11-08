@@ -48,9 +48,9 @@ def quantum_constructor(out_edges: Sequence[Edge], in_edges: Sequence[Edge],
   """
   if len(out_edges) == 0 and len(in_edges) == 0:
     return QuScalar(ref_nodes, ignore_edges)
-  elif len(out_edges) == 0:
+  if len(out_edges) == 0:
     return QuAdjointVector(in_edges, ref_nodes, ignore_edges)
-  elif len(in_edges) == 0:
+  if len(in_edges) == 0:
     return QuVector(out_edges, ref_nodes, ignore_edges)
   return QuOperator(out_edges, in_edges, ref_nodes, ignore_edges)
 
