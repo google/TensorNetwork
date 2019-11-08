@@ -28,10 +28,10 @@ from tensornetwork.contractors import greedy
 
 def quantum_constructor(out_edges, in_edges, ref_nodes=None,
                         ignore_edges=None):
-  """Constructs an appropriately specialized QuOperator or QuScalar.
+  """Constructs an appropriately specialized QuOperator.
 
   If there are no edges, creates a QuScalar. If the are only output (input)
-  edges, construct a QuVector (QuAdjointVector). Otherwise construct a
+  edges, creates a QuVector (QuAdjointVector). Otherwise creates a
   QuOperator.
 
   Args:
@@ -88,9 +88,8 @@ class QuOperator():
   """
   def __init__(self, out_edges, in_edges, ref_nodes=None, ignore_edges=None):
     # TODO: Decide whether the user must also supply all nodes involved.
-    #       More flexible if not (e.g. a QuOperator can represent a vector
-    #       of operators if there is an extra dangling Edge), better error
-    #       checking if so.
+    #       This would enable extra error checking and is probably clearer
+    #       than `ref_nodes`.
     if len(in_edges) == 0 and len(out_edges) == 0 and not ref_nodes:
       raise ValueError("At least one reference node is required to specify a "
                        "scalar. None provided!")
