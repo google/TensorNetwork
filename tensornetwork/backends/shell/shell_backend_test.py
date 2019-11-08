@@ -204,3 +204,19 @@ def test_eigsh_lanczos_raises():
 def test_multiply(a, b):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree("multiply", args)
+
+@pytest.mark.parametrize("a, b",
+                         [pytest.param(np.array([4., 9.]), 2),
+                          pytest.param(np.array([8, 18]), 2),
+                          ])
+def test_scalar_multiply(a, b):
+  args = {"tensor": a, "scalar": b}
+  assertBackendsAgree("scalar_multiply", args)
+
+@pytest.mark.parametrize("a, b",
+                         [pytest.param(np.array([4., 9.]), 2),
+                          pytest.param(np.array([2, 4.5]), 2),
+                          ])
+def test_scalar_divide(a, b):
+  args = {"tensor": a, "scalar": b}
+  assertBackendsAgree("scalar_divide", args)

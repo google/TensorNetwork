@@ -160,3 +160,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def scalar_multiply(self, tensor: Tensor, scalar) -> Tensor:
+    return self.tf.scalar_mul(scalar, tensor)
+
+  def scalar_divide(self, tensor: Tensor, scalar) -> Tensor:
+    return self.tf.divide(tensor, scalar)
