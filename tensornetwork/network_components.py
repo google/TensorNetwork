@@ -358,30 +358,12 @@ class BaseNode(ABC):
     return contract_between(self, other)
 
   def __mul__(self, other) -> "BaseNode":
-    self.tensor = self.backend.multiply(self.tensor, other)
+    self.tensor = self.backend.scalar_multiply(self.tensor, other)
     return self
 
   def __truediv__(self, other) -> "BaseNode":
-    self.tensor = self.backend.true_divide(self.tensor, other)
+    self.tensor = self.backend.scalar_divide(self.tensor, other)
     return self
-
-  def __add__(self, other) -> "BaseNode":
-    if not isinstance(other, BaseNode):
-      raise ValueError("Object {} is not a Node type.".format(other))
-    tensor = self.backend.add(self.tensor, other.tensor)
-    output = Node(
-      tensor=tensor,
-      backend=self.backend.name)
-    return output
-
-  def __sub__(self, other) -> "BaseNode":
-    if not isinstance(other, BaseNode):
-      raise ValueError("Object {} is not a Node type.".format(other))
-    tensor = self.backend.sub(self.tensor, other.tensor)
-    output = Node(
-      tensor=tensor,
-      backend=self.backend.name)
-    return output
 
   @property
   def edges(self):

@@ -270,12 +270,6 @@ class NumPyBackend(base_backend.BaseBackend):
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
 
-  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.np.add(tensor1, tensor2)
-
-  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.np.subtract(tensor1, tensor2)
-
   def scalar_multiply(self, tensor: Tensor, scalar) -> Tensor:
     return self.np.multiply(tensor, scalar)
 
