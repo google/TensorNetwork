@@ -338,30 +338,6 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
 
-  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-      """
-      Return the addition of `tensor` with another `tensor`
-      Args:
-        tensor1: A tensor.
-        tensor2: A tensor.
-      Returns:
-        Tensor
-      """
-      raise NotImplementedError("Backend '{}' has not implemented add.".format(
-          self.name))
-
-  def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-      """
-      Return the addition of `tensor` with another `tensor`
-      Args:
-        tensor1: A tensor.
-        tensor2: A tensor.
-      Returns:
-        Tensor
-      """
-      raise NotImplementedError("Backend '{}' has not implemented sub.".format(
-          self.name))
-
   def scalar_multiply(self, tensor: Tensor, scalar) -> Tensor:
       """
       Return the multiplication of `tensor` with a scalar value
@@ -371,7 +347,7 @@ class BaseBackend:
       Returns:
         Tensor
       """
-      raise NotImplementedError("Backend '{}' has not implemented multiply.".format(
+      raise NotImplementedError("Backend '{}' has not implemented scalar_multiply.".format(
           self.name))
 
   def scalar_divide(self, tensor: Tensor, scalar) -> Tensor:
@@ -383,5 +359,5 @@ class BaseBackend:
       Returns:
         Tensor
       """
-      raise NotImplementedError("Backend '{}' has not implemented true_divide.".format(
+      raise NotImplementedError("Backend '{}' has not implemented scalar_divide.".format(
           self.name))

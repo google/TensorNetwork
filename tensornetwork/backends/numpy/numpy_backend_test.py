@@ -340,27 +340,13 @@ def test_multiply(a, b, expected):
 def test_scalar_multiply():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.array([4., 9.]))
-  actual = backend.scalar_multiply(a,2)
+  actual = backend.scalar_multiply(a, 2)
   expected = np.array([8, 18])
   np.testing.assert_allclose(expected, actual)
 
 def test_scalar_divide():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.array([4., 9.]))
-  actual = backend.scalar_divide(a,2)
+  actual = backend.scalar_divide(a, 2)
   expected = np.array([2, 4.5])
-  np.testing.assert_allclose(expected, actual)
-
-def test_add():
-  backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([4., 9.]))
-  actual = backend.add(a,1)
-  expected = np.array([5, 10])
-  np.testing.assert_allclose(expected, actual)
-
-def test_sub():
-  backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([4., 9.]))
-  actual = backend.sub(a,3)
-  expected = np.array([1, 6])
   np.testing.assert_allclose(expected, actual)
