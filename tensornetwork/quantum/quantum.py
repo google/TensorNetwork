@@ -20,7 +20,7 @@ we provide some simple abstractions to ease linear algebra operations in which
 the vectors and operators are represented by tensor networks.
 """
 
-from tensornetwork.network_components import Edge, connect, CopyNode
+from tensornetwork.network_components import Node, Edge, connect, CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling
 from tensornetwork.contractors import greedy
@@ -98,6 +98,13 @@ class QuOperator():
     self.ignore_edges = set(ignore_edges) if ignore_edges else set()
     self.ref_nodes = set(ref_nodes) if ref_nodes else set()
     self.check_network()
+
+  @classmethod
+  def from_tensor(cls, tensor, out_axes, in_axes, backend=None):
+    n = Node(tensor, backend=backend)
+    out_edges = [n[i] for i in out_axes]
+    in_edges = [n[i] for i in in_axes]
+    return cls(out_edges, in_edges, set(n))
 
   @property
   def nodes(self):
@@ -267,6 +274,11 @@ class QuVector(QuOperator):
   def __init__(self, subsystem_edges, ref_nodes=None, ignore_edges=None):
     super().__init__(subsystem_edges, [], ref_nodes, ignore_edges)
 
+  @classmethod
+  def from_tensor(cls, tensor, backend=None):
+    n = Node(tensor, backend=backend)
+    return cls(n.get_all_edges())
+
   @property
   def subsystem_edges(self):
     return self.out_edges
@@ -283,6 +295,11 @@ class QuAdjointVector(QuOperator):
   def __init__(self, subsystem_edges, ref_nodes=None, ignore_edges=None):
     super().__init__([], subsystem_edges, ref_nodes, ignore_edges)
 
+  @classmethod
+  def from_tensor(cls, tensor, backend=None):
+    n = Node(tensor, backend=backend)
+    return cls(n.get_all_edges())
+
   @property
   def subsystem_edges(self):
     return self.in_edges
@@ -298,3 +315,8 @@ class QuAdjointVector(QuOperator):
 class QuScalar(QuOperator):
   def __init__(self, ref_nodes, ignore_edges=None):
     super().__init__([], [], ref_nodes, ignore_edges)
+
+  @classmethod
+  def from_tensor(cls, tensor, backend=None):
+    n = Node(tensor, backend=backend)
+    return cls(set(n))
