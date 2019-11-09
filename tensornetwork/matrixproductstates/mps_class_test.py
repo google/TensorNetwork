@@ -226,6 +226,6 @@ def test_TMeigs(dtype):
   D, d, N = 10, 2, 10
   imps = InfiniteMPS.random(
       d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
-  eta, l = imps.TMeigs('r')
+  eta, l = imps.transfer_matrix_eigs('r')
   l2 = imps.unit_cell_transfer_operator('r', l)
   np.testing.assert_allclose(eta * l.tensor, l2.tensor)
