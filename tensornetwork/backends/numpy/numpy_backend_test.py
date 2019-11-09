@@ -333,7 +333,7 @@ def test_eigs(dtype, which):
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigh(dtype):
   backend = numpy_backend.NumPyBackend()
-  H = backend.randn((4, 4))
+  H = backend.randn((4, 4), dtype=dtype)
   H = H + np.conj(np.transpose(H))
 
   eta, U = backend.eigh(H)
