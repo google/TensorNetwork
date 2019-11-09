@@ -131,6 +131,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
 
+  def eigh(self, matrix: Tensor):
+    return matrix.symeig(eigenvectors=True)
+
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
@@ -142,16 +145,16 @@ class PyTorchBackend(base_backend.BaseBackend):
            dtype: Optional[Type] = None) -> Tuple[List, List]:
     raise NotImplementedError()
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
