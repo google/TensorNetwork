@@ -328,3 +328,15 @@ def test_eigs(dtype, which):
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+  backend = numpy_backend.NumPyBackend()
+  H = backend.randn((4, 4))
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = np.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)
