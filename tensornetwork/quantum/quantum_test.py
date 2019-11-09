@@ -37,6 +37,33 @@ def test_constructor():
   assert not op.is_vector
   assert op.is_adjoint_vector
 
+  with pytest.raises(ValueError):
+    op = qu.quantum_constructor([], [], [psi_node])
+
+  _ = psi_node[0] ^ psi_node[1]
+  op = qu.quantum_constructor([], [], [psi_node])
+  assert op.is_scalar
+  assert not op.is_vector
+  assert not op.is_adjoint_vector
+
+
+def test_checks():
+  node1 = tn.Node(np.random.rand(2,2))
+  node2 = tn.Node(np.random.rand(2,2))
+  _ = node1[1] ^ node2[0]
+
+  # extra edges must be explicitly ignored
+  with pytest.raises(ValueError):
+    _ = qu.QuVector([node1[0]])
+
+  # correctly ignore the extra edge
+  op = qu.QuVector([node1[0]], ignore_edges=[node2[1]])
+
+  # in/out edges must be dangling
+  with pytest.raises(ValueError):
+    _ = qu.QuVector([node1[0], node1[1], node2[1]])
+
+
 def test_from_tensor():
   psi_tensor = np.random.rand(2,2)
 
@@ -44,13 +71,69 @@ def test_from_tensor():
   assert not op.is_scalar
   assert not op.is_vector
   assert not op.is_adjoint_vector
+  np.testing.assert_almost_equal(op.eval(), psi_tensor)
 
   op = qu.QuVector.from_tensor(psi_tensor)
   assert not op.is_scalar
   assert op.is_vector
   assert not op.is_adjoint_vector
+  np.testing.assert_almost_equal(op.eval(), psi_tensor)
 
   op = qu.QuAdjointVector.from_tensor(psi_tensor)
   assert not op.is_scalar
   assert not op.is_vector
   assert op.is_adjoint_vector
+  np.testing.assert_almost_equal(op.eval(), psi_tensor)
+
+  op = qu.QuScalar.from_tensor(1.0)
+  assert op.is_scalar
+  assert not op.is_vector
+  assert not op.is_adjoint_vector
+  assert op.eval() == 1.0
+
+
+def test_identity():
+  E = qu.identity((2,3,4))
+  assert E.trace().eval() == 24
+
+  psi = qu.QuVector.from_tensor(np.random.rand(2,2))
+  E = qu.identity((2,2))
+  np.testing.assert_almost_equal((E @ psi).norm().eval(), psi.norm().eval())
+
+
+def test_tensor_prod():
+  psi = qu.QuVector.from_tensor(np.random.rand(2,2))
+  psi_psi = psi.tensor_prod(psi)
+  np.testing.assert_almost_equal(psi_psi.norm().eval(), psi.norm().eval()**2)
+
+
+def test_matmul():
+  mat = np.random.rand(2,2)
+  op = qu.QuOperator.from_tensor(mat, [0], [1])
+  res = (op @ op).eval()
+  np.testing.assert_almost_equal(res, mat @ mat)
+
+
+def test_expectations():
+  psi_tensor = np.random.rand(2,2,2) + 1.j * np.random.rand(2,2,2)
+  op_tensor = np.random.rand(2,2) + 1.j * np.random.rand(2,2)
+  psi = qu.QuVector.from_tensor(psi_tensor)
+  op = qu.QuOperator.from_tensor(op_tensor, [0], [1])
+
+  op_3 = op.tensor_prod(qu.identity((2,2)))
+  res1 = (psi.adjoint() @ op_3 @ psi).eval()
+
+  rho_1 = psi.reduced_density([1, 2])  # trace out sites 2 and 3
+  res2 = (op @ rho_1).trace().eval()
+
+  np.testing.assert_almost_equal(res1, res2)
+
+
+def test_projector():
+  psi_tensor = np.random.rand(2,2)
+  psi_tensor /= np.linalg.norm(psi_tensor)
+  psi = qu.QuVector.from_tensor(psi_tensor)
+  P = psi.projector()
+  np.testing.assert_almost_equal((P @ psi).eval(), psi_tensor)
+
+  np.testing.assert_almost_equal((P @ P).eval(), P.eval())
