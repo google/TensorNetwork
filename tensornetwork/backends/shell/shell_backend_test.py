@@ -197,10 +197,17 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
 
-@pytest.mark.parametrize("a, b",
-                         [pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-                          pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
-                         ])
+@pytest.mark.parametrize("a, b", [
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
+    pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
+])
 def test_multiply(a, b):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree("multiply", args)
+
+
+def test_eigh():
+  matrix = np.ones([3, 3])
+  vals, vecs = shell_backend.ShellBackend().eigh(matrix)
+  assert vals.shape == (3,)
+  assert vecs.shape == (3, 3)
