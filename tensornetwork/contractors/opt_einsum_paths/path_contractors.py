@@ -19,7 +19,7 @@ import opt_einsum
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import check_connected, get_all_edges, get_subgraph_dangling
 # pylint: disable=line-too-long
-from tensornetwork.network_components import get_all_nondangling, contract_parallel
+from tensornetwork.network_components import get_all_nondangling, contract_parallel, contract_between
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable
@@ -50,7 +50,6 @@ def base(nodes: Iterable[BaseNode],
     Final node after full contraction.
   """
   nodes_set = set(nodes)
-  check_connected(nodes_set)
   edges = get_all_edges(nodes_set)
   #output edge order has to be determinded before any contraction
   #(edges are refreshed after contractions)
@@ -84,7 +83,7 @@ def base(nodes: Iterable[BaseNode],
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
   for a, b in path:
-    new_node = nodes[a] @ nodes[b]
+    new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
     nodes.append(new_node)
     nodes = utils.multi_remove(nodes, [a, b])
 
@@ -192,7 +191,7 @@ def greedy(
 
 # pylint: disable=too-many-return-statements
 def auto(
-    nodes: BaseNode,
+    nodes: Iterable[BaseNode],
     output_edge_order: Optional[Sequence[Edge]] = None,
     memory_limit: Optional[int] = None,
     ignore_edge_order: bool = False) -> BaseNode:
