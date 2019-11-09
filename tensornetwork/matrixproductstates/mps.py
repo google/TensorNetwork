@@ -701,12 +701,13 @@ class InfiniteMPS(BaseMPS):
       matrix = self.apply_transfer_operator(site, direction, matrix)
     return matrix
 
-  def TMeigs(self,
-             direction: Union[Text, int],
-             initial_state: Optional[Union[BaseNode, Tensor]] = None,
-             ncv: Optional[int] = 30,
-             tol: Optional[float] = 1E-10,
-             maxiter: Optional[int] = None):
+  def transfer_matrix_eigs(
+      self,
+      direction: Union[Text, int],
+      initial_state: Optional[Union[BaseNode, Tensor]] = None,
+      precision: Optional[float] = 1E-10,
+      ncv: Optional[int] = 30,
+      maxiter: Optional[int] = None):
     """
     Compute the dominant eigenvector of the MPS transfer matrix.
     
@@ -718,7 +719,7 @@ class InfiniteMPS(BaseMPS):
           and eigenvector
       initial_state: An optional initial state.
       ncv: Number of Krylov vectors to be used in `eigs`.
-      tol: The desired tolerance of the eigen value.
+      precision: The desired precision of the eigen values.
       maxiter: The maximum number of iterations.
     Returns:
       `float` or `complex`: The dominant eigenvalue.
@@ -750,7 +751,7 @@ class InfiniteMPS(BaseMPS):
         initial_state=initial_state,
         ncv=ncv,
         numeig=1,
-        tol=tol,
+        tol=precision,
         which='LR',
         maxiter=maxiter,
         dtype=self.dtype)
