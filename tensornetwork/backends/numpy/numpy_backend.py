@@ -43,9 +43,8 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
+    return decompositions.svd_decomposition(
+        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def qr_decomposition(
       self,
@@ -135,6 +134,9 @@ class NumPyBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 
+  def eigh(self, matrix: Tensor):
+    return self.np.linalg.eigh(matrix)
+
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
@@ -221,16 +223,16 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      ncv: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. If no `initial_state` is provided
