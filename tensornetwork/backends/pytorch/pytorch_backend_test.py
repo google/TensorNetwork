@@ -266,11 +266,11 @@ def test_multiply(a, b, expected):
 def test_eigh():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
-  H = backend.randn((4, 4))
+  H = backend.randn((4, 4), dtype)
   H = H + np.conj(np.transpose(H))
 
   eta, U = backend.eigh(H)
-  eta_ac, U_ac = np.linalg.eigh(H)
+  eta_ac, _ = np.linalg.eigh(H)
   M = U.transpose(1, 0).mm(H).mm(U)
   np.testing.assert_allclose(eta, eta_ac)
   np.testing.assert_almost_equal(np.diag(eta), M)

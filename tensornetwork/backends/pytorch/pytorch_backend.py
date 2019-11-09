@@ -131,7 +131,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
 
-  def eigh(self, matrix: Tensor):
+  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return matrix.symeig(eigenvectors=True)
 
   def eigs(self,

@@ -219,7 +219,7 @@ def test_multiply(a, b, expected):
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
 def test_eigh(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
-  H = backend.randn((4, 4))
+  H = backend.randn((4, 4), dtype)
   H = H + tf.math.conj(tf.transpose(H))
 
   eta, U = backend.eigh(H)
