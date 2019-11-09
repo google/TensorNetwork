@@ -264,16 +264,52 @@ class QuOperator():
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def contract(self, contractor: Callable = greedy):
+  def contract(self, contractor: Callable = greedy,
+               final_edge_order: Optional[Sequence[Edge]] = None):
     """Contract the tensor network in place.
+
+    This modifies the tensor network representation of the operator (or vector,
+    or scalar), reducing it to a single tensor, without changing the value.
+
+    Args:
+      contractor: A function that performs the contraction. Defaults to
+        `greedy`, which uses the greedy algorithm from `opt_einsum` to
+        determine a contraction order.
+      final_edge_order: Manually specify the axis ordering of the final tensor.
+    Returns:
+      The present object.
     """
-    self.ref_nodes = set([contractor(self.nodes)])
+    if final_edge_order:
+      self.ref_nodes = set(
+          [contractor(self.nodes, output_edge_order=final_edge_order)])
+    else:
+      self.ref_nodes = set([contractor(self.nodes, ignore_edge_order=True)])
     return self
 
-  def eval(self):
+  def eval(self, contractor: Callable = greedy,
+           final_edge_order: Optional[Sequence[Edge]] = None):
     """Contracts the tensor network in place and returns the final tensor.
+
+    Note that this modifies the tensor network representing the operator.
+
+    The default ordering for the axes of the final tensor is:
+      `out_edges + in_edges`
+    If there are any "ignored" edges, their axes come first:
+      `ignored_edges + out_edges + in_edges`
+
+    Args:
+      contractor: A function that performs the contraction. Defaults to
+        `greedy`, which uses the greedy algorithm from `opt_einsum` to
+        determine a contraction order.
+      final_edge_order: Manually specify the axis ordering of the final tensor.
+    Returns:
+      The final tensor representing the operator.
     """
-    self.contract()
+    if not final_edge_order:
+      # TODO: Perhaps support using no assigned ordering at all here?
+      final_edge_order = (list(self.ignore_edges) + self.out_edges +
+                          self.in_edges)
+    self.contract(contractor, final_edge_order)
     nodes = self.nodes
     if len(nodes) != 1:
       raise ValueError("Node count '{}' > 1 after contraction!".format(
