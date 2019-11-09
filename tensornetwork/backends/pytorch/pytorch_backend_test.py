@@ -261,3 +261,16 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  H = backend.randn((4, 4))
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = np.linalg.eigh(H)
+  M = U.transpose(1, 0).mm(H).mm(U)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_almost_equal(np.diag(eta), M)
