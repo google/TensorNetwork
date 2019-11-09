@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Optional, Any, Sequence, Tuple, Callable, List, Text
+#pyling: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
@@ -142,7 +142,8 @@ class NumPyBackend(base_backend.BaseBackend):
            numeig: Optional[int] = 6,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a 
@@ -169,6 +170,8 @@ class NumPyBackend(base_backend.BaseBackend):
             'SR' : smallest real part
             'LI' : largest imaginary part
       maxiter: The maximum number of iterations.
+      dtype: An optional numpy-dtype. If provided, the
+        return type will be cast to `dtype`.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
        `np.ndarray`: An array of `numeig` lowest eigenvectors
@@ -213,6 +216,9 @@ class NumPyBackend(base_backend.BaseBackend):
         ncv=ncv,
         tol=tol,
         maxiter=maxiter)
+    if dtype:
+      eta = eta.astype(dtype)
+      U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
   def eigsh_lanczos(self,

@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Optional, Any, Sequence, Tuple, Callable, List, Text
+#pylint: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -138,7 +138,8 @@ class PyTorchBackend(base_backend.BaseBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
     raise NotImplementedError()
 
   def eigsh_lanczos(self,

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable, List, Text
+from typing import Any, Optional, Tuple, Callable, List, Text, Type
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
 
@@ -79,7 +79,8 @@ class JaxBackend(numpy_backend.NumPyBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
     raise NotImplementedError()
 
   def eigsh_lanczos(self,
