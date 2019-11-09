@@ -20,6 +20,7 @@ import numpy as np
 class TensorNetwork:
   """Implementation of a TensorNetwork."""
 
+  #pylint: disable=unused-argument
   def __init__(self, *args, **kwargs):
     link = ("https://medium.com/@keeper6928/" +
             "upgrading-your-tensornetwork-code-b032f0ab3dd4")
