@@ -341,13 +341,3 @@ def test_eigh(dtype):
   eta_ac, U_ac = np.linalg.eigh(H)
   np.testing.assert_allclose(eta, eta_ac)
   np.testing.assert_allclose(U, U_ac)
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def index_update(dtype):
-  backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
-  eta, U = backend.eigh(H)
-  eta_ac, U_ac = np.linalg.eigh(H)
-  np.testing.assert_allclose(eta, eta_ac)
-  np.testing.assert_allclose(U, U_ac)
