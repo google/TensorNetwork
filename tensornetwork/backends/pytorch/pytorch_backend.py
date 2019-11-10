@@ -269,5 +269,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
-    tensor[mask] = assignee
-    return tensor
+    #make a copy
+    t = self.torch.Tensor(tensor)
+    t[mask] = assignee
+    return t
