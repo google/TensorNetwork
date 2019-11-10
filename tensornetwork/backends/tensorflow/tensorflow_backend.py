@@ -162,3 +162,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    #returns a copy (unfortunately)
+    return self.tf.where(mask, assignee, tensor)

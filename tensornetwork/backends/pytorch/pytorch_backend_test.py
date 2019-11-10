@@ -274,3 +274,22 @@ def test_eigh():
   M = U.transpose(1, 0).mm(H).mm(U)
   np.testing.assert_allclose(eta, eta_ac)
   np.testing.assert_almost_equal(np.diag(eta), M)
+
+
+@pytest.mark.parametrize("dtype", torch_dtypes)
+def index_update_value(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  out = backend.index_update(tensor, tensor > 0.1, 0)
+  tensor[tensor > 0.1] = 0.0
+  np.testing.assert_allclose(out, tensor)
+
+
+@pytest.mark.parametrize("dtype", torch_dtypes)
+def index_update_tensor(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  assignee = be.randn(tensor.shape, dtype=dtype, seed=12)
+  out = backend.index_update(tensor, tensor > 0.1, assignee)
+  tensor[tensor > 0.1] = assignee
+  np.testing.assert_allclose(tensor, out)
