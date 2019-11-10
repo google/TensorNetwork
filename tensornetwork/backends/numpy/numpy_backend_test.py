@@ -344,10 +344,20 @@ def test_eigh(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-def index_update(dtype):
+def index_update_value(dtype):
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
-  eta, U = backend.eigh(H)
-  eta_ac, U_ac = np.linalg.eigh(H)
-  np.testing.assert_allclose(eta, eta_ac)
-  np.testing.assert_allclose(U, U_ac)
+  tensor_1 = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  tensor_2 = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  backend.index_update(tensor_1, tensor_1 > 0.1, 0)
+  tensor_2[tensor_2 > 0.1] = 0.0
+  np.testing.assert_allclose(tensor_1, tensor_2)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def index_update_tensor(dtype):
+  backend = numpy_backend.NumPyBackend()
+  tensor_1 = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  tensor_2 = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  backend.index_update(tensor_1, tensor_1 > 0.1, np.zeros(tensor_1.shape))
+  tensor_2[tensor_2 > 0.1] = 0.0
+  np.testing.assert_allclose(tensor_1, tensor_2)
