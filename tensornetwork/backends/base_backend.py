@@ -382,17 +382,3 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
-
-  def index_update(self, tensor: Tensor, mask: Tensor,
-                   assignee: Tensor) -> Tensor:
-    """
-    Update `tensor` at elements defined by `mask` with values in `assignee`.
-    Args:
-      tensor: A `Tensor` object.
-      mask: A boolean mask.
-      assignee: A `Tensor`. Can be a scalar or a tensor.
-        The values to assigned to `tensor` at `mask`.
-
-    """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented index_update.".format(self.name))
