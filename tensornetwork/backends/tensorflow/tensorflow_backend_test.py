@@ -229,7 +229,7 @@ def test_eigh(dtype):
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
-def index_update_value(dtype):
+def test_index_update(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
   tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
   out = backend.index_update(tensor, tensor > 0.1, 0)
@@ -238,12 +238,12 @@ def index_update_value(dtype):
   np.testing.assert_allclose(out, tensor_np)
 
 
-@pytest.mark.parametrize("dtype", tf_dtypes)
-def index_update_tensor(dtype):
-  backend = tensorflow_backend.TensorFlowBackend()
-  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
-  assignee = backend.randn((4, 2, 3), dtype=dtype, seed=12)
-  out = backend.index_update(tensor, tensor > 0.1, assignee)
-  tensor_np = tensor.numpy()
-  tensor_np[tensor_np > 0.1] = assignee.numpy()
-  np.testing.assert_allclose(tensor, tensor_np)
+# @pytest.mark.parametrize("dtype", tf_dtypes)
+# def index_update_tensor(dtype):
+#   backend = tensorflow_backend.TensorFlowBackend()
+#   tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+#   assignee = backend.randn((4, 2, 3), dtype=dtype, seed=12)
+#   out = backend.index_update(tensor, tensor > 0.1, assignee)
+#   tensor_np = tensor.numpy()
+#   tensor_np[tensor_np > 0.1] = assignee.numpy()
+#   np.testing.assert_allclose(tensor, tensor_np)
