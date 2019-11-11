@@ -214,11 +214,11 @@ def test_conj():
   np.testing.assert_allclose(expected, actual)
 
 
-@pytest.mark.parametrize("dtype", np_dtypes)
-def index_update_value(dtype):
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def index_update(dtype):
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
-  out = backend.index_update(tensor, tensor > 0.1, 0)
+  out = backend.index_update(tensor, tensor > 0.1, 0.0)
   tensor = np.array(tensor)
   tensor[tensor > 0.1] = 0.0
   np.testing.assert_allclose(tensor, out)
