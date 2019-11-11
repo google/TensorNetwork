@@ -197,10 +197,46 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
 
-@pytest.mark.parametrize("a, b",
-                         [pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-                          pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
-                         ])
+@pytest.mark.parametrize("a, b", [
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
+    pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
+])
 def test_multiply(a, b):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree("multiply", args)
+
+
+def test_eigs():
+  backend = shell_backend.ShellBackend()
+  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2))
+  assert v[0].shape == (2,)
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = MV((2, 2))
+  eta, v = backend.eigs(mv)
+  assert v[0].shape == (2,)
+
+
+def test_eigs_raises():
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  backend = shell_backend.ShellBackend()
+  mv = MV((2, 2))
+  with pytest.raises(ValueError):
+    backend.eigs(mv, initial_state=np.random.rand(3))
+  with pytest.raises(AttributeError):
+    backend.eigs(lambda x: x)
