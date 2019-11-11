@@ -357,6 +357,7 @@ def index_update_tensor(dtype):
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
   assignee = backend.randn((4, 2, 3), dtype=dtype, seed=12)
-  backend.index_update(tensor, tensor > 0.1, assignee)
+  out = backend.index_update(tensor, tensor > 0.1, assignee)
+  out = bla
   tensor[tensor > 0.1] = 0.0
   np.testing.assert_allclose(tensor, out)
