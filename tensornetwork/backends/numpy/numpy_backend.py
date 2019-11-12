@@ -43,9 +43,8 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
+    return decompositions.svd_decomposition(
+        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def qr_decomposition(
       self,
@@ -138,7 +137,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
-           ncv: Optional[int] = 200,
+           num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 6,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
@@ -158,7 +157,7 @@ class NumPyBackend(base_backend.BaseBackend):
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn` 
         method.
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -213,7 +212,7 @@ class NumPyBackend(base_backend.BaseBackend):
         k=numeig,
         which=which,
         v0=initial_state,
-        ncv=ncv,
+        ncv=num_krylov_vecs,
         tol=tol,
         maxiter=maxiter)
     if dtype:
@@ -221,16 +220,16 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. If no `initial_state` is provided
@@ -242,7 +241,7 @@ class NumPyBackend(base_backend.BaseBackend):
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn` 
         method
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -263,8 +262,8 @@ class NumPyBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
@@ -299,7 +298,7 @@ class NumPyBackend(base_backend.BaseBackend):
     krylov_vecs = []
     first = True
     eigvalsold = []
-    for it in range(ncv):
+    for it in range(num_krylov_vecs):
       #normalize the current vector:
       norm_vector_n = self.np.linalg.norm(vector_n)
       if abs(norm_vector_n) < delta:

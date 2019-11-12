@@ -134,24 +134,25 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
-           ncv: Optional[int] = 200,
+           num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None,
            dtype: Optional[Type] = None) -> Tuple[List, List]:
-    raise NotImplementedError()
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -159,7 +160,7 @@ class PyTorchBackend(base_backend.BaseBackend):
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -181,8 +182,8 @@ class PyTorchBackend(base_backend.BaseBackend):
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     #TODO: make this work for tensorflow in graph mode
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
@@ -214,7 +215,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     krylov_vecs = []
     first = True
     eigvalsold = []
-    for it in range(ncv):
+    for it in range(num_krylov_vecs):
       #normalize the current vector:
       norm_vector_n = self.torch.norm(vector_n)
       if abs(norm_vector_n) < delta:
