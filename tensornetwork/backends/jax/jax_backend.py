@@ -75,19 +75,20 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
-           ncv: Optional[int] = 200,
+           num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None,
            dtype: Optional[Type] = None) -> Tuple[List, List]:
-    raise NotImplementedError()
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
 
   def eigsh_lanczos(
       self,
       A: Callable,
       initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
+      num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
