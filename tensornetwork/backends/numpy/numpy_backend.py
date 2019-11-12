@@ -212,7 +212,7 @@ class NumPyBackend(base_backend.BaseBackend):
         k=numeig,
         which=which,
         v0=initial_state,
-        num_krylov_vecs=num_krylov_vecs,
+        ncv=num_krylov_vecs,
         tol=tol,
         maxiter=maxiter)
     if dtype:
