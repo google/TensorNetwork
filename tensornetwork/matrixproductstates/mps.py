@@ -678,7 +678,7 @@ class InfiniteMPS(BaseMPS):
       direction: Union[Text, int],
       initial_state: Optional[Union[BaseNode, Tensor]] = None,
       precision: Optional[float] = 1E-10,
-      ncv: Optional[int] = 30,
+      num_krylov_vecs: Optional[int] = 30,
       maxiter: Optional[int] = None):
     """
     Compute the dominant eigenvector of the MPS transfer matrix.
@@ -690,7 +690,7 @@ class InfiniteMPS(BaseMPS):
         * If `'-1','r''right'`: return the right dominant eigenvalue
           and eigenvector
       initial_state: An optional initial state.
-      ncv: Number of Krylov vectors to be used in `eigs`.
+      num_krylov_vecs: Number of Krylov vectors to be used in `eigs`.
       precision: The desired precision of the eigen values.
       maxiter: The maximum number of iterations.
     Returns:
@@ -721,7 +721,7 @@ class InfiniteMPS(BaseMPS):
     eta, dens = self.backend.eigs(
         A=mv,
         initial_state=initial_state,
-        ncv=ncv,
+        num_krylov_vecs=num_krylov_vecs,
         numeig=1,
         tol=precision,
         which='LR',
