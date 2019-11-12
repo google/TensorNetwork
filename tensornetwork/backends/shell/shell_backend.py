@@ -213,7 +213,7 @@ class ShellBackend(base_backend.BaseBackend):
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
-           ncv: Optional[int] = 200,
+           num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
@@ -246,15 +246,15 @@ class ShellBackend(base_backend.BaseBackend):
       self,
       A: Callable,
       initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
+      num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
 
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
