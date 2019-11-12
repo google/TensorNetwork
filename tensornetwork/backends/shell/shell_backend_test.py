@@ -192,7 +192,7 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
@@ -208,8 +208,10 @@ def test_multiply(a, b):
 
 def test_eigs():
   backend = shell_backend.ShellBackend()
-  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2))
-  assert v[0].shape == (2,)
+  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2), numeig=2)
+  assert len(eta) == 2
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
 
   class MV:
 
@@ -220,8 +222,10 @@ def test_eigs():
       return x
 
   mv = MV((2, 2))
-  eta, v = backend.eigs(mv)
-  assert v[0].shape == (2,)
+  eta, v = backend.eigs(mv, numeig=2)
+  assert len(eta) == 2
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
 
 
 def test_eigs_raises():
