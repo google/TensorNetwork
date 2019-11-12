@@ -246,7 +246,7 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
