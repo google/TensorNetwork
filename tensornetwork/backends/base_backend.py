@@ -386,13 +386,13 @@ class BaseBackend:
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     """
-    Update `tensor` at elements defined by `mask` with values in `assignee`.
+    Update `tensor` at elements defined by `mask` with value `assignee`.
     Args:
       tensor: A `Tensor` object.
       mask: A boolean mask.
-      assignee: A `Tensor`. Can be a scalar or a tensor.
-        The values to assigned to `tensor` at `mask`.
+      assignee: A scalar `Tensor`. The values to assigned to `tensor` 
+        at positions where `mask` is `True`.
 
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented index_update.".format(self.name))
+        "Backend '{}' has not implemented `index_update`.".format(self.name))
