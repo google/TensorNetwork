@@ -134,9 +134,6 @@ class NumPyBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 
-  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
-    return self.np.linalg.eigh(matrix)
-
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
