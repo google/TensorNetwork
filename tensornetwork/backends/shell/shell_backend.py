@@ -210,6 +210,10 @@ class ShellBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
 
+  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
+    shape = matrix.shape
+    return ShellTensor((shape[0],)), ShellTensor(shape)
+
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,

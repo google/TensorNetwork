@@ -206,6 +206,13 @@ def test_multiply(a, b):
   assertBackendsAgree("multiply", args)
 
 
+def test_eigh():
+  matrix = np.ones([3, 3])
+  vals, vecs = shell_backend.ShellBackend().eigh(matrix)
+  assert vals.shape == (3,)
+  assert vecs.shape == (3, 3)
+
+
 def test_eigs():
   backend = shell_backend.ShellBackend()
   eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2), numeig=2)

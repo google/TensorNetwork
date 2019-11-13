@@ -330,6 +330,19 @@ def test_eigs(dtype, which):
   np.testing.assert_allclose(v1, v2)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+  backend = numpy_backend.NumPyBackend()
+  np.random.seed(10)
+  H = backend.randn((4, 4), dtype=dtype, seed=10)
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = np.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)
+
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_index_update(dtype):
   backend = numpy_backend.NumPyBackend()
