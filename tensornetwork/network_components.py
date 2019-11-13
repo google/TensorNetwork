@@ -33,7 +33,8 @@ Tensor = Any
 
 
 class BaseNode(ABC):
-  """Base class for nodes. Should be subclassed.
+  """
+  Base class for nodes. Should be subclassed.
 
   A Node represents a concrete tensor in a tensor network. The number of edges
   for a node represents the rank of that tensor.
@@ -474,8 +475,9 @@ class BaseNode(ABC):
 
 
 class Node(BaseNode):
-  """A Node represents a concrete tensor in a tensor network.
-   The number of edges for a node represents the rank of that tensor.
+  """
+  A Node represents a concrete tensor in a tensor network.
+  The number of edges for a node represents the rank of that tensor.
 
   For example:
 

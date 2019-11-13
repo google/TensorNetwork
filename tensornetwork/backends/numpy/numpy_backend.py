@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Optional, Any, Sequence, Tuple, Callable, List
+#pyling: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
+import scipy
 Tensor = Any
 
 
@@ -42,9 +43,8 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
+    return decompositions.svd_decomposition(
+        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
 
   def qr_decomposition(
       self,
@@ -134,25 +134,114 @@ class NumPyBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 6,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` can be either a 
+    scipy.sparse.linalg.LinearOperator object or a regular callable.
+    If no `initial_state` is provided then `A` has to have an attribute 
+    `shape` so that a suitable initial state can be randomly generated.
+    This is a wrapper for scipy.sparse.linalg.eigs which only supports 
+    a subset of the arguments of scipy.sparse.linalg.eigs.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn` 
+        method.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+      maxiter: The maximum number of iterations.
+      dtype: An optional numpy-dtype. If provided, the
+        return type will be cast to `dtype`.
+    Returns:
+       `np.ndarray`: An array of `numeig` lowest eigenvalues
+       `np.ndarray`: An array of `numeig` lowest eigenvectors
+    """
+    if which == 'SI':
+      raise ValueError('which = SI is currently not supported.')
+    if which == 'LI':
+      raise ValueError('which = LI is currently not supported.')
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
+
+    if not isinstance(initial_state, self.np.ndarray):
+      raise TypeError("Expected a `np.array`. Got {}".format(
+          type(initial_state)))
+    #initial_state is an np.ndarray of rank 1, so we can
+    #savely deduce the shape from it
+    lop = scipy.sparse.linalg.LinearOperator(
+        dtype=initial_state.dtype,
+        shape=(initial_state.shape[0], initial_state.shape[0]),
+        matvec=A)
+    eta, U = scipy.sparse.linalg.eigs(
+        A=lop,
+        k=numeig,
+        which=which,
+        v0=initial_state,
+        ncv=num_krylov_vecs,
+        tol=tol,
+        maxiter=maxiter)
+    if dtype:
+      eta = eta.astype(dtype)
+      U = U.astype(dtype)
+    return list(eta), [U[:, n] for n in range(numeig)]
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a `LinearOperator` `A`.
+    of a linear operator `A`. If no `initial_state` is provided
+    then `A` has to have an attribute `shape` so that a suitable initial
+    state can be randomly generated.
+
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn` 
         method
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -173,8 +262,8 @@ class NumPyBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
@@ -209,7 +298,7 @@ class NumPyBackend(base_backend.BaseBackend):
     krylov_vecs = []
     first = True
     eigvalsold = []
-    for it in range(ncv):
+    for it in range(num_krylov_vecs):
       #normalize the current vector:
       norm_vector_n = self.np.linalg.norm(vector_n)
       if abs(norm_vector_n) < delta:

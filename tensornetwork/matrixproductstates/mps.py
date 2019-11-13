@@ -53,16 +53,18 @@ class BaseMPS:
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Text] = None):
+             backend: Optional[Text] = None) -> "BaseMPS":
     """
-    Initialize a random BaseMPS. The resulting state
+    Initialize a random BaseMPS of length `N=len(d)`. The resulting state
     is NOT normalized. 
-    Args:
-      d: A list of physical dimensions.
-      D: A list of bond dimensions.
-      dtype: A numpy dtype.
-      backend:L An optional backend.
 
+    Args:
+      d: A list of `N` physical dimensions.
+      D: A list of `N` bond dimensions.
+      dtype: A numpy dtype.
+      backend: An optional backend.
+    Returns:
+      `BaseMPS`
     """
     #use numpy backend for tensor initialization.
     #tensors will be converted to backend type during
@@ -95,14 +97,14 @@ class BaseMPS:
   @property
   def bond_dimensions(self) -> List:
     """
-    Return a list of bond dimensions of FiniteMPS
+    A list of bond dimensions of `BaseMPS`
     """
     return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
 
   @property
   def physical_dimensions(self) -> List:
     """
-    Return a list of physical Hilbert-space dimensions of FiniteMPS
+    A list of physical Hilbert-space dimensions of `BaseMPS`
     """
 
     return [node.shape[1] for node in self.nodes]
@@ -114,20 +116,20 @@ class BaseMPS:
     raise NotImplementedError()
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Tensor) -> Tensor:
+                              matrix: Tensor) -> BaseNode:
     """
     Compute the action of the MPS transfer-operator at site `site`.
+
     Args:
-      site (int): a site of the MPS
-      direction (str or int): if 1, 'l' or 'left': compute the left-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-                              if -1, 'r' or 'right': compute the right-action 
-                                of the MPS transfer-operator at `site` on the
-                                input `matrix`
-      matrix (Tensor): A rank-2 tensor or matrix.
+      site: a site of the MPS
+      direction: 
+        * if `1, 'l'` or `'left'`: compute the left-action 
+          of the MPS transfer-operator at `site` on the input `matrix`.
+        * if `-1, 'r'` or `'right'`: compute the right-action 
+          of the MPS transfer-operator at `site` on the input `matrix`
+      matrix: A rank-2 tensor or matrix.
     Returns:
-      Tensor: the result of applying the MPS transfer-operator to `matrix`
+      `Node`: the result of applying the MPS transfer-operator to `matrix`
     """
     mat = Node(matrix, backend=self.backend.name)
     node = Node(self.nodes[site], backend=self.backend.name)
@@ -148,11 +150,13 @@ class BaseMPS:
                              sites: Sequence[int]) -> List:
     """
     Measure the expectation value of local operators `ops` site `sites`.
+
     Args:
-      ops: list Tensors of rank 2; the local operators to be measured
-      sites: sites where `ops` acts.
+      ops: A list Tensors of rank 2; the local operators to be measured.
+      sites: Sites where `ops` act.
+
     Returns:
-      List: measurements <op[n]> for n in `sites`
+      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle` for n in `sites`
     Raises:
       ValueError if `len(ops) != len(sites)`
     """
@@ -181,14 +185,20 @@ class BaseMPS:
                                   op2: Union[BaseNode, Tensor], site1: int,
                                   sites2: Sequence[int]) -> List:
     """
-    Commpute the correlator <op1,op2> between `site1` and all sites in `s` in 
-    `sites2`. if `site1 == s`, op2 will be applied first
+    Compute the correlator 
+    :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
+    between `site1` and all sites `s` in `sites2`. if `s==site1`, 
+    `op2[s]` will be applied first
+
     Args:
-      op1, op2: Tensors of rank 2; the local operators to be measured
-      site1: the site where `op1`  acts
-      sites2: sites where `op2` acts.
+      op1: Tensor of rank 2; the local operator at `site1`
+      op2: List of tensors of rank 2; the local operators 
+        at `sites2`.
+      site1: The site where `op1`  acts
+      sites2: Sites where operators `op2` act.
     Returns:
-      List: correlator <op1, op2>
+      List: Correlator :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
+        for `s` :math:`\\in` `sites2`.
     Raises:
       ValueError if `site1` is out of range
     """
@@ -334,25 +344,26 @@ class BaseMPS:
 
 class FiniteMPS(BaseMPS):
   """
-  An MPS class for finite systems.
-  `FiniteMPS` keeps track of the nodes of the network by storing them in a list
-  `FiniteMPS.nodes`. `FiniteMPS` has a central site. The position of this 
-  central site is stored in `FiniteMPS.center_position`. This center position 
-  can be shifted using the `FiniteMPS.position` method. 
-  If the state is initialized with `center_positon=0`, 
-  then `FiniteMPS.position(len(FiniteMPS)-1)` shifts the `center_position`
-  to `len(FiniteMPS) - 1`. If the shift is a "right-shift" (i.e. 
-  `center_position` is moved from left to right), then all sites that are 
-  visited in between are left in left-orthogonal form. If the shift is a 
-  "left-shift" (i.e. `center_position` is shifted from right to left), 
-  then all sites that are visited in between are left in right-orthogonal form. 
-  For random initial tensors `tensors` and `center_position=0`, 
-  doing one sweep from left to right and a successive sweep from right to left 
-  brings the state into central canonical form. In this state, 
-  all sites to the left of `center_position` are left orthogonal, 
-  and all sites to the right of `center_position` are right orthogonal, 
-  and the state is normalized. Due to efficiency reasons, the state upon 
-  initialization is usually NOT brought into the central canonical form.
+  An MPS class for finite systems. 
+
+  MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
+  attribute.
+  `FiniteMPS` has a central site, also called orthogonality center. 
+  The position of this central site is stored in `FiniteMPS.center_position`, 
+  and it can be be shifted using the `FiniteMPS.position` method. 
+  `FiniteMPS.position` uses QR and RQ methods to shift `center_position`.
+  
+  `FiniteMPS` can be initialized either from a `list` of tensors, or
+  by calling the classmethod `FiniteMPS.random`.
+  
+  By default, `FiniteMPS` is initialized in *canonical* form, i.e.
+  the state is normalized, and all tensors to the left of 
+  `center_position` are left orthogonal, and all tensors 
+  to the right of `center_position` are right orthogonal. The tensor
+  at `FiniteMPS.center_position` is neither left nor right orthogonal.
+
+  Note that canonicalization can be computationally relatively 
+  costly and scales :math:`\\propto ND^3`.
   """
 
   def __init__(self,
@@ -396,13 +407,16 @@ class FiniteMPS(BaseMPS):
              dtype: Type[np.number],
              backend: Optional[Text] = None):
     """
-    Initialize a random FiniteMPS. The resulting state
-    is NOT normalized. Its center-position is at 0.
+    Initialize a random `FiniteMPS`. The resulting state
+    is normalized. Its center-position is at 0.
+
     Args:
       d: A list of physical dimensions.
       D: A list of bond dimensions.
       dtype: A numpy dtype.
-      backend:L An optional backend.
+      backend: An optional backend.
+    Returns:
+      `FiniteMPS`
     """
     #use numpy backend for tensor initialization
     be = backend_factory.get_backend('numpy')
@@ -416,12 +430,13 @@ class FiniteMPS(BaseMPS):
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
     """
-    Shift FiniteMPS.center_position to `site`.
+    Shift `FiniteMPS.center_position` to `site`.
+
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
     Returns:
-      Tensor: The norm of the tensor at FiniteMPS.center_position
+      `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
     """
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.nodes) or site < 0:
@@ -496,7 +511,7 @@ class FiniteMPS(BaseMPS):
     Args:
       normalize: If `True`, normalize matrices when shifting.
     Returns:
-      Tensor: The norm of the MPS.
+      `Tensor`: The norm of the MPS.
     """
     pos = self.center_position
     self.position(0, normalize=False)
@@ -506,12 +521,13 @@ class FiniteMPS(BaseMPS):
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """
     Check orthonormality of tensor at site `site`.
+
     Args:
-      which: if 'l' or 'left': check left orthogonality
-             if 'r' or 'right': check right orthogonality
+      which: * if `'l'` or `'left'`: check left orthogonality
+             * if `'r`' or `'right'`: check right orthogonality
       site:  The site of the tensor.
     Returns:
-      scalar Tensor: The L2 norm of the deviation from identity.
+      scalar `Tensor`: The L2 norm of the deviation from identity.
     Raises:
       ValueError: If which is different from 'l','left', 'r' or 'right'.
     """
@@ -555,10 +571,11 @@ class FiniteMPS(BaseMPS):
     This returns a dict `left_envs` mapping sites (int) to Tensors.
     `left_envs[site]` is the left-reduced density matrix to the left of
     site `site`.
+
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      dict maping int to Tensor: The left-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The left-reduced density matrices 
         at each  site in `sites`.
 
     """
@@ -621,12 +638,12 @@ class FiniteMPS(BaseMPS):
     This returns a dict `right_envs` mapping sites (int) to Tensors.
     `right_envs[site]` is the right-reduced density matrix to the right of
     site `site`.
+
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      dict maping int to Tensors: The right-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The right-reduced density matrices 
         at each  site in `sites`.
-
     """
 
     n1 = min(sites)
@@ -691,12 +708,16 @@ class FiniteMPS(BaseMPS):
     """
     Apply a two-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using MPS.position
+    the user can restore it using `FiniteMPS.position`.
+
     Args:
       gate (Tensor): a two-body gate
       site1, site2 (int, int): the sites where the gate should be applied
       max_singular_values (int): The maximum number of singular values to keep.
       max_truncation_err (float): The maximum allowed truncation error.
+    Returns:
+      scalar `Tensor`: the truncated weight of the truncation.
+    
     """
     if len(gate.shape) != 4:
       raise ValueError('rank of gate is {} but has to be 4'.format(
@@ -753,10 +774,11 @@ class FiniteMPS(BaseMPS):
     """
     Apply a one-site gate to an MPS. This routine will in general 
     destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using MPS.position
+    the user can restore it using `FiniteMPS.position`
+
     Args:
-      gate (Tensor): a one-body gate
-      site (int): the site where the gate should be applied
+      gate: a one-body gate
+      site: the site where the gate should be applied
       
     """
     if len(gate.shape) != 2:
