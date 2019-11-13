@@ -155,14 +155,14 @@ def test_zeros(dtype):
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert a.shape == (4, 4)
 
 
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 def test_randn_non_zero_imag(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert np.linalg.norm(np.imag(a)) != 0.0
 
 
@@ -190,7 +190,7 @@ def test_zeros_dtype(dtype):
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_dtype(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert a.dtype == dtype
 
 
@@ -217,8 +217,8 @@ def test_eigsh_lanczos_1(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
   np.random.seed(10)
-  init = backend.randn((D,), dtype=dtype)
-  tmp = backend.randn((D, D), dtype=dtype)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
   def mv(x):
@@ -239,7 +239,7 @@ def test_eigsh_lanczos_2(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
   np.random.seed(10)
-  tmp = backend.randn((D, D), dtype=dtype)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
   class LinearOperator:
@@ -313,8 +313,8 @@ def test_eigs(dtype, which):
   backend = numpy_backend.NumPyBackend()
   D = 16
   np.random.seed(10)
-  init = backend.randn((D,), dtype=dtype)
-  M = backend.randn((D, D), dtype=dtype)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  M = backend.randn((D, D), dtype=dtype, seed=10)
 
   def mv(x):
     return np.dot(M, x)
@@ -328,3 +328,16 @@ def test_eigs(dtype, which):
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+  backend = numpy_backend.NumPyBackend()
+  np.random.seed(10)
+  H = backend.randn((4, 4), dtype=dtype, seed=10)
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = np.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)

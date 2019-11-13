@@ -214,3 +214,15 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_eigh(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  H = backend.randn((4, 4), dtype)
+  H = H + tf.math.conj(tf.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = tf.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)
