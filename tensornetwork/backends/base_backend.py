@@ -276,6 +276,18 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
 
+  def eigh(self, matrix: Tensor):
+    """
+    Compute eigenvectors and eigenvalues of a hermitian matrix.
+    Args:
+      matrix: A symetric matrix.
+    Returns:
+      Tensor: The eigenvalues in ascending order.
+      Tensor: The eigenvectors.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented eigh".format(
+        self.name))
+
   def eigs(self,
            A: Callable,
            initial_state: Optional[Tensor] = None,
