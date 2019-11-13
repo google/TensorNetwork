@@ -209,13 +209,24 @@ def test_multiply(a, b):
 @pytest.mark.parametrize("a, b, ops",
                          [pytest.param(np.ones((1, 2, 3)),
                                        np.ones((1, 2, 3)), 'add'),
-                          pytest.param(2. * np.ones(()),
-                                       np.ones((1, 2, 3)), 'add'),
                           pytest.param(np.ones((1, 2, 3)),
-                                       np.ones((1, 2, 3)), 'sub'),
-                          pytest.param(2. * np.ones(()),
                                        np.ones((1, 2, 3)), 'sub')
+                          # pytest.param(2. * np.ones(()),
+                          #              np.ones((1, 2, 3)), 'sub')
                          ])
 def test_add_sub(a, b, ops):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree(ops, args)
+
+
+@pytest.mark.parametrize("a, b, ops",
+                         [pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)), 'add'),
+                          pytest.param(2. * np.ones(()),
+                                       np.ones((1, 2, 3)), 'sub')
+                         ])
+def test_add_sub_mismatch_shape(a, b, ops):
+  args = {"tensor1": a, "tensor2": b}
+  err_msg = "Tensor shapes mismatch"
+  with pytest.raises(ValueError, match=err_msg):
+    assertBackendsAgree(ops, args)

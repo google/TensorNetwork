@@ -257,11 +257,13 @@ class ShellBackend(base_backend.BaseBackend):
     return ShellTensor((a * b).shape)
 
   def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    a = np.ones(tensor1.shape)
-    b = np.ones(tensor2.shape)
-    return ShellTensor((a + b).shape)
+    if tensor1.shape != tensor2.shape:
+      raise ValueError("Tensor shapes mismatch.")
+
+    return ShellTensor(tensor1.shape)
 
   def sub(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    a = np.ones(tensor1.shape)
-    b = np.ones(tensor2.shape)
-    return ShellTensor((a - b).shape)
+    if tensor1.shape != tensor2.shape:
+      raise ValueError("Tensor shapes mismatch.")
+
+    return ShellTensor(tensor1.shape)
