@@ -740,6 +740,193 @@ class InfiniteMPS(BaseMPS):
   def save(self, path: str):
     raise NotImplementedError()
 
+  def canonicalize(self,
+                   initial_state: Optional[Union[BaseNode, Tensor]] = None,
+                   precision: Optional[float] = 1E-10,
+                   truncation_threshold: Optional[float] = 1E-15,
+                   D: Optional[int] = None,
+                   num_krylov_vecs: Optional[int] = 50,
+                   maxiter: Optional[int] = 1000,
+                   pseudo_inverse_cutoff: Optional[float] = None):
+    """
+    Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
+
+    Parameters:
+    ------------------------------
+    init:          Tensor
+                   initial guess for the eigenvector
+    precision:     float
+                   desired precision of the dominant eigenvalue
+    num_krylov_vecs:           int
+                   number of Krylov vectors
+    nmax:          int
+                   max number of iterations
+    numeig:        int
+                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
+                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
+    pinv:          float
+                   pseudoinverse cutoff
+    truncation_threshold: float 
+                          truncation threshold for the MPS, if < 1E-15, no truncation is done
+    D:             int or None 
+                   if int is given, bond dimension will be reduced to `D`; `D=None` has no effect
+    warn_thresh:   float 
+                   threshold value; if TMeigs returns an eigenvalue with imaginary value larger than 
+                   ```warn_thresh```, a warning is issued 
+
+    Returns:
+    ----------------------------------
+    None
+    """
+
+    #bring center-position to 0
+    self.position(0)
+    #dtype of eta is the same as InfiniteMPS.dtype
+    #this is assured in the backend.
+    eta, l = self.transfer_matrix_eigs(
+        direction='left',
+        initial_state=initial_state,
+        precision=precision,
+        num_krylov_vecs=num_krylov_vecs,
+        maxiter=maxiter)
+    sqrteta = self.backend.sqrt(eta)
+    self.nodes[0].tensor /= sqrteta
+
+    # if np.abs(np.imag(eta)) / np.abs(np.real(eta)) > warn_thresh:
+    #   print(
+    #       'in mpsfunctions.py.regaugeIMPS: warning: found eigenvalue eta with large imaginary part: ',
+    #       eta)
+
+    #TODO: would be nice to do the algebra directly on the nodes here
+    l.tensor /= self.backend.trace(l.tensor)
+    l.tensor = (l.tensor +
+                self.backend.transpose(self.backend.conj(l.tensor),
+                                       (1, 0))) / 2.0
+    #eigvals_left and u_left are both `Tensor` objects
+    eigvals_left, u_left = self.backend.eigh(l.tensor)
+    eigvals_left /= self.backend.norm(eigvals_left)
+    if pseudo_inverse_cutoff:
+      mask = eigvals_left <= pseudo_inverse_cutoff
+
+    inveigvals_left = 1.0 / eigvals_left
+    if pseudo_inverse_cutoff:
+      inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
+
+    # u_left = Node(u_left, backend=self.backend.name)
+    # sqrt_eigvals_left = Node(
+    #     self.backend.sqrt(self.backend.diag(eigvals_left)),
+    #     backend=self.backend.name)
+
+    # inv_sqrt_eigvals_left = Node(
+    #     self.backend.sqrt(self.backend.diag(inv_eigvals_left)),
+    #     backend=self.backend.name)
+
+    # sqrt_eigvals_left[0] ^ u_left[0]
+    # order = [sqrt_eigvals_left[0], u_left[0]]
+    # y = sqrt_eigvals_left[0] @ u_left[1]
+    # y.reorder_edges(order)
+
+    y = Node(
+        ncon(
+            [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
+            [[-2, 1], [1, -1]],
+            backend=self.backend.name),
+        backend=self.backend.name)
+    invy = Node(
+        ncon([
+            self.backend.diag(self.backend.sqrt(inveigvals_left)),
+            self.backend.conj(u_left)
+        ], [[-2, 1], [-1, 1]],
+             backend=self.backend.name),
+        backend=self.backend.name)
+
+    eta, r = self.transfer_matrix_eigs(
+        direction='right',
+        initial_state=initial_state,
+        precision=precision,
+        num_krylov_vecs=num_krylov_vecs,
+        maxiter=maxiter)
+
+    r.tensor /= self.backend.trace(r.tensor)
+    r.tensor = (r.tensor +
+                self.backend.transpose(self.backend.conj(r.tensor),
+                                       (1, 0))) / 2.0
+    #eigvals_left and u_left are both `Tensor` objects
+    eigvals_right, u_right = self.backend.eigh(r.tensor)
+    eigvals_right /= self.backend.norm(eigvals_right)
+    if pseudo_inverse_cutoff:
+      mask = eigvals_right <= pseudo_inverse_cutoff
+
+    inveigvals_right = 1.0 / eigvals_right
+    if pseudo_inverse_cutoff:
+      inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
+
+    # r = r / r.tr()
+    # r = (r + r.conj().transpose()) / 2.0
+    # eigvals_right, u_right = r.eigh()
+    # eigvals_right[eigvals_right <= pinv] = 0.0
+
+    # eigvals_right /= np.sqrt(
+    #     ncon.ncon([eigvals_right, eigvals_right.conj()], [[1], [1]]))
+    # inveigvals_right = eigvals_right.zeros(eigvals_right.shape[0])
+    # inveigvals_right[
+    #     eigvals_right > pinv] = 1.0 / eigvals_right[eigvals_right > pinv]
+
+    x = Node(
+        ncon([u_right,
+              self.backend.diag(self.backend.sqrt(eigvals_right))],
+             [[-1, 1], [1, -2]],
+             backend=self.backend.name),
+        backend=self.backend.name)
+
+    invx = Node(
+        ncon([
+            self.backend.diag(self.backend.sqrt(inveigvals_right)),
+            self.backend.conj(u_right)
+        ], [[-1, 1], [-2, 1]],
+             backend=self.backend.name),
+        backend=self.backend.name)
+
+    tmp = Node(
+        ncon([y, x], [[-1, 1], [1, -2]], backend=self.backend.name),
+        backend=self.backend.name)
+    U, lam, V, _ = split_node_full_svd(
+        tmp, [tmp[0]], [tmp[1]],
+        max_singular_values=D,
+        max_truncation_err=truncation_threshold)
+    # U, lam, V, _ = .svd(
+    #     truncation_threshold=truncation_threshold, D=D)
+
+    #lam[1] ^ V[0]
+    #V[1] ^ invx[0]
+    #invx[1] ^ self.nodes[0][0]
+
+    #absorb lam*V*invx into the left-most mps tensor
+    self.nodes[0] = ncon([lam, V, invx, self.nodes[0]],
+                         [[-1, 1], [1, 2], [2, 3], [3, -2, -3]])
+
+    #absorb connector * invy * U * lam into the right-most tensor
+    #Note that lam is absorbed here, which means that the state
+    #is in the parallel decomposition
+    #Note that we absorb connector_matrix here
+    self.nodes[-1] = ncon([self.get_node(len(self) - 1), invy, U, lam],
+                          [[-1, -2, 1], [1, 2], [2, 3], [3, -3]])
+    #now do a sweep of QR decompositions to bring the mps tensors into
+    #left canonical form (except the last one)
+    self.position(len(self) - 2)
+    # Z = norm(self.nodes[-1])
+    # Z = ncon([self.nodes[-1], conj(self.nodes[-1])],
+    #          [[1, 2, 3], [1, 2, 3]]) / np.sum(self.D[-1])
+    #self._tensors[-1] /= np.sqrt(Z)
+
+    #TODO: lam is a diagonal matrix, but we're not making use of it the moment
+    lam_norm = self.backend.norm(lam.tensor)
+    lam.tensor /= lam_norm
+    self.center_position = len(self) - 1
+    self._connector = (1.0 / lam).diag()
+    self._right_mat = lam.diag()
+    self._norm = self.dtype.type(1)
+
 
 class FiniteMPS(BaseMPS):
   """
