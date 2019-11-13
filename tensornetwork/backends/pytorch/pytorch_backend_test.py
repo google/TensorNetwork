@@ -246,7 +246,7 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
@@ -261,3 +261,16 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+def test_eigh():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  H = backend.randn((4, 4), dtype)
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, _ = np.linalg.eigh(H)
+  M = U.transpose(1, 0).mm(H).mm(U)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_almost_equal(np.diag(eta), M)

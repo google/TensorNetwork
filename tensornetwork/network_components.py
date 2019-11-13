@@ -33,7 +33,8 @@ Tensor = Any
 
 
 class BaseNode(ABC):
-  """Base class for nodes. Should be subclassed.
+  """
+  Base class for nodes. Should be subclassed.
 
   A Node represents a concrete tensor in a tensor network. The number of edges
   for a node represents the rank of that tensor.
@@ -474,8 +475,9 @@ class BaseNode(ABC):
 
 
 class Node(BaseNode):
-  """A Node represents a concrete tensor in a tensor network.
-   The number of edges for a node represents the rank of that tensor.
+  """
+  A Node represents a concrete tensor in a tensor network.
+  The number of edges for a node represents the rank of that tensor.
 
   For example:
 
@@ -577,7 +579,14 @@ class Node(BaseNode):
     node.set_signature(signature)
     return node
 
-
+  def __repr__(self):
+    edges = self.get_all_edges()
+    return (f'{self.__class__.__name__}\n(\n'
+            f'name : {self.name!r},'
+            f'\ntensor : \n{self.tensor!r},'
+            f'\nedges : \n{edges!r} \n)'
+            )
+  
 class CopyNode(BaseNode):
 
   def __init__(self,
@@ -1031,6 +1040,13 @@ class Edge:
     if self.name:
       return self.name
     return '__unnamed_edge__'
+  
+  def __repr__(self):
+    if self.node1 is not None and self.node2 is not None:
+      return (f'\n{self.__class__.__name__}('
+              f'{self.node1.name!r}[{self.axis1}] -> '
+              f'{self.node2.name!r}[{self.axis2}] )\n')
+    return f'\n{self.__class__.__name__}(Dangling Edge)[{self.axis1}] \n'
 
   def disconnect(self,
                  edge1_name: Optional[Text] = None,

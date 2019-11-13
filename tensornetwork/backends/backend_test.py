@@ -113,6 +113,7 @@ def test_import_tensornetwork_without_backends():
 def test_basic_numpy_network_without_backends():
   #pylint: disable=import-outside-toplevel
   #pylint: disable=reimported
+  #pylint: disable=unused-variable
   import tensornetwork
   a = Node(np.ones((10,)), backend="numpy")
   b = Node(np.ones((10,)), backend="numpy")
@@ -137,6 +138,7 @@ def test_basic_numpy_network_without_backends():
 def test_basic_network_without_backends_raises_error():
   #pylint: disable=import-outside-toplevel
   #pylint: disable=reimported
+  #pylint: disable=unused-variable
   import tensornetwork
   with pytest.raises(ImportError):
     Node(np.ones((2, 2)), backend="jax")

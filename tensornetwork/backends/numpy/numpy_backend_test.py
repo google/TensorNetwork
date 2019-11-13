@@ -155,14 +155,14 @@ def test_zeros(dtype):
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert a.shape == (4, 4)
 
 
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 def test_randn_non_zero_imag(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert np.linalg.norm(np.imag(a)) != 0.0
 
 
@@ -190,7 +190,7 @@ def test_zeros_dtype(dtype):
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_dtype(dtype):
   backend = numpy_backend.NumPyBackend()
-  a = backend.randn((4, 4), dtype=dtype)
+  a = backend.randn((4, 4), dtype=dtype, seed=10)
   assert a.dtype == dtype
 
 
@@ -217,8 +217,8 @@ def test_eigsh_lanczos_1(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
   np.random.seed(10)
-  init = backend.randn((D,), dtype=dtype)
-  tmp = backend.randn((D, D), dtype=dtype)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
   def mv(x):
@@ -239,7 +239,7 @@ def test_eigsh_lanczos_2(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
   np.random.seed(10)
-  tmp = backend.randn((D, D), dtype=dtype)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
   class LinearOperator:
@@ -267,7 +267,7 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
@@ -282,3 +282,62 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+def find(which, vector):
+  if which == 'LM':
+    index = np.argmax(np.abs(vector))
+    val = np.abs(vector[index])
+  if which == 'SM':
+    index = np.argmin(np.abs(vector))
+    val = np.abs(vector[index])
+  if which == 'LR':
+    index = np.argmax(np.real(vector))
+    val = np.real(vector[index])
+  if which == 'SR':
+    index = np.argmin(np.real(vector))
+    val = np.real(vector[index])
+  if which == 'LI':
+    index = np.argmax(np.imag(vector))
+    val = np.imag(vector[index])
+  if which == 'SI':
+    index = np.argmin(np.imag(vector))
+    val = np.imag(vector[index])
+  return val, index
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs(dtype, which):
+
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  M = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x):
+    return np.dot(M, x)
+
+  eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(M)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+  backend = numpy_backend.NumPyBackend()
+  np.random.seed(10)
+  H = backend.randn((4, 4), dtype=dtype, seed=10)
+  H = H + np.conj(np.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = np.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)
