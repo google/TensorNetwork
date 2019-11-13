@@ -287,3 +287,7 @@ class ShellBackend(base_backend.BaseBackend):
     a = np.ones(tensor1.shape)
     b = np.ones(tensor2.shape)
     return ShellTensor((a * b).shape)
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    return ShellTensor(tensor.shape)

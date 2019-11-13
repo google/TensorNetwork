@@ -351,3 +351,9 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    t = self.np.copy(tensor)
+    t[mask] = assignee
+    return t
