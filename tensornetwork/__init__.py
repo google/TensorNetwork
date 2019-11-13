@@ -13,7 +13,7 @@ from tensornetwork import contractors
 from tensornetwork import config
 from typing import Text, Optional, Type, Union
 from tensornetwork.utils import load_nodes, save_nodes
-from tensornetwork.matrixproductstates.mps import FiniteMPS, InfiniteMPS
+from tensornetwork.matrixproductstates.mps import FiniteMPS
 
 
 def set_default_backend(backend: Union[Text, BaseBackend]) -> None:
