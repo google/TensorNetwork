@@ -221,7 +221,7 @@ class BaseMPS:
     Returns:
       `Node`: the result of applying the MPS transfer-operator to `matrix`
     """
-    mat = Node(matrix, backend=self.backend.name)
+    mat = Node(matrix, backend=self.backend)
     node = self.get_node(site)
     conj_node = conj(node)
     node[1] ^ conj_node[1]
@@ -256,10 +256,10 @@ class BaseMPS:
     left_envs = self.left_envs(sites)
     res = []
     for n, site in enumerate(sites):
-      O = Node(ops[n], backend=self.backend.name)
+      O = Node(ops[n], backend=self.backend)
       R = right_envs[site]
       L = left_envs[site]
-      A = Node(self.nodes[site], backend=self.backend.name)
+      A = Node(self.nodes[site], backend=self.backend)
       conj_A = conj(A)
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
@@ -321,8 +321,8 @@ class BaseMPS:
       left_sites_mod = list({n % N for n in left_sites})
 
       ls = self.left_envs(left_sites_mod + [site1])
-      A = Node(self.nodes[site1], backend=self.backend.name)
-      O1 = Node(op1, backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
+      O1 = Node(op1, backend=self.backend)
       conj_A = conj(A)
       R = rs[site1]
       R[0] ^ A[2]
@@ -347,9 +347,9 @@ class BaseMPS:
 
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
-          A = Node(self.nodes[n % N], backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend)
           conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
+          O2 = Node(op2, backend=self.backend)
           L = ls[n % N]
           L[0] ^ A[0]
           L[1] ^ conj_A[0]
@@ -367,11 +367,11 @@ class BaseMPS:
 
     # compute <op2(site1)op1(site1)>
     if site1 in sites2:
-      O1 = Node(op1, backend=self.backend.name)
-      O2 = Node(op2, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend)
+      O2 = Node(op2, backend=self.backend)
       L = ls[site1]
       R = rs[site1]
-      A = Node(self.nodes[site1], backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
       conj_A = conj(A)
 
       O1[1] ^ O2[0]
@@ -388,10 +388,10 @@ class BaseMPS:
     # compute <op1(site1) op2(site2)> for site1 < site2
     right_sites = sorted(sites2[sites2 > site1])
     if right_sites:
-      A = Node(self.nodes[site1], backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
       conj_A = conj(A)
       L = ls[site1]
-      O1 = Node(op1, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend)
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
       A[1] ^ O1[1]
@@ -415,9 +415,9 @@ class BaseMPS:
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
           R = rs[n % N]
-          A = Node(self.nodes[n % N], backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend)
           conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
+          O2 = Node(op2, backend=self.backend)
           A[0] ^ L[0]
           conj_A[0] ^ L[1]
           O2[0] ^ conj_A[1]
@@ -443,13 +443,14 @@ class BaseMPS:
     the user can restore it using `FiniteMPS.position`.
 
     Args:
-      gate (Tensor): a two-body gate
-      site1, site2 (int, int): the sites where the gate should be applied
-      max_singular_values (int): The maximum number of singular values to keep.
-      max_truncation_err (float): The maximum allowed truncation error.
+      gate: A two-body gate.
+      site1: The first site where the gate acts.
+      site2: The second site where the gate acts.
+      max_singular_values: The maximum number of singular values to keep.
+      max_truncation_err: The maximum allowed truncation error.
     Returns:
-      scalar `Tensor`: the truncated weight of the truncation.
-    
+      `Tensor`: A scalar tensor containing the truncated weight of the
+         truncation.
     """
     if len(gate.shape) != 4:
       raise ValueError('rank of gate is {} but has to be 4'.format(
@@ -466,7 +467,7 @@ class BaseMPS:
           site2, site1))
     if site2 != site1 + 1:
       raise ValueError(
-          'site2 ={} != site1={}. Only nearest neighbor gates are currently '
+          'Found site2 ={}, site1={}. Only nearest neighbor gates are currently '
           'supported'.format(site2, site1))
 
     if (max_singular_values or
@@ -477,7 +478,7 @@ class BaseMPS:
           'is applied at the center position of the MPS'.format(
               self.center_position, site1, site2))
 
-    gate_node = Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend)
 
     self.nodes[site1][2] ^ self.nodes[site2][0]
     gate_node[2] ^ self.nodes[site1][1]
@@ -519,7 +520,7 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend)
     gate_node[1] ^ self.nodes[site][1]
     edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
     self.nodes[site] = contract_between(
@@ -729,7 +730,7 @@ class InfiniteMPS(BaseMPS):
         dtype=self.dtype)
     result = self.backend.reshape(
         dens[0], (self.bond_dimensions[0], self.bond_dimensions[0]))
-    return eta[0], Node(result, backend=self.backend.name)
+    return eta[0], Node(result, backend=self.backend)
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
@@ -894,7 +895,7 @@ class FiniteMPS(BaseMPS):
     for site in left_sites:
       left_envs[site] = Node(
           self.backend.eye(N=self.nodes[site].shape[0], dtype=self.dtype),
-          backend=self.backend.name)
+          backend=self.backend)
 
     # left reduced density matrices at sites > center_position
     # have to be calculated from a network contraction
@@ -902,7 +903,7 @@ class FiniteMPS(BaseMPS):
       nodes = {}
       conj_nodes = {}
       for site in range(self.center_position, n2):
-        nodes[site] = Node(self.nodes[site], backend=self.backend.name)
+        nodes[site] = Node(self.nodes[site], backend=self.backend)
         conj_nodes[site] = conj(self.nodes[site])
 
       nodes[self.center_position][0] ^ conj_nodes[self.center_position][0]
@@ -960,7 +961,7 @@ class FiniteMPS(BaseMPS):
     for site in right_sites:
       right_envs[site] = Node(
           self.backend.eye(N=self.nodes[site].shape[2], dtype=self.dtype),
-          backend=self.backend.name)
+          backend=self.backend)
 
     # right reduced density matrices at sites < center_position
     # have to be calculated from a network contraction
@@ -968,7 +969,7 @@ class FiniteMPS(BaseMPS):
       nodes = {}
       conj_nodes = {}
       for site in reversed(range(n1 + 1, self.center_position + 1)):
-        nodes[site] = Node(self.nodes[site], backend=self.backend.name)
+        nodes[site] = Node(self.nodes[site], backend=self.backend)
         conj_nodes[site] = conj(self.nodes[site])
 
       nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
