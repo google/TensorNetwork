@@ -11,4 +11,7 @@ Matrix Product States
 
 .. autoclass:: tensornetwork.matrixproductstates.mps.FiniteMPS
     :members:
+       
+.. autoclass:: tensornetwork.matrixproductstates.mps.InfiniteMPS
+    :members:
 
