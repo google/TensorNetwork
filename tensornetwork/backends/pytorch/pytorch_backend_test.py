@@ -274,3 +274,23 @@ def test_eigh():
   M = U.transpose(1, 0).mm(H).mm(U)
   np.testing.assert_allclose(eta, eta_ac)
   np.testing.assert_almost_equal(np.diag(eta), M)
+
+
+def test_matrix_inv():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  inverse = backend.inv(matrix)
+  m1 = matrix.mm(inverse)
+  m2 = inverse.mm(matrix)
+
+  np.testing.assert_almost_equal(m1, np.eye(4))
+  np.testing.assert_almost_equal(m2, np.eye(4))
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_matrix_inv_raises(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)
