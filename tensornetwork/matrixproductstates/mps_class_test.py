@@ -229,3 +229,13 @@ def test_TMeigs(dtype):
   eta, l = imps.transfer_matrix_eigs('r')
   l2 = imps.unit_cell_transfer_operator('r', l)
   np.testing.assert_allclose(eta * l.tensor, l2.tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_InfiniteMPS_canonicalize(dtype):
+  D, d, N = 10, 2, 4
+  imps = InfiniteMPS.random(
+      d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
+
+  imps.canonicalize()
+  assert imps.check_canonical() < 1E-12
