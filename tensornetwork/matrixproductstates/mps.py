@@ -773,15 +773,18 @@ class InfiniteMPS(BaseMPS):
       pseudo_inverse_cutoff: Optional[float] = None):
     """
     Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
+
     Args:
       left_initial_state: An initial guess for the left eigenvector of
-        the (unit-cell) mps transfer matrix
+        the unit-cell mps transfer matrix
       right_initial_state: An initial guess for the right eigenvector of
         the unit-cell transfer matrix
       precision: The desired precision of the dominant eigenvalues (passed
         to InfiniteMPS.transfer_matrix_eigs)
-      truncation_threshold: Truncation threshold for Schmidt-values.
-      D: The maximum number of Schmidt values to be kept.
+      truncation_threshold: Truncation threshold for Schmidt-values at the 
+        boundaries of the mps.
+      D: The maximum number of Schmidt values to be kept at the boundaries 
+        of the mps.
       num_krylov_vecs: Number of Krylov vectors to diagonalize transfer_matrix
       maxiter: Maximum number of iterations in `eigs`
       pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose pseudo-inverse
