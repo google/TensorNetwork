@@ -354,3 +354,9 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError("input to numpy backend method `inv` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    return self.np.linalg.inv(matrix)

@@ -251,3 +251,17 @@ def test_eigs_raises():
     backend.eigs(mv, initial_state=np.random.rand(3))
   with pytest.raises(AttributeError):
     backend.eigs(lambda x: x)
+
+
+def test_matrix_inv():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4), seed=10)
+  inverse = backend.inv(matrix)
+  assert inverse.shape == matrix.shape
+
+
+def test_matrix_inv_raises():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)

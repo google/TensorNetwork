@@ -382,3 +382,14 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    """
+    Compute the matrix inverse of `matrix`.
+    Args:
+      matrix: A matrix.
+    Returns:
+      Tensor: The inverse of `matrix`
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
+        self.name))

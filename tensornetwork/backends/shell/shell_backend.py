@@ -291,3 +291,10 @@ class ShellBackend(base_backend.BaseBackend):
     a = np.ones(tensor1.shape)
     b = np.ones(tensor2.shape)
     return ShellTensor((a * b).shape)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to shell backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return ShellTensor(matrix.shape)
