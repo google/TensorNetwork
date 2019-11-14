@@ -18,8 +18,9 @@ from __future__ import print_function
 import pytest
 import numpy as np
 import tensornetwork as tn
-#pylint: disable=line-too-long
-from tensornetwork.matrixproductstates.mps import FiniteMPS, InfiniteMPS, BaseMPS
+from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
+from tensornetwork.matrixproductstates.base_mps import BaseMPS
+from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 import tensorflow as tf
 
 from jax.config import config
@@ -113,7 +114,7 @@ def test_right_orthonormalization(backend_dtype_values):
   ])
 
 
-def test_canonical(backend_dtype_values):
+def test_canonical_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
   D, d, N = 10, 2, 10
@@ -135,7 +136,7 @@ def test_apply_one_site_gate(backend_dtype_values):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
   tensor = mps.nodes[5].tensor
   gate = get_random_np((2, 2), dtype)
   mps.apply_one_site_gate(gate, 5)
@@ -151,7 +152,7 @@ def test_apply_two_site_gate(backend_dtype_values):
   tensors = [get_random_np((1, d, D), dtype)] + [
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2, 2, 2), dtype)
   tensor1 = mps.nodes[5].tensor
   tensor2 = mps.nodes[6].tensor
@@ -166,7 +167,7 @@ def test_apply_two_site_gate(backend_dtype_values):
   np.testing.assert_allclose(res.tensor, actual)
 
 
-def test_local_measurement(backend_dtype_values):
+def test_local_measurement_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
@@ -190,7 +191,7 @@ def test_local_measurement(backend_dtype_values):
   np.testing.assert_allclose(result_2, np.ones(N) * 0.5)
 
 
-def test_correlation_measurement(backend_dtype_values):
+def test_correlation_measurement_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
