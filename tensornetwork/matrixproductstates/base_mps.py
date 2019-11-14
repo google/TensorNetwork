@@ -219,7 +219,7 @@ class BaseMPS:
           of the MPS transfer-operator at `site` on the input `matrix`
       matrix: A rank-2 tensor or matrix.
     Returns:
-      `Node`: the result of applying the MPS transfer-operator to `matrix`
+      `Node`: The result of applying the MPS transfer-operator to `matrix`
     """
     mat = Node(matrix, backend=self.backend)
     node = self.get_node(site)
@@ -448,9 +448,10 @@ class BaseMPS:
       site2: The second site where the gate acts.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+
     Returns:
-      `Tensor`: A scalar tensor containing the truncated weight of the
-         truncation.
+      `Tensor`: A scalar tensor containing the truncated weight of the 
+        truncation.
     """
     if len(gate.shape) != 4:
       raise ValueError('rank of gate is {} but has to be 4'.format(
