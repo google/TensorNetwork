@@ -23,6 +23,7 @@ from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+from tensornetwork.ncon_interface import ncon
 Tensor = Any
 
 
@@ -221,7 +222,7 @@ class BaseMPS:
     Returns:
       `Node`: the result of applying the MPS transfer-operator to `matrix`
     """
-    mat = Node(matrix, backend=self.backend.name)
+    mat = Node(matrix, backend=self.backend)
     node = self.get_node(site)
     conj_node = conj(node)
     node[1] ^ conj_node[1]
@@ -256,10 +257,10 @@ class BaseMPS:
     left_envs = self.left_envs(sites)
     res = []
     for n, site in enumerate(sites):
-      O = Node(ops[n], backend=self.backend.name)
+      O = Node(ops[n], backend=self.backend)
       R = right_envs[site]
       L = left_envs[site]
-      A = Node(self.nodes[site], backend=self.backend.name)
+      A = Node(self.nodes[site], backend=self.backend)
       conj_A = conj(A)
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
@@ -321,8 +322,8 @@ class BaseMPS:
       left_sites_mod = list({n % N for n in left_sites})
 
       ls = self.left_envs(left_sites_mod + [site1])
-      A = Node(self.nodes[site1], backend=self.backend.name)
-      O1 = Node(op1, backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
+      O1 = Node(op1, backend=self.backend)
       conj_A = conj(A)
       R = rs[site1]
       R[0] ^ A[2]
@@ -347,9 +348,9 @@ class BaseMPS:
 
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
-          A = Node(self.nodes[n % N], backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend)
           conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
+          O2 = Node(op2, backend=self.backend)
           L = ls[n % N]
           L[0] ^ A[0]
           L[1] ^ conj_A[0]
@@ -367,11 +368,11 @@ class BaseMPS:
 
     # compute <op2(site1)op1(site1)>
     if site1 in sites2:
-      O1 = Node(op1, backend=self.backend.name)
-      O2 = Node(op2, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend)
+      O2 = Node(op2, backend=self.backend)
       L = ls[site1]
       R = rs[site1]
-      A = Node(self.nodes[site1], backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
       conj_A = conj(A)
 
       O1[1] ^ O2[0]
@@ -388,10 +389,10 @@ class BaseMPS:
     # compute <op1(site1) op2(site2)> for site1 < site2
     right_sites = sorted(sites2[sites2 > site1])
     if right_sites:
-      A = Node(self.nodes[site1], backend=self.backend.name)
+      A = Node(self.nodes[site1], backend=self.backend)
       conj_A = conj(A)
       L = ls[site1]
-      O1 = Node(op1, backend=self.backend.name)
+      O1 = Node(op1, backend=self.backend)
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
       A[1] ^ O1[1]
@@ -415,9 +416,9 @@ class BaseMPS:
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
           R = rs[n % N]
-          A = Node(self.nodes[n % N], backend=self.backend.name)
+          A = Node(self.nodes[n % N], backend=self.backend)
           conj_A = conj(A)
-          O2 = Node(op2, backend=self.backend.name)
+          O2 = Node(op2, backend=self.backend)
           A[0] ^ L[0]
           conj_A[0] ^ L[1]
           O2[0] ^ conj_A[1]
@@ -477,7 +478,7 @@ class BaseMPS:
           'is applied at the center position of the MPS'.format(
               self.center_position, site1, site2))
 
-    gate_node = Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend)
 
     self.nodes[site1][2] ^ self.nodes[site2][0]
     gate_node[2] ^ self.nodes[site1][1]
@@ -519,7 +520,7 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = Node(gate, backend=self.backend.name)
+    gate_node = Node(gate, backend=self.backend)
     gate_node[1] ^ self.nodes[site][1]
     edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
     self.nodes[site] = contract_between(
@@ -543,7 +544,7 @@ class BaseMPS:
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = self.nodes[site]
+    n1 = self.get_node(site)  #we need to absorb the connector_matrix
     n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
@@ -555,6 +556,23 @@ class BaseMPS:
     return self.backend.norm(
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+
+  def check_canonical(self) -> Tensor:
+    """
+    Check whether the MPS is in the expected canonical form.
+    Returns:
+      The L2 norm of the vector of local deviations.
+    """
+    deviations = []
+    for site in range(len(self.nodes)):
+      if site < self.center_position:
+        deviation = self.check_orthonormality('l', site)
+      elif site > self.center_position:
+        deviation = self.check_orthonormality('r', site)
+      else:
+        continue
+      deviations.append(deviation**2)
+    return self.backend.sqrt(sum(deviations))
 
   def get_node(self, site: int) -> BaseNode:
     """
@@ -588,7 +606,7 @@ class BaseMPS:
           output_edge_order=order)
     return self.nodes[site]
 
-  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+  def canonicalize(self, *args, **kwargs) -> np.number:
     raise NotImplementedError()
 
 
@@ -729,80 +747,71 @@ class InfiniteMPS(BaseMPS):
         dtype=self.dtype)
     result = self.backend.reshape(
         dens[0], (self.bond_dimensions[0], self.bond_dimensions[0]))
-    return eta[0], Node(result, backend=self.backend.name)
+    return eta[0], Node(result, backend=self.backend)
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
-    raise NotImplementedError()
+    raise NotImplementedError("right environment calculation"
+                              " not implemented for InfiniteMP")
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
-    raise NotImplementedError()
+    raise NotImplementedError("left environment calculation"
+                              " not implemented for InfiniteMP")
 
   def save(self, path: str):
     raise NotImplementedError()
 
-  def canonicalize(self,
-                   initial_state: Optional[Union[BaseNode, Tensor]] = None,
-                   precision: Optional[float] = 1E-10,
-                   truncation_threshold: Optional[float] = 1E-15,
-                   D: Optional[int] = None,
-                   num_krylov_vecs: Optional[int] = 50,
-                   maxiter: Optional[int] = 1000,
-                   pseudo_inverse_cutoff: Optional[float] = None):
+  # pylint: disable=arguments-differ
+  def canonicalize(
+      self,
+      left_initial_state: Optional[Union[BaseNode, Tensor]] = None,
+      right_initial_state: Optional[Union[BaseNode, Tensor]] = None,
+      precision: Optional[float] = 1E-10,
+      truncation_threshold: Optional[float] = 1E-15,
+      D: Optional[int] = None,
+      num_krylov_vecs: Optional[int] = 50,
+      maxiter: Optional[int] = 1000,
+      pseudo_inverse_cutoff: Optional[float] = None):
     """
     Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
-
-    Parameters:
-    ------------------------------
-    init:          Tensor
-                   initial guess for the eigenvector
-    precision:     float
-                   desired precision of the dominant eigenvalue
-    num_krylov_vecs:           int
-                   number of Krylov vectors
-    nmax:          int
-                   max number of iterations
-    numeig:        int
-                   hyperparameter, passed to scipy.sparse.linalg.eigs; number of eigenvectors 
-                   to be returned by scipy.sparse.linalg.eigs; leave at 6 to avoid problems with arpack
-    pinv:          float
-                   pseudoinverse cutoff
-    truncation_threshold: float 
-                          truncation threshold for the MPS, if < 1E-15, no truncation is done
-    D:             int or None 
-                   if int is given, bond dimension will be reduced to `D`; `D=None` has no effect
-    warn_thresh:   float 
-                   threshold value; if TMeigs returns an eigenvalue with imaginary value larger than 
-                   ```warn_thresh```, a warning is issued 
-
+    Args:
+      left_initial_state: An initial guess for the left eigenvector of
+        the (unit-cell) mps transfer matrix
+      right_initial_state: An initial guess for the right eigenvector of
+        the unit-cell transfer matrix
+      precision: The desired precision of the dominant eigenvalues (passed
+        to InfiniteMPS.transfer_matrix_eigs)
+      truncation_threshold: Truncation threshold for Schmidt-values.
+      D: The maximum number of Schmidt values to be kept.
+      num_krylov_vecs: Number of Krylov vectors to diagonalize transfer_matrix
+      maxiter: Maximum number of iterations in `eigs`
+      pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose pseudo-inverse
+        of a matrix. Given the SVD of a matrix :math:`M=U S V`, the inverse is 
+        is computed as :math:`V^* S^{-1}_+ U^*`, where :math:`S^{-1}_+` equals
+        `S^{-1}` for all values in `S` which are larger than `pseudo_inverse_cutoff`,
+         and is 0 for all others.
     Returns:
-    ----------------------------------
-    None
+      None
     """
-
-    #bring center-position to 0
+    # bring center_position to 0
     self.position(0)
-    #dtype of eta is the same as InfiniteMPS.dtype
-    #this is assured in the backend.
+    # dtype of eta is the same as InfiniteMPS.dtype
+    # this is assured in the backend.
     eta, l = self.transfer_matrix_eigs(
         direction='left',
-        initial_state=initial_state,
+        initial_state=left_initial_state,
         precision=precision,
         num_krylov_vecs=num_krylov_vecs,
         maxiter=maxiter)
     sqrteta = self.backend.sqrt(eta)
     self.nodes[0].tensor /= sqrteta
 
-    # if np.abs(np.imag(eta)) / np.abs(np.real(eta)) > warn_thresh:
-    #   print(
-    #       'in mpsfunctions.py.regaugeIMPS: warning: found eigenvalue eta with large imaginary part: ',
-    #       eta)
-
-    #TODO: would be nice to do the algebra directly on the nodes here
+    # TODO: would be nice to do the algebra directly on the nodes here
     l.tensor /= self.backend.trace(l.tensor)
     l.tensor = (l.tensor +
                 self.backend.transpose(self.backend.conj(l.tensor),
                                        (1, 0))) / 2.0
-    #eigvals_left and u_left are both `Tensor` objects
+
+    # eigvals_left and u_left are both `Tensor` objects
     eigvals_left, u_left = self.backend.eigh(l.tensor)
     eigvals_left /= self.backend.norm(eigvals_left)
     if pseudo_inverse_cutoff:
@@ -812,37 +821,23 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
 
-    # u_left = Node(u_left, backend=self.backend.name)
-    # sqrt_eigvals_left = Node(
-    #     self.backend.sqrt(self.backend.diag(eigvals_left)),
-    #     backend=self.backend.name)
-
-    # inv_sqrt_eigvals_left = Node(
-    #     self.backend.sqrt(self.backend.diag(inv_eigvals_left)),
-    #     backend=self.backend.name)
-
-    # sqrt_eigvals_left[0] ^ u_left[0]
-    # order = [sqrt_eigvals_left[0], u_left[0]]
-    # y = sqrt_eigvals_left[0] @ u_left[1]
-    # y.reorder_edges(order)
-
     y = Node(
         ncon(
             [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
             [[-2, 1], [1, -1]],
             backend=self.backend.name),
-        backend=self.backend.name)
+        backend=self.backend)
     invy = Node(
         ncon([
             self.backend.diag(self.backend.sqrt(inveigvals_left)),
             self.backend.conj(u_left)
         ], [[-2, 1], [-1, 1]],
              backend=self.backend.name),
-        backend=self.backend.name)
+        backend=self.backend)
 
     eta, r = self.transfer_matrix_eigs(
         direction='right',
-        initial_state=initial_state,
+        initial_state=right_initial_state,
         precision=precision,
         num_krylov_vecs=num_krylov_vecs,
         maxiter=maxiter)
@@ -851,7 +846,7 @@ class InfiniteMPS(BaseMPS):
     r.tensor = (r.tensor +
                 self.backend.transpose(self.backend.conj(r.tensor),
                                        (1, 0))) / 2.0
-    #eigvals_left and u_left are both `Tensor` objects
+    # eigvals_left and u_left are both `Tensor` objects
     eigvals_right, u_right = self.backend.eigh(r.tensor)
     eigvals_right /= self.backend.norm(eigvals_right)
     if pseudo_inverse_cutoff:
@@ -861,23 +856,12 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
 
-    # r = r / r.tr()
-    # r = (r + r.conj().transpose()) / 2.0
-    # eigvals_right, u_right = r.eigh()
-    # eigvals_right[eigvals_right <= pinv] = 0.0
-
-    # eigvals_right /= np.sqrt(
-    #     ncon.ncon([eigvals_right, eigvals_right.conj()], [[1], [1]]))
-    # inveigvals_right = eigvals_right.zeros(eigvals_right.shape[0])
-    # inveigvals_right[
-    #     eigvals_right > pinv] = 1.0 / eigvals_right[eigvals_right > pinv]
-
     x = Node(
         ncon([u_right,
               self.backend.diag(self.backend.sqrt(eigvals_right))],
              [[-1, 1], [1, -2]],
              backend=self.backend.name),
-        backend=self.backend.name)
+        backend=self.backend)
 
     invx = Node(
         ncon([
@@ -885,47 +869,37 @@ class InfiniteMPS(BaseMPS):
             self.backend.conj(u_right)
         ], [[-1, 1], [-2, 1]],
              backend=self.backend.name),
-        backend=self.backend.name)
+        backend=self.backend)
 
     tmp = Node(
         ncon([y, x], [[-1, 1], [1, -2]], backend=self.backend.name),
-        backend=self.backend.name)
+        backend=self.backend)
     U, lam, V, _ = split_node_full_svd(
         tmp, [tmp[0]], [tmp[1]],
         max_singular_values=D,
         max_truncation_err=truncation_threshold)
-    # U, lam, V, _ = .svd(
-    #     truncation_threshold=truncation_threshold, D=D)
-
-    #lam[1] ^ V[0]
-    #V[1] ^ invx[0]
-    #invx[1] ^ self.nodes[0][0]
-
-    #absorb lam*V*invx into the left-most mps tensor
+    # absorb lam*V*invx into the left-most mps tensor
     self.nodes[0] = ncon([lam, V, invx, self.nodes[0]],
                          [[-1, 1], [1, 2], [2, 3], [3, -2, -3]])
 
-    #absorb connector * invy * U * lam into the right-most tensor
-    #Note that lam is absorbed here, which means that the state
-    #is in the parallel decomposition
-    #Note that we absorb connector_matrix here
+    # absorb connector * invy * U * lam into the right-most tensor
+    # Note that lam is absorbed here, which means that the state
+    # is in the parallel decomposition
+    # Note that we absorb connector_matrix here
     self.nodes[-1] = ncon([self.get_node(len(self) - 1), invy, U, lam],
                           [[-1, -2, 1], [1, 2], [2, 3], [3, -3]])
-    #now do a sweep of QR decompositions to bring the mps tensors into
-    #left canonical form (except the last one)
-    self.position(len(self) - 2)
-    # Z = norm(self.nodes[-1])
-    # Z = ncon([self.nodes[-1], conj(self.nodes[-1])],
-    #          [[1, 2, 3], [1, 2, 3]]) / np.sum(self.D[-1])
-    #self._tensors[-1] /= np.sqrt(Z)
-
-    #TODO: lam is a diagonal matrix, but we're not making use of it the moment
+    # now do a sweep of QR decompositions to bring the mps tensors into
+    # left canonical form (except the last one)
+    self.position(len(self) - 1)
+    # TODO: lam is a diagonal matrix, but we're not making
+    # use of it the moment
     lam_norm = self.backend.norm(lam.tensor)
     lam.tensor /= lam_norm
     self.center_position = len(self) - 1
-    self._connector = (1.0 / lam).diag()
-    self._right_mat = lam.diag()
-    self._norm = self.dtype.type(1)
+    self.connector_matrix = Node(
+        self.backend.inv(lam.tensor), backend=self.backend)
+
+    return lam_norm
 
 
 class FiniteMPS(BaseMPS):
@@ -1015,6 +989,7 @@ class FiniteMPS(BaseMPS):
     ]
     return cls(tensors=tensors, center_position=0, backend=backend)
 
+  # pylint: disable=arguments-differ
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
     """
     Bring the MPS into canonical form according to `FiniteMPS.center_position`.
@@ -1032,23 +1007,6 @@ class FiniteMPS(BaseMPS):
     self.position(0, normalize=False)
     self.position(len(self.nodes) - 1, normalize=False)
     return self.position(pos, normalize=normalize)
-
-  def check_canonical(self) -> Tensor:
-    """
-    Check whether the MPS is in the expected canonical form.
-    Returns:
-      The L2 norm of the vector of local deviations.
-    """
-    deviations = []
-    for site in range(len(self.nodes)):
-      if site < self.center_position:
-        deviation = self.check_orthonormality('l', site)
-      elif site > self.center_position:
-        deviation = self.check_orthonormality('r', site)
-      else:
-        continue
-      deviations.append(deviation**2)
-    return self.backend.sqrt(sum(deviations))
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
     """
