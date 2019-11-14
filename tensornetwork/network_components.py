@@ -584,9 +584,9 @@ class Node(BaseNode):
     return (f'{self.__class__.__name__}\n(\n'
             f'name : {self.name!r},'
             f'\ntensor : \n{self.tensor!r},'
-            f'\nedges : \n{edges!r} \n)'
-            )
-  
+            f'\nedges : \n{edges!r} \n)')
+
+
 class CopyNode(BaseNode):
 
   def __init__(self,
@@ -1040,7 +1040,7 @@ class Edge:
     if self.name:
       return self.name
     return '__unnamed_edge__'
-  
+
   def __repr__(self):
     if self.node1 is not None and self.node2 is not None:
       return (f'\n{self.__class__.__name__}('
