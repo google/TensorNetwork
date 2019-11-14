@@ -65,3 +65,20 @@ def test_TMeigs(dtype):
   eta, l = imps.transfer_matrix_eigs('r')
   l2 = imps.unit_cell_transfer_operator('r', l)
   np.testing.assert_allclose(eta * l.tensor, l2.tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("direction", ['left', 'right'])
+def test_unitcell_transfer_operator(dtype, direction):
+  D, d, N = 10, 2, 10
+  imps = InfiniteMPS.random(
+      d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
+  m = imps.backend.randn((D, D), dtype=dtype, seed=10)
+  res1 = imps.unit_cell_transfer_operator(direction, m)
+  sites = range(len(imps))
+  if direction == 'right':
+    sites = reversed(sites)
+
+  for site in sites:
+    m = imps.apply_transfer_operator(site, direction, m)
+  np.testing.assert_allclose(m.tensor, res1.tensor)
