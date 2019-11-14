@@ -120,9 +120,9 @@ class InfiniteMPS(BaseMPS):
     
     Ars:
       direction: 
-        * If `'1','l''left'`: return the left dominant eigenvalue
+        * If `'1','l' or 'left'`: return the left dominant eigenvalue
           and eigenvector
-        * If `'-1','r''right'`: return the right dominant eigenvalue
+        * If `'-1','r' or 'right'`: return the right dominant eigenvalue
           and eigenvector
       initial_state: An optional initial state.
       num_krylov_vecs: Number of Krylov vectors to be used in `eigs`.
