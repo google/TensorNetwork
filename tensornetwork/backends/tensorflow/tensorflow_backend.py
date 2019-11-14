@@ -163,3 +163,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(self.tf.shape(matrix)) > 2:
+      raise ValueError(
+          "input to tensorflow backend method `inv` has shape {}. Only matrices are supported."
+          .format(self.tf.shape(matrix)))
+    return self.tf.linalg.inv(matrix)
