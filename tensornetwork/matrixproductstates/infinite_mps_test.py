@@ -82,3 +82,13 @@ def test_unitcell_transfer_operator(dtype, direction):
   for site in sites:
     m = imps.apply_transfer_operator(site, direction, m)
   np.testing.assert_allclose(m.tensor, res1.tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_InfiniteMPS_canonicalize(dtype):
+  D, d, N = 10, 2, 4
+  imps = InfiniteMPS.random(
+      d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
+
+  imps.canonicalize()
+  assert imps.check_canonical() < 1E-12

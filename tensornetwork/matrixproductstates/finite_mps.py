@@ -114,6 +114,7 @@ class FiniteMPS(BaseMPS):
     ]
     return cls(tensors=tensors, center_position=0, backend=backend)
 
+  # pylint: disable=arguments-differ
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
     """
     Bring the MPS into canonical form according to `FiniteMPS.center_position`.
