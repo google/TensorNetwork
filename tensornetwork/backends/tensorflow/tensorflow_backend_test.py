@@ -226,3 +226,13 @@ def test_eigh(dtype):
   eta_ac, U_ac = tf.linalg.eigh(H)
   np.testing.assert_allclose(eta, eta_ac)
   np.testing.assert_allclose(U, U_ac)
+
+
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_index_update(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  out = backend.index_update(tensor, tensor > 0.1, 0.0)
+  tensor_np = tensor.numpy()
+  tensor_np[tensor_np > 0.1] = 0.0
+  np.testing.assert_allclose(out, tensor_np)

@@ -267,3 +267,10 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    #make a copy
+    t = self.torch.as_tensor(tensor).clone()
+    t[mask] = assignee
+    return t
