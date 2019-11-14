@@ -19,10 +19,10 @@ import numpy as np
 import functools
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
-from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 
@@ -61,7 +61,7 @@ class BaseMPS:
                tensors: List[Union[BaseNode, Tensor]],
                center_position: Optional[int] = 0,
                connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """
     Initialize a BaseMPS.
     Args:

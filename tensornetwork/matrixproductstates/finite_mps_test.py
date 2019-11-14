@@ -20,8 +20,6 @@ import numpy as np
 import tensornetwork as tn
 from tensornetwork.backends import backend_factory
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
-from tensornetwork.matrixproductstates.base_mps import BaseMPS
-from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 import tensorflow as tf
 
 from jax.config import config
@@ -50,29 +48,6 @@ def get_random_np(shape, dtype, seed=0):
   return np.random.randn(*shape).astype(dtype)
 
 
-def test_normalization(backend):
-  D, d, N = 10, 2, 10
-  tensors = [np.random.randn(1, d, D)] + [
-      np.random.randn(D, d, D) for _ in range(N - 2)
-  ] + [np.random.randn(D, d, 1)]
-  mps = BaseMPS(tensors, center_position=0, backend=backend)
-  mps.position(len(mps) - 1)
-  Z = mps.position(0, normalize=True)
-  np.testing.assert_allclose(Z, 1.0)
-
-
-def test_backend_initialization(backend):
-  be = backend_factory.get_backend(backend)
-  D, d, N = 10, 2, 10
-  tensors = [np.random.randn(1, d, D)] + [
-      np.random.randn(D, d, D) for _ in range(N - 2)
-  ] + [np.random.randn(D, d, 1)]
-  mps = BaseMPS(tensors, center_position=0, backend=be)
-  mps.position(len(mps) - 1)
-  Z = mps.position(0, normalize=True)
-  np.testing.assert_allclose(Z, 1.0)
-
-
 @pytest.mark.parametrize("N, pos", [(10, -1), (10, 10)])
 def test_finite_mps_init(backend, N, pos):
   D, d = 10, 2
@@ -81,50 +56,6 @@ def test_finite_mps_init(backend, N, pos):
   ] + [np.random.randn(D, d, 1)]
   with pytest.raises(ValueError):
     FiniteMPS(tensors, center_position=pos, backend=backend)
-
-
-@pytest.mark.parametrize("N, pos", [(10, -1), (10, 10)])
-def test_infinite_mps_init(backend, N, pos):
-  D, d = 10, 2
-  tensors = [np.random.randn(2, d, D)] + [
-      np.random.randn(D, d, D) for _ in range(N - 2)
-  ] + [np.random.randn(D, d, 1)]
-  with pytest.raises(ValueError):
-    InfiniteMPS(tensors, center_position=pos, backend=backend)
-
-
-def test_left_orthonormalization(backend_dtype_values):
-  backend = backend_dtype_values[0]
-  dtype = backend_dtype_values[1]
-
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), dtype)] + [
-      get_random_np((D, d, D), dtype) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), dtype)]
-  mps = BaseMPS(tensors, center_position=N - 1, backend=backend)
-  mps.position(0)
-  mps.position(len(mps) - 1)
-  assert all([
-      mps.check_orthonormality('left', site) < 1E-12
-      for site in range(len(mps))
-  ])
-
-
-def test_right_orthonormalization(backend_dtype_values):
-  backend = backend_dtype_values[0]
-  dtype = backend_dtype_values[1]
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), dtype)] + [
-      get_random_np((D, d, D), dtype) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), dtype)]
-  mps = BaseMPS(tensors, center_position=0, backend=backend)
-
-  mps.position(len(mps) - 1)
-  mps.position(0)
-  assert all([
-      mps.check_orthonormality('right', site) < 1E-12
-      for site in range(len(mps))
-  ])
 
 
 def test_canonical_finite_mps(backend_dtype_values):
@@ -139,45 +70,6 @@ def test_canonical_finite_mps(backend_dtype_values):
   assert mps.check_canonical() > 1E-12
   mps.canonicalize()
   assert mps.check_canonical() < 1E-12
-
-
-def test_apply_one_site_gate(backend_dtype_values):
-  backend = backend_dtype_values[0]
-  dtype = backend_dtype_values[1]
-
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), dtype)] + [
-      get_random_np((D, d, D), dtype) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), dtype)]
-  mps = BaseMPS(tensors, center_position=0, backend=backend)
-  tensor = mps.nodes[5].tensor
-  gate = get_random_np((2, 2), dtype)
-  mps.apply_one_site_gate(gate, 5)
-  actual = np.transpose(np.tensordot(tensor, gate, ([1], [1])), (0, 2, 1))
-  np.testing.assert_allclose(mps.nodes[5].tensor, actual)
-
-
-def test_apply_two_site_gate(backend_dtype_values):
-  backend = backend_dtype_values[0]
-  dtype = backend_dtype_values[1]
-
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), dtype)] + [
-      get_random_np((D, d, D), dtype) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), dtype)]
-  mps = BaseMPS(tensors, center_position=0, backend=backend)
-  gate = get_random_np((2, 2, 2, 2), dtype)
-  tensor1 = mps.nodes[5].tensor
-  tensor2 = mps.nodes[6].tensor
-
-  mps.apply_two_site_gate(gate, 5, 6)
-  tmp = np.tensordot(tensor1, tensor2, ([2], [0]))
-  actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
-  mps.nodes[5][2] ^ mps.nodes[6][0]
-  order = [mps.nodes[5][0], mps.nodes[5][1], mps.nodes[6][1], mps.nodes[6][2]]
-  res = tn.contract_between(mps.nodes[5], mps.nodes[6])
-  res.reorder_edges(order)
-  np.testing.assert_allclose(res.tensor, actual)
 
 
 def test_local_measurement_finite_mps(backend_dtype_values):
@@ -233,13 +125,3 @@ def test_correlation_measurement_finite_mps(backend_dtype_values):
   actual[N // 2] = 0.25
   np.testing.assert_almost_equal(result_1, actual)
   np.testing.assert_allclose(result_2, np.ones(N) * 0.25)
-
-
-@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_TMeigs(dtype):
-  D, d, N = 10, 2, 10
-  imps = InfiniteMPS.random(
-      d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
-  eta, l = imps.transfer_matrix_eigs('r')
-  l2 = imps.unit_cell_transfer_operator('r', l)
-  np.testing.assert_allclose(eta * l.tensor, l2.tensor)
