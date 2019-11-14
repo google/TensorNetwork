@@ -49,7 +49,7 @@ class InfiniteMPS(BaseMPS):
                connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
                backend: Optional[Text] = None) -> None:
     """
-    Initialize a FiniteMPS.
+    Initialize a InfiniteMPS.
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
@@ -74,7 +74,7 @@ class InfiniteMPS(BaseMPS):
              dtype: Type[np.number],
              backend: Optional[Text] = None):
     """
-    Initialize a random `FiniteMPS`. The resulting state
+    Initialize a random `InfiniteMPS`. The resulting state
     is normalized. Its center-position is at 0.
 
     Args:
@@ -83,7 +83,7 @@ class InfiniteMPS(BaseMPS):
       dtype: A numpy dtype.
       backend: An optional backend.
     Returns:
-      `FiniteMPS`
+      `InfiniteMPS`
     """
     #use numpy backend for tensor initialization
     be = backend_factory.get_backend('numpy')
