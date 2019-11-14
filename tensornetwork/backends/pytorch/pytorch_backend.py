@@ -274,3 +274,10 @@ class PyTorchBackend(base_backend.BaseBackend):
     t = self.torch.as_tensor(tensor).clone()
     t[mask] = assignee
     return t
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to pytorch backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return matrix.inverse()

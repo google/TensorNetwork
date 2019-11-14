@@ -350,3 +350,23 @@ def test_index_update(dtype):
   out = backend.index_update(tensor, tensor > 0.1, 0)
   tensor[tensor > 0.1] = 0.0
   np.testing.assert_allclose(tensor, out)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_matrix_inv(dtype):
+  backend = numpy_backend.NumPyBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  inverse = backend.inv(matrix)
+  m1 = matrix.dot(inverse)
+  m2 = inverse.dot(matrix)
+
+  np.testing.assert_almost_equal(m1, np.eye(4))
+  np.testing.assert_almost_equal(m2, np.eye(4))
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_matrix_inv_raises(dtype):
+  backend = numpy_backend.NumPyBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)

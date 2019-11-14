@@ -168,3 +168,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
                    assignee: Tensor) -> Tensor:
     #returns a copy (unfortunately)
     return self.tf.where(mask, assignee, tensor)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(self.tf.shape(matrix)) > 2:
+      raise ValueError(
+          "input to tensorflow backend method `inv` has shape {}. Only matrices are supported."
+          .format(self.tf.shape(matrix)))
+    return self.tf.linalg.inv(matrix)

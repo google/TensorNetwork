@@ -360,3 +360,9 @@ class NumPyBackend(base_backend.BaseBackend):
     t = self.np.copy(tensor)
     t[mask] = assignee
     return t
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError("input to numpy backend method `inv` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    return self.np.linalg.inv(matrix)

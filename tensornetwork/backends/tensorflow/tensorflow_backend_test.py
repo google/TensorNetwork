@@ -236,3 +236,23 @@ def test_index_update(dtype):
   tensor_np = tensor.numpy()
   tensor_np[tensor_np > 0.1] = 0.0
   np.testing.assert_allclose(out, tensor_np)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_matrix_inv(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  inverse = backend.inv(matrix)
+  m1 = tf.matmul(matrix, inverse)
+  m2 = tf.matmul(inverse, matrix)
+
+  np.testing.assert_almost_equal(m1, np.eye(4))
+  np.testing.assert_almost_equal(m2, np.eye(4))
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_matrix_inv_raises(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)

@@ -295,3 +295,10 @@ class ShellBackend(base_backend.BaseBackend):
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     return ShellTensor(tensor.shape)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to shell backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return ShellTensor(matrix.shape)
