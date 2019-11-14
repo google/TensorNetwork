@@ -18,7 +18,6 @@ from __future__ import print_function
 import pytest
 import numpy as np
 import tensornetwork as tn
-from tensornetwork.backends import backend_factory
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 import tensorflow as tf
 

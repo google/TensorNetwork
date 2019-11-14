@@ -19,9 +19,7 @@ import pytest
 import numpy as np
 import tensornetwork as tn
 from tensornetwork.backends import backend_factory
-from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
-from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 import tensorflow as tf
 
 from jax.config import config
