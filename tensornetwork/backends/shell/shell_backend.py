@@ -234,28 +234,26 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)
-      ]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor((A.shape[0],)) for _ in range(numeig)]
 
     if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
     raise ValueError(
         '`A` has no attribut shape and no `initial_state` is given.')
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
 
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
@@ -275,14 +273,12 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)
-      ]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(A.shape[0]) for _ in range(numeig)]
 
     if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
@@ -295,3 +291,10 @@ class ShellBackend(base_backend.BaseBackend):
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     return ShellTensor(tensor.shape)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to shell backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return ShellTensor(matrix.shape)

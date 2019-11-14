@@ -329,16 +329,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -396,3 +396,14 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `index_update`.".format(self.name))
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    """
+    Compute the matrix inverse of `matrix`.
+    Args:
+      matrix: A matrix.
+    Returns:
+      Tensor: The inverse of `matrix`
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
+        self.name))

@@ -52,8 +52,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_singular_values: Optional[int] = None,
                         max_truncation_error: Optional[float] = None
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
-        self.tf, tensor, split_axis, max_singular_values, max_truncation_error)
+    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
+                                            max_singular_values,
+                                            max_truncation_error)
 
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
@@ -148,16 +149,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
@@ -168,3 +169,10 @@ class TensorFlowBackend(base_backend.BaseBackend):
                    assignee: Tensor) -> Tensor:
     #returns a copy (unfortunately)
     return self.tf.where(mask, assignee, tensor)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(self.tf.shape(matrix)) > 2:
+      raise ValueError(
+          "input to tensorflow backend method `inv` has shape {}. Only matrices are supported."
+          .format(self.tf.shape(matrix)))
+    return self.tf.linalg.inv(matrix)

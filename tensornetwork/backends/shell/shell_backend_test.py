@@ -258,3 +258,17 @@ def index_update():
   tensor_1 = np.ones([2, 3, 4])
   tensor_2 = backend.index_update(tensor_1, tensor_1 > 0.1, 0)
   assert tensor_1.shape == tensor_2.shape
+
+
+def test_matrix_inv():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4), seed=10)
+  inverse = backend.inv(matrix)
+  assert inverse.shape == matrix.shape
+
+
+def test_matrix_inv_raises():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)
