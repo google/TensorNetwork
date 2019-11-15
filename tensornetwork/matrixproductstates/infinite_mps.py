@@ -240,13 +240,13 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
 
-    y = Node(
+    sqrtl = Node(
         ncon(
             [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
             [[-2, 1], [1, -1]],
             backend=self.backend.name),
         backend=self.backend)
-    invy = Node(
+    inv_sqrtl = Node(
         ncon([
             self.backend.diag(self.backend.sqrt(inveigvals_left)),
             self.backend.conj(u_left)
@@ -275,14 +275,14 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
 
-    x = Node(
+    sqrtr = Node(
         ncon([u_right,
               self.backend.diag(self.backend.sqrt(eigvals_right))],
              [[-1, 1], [1, -2]],
              backend=self.backend.name),
         backend=self.backend)
 
-    invx = Node(
+    inv_sqrtr = Node(
         ncon([
             self.backend.diag(self.backend.sqrt(inveigvals_right)),
             self.backend.conj(u_right)
@@ -291,21 +291,21 @@ class InfiniteMPS(BaseMPS):
         backend=self.backend)
 
     tmp = Node(
-        ncon([y, x], [[-1, 1], [1, -2]], backend=self.backend.name),
+        ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name),
         backend=self.backend)
     U, lam, V, _ = split_node_full_svd(
         tmp, [tmp[0]], [tmp[1]],
         max_singular_values=D,
         max_truncation_err=truncation_threshold)
     # absorb lam*V*invx into the left-most mps tensor
-    self.nodes[0] = ncon([lam, V, invx, self.nodes[0]],
+    self.nodes[0] = ncon([lam, V, inv_sqrtr, self.nodes[0]],
                          [[-1, 1], [1, 2], [2, 3], [3, -2, -3]])
 
-    # absorb connector * invy * U * lam into the right-most tensor
+    # absorb connector * inv_sqrtl * U * lam into the right-most tensor
     # Note that lam is absorbed here, which means that the state
     # is in the parallel decomposition
     # Note that we absorb connector_matrix here
-    self.nodes[-1] = ncon([self.get_node(len(self) - 1), invy, U, lam],
+    self.nodes[-1] = ncon([self.get_node(len(self) - 1), inv_sqrtl, U, lam],
                           [[-1, -2, 1], [1, 2], [2, 3], [3, -3]])
     # now do a sweep of QR decompositions to bring the mps tensors into
     # left canonical form (except the last one)
