@@ -247,7 +247,7 @@ class QuOperator():
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")
 
-  def tensor_prod(self, other: "QuOperator"):
+  def tensor_product(self, other: "QuOperator"):
     """Tensor product with another operator.
     """
     nodes_dict1, edges_dict1 = copy(self.nodes, False)
@@ -263,6 +263,12 @@ class QuOperator():
                     [edges_dict2[e] for e in other.ignore_edges])
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
+
+  def outer_product(self, other: "QuOperator"):
+    """Outer product with another operator.
+    Synonym for `tensor_product()`.
+    """
+    return self.tensor_product(other)
 
   def contract(self, contractor: Callable = greedy,
                final_edge_order: Optional[Sequence[Edge]] = None):

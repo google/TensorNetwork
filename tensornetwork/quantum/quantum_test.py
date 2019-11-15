@@ -101,9 +101,9 @@ def test_identity():
   np.testing.assert_almost_equal((E @ psi).norm().eval(), psi.norm().eval())
 
 
-def test_tensor_prod():
+def test_tensor_product():
   psi = qu.QuVector.from_tensor(np.random.rand(2,2))
-  psi_psi = psi.tensor_prod(psi)
+  psi_psi = psi.tensor_product(psi)
   np.testing.assert_almost_equal(psi_psi.norm().eval(), psi.norm().eval()**2)
 
 
@@ -120,7 +120,7 @@ def test_expectations():
   psi = qu.QuVector.from_tensor(psi_tensor)
   op = qu.QuOperator.from_tensor(op_tensor, [0], [1])
 
-  op_3 = op.tensor_prod(qu.identity((2,2)))
+  op_3 = op.tensor_product(qu.identity((2,2)))
   res1 = (psi.adjoint() @ op_3 @ psi).eval()
 
   rho_1 = psi.reduced_density([1, 2])  # trace out sites 2 and 3
