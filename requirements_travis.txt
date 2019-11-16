@@ -1,5 +1,5 @@
 tensorflow>=2.0.0
-pytype==2019.10.17
+pytype==2019.06.21
 pytest
 torch>=1.1
 jax>=0.1.0
