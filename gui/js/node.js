@@ -137,8 +137,7 @@ Vue.component(
 
                 this.state.draggingNode = false;
 
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
                 let t = this;
                 this.state.selectedNodes.forEach(function(node) {
                     if (node.position.x < t.baseNodeWidth / 2) {
