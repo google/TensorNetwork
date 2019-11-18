@@ -164,10 +164,10 @@ Vue.component(
         },
 		computed: {
 		    nodeWidth: function() {
-		        return this.baseNodeWidth * this.node.size[0];
+		        return this.baseNodeWidth * Math.min(this.node.size[0], 3);
             },
             nodeHeight: function() {
-                return this.baseNodeWidth * this.node.size[1];
+                return this.baseNodeWidth * Math.min(this.node.size[1], 3);
             },
             translation: function() {
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';

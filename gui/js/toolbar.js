@@ -173,12 +173,13 @@ Vue.component(
                 let makeAxis = function(direction, position) {
                     return {name: null, angle: direction * Math.PI / 4, position: position};
                 };
-
+                let x_end = Math.min((size1 - 1) / 2, 1);
+                let y_end = Math.min((size2 - 1) / 2, 1);
                 let output = [];
                 for (let n = 0; n < size1; n++) {
-                    let x = -(size1 - 1) / 2 + n;
+                    let x = size1 !== 1 ? (-x_end * (size1 - 1 - n) + x_end * n) / (size1 - 1) : 0; // Avoid div by 0
                     for (let m = 0; m < size2; m++) {
-                        let y = -(size2 - 1) / 2 + m;
+                        let y = size2 !== 1 ? (-y_end * (size2 - 1 - m) + y_end * m) / (size2 - 1) : 0;
                         if (n === 0) {
                             output.push(makeAxis(4, [x, y]))
                         }
@@ -224,7 +225,7 @@ Vue.component(
             nodeInitial: function() {
                 return {
                     name: "",
-                    size: [this.size1, this.size2],
+                    size: [parseFloat(this.size1), parseFloat(this.size2)],
                     axes: [],
                     position: {x: 125, y: 125},
                     rotation: 0,
@@ -234,8 +235,8 @@ Vue.component(
             nodeShadow: function() {
                 return {
                     name: "",
-                    size: [this.size1, this.size2],
-                    axes: this.axes(this.size1, this.size2),
+                    size: [parseFloat(this.size1), parseFloat(this.size2)],
+                    axes: this.axes(parseFloat(this.size1), parseFloat(this.size2)),
                     position: {x: 125, y: 125},
                     rotation: 0,
                     hue: null
@@ -259,23 +260,12 @@ Vue.component(
                             @axismousedown="onNodeAxisMouseDown(node, ...arguments)"/>
                     </svg>
                 </div>
-                <div class="radio-container">
-                    <label>Width</label>
-                    <input type="radio" id="x1" v-model="size1" :value="1">
-                    <label for="x1">1</label>
-                    <input type="radio" id="x2" v-model="size1" :value="2">
-                    <label for="x2">2</label>
-                    <input type="radio" id="x3" v-model="size1" :value="3">
-                    <label for="x3">3</label>
+                    <label>Width {{size1}}</label>
+                    <input type="range" v-model="size1" min="1" max="7" step="1" class="slider" id="myRange">
                 </div>
-                <div class="radio-container">
-                    <label>Height</label>
-                    <input type="radio" id="y1" v-model="size2" :value="1">
-                    <label for="y1">1</label>
-                    <input type="radio" id="y2" v-model="size2" :value="2">
-                    <label for="y2">2</label>
-                    <input type="radio" id="y3" v-model="size2" :value="3">
-                    <label for="y3">3</label>
+                </div>
+                    <label>Height {{size2}}</label>
+                    <input type="range" v-model="size2" min="1" max="7" step="1" class="slider" id="myRange">
                 </div>
                 <div class="button-holder">
                     <form @submit="createNode">
