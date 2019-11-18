@@ -54,6 +54,7 @@ Vue.component(
                 node.position = {x: workspace.width / 2, y: workspace.height / 2};
 
                 this.state.nodes.push(node);
+                this.state.selectedNodes = [node];
                 this.copyNodeName = '';
             },
             rotate: function(angle) {
