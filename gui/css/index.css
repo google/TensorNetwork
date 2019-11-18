@@ -30,29 +30,15 @@ svg.workspace .drag-selector {
 	fill: rgba(200, 200, 200, 0.5);
 }
 
+a.export {
+	position: absolute;
+}
+
 svg text {
-	font: normal 15px sans-serif;
-	text-anchor: middle;
-	dominant-baseline: middle;
 	user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
 	-webkit-user-select: none;
-}
-
-svg .node > text {
-	font: bold 15px sans-serif;
-}
-
-svg .axis.highlighted text {
-	font: bold 15px sans-serif;
-}
-
-svg .node .jax-container {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
 }
 
 .toolbar {
@@ -68,10 +54,6 @@ section {
 
 .tensor-creator .svg-container {
 	height: 200px;
-}
-
-.tensor-creator .radio-container label {
-	padding: 0 10px 0 0;
 }
 
 .delete {

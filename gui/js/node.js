@@ -211,10 +211,14 @@ Vue.component(
 			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
 				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth" :height="nodeHeight"
 				    :rx="nodeCornerRadius" :transform="rotation" :style="style" />
-                <text v-if="!renderLaTeX || !node.displayName" x="0" y="0">{{node.name}}</text>
+                <text v-if="!renderLaTeX || !node.displayName" x="0" y="0"
+                    style="font: bold 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
+                    {{node.name}}
+                </text>
                 <foreignObject v-else-if="render" :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
 				    :height="nodeHeight" :style="labelStyle">
-                    <div class="jax-container">
+                    <div class="jax-container"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
                         {{label}}
                     </div>
                 </foreignObject>
@@ -307,7 +311,8 @@ Vue.component(
                     @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
                 <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" :stroke="stroke"
                     stroke-width="5" stroke-linecap="round" />
-                <text v-if="!shadow" :x="(x2 - x1) * axisLabelRadius + x1" :y="(y2 - y1) * axisLabelRadius + y1">
+                <text v-if="!shadow" :x="(x2 - x1) * axisLabelRadius + x1" :y="(y2 - y1) * axisLabelRadius + y1"
+                    style="font: normal 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
                     <tspan>{{index}}</tspan>
                     <tspan v-if="node.axes[index].name"> - {{node.axes[index].name}}</tspan>
                 </text>

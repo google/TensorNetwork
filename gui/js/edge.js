@@ -50,7 +50,8 @@ Vue.component(
             <g>
                 <line class="edge" :x1="x1" :y1="y1" :x2="x2" :y2="y2"
                     stroke="#ddd" stroke-width="5" stroke-linecap="round" />
-                <text v-if="edge[2]" :x="0.5 * (x1 + x2)" :y="0.5 * (y1 + y2)">
+                <text v-if="edge[2]" :x="0.5 * (x1 + x2)" :y="0.5 * (y1 + y2)"
+                    style="font: normal 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
                     {{edge[2]}}
                 </text>
             </g>

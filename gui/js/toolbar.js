@@ -193,12 +193,10 @@ Vue.component(
                 let output = [];
 
                 let x = function(n) {
-                    console.log('n = ' + n);
                     let x_end = Math.min((size1 - 1) / 2, 1);
                     return size1 !== 1 ? (-x_end * (size1 - 1 - n) + x_end * n) / (size1 - 1) : 0; // Avoid div by 0
                 };
                 let y = function(m) {
-                    console.log('m = ' + m);
                     let y_end = Math.min((size2 - 1) / 2, 1);
                     return size2 !== 1 ? (-y_end * (size2 - 1 - m) + y_end * m) / (size2 - 1) : 0;
                 };
@@ -282,7 +280,6 @@ Vue.component(
                     let axisY = this.nodeShadow.position.y + axisPoints.y2;
                     if ((x1 <= axisX && axisX <= x2) || (x2 <= axisX && axisX <= x1)) {
                         if ((y1 <= axisY && axisY <= y2) || (y2 <= axisY && axisY <= y1)) {
-                            console.log(i);
                             this.node.axes.push(JSON.parse(JSON.stringify(axis)));
                         }
                     }
