@@ -131,7 +131,7 @@ Vue.component(
             return {
                 size1: 1,
                 size2: 1,
-                hue: null,
+                hue: 0,
                 node: {},
                 width: 250,
                 height: 250,
@@ -147,10 +147,12 @@ Vue.component(
             size2: function() {
                 this.reset();
             },
+            hue: function() {
+                this.node.hue = parseFloat(this.hue);
+            }
         },
         methods: {
             reset: function() {
-                this.hue = Math.random() * 360;
                 this.node = JSON.parse(JSON.stringify(this.nodeInitial));
             },
             createNode: function(event) {
@@ -229,7 +231,7 @@ Vue.component(
                     axes: [],
                     position: {x: 125, y: 125},
                     rotation: 0,
-                    hue: this.hue
+                    hue: parseFloat(this.hue)
                 };
             },
             nodeShadow: function() {
@@ -261,11 +263,15 @@ Vue.component(
                     </svg>
                 </div>
                     <label>Width {{size1}}</label>
-                    <input type="range" v-model="size1" min="1" max="7" step="1" class="slider" id="myRange">
+                    <input type="range" v-model="size1" min="1" max="7" step="1" class="slider">
                 </div>
                 </div>
                     <label>Height {{size2}}</label>
-                    <input type="range" v-model="size2" min="1" max="7" step="1" class="slider" id="myRange">
+                    <input type="range" v-model="size2" min="1" max="7" step="1" class="slider">
+                </div>
+                <div>
+                    <label>Color</label>
+                    <input type="range" v-model="hue" min="0" max="359" step="1" class="slider">
                 </div>
                 <div class="button-holder">
                     <form @submit="createNode">
