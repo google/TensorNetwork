@@ -172,6 +172,9 @@ Vue.component(
             translation: function() {
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
+            rotation: function() {
+		        return 'rotate(' + (this.node.rotation * 180 / Math.PI) + ')';
+            },
             brightness: function() {
 			    if (this.state.selectedNodes.includes(this.node)) {
                     return 50;
@@ -207,8 +210,8 @@ Vue.component(
 			<g class="node" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
 			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
 			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
-				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
-				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
+				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth" :height="nodeHeight"
+				    :rx="nodeCornerRadius" :transform="rotation" :style="style" />
                 <text v-if="!renderLaTeX || !node.displayName" x="0" y="0">{{node.name}}</text>
                 <foreignObject v-else-if="render" :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
 				    :height="nodeHeight" :style="labelStyle">
@@ -271,20 +274,21 @@ Vue.component(
             },
         },
         computed: {
-            angle: function() {
-                return this.node.axes[this.index].angle + this.node.rotation;
+            axisPoints: function() {
+                return this.getAxisPoints(this.node.axes[this.index].position, this.node.axes[this.index].angle,
+                                          this.node.rotation)
             },
             x1: function() {
-                return this.node.axes[this.index].position[0] * this.baseNodeWidth;
-            },
-            x2: function() {
-                return this.axisX(this.node.axes[this.index].position[0], this.angle);
+                return this.axisPoints.x1;
             },
             y1: function() {
-                return this.node.axes[this.index].position[1] * this.baseNodeWidth;
+                return this.axisPoints.y1;
+            },
+            x2: function() {
+                return this.axisPoints.x2;
             },
             y2: function() {
-                return this.axisY(this.node.axes[this.index].position[1], this.angle);
+                return this.axisPoints.y2;
             },
             brightness: function() {
                 return this.highlighted ? 50 : 80;

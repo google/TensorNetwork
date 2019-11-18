@@ -28,22 +28,22 @@ Vue.component(
                 return this.getNode(this.edge[1][0]);
             },
             angle1: function() {
-                return this.node1.axes[this.edge[0][1]].angle + this.node1.rotation;
+                return this.node1.axes[this.edge[0][1]].angle;
             },
             angle2: function() {
-                return this.node2.axes[this.edge[1][1]].angle + this.node2.rotation;
+                return this.node2.axes[this.edge[1][1]].angle;
             },
             x1: function() {
-                return this.node1.position.x + this.axisX(this.node1.axes[this.edge[0][1]].position[0], this.angle1);
+                return this.node1.position.x + this.getAxisPoints(this.node1.axes[this.edge[0][1]].position, this.angle1, this.node1.rotation).x2;
             },
             y1: function() {
-                return this.node1.position.y + this.axisY(this.node1.axes[this.edge[0][1]].position[1], this.angle1);
+                return this.node1.position.y + this.getAxisPoints(this.node1.axes[this.edge[0][1]].position, this.angle1, this.node1.rotation).y2;
             },
             x2: function() {
-                return this.node2.position.x + this.axisX(this.node2.axes[this.edge[1][1]].position[0], this.angle2);
+                return this.node2.position.x + this.getAxisPoints(this.node2.axes[this.edge[1][1]].position, this.angle2, this.node2.rotation).x2;
             },
             y2: function() {
-                return this.node2.position.y + this.axisY(this.node2.axes[this.edge[1][1]].position[1], this.angle2);
+                return this.node2.position.y + this.getAxisPoints(this.node2.axes[this.edge[1][1]].position, this.angle2, this.node2.rotation).y2;
             }
         },
         template: `
@@ -70,14 +70,13 @@ Vue.component(
         },
         computed: {
             angle: function() {
-                return this.node.axes[this.axis].angle
-                    + this.node.rotation;
+                return this.node.axes[this.axis].angle;
             },
             x0: function() {
-                return this.node.position.x + this.axisX(this.node.axes[this.axis].position[0], this.angle);
+                return this.node.position.x + this.getAxisPoints(this.node.axes[this.axis].position, this.angle, this.node.rotation).x2;
             },
             y0: function() {
-                return this.node.position.y + this.axisY(this.node.axes[this.axis].position[1], this.angle);
+                return this.node.position.y + this.getAxisPoints(this.node.axes[this.axis].position, this.angle, this.node.rotation).y2;
             }
         },
         template: `
