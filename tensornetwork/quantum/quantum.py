@@ -272,12 +272,6 @@ class QuOperator():
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def outer_product(self, other: "QuOperator"):
-    """Outer product with another operator.
-    Synonym for `tensor_product()`.
-    """
-    return self.tensor_product(other)
-
   def contract(self, contractor: Callable = greedy,
                final_edge_order: Optional[Sequence[Edge]] = None):
     """Contract the tensor network in place.
