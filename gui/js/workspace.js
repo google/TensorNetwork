@@ -45,15 +45,19 @@ Vue.component(
                 document.addEventListener('mousemove', this.onMouseMove);
                 document.addEventListener('mouseup', this.onMouseUp);
 
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
+
                 this.dragSelector.dragging = true;
-                this.dragSelector.startX = event.pageX;
-                this.dragSelector.startY = event.pageY;
-                this.dragSelector.endX = event.pageX;
-                this.dragSelector.endY = event.pageY;
+                this.dragSelector.startX = event.pageX - workspace.left;
+                this.dragSelector.startY = event.pageY - workspace.top;
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
             },
             onMouseMove: function(event) {
-                this.dragSelector.endX = event.pageX;
-                this.dragSelector.endY = event.pageY;
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
+
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
             },
             onMouseUp: function() {
                 document.removeEventListener('mousemove', this.onMouseMove);
@@ -93,8 +97,7 @@ Vue.component(
                 this.protoEdge.axis = axis;
             },
             dragAxis: function(event) {
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
                 this.protoEdge.dragging = true;
                 this.protoEdge.x = event.clientX - workspace.left;
                 this.protoEdge.y = event.clientY - workspace.top;
@@ -134,7 +137,7 @@ Vue.component(
             }
         },
 		template: `
-			<svg class="workspace" xmlns="http://www.w3.org/2000/svg"
+			<svg class="workspace" id="workspace" xmlns="http://www.w3.org/2000/svg"
 			    :width="width" :height="height" @mousedown="onMouseDown">
                 <proto-edge v-if="protoEdge.dragging" :x="protoEdge.x" :y="protoEdge.y"
 				    :node="protoEdge.node" :axis="protoEdge.axis" />

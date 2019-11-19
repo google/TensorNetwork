@@ -61,7 +61,33 @@ Vue.component(
 		        mouse: {
                     x: null,
                     y: null
+                },
+                render: true,
+                labelOpacity: 1
+            }
+        },
+        mounted: function() {
+            window.MathJax.typeset();
+        },
+        watch: {
+		    'node.displayName': function() {
+		        if (!this.renderLaTeX) {
+		            return;
                 }
+                // Ugly race condition to make sure MathJax renders, and old renders are discarded
+                this.render = false;
+                this.labelOpacity = 0;
+		        if (this.renderTimeout) {
+                    clearTimeout(this.renderTimeout);
+                }
+		        let t = this;
+                this.renderTimeout = setTimeout(function() {
+                    t.render = true;
+                }, 50);
+                this.renderTimeout = setTimeout(function() {
+                    window.MathJax.typeset();
+                    t.labelOpacity = 1;
+                }, 100);
             }
         },
         methods: {
@@ -111,8 +137,7 @@ Vue.component(
 
                 this.state.draggingNode = false;
 
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
                 let t = this;
                 this.state.selectedNodes.forEach(function(node) {
                     if (node.position.x < t.baseNodeWidth / 2) {
@@ -138,14 +163,17 @@ Vue.component(
         },
 		computed: {
 		    nodeWidth: function() {
-		        return this.baseNodeWidth * this.node.size[0];
+		        return this.baseNodeWidth * Math.min(this.node.size[0], 3);
             },
             nodeHeight: function() {
-                return this.baseNodeWidth * this.node.size[1];
+                return this.baseNodeWidth * Math.min(this.node.size[1], 3);
             },
             translation: function() {
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
+            rotation: function() {
+		        return 'rotate(' + (this.node.rotation * 180 / Math.PI) + ')';
+            },
             brightness: function() {
 			    if (this.state.selectedNodes.includes(this.node)) {
                     return 50;
@@ -161,7 +189,16 @@ Vue.component(
 			    else {
                     return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);';
                 }
-			}
+			},
+            renderLaTeX: function() {
+		        return this.state.renderLaTeX && window.MathJax;
+            },
+            label: function() {
+		        return '\\(\\displaystyle{' + this.node.displayName + '}\\)';
+            },
+            labelStyle: function() {
+		        return 'opacity: ' + this.labelOpacity + ';';
+            }
 		},
         created: function() {
 		    if (this.node.hue == null) {
@@ -172,9 +209,19 @@ Vue.component(
 			<g class="node" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
 			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
 			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
-				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
-				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
-				<text x="0" y="0">{{node.name}}</text>
+				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth" :height="nodeHeight"
+				    :rx="nodeCornerRadius" :transform="rotation" :style="style" />
+                <text v-if="!renderLaTeX || !node.displayName" x="0" y="0"
+                    style="font: bold 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
+                    {{node.name}}
+                </text>
+                <foreignObject v-else-if="render" :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
+				    :height="nodeHeight" :style="labelStyle">
+                    <div class="jax-container"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        {{label}}
+                    </div>
+                </foreignObject>
 			</g>
 		`	
 	}
@@ -230,20 +277,21 @@ Vue.component(
             },
         },
         computed: {
-            angle: function() {
-                return this.node.axes[this.index].angle + this.node.rotation;
+            axisPoints: function() {
+                return this.getAxisPoints(this.node.axes[this.index].position, this.node.axes[this.index].angle,
+                                          this.node.rotation)
             },
             x1: function() {
-                return this.node.axes[this.index].position[0] * this.baseNodeWidth;
-            },
-            x2: function() {
-                return this.axisX(this.node.axes[this.index].position[0], this.angle);
+                return this.axisPoints.x1;
             },
             y1: function() {
-                return this.node.axes[this.index].position[1] * this.baseNodeWidth;
+                return this.axisPoints.y1;
+            },
+            x2: function() {
+                return this.axisPoints.x2;
             },
             y2: function() {
-                return this.axisY(this.node.axes[this.index].position[1], this.angle);
+                return this.axisPoints.y2;
             },
             brightness: function() {
                 return this.highlighted ? 50 : 80;
@@ -263,7 +311,8 @@ Vue.component(
                     @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
                 <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" :stroke="stroke"
                     stroke-width="5" stroke-linecap="round" />
-                <text v-if="!shadow" :x="(x2 - x1) * axisLabelRadius + x1" :y="(y2 - y1) * axisLabelRadius + y1">
+                <text v-if="!shadow" :x="(x2 - x1) * axisLabelRadius + x1" :y="(y2 - y1) * axisLabelRadius + y1"
+                    style="font: normal 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
                     <tspan>{{index}}</tspan>
                     <tspan v-if="node.axes[index].name"> - {{node.axes[index].name}}</tspan>
                 </text>
