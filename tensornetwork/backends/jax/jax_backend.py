@@ -96,3 +96,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    return self.jax.ops.index_update(tensor, mask, assignee)
