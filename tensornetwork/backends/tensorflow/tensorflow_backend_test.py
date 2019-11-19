@@ -214,3 +214,35 @@ def test_multiply(a, b, expected):
   tensor2 = backend.convert_to_tensor(b)
 
   np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_eigh(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  H = backend.randn((4, 4), dtype)
+  H = H + tf.math.conj(tf.transpose(H))
+
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = tf.linalg.eigh(H)
+  np.testing.assert_allclose(eta, eta_ac)
+  np.testing.assert_allclose(U, U_ac)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_matrix_inv(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  inverse = backend.inv(matrix)
+  m1 = tf.matmul(matrix, inverse)
+  m2 = tf.matmul(inverse, matrix)
+
+  np.testing.assert_almost_equal(m1, np.eye(4))
+  np.testing.assert_almost_equal(m2, np.eye(4))
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_matrix_inv_raises(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)

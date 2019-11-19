@@ -15,7 +15,8 @@
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable
+#pylint: disable=line-too-long
+from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
 
 
@@ -209,19 +210,55 @@ class ShellBackend(base_backend.BaseBackend):
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    ncv: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
+    shape = matrix.shape
+    return ShellTensor((shape[0],)), ShellTensor(shape)
 
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor((A.shape[0],)) for _ in range(numeig)
+      ]
+
+    if initial_state is not None:
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
+
+    raise ValueError(
+        '`A` has no attribut shape and no `initial_state` is given.')
+
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
@@ -238,12 +275,14 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor(A.shape[0]) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(A.shape[0]) for _ in range(numeig)
+      ]
 
     if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
 
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
@@ -252,3 +291,10 @@ class ShellBackend(base_backend.BaseBackend):
     a = np.ones(tensor1.shape)
     b = np.ones(tensor2.shape)
     return ShellTensor((a * b).shape)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to shell backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return ShellTensor(matrix.shape)
