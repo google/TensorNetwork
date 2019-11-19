@@ -1042,7 +1042,6 @@ class Edge:
     return '__unnamed_edge__'
 
   def __repr__(self) -> Text:
-
     if self.node1 is not None and self.node2 is not None:
       return (f'\n{self.__class__.__name__}('
               f'{self.node1.name!r}[{self.axis1}] -> '
