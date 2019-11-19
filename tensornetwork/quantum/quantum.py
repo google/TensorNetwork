@@ -19,7 +19,7 @@ way to represent vectors and operators (matrices) involving these spaces. Hence
 we provide some simple abstractions to ease linear algebra operations in which
 the vectors and operators are represented by tensor networks.
 """
-from typing import Any, Callable, Optional, Sequence, Collection, Text
+from typing import Any, Union, Callable, Optional, Sequence, Collection, Text
 from tensornetwork.network_components import Node, Edge, connect, CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling
@@ -238,11 +238,22 @@ class QuOperator():
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def __mul__(self, other: "QuOperator"):
+  def __mul__(self, other: Union["QuOperator", Tensor]):
+    if not isinstance(other, QuOperator):
+      node = Node(other, backend=self.nodes.pop().backend)
+      if node.shape:
+        raise ValueError("Cannot perform elementwise multiplication by a "
+                         "non-scalar tensor.")
+      other = QuScalar([node])
+
     if self.is_scalar() or other.is_scalar():
-      return self @ other
+      return self.tensor_product(other)
+
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")
+
+  def __rmul__(self, other: Union["QuOperator", Tensor]):
+    return self.__mul__(other)
 
   def tensor_product(self, other: "QuOperator"):
     """Tensor product with another operator.

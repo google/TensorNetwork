@@ -114,6 +114,32 @@ def test_matmul():
   np.testing.assert_almost_equal(res, mat @ mat)
 
 
+def test_mul():
+  mat = np.eye(2)
+  op = qu.QuOperator.from_tensor(mat, [0], [1])
+  scal_op = qu.QuScalar.from_tensor(0.5)
+
+  res = (op * scal_op).eval()
+  np.testing.assert_almost_equal(res, mat * 0.5)
+
+  res = (scal_op * op).eval()
+  np.testing.assert_almost_equal(res, mat * 0.5)
+
+  res = (scal_op * scal_op).eval()
+  np.testing.assert_almost_equal(res, 0.25)
+
+  res = (op * 0.5).eval()
+  np.testing.assert_almost_equal(res, mat * 0.5)
+
+  res = (0.5 * op).eval()
+  np.testing.assert_almost_equal(res, mat * 0.5)
+
+  with pytest.raises(ValueError):
+    _ = (op * op)
+
+  with pytest.raises(ValueError):
+    _ = (op * mat)
+
 def test_expectations():
   psi_tensor = np.random.rand(2,2,2) + 1.j * np.random.rand(2,2,2)
   op_tensor = np.random.rand(2,2) + 1.j * np.random.rand(2,2)
