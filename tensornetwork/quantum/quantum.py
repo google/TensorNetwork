@@ -126,15 +126,12 @@ class QuOperator():
   def shape_out(self):
     return [e.dimension for e in self.out_edges]
 
-  @property
   def is_scalar(self):
     return len(self.out_edges) == 0 and len(self.in_edges) == 0
 
-  @property
   def is_vector(self):
     return len(self.out_edges) > 0 and len(self.in_edges) == 0
 
-  @property
   def is_adjoint_vector(self):
     return len(self.out_edges) == 0 and len(self.in_edges) > 0
 
@@ -242,7 +239,7 @@ class QuOperator():
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
   def __mul__(self, other: "QuOperator"):
-    if self.is_scalar or other.is_scalar:
+    if self.is_scalar() or other.is_scalar():
       return self @ other
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")

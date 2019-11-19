@@ -23,28 +23,28 @@ def test_constructor():
   psi_node = tn.Node(psi_tensor)
 
   op = qu.quantum_constructor([psi_node[0]], [psi_node[1]])
-  assert not op.is_scalar
-  assert not op.is_vector
-  assert not op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert not op.is_vector()
+  assert not op.is_adjoint_vector()
 
   op = qu.quantum_constructor([psi_node[0], psi_node[1]], [])
-  assert not op.is_scalar
-  assert op.is_vector
-  assert not op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert op.is_vector()
+  assert not op.is_adjoint_vector()
 
   op = qu.quantum_constructor([], [psi_node[0], psi_node[1]])
-  assert not op.is_scalar
-  assert not op.is_vector
-  assert op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert not op.is_vector()
+  assert op.is_adjoint_vector()
 
   with pytest.raises(ValueError):
     op = qu.quantum_constructor([], [], [psi_node])
 
   _ = psi_node[0] ^ psi_node[1]
   op = qu.quantum_constructor([], [], [psi_node])
-  assert op.is_scalar
-  assert not op.is_vector
-  assert not op.is_adjoint_vector
+  assert op.is_scalar()
+  assert not op.is_vector()
+  assert not op.is_adjoint_vector()
 
 
 def test_checks():
@@ -68,27 +68,27 @@ def test_from_tensor():
   psi_tensor = np.random.rand(2,2)
 
   op = qu.QuOperator.from_tensor(psi_tensor, [0], [1])
-  assert not op.is_scalar
-  assert not op.is_vector
-  assert not op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert not op.is_vector()
+  assert not op.is_adjoint_vector()
   np.testing.assert_almost_equal(op.eval(), psi_tensor)
 
   op = qu.QuVector.from_tensor(psi_tensor)
-  assert not op.is_scalar
-  assert op.is_vector
-  assert not op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert op.is_vector()
+  assert not op.is_adjoint_vector()
   np.testing.assert_almost_equal(op.eval(), psi_tensor)
 
   op = qu.QuAdjointVector.from_tensor(psi_tensor)
-  assert not op.is_scalar
-  assert not op.is_vector
-  assert op.is_adjoint_vector
+  assert not op.is_scalar()
+  assert not op.is_vector()
+  assert op.is_adjoint_vector()
   np.testing.assert_almost_equal(op.eval(), psi_tensor)
 
   op = qu.QuScalar.from_tensor(1.0)
-  assert op.is_scalar
-  assert not op.is_vector
-  assert not op.is_adjoint_vector
+  assert op.is_scalar()
+  assert not op.is_vector()
+  assert not op.is_adjoint_vector()
   assert op.eval() == 1.0
 
 
