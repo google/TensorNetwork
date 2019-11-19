@@ -329,16 +329,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -382,6 +382,20 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    """
+    Update `tensor` at elements defined by `mask` with value `assignee`.
+    Args:
+      tensor: A `Tensor` object.
+      mask: A boolean mask.
+      assignee: A scalar `Tensor`. The values to assigned to `tensor` 
+        at positions where `mask` is `True`.
+
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `index_update`.".format(self.name))
 
   def inv(self, matrix: Tensor) -> Tensor:
     """

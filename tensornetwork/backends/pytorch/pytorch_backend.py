@@ -146,16 +146,16 @@ class PyTorchBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -267,6 +267,13 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    #make a copy
+    t = self.torch.as_tensor(tensor).clone()
+    t[mask] = assignee
+    return t
 
   def inv(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) > 2:
