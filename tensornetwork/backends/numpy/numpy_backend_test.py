@@ -343,6 +343,15 @@ def test_eigh(dtype):
   np.testing.assert_allclose(U, U_ac)
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_index_update(dtype):
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  out = backend.index_update(tensor, tensor > 0.1, 0)
+  tensor[tensor > 0.1] = 0.0
+  np.testing.assert_allclose(tensor, out)
+
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_matrix_inv(dtype):
   backend = numpy_backend.NumPyBackend()
