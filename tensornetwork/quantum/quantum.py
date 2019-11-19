@@ -296,20 +296,22 @@ class QuOperator():
     Note that this modifies the tensor network representing the operator.
 
     The default ordering for the axes of the final tensor is:
-      `out_edges + in_edges`
+      `*out_edges, *in_edges`.
+
     If there are any "ignored" edges, their axes come first:
-      `ignored_edges + out_edges + in_edges`
+      `*ignored_edges, *out_edges, *in_edges`.
 
     Args:
       contractor: A function that performs the contraction. Defaults to
         `greedy`, which uses the greedy algorithm from `opt_einsum` to
         determine a contraction order.
       final_edge_order: Manually specify the axis ordering of the final tensor.
+        The default ordering is determined by `out_edges` and `in_edges` (see
+        above).
     Returns:
       The final tensor representing the operator.
     """
     if not final_edge_order:
-      # TODO: Perhaps support using no assigned ordering at all here?
       final_edge_order = (list(self.ignore_edges) + self.out_edges +
                           self.in_edges)
     self.contract(contractor, final_edge_order)
