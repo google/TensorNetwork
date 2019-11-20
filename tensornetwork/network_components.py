@@ -151,16 +151,16 @@ class BaseNode(ABC):
     self.edges[axis_num] = edge
 
   @abstractmethod
-  def get_tensor(self):
+  def get_tensor(self) -> Tensor:
     return
 
   @abstractmethod
-  def set_tensor(self, tensor):
+  def set_tensor(self, tensor) -> None:
     return
 
   @property
   @abstractmethod
-  def shape(self):
+  def shape(self) -> Tuple[Optional[int], ...]:
     if self._shape is None:
       raise ValueError('Please ensure this Node has a well-defined shape')
     return self._shape
@@ -172,7 +172,7 @@ class BaseNode(ABC):
 
   @tensor.setter
   @abstractmethod
-  def tensor(self, tensor: Tensor) -> Tensor:
+  def tensor(self, tensor: Tensor) -> None:
     return
 
   def get_rank(self) -> int:
@@ -299,28 +299,28 @@ class BaseNode(ABC):
     axis_num = self.get_axis_number(axis)
     return self.edges[axis_num]
 
-  def get_all_edges(self):
+  def get_all_edges(self) -> List["Edge"]:
     # Copy to prevent overwriting.
     return self.edges[:]
 
-  def get_all_nondangling(self):
+  def get_all_nondangling(self) -> Set["Edge"]:
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
-  def get_all_dangling(self):
+  def get_all_dangling(self) -> Set["Edge"]:
     """Return the set of dangling edges connected to this node."""
     return {edge for edge in self.edges if edge.is_dangling()}
 
-  def set_name(self, name):
+  def set_name(self, name) -> None:
     self.name = name
 
-  def has_nondangling_edge(self):
+  def has_nondangling_edge(self) -> bool:
     for e in self.edges:
       if not e.is_dangling():
         return True
     return False
 
-  def has_dangling_edge(self):
+  def has_dangling_edge(self) -> bool:
     for e in self.edges:
       if e.is_dangling():
         return True
@@ -343,7 +343,7 @@ class BaseNode(ABC):
   def __str__(self) -> Text:
     return self.name
 
-  def __lt__(self, other):
+  def __lt__(self, other) -> bool:
     if not isinstance(other, BaseNode):
       raise ValueError("Object {} is not a Node type.".format(other))
     return id(self) < id(other)
@@ -358,7 +358,7 @@ class BaseNode(ABC):
     return contract_between(self, other)
 
   @property
-  def edges(self):
+  def edges(self) -> List["Edge"]:
     if self.is_disabled:
       raise ValueError('Node {} has been disabled. '
                        'Accessing its edges is no longer possible'.format(
@@ -366,7 +366,7 @@ class BaseNode(ABC):
     return self._edges
 
   @edges.setter
-  def edges(self, edges: List):
+  def edges(self, edges: List) -> None:
     if self.is_disabled:
       raise ValueError('Node {} has been disabled.'
                        'Assigning edges is no longer possible'.format(
@@ -374,18 +374,18 @@ class BaseNode(ABC):
     self._edges = edges
 
   @property
-  def axis_names(self):
+  def axis_names(self) -> List[Text]:
     return self._axis_names
 
   @axis_names.setter
-  def axis_names(self, axis_names: List[Text]):
+  def axis_names(self, axis_names: List[Text]) -> None:
     if len(axis_names) != len(self.shape):
       raise ValueError("Expected {} names, only got {}.".format(
           len(self.shape), len(axis_names)))
     self._axis_names = axis_names
 
   @property
-  def signature(self):
+  def signature(self) -> Optional[int]:
     if self.is_disabled:
       raise ValueError('Node {} has been disabled. '
                        'Accessing its signature is no longer possible'.format(
@@ -393,14 +393,14 @@ class BaseNode(ABC):
     return self._signature
 
   @signature.setter
-  def signature(self, signature: int):
+  def signature(self, signature: int) -> None:
     if self.is_disabled:
       raise ValueError('Node {} has been disabled. '
                        'Assigning a signature is no longer possible'.format(
                            self.name))
     self._signature = signature
 
-  def disable(self):
+  def disable(self) -> None:
     if self.is_disabled:
       raise ValueError('Node {} is already disabled'.format(self.name))
     self.is_disabled = True
@@ -438,7 +438,7 @@ class BaseNode(ABC):
     return name, signature, shape, axis_names, backend
 
   @abstractmethod
-  def _save_node(self, node_group: h5py.Group):
+  def _save_node(self, node_group: h5py.Group) -> None:
     """Abstract method to enable saving nodes to hdf5.
        Only serializing common properties is implemented. Should be
        overwritten by subclasses.
@@ -464,7 +464,7 @@ class BaseNode(ABC):
         dtype=string_type,
         data=np.array([edge.name for edge in self.edges], dtype=object))
 
-  def fresh_edges(self, axis_names: Optional[List[Text]] = None):
+  def fresh_edges(self, axis_names: Optional[List[Text]] = None) -> None:
     if not axis_names:
       axis_names = self.axis_names
     if not axis_names:
@@ -528,14 +528,14 @@ class Node(BaseNode):
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
 
-  def get_tensor(self):
+  def get_tensor(self) -> Tensor:
     return self.tensor
 
-  def set_tensor(self, tensor):
+  def set_tensor(self, tensor) -> None:
     self.tensor = tensor
 
   @property
-  def shape(self):
+  def shape(self) -> Tuple[Optional[int], ...]:
     if self.is_disabled:
       raise ValueError('Node {} has been disabled. '
                        'Access its shape via self.tensor'.format(self.name))
@@ -549,7 +549,7 @@ class Node(BaseNode):
   def tensor(self, tensor: Tensor) -> Tensor:
     self._tensor = tensor
 
-  def _save_node(self, node_group: h5py.Group):
+  def _save_node(self, node_group: h5py.Group) -> None:
     """Method to save a node to hdf5.
 
     Args:
@@ -579,7 +579,7 @@ class Node(BaseNode):
     node.set_signature(signature)
     return node
 
-  def __repr__(self):
+  def __repr__(self) -> Text:
     edges = self.get_all_edges()
     return (f'{self.__class__.__name__}\n(\n'
             f'name : {self.name!r},'
@@ -626,14 +626,14 @@ class CopyNode(BaseNode):
         backend=backend_obj,
         shape=(dimension,) * rank)
 
-  def get_tensor(self):
+  def get_tensor(self) -> Tensor:
     return self.tensor
 
-  def set_tensor(self, tensor):
+  def set_tensor(self, tensor) -> None:
     self.tensor = tensor
 
   @property
-  def shape(self):
+  def shape(self) -> Tuple[Optional[int], ...]:
     return (self.dimension,) * self.rank
 
   @property
@@ -717,7 +717,7 @@ class CopyNode(BaseNode):
     return self.backend.einsum(einsum_expression, *tensors)
 
   # pylint: disable=W0235
-  def _save_node(self, node_group: h5py.Group):
+  def _save_node(self, node_group: h5py.Group) -> None:
     """Method to save a node to hdf5.
 
     Args:
@@ -828,21 +828,21 @@ class Edge:
     self.is_disabled = True
 
   @property
-  def name(self):
+  def name(self) -> Text:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing its name is no longer possible')
     return self._name
 
   @name.setter
-  def name(self, name):
+  def name(self, name) -> None:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting its name is no longer possible')
     self._name = name
 
   @property
-  def axis1(self):
+  def axis1(self) -> int:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing axis1 is no longer possible')
@@ -856,7 +856,7 @@ class Edge:
     self._axis1 = axis1
 
   @property
-  def axis2(self):
+  def axis2(self) -> int:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing axis2 is no longer possible')
@@ -870,7 +870,7 @@ class Edge:
     self._axis2 = axis2
 
   @property
-  def signature(self):
+  def signature(self) -> Optional[int]:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing signature is no longer possible')
@@ -957,7 +957,7 @@ class Edge:
       self._is_dangling = True
 
   @property
-  def dimension(self):
+  def dimension(self) -> Tuple[Optional[int], ...]:
     return self.node1.shape[self.axis1]
 
   def is_dangling(self) -> bool:
@@ -967,7 +967,7 @@ class Edge:
   def is_trace(self) -> bool:
     return self.node1 is self.node2
 
-  def is_being_used(self):
+  def is_being_used(self) -> bool:
     """Whether the nodes this edge points to also use this edge.
 
     During edge flattening, nodes can change their edges. Since
@@ -985,7 +985,7 @@ class Edge:
   def set_name(self, name: Text) -> None:
     self.name = name
 
-  def _save_edge(self, edge_group: h5py.Group):
+  def _save_edge(self, edge_group: h5py.Group) -> None:
     """Method to save an edge to hdf5.
 
     Args:
@@ -1031,7 +1031,7 @@ class Edge:
   def __xor__(self, other: "Edge") -> "Edge":
     return connect(self, other, self.name)
 
-  def __lt__(self, other):
+  def __lt__(self, other) -> bool:
     if not isinstance(other, Edge):
       raise TypeError("Cannot compare 'Edge' with type {}".format(type(Edge)))
     return self.signature < other.signature
@@ -1041,7 +1041,7 @@ class Edge:
       return self.name
     return '__unnamed_edge__'
 
-  def __repr__(self):
+  def __repr__(self) -> Text:
     if self.node1 is not None and self.node2 is not None:
       return (f'\n{self.__class__.__name__}('
               f'{self.node1.name!r}[{self.axis1}] -> '
