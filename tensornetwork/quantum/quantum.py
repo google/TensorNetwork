@@ -59,6 +59,19 @@ def quantum_constructor(out_edges: Sequence[Edge], in_edges: Sequence[Edge],
 
 def identity(shape: Sequence[int], backend: Optional[Text] = None,
              dtype: Type[np.number] = np.float64):
+  """Construct a `QuOperator` representing the identity on a given space.
+
+  Internally, this is done by constructing `CopyNode`s for each edge, with
+  dimension according to `shape`.
+
+  Args:
+    shape: A sequence of integers for the dimensions of the tensor product
+      factors of the space (the edges in the tensor network).
+    backend: Optionally specify the backend to use for computations.
+    dtype: The data type (for conversion to dense).
+  Returns:
+    The desired identity operator.
+  """
   nodes = [CopyNode(2, d, backend=backend, dtype=dtype) for d in shape]
   out_edges = [n[0] for n in nodes]
   in_edges = [n[1] for n in nodes]
@@ -87,7 +100,17 @@ def check_spaces(edges_1: Sequence[Edge], edges_2: Sequence[Edge]):
 
 
 class QuOperator():
-  """Represents an operator via a tensor network.
+  """Represents a linear operator via a tensor network.
+
+  To interpret a tensor network as a linear operator, some of the dangling
+  edges must be designated as `out_edges` (output edges) and the rest as
+  `in_edges` (input edges).
+
+  Considered as a matrix, the `out_edges` represent the row index and the
+  `in_edges` represent the column index.
+
+  The (right) action of the operator on another then consists of connecting
+  the `in_edges` of the first operator to the `out_edges` of the second.
 
   Can be used to do simple linear algebra with tensor networks.
   """
@@ -96,6 +119,23 @@ class QuOperator():
   def __init__(self, out_edges: Sequence[Edge], in_edges: Sequence[Edge],
                ref_nodes: Optional[Collection[Node]] = None,
                ignore_edges: Optional[Collection[Edge]] = None):
+    """Creates a new `QuOperator` from a tensor network.
+
+    This encapsulates an existing tensor network, interpreting it as a linear
+    operator.
+
+    The network is checked for consistency: All dangling edges must either be
+    in `out_edges`, `in_edges`, or `ignore_edges`.
+
+    Args:
+      out_edges: The edges of the network to be used as the output edges.
+      in_edges: The edges of the network to be used as the input edges.
+      ref_nodes: Nodes used to refer to parts of the tensor network that are
+        not connected to any input or output edges (for example: a scalar
+        factor).
+      ignore_edges: Optional collection of edges to ignore when performing
+        consistency checks.
+    """
     # TODO: Decide whether the user must also supply all nodes involved.
     #       This would enable extra error checking and is probably clearer
     #       than `ref_nodes`.
@@ -111,6 +151,19 @@ class QuOperator():
   @classmethod
   def from_tensor(cls, tensor: Tensor, out_axes: Sequence[int],
                   in_axes: Sequence[int], backend: Optional[Text] = None):
+    """Construct a `QuOperator` directly from a single tensor.
+
+    This first wraps the tensor in a `Node`, then constructs the `QuOperator`
+    from that `Node`.
+
+    Args:
+      tensor: The tensor.
+      out_axes: The axis indices of `tensor` to use as `out_edges`.
+      in_axes: The axis indices of `tensor` to use as `in_edges`.
+      backend: Optionally specify the backend to use for computations.
+    Returns:
+      The new operator.
+    """
     n = Node(tensor, backend=backend)
     out_edges = [n[i] for i in out_axes]
     in_edges = [n[i] for i in in_axes]
@@ -222,6 +275,15 @@ class QuOperator():
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
   def __matmul__(self, other: "QuOperator"):
+    """The action of this operator on another.
+
+    Given `QuOperator`s `A` and `B`, produces a new `QuOperator` for `A @ B`,
+    where `A @ B` means: "the action of A, as a linear operator, on B".
+
+    Under the hood, this produces copies of the tensor networks defining `A`
+    and `B` and then connects the copies by hooking up the `in_edges` of
+    `A.copy()` to the `out_edges` of `B.copy()`.
+    """
     check_spaces(self.in_edges, other.out_edges)
 
     # Copy all nodes involved in the two operators.
@@ -244,6 +306,17 @@ class QuOperator():
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
   def __mul__(self, other: Union["QuOperator", Node, Tensor]):
+    """Scalar multiplication of operators.
+
+    Given two operators `A` and `B`, one of the which is a scalar (it has no
+    input or output edges), `A * B` produces a new operator representing the
+    scalar multiplication of `A` and `B`.
+
+    For convenience, one of `A` or `B` may be a number or scalar-valued tensor
+    or `Node` (it will automatically be wrapped in a `QuScalar`).
+
+    Note: This is a special case of `tensor_product()`.
+    """
     if not isinstance(other, QuOperator):
       if isinstance(other, Node):
         node = other
@@ -261,10 +334,25 @@ class QuOperator():
                      "least one of the arguments is a scalar.")
 
   def __rmul__(self, other: Union["QuOperator", Node, Tensor]):
+    """Scalar multiplication of operators. See `.__mul__()`.
+    """
     return self.__mul__(other)
 
   def tensor_product(self, other: "QuOperator"):
     """Tensor product with another operator.
+
+    Given two operators `A` and `B`, produces a new operator `AB` representing
+    `A` ⊗ `B`. The `out_edges` (`in_edges`) of `AB` is simply the
+    concatenation of the `out_edges` (`in_edges`) of `A.copy()` with that of
+    `B.copy()`:
+
+    `new_out_edges = [*out_edges_A_copy, *out_edges_B_copy]`
+    `new_in_edges = [*in_edges_A_copy, *in_edges_B_copy]`
+
+    Args:
+      other: The other operator (`B`).
+    Returns:
+      The result (`AB`).
     """
     nodes_dict1, edges_dict1 = copy(self.nodes, False)
     nodes_dict2, edges_dict2 = copy(other.nodes, False)
@@ -336,15 +424,50 @@ class QuOperator():
 
 
 class QuVector(QuOperator):
+  """Represents a (column) vector via a tensor network.
+  """
   def __init__(self, subsystem_edges: Sequence[Edge],
                ref_nodes: Optional[Collection[Node]] = None,
                ignore_edges: Optional[Collection[Edge]] = None):
+    """Constructs a new `QuVector` from a tensor network.
+
+    This encapsulates an existing tensor network, interpreting it as a (column)
+    vector.
+
+    Args:
+      subsystem_edges: The edges of the network to be used as the output edges.
+      ref_nodes: Nodes used to refer to parts of the tensor network that are
+        not connected to any input or output edges (for example: a scalar
+        factor).
+      ignore_edges: Optional collection of edges to ignore when performing
+        consistency checks.
+    """
     super().__init__(subsystem_edges, [], ref_nodes, ignore_edges)
 
   @classmethod
-  def from_tensor(cls, tensor: Tensor, backend: Optional[Text] = None):
+  def from_tensor(cls, tensor: Tensor,
+                  subsystem_axes: Optional[Sequence[int]] = None,
+                  backend: Optional[Text] = None):
+    """Construct a `QuVector` directly from a single tensor.
+
+    This first wraps the tensor in a `Node`, then constructs the `QuVector`
+    from that `Node`.
+
+    Args:
+      tensor: The tensor.
+      subsystem_axes: Sequence of integer indices specifying the order in which
+        to interpret the axes as subsystems (output edges). If not specified,
+        the axes are taken in ascending order.
+      backend: Optionally specify the backend to use for computations.
+    Returns:
+      The new operator.
+    """
     n = Node(tensor, backend=backend)
-    return cls(n.get_all_edges())
+    if subsystem_axes is not None:
+      subsystem_edges = [n[i] for i in subsystem_axes]
+    else:
+      subsystem_edges = n.get_all_edges()
+    return cls(subsystem_edges)
 
   @property
   def subsystem_edges(self):
@@ -359,15 +482,50 @@ class QuVector(QuOperator):
 
 
 class QuAdjointVector(QuOperator):
+  """Represents an adjoint (row) vector via a tensor network.
+  """
   def __init__(self, subsystem_edges: Sequence[Edge],
                ref_nodes: Optional[Collection[Node]] = None,
                ignore_edges: Optional[Collection[Edge]] = None):
+    """Constructs a new `QuAdjointVector` from a tensor network.
+
+    This encapsulates an existing tensor network, interpreting it as an adjoint
+    vector (row vector).
+
+    Args:
+      subsystem_edges: The edges of the network to be used as the input edges.
+      ref_nodes: Nodes used to refer to parts of the tensor network that are
+        not connected to any input or output edges (for example: a scalar
+        factor).
+      ignore_edges: Optional collection of edges to ignore when performing
+        consistency checks.
+    """
     super().__init__([], subsystem_edges, ref_nodes, ignore_edges)
 
   @classmethod
-  def from_tensor(cls, tensor: Tensor, backend: Optional[Text] = None):
+  def from_tensor(cls, tensor: Tensor,
+                  subsystem_axes: Optional[Sequence[int]] = None,
+                  backend: Optional[Text] = None):
+    """Construct a `QuAdjointVector` directly from a single tensor.
+
+    This first wraps the tensor in a `Node`, then constructs the
+    `QuAdjointVector` from that `Node`.
+
+    Args:
+      tensor: The tensor.
+      subsystem_axes: Sequence of integer indices specifying the order in which
+        to interpret the axes as subsystems (input edges). If not specified,
+        the axes are taken in ascending order.
+      backend: Optionally specify the backend to use for computations.
+    Returns:
+      The new operator.
+    """
     n = Node(tensor, backend=backend)
-    return cls(n.get_all_edges())
+    if subsystem_axes is not None:
+      subsystem_edges = [n[i] for i in subsystem_axes]
+    else:
+      subsystem_edges = n.get_all_edges()
+    return cls(subsystem_edges)
 
   @property
   def subsystem_edges(self):
@@ -382,11 +540,34 @@ class QuAdjointVector(QuOperator):
 
 
 class QuScalar(QuOperator):
+  """Represents a scalar via a tensor network.
+  """
   def __init__(self, ref_nodes: Collection[Node],
                ignore_edges: Optional[Collection[Edge]] = None):
+    """Constructs a new `QuScalar` from a tensor network.
+
+    This encapsulates an existing tensor network, interpreting it as a scalar.
+
+    Args:
+      ref_nodes: Nodes used to refer to the tensor network (need not be
+        exhaustive - one node from each disconnected subnetwork is sufficient).
+        ignore_edges: Optional collection of edges to ignore when performing
+        consistency checks.
+    """
     super().__init__([], [], ref_nodes, ignore_edges)
 
   @classmethod
   def from_tensor(cls, tensor: Tensor, backend: Optional[Text] = None):
+    """Construct a `QuScalar` directly from a single tensor.
+
+    This first wraps the tensor in a `Node`, then constructs the
+    `QuScalar` from that `Node`.
+
+    Args:
+      tensor: The tensor.
+      backend: Optionally specify the backend to use for computations.
+    Returns:
+      The new operator.
+    """
     n = Node(tensor, backend=backend)
     return cls(set([n]))
