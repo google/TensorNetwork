@@ -91,6 +91,8 @@ class QuOperator():
 
   Can be used to do simple linear algebra with tensor networks.
   """
+  __array_priority__ = 100.0  # for correct __rmul__ with scalar ndarrays
+
   def __init__(self, out_edges: Sequence[Edge], in_edges: Sequence[Edge],
                ref_nodes: Optional[Collection[Node]] = None,
                ignore_edges: Optional[Collection[Edge]] = None):
@@ -241,9 +243,12 @@ class QuOperator():
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def __mul__(self, other: Union["QuOperator", Tensor]):
+  def __mul__(self, other: Union["QuOperator", Node, Tensor]):
     if not isinstance(other, QuOperator):
-      node = Node(other, backend=self.nodes.pop().backend)
+      if isinstance(other, Node):
+        node = other
+      else:
+        node = Node(other, backend=self.nodes.pop().backend)
       if node.shape:
         raise ValueError("Cannot perform elementwise multiplication by a "
                          "non-scalar tensor.")
@@ -255,7 +260,7 @@ class QuOperator():
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")
 
-  def __rmul__(self, other: Union["QuOperator", Tensor]):
+  def __rmul__(self, other: Union["QuOperator", Node, Tensor]):
     return self.__mul__(other)
 
   def tensor_product(self, other: "QuOperator"):
