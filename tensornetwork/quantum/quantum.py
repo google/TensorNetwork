@@ -20,6 +20,8 @@ we provide some simple abstractions to ease linear algebra operations in which
 the vectors and operators are represented by tensor networks.
 """
 from typing import Any, Union, Callable, Optional, Sequence, Collection, Text
+from typing import Type
+import numpy as np
 from tensornetwork.network_components import Node, Edge, connect, CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling
@@ -55,8 +57,9 @@ def quantum_constructor(out_edges: Sequence[Edge], in_edges: Sequence[Edge],
   return QuOperator(out_edges, in_edges, ref_nodes, ignore_edges)
 
 
-def identity(shape: Sequence[int]):
-  nodes = [CopyNode(2, d) for d in shape]
+def identity(shape: Sequence[int], backend: Optional[Text] = None,
+             dtype: Type[np.number] = np.float64):
+  nodes = [CopyNode(2, d, backend=backend, dtype=dtype) for d in shape]
   out_edges = [n[0] for n in nodes]
   in_edges = [n[1] for n in nodes]
   return quantum_constructor(out_edges, in_edges)
