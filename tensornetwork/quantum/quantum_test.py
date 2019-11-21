@@ -19,7 +19,7 @@ import quantum as qu
 
 
 def test_constructor(backend):
-  psi_tensor = np.random.rand(2,2)
+  psi_tensor = np.random.rand(2, 2)
   psi_node = tn.Node(psi_tensor, backend=backend)
 
   op = qu.quantum_constructor([psi_node[0]], [psi_node[1]])
@@ -48,8 +48,8 @@ def test_constructor(backend):
 
 
 def test_checks(backend):
-  node1 = tn.Node(np.random.rand(2,2), backend=backend)
-  node2 = tn.Node(np.random.rand(2,2), backend=backend)
+  node1 = tn.Node(np.random.rand(2, 2), backend=backend)
+  node2 = tn.Node(np.random.rand(2, 2), backend=backend)
   _ = node1[1] ^ node2[0]
 
   # extra edges must be explicitly ignored
@@ -57,7 +57,7 @@ def test_checks(backend):
     _ = qu.QuVector([node1[0]])
 
   # correctly ignore the extra edge
-  op = qu.QuVector([node1[0]], ignore_edges=[node2[1]])
+  _ = qu.QuVector([node1[0]], ignore_edges=[node2[1]])
 
   # in/out edges must be dangling
   with pytest.raises(ValueError):
@@ -65,7 +65,7 @@ def test_checks(backend):
 
 
 def test_from_tensor(backend):
-  psi_tensor = np.random.rand(2,2)
+  psi_tensor = np.random.rand(2, 2)
 
   op = qu.QuOperator.from_tensor(psi_tensor, [0], [1], backend=backend)
   assert not op.is_scalar()
@@ -93,22 +93,22 @@ def test_from_tensor(backend):
 
 
 def test_identity(backend):
-  E = qu.identity((2,3,4), backend=backend)
+  E = qu.identity((2, 3, 4), backend=backend)
   assert E.trace().eval() == 24
 
-  psi = qu.QuVector.from_tensor(np.random.rand(2,2), backend=backend)
-  E = qu.identity((2,2), backend=backend)
+  psi = qu.QuVector.from_tensor(np.random.rand(2, 2), backend=backend)
+  E = qu.identity((2, 2), backend=backend)
   np.testing.assert_almost_equal((E @ psi).norm().eval(), psi.norm().eval())
 
 
 def test_tensor_product(backend):
-  psi = qu.QuVector.from_tensor(np.random.rand(2,2), backend=backend)
+  psi = qu.QuVector.from_tensor(np.random.rand(2, 2), backend=backend)
   psi_psi = psi.tensor_product(psi)
   np.testing.assert_almost_equal(psi_psi.norm().eval(), psi.norm().eval()**2)
 
 
 def test_matmul(backend):
-  mat = np.random.rand(2,2)
+  mat = np.random.rand(2, 2)
   op = qu.QuOperator.from_tensor(mat, [0], [1], backend=backend)
   res = (op @ op).eval()
   np.testing.assert_allclose(res, mat @ mat)
@@ -143,17 +143,17 @@ def test_mul(backend):
 
 def test_expectations(backend):
   if backend == 'pytorch':
-    psi_tensor = np.random.rand(2,2,2)
-    op_tensor = np.random.rand(2,2)
+    psi_tensor = np.random.rand(2, 2, 2)
+    op_tensor = np.random.rand(2, 2)
   else:
-    psi_tensor = np.random.rand(2,2,2) + 1.j * np.random.rand(2,2,2)
-    op_tensor = np.random.rand(2,2) + 1.j * np.random.rand(2,2)
+    psi_tensor = np.random.rand(2, 2, 2) + 1.j * np.random.rand(2, 2, 2)
+    op_tensor = np.random.rand(2, 2) + 1.j * np.random.rand(2, 2)
 
   psi = qu.QuVector.from_tensor(psi_tensor, backend=backend)
   op = qu.QuOperator.from_tensor(op_tensor, [0], [1], backend=backend)
 
   op_3 = op.tensor_product(
-    qu.identity((2,2), backend=backend, dtype=psi_tensor.dtype))
+      qu.identity((2, 2), backend=backend, dtype=psi_tensor.dtype))
   res1 = (psi.adjoint() @ op_3 @ psi).eval()
 
   rho_1 = psi.reduced_density([1, 2])  # trace out sites 2 and 3
@@ -163,7 +163,7 @@ def test_expectations(backend):
 
 
 def test_projector(backend):
-  psi_tensor = np.random.rand(2,2)
+  psi_tensor = np.random.rand(2, 2)
   psi_tensor /= np.linalg.norm(psi_tensor)
   psi = qu.QuVector.from_tensor(psi_tensor, backend=backend)
   P = psi.projector()
