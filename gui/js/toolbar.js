@@ -46,14 +46,15 @@ Vue.component(
             },
             copyNode: function(event) {
                 event.preventDefault();
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
 
                 let node = JSON.parse(JSON.stringify(this.node));
                 node.name = this.copyNodeName;
                 node.position = {x: workspace.width / 2, y: workspace.height / 2};
 
                 this.state.nodes.push(node);
+                this.state.selectedNodes = [node];
+                this.copyNodeName = '';
             },
             rotate: function(angle) {
                 this.node.rotation += angle;
@@ -97,16 +98,16 @@ Vue.component(
                             <a class="delete" href="" @click="deleteNode(event)">delete</a>
                             <h2>Node: {{node.name}}</h2>
                         </div>
-                        <div class="button-holder">
-                            <h4>Copy Node</h4>
-                            <form @submit="copyNode">
-                                <input type="text" v-model="copyNodeName" placeholder="name of copy" />
-                                <input type="submit" value="Copy" :disabled="copyNodeDisabled" />
-                            </form>
-                        </div>
+                        <h4>Set LaTeX Label</h4>
+                        <input type="text" v-model="node.displayName" placeholder="LaTeX label" />
+                        <h4>Copy Node</h4>
+                        <form @submit="copyNode">
+                            <input type="text" v-model="copyNodeName" placeholder="name of copy" />
+                            <input type="submit" value="Copy" :disabled="copyNodeDisabled" />
+                        </form>
                         <h4>Rotate</h4>
-                            <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
-                            <button @click="rotate(Math.PI / 4)">Clockwise</button>
+                        <button @click="rotate(-Math.PI / 4)">Counterclockwise</button>
+                        <button @click="rotate(Math.PI / 4)">Clockwise</button>
                     </section>
                     <toolbar-edge-section :state="state" />
                     <toolbar-axis-section :state="state" />
@@ -122,6 +123,7 @@ Vue.component(
 Vue.component(
     'tensor-creator',
     {
+        mixins: [mixinGeometry],
         props: {
             state: Object
         },
@@ -129,10 +131,17 @@ Vue.component(
             return {
                 size1: 1,
                 size2: 1,
-                hue: null,
+                hue: 0,
                 node: {},
                 width: 250,
                 height: 250,
+                dragSelector: {
+                    dragging: false,
+                    startX: null,
+                    startY: null,
+                    endX: null,
+                    endY: null
+                },
             };
         },
         created: function() {
@@ -144,67 +153,137 @@ Vue.component(
             },
             size2: function() {
                 this.reset();
+            },
+            hue: function() {
+                this.node.hue = parseFloat(this.hue);
             }
         },
         methods: {
-            reset: function() {
-                this.hue = Math.random() * 360;
+            reset: function () {
                 this.node = JSON.parse(JSON.stringify(this.nodeInitial));
             },
-            createNode: function(event) {
+            createNode: function (event) {
                 event.preventDefault();
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
 
                 this.node.position = {x: workspace.width / 2, y: workspace.height / 2};
 
                 this.state.nodes.push(this.node);
                 this.reset();
             },
-            onShadowAxisMouseDown: function(node, axis) {
-                this.node.axes.push(JSON.parse(JSON.stringify(this.nodeShadow.axes[axis])));
-            },
-            onNodeAxisMouseDown: function(node, axis) {
-                this.node.axes.splice(axis, 1);
-            },
-            axes: function(size1, size2) {
-                let makeAxis = function(direction, position) {
-                    return {name: null, angle: direction * Math.PI / 4, position: position};
-                };
-
-                let output = [];
-                for (let n = 0; n < size1; n++) {
-                    let x = -(size1 - 1) / 2 + n;
-                    for (let m = 0; m < size2; m++) {
-                        let y = -(size2 - 1) / 2 + m;
-                        if (n === 0) {
-                            output.push(makeAxis(4, [x, y]))
-                        }
-                        if (n === size1 - 1) {
-                            output.push(makeAxis(0, [x, y]))
-                        }
-                        if (m === 0) {
-                            output.push(makeAxis(6, [x, y]))
-                        }
-                        if (m === size2 - 1) {
-                            output.push(makeAxis(2, [x, y]))
-                        }
-                        if (n === 0 && m === 0) {
-                            output.push(makeAxis(5, [x, y]))
-                        }
-                        if (n === 0 && m === size2 - 1) {
-                            output.push(makeAxis(3, [x, y]))
-                        }
-                        if (n === size1 - 1 && m === 0) {
-                            output.push(makeAxis(7, [x, y]))
-                        }
-                        if (n === size1 - 1 && m === size2 - 1) {
-                            output.push(makeAxis(1, [x, y]))
-                        }
-
+            onShadowAxisMouseDown: function (node, axis) {
+                let candidateAxis = this.nodeShadow.axes[axis];
+                for (let j = 0; j < this.node.axes.length; j++) {
+                    let existingAxis = this.node.axes[j];
+                    if (candidateAxis.angle === existingAxis.angle
+                        && candidateAxis.position[0] === existingAxis.position[0]
+                        && candidateAxis.position[1] === existingAxis.position[1]) {
+                        return;
                     }
                 }
+                this.node.axes.push(JSON.parse(JSON.stringify(candidateAxis)));
+            },
+            onNodeAxisMouseDown: function (node, axis) {
+                this.node.axes.splice(axis, 1);
+            },
+            axes: function (size1, size2) {
+                let makeAxis = function (direction, position) {
+                    return {name: null, angle: direction * Math.PI / 4, position: position};
+                };
+                let output = [];
+
+                let x = function(n) {
+                    let x_end = Math.min((size1 - 1) / 2, 1);
+                    return size1 !== 1 ? (-x_end * (size1 - 1 - n) + x_end * n) / (size1 - 1) : 0; // Avoid div by 0
+                };
+                let y = function(m) {
+                    let y_end = Math.min((size2 - 1) / 2, 1);
+                    return size2 !== 1 ? (-y_end * (size2 - 1 - m) + y_end * m) / (size2 - 1) : 0;
+                };
+
+                let n = 0;
+                let m = 0;
+                output.push(makeAxis(5, [x(n), y(m)]));
+
+                for (n = 0; n < size1; n++) {
+                    output.push(makeAxis(6, [x(n), y(m)]));
+                }
+                n = size1 - 1;
+
+                output.push(makeAxis(7, [x(n), y(m)]));
+
+                for (m = 0; m < size2; m++) {
+                    output.push(makeAxis(0, [x(n), y(m)]));
+                }
+                m = size2 - 1;
+
+                output.push(makeAxis(1, [x(n), y(m)]));
+
+                for (n = size1 - 1; n >= 0; n--) {
+                    output.push(makeAxis(2, [x(n), y(m)]))
+                }
+                n = 0;
+
+                output.push(makeAxis(3, [x(n), y(m)]));
+
+                for (m = size2 - 1; m >= 0; m--) {
+                    output.push(makeAxis(4, [x(n), y(m)]));
+                }
+
                 return output;
+            },
+            onMouseDown: function (event) {
+                document.addEventListener('mousemove', this.onMouseMove);
+                document.addEventListener('mouseup', this.onMouseUp);
+
+                let workspace = document.getElementById('tensor-creator-workspace').getBoundingClientRect();
+
+                this.dragSelector.dragging = true;
+                this.dragSelector.startX = event.pageX - workspace.left;
+                this.dragSelector.startY = event.pageY - workspace.top;
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
+            },
+            onMouseMove: function (event) {
+                let workspace = document.getElementById('tensor-creator-workspace').getBoundingClientRect();
+
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
+            },
+            onMouseUp: function () {
+                document.removeEventListener('mousemove', this.onMouseMove);
+                document.removeEventListener('mouseup', this.onMouseUp);
+
+                this.dragSelector.dragging = false;
+
+                let x1 = this.dragSelector.startX;
+                let x2 = this.dragSelector.endX;
+                let y1 = this.dragSelector.startY;
+                let y2 = this.dragSelector.endY;
+
+                for (let i = 0; i < this.nodeShadow.axes.length; i++) {
+                    let axis = this.nodeShadow.axes[i];
+                    let duplicate = false;
+                    for (let j = 0; j < this.node.axes.length; j++) {
+                        let existingAxis = this.node.axes[j];
+                        if (axis.angle === existingAxis.angle && axis.position[0] === existingAxis.position[0]
+                            && axis.position[1] === existingAxis.position[1]) {
+                            duplicate = true;
+                            break
+                        }
+                    }
+                    if (duplicate) {
+                        continue;
+                    }
+                    let axisPoints = this.getAxisPoints(axis.position, axis.angle, 0);
+                    let axisX = this.nodeShadow.position.x + axisPoints.x2;
+                    let axisY = this.nodeShadow.position.y + axisPoints.y2;
+                    if ((x1 <= axisX && axisX <= x2) || (x2 <= axisX && axisX <= x1)) {
+                        if ((y1 <= axisY && axisY <= y2) || (y2 <= axisY && axisY <= y1)) {
+                            this.node.axes.push(JSON.parse(JSON.stringify(axis)));
+                        }
+                    }
+                }
             }
         },
         computed: {
@@ -222,58 +301,58 @@ Vue.component(
             nodeInitial: function() {
                 return {
                     name: "",
-                    size: [this.size1, this.size2],
+                    size: [parseFloat(this.size1), parseFloat(this.size2)],
                     axes: [],
                     position: {x: 125, y: 125},
                     rotation: 0,
-                    hue: this.hue
+                    hue: parseFloat(this.hue)
                 };
             },
             nodeShadow: function() {
                 return {
                     name: "",
-                    size: [this.size1, this.size2],
-                    axes: this.axes(this.size1, this.size2),
+                    size: [parseFloat(this.size1), parseFloat(this.size2)],
+                    axes: this.axes(parseFloat(this.size1), parseFloat(this.size2)),
                     position: {x: 125, y: 125},
                     rotation: 0,
                     hue: null
                 };
             },
+            renderLaTeX: function() {
+                return this.state.renderLaTeX && window.MathJax;
+
+            }
         },
         template: `
             <section class="tensor-creator">
                 <h2>Create New Node</h2>
                 <p>Click on an axis to add or remove it.</p>
                 <div class="svg-container">
-                    <svg class="workspace" xmlns="http://www.w3.org/2000/svg"
-                        :width="width" :height="height">
+                    <svg class="workspace" id="tensor-creator-workspace" xmlns="http://www.w3.org/2000/svg" :width="width" :height="height"
+                        @mousedown="onMouseDown">
                         <node :node="nodeShadow" :state="state" :disableDragging="true" :shadow="true"
                             @axismousedown="onShadowAxisMouseDown(node, ...arguments)" />
                         <node :node="node" :state="state" :disableDragging="true"
                             @axismousedown="onNodeAxisMouseDown(node, ...arguments)"/>
+                        <drag-selector v-if="dragSelector.dragging" :startX="dragSelector.startX"
+                            :startY="dragSelector.startY" :endX="dragSelector.endX" :endY="dragSelector.endY" />
                     </svg>
                 </div>
-                <div class="radio-container">
-                    <label>Width</label>
-                    <input type="radio" id="x1" v-model="size1" :value="1">
-                    <label for="x1">1</label>
-                    <input type="radio" id="x2" v-model="size1" :value="2">
-                    <label for="x2">2</label>
-                    <input type="radio" id="x3" v-model="size1" :value="3">
-                    <label for="x3">3</label>
+                    <label>Width {{size1}}</label>
+                    <input type="range" v-model="size1" min="1" max="7" step="1" class="slider">
                 </div>
-                <div class="radio-container">
-                    <label>Height</label>
-                    <input type="radio" id="y1" v-model="size2" :value="1">
-                    <label for="y1">1</label>
-                    <input type="radio" id="y2" v-model="size2" :value="2">
-                    <label for="y2">2</label>
-                    <input type="radio" id="y3" v-model="size2" :value="3">
-                    <label for="y3">3</label>
+                </div>
+                    <label>Height {{size2}}</label>
+                    <input type="range" v-model="size2" min="1" max="7" step="1" class="slider">
+                </div>
+                <div>
+                    <label>Color</label>
+                    <input type="range" v-model="hue" min="0" max="359" step="1" class="slider">
                 </div>
                 <div class="button-holder">
                     <form @submit="createNode">
                         <input type="text" v-model="node.name" placeholder="node name" />
+                        <input type="text" v-if="renderLaTeX" v-model="node.displayName" placeholder="LaTeX label" />
                         <input type="submit" value="Create" :disabled="createNodeDisabled" />
                     </form>
                 </div>
@@ -281,7 +360,7 @@ Vue.component(
             
         `
     }
-)
+);
 
 Vue.component(
     'toolbar-edge-section',

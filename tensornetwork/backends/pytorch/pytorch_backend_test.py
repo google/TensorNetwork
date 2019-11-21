@@ -276,6 +276,15 @@ def test_eigh():
   np.testing.assert_almost_equal(np.diag(eta), M)
 
 
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_index_update(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  out = backend.index_update(tensor, tensor > 0.1, 0.0)
+  tensor[tensor > 0.1] = 0.0
+  np.testing.assert_allclose(out, tensor)
+
+
 def test_matrix_inv():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
