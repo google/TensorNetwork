@@ -545,7 +545,10 @@ def test_remove_node(backend):
                                        2 * np.eye(2)),
                           pytest.param(np.ones((1, 2, 3)),
                                        2,
-                                       3 * np.ones((1, 2, 3)))
+                                       3 * np.ones((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2.5,
+                                       3.5 * np.ones((1, 2, 3)))
                          ])
 def test_add(a, b, expected, backend):
   n1 = tn.Node(a, backend=backend)
@@ -560,7 +563,10 @@ def test_add(a, b, expected, backend):
                                        np.zeros((2, 2))),
                           pytest.param(np.ones((1, 2, 3)),
                                        2,
-                                       -1 * np.ones((1, 2, 3)))
+                                       -1 * np.ones((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2.5,
+                                       -1.5 * np.ones((1, 2, 3)))
                          ])
 def test_sub(a, b, expected, backend):
   n1 = tn.Node(a, backend=backend)

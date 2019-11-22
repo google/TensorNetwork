@@ -265,7 +265,10 @@ def test_multiply(a, b, expected):
                                        2 * np.ones((1, 2, 3))),
                           pytest.param(np.ones((1, 2, 3)),
                                        2,
-                                       3 * np.ones((1, 2, 3)))
+                                       3 * np.ones((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2.5,
+                                       3.5 * np.ones((1, 2, 3)))
                           ])
 def test_add(a, b, expected):
   backend = tensorflow_backend.TensorFlowBackend()
@@ -281,6 +284,9 @@ def test_add(a, b, expected):
                           pytest.param(np.ones((1, 2, 3)),
                                        2,
                                        -1 * np.ones((1, 2, 3))),
+                          pytest.param(np.ones((1, 2, 3)),
+                                       2.5,
+                                       -1.5 * np.ones((1, 2, 3)))
                           ])
 def test_sub(a, b, expected):
   backend = tensorflow_backend.TensorFlowBackend()
