@@ -539,7 +539,7 @@ class Node(BaseNode):
       raise AttributeError("Please provide a valid tensor for this Node.")
 
     if isinstance(other, BaseNode):
-      other_tensor = other.get_tensor()
+      other_tensor = other.tensor
     else:
       other_tensor = self.backend.convert_to_tensor(other)
     new_tensor = self.backend.add(self.get_tensor(), other_tensor)
