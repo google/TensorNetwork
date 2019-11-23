@@ -15,10 +15,6 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-import tensorflow as tf
-import torch
-import jax
-from jax.config import config
 
 
 def test_split_node_full_svd_names(backend):
@@ -329,3 +325,12 @@ def test_reduced_density_contraction(backend):
   tn.reduced_density([a[0]])
   result = tn.contractors.greedy(tn.reachable(a), ignore_edge_order=True)
   np.testing.assert_allclose(result.tensor, np.eye(2))
+
+
+def test_switch_backend(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend="numpy")
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend="numpy")
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend="numpy")
+  nodes = [a, b, c]
+  tn.switch_backend(nodes, backend)
+  assert nodes[0].backend.name == backend
