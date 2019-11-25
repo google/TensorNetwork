@@ -29,10 +29,10 @@ def svd_decomposition(
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape_tensor[:split_axis]
+  right_dims = tensor.shape_tensor[split_axis:]
 
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  tensor = np.reshape(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   u, s, vh = np.linalg.svd(tensor)
 
   if max_singular_values is None:
@@ -61,7 +61,7 @@ def svd_decomposition(
   u = u[:, :num_sing_vals_keep]
   vh = vh[:num_sing_vals_keep, :]
 
-  dim_s = s.shape[0]
+  dim_s = s.shape_tensor[0]
   u = np.reshape(u, list(left_dims) + [dim_s])
   vh = np.reshape(vh, [dim_s] + list(right_dims))
 
@@ -77,9 +77,9 @@ def qr_decomposition(
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  left_dims = tensor.shape_tensor[:split_axis]
+  right_dims = tensor.shape_tensor[split_axis:]
+  tensor = np.reshape(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   q, r = np.linalg.qr(tensor)
   center_dim = q.shape[1]
   q = np.reshape(q, list(left_dims) + [center_dim])
@@ -96,13 +96,13 @@ def rq_decomposition(
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
-  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  left_dims = tensor.shape_tensor[:split_axis]
+  right_dims = tensor.shape_tensor[split_axis:]
+  tensor = np.reshape(tensor, [numpy.shape_prod(left_dims), numpy.shape_prod(right_dims)])
   q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
   r, q = np.conj(np.transpose(r)), np.conj(
       np.transpose(q))  #M=r*q at this point
-  center_dim = r.shape[1]
+  center_dim = r.shape_tensor[1]
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q

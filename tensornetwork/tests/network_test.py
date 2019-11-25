@@ -204,7 +204,7 @@ def test_contract_copy_node(backend):
 
   val = tn.contract_copy_node(cn)
   result = val.tensor
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
 
 
@@ -231,7 +231,7 @@ def test_outer_product(backend):
   # Purposely leave b's 3rd axis undefined.
   d = tn.outer_product(a, b, name="D")
   tn.check_correct({c, d})
-  assert d.shape == (2, 4, 5, 4, 3, 6)
+  assert d.shape_tensor == (2, 4, 5, 4, 3, 6)
   np.testing.assert_allclose(d.tensor, np.ones((2, 4, 5, 4, 3, 6)))
   assert d.name == "D"
 
@@ -304,8 +304,8 @@ def test_flatten_edges_standard(backend):
   edge_b_1 = b[1]
   edge_b_2 = b[2]
   new_edge = tn.flatten_edges([e1, e2], new_edge_name="New Edge")
-  assert a.shape == (3, 10)
-  assert b.shape == (3, 4, 10)
+  assert a.shape_tensor == (3, 10)
+  assert b.shape_tensor == (3, 4, 10)
   assert a.edges == [edge_a_1, new_edge]
   assert b.edges == [edge_b_1, edge_b_2, new_edge]
   tn.check_correct({a, b})
@@ -318,7 +318,7 @@ def test_flatten_edges_dangling(backend):
   e3 = a[2]
   e4 = a[3]
   flattened_edge = tn.flatten_edges([e1, e3], new_edge_name="New Edge")
-  assert a.shape == (3, 5, 8)
+  assert a.shape_tensor == (3, 5, 8)
   assert a.edges == [e2, e4, flattened_edge]
   assert flattened_edge.name == "New Edge"
   tn.check_correct({a})
@@ -353,7 +353,7 @@ def test_split_trace_edge(backend):
   shape = (2, 1, 3)
   new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
   new_edges = tn.split_edge(e1, shape, new_edge_names)
-  assert a.shape == (2, 4, 5, 5) + shape + shape
+  assert a.shape_tensor == (2, 4, 5, 5) + shape + shape
   assert a.edges == [external_1, external_2, e2, e2, *new_edges, *new_edges]
   for new_edge, dim in zip(new_edges, shape):
     assert new_edge.dimension == dim
@@ -373,8 +373,8 @@ def test_split_edges_standard(backend):
   shape = (2, 1, 3)
   new_edge_names = ["New Edge 2", "New Edge 1", "New Edge 3"]
   new_edges = tn.split_edge(e1, shape, new_edge_names)
-  assert a.shape == (3, 5) + shape
-  assert b.shape == (2, 4, 3) + shape
+  assert a.shape_tensor == (3, 5) + shape
+  assert b.shape_tensor == (2, 4, 3) + shape
   assert a.edges == [e2, edge_a_2, *new_edges]
   assert b.edges == [edge_b_0, edge_b_1, e2, *new_edges]
   for new_edge, dim in zip(new_edges, shape):
@@ -407,7 +407,7 @@ def test_split_edges_dangling(backend):
   shape = (2, 5)
   new_edge_names = ["New Edge 2", "New Edge 5"]
   new_edges = tn.split_edge(e2, shape, new_edge_names)
-  assert a.shape == (2, 4, 5, 2, 5)
+  assert a.shape_tensor == (2, 4, 5, 2, 5)
   assert a.edges == [e1, e3, e4, *new_edges]
   for new_edge, dim in zip(new_edges, shape):
     assert new_edge.dimension == dim
@@ -518,7 +518,7 @@ def test_contract_between_outer_product_no_value_error(backend):
   a = tn.Node(a_val, backend=backend)
   b = tn.Node(b_val, backend=backend)
   c = tn.contract_between(a, b, allow_outer_product=True)
-  assert c.shape == (2, 3, 4, 5, 6, 7)
+  assert c.shape_tensor == (2, 3, 4, 5, 6, 7)
 
 
 def test_contract_parallel(backend):

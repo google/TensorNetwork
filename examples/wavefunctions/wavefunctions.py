@@ -69,7 +69,7 @@ def apply_op(psi, op, n1, pbc=False):
 
 def _apply_op_network(site_edges, op, n1, pbc=False):
   N = len(site_edges)
-  op_sites = len(op.shape) // 2
+  op_sites = len(op.shape_tensor) // 2
   n_op = tensornetwork.Node(op, backend="tensorflow")
   for m in range(op_sites):
     target_site = (n1 + m) % N if pbc else n1 + m
@@ -132,7 +132,7 @@ def evolve_trotter(psi, H, step_size, num_steps, euclidean=False,
       psi_t: The final wavefunction.
       t: The final time.
   """
-  num_sites = len(psi.shape)
+  num_sites = len(psi.shape_tensor)
   layers = trotter_prepare_gates(H, step_size, num_sites, euclidean)
   return _evolve_trotter_gates(
       psi, layers, step_size, num_steps, euclidean=euclidean, callback=callback)
@@ -192,7 +192,7 @@ def evolve_trotter_defun(psi,
 
   step_size = tf.cast(step_size, psi.dtype)
 
-  num_sites = len(psi.shape)
+  num_sites = len(psi.shape_tensor)
   layers = trotter_prepare_gates(H, step_size, num_sites, euclidean)
 
   t = 0.0
@@ -239,7 +239,7 @@ def apply_circuit(psi, layers):
     Returns:
       psi_t: The final wavefunction.
   """
-  num_sites = len(psi.shape)
+  num_sites = len(psi.shape_tensor)
 
   n_psi = tensornetwork.Node(psi, backend="tensorflow")
   site_edges = n_psi.get_all_edges()
@@ -263,7 +263,7 @@ def apply_circuit(psi, layers):
         nodes.append(n_gate)
 
         # keep track of how many sites this gate included
-        op_sites = len(gate.shape) // 2
+        op_sites = len(gate.shape_tensor) // 2
         skip = op_sites - 1
 
   # NOTE: This may not be the optimal order if transpose costs are considered.

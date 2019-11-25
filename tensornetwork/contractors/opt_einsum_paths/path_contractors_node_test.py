@@ -38,7 +38,7 @@ def test_sanity_check(backend, path_algorithm):
   c[3] ^ a[1]
   nodes = [a, b, c, d]
   final_node = path_algorithm(nodes)
-  assert final_node.shape == (13,)
+  assert final_node.shape_tensor == (13,)
 
 
 def test_trace_edge(backend, path_algorithm):

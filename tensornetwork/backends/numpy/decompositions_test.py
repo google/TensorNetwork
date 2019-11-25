@@ -23,22 +23,22 @@ class DecompositionsTest(tf.test.TestCase):
   def test_expected_shapes(self):
     val = np.zeros((2, 3, 4, 5))
     u, s, vh, _ = decompositions.svd_decomposition(np, val, 2)
-    self.assertEqual(u.shape, (2, 3, 6))
-    self.assertEqual(s.shape, (6,))
+    self.assertEqual(u.shape_tensor, (2, 3, 6))
+    self.assertEqual(s.shape_tensor, (6,))
     self.assertAllClose(s, np.zeros(6))
-    self.assertEqual(vh.shape, (6, 4, 5))
+    self.assertEqual(vh.shape_tensor, (6, 4, 5))
 
   def test_expected_shapes_qr(self):
     val = np.zeros((2, 3, 4, 5))
     q, r = decompositions.qr_decomposition(np, val, 2)
-    self.assertEqual(q.shape, (2, 3, 6))
-    self.assertEqual(r.shape, (6, 4, 5))
+    self.assertEqual(q.shape_tensor, (2, 3, 6))
+    self.assertEqual(r.shape_tensor, (6, 4, 5))
 
   def test_expected_shapes_rq(self):
     val = np.zeros((2, 3, 4, 5))
     r, q = decompositions.rq_decomposition(np, val, 2)
-    self.assertEqual(r.shape, (2, 3, 6))
-    self.assertEqual(q.shape, (6, 4, 5))
+    self.assertEqual(r.shape_tensor, (2, 3, 6))
+    self.assertEqual(q.shape_tensor, (6, 4, 5))
 
   def test_rq_decomposition(self):
     random_matrix = np.random.rand(10, 10)
@@ -57,10 +57,10 @@ class DecompositionsTest(tf.test.TestCase):
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, trun = decompositions.svd_decomposition(
         np, val, 1, max_singular_values=7)
-    self.assertEqual(u.shape, (10, 7))
-    self.assertEqual(s.shape, (7,))
+    self.assertEqual(u.shape_tensor, (10, 7))
+    self.assertEqual(s.shape_tensor, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
-    self.assertEqual(vh.shape, (7, 10))
+    self.assertEqual(vh.shape_tensor, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
   def test_max_truncation_error(self):
@@ -70,10 +70,10 @@ class DecompositionsTest(tf.test.TestCase):
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, trun = decompositions.svd_decomposition(
         np, val, 1, max_truncation_error=math.sqrt(5.1))
-    self.assertEqual(u.shape, (10, 7))
-    self.assertEqual(s.shape, (7,))
+    self.assertEqual(u.shape_tensor, (10, 7))
+    self.assertEqual(s.shape_tensor, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
-    self.assertEqual(vh.shape, (7, 10))
+    self.assertEqual(vh.shape_tensor, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
 

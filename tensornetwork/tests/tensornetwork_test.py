@@ -57,7 +57,7 @@ def test_add_node_names(backend):
 def test_add_copy_node_from_node_object(backend):
   a = tn.CopyNode(
       3, 3, name="TestName", axis_names=['a', 'b', 'c'], backend=backend)
-  assert a.shape == (3, 3, 3)
+  assert a.shape_tensor == (3, 3, 3)
   assert isinstance(a, tn.CopyNode)
   assert a.name == "TestName"
   assert a.axis_names == ['a', 'b', 'c']
@@ -102,7 +102,7 @@ def test_small_matmul(backend):
   edge = tn.connect(a[0], b[0], "edge")
   tn.check_correct({a, b})
   c = tn.contract(edge, name="a * b")
-  assert list(c.shape) == [10, 10]
+  assert list(c.shape_tensor) == [10, 10]
   tn.check_correct({c})
 
 
@@ -198,7 +198,7 @@ def test_real_physics_naive_contraction(backend):
   e3 = tn.connect(b[1], c[1], "edge3")
   for edge in [e1, e2, e3]:
     val = tn.contract(edge)
-  assert list(val.shape) == [8, 2, 3, 7]
+  assert list(val.shape_tensor) == [8, 2, 3, 7]
   np.testing.assert_allclose(val.tensor, final_result)
 
 
@@ -270,10 +270,10 @@ def test_node_edge_ordering(backend):
   e2 = a[0]
   e3 = a[1]
   e4 = a[2]
-  assert a.shape == (2, 3, 4)
+  assert a.shape_tensor == (2, 3, 4)
   a.reorder_edges([e4, e2, e3])
   tn.check_correct({a})
-  assert a.shape == (4, 2, 3)
+  assert a.shape_tensor == (4, 2, 3)
   assert e2.axis1 == 1
   assert e3.axis1 == 2
   assert e4.axis1 == 0
@@ -308,7 +308,7 @@ def test_complicated_edge_reordering(backend):
   result = tn.contract(e_bd)
   a.reorder_edges([e_ac, e_ab, e_ad])
   tn.check_correct(tn.reachable(result))
-  assert a.shape == (3, 2, 4)
+  assert a.shape_tensor == (3, 2, 4)
 
 
 def test_edge_reorder_axis_names(backend):
@@ -320,7 +320,7 @@ def test_edge_reorder_axis_names(backend):
   edge_c = a["c"]
   edge_d = a["d"]
   a.reorder_edges([edge_c, edge_b, edge_d, edge_a])
-  assert a.shape == (4, 3, 5, 2)
+  assert a.shape_tensor == (4, 3, 5, 2)
   assert a.axis_names == ["c", "b", "d", "a"]
 
 
@@ -342,7 +342,7 @@ def test_reorder_axes(backend):
   tn.connect(b[2], c[2])
   a.reorder_axes([2, 0, 1])
   tn.check_correct({a, b, c})
-  assert a.shape == (4, 2, 3)
+  assert a.shape_tensor == (4, 2, 3)
 
 
 def test_flatten_consistent_result(backend):
@@ -523,13 +523,13 @@ def test_copy_tensor(backend):
   edge4 = tn.connect(d[0], cn[3])
 
   result = cn.compute_contracted_tensor()
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
 
   for edge in [edge1, edge2, edge3, edge4]:
     val = tn.contract(edge)
   result = val.tensor
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 50 - 240 + 630)
 
 
@@ -544,13 +544,13 @@ def test_copy_tensor_parallel_edges(backend):
   edge3 = tn.connect(b[0], cn[2])
 
   result = cn.compute_contracted_tensor()
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 10 + 40 + 90)
 
   for edge in [edge1, edge2, edge3]:
     val = tn.contract(edge)
   result = val.tensor
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 10 + 40 + 90)
 
 
@@ -571,7 +571,7 @@ def test_contract_copy_node_connected_neighbors(backend):
 
   val = tn.contract_parallel(n.edges[0])
   result = val.tensor
-  assert list(result.shape) == []
+  assert list(result.shape_tensor) == []
   np.testing.assert_allclose(result, 26 + 460)
 
 

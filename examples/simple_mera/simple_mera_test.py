@@ -26,8 +26,8 @@ import simple_mera
 def test_descend(random_tensors):
   h, s, iso, dis = random_tensors
   s = simple_mera.descend(h, s, iso, dis)
-  assert len(s.shape) == 6
-  D = s.shape[0]
+  assert len(s.shape_tensor) == 6
+  D = s.shape_tensor[0]
   smat = np.reshape(s, [D**3] * 2)
   assert np.isclose(np.trace(smat), 1.0)
   assert np.isclose(np.linalg.norm(smat - np.conj(np.transpose(smat))), 0.0)
@@ -38,8 +38,8 @@ def test_descend(random_tensors):
 def test_ascend(random_tensors):
   h, s, iso, dis = random_tensors
   h = simple_mera.ascend(h, s, iso, dis)
-  assert len(h.shape) == 6
-  D = h.shape[0]
+  assert len(h.shape_tensor) == 6
+  D = h.shape_tensor[0]
   hmat = np.reshape(h, [D**3] * 2)
   assert np.isclose(np.linalg.norm(hmat - np.conj(np.transpose(hmat))), 0.0)
 
@@ -70,16 +70,16 @@ def random_tensors(request):
   D = request.param
   key = jax.random.PRNGKey(int(time.time()))
 
-  h = jax.random.normal(key, shape=[D**3] * 2)
+  h = jax.random.normal(key, shape_tensor=[D**3] * 2)
   h = 0.5 * (h + np.conj(np.transpose(h)))
   h = np.reshape(h, [D] * 6)
 
-  s = jax.random.normal(key, shape=[D**3] * 2)
+  s = jax.random.normal(key, shape_tensor=[D**3] * 2)
   s = s @ np.conj(np.transpose(s))
   s /= np.trace(s)
   s = np.reshape(s, [D] * 6)
 
-  a = jax.random.normal(key, shape=[D**2] * 2)
+  a = jax.random.normal(key, shape_tensor=[D**2] * 2)
   u, _, vh = np.linalg.svd(a)
   dis = np.reshape(u, [D] * 4)
   iso = np.reshape(vh, [D] * 4)[:,:,:,0]

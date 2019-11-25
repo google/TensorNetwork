@@ -250,7 +250,7 @@ def _build_network(
   nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
-    if len(tensor.shape) != len(edge_lbls):
+    if len(tensor.shape_tensor) != len(edge_lbls):
       raise ValueError(
           "Incorrect number of edge labels specified tensor {}".format(i))
     if isinstance(tensor, network_components.BaseNode):

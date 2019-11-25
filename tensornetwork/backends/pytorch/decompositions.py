@@ -72,10 +72,10 @@ def svd_decomposition(torch: Any,
     s_rest: Vector of discarded singular values (length zero if no
             truncation).
   """
-  left_dims = list(tensor.shape)[:split_axis]
-  right_dims = list(tensor.shape)[split_axis:]
+  left_dims = list(tensor.shape_tensor)[:split_axis]
+  right_dims = list(tensor.shape_tensor)[split_axis:]
 
-  tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
+  tensor = torch.reshape(tensor, (np.shape_prod(left_dims), np.shape_prod(right_dims)))
   u, s, v = torch.svd(tensor)
 
   if max_singular_values is None:
@@ -104,7 +104,7 @@ def svd_decomposition(torch: Any,
 
   vh = torch.transpose(v, 0, 1)
 
-  dim_s = s.shape[0]
+  dim_s = s.shape_tensor[0]
   u = torch.reshape(u, left_dims + [dim_s])
   vh = torch.reshape(vh, [dim_s] + right_dims)
 
@@ -144,12 +144,12 @@ def qr_decomposition(
     R: Right tensor factor.
   """
 
-  left_dims = list(tensor.shape)[:split_axis]
-  right_dims = list(tensor.shape)[split_axis:]
+  left_dims = list(tensor.shape_tensor)[:split_axis]
+  right_dims = list(tensor.shape_tensor)[split_axis:]
 
-  tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
+  tensor = torch.reshape(tensor, (np.shape_prod(left_dims), np.shape_prod(right_dims)))
   q, r = torch.qr(tensor)
-  center_dim = q.shape[1]
+  center_dim = q.shape_tensor[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
   return q, r
@@ -188,9 +188,9 @@ def rq_decomposition(
     Q: Right tensor factor.
   """
 
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
-  tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
+  left_dims = tensor.shape_tensor[:split_axis]
+  right_dims = tensor.shape_tensor[split_axis:]
+  tensor = torch.reshape(tensor, [np.shape_prod(left_dims), np.shape_prod(right_dims)])
   #torch has currently no support for complex dtypes
   q, r = torch.qr(torch.transpose(tensor, 0, 1))
   r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,

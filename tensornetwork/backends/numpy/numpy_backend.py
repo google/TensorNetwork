@@ -60,23 +60,23 @@ class NumPyBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.np, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
-    return tensor.shape
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
+    return tensor.shape_tensor
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> Tensor:
-    return self.np.prod(values)
+  def shape_prod(self, values: Tensor) -> Tensor:
+    return self.np.shape_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.np.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
+    if len(tensor.shape_tensor) != 1:
       raise TypeError("Only one dimensional tensors are allowed as input")
     return self.np.diag(tensor)
 
@@ -181,10 +181,10 @@ class NumPyBackend(base_backend.BaseBackend):
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
 
     if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
+      if initial_state.shape != A.shape_tensor[1]:
         raise ValueError(
             "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
+                A.shape_tensor[1], initial_state.shape))
 
     if initial_state is None:
       if not hasattr(A, 'shape'):

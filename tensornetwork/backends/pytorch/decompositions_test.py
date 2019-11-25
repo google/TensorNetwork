@@ -21,24 +21,24 @@ from tensornetwork.backends.pytorch import decompositions
 def test_expected_shapes():
   val = torch.zeros((2, 3, 4, 5))
   u, s, vh, _ = decompositions.svd_decomposition(torch, val, 2)
-  assert u.shape == (2, 3, 6)
-  assert s.shape == (6,)
+  assert u.shape_tensor == (2, 3, 6)
+  assert s.shape_tensor == (6,)
   np.testing.assert_allclose(s, np.zeros(6))
-  assert vh.shape == (6, 4, 5)
+  assert vh.shape_tensor == (6, 4, 5)
 
 
 def test_expected_shapes_qr():
   val = torch.zeros((2, 3, 4, 5))
   q, r = decompositions.qr_decomposition(torch, val, 2)
-  assert q.shape == (2, 3, 6)
-  assert r.shape == (6, 4, 5)
+  assert q.shape_tensor == (2, 3, 6)
+  assert r.shape_tensor == (6, 4, 5)
 
 
 def test_expected_shapes_rq():
   val = torch.zeros((2, 3, 4, 5))
   r, q = decompositions.rq_decomposition(torch, val, 2)
-  assert r.shape == (2, 3, 6)
-  assert q.shape == (6, 4, 5)
+  assert r.shape_tensor == (2, 3, 6)
+  assert q.shape_tensor == (6, 4, 5)
 
 
 def test_rq_decomposition():
@@ -61,10 +61,10 @@ def test_max_singular_values():
   val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
   u, s, vh, trun = decompositions.svd_decomposition(
       torch, torch.tensor(val), 1, max_singular_values=7)
-  assert u.shape == (10, 7)
-  assert s.shape == (7,)
+  assert u.shape_tensor == (10, 7)
+  assert s.shape_tensor == (7,)
   np.testing.assert_array_almost_equal(s, np.arange(9, 2, -1))
-  assert vh.shape == (7, 10)
+  assert vh.shape_tensor == (7, 10)
   np.testing.assert_array_almost_equal(trun, np.arange(2, -1, -1))
 
 
@@ -76,8 +76,8 @@ def test_max_truncation_error():
   val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
   u, s, vh, trun = decompositions.svd_decomposition(
       torch, torch.Tensor(val), 1, max_truncation_error=math.sqrt(5.1))
-  assert u.shape == (10, 7)
-  assert s.shape == (7,)
+  assert u.shape_tensor == (10, 7)
+  assert s.shape_tensor == (7,)
   np.testing.assert_array_almost_equal(s, np.arange(9, 2, -1), decimal=5)
-  assert vh.shape == (7, 10)
+  assert vh.shape_tensor == (7, 10)
   np.testing.assert_array_almost_equal(trun, np.arange(2, -1, -1))

@@ -131,8 +131,8 @@ def tensordot(tf,
       flipped = _tensordot_should_flip(axes, free)
 
       free_dims = [shape_a[i] for i in free]
-      prod_free = int(np.prod([shape_a[i] for i in free]))
-      prod_axes = int(np.prod([shape_a[i] for i in axes]))
+      prod_free = int(np.shape_prod([shape_a[i] for i in free]))
+      prod_axes = int(np.shape_prod([shape_a[i] for i in axes]))
       perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
       transposed_a = _tranpose_if_necessary(a, perm)
@@ -151,11 +151,11 @@ def tensordot(tf,
       free_dims_static = free_dims
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
-      shape_a = tf.shape(a)
+      shape_a = tf.shape_tensor(a)
       transposed_a = _tranpose_if_necessary(a, perm)
     else:
       free_dims_static = None
-      shape_a = tf.shape(a)
+      shape_a = tf.shape_tensor(a)
       rank_a = tf.rank(a)
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       axes = tf.where(axes >= 0, axes, axes + rank_a)
@@ -168,7 +168,7 @@ def tensordot(tf,
       #   complicated graph. Unclear whether this would be beneficial overall.
       flipped = is_right_term
       perm = (
-          tf.concat([axes, free], 0) if flipped else tf.concat([free, axes], 0))
+          tf.shape_concat([axes, free], 0) if flipped else tf.shape_concat([free, axes], 0))
       transposed_a = tf.transpose(a, perm)
 
     free_dims = tf.gather(shape_a, free)
@@ -243,7 +243,7 @@ def tensordot(tf,
     a_free_dims = tf.convert_to_tensor(a_free_dims, dtype=tf.dtypes.int32)
     b_free_dims = tf.convert_to_tensor(b_free_dims, dtype=tf.dtypes.int32)
     product = tf.reshape(
-        ab_matmul, tf.concat([a_free_dims, b_free_dims], 0), name=_name)
+        ab_matmul, tf.shape_concat([a_free_dims, b_free_dims], 0), name=_name)
     if a_free_dims_static is not None and b_free_dims_static is not None:
       product.set_shape(a_free_dims_static + b_free_dims_static)
     return product

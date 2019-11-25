@@ -149,7 +149,7 @@ def test_node_set_tensor(single_node_edge):
 
 def test_node_shape(single_node_edge):
   node = single_node_edge.node
-  assert node.shape == (1, 2, 2)
+  assert node.shape_tensor == (1, 2, 2)
 
 
 def test_node_get_axis_number(single_node_edge):
@@ -337,7 +337,7 @@ def test_node_save_data(tmp_path, single_node_edge):
     assert node_file['test_node/backend'][()] == node.backend.name
     assert node_file['test_node/type'][()] == type(node).__name__
     assert node_file['test_node/name'][()] == node.name
-    assert set(node_file['test_node/shape'][()]) == set(node.shape)
+    assert set(node_file['test_node/shape'][()]) == set(node.shape_tensor)
     assert set(node_file['test_node/axis_names'][()]) == set(node.axis_names)
     assert (set(node_file['test_node/edges'][()]) == set(
         edge.name for edge in node.edges))
@@ -351,7 +351,7 @@ def test_node_load(tmp_path, single_node_edge):
     node_group.create_dataset('signature', data=node.signature)
     node_group.create_dataset('backend', data=node.backend.name)
     node_group.create_dataset('name', data=node.name)
-    node_group.create_dataset('shape', data=node.shape)
+    node_group.create_dataset('shape', data=node.shape_tensor)
     node_group.create_dataset(
         'axis_names',
         data=np.array(node.axis_names, dtype=object),
@@ -380,7 +380,7 @@ def test_copy_node_init(copy_node):
 
 
 def test_copy_node_shape(copy_node):
-  assert copy_node.shape == (2, 2, 2, 2)
+  assert copy_node.shape_tensor == (2, 2, 2, 2)
 
 
 def test_copy_node_tensor(copy_node):
@@ -447,7 +447,7 @@ def test_copy_node_save_data(tmp_path, backend):
     assert node_file['copier/name'][()] == node.name
     assert node_file['copier/copy_node_dtype'][()] == np.dtype(
         node.copy_node_dtype).name
-    assert set(node_file['copier/shape'][()]) == set(node.shape)
+    assert set(node_file['copier/shape'][()]) == set(node.shape_tensor)
     assert set(node_file['copier/axis_names'][()]) == set(node.axis_names)
     assert (set(node_file['copier/edges'][()]) == set(
         edge.name for edge in node.edges))
@@ -467,7 +467,7 @@ def test_copy_node_load(tmp_path, backend):
     node_group.create_dataset(
         'copy_node_dtype', data=np.dtype(node.copy_node_dtype).name)
     node_group.create_dataset('name', data=node.name)
-    node_group.create_dataset('shape', data=node.shape)
+    node_group.create_dataset('shape', data=node.shape_tensor)
     node_group.create_dataset(
         'axis_names',
         data=np.array(node.axis_names, dtype=object),

@@ -106,7 +106,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
         tf_b = tf.constant([2, 3, 1], dtype=tf.float32)[None, None]
         tf_ans = tensordot2.tensordot(tf, tf_a, tf_b, axes_value)
 
-        self.assertAllEqual(tf_ans.shape, np_ans.shape)
+        self.assertAllEqual(tf_ans.shape_tensor, np_ans.shape_tensor)
         self.assertAllEqual(tf_ans, np_ans)
 
   def test_partial_shape_inference(self):
@@ -153,9 +153,9 @@ def _generate_random_tensors_and_dims(dtype_, rank_a_, rank_b_, num_dims_):
     a_shape[a_dims[i]] = shared_shape[i]
     b_shape[b_dims[i]] = shared_shape[i]
   a = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(a_shape)).reshape(a_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(a_shape)).reshape(a_shape).astype(dtype_)
   b = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(b_shape)).reshape(b_shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(b_shape)).reshape(b_shape).astype(dtype_)
   return a, b, a_dims, b_dims
 
 
@@ -174,9 +174,9 @@ def test_tensordot_scalar_axes(dtype_, rank_a_, rank_b_, num_dims_):
     tol = 1e-12
   shape = [5] * num_dims_
   a_np = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(shape)).reshape(shape).astype(dtype_)
   b_np = np.random.uniform(
-      low=-1.0, high=1.0, size=np.prod(shape)).reshape(shape).astype(dtype_)
+      low=-1.0, high=1.0, size=np.shape_prod(shape)).reshape(shape).astype(dtype_)
   all_axes = [0, 1]
   if a_np.ndim > 2:
     all_axes.append(a_np.ndim - 1)
@@ -207,4 +207,4 @@ def test_tensordot(dtype_, rank_a_, rank_b_, num_dims_):
     np_ans = np.tensordot(a_np, b_np, axes=(a_dims_np, b_dims_np))
     tf_ans = tensordot2.tensordot(tf, a_np, b_np, (a_dims_np, b_dims_np))
     np.testing.assert_allclose(tf_ans, np_ans, rtol=tol, atol=tol)
-    assert tf_ans.shape == np_ans.shape
+    assert tf_ans.shape_tensor == np_ans.shape_tensor

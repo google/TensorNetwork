@@ -57,7 +57,7 @@ class ShellBackend(base_backend.BaseBackend):
     return tensor
 
   def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
-    shape = tuple(tensor.shape[i] for i in perm)
+    shape = tuple(tensor.shape_tensor[i] for i in perm)
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
@@ -70,8 +70,8 @@ class ShellBackend(base_backend.BaseBackend):
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
+    left_dims = tensor.shape_tensor[:split_axis]
+    right_dims = tensor.shape_tensor[split_axis:]
     dim_s0 = min(
         functools.reduce(operator.mul, left_dims),
         functools.reduce(operator.mul, right_dims))
@@ -89,9 +89,9 @@ class ShellBackend(base_backend.BaseBackend):
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
 
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    left_dims = tensor.shape_tensor[:split_axis]
+    right_dims = tensor.shape_tensor[split_axis:]
+    center_dim = min(tensor.shape_tensor)
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -99,14 +99,14 @@ class ShellBackend(base_backend.BaseBackend):
   def rq_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
 
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    left_dims = tensor.shape_tensor[:split_axis]
+    right_dims = tensor.shape_tensor[split_axis:]
+    center_dim = min(tensor.shape_tensor)
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
     if axis < 0:
       axis += len(shape)
@@ -116,15 +116,15 @@ class ShellBackend(base_backend.BaseBackend):
 
   def concat_shape(self, values) -> Sequence:
     tuple_values = (tuple(v) for v in values)
-    return functools.reduce(operator.concat, tuple_values)
+    return functools.reduce(operator.shape_concat, tuple_values)
 
-  def shape(self, tensor: Tensor) -> Tuple:
-    return tensor.shape
+  def shape_tensor(self, tensor: Tensor) -> Tuple:
+    return tensor.shape_tensor
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> int:
+  def shape_prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!
     # prod calculates the product of tensor elements and cannot implemented
     # for shell tensors
@@ -138,7 +138,7 @@ class ShellBackend(base_backend.BaseBackend):
     return tensor
 
   def diag(self, tensor: Tensor) -> Tensor:
-    shape = tensor.shape
+    shape = tensor.shape_tensor
     new_tensor = ShellTensor((3 - len(shape)) * shape)
     return new_tensor
 
@@ -150,7 +150,7 @@ class ShellBackend(base_backend.BaseBackend):
     return ShellTensor(tensor.shape[:-2])
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return ShellTensor(tensor1.shape + tensor2.shape)
+    return ShellTensor(tensor1.shape_tensor + tensor2.shape_tensor)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     expr_list = expression.split(",")
@@ -174,7 +174,7 @@ class ShellBackend(base_backend.BaseBackend):
     for i, expr in enumerate(expr_list):
       ind = expr.find(char)
       if ind != -1:
-        return tensors[i].shape[ind]
+        return tensors[i].shape_tensor[ind]
     raise ValueError("Einsum output expression contains letters not given"
                      "in input.")
 
@@ -249,6 +249,6 @@ class ShellBackend(base_backend.BaseBackend):
         '`A` has no attribut shape adn no `initial_state` is given.')
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    a = np.ones(tensor1.shape)
-    b = np.ones(tensor2.shape)
-    return ShellTensor((a * b).shape)
+    a = np.ones(tensor1.shape_tensor)
+    b = np.ones(tensor2.shape_tensor)
+    return ShellTensor((a * b).shape_tensor)

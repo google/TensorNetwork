@@ -99,7 +99,7 @@ class BaseMPS:
     """
     A list of bond dimensions of `BaseMPS`
     """
-    return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
+    return [self.nodes[0].shape[0]] + [node.shape_tensor[2] for node in self.nodes]
 
   @property
   def physical_dimensions(self) -> List:
@@ -107,7 +107,7 @@ class BaseMPS:
     A list of physical Hilbert-space dimensions of `BaseMPS`
     """
 
-    return [node.shape[1] for node in self.nodes]
+    return [node.shape_tensor[1] for node in self.nodes]
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
@@ -546,7 +546,7 @@ class FiniteMPS(BaseMPS):
     result = n1 @ n2
     return self.backend.norm(
         abs(result.tensor - self.backend.eye(
-            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+            N=result.shape_tensor[0], M=result.shape_tensor[1], dtype=self.dtype)))
 
   def check_canonical(self) -> Tensor:
     """
@@ -595,7 +595,7 @@ class FiniteMPS(BaseMPS):
     left_envs = {}
     for site in left_sites:
       left_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[0], dtype=self.dtype),
+          self.backend.eye(N=self.nodes[site].shape_tensor[0], dtype=self.dtype),
           backend=self.backend.name)
 
     # left reduced density matrices at sites > center_position
@@ -661,7 +661,7 @@ class FiniteMPS(BaseMPS):
     right_envs = {}
     for site in right_sites:
       right_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[2], dtype=self.dtype),
+          self.backend.eye(N=self.nodes[site].shape_tensor[2], dtype=self.dtype),
           backend=self.backend.name)
 
     # right reduced density matrices at sites < center_position
@@ -719,9 +719,9 @@ class FiniteMPS(BaseMPS):
       scalar `Tensor`: the truncated weight of the truncation.
     
     """
-    if len(gate.shape) != 4:
+    if len(gate.shape_tensor) != 4:
       raise ValueError('rank of gate is {} but has to be 4'.format(
-          len(gate.shape)))
+          len(gate.shape_tensor)))
     if site1 < 0 or site1 >= len(self) - 1:
       raise ValueError(
           'site1 = {} is not between 0 <= site < N - 1 = {}'.format(
@@ -781,9 +781,9 @@ class FiniteMPS(BaseMPS):
       site: the site where the gate should be applied
       
     """
-    if len(gate.shape) != 2:
+    if len(gate.shape_tensor) != 2:
       raise ValueError('rank of gate is {} but has to be 2'.format(
-          len(gate.shape)))
+          len(gate.shape_tensor)))
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))

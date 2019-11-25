@@ -69,17 +69,17 @@ class PyTorchBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
-    return self.torch.tensor(list(tensor.shape))
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
+    return self.torch.tensor(list(tensor.shape_tensor))
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
 
-  def prod(self, values: Tensor) -> int:
-    return np.prod(np.array(values))
+  def shape_prod(self, values: Tensor) -> int:
+    return np.shape_prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.torch.sqrt(tensor)
@@ -178,10 +178,10 @@ class PyTorchBackend(base_backend.BaseBackend):
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
 
     if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
+      if initial_state.shape != A.shape_tensor[1]:
         raise ValueError(
             "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
+                A.shape_tensor[1], initial_state.shape))
     if initial_state is None:
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
@@ -192,7 +192,7 @@ class PyTorchBackend(base_backend.BaseBackend):
             "`A` has no  attribute `dtype`. Cannot initialize "
             "lanczos. Please provide a valid `initial_state` with "
             "a `dtype` attribute")
-      initial_state = self.randn(A.shape[1], A.dtype)
+      initial_state = self.randn(A.shape_tensor[1], A.dtype)
     else:
       initial_state = self.convert_to_tensor(initial_state)
     vector_n = initial_state

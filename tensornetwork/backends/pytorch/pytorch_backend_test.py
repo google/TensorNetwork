@@ -34,20 +34,20 @@ def test_transpose():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_concat():
+def test_shape_concat():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
-  expected = backend.concat((a, b), axis=1)
+  expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
   np.testing.assert_allclose(expected, actual)
 
 
-def test_shape():
+def test_shape_tensor():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
-  assert isinstance(backend.shape(a), torch.Tensor)
-  actual = backend.shape(a)
+  assert isinstance(backend.shape_tensor(a), torch.Tensor)
+  actual = backend.shape_tensor(a)
   expected = np.array([2, 3, 4])
   np.testing.assert_allclose(expected, actual)
 
@@ -59,10 +59,10 @@ def test_shape_tuple():
   assert actual == (2, 3, 4)
 
 
-def test_prod():
+def test_shape_prod():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(2 * np.ones([1, 2, 3, 4]))
-  actual = np.array(backend.prod(a))
+  actual = np.array(backend.shape_prod(a))
   assert actual == 2**24
 
 
@@ -145,7 +145,7 @@ def test_zeros(dtype):
 def test_randn(dtype):
   backend = pytorch_backend.PyTorchBackend()
   a = backend.randn((4, 4), dtype=dtype)
-  assert a.shape == (4, 4)
+  assert a.shape_tensor == (4, 4)
 
 
 @pytest.mark.parametrize("dtype", torch_eye_dtypes)

@@ -112,7 +112,7 @@ e3 = a[2]
 a.reorder_edges([e3, e1, e2])
 # If you already know the axis values, you can equivalently do
 # a.reorder_axes([2, 0, 1])
-print(a.tensor.shape) # Should print (3, 1, 2)
+print(a.tensor.shape_tensor) # Should print (3, 1, 2)
 ```
 
 ## NCON interface.
