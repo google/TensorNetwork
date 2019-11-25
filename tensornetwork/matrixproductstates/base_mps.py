@@ -553,7 +553,7 @@ class BaseMPS:
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = self.nodes[site]
+    n1 = self.get_node(site)  #we need to absorb the connector_matrix
     n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
@@ -565,6 +565,23 @@ class BaseMPS:
     return self.backend.norm(
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+
+  def check_canonical(self) -> Tensor:
+    """
+    Check whether the MPS is in the expected canonical form.
+    Returns:
+      The L2 norm of the vector of local deviations.
+    """
+    deviations = []
+    for site in range(len(self.nodes)):
+      if site < self.center_position:
+        deviation = self.check_orthonormality('l', site)
+      elif site > self.center_position:
+        deviation = self.check_orthonormality('r', site)
+      else:
+        continue
+      deviations.append(deviation**2)
+    return self.backend.sqrt(sum(deviations))
 
   def get_node(self, site: int) -> BaseNode:
     """
@@ -598,5 +615,5 @@ class BaseMPS:
           output_edge_order=order)
     return self.nodes[site]
 
-  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+  def canonicalize(self, *args, **kwargs) -> np.number:
     raise NotImplementedError()
