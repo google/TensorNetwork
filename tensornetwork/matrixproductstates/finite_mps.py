@@ -57,7 +57,7 @@ class FiniteMPS(BaseMPS):
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
     """
-    Initialize a FiniteMPS.
+    Initialize a `FiniteMPS`.
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
