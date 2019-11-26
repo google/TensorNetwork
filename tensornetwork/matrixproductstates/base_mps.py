@@ -16,11 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import functools
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
+from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj, switch_backend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
@@ -198,6 +197,15 @@ class BaseMPS:
     """
 
     return [node.shape[1] for node in self.nodes]
+
+  def switch_backend(self, new_backend: Text) -> None:
+    """
+    Change the backend of all the nodes in the MPS.
+
+    Args:
+      new_backend (str): The new backend.
+    """
+    switch_backend(self.nodes, new_backend)
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
