@@ -15,7 +15,7 @@
 
 import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Iterable
+    Sequence, Iterable, Type
 import numpy as np
 
 #pylint: disable=useless-import-alias
@@ -68,7 +68,7 @@ def conj(node: BaseNode,
       backend.conj(node.tensor),
       name=name,
       axis_names=axis_names,
-      backend=backend.name)
+      backend=backend)
 
 
 def transpose(node: BaseNode,
@@ -102,7 +102,7 @@ def transpose(node: BaseNode,
       node.tensor,
       name=name,
       axis_names=node.axis_names,
-      backend=node.backend.name)
+      backend=node.backend)
   return new_node.reorder_axes(perm)
 
 
@@ -132,7 +132,7 @@ def copy(nodes: Iterable[BaseNode],
             node.backend.conj(node.tensor),
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend.name) for node in nodes
+            backend=node.backend) for node in nodes
     }
   else:
     node_dict = {
@@ -140,7 +140,7 @@ def copy(nodes: Iterable[BaseNode],
             node.tensor,
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend.name) for node in nodes
+            backend=node.backend) for node in nodes
     }
   edge_dict = {}
   for edge in get_all_edges(nodes):
@@ -283,8 +283,9 @@ def split_node(
   backend = node.backend
   node.reorder_edges(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
-      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
+                                                  max_singular_values,
+                                                  max_truncation_err)
   sqrt_s = backend.sqrt(s)
   u_s = u * sqrt_s
   # We have to do this since we are doing element-wise multiplication against
@@ -295,12 +296,12 @@ def split_node(
       [backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
   vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
   left_node = Node(
-      u_s, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      u_s, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      vh_s, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      vh_s, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -370,12 +371,12 @@ def split_node_qr(
   node.reorder_edges(left_edges + right_edges)
   q, r = backend.qr_decomposition(node.tensor, len(left_edges))
   left_node = Node(
-      q, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      q, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      r, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      r, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -444,12 +445,12 @@ def split_node_rq(
   node.reorder_edges(left_edges + right_edges)
   r, q = backend.rq_decomposition(node.tensor, len(left_edges))
   left_node = Node(
-      r, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      r, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
     edge.update_axis(i, node, i, left_node)
   right_node = Node(
-      q, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      q, name=right_name, axis_names=right_axis_names, backend=backend)
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
@@ -554,18 +555,19 @@ def split_node_full_svd(
   backend = node.backend
 
   node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(
-      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
+                                                  max_singular_values,
+                                                  max_truncation_err)
   left_node = Node(
-      u, name=left_name, axis_names=left_axis_names, backend=backend.name)
+      u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
       backend.diag(s),
       name=middle_name,
       axis_names=center_axis_names,
-      backend=backend.name)
+      backend=backend)
 
   right_node = Node(
-      vh, name=right_name, axis_names=right_axis_names, backend=backend.name)
+      vh, name=right_name, axis_names=right_axis_names, backend=backend)
 
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
@@ -598,11 +600,12 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
+def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
+             ) -> Set[BaseNode]:
   """
-  Computes all nodes reachable from `node` by connected edges.
+  Computes all nodes reachable from `node` or `edge.node1` by connected edges.
   Args:
-    nodes: A `BaseNode` or collection of `BaseNodes`
+    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
     A list of `BaseNode` objects that can be reached from `node`
     via connected edges.
@@ -610,9 +613,13 @@ def reachable(nodes: Union[BaseNode, Iterable[BaseNode]]) -> Set[BaseNode]:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  if isinstance(nodes, BaseNode):
-    nodes = {nodes}
-  return _reachable(set(nodes))
+  if isinstance(inputs, BaseNode):
+    inputs = {inputs}
+  elif isinstance(inputs, Edge):
+    inputs = {inputs.node1}
+  elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
+    inputs = {x.node1 for x in inputs}
+  return _reachable(set(inputs))
 
 
 def check_correct(nodes: Iterable[BaseNode],
@@ -723,3 +730,63 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
     if edge.is_trace():
       return contract_parallel(edge)
   raise ValueError('`node` has no trace edges')
+
+
+def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
+  """
+  Constructs the tensor network for a reduced density matrix, given a pure state.
+
+  The tensor network connected to `traced_out_edges` is assumed to be a pure
+  quantum state (a state vector). This modifies the network so that it
+  describes the reduced density matrix obtained by "tracing out" the specified
+  edges.
+
+  This is done by making a conjugate copy of the original network and
+  connecting each edge in `traced_out_edges` with its conjugate counterpart.
+
+  The edges in `edge_dict` corresponding to `traced_out_edges` will be the
+  new non-dangling edges connecting the state with its conjugate.
+
+  Args:
+    traced_out_edges: A list of dangling edges
+  Returns:
+    A tuple containing:
+      node_dict: A dictionary mapping the nodes in the original network to
+        their conjugate copies.
+      edge_dict: A dictionary mapping edges in the original network to their
+        conjugate copies.
+  """
+
+  if list(filter(lambda x: not x.is_dangling(), traced_out_edges)):
+    raise ValueError("traced_out_edges must only include dangling edges!")
+
+  # Get all reachable nodes.
+  old_nodes = reachable(get_all_nodes(traced_out_edges))
+
+  # Copy and conjugate all reachable nodes.
+  node_dict, edge_dict = copy(old_nodes, True)
+  for t_edge in traced_out_edges:
+    # Add each edge to the copied nodes as new edge.
+    edge_dict[t_edge] = edge_dict[t_edge] ^ t_edge
+
+  return node_dict, edge_dict
+
+
+def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
+  """Change the backend of the nodes.
+
+  This will convert all node's tensors to the new backend's Tensor type.
+  Args:
+    nodes: iterable of nodes
+    new_backend (str): The new backend.
+    dtype (datatype): The dtype of the backend. If None, a defautl dtype according
+                       to config.py will be chosen.
+  """
+  backend = backend_factory.get_backend(new_backend)
+  for node in nodes:
+    if node.backend.name != "numpy":
+      raise NotImplementedError("Can only switch backends when the current "
+                                "backend is 'numpy'. Current backend "
+                                "is '{}'".format(node.backend))
+    node.tensor = backend.convert_to_tensor(node.tensor)
+    node.backend = backend

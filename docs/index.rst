@@ -16,7 +16,8 @@ Welcome to TensorNetwork's documentation!
    nodes
    edges
    ncon
-
+   mps
+   
 Indices and tables
 ==================
 

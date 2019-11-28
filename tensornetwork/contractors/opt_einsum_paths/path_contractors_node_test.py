@@ -14,7 +14,7 @@
 
 import numpy as np
 import pytest
-import tensornetwork as tn
+from tensornetwork import Node
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
 
 
@@ -25,10 +25,10 @@ def path_algorithm_fixture(request):
 
 
 def test_sanity_check(backend, path_algorithm):
-  a = tn.Node(np.eye(2), backend=backend)
-  b = tn.Node(np.ones((2, 7, 11)), backend=backend)
-  c = tn.Node(np.ones((7, 11, 13, 2)), backend=backend)
-  d = tn.Node(np.eye(13), backend=backend)
+  a = Node(np.eye(2), backend=backend)
+  b = Node(np.ones((2, 7, 11)), backend=backend)
+  c = Node(np.ones((7, 11, 13, 2)), backend=backend)
+  d = Node(np.eye(13), backend=backend)
 
   # pylint: disable=pointless-statement
   a[0] ^ b[0]
@@ -42,9 +42,9 @@ def test_sanity_check(backend, path_algorithm):
 
 
 def test_trace_edge(backend, path_algorithm):
-  a = tn.Node(np.ones((2, 2, 2, 2, 2)), backend=backend)
-  b = tn.Node(np.ones((2, 2, 2)), backend=backend)
-  c = tn.Node(np.ones((2, 2, 2)), backend=backend)
+  a = Node(np.ones((2, 2, 2, 2, 2)), backend=backend)
+  b = Node(np.ones((2, 2, 2)), backend=backend)
+  c = Node(np.ones((2, 2, 2)), backend=backend)
 
   # pylint: disable=pointless-statement
   a[0] ^ a[1]
@@ -57,22 +57,8 @@ def test_trace_edge(backend, path_algorithm):
   np.testing.assert_allclose(node.tensor, np.ones(2) * 32.0)
 
 
-def test_disconnected_network(backend, path_algorithm):
-  a = tn.Node(np.array([2, 2]), backend=backend)
-  b = tn.Node(np.array([2, 2]), backend=backend)
-  c = tn.Node(np.array([2, 2]), backend=backend)
-  d = tn.Node(np.array([2, 2]), backend=backend)
-
-  # pylint: disable=pointless-statement
-  a[0] ^ b[0]
-  c[0] ^ d[0]
-  nodes = [a, b, c, d]
-  with pytest.raises(ValueError):
-    path_algorithm(nodes)
-
-
 def test_single_node(backend, path_algorithm):
-  a = tn.Node(np.ones((2, 2, 2)), backend=backend)
+  a = Node(np.ones((2, 2, 2)), backend=backend)
   # pylint: disable=pointless-statement
   a[0] ^ a[1]
   nodes = [a]
@@ -81,8 +67,8 @@ def test_single_node(backend, path_algorithm):
 
 
 def test_custom_sanity_check(backend):
-  a = tn.Node(np.ones(2), backend=backend)
-  b = tn.Node(np.ones((2, 5)), backend=backend)
+  a = Node(np.ones(2), backend=backend)
+  b = Node(np.ones((2, 5)), backend=backend)
 
   # pylint: disable=pointless-statement
   a[0] ^ b[0]
@@ -102,9 +88,9 @@ def test_subgraph_contraction(backend, path_algorithm):
   a_tensor = np.arange(4).reshape((2, 2))
   b_tensor = np.arange(4).reshape((2, 2)) + 10
   c_tensor = np.arange(4).reshape((2, 2)) + 20
-  a = tn.Node(a_tensor, backend=backend)
-  b = tn.Node(b_tensor, backend=backend)
-  c = tn.Node(c_tensor, backend=backend)
+  a = Node(a_tensor, backend=backend)
+  b = Node(b_tensor, backend=backend)
+  c = Node(c_tensor, backend=backend)
   a[0] ^ b[1]
   c[1] ^ b[0]
   remaining_edges = [c[0], a[1]]
@@ -119,10 +105,10 @@ def test_multiple_partial_contractions(backend, path_algorithm):
   b_tensor = np.arange(4).reshape((2, 2)) + 10
   c_tensor = np.arange(4).reshape((2, 2)) + 20
   d_tensor = np.arange(4).reshape((2, 2)) + 30
-  a = tn.Node(a_tensor, backend=backend)
-  b = tn.Node(b_tensor, backend=backend)
-  c = tn.Node(c_tensor, backend=backend)
-  d = tn.Node(d_tensor, backend=backend)
+  a = Node(a_tensor, backend=backend)
+  b = Node(b_tensor, backend=backend)
+  c = Node(c_tensor, backend=backend)
+  d = Node(d_tensor, backend=backend)
   a[1] ^ b[0]
   b[1] ^ c[0]
   c[1] ^ d[0]
@@ -137,7 +123,7 @@ def test_multiple_partial_contractions(backend, path_algorithm):
 
 
 def test_single_node_reorder(backend, path_algorithm):
-  a = tn.Node(np.arange(4).reshape((2, 2)), backend=backend)
+  a = Node(np.arange(4).reshape((2, 2)), backend=backend)
   expected_edge_order = [a[1], a[0]]
   result = path_algorithm({a}, expected_edge_order)
   assert result.edges == expected_edge_order
@@ -145,8 +131,8 @@ def test_single_node_reorder(backend, path_algorithm):
 
 
 def test_ignore_edge_order(backend, path_algorithm):
-  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
-  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+  a = Node(np.ones((1, 1, 1)), backend=backend)
+  b = Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
 
   a[0] ^ b[0]
   a[1] ^ b[1]
@@ -162,8 +148,8 @@ def test_ignore_edge_order(backend, path_algorithm):
 
 
 def test_ignore_edge_order_with_order(backend, path_algorithm):
-  a = tn.Node(np.ones((1, 1, 1)), backend=backend)
-  b = tn.Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
+  a = Node(np.ones((1, 1, 1)), backend=backend)
+  b = Node(np.ones((1, 1, 1, 2, 3)), backend=backend)
 
   a[0] ^ b[0]
   a[1] ^ b[1]
@@ -177,3 +163,21 @@ def test_ignore_edge_order_with_order(backend, path_algorithm):
                               ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
+
+def test_disconnected_network(backend, path_algorithm):
+  a = Node(np.eye(2), backend=backend)
+  b = Node(np.eye(2), backend=backend)
+  c = Node(np.eye(2), backend=backend)
+  d = Node(np.eye(2), backend=backend)
+  e = Node(np.eye(2), backend=backend)
+  f = Node(np.eye(2), backend=backend)
+  g = Node(np.eye(2), backend=backend)
+  a[1] ^ b[0]
+  c[0] ^ d[1]
+  e[0] ^ f[0]
+  g[0] ^ f[1]
+  final_edges = [a[0], b[1], c[1], d[0], e[1], g[1]]
+  result = path_algorithm(
+      {a, b, c, d, e, f, g}, 
+      final_edges)
+  assert result.edges == final_edges

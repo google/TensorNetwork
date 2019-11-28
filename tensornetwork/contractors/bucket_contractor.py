@@ -14,15 +14,15 @@
 """Network contractor which exploits copy tensors."""
 
 
-from typing import Sequence, Optional
-from tensornetwork import network
+from typing import Sequence, Iterable
+from tensornetwork.network_components import BaseNode, contract_copy_node
 from tensornetwork import network_components
 
 
-def bucket(net: network.TensorNetwork,
+def bucket(nodes: Iterable[BaseNode],
            contraction_order: Sequence[network_components.CopyNode]
-          ) -> network.TensorNetwork:
-  """Contract given tensor network exploiting copy tensors.
+          ) -> Iterable[BaseNode]:
+  """Contract given nodes exploiting copy tensors.
 
   This is based on the Bucket-Elimination-based algorithm described in
   arXiv:quant-ph/1712.05384, but avoids explicit construction of the graphical
@@ -39,12 +39,16 @@ def bucket(net: network.TensorNetwork,
   a different contractor to complete the contraction.
 
   Args:
-    net: A TensorNetwork.
+    nodes: A collection of connected nodes.
     contraction_order: Order in which copy tensors are contracted.
 
   Returns:
-    The given TensorNetwork with all copy tensors contracted.
+    A new iterable of nodes after contracting copy tensors.
   """
+  nodes = set(nodes)
   for copy_node in contraction_order:
-    net.contract_copy_node(copy_node)
-  return net
+    partners = copy_node.get_partners()
+    new_node = contract_copy_node(copy_node)
+    nodes = nodes.difference(list(partners.keys())+[copy_node])
+    nodes.add(new_node)
+  return nodes

@@ -46,20 +46,73 @@ Vue.component(
     'node',
 	{
 		mixins: [mixinGet, mixinGeometry, mixinNode],
+        props: {
+		    disableDragging: {
+		        type: Boolean,
+                default: false
+            },
+            shadow: {
+                type: Boolean,
+                default: false
+            }
+        },
         data: function() {
 		    return {
 		        mouse: {
                     x: null,
                     y: null
+                },
+                render: true,
+                labelOpacity: 1
+            }
+        },
+        mounted: function() {
+            window.MathJax.typeset();
+        },
+        watch: {
+		    'node.displayName': function() {
+		        if (!this.renderLaTeX) {
+		            return;
                 }
+                // Ugly race condition to make sure MathJax renders, and old renders are discarded
+                this.render = false;
+                this.labelOpacity = 0;
+		        if (this.renderTimeout) {
+                    clearTimeout(this.renderTimeout);
+                }
+		        let t = this;
+                this.renderTimeout = setTimeout(function() {
+                    t.render = true;
+                }, 50);
+                this.renderTimeout = setTimeout(function() {
+                    window.MathJax.typeset();
+                    t.labelOpacity = 1;
+                }, 100);
             }
         },
         methods: {
-		    onClick: function(event) {
-		        event.stopPropagation();
-            },
 		    onMouseDown: function(event) {
-                this.state.selectedNode = this.node;
+		        event.stopPropagation();
+		        if (this.disableDragging) {
+		            return;
+                }
+
+		        if (!this.state.selectedNodes.includes(this.node)) {
+                    if (event.shiftKey) {
+                        this.state.selectedNodes.push(this.node);
+                    }
+                    else {
+                        this.state.selectedNodes = [this.node];
+                    }
+                }
+		        else {
+                    if (event.shiftKey) {
+                        let t = this;
+                        this.state.selectedNodes = this.state.selectedNodes.filter(function(node) {
+                            return node !== t.node;
+                        });
+                    }
+                }
 
 		        document.addEventListener('mousemove', this.onMouseMove);
 		        document.addEventListener('mouseup', this.onMouseUp);
@@ -71,10 +124,12 @@ Vue.component(
             onMouseMove: function(event) {
                 let dx = event.pageX - this.mouse.x;
                 let dy = event.pageY - this.mouse.y;
-                this.node.position.x += dx;
-                this.node.position.y += dy;
                 this.mouse.x = event.pageX;
                 this.mouse.y = event.pageY;
+                this.state.selectedNodes.forEach(function(node) {
+                    node.position.x += dx;
+                    node.position.y += dy;
+                });
             },
             onMouseUp: function() {
                 document.removeEventListener('mousemove', this.onMouseMove);
@@ -82,20 +137,22 @@ Vue.component(
 
                 this.state.draggingNode = false;
 
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
-                if (this.node.position.x < this.nodeWidth / 2) {
-                    this.node.position.x = this.nodeWidth / 2;
-                }
-                if (this.node.position.y < this.nodeHeight / 2) {
-                    this.node.position.y = this.nodeHeight / 2;
-                }
-                if (this.node.position.x > workspace.width - this.nodeWidth / 2) {
-                    this.node.position.x = workspace.width - this.nodeWidth / 2;
-                }
-                if (this.node.position.y > workspace.height - this.nodeHeight / 2) {
-                    this.node.position.y = workspace.height - this.nodeHeight / 2;
-                }
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
+                let t = this;
+                this.state.selectedNodes.forEach(function(node) {
+                    if (node.position.x < t.baseNodeWidth / 2) {
+                        node.position.x = t.baseNodeWidth / 2;
+                    }
+                    if (node.position.y < t.baseNodeWidth / 2) {
+                        node.position.y = t.baseNodeWidth / 2;
+                    }
+                    if (node.position.x > workspace.width - t.baseNodeWidth / 2) {
+                        node.position.x = workspace.width - t.baseNodeWidth / 2;
+                    }
+                    if (node.position.y > workspace.height - t.baseNodeWidth / 2) {
+                        node.position.y = workspace.height - t.baseNodeWidth / 2;
+                    }
+                });
             },
             onAxisMouseDown: function(axis) {
 		        this.$emit('axismousedown', axis);
@@ -105,11 +162,20 @@ Vue.component(
             }
         },
 		computed: {
-			translation: function() {
+		    nodeWidth: function() {
+		        return this.baseNodeWidth * Math.min(this.node.size[0], 3);
+            },
+            nodeHeight: function() {
+                return this.baseNodeWidth * Math.min(this.node.size[1], 3);
+            },
+            translation: function() {
 				return 'translate(' + this.node.position.x + ' ' + this.node.position.y + ')';
 			},
+            rotation: function() {
+		        return 'rotate(' + (this.node.rotation * 180 / Math.PI) + ')';
+            },
             brightness: function() {
-			    if (this.state.selectedNode != null && this.state.selectedNode.name === this.node.name) {
+			    if (this.state.selectedNodes.includes(this.node)) {
                     return 50;
                 }
 			    else {
@@ -117,8 +183,22 @@ Vue.component(
                 }
             },
 			style: function() {
-				return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);'
-			}
+			    if (this.shadow) {
+			        return 'fill: #ddd';
+                }
+			    else {
+                    return 'fill: hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%);';
+                }
+			},
+            renderLaTeX: function() {
+		        return this.state.renderLaTeX && window.MathJax;
+            },
+            label: function() {
+		        return '\\(\\displaystyle{' + this.node.displayName + '}\\)';
+            },
+            labelStyle: function() {
+		        return 'opacity: ' + this.labelOpacity + ';';
+            }
 		},
         created: function() {
 		    if (this.node.hue == null) {
@@ -126,14 +206,22 @@ Vue.component(
             }
         },
 		template: `
-			<g class="node" :transform="translation" 
-                @click="onClick" @mousedown="onMouseDown" @mouseup="onMouseUp">
-			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i"
-			        :state="state" @axismousedown="onAxisMouseDown(i)"
-			        @axismouseup="onAxisMouseUp(i)"/>
-				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
-				    :height="nodeHeight" :rx="nodeCornerRadius" :style="style" />
-				<text x="0" y="0">{{node.name}}</text>
+			<g class="node" :transform="translation" @mousedown="onMouseDown" @mouseup="onMouseUp">
+			    <axis v-for="(axisName, i) in node.axes" :node="node" :index="i" :state="state" 
+			        :shadow="shadow" @axismousedown="onAxisMouseDown(i)" @axismouseup="onAxisMouseUp(i)"/>
+				<rect :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth" :height="nodeHeight"
+				    :rx="nodeCornerRadius" :transform="rotation" :style="style" />
+                <text v-if="!renderLaTeX || !node.displayName" x="0" y="0"
+                    style="font: bold 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
+                    {{node.name}}
+                </text>
+                <foreignObject v-else-if="render" :x="-nodeWidth / 2" :y="-nodeHeight / 2" :width="nodeWidth"
+				    :height="nodeHeight" :style="labelStyle">
+                    <div class="jax-container"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        {{label}}
+                    </div>
+                </foreignObject>
 			</g>
 		`	
 	}
@@ -147,6 +235,10 @@ Vue.component(
             node: Object,
             index: Number,
             state: Object,
+            shadow: {
+                type: Boolean,
+                default: false
+            },
         },
         data: function() {
             return {
@@ -185,34 +277,44 @@ Vue.component(
             },
         },
         computed: {
-            nAxes: function() {
-                return this.node.axes.length;
+            axisPoints: function() {
+                return this.getAxisPoints(this.node.axes[this.index].position, this.node.axes[this.index].angle,
+                                          this.node.rotation)
             },
-            angle: function() {
-                return this.axisAngle(this.index, this.nAxes) + this.node.rotation;
+            x1: function() {
+                return this.axisPoints.x1;
             },
-            x: function() {
-                return this.axisX(this.angle);
+            y1: function() {
+                return this.axisPoints.y1;
             },
-            y: function() {
-                return this.axisY(this.angle);
+            x2: function() {
+                return this.axisPoints.x2;
+            },
+            y2: function() {
+                return this.axisPoints.y2;
             },
             brightness: function() {
                 return this.highlighted ? 50 : 80;
             },
             stroke: function() {
-                return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                if (this.shadow) {
+                    return this.highlighted ? '#bbb' : '#ddd';
+                }
+                else {
+                    return 'hsl(' + this.node.hue + ', 80%, ' + this.brightness + '%)';
+                }
             },
         },
         template: `
             <g class="axis" :class="{'highlighted': highlighted}"
                     @mousedown="onMouseDown" @mouseup="onMouseUp"
                     @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
-                <line x1="0" y1="0" :x2="x" :y2="y" :stroke="stroke"
+                <line :x1="x1" :y1="y1" :x2="x2" :y2="y2" :stroke="stroke"
                     stroke-width="5" stroke-linecap="round" />
-                <text :x="x * axisLabelRadius" :y="y * axisLabelRadius">
+                <text v-if="!shadow" :x="(x2 - x1) * axisLabelRadius + x1" :y="(y2 - y1) * axisLabelRadius + y1"
+                    style="font: normal 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
                     <tspan>{{index}}</tspan>
-                    <tspan v-if="node.axes[index]"> - {{node.axes[index]}}</tspan>
+                    <tspan v-if="node.axes[index].name"> - {{node.axes[index].name}}</tspan>
                 </text>
             </g>
         `

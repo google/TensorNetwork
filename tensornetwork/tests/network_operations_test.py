@@ -15,10 +15,6 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-import tensorflow as tf
-import torch
-import jax
-from jax.config import config
 
 
 def test_split_node_full_svd_names(backend):
@@ -219,6 +215,17 @@ def test_reachable(backend):
   assert set(nodes) == tn.reachable(nodes[0])
 
 
+def test_reachable_2(backend):
+  a = tn.Node(np.zeros((3, 5)), backend=backend)
+  b = tn.Node(np.zeros((3, 4, 5)), backend=backend)
+  e1 = tn.connect(a[0], b[0])
+  e2 = tn.connect(a[1], b[2])
+  nodes = [a, b]
+  edges = [e1, e2]
+  assert set(nodes) == tn.reachable(edges[0])
+  assert set(nodes) == tn.reachable(edges)
+
+
 def test_reachable_disconnected_1(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
   nodes[0][1] ^ nodes[1][0]
@@ -274,3 +281,56 @@ def test_full_graph_subgraph_dangling(backend):
   b[1] ^ c[1]
   edges = tn.get_subgraph_dangling({a, b, c})
   assert edges == {a[1], c[0]}
+
+
+def test_reduced_density(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend=backend)
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend=backend)
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend=backend)
+  edges = tn.get_all_edges({a, b, c})
+
+  node_dict, edge_dict = tn.reduced_density([a[0], b[1], c[2]])
+
+  assert not a[0].is_dangling()
+  assert not b[1].is_dangling()
+  assert not c[2].is_dangling()
+  assert a[1].is_dangling() & a[2].is_dangling()
+  assert b[0].is_dangling() & b[2].is_dangling()
+  assert c[0].is_dangling() & c[1].is_dangling()
+
+  for node in {a, b, c}:
+    assert node_dict[node].name == node.name
+  for edge in edges:
+    assert edge_dict[edge].name == edge.name
+
+
+def test_reduced_density_nondangling(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend=backend)
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend=backend)
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend=backend)
+
+  a[0] ^ b[1]
+  b[2] ^ c[1]
+
+  err_msg = "traced_out_edges must only include dangling edges!"
+  with pytest.raises(ValueError, match=err_msg):
+    tn.reduced_density([a[0], b[1], c[1]])
+
+def test_reduced_density_contraction(backend):
+  if backend == "pytorch":
+    pytest.skip("pytorch doesn't support complex numbers")
+  a = tn.Node(
+      np.array([[0.0, 1.0j], [-1.0j, 0.0]], dtype=np.complex64),
+      backend=backend)
+  tn.reduced_density([a[0]])
+  result = tn.contractors.greedy(tn.reachable(a), ignore_edge_order=True)
+  np.testing.assert_allclose(result.tensor, np.eye(2))
+
+
+def test_switch_backend(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), name="A", backend="numpy")
+  b = tn.Node(np.random.rand(3, 3, 3), name="B", backend="numpy")
+  c = tn.Node(np.random.rand(3, 3, 3), name="C", backend="numpy")
+  nodes = [a, b, c]
+  tn.switch_backend(nodes, backend)
+  assert nodes[0].backend.name == backend

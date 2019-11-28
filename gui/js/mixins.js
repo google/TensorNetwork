@@ -56,21 +56,25 @@ let mixinGeometry = {
 	data: function() {
 		return {
 			axisLength: 50,
-			nodeWidth: 50,
-			nodeHeight: 50,
+			baseNodeWidth: 50,
 			nodeCornerRadius: 10,
 			axisLabelRadius: 1.2
 		}
 	},
 	methods: {
-		axisAngle: function(index, nAxes) {
-			return (index / nAxes) * 2 * Math.PI;
+		getAxisPoints: function (position, angle, rotation) {
+			let x0 = position[0] * this.baseNodeWidth;
+			let y0 = position[1] * this.baseNodeWidth;
+			let x1 = Math.cos(rotation) * x0 - Math.sin(rotation) * y0;
+			let y1 = Math.sin(rotation) * x0 + Math.cos(rotation) * y0;
+			let x2 = x1 + this.axisLength * Math.cos(angle + rotation);
+			let y2 = y1 + this.axisLength * Math.sin(angle + rotation);
+			return {
+				x1: x1,
+				y1: y1,
+				x2: x2,
+				y2: y2
+			}
 		},
-		axisX: function(angle) {
-			return this.axisLength * Math.cos(angle);
-		},
-		axisY: function(angle) {
-			return this.axisLength * Math.sin(angle);
-		}
 	}
 };

@@ -14,10 +14,8 @@
 import pytest
 import numpy as np
 from tensornetwork import BaseNode, Node
-from tensornetwork import TensorNetwork
 from tensornetwork import ncon_interface
 from tensornetwork.contractors import greedy
-import tensornetwork as tn
 
 
 def test_sanity_check(backend):

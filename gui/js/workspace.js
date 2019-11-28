@@ -22,6 +22,13 @@ Vue.component(
 			return {
 				width: 900,
 				height: 600,
+                dragSelector: {
+				    dragging: false,
+				    startX: null,
+                    startY: null,
+                    endX: null,
+                    endY: null
+                },
                 protoEdge: {
                     x: null,
                     y: null,
@@ -32,10 +39,55 @@ Vue.component(
 			};
 		},
         methods: {
-            onClick: function() {
-                this.state.selectedNode = null;
+            onMouseDown: function(event) {
+                this.state.selectedNodes = [];
+
+                document.addEventListener('mousemove', this.onMouseMove);
+                document.addEventListener('mouseup', this.onMouseUp);
+
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
+
+                this.dragSelector.dragging = true;
+                this.dragSelector.startX = event.pageX - workspace.left;
+                this.dragSelector.startY = event.pageY - workspace.top;
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
             },
-		    onAxisMouseDown: function(node, axis) {
+            onMouseMove: function(event) {
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
+
+                this.dragSelector.endX = event.pageX - workspace.left;
+                this.dragSelector.endY = event.pageY - workspace.top;
+            },
+            onMouseUp: function() {
+                document.removeEventListener('mousemove', this.onMouseMove);
+                document.removeEventListener('mouseup', this.onMouseUp);
+
+                this.dragSelector.dragging = false;
+
+                let x1 = this.dragSelector.startX;
+                let x2 = this.dragSelector.endX;
+                let y1 = this.dragSelector.startY;
+                let y2 = this.dragSelector.endY;
+
+                this.state.selectedNodes = [];
+                let selected = this.state.selectedNodes;
+                this.state.nodes.forEach(function(node) {
+                    let x = node.position.x;
+                    let y = node.position.y;
+                    if ((x1 <= x && x <= x2) || (x2 <= x && x <= x1)) {
+                        if ((y1 <= y && y <= y2) || (y2 <= y && y <= y1)) {
+                            selected.push(node);
+                        }
+                    }
+                });
+                this.state.selectedNodes.sort(function(node1, node2) {
+                    let distance1 = (node1.position.x - x1) ** 2 + (node1.position.y - y1) ** 2;
+                    let distance2 = (node2.position.x - x1) ** 2 + (node2.position.y - y1) ** 2;
+                    return distance1 - distance2;
+                })
+            },
+            onAxisMouseDown: function(node, axis) {
                 if (this.axisOccupied(node, axis)) {
                     return;
                 }
@@ -45,8 +97,7 @@ Vue.component(
                 this.protoEdge.axis = axis;
             },
             dragAxis: function(event) {
-                let workspace = document.getElementsByClassName('workspace')[0]
-                    .getBoundingClientRect();
+                let workspace = document.getElementById('workspace').getBoundingClientRect();
                 this.protoEdge.dragging = true;
                 this.protoEdge.x = event.clientX - workspace.left;
                 this.protoEdge.y = event.clientY - workspace.top;
@@ -86,16 +137,46 @@ Vue.component(
             }
         },
 		template: `
-			<svg class="workspace" xmlns="http://www.w3.org/2000/svg"
-			    :width="width" :height="height" @click="onClick">
+			<svg class="workspace" id="workspace" xmlns="http://www.w3.org/2000/svg"
+			    :width="width" :height="height" @mousedown="onMouseDown">
                 <proto-edge v-if="protoEdge.dragging" :x="protoEdge.x" :y="protoEdge.y"
 				    :node="protoEdge.node" :axis="protoEdge.axis" />
 				<edge v-for="edge in state.edges" :edge="edge" :state="state" /> 
 				<node v-for="node in state.nodes" :node="node" :state="state"
 				    @axismousedown="onAxisMouseDown(node, ...arguments)"
 				    @axismouseup="onAxisMouseUp(node, ...arguments)" />
+				<drag-selector v-if="dragSelector.dragging" :startX="dragSelector.startX" :startY="dragSelector.startY"
+				    :endX="dragSelector.endX" :endY="dragSelector.endY" />
 			</svg>
 		`
 	}
 );
 
+Vue.component(
+    'drag-selector',
+    {
+        props: {
+            startX: Number,
+            startY: Number,
+            endX: Number,
+            endY: Number,
+        },
+        computed: {
+            x: function() {
+                return Math.min(this.startX, this.endX);
+            },
+            y: function() {
+                return Math.min(this.startY, this.endY);
+            },
+            width: function() {
+                return Math.abs(this.startX - this.endX);
+            },
+            height: function() {
+                return Math.abs(this.startY - this.endY);
+            }
+        },
+        template: `
+            <rect class="drag-selector" :x="x" :y="y" :width="width" :height="height" />
+        `
+    }
+);

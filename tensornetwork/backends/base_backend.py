@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
+#pylint: disable=line-too-long
+from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List, Text
 import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -23,15 +23,6 @@ class BaseBackend:
 
   def __init__(self):
     self.name = 'base backend'
-
-  @property
-  def dtype(self):
-    return self._dtype
-
-  @dtype.setter
-  def dtype(self, dtype):
-    #pylint: disable=attribute-defined-outside-init
-    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -259,7 +250,7 @@ class BaseBackend:
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Type[np.number],
+            dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int 
@@ -285,16 +276,69 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented conj.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigh(self, matrix: Tensor):
+    """
+    Compute eigenvectors and eigenvalues of a hermitian matrix.
+    Args:
+      matrix: A symetric matrix.
+    Returns:
+      Tensor: The eigenvalues in ascending order.
+      Tensor: The eigenvectors.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented eigh".format(
+        self.name))
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> List[Tensor]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` can be either a 
+    linear operator type object or a regular callable.
+    If no `initial_state` is provided then `A` has to have an attribute 
+    `shape` so that a suitable initial state can be randomly generated.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn` 
+        method.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI' | 'SI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+            'SI' : smallest imaginary part
+      maxiter: The maximum number of iterations.
+    Returns:
+       `Tensor`: An array of `numeig` lowest eigenvalues
+       `Tensor`: An array of `numeig` lowest eigenvectors
+    """
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
+
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    initial_state: Optional[Tensor] = None,
+                    num_krylov_vecs: Optional[int] = 200,
+                    numeig: Optional[int] = 1,
+                    tol: Optional[float] = 1E-8,
+                    delta: Optional[float] = 1E-8,
+                    ndiag: Optional[int] = 20,
+                    reorthogonalize: Optional[bool] = False
+                   ) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -302,7 +346,7 @@ class BaseBackend:
       A: A (sparse) implementation of a linear operator. 
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -310,9 +354,10 @@ class BaseBackend:
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If two successive Krylov vectors `x_m` and `x_n`
-        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
-        It means that an (approximate) invariant subspace has been found.
+        If a Krylov vector :math: `x_n` has an L2 norm 
+        :math:`\\lVert x_n\\rVert < delta`, the iteration 
+        is stopped. It means that an (approximate) invariant subspace has 
+        been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
         iterations to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
@@ -337,3 +382,28 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    """
+    Update `tensor` at elements defined by `mask` with value `assignee`.
+    Args:
+      tensor: A `Tensor` object.
+      mask: A boolean mask.
+      assignee: A scalar `Tensor`. The values to assigned to `tensor` 
+        at positions where `mask` is `True`.
+
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `index_update`.".format(self.name))
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    """
+    Compute the matrix inverse of `matrix`.
+    Args:
+      matrix: A matrix.
+    Returns:
+      Tensor: The inverse of `matrix`
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
+        self.name))

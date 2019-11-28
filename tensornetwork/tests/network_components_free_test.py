@@ -3,6 +3,7 @@ import tensorflow as tf
 import pytest
 from collections import namedtuple
 import h5py
+import re
 #pylint: disable=line-too-long
 from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection
 import tensornetwork as tn
@@ -361,7 +362,7 @@ def test_node_load(tmp_path, single_node_edge):
         data=np.array([edge.name for edge in node.edges], dtype=object),
         dtype=string_type)
 
-    loaded_node = Node._load_node(net=None, node_data=node_file["node_data/"])
+    loaded_node = Node._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert loaded_node.backend.name == node.backend.name
@@ -477,8 +478,7 @@ def test_copy_node_load(tmp_path, backend):
         data=np.array([edge.name for edge in node.edges], dtype=object),
         dtype=string_type)
 
-    loaded_node = CopyNode._load_node(
-        net=None, node_data=node_file["node_data/"])
+    loaded_node = CopyNode._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
     assert loaded_node.signature == node.signature
     assert set(loaded_node.axis_names) == set(node.axis_names)
@@ -906,3 +906,16 @@ def test_add_to_node_collection_nested():
 
   assert container1 == set()
   assert container2 == {a, b}
+
+def test_repr_for_Nodes_and_Edges(double_node_edge):
+  node1 = repr(double_node_edge.node1)
+  node1 = re.sub(r"\s", "", node1)
+  node1 = re.sub(r"\s", "", node1)
+  node2 = repr(double_node_edge.node2)
+  node2 = re.sub(r"\s", "", node2)
+  node2 = re.sub(r"\s", "", node2)
+  assert "test_node1" in str(node1)
+  assert "[[[1.,1.],[1.,1.]]]" in str(node1) and str(node2)
+  assert "Edge(DanglingEdge)[0]" in str(node1) and str(node2)
+  assert "Edge('test_node1'[1]->'test_node2'[1])" in str(node1) and str(node2)
+  assert "Edge(DanglingEdge)[2]" in str(node1) and str(node2)

@@ -28,31 +28,30 @@ Vue.component(
                 return this.getNode(this.edge[1][0]);
             },
             angle1: function() {
-                return this.axisAngle(this.edge[0][1], this.node1.axes.length)
-                    + this.node1.rotation;
+                return this.node1.axes[this.edge[0][1]].angle;
             },
             angle2: function() {
-                return this.axisAngle(this.edge[1][1], this.node2.axes.length)
-                    + this.node2.rotation;
+                return this.node2.axes[this.edge[1][1]].angle;
             },
             x1: function() {
-                return this.node1.position.x + this.axisX(this.angle1);
+                return this.node1.position.x + this.getAxisPoints(this.node1.axes[this.edge[0][1]].position, this.angle1, this.node1.rotation).x2;
             },
             y1: function() {
-                return this.node1.position.y + this.axisY(this.angle1);
+                return this.node1.position.y + this.getAxisPoints(this.node1.axes[this.edge[0][1]].position, this.angle1, this.node1.rotation).y2;
             },
             x2: function() {
-                return this.node2.position.x + this.axisX(this.angle2);
+                return this.node2.position.x + this.getAxisPoints(this.node2.axes[this.edge[1][1]].position, this.angle2, this.node2.rotation).x2;
             },
             y2: function() {
-                return this.node2.position.y + this.axisY(this.angle2);
+                return this.node2.position.y + this.getAxisPoints(this.node2.axes[this.edge[1][1]].position, this.angle2, this.node2.rotation).y2;
             }
         },
         template: `
             <g>
                 <line class="edge" :x1="x1" :y1="y1" :x2="x2" :y2="y2"
                     stroke="#ddd" stroke-width="5" stroke-linecap="round" />
-                <text v-if="edge[2]" :x="0.5 * (x1 + x2)" :y="0.5 * (y1 + y2)">
+                <text v-if="edge[2]" :x="0.5 * (x1 + x2)" :y="0.5 * (y1 + y2)"
+                    style="font: normal 15px sans-serif; text-anchor: middle; dominant-baseline: middle;">
                     {{edge[2]}}
                 </text>
             </g>
@@ -72,14 +71,13 @@ Vue.component(
         },
         computed: {
             angle: function() {
-                return this.axisAngle(this.axis, this.node.axes.length)
-                    + this.node.rotation;
+                return this.node.axes[this.axis].angle;
             },
             x0: function() {
-                return this.node.position.x + this.axisX(this.angle);
+                return this.node.position.x + this.getAxisPoints(this.node.axes[this.axis].position, this.angle, this.node.rotation).x2;
             },
             y0: function() {
-                return this.node.position.y + this.axisY(this.angle);
+                return this.node.position.y + this.getAxisPoints(this.node.axes[this.axis].position, this.angle, this.node.rotation).y2;
             }
         },
         template: `
