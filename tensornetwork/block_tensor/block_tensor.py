@@ -19,7 +19,7 @@ import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
-
+from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index
 import numpy as np
 import itertools
 from typing import List, Union, Any, Tuple, Type, Optional
@@ -31,54 +31,15 @@ def check_flows(flows) -> None:
     raise ValueError(
         "flows = {} contains values different from 1 and -1".format(flows))
 
-  if set(flows) == {1}:
-    raise ValueError("flows = {} has no outflowing index".format(flows))
-  if set(flows) == {-1}:
-    raise ValueError("flows = {} has no inflowing index".format(flows))
 
-
-def fuse_quantum_numbers(q1: Union[List, np.ndarray],
-                         q2: Union[List, np.ndarray]) -> np.ndarray:
-  """
-  Fuse quantumm numbers `q1` with `q2` by simple addition (valid
-  for U(1) charges). `q1` and `q2` are typically two consecutive
-  elements of `BlockSparseTensor.quantum_numbers`.
-  Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
-  `[10, 11, 12, 100, 101, 102]`.
-  When using column-major ordering of indices in `BlockSparseTensor`, 
-  the position of q1 should be "to the left" of the position of q2.
-  Args:
-    q1: Iterable of integers
-    q2: Iterable of integers
-  Returns:
-    np.ndarray: The result of fusing `q1` with `q2`.
-  """
-  return np.reshape(
-      np.asarray(q2)[:, None] + np.asarray(q1)[None, :],
-      len(q1) * len(q2))
-
-
-def reshape(symmetric_tensor: BlockSparseTensor, shape: Tuple[int]):
-  n = 0
-  for s in shape:
-    dim = 1
-    while dim != s:
-      dim *= symmetric_tensor.shape[n]
-      n += 1
-    if dim > s:
-      raise ValueError(
-          'desired shape = {} is incompatible with the symmetric tensor shape = {}'
-          .format(shape, symmetric_tensor.shape))
-
-
-def compute_num_nonzero(quantum_numbers: List[np.ndarray],
+def compute_num_nonzero(charges: List[np.ndarray],
                         flows: List[Union[bool, int]]) -> int:
   """
   Compute the number of non-zero elements, given the meta-data of 
   a symmetric tensor.
   Args:
-    quantum_numbers: List of np.ndarray, one for each leg. 
-      Each np.ndarray `quantum_numbers[leg]` is of shape `(D[leg], Q)`.
+    charges: List of np.ndarray, one for each leg. 
+      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
       The bond dimension `D[leg]` can vary on each leg, the number of 
       symmetries `Q` has to be the same for each leg.
     flows: A list of integers, one for each leg,
@@ -90,25 +51,25 @@ def compute_num_nonzero(quantum_numbers: List[np.ndarray],
       Each element corresponds to a non-zero valued block of the tensor.
   """
 
-  if len(quantum_numbers) == 1:
-    return len(quantum_numbers)
-  net_charges = flows[0] * quantum_numbers[0]
+  if len(charges) == 1:
+    return len(charges)
+  net_charges = flows[0] * charges[0]
   for i in range(1, len(flows)):
     net_charges = np.reshape(
-        flows[i] * quantum_numbers[i][:, None] + net_charges[None, :],
-        len(quantum_numbers[i]) * len(net_charges))
+        flows[i] * charges[i][:, None] + net_charges[None, :],
+        len(charges[i]) * len(net_charges))
 
   return len(np.nonzero(net_charges == 0)[0])
 
 
-def compute_nonzero_block_shapes(quantum_numbers: List[np.ndarray],
+def compute_nonzero_block_shapes(charges: List[np.ndarray],
                                  flows: List[Union[bool, int]]) -> dict:
   """
   Compute the blocks and their respective shapes of a symmetric tensor,
   given its meta-data.
   Args:
-    quantum_numbers: List of np.ndarray, one for each leg. 
-      Each np.ndarray `quantum_numbers[leg]` is of shape `(D[leg], Q)`.
+    charges: List of np.ndarray, one for each leg. 
+      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
       The bond dimension `D[leg]` can vary on each leg, the number of 
       symmetries `Q` has to be the same for each leg.
     flows: A list of integers, one for each leg,
@@ -121,44 +82,44 @@ def compute_nonzero_block_shapes(quantum_numbers: List[np.ndarray],
   """
   check_flows(flows)
   degeneracies = []
-  charges = []
-  rank = len(quantum_numbers)
+  unique_charges = []
+  rank = len(charges)
   #find the unique quantum numbers and their degeneracy on each leg
   for leg in range(rank):
-    c, d = np.unique(quantum_numbers[leg], return_counts=True)
-    charges.append(c)
+    c, d = np.unique(charges[leg], return_counts=True)
+    unique_charges.append(c)
     degeneracies.append(dict(zip(c, d)))
 
   #find all possible combination of leg charges c0, c1, ...
   #(with one charge per leg 0, 1, ...)
   #such that sum([flows[0] * c0, flows[1] * c1, ...]) = 0
   charge_combinations = list(
-      itertools.product(
-          *[charges[leg] * flows[leg] for leg in range(len(charges))]))
+      itertools.product(*[
+          unique_charges[leg] * flows[leg]
+          for leg in range(len(unique_charges))
+      ]))
   net_charges = np.array([np.sum(c) for c in charge_combinations])
   zero_idxs = np.nonzero(net_charges == 0)[0]
   charge_shape_dict = {}
   for idx in zero_idxs:
-    charges = charge_combinations[idx]
-    shapes = [
-        degeneracies[leg][flows[leg] * charges[leg]] for leg in range(rank)
-    ]
-    charge_shape_dict[charges] = shapes
+    c = charge_combinations[idx]
+    shapes = [degeneracies[leg][flows[leg] * c[leg]] for leg in range(rank)]
+    charge_shape_dict[c] = shapes
   return charge_shape_dict
 
 
 def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
-                                      quantum_numbers: List[np.ndarray],
+                                      charges: List[np.ndarray],
                                       flows: List[Union[bool, int]]) -> dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
-      has to match the number of non-zero elements defined by `quantum_numbers` 
+      has to match the number of non-zero elements defined by `charges` 
       and `flows`
-    quantum_numbers: List of np.ndarray, one for each leg. 
-      Each np.ndarray `quantum_numbers[leg]` is of shape `(D[leg], Q)`.
+    charges: List of np.ndarray, one for each leg. 
+      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
       The bond dimension `D[leg]` can vary on each leg, the number of 
       symmetries `Q` has to be the same for each leg.
     flows: A list of integers, one for each leg,
@@ -166,14 +127,14 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
   """
-  if len(quantum_numbers) != 2:
+  if len(charges) != 2:
     raise ValueError("input has to be a two-dimensional symmetric matrix")
   check_flows(flows)
-  if len(flows) != len(quantum_numbers):
-    raise ValueError("`len(flows)` is different from `len(quantum_numbers)`")
+  if len(flows) != len(charges):
+    raise ValueError("`len(flows)` is different from `len(charges)`")
 
-  row_charges = quantum_numbers[0]  # a list of charges on each row
-  column_charges = quantum_numbers[1]  # a list of charges on each column
+  row_charges = charges[0]  # a list of charges on each row
+  column_charges = charges[1]  # a list of charges on each column
   # for each matrix column find the number of non-zero elements in it
   # Note: the matrix is assumed to be symmetric, i.e. only elements where
   # ingoing and outgoing charge are identical are non-zero
@@ -211,7 +172,7 @@ class BlockSparseTensor:
   Attributes:
     * self.data: A 1d np.ndarray storing the underlying 
       data of the tensor
-    * self.quantum_numbers: A list of `np.ndarray` of shape
+    * self.charges: A list of `np.ndarray` of shape
       (D, Q), where D is the bond dimension, and Q the number
       of different symmetries (this is 1 for now).
     * self.flows: A list of integers of length `k`.
@@ -223,67 +184,107 @@ class BlockSparseTensor:
   The tensor data is stored in self.data, a 1d np.ndarray.
   """
 
-  def __init__(self, data: np.ndarray, quantum_numbers: List[np.ndarray],
-               flows: List[Union[bool, int]]) -> None:
+  def __init__(self, data: np.ndarray, indices: List[Index]) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
-        has to match the number of non-zero elements defined by `quantum_numbers` 
+        has to match the number of non-zero elements defined by `charges` 
         and `flows`
-      quantum_numbers: List of np.ndarray, one for each leg. 
-        Each np.ndarray `quantum_numbers[leg]` is of shape `(D[leg], Q)`.
-        The bond dimension `D[leg]` can vary on each leg, the number of 
-        symmetries `Q` has to be the same for each leg.
-      flows: A list of integers, one for each leg,
-        with values `1` or `-1`, denoting the flow direction
-        of the charges on each leg. `1` is inflowing, `-1` is outflowing
-        charge.
+      indices: List of `Index` objecst, one for each leg. 
     """
-    block_dict = compute_nonzero_block_shapes(quantum_numbers, flows)
-    num_non_zero_elements = np.sum([np.prod(s) for s in block_dict.values()])
+    self.indices = indices
+    check_flows(self.flows)
+    num_non_zero_elements = compute_num_nonzero(self.charges, self.flows)
 
     if num_non_zero_elements != len(data.flat):
       raise ValueError("number of tensor elements defined "
-                       "by `quantum_numbers` is different from"
+                       "by `charges` is different from"
                        " len(data)={}".format(len(data.flat)))
-    check_flows(flows)
-    if len(flows) != len(quantum_numbers):
-      raise ValueError(
-          "len(flows) = {} is different from len(quantum_numbers) = {}".format(
-              len(flows), len(quantum_numbers)))
+
     self.data = np.asarray(data.flat)  #do not copy data
-    self.flows = flows
-    self.quantum_numbers = quantum_numbers
 
   @classmethod
-  def randn(cls,
-            quantum_numbers: List[np.ndarray],
-            flows: List[Union[bool, int]],
+  def randn(cls, indices: List[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from random normal distribution.
     Args:
-      quantum_numbers: List of np.ndarray, one for each leg. 
-        Each np.ndarray `quantum_numbers[leg]` is of shape `(D[leg], Q)`.
-        The bond dimension `D[leg]` can vary on each leg, the number of 
-        symmetries `Q` has to be the same for each leg.
-      flows: A list of integers, one for each leg,
-        with values `1` or `-1`, denoting the flow direction
-        of the charges on each leg. `1` is inflowing, `-1` is outflowing
-        charge.
+      indices: List of `Index` objecst, one for each leg. 
       dtype: An optional numpy dtype. The dtype of the tensor
     Returns:
       BlockSparseTensor
     """
-    num_non_zero_elements = compute_num_nonzero(quantum_numbers, flows)
+    charges = [i.charges for i in indices]
+    flows = [i.flow for i in indices]
+    num_non_zero_elements = compute_num_nonzero(charges, flows)
     backend = backend_factory.get_backend('numpy')
     data = backend.randn((num_non_zero_elements,), dtype=dtype)
-    return cls(data=data, quantum_numbers=quantum_numbers, flows=flows)
+    return cls(data=data, indices=indices)
 
   @property
   def shape(self) -> Tuple:
-    return tuple([np.shape(q)[0] for q in self.quantum_numbers])
+    return tuple([i.dimension for i in self.indices])
 
   @property
   def dtype(self) -> Type[np.number]:
     return self.data.dtype
+
+  @property
+  def flows(self):
+    return [i.flow for i in self.indices]
+
+  @property
+  def charges(self):
+    return [i.charges for i in self.indices]
+
+
+def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
+  # a few simple checks
+  if np.prod(shape) != np.prod(tensor.shape):
+    raise ValueError("A tensor with {} elements cannot be "
+                     "reshaped into a tensor with {} elements".format(
+                         np.prod(tensor.shape), np.prod(shape)))
+  #copy indices
+  result = BlockSparseTensor(
+      data=tensor.data.copy(), indices=[i.copy() for i in tensor.indices])
+
+  for n in range(len(shape)):
+    if shape[n] > result.shape[n]:
+      while shape[n] > result.shape[n]:
+        #fuse indices
+        i1, i2 = result.indices.pop(n), result.indices.pop(n)
+        #note: the resulting flow is set to one since the flow
+        #is multiplied into the charges. As a result the tensor
+        #will then be invariant in any case.
+        result.indices.insert(n, fuse_index_pair(i1, i2))
+      if result.shape[n] > shape[n]:
+        elementary_indices = []
+        for i in tensor.indices:
+          elementary_indices.extend(i.get_elementary_indices())
+          raise ValueError("The shape {} is incompatible with the "
+                           "elementary shape {} of the tensor.".format(
+                               shape,
+                               tuple(
+                                   [e.dimension for e in elementary_indices])))
+
+    elif shape[n] < result.shape[n]:
+      while shape[n] < result.shape[n]:
+        #split index at n
+        try:
+          i1, i2 = split_index(result.indices.pop(n))
+        except ValueError:
+          elementary_indices = []
+          for i in tensor.indices:
+            elementary_indices.extend(i.get_elementary_indices())
+          raise ValueError("The shape {} is incompatible with the "
+                           "elementary shape {} of the tensor.".format(
+                               shape,
+                               tuple(
+                                   [e.dimension for e in elementary_indices])))
+        result.indices.insert(n, i1)
+        result.indices.insert(n + 1, i2)
+      if result.shape[n] < shape[n]:
+        raise ValueError(
+            "shape {} is incompatible with the elementary result shape".format(
+                shape))
+  return result
