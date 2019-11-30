@@ -49,11 +49,13 @@ def compute_num_nonzero(charges: List[np.ndarray],
   Returns:
     int: The number of non-zero elements.
   """
+  #TODO: this is not very efficient for large bond dimensions
 
   if len(charges) == 1:
     return len(charges)
   net_charges = flows[0] * charges[0]
   for i in range(1, len(flows)):
+    print(len(net_charges))
     net_charges = np.reshape(
         flows[i] * charges[i][:, None] + net_charges[None, :],
         len(charges[i]) * len(net_charges))
