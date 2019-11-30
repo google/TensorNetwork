@@ -50,15 +50,37 @@ def compute_num_nonzero(charges: List[np.ndarray],
     int: The number of non-zero elements.
   """
   #TODO: this is not very efficient for large bond dimensions
-
   if len(charges) == 1:
     return len(charges)
-  net_charges = flows[0] * charges[0]
-  for i in range(1, len(flows)):
-    print(len(net_charges))
+
+  neg_flows = np.nonzero(np.asarray(flows) == -1)[0]
+  pos_flows = np.nonzero(np.asarray(flows) == 1)[0]
+  neg_max = 0
+  neg_min = 0
+  for i in neg_flows:
+    neg_max += np.max(charges[i])
+    neg_min += np.min(charges[i])
+
+  pos_max = 0
+  pos_min = 0
+  for i in pos_flows:
+    pos_max += np.max(charges[i])
+    pos_min += np.min(charges[i])
+
+  net_charges = charges[pos_flows[0]]
+  net_charges = net_charges[net_charges <= neg_max]
+  for i in range(1, len(pos_flows)):
     net_charges = np.reshape(
-        flows[i] * charges[i][:, None] + net_charges[None, :],
-        len(charges[i]) * len(net_charges))
+        charges[pos_flows[i]][:, None] + net_charges[None, :],
+        len(charges[pos_flows[i]]) * len(net_charges))
+    net_charges = net_charges[net_charges <= neg_max]
+    net_charges = net_charges[net_charges >= neg_min]
+
+  for i in range(len(neg_flows)):
+    net_charges = np.reshape(
+        -1 * charges[neg_flows[i]][:, None] + net_charges[None, :],
+        len(charges[neg_flows[i]]) * len(net_charges))
+    net_charges = net_charges[net_charges <= neg_max]
 
   return len(np.nonzero(net_charges == 0)[0])
 
