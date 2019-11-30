@@ -239,6 +239,39 @@ class BlockSparseTensor:
 
 
 def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
+  """
+  Reshape `tensor` into `shape`.
+  `reshape` works essentially the same as the dense version, with the
+  notable exception that the tensor can only be reshaped into a form
+  compatible with its elementary indices. The elementary indices are 
+  the indices at the leaves of the `Index` objects `tensors.indices`.
+  For example, while the following reshaping is possible for regular 
+  dense numpy tensor,
+  ```
+  A = np.random.rand(6,6,6)
+  np.reshape(A, (2,3,6,6))
+  ```
+  the same code for BlockSparseTensor
+  ```
+  q1 = np.random.randint(0,10,6)
+  q2 = np.random.randint(0,10,6)
+  q3 = np.random.randint(0,10,6)
+  i1 = Index(charges=q1,flow=1)
+  i2 = Index(charges=q2,flow=-1)
+  i3 = Index(charges=q3,flow=1)
+  A=BlockSparseTensor.randn(indices=[i1,i2,i3])
+  print(A.shape) #prints (6,6,6)
+  reshape(A, (2,3,6,6)) #raises ValueError
+  ```
+  raises a `ValueError` since (2,3,6,6)
+  is incompatible with the elementary shape (6,6,6) of the tensor.
+
+  Args:
+    tensor: A symmetric tensor.
+    shape: The new shape.
+  Returns:
+    BlockSparseTensor: A new tensor reshaped into `shape`
+  """
   # a few simple checks
   if np.prod(shape) != np.prod(tensor.shape):
     raise ValueError("A tensor with {} elements cannot be "
@@ -266,7 +299,6 @@ def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
                                shape,
                                tuple(
                                    [e.dimension for e in elementary_indices])))
-
     elif shape[n] < result.shape[n]:
       while shape[n] < result.shape[n]:
         #split index at n
