@@ -47,8 +47,7 @@ def compute_num_nonzero(charges: List[np.ndarray],
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
   Returns:
-    dict: Dictionary mapping a tuple of charges to a shape tuple.
-      Each element corresponds to a non-zero valued block of the tensor.
+    int: The number of non-zero elements.
   """
 
   if len(charges) == 1:
@@ -127,48 +126,51 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
   """
+
   if len(charges) != 2:
     raise ValueError("input has to be a two-dimensional symmetric matrix")
   check_flows(flows)
   if len(flows) != len(charges):
     raise ValueError("`len(flows)` is different from `len(charges)`")
 
-  row_charges = charges[0]  # a list of charges on each row
-  column_charges = charges[1]  # a list of charges on each column
+  row_charges = flows[0] * charges[0]  # a list of charges on each row
+  column_charges = flows[1] * charges[1]  # a list of charges on each column
   # for each matrix column find the number of non-zero elements in it
   # Note: the matrix is assumed to be symmetric, i.e. only elements where
   # ingoing and outgoing charge are identical are non-zero
-  num_non_zero = [len(np.nonzero(row_charges == c)[0]) for c in column_charges]
-
+  num_non_zero = [
+      len(np.nonzero((row_charges + c) == 0)[0]) for c in column_charges
+  ]
   #get the unique charges
-  #Note: row and column unique charges are the same due to symmetry
-  unique_charges, row_dims = np.unique(row_charges, return_counts=True)
-  _, column_dims = np.unique(column_charges, return_counts=True)
+  unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
+  unique_column_charges, column_dims = np.unique(
+      column_charges, return_counts=True)
 
-  # get the degenaricies of each row and column charge
-  row_degeneracies = dict(zip(unique_charges, row_dims))
-  column_degeneracies = dict(zip(unique_charges, column_dims))
+  # get the degeneracies of each row and column charge
+  row_degeneracies = dict(zip(unique_row_charges, row_dims))
+  column_degeneracies = dict(zip(unique_column_charges, column_dims))
   blocks = {}
-  for c in unique_charges:
+  for c in unique_row_charges:
     start = 0
     idxs = []
     for column in range(len(column_charges)):
       charge = column_charges[column]
-      if charge != c:
+      if (charge + c) != 0:
         start += num_non_zero[column]
       else:
         idxs.extend(start + np.arange(num_non_zero[column]))
-
-    blocks[c] = np.reshape(data[idxs],
-                           (row_degeneracies[c], column_degeneracies[c]))
+    if idxs:
+      blocks[c] = np.reshape(data[idxs],
+                             (row_degeneracies[c], column_degeneracies[-c]))
   return blocks
 
 
 class BlockSparseTensor:
   """
   Minimal class implementation of block sparsity.
-  The class currently onluy supports a single U(1) symmetry.
-  Currently only nump.ndarray is supported.
+  The class design follows Glen's proposal (Design 0).
+  The class currently only supports a single U(1) symmetry
+  and only nump.ndarray.
   Attributes:
     * self.data: A 1d np.ndarray storing the underlying 
       data of the tensor
@@ -222,6 +224,10 @@ class BlockSparseTensor:
     return cls(data=data, indices=indices)
 
   @property
+  def rank(self):
+    return len(self.indices)
+
+  @property
   def shape(self) -> Tuple:
     return tuple([i.dimension for i in self.indices])
 
@@ -236,6 +242,88 @@ class BlockSparseTensor:
   @property
   def charges(self):
     return [i.charges for i in self.indices]
+
+  def reshape(self, shape):
+    """
+    Reshape `tensor` into `shape` in place.
+    `BlockSparseTensor.reshape` works essentially the same as the dense 
+    version, with the notable exception that the tensor can only be 
+    reshaped into a form compatible with its elementary indices. 
+    The elementary indices are the indices at the leaves of the `Index` 
+    objects `tensors.indices`.
+    For example, while the following reshaping is possible for regular 
+    dense numpy tensor,
+    ```
+    A = np.random.rand(6,6,6)
+    np.reshape(A, (2,3,6,6))
+    ```
+    the same code for BlockSparseTensor
+    ```
+    q1 = np.random.randint(0,10,6)
+    q2 = np.random.randint(0,10,6)
+    q3 = np.random.randint(0,10,6)
+    i1 = Index(charges=q1,flow=1)
+    i2 = Index(charges=q2,flow=-1)
+    i3 = Index(charges=q3,flow=1)
+    A=BlockSparseTensor.randn(indices=[i1,i2,i3])
+    print(A.shape) #prints (6,6,6)
+    A.reshape((2,3,6,6)) #raises ValueError
+    ```
+    raises a `ValueError` since (2,3,6,6)
+    is incompatible with the elementary shape (6,6,6) of the tensor.
+    
+    Args:
+      tensor: A symmetric tensor.
+      shape: The new shape.
+    Returns:
+      BlockSparseTensor: A new tensor reshaped into `shape`
+    """
+
+    # a few simple checks
+    if np.prod(shape) != np.prod(self.shape):
+      raise ValueError("A tensor with {} elements cannot be "
+                       "reshaped into a tensor with {} elements".format(
+                           np.prod(self.shape), np.prod(shape)))
+
+    def raise_error():
+      elementary_indices = []
+      for i in self.indices:
+        elementary_indices.extend(i.get_elementary_indices())
+        raise ValueError("The shape {} is incompatible with the "
+                         "elementary shape {} of the tensor.".format(
+                             shape,
+                             tuple([e.dimension for e in elementary_indices])))
+
+    for n in range(len(shape)):
+      if shape[n] > self.shape[n]:
+        while shape[n] > self.shape[n]:
+          #fuse indices
+          i1, i2 = self.indices.pop(n), self.indices.pop(n)
+          #note: the resulting flow is set to one since the flow
+          #is multiplied into the charges. As a result the tensor
+          #will then be invariant in any case.
+          self.indices.insert(n, fuse_index_pair(i1, i2))
+        if self.shape[n] > shape[n]:
+          raise_error()
+      elif shape[n] < self.shape[n]:
+        while shape[n] < self.shape[n]:
+          #split index at n
+          try:
+            i1, i2 = split_index(self.indices.pop(n))
+          except ValueError:
+            raise_error()
+          self.indices.insert(n, i1)
+          self.indices.insert(n + 1, i2)
+        if self.shape[n] < shape[n]:
+          raise_error()
+
+  def get_diagonal_blocks(self):
+    if self.rank != 2:
+      raise ValueError(
+          "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
+          .format(self.rank))
+    return retrieve_non_zero_diagonal_blocks(
+        data=self.data, charges=self.charges, flows=self.flows)
 
 
 def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
@@ -272,51 +360,7 @@ def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
   Returns:
     BlockSparseTensor: A new tensor reshaped into `shape`
   """
-  # a few simple checks
-  if np.prod(shape) != np.prod(tensor.shape):
-    raise ValueError("A tensor with {} elements cannot be "
-                     "reshaped into a tensor with {} elements".format(
-                         np.prod(tensor.shape), np.prod(shape)))
-  #copy indices
   result = BlockSparseTensor(
       data=tensor.data.copy(), indices=[i.copy() for i in tensor.indices])
-
-  for n in range(len(shape)):
-    if shape[n] > result.shape[n]:
-      while shape[n] > result.shape[n]:
-        #fuse indices
-        i1, i2 = result.indices.pop(n), result.indices.pop(n)
-        #note: the resulting flow is set to one since the flow
-        #is multiplied into the charges. As a result the tensor
-        #will then be invariant in any case.
-        result.indices.insert(n, fuse_index_pair(i1, i2))
-      if result.shape[n] > shape[n]:
-        elementary_indices = []
-        for i in tensor.indices:
-          elementary_indices.extend(i.get_elementary_indices())
-          raise ValueError("The shape {} is incompatible with the "
-                           "elementary shape {} of the tensor.".format(
-                               shape,
-                               tuple(
-                                   [e.dimension for e in elementary_indices])))
-    elif shape[n] < result.shape[n]:
-      while shape[n] < result.shape[n]:
-        #split index at n
-        try:
-          i1, i2 = split_index(result.indices.pop(n))
-        except ValueError:
-          elementary_indices = []
-          for i in tensor.indices:
-            elementary_indices.extend(i.get_elementary_indices())
-          raise ValueError("The shape {} is incompatible with the "
-                           "elementary shape {} of the tensor.".format(
-                               shape,
-                               tuple(
-                                   [e.dimension for e in elementary_indices])))
-        result.indices.insert(n, i1)
-        result.indices.insert(n + 1, i2)
-      if result.shape[n] < shape[n]:
-        raise ValueError(
-            "shape {} is incompatible with the elementary result shape".format(
-                shape))
+  result.reshape(shape)
   return result
