@@ -159,7 +159,7 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   """
   #TODO: this is currently way too slow!!!!
   #Run the following benchmark for testing (typical MPS use case)
-  #retrieving the blocks is ~ 10 times as slow as mulitplying all of them
+  #retrieving the blocks is ~ 10 times as slow as multiplying them
 
   # D=4000
   # B=10
