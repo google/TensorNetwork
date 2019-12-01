@@ -23,7 +23,8 @@ from tensornetwork.backends import backend_factory
 from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies
 import numpy as np
 import itertools
-from typing import List, Union, Any, Tuple, Type, Optional
+import time
+from typing import List, Union, Any, Tuple, Type, Optional, Dict
 Tensor = Any
 
 
@@ -92,7 +93,7 @@ def compute_num_nonzero(charges: List[np.ndarray],
 
 
 def compute_nonzero_block_shapes(charges: List[np.ndarray],
-                                 flows: List[Union[bool, int]]) -> dict:
+                                 flows: List[Union[bool, int]]) -> Dict:
   """
   Compute the blocks and their respective shapes of a symmetric tensor,
   given its meta-data.
@@ -139,10 +140,11 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
 
 def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
                                       charges: List[np.ndarray],
-                                      flows: List[Union[bool, int]]) -> dict:
+                                      flows: List[Union[bool, int]]) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
+  !!!!!!!!! This is currently very slow!!!!!!!!!!!!
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
       has to match the number of non-zero elements defined by `charges` 
@@ -156,6 +158,37 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
   """
+  #TODO: this is currently way too slow!!!!
+  #Run the following benchmark for testing (typical MPS use case)
+  #retrieving the blocks is ~ 10 times as slow as mulitplying all of them
+
+  # D=4000
+  # B=10
+  # q1 = np.random.randint(0,B,D)
+  # q2 = np.asarray([0,1])
+  # q3 = np.random.randint(0,B,D)
+  # i1 = Index(charges=q1,flow=1)
+  # i2 = Index(charges=q2,flow=1)
+  # i3 = Index(charges=q3,flow=-1)
+  # indices=[i1,i2,i3]
+  # A=BT.BlockSparseTensor.random(indices=indices, dtype=np.complex128)
+  # ts = []
+  # A.reshape((D*2, D))
+  # def multiply_blocks(blocks):
+  #     for b in blocks.values():
+  #         np.dot(b.T, b)
+  # t1s=[]
+  # t2s=[]
+  # for n in range(10):
+  #     print(n)
+  #     t1 = time.time()
+  #     b = A.get_diagonal_blocks()
+  #     t1s.append(time.time() - t1)
+  #     t1 = time.time()
+  #     multiply_blocks(b)
+  #     t2s.append(time.time() - t1)
+  # print('average retrieval time', np.average(t1s))
+  # print('average multiplication time',np.average(t2s))
 
   if len(charges) != 2:
     raise ValueError("input has to be a two-dimensional symmetric matrix")
@@ -180,9 +213,12 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
   blocks = {}
+
   for c in unique_row_charges:
     start = 0
     idxs = []
+    #TODO: this for loop can be replaced with something
+    #more sophisticated (i.e. using numpy lookups and sums)
     for column in range(len(column_charges)):
       charge = column_charges[column]
       if (charge + c) != 0:
@@ -190,7 +226,7 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       else:
         idxs.extend(start + np.arange(num_non_zero[column]))
     if idxs:
-      blocks[c] = np.reshape(data[idxs],
+      blocks[c] = np.reshape(data[np.asarray(idxs)],
                              (row_degeneracies[c], column_degeneracies[-c]))
   return blocks
 
@@ -299,6 +335,13 @@ class BlockSparseTensor:
   def charges(self):
     return [i.charges for i in self.indices]
 
+  def transpose(self, order):
+    """
+    Transpose the tensor into the new order `order`
+    
+    """
+    raise NotImplementedError('transpose is not implemented!!')
+
   def reshape(self, shape):
     """
     Reshape `tensor` into `shape` in place.
@@ -382,7 +425,13 @@ class BlockSparseTensor:
         if self.shape[n] < shape[n]:
           raise_error()
 
-  def get_diagonal_blocks(self):
+  def get_diagonal_blocks(self) -> Dict:
+    """
+    Obtain the diagonal blocks of symmetric matrix.
+    BlockSparseTensor has to be a matrix.
+    Returns:
+      dict: Dictionary mapping charge to np.ndarray of rank 2 (a matrix)
+    """
     if self.rank != 2:
       raise ValueError(
           "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
@@ -391,7 +440,7 @@ class BlockSparseTensor:
         data=self.data, charges=self.charges, flows=self.flows)
 
 
-def reshape(tensor: BlockSparseTensor, shape: Tuple[int]):
+def reshape(tensor: BlockSparseTensor, shape: Tuple[int]) -> BlockSparseTensor:
   """
   Reshape `tensor` into `shape`.
   `reshape` works essentially the same as the dense version, with the
