@@ -88,7 +88,7 @@ def compute_num_nonzero(charges: List[np.ndarray],
     raise ValueError(
         "given leg-charges `charges` and flows `flows` are incompatible "
         "with a symmetric tensor")
-  return accumulated_degeneracies[accumulated_charges == 0]
+  return accumulated_degeneracies[accumulated_charges == 0][0]
 
 
 def compute_nonzero_block_shapes(charges: List[np.ndarray],
