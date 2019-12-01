@@ -16,10 +16,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
+from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index
+# pylint: disable=line-too-long
+from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges
 import numpy as np
 import itertools
 from typing import List, Union, Any, Tuple, Type, Optional
@@ -38,8 +39,9 @@ def compute_num_nonzero(charges: List[np.ndarray],
   Compute the number of non-zero elements, given the meta-data of 
   a symmetric tensor.
   Args:
-    charges: List of np.ndarray, one for each leg. 
-      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
+    charges: List of np.ndarray, one for each leg of the 
+      underlying tensor. Each np.ndarray `charges[leg]` 
+      is of shape `(D[leg], Q)`.
       The bond dimension `D[leg]` can vary on each leg, the number of 
       symmetries `Q` has to be the same for each leg.
     flows: A list of integers, one for each leg,
@@ -51,38 +53,42 @@ def compute_num_nonzero(charges: List[np.ndarray],
   """
   #TODO: this is not very efficient for large bond dimensions
   if len(charges) == 1:
-    return len(charges)
+    return len(np.nonzero(charges == 0)[0])
+  #get unique charges and their degeneracies on each leg
+  charge_degeneracies = [
+      np.unique(charge, return_counts=True) for charge in charges
+  ]
+  accumulated_charges, accumulated_degeneracies = charge_degeneracies[0]
+  #multiply the flow into the charges of first leg
+  accumulated_charges *= flows[0]
+  for n in range(1, len(charge_degeneracies)):
+    #list of unique charges and list of their degeneracies
+    #on the next unfused leg of the tensor
+    leg_charge, leg_degeneracies = charge_degeneracies[n]
 
-  neg_flows = np.nonzero(np.asarray(flows) == -1)[0]
-  pos_flows = np.nonzero(np.asarray(flows) == 1)[0]
-  neg_max = 0
-  neg_min = 0
-  for i in neg_flows:
-    neg_max += np.max(charges[i])
-    neg_min += np.min(charges[i])
+    #fuse the unique charges
+    #Note: entries in `fused_charges` are not unique anymore.
+    #flow1 = 1 because the flow of leg 0 has already been
+    #mulitplied above
+    fused_charges = fuse_charges(
+        q1=accumulated_charges, flow1=1, q2=leg_charge, flow2=flows[n])
+    #compute the degeneracies of `fused_charges` charges
+    #fused_degeneracies = np.kron(leg_degeneracies, accumulated_degeneracies)
+    fused_degeneracies = np.kron(leg_degeneracies, accumulated_degeneracies)
+    #compute the new degeneracies resulting of fusing the vectors of unique charges
+    #`accumulated_charges` and `leg_charge_2`
+    accumulated_charges = np.unique(fused_charges)
+    accumulated_degeneracies = []
+    for n in range(len(accumulated_charges)):
+      accumulated_degeneracies.append(
+          np.sum(fused_degeneracies[fused_charges == accumulated_charges[n]]))
 
-  pos_max = 0
-  pos_min = 0
-  for i in pos_flows:
-    pos_max += np.max(charges[i])
-    pos_min += np.min(charges[i])
-
-  net_charges = charges[pos_flows[0]]
-  net_charges = net_charges[net_charges <= neg_max]
-  for i in range(1, len(pos_flows)):
-    net_charges = np.reshape(
-        charges[pos_flows[i]][:, None] + net_charges[None, :],
-        len(charges[pos_flows[i]]) * len(net_charges))
-    net_charges = net_charges[net_charges <= neg_max]
-    net_charges = net_charges[net_charges >= neg_min]
-
-  for i in range(len(neg_flows)):
-    net_charges = np.reshape(
-        -1 * charges[neg_flows[i]][:, None] + net_charges[None, :],
-        len(charges[neg_flows[i]]) * len(net_charges))
-    net_charges = net_charges[net_charges <= neg_max]
-
-  return len(np.nonzero(net_charges == 0)[0])
+    accumulated_degeneracies = np.asarray(accumulated_degeneracies)
+  if len(np.nonzero(accumulated_charges == 0)[0]) == 0:
+    raise ValueError(
+        "given leg-charges `charges` and flows `flows` are incompatible "
+        "with a symmetric tensor")
+  return np.sum(accumulated_degeneracies[accumulated_charges == 0])
 
 
 def compute_nonzero_block_shapes(charges: List[np.ndarray],
