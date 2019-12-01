@@ -341,14 +341,23 @@ class BlockSparseTensor:
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(shape)))
 
+    #keep a copy of the old indices for the case where reshaping fails
+    #FIXME: this is pretty hacky!
+    index_copy = [i.copy() for i in self.indices]
+
     def raise_error():
+      #if this error is raised `shape` is incompatible
+      #with the elementary indices. We have to reset them
+      #to the original.
+      self.indices = index_copy
       elementary_indices = []
       for i in self.indices:
         elementary_indices.extend(i.get_elementary_indices())
-        raise ValueError("The shape {} is incompatible with the "
-                         "elementary shape {} of the tensor.".format(
-                             shape,
-                             tuple([e.dimension for e in elementary_indices])))
+      print(elementary_indices)
+      raise ValueError("The shape {} is incompatible with the "
+                       "elementary shape {} of the tensor.".format(
+                           shape,
+                           tuple([e.dimension for e in elementary_indices])))
 
     for n in range(len(shape)):
       if shape[n] > self.shape[n]:
