@@ -121,6 +121,27 @@ def fuse_charges(q1: Union[List, np.ndarray], flow1: int,
       len(q1) * len(q2))
 
 
+def fuse_degeneracies(degen1: Union[List, np.ndarray],
+                      degen2: Union[List, np.ndarray]) -> np.ndarray:
+  """
+  Fuse degeneracies `degen1` and `degen2` of two leg-charges 
+  by simple kronecker product. `degen1` and `degen2` typically belong to two 
+  consecutive legs of `BlockSparseTensor`.
+  Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
+  `[10, 11, 12, 100, 101, 102]`.
+  When using column-major ordering of indices in `BlockSparseTensor`, 
+  the position of q1 should be "to the left" of the position of q2.
+  Args:
+    q1: Iterable of integers
+    flow1: Flow direction of charge `q1`.
+    q2: Iterable of integers
+    flow2: Flow direction of charge `q2`.
+  Returns:
+    np.ndarray: The result of fusing `q1` with `q2`.
+  """
+  return np.kron(degen2, degen1)
+
+
 def fuse_index_pair(left_index: Index,
                     right_index: Index,
                     flow: Optional[int] = 1) -> Index:
