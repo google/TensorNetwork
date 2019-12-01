@@ -20,7 +20,7 @@ import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges
+from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies
 import numpy as np
 import itertools
 from typing import List, Union, Any, Tuple, Type, Optional
@@ -73,8 +73,8 @@ def compute_num_nonzero(charges: List[np.ndarray],
     fused_charges = fuse_charges(
         q1=accumulated_charges, flow1=1, q2=leg_charge, flow2=flows[n])
     #compute the degeneracies of `fused_charges` charges
-    #fused_degeneracies = np.kron(leg_degeneracies, accumulated_degeneracies)
-    fused_degeneracies = np.kron(leg_degeneracies, accumulated_degeneracies)
+    fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
+                                           leg_degeneracies)
     #compute the new degeneracies resulting of fusing the vectors of unique charges
     #`accumulated_charges` and `leg_charge_2`
     accumulated_charges = np.unique(fused_charges)
@@ -252,6 +252,32 @@ class BlockSparseTensor:
     backend = backend_factory.get_backend('numpy')
     data = backend.randn((num_non_zero_elements,), dtype=dtype)
     return cls(data=data, indices=indices)
+
+  @classmethod
+  def random(cls, indices: List[Index],
+             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
+    """
+    Initialize a random symmetric tensor from random normal distribution.
+    Args:
+      indices: List of `Index` objecst, one for each leg. 
+      dtype: An optional numpy dtype. The dtype of the tensor
+    Returns:
+      BlockSparseTensor
+    """
+    charges = [i.charges for i in indices]
+    flows = [i.flow for i in indices]
+    num_non_zero_elements = compute_num_nonzero(charges, flows)
+    dtype = dtype if dtype is not None else self.np.float64
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.rand(num_non_zero_elements).astype(
+            dtype) - 0.5 + 1j * (
+                np.random.rand(num_non_zero_elements).astype(dtype) - 0.5)
+      return np.random.randn(num_non_zero_elements).astype(dtype) - 0.5
+
+    return cls(data=init_random(), indices=indices)
 
   @property
   def rank(self):
