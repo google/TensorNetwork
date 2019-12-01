@@ -52,7 +52,6 @@ def compute_num_nonzero(charges: List[np.ndarray],
   Returns:
     int: The number of non-zero elements.
   """
-  #TODO: this is not very efficient for large bond dimensions
   if len(charges) == 1:
     return len(np.nonzero(charges == 0)[0])
   #get unique charges and their degeneracies on each leg
