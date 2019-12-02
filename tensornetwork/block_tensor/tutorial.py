@@ -41,4 +41,17 @@ i4 = IDX.Index(charges=q4, flow=-1)
 
 # initialize a random symmetric tensor
 A = BT.BlockSparseTensor.randn(indices=[i1, i2, i3, i4], dtype=np.complex128)
-B = BT.reshape(A, (4, 48, 10))
+B = BT.reshape(A, (4, 48, 10))  #creates a new tensor (copy)
+shape_A = A.shape  #returns the dense shape of A
+A.reshape([shape_A[0] * shape_A[1], shape_A[2],
+           shape_A[3]])  #in place reshaping
+A.reshape(shape_A)  #reshape back into original shape
+
+sparse_shape = A.sparse_shape  #returns a copy of `A.indices`. Each `Index` object is copied
+
+new_sparse_shape = [
+    sparse_shape[0] * sparse_shape[1], sparse_shape[2], sparse_shape[3]
+]
+B = BT.reshape(A, new_sparse_shape)  #return a  copy
+A.reshape(new_sparse_shape)  #in place reshaping
+A.reshape(sparse_shape)  #bring A back into original shape
