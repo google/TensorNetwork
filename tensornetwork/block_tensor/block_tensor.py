@@ -40,11 +40,10 @@ def compute_num_nonzero(charges: List[np.ndarray],
   Compute the number of non-zero elements, given the meta-data of 
   a symmetric tensor.
   Args:
-    charges: List of np.ndarray, one for each leg of the 
+    charges: List of np.ndarray of int, one for each leg of the 
       underlying tensor. Each np.ndarray `charges[leg]` 
-      is of shape `(D[leg], Q)`.
-      The bond dimension `D[leg]` can vary on each leg, the number of 
-      symmetries `Q` has to be the same for each leg.
+      is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
     flows: A list of integers, one for each leg,
       with values `1` or `-1`, denoting the flow direction
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
@@ -98,9 +97,8 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
   given its meta-data.
   Args:
     charges: List of np.ndarray, one for each leg. 
-      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
-      The bond dimension `D[leg]` can vary on each leg, the number of 
-      symmetries `Q` has to be the same for each leg.
+      Each np.ndarray `charges[leg]` is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
     flows: A list of integers, one for each leg,
       with values `1` or `-1`, denoting the flow direction
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
@@ -149,9 +147,8 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       has to match the number of non-zero elements defined by `charges` 
       and `flows`
     charges: List of np.ndarray, one for each leg. 
-      Each np.ndarray `charges[leg]` is of shape `(D[leg], Q)`.
-      The bond dimension `D[leg]` can vary on each leg, the number of 
-      symmetries `Q` has to be the same for each leg.
+      Each np.ndarray `charges[leg]` is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
     flows: A list of integers, one for each leg,
       with values `1` or `-1`, denoting the flow direction
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
@@ -229,6 +226,64 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   return blocks
 
 
+def retrieve_non_zero_diagonal_blocks_test(data: np.ndarray,
+                                           charges: List[np.ndarray],
+                                           flows: List[Union[bool, int]]
+                                          ) -> Dict:
+  """
+  Testing function, does the same as `retrieve_non_zero_diagonal_blocks`, 
+  but should be faster
+  """
+
+  if len(charges) != 2:
+    raise ValueError("input has to be a two-dimensional symmetric matrix")
+  check_flows(flows)
+  if len(flows) != len(charges):
+    raise ValueError("`len(flows)` is different from `len(charges)`")
+
+  #a 1d array of the net charges.
+  net_charges = fuse_charges(
+      q1=charges[0], flow1=flows[0], q2=charges[1], flow2=flows[1])
+  #a 1d array containing row charges added with zero column charges
+  #used to find the positions of the unique charges
+  tmp = fuse_charges(
+      q1=charges[0],
+      flow1=flows[0],
+      q2=np.zeros(charges[1].shape[0], dtype=charges[1].dtype),
+      flow2=1)
+  unique_charges = np.unique(charges[0] * flows[0])
+  symmetric_indices = net_charges == 0
+  charge_lookup = tmp[symmetric_indices]
+  blocks = {}
+  for c in unique_charges:
+    blocks[c] = data[charge_lookup == c]
+  return blocks
+
+
+def compute_mapping_table(charges: List[np.ndarray],
+                          flows: List[Union[bool, int]]) -> int:
+  """
+  Compute a mapping table mapping the linear positions of the non-zero 
+  elements to their multi-index label.
+  Args:
+    charges: List of np.ndarray of int, one for each leg of the 
+      underlying tensor. Each np.ndarray `charges[leg]` 
+      is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
+    flows: A list of integers, one for each leg,
+      with values `1` or `-1`, denoting the flow direction
+      of the charges on each leg. `1` is inflowing, `-1` is outflowing
+      charge.
+  Returns:
+    np.ndarray: An (N, r) np.ndarray of dtype np.int16, 
+      with `N` the number of non-zero elements, and `r` 
+      the rank of the tensor.
+  """
+  tables = np.meshgrid([np.arange(c.shape[0]) for c in charges], indexing='ij')
+  tables = tables[::-1]  #reverse the order
+  pass
+
+
 class BlockSparseTensor:
   """
   Minimal class implementation of block sparsity.
@@ -239,8 +294,9 @@ class BlockSparseTensor:
     * self.data: A 1d np.ndarray storing the underlying 
       data of the tensor
     * self.charges: A list of `np.ndarray` of shape
-      (D, Q), where D is the bond dimension, and Q the number
-      of different symmetries (this is 1 for now).
+      (D,), where D is the bond dimension. Once we go beyond
+      a single U(1) symmetry, this has to be updated.
+
     * self.flows: A list of integers of length `k`.
         `self.flows` determines the flows direction of charges
         on each leg of the tensor. A value of `-1` denotes 
@@ -368,7 +424,6 @@ class BlockSparseTensor:
   def transpose(self, order):
     """
     Transpose the tensor into the new order `order`
-    
     """
 
     raise NotImplementedError('transpose is not implemented!!')
