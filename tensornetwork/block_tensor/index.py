@@ -97,6 +97,15 @@ class Index:
     self._leave_helper(self, leave_list)
     return leave_list
 
+  def __mul__(self, index: "Index") -> "Index":
+    """
+    Merge `index` and self into a single larger index.
+    The flow of the resulting index is set to 1.
+    Flows of `self` and `index` are multiplied into 
+    the charges upon fusing.
+    """
+    return fuse_index_pair(self, index)
+
 
 def fuse_charges(q1: Union[List, np.ndarray], flow1: int,
                  q2: Union[List, np.ndarray], flow2: int) -> np.ndarray:
