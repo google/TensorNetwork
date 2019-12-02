@@ -226,13 +226,11 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   return blocks
 
 
-def retrieve_non_zero_diagonal_blocks_test(data: np.ndarray,
-                                           charges: List[np.ndarray],
-                                           flows: List[Union[bool, int]]
-                                          ) -> Dict:
+def retrieve_non_zero_diagonal_blocks_test(
+    data: np.ndarray, charges: List[np.ndarray],
+    flows: List[Union[bool, int]]) -> Dict:
   """
-  Testing function, does the same as `retrieve_non_zero_diagonal_blocks`, 
-  but should be faster
+  Testing function, does the same as `retrieve_non_zero_diagonal_blocks`.
   """
 
   if len(charges) != 2:
@@ -241,22 +239,32 @@ def retrieve_non_zero_diagonal_blocks_test(data: np.ndarray,
   if len(flows) != len(charges):
     raise ValueError("`len(flows)` is different from `len(charges)`")
 
+  #get the unique charges
+  unique_row_charges, row_dims = np.unique(
+      flows[0] * charges[0], return_counts=True)
+  unique_column_charges, column_dims = np.unique(
+      flows[1] * charges[1], return_counts=True)
+
   #a 1d array of the net charges.
   net_charges = fuse_charges(
       q1=charges[0], flow1=flows[0], q2=charges[1], flow2=flows[1])
   #a 1d array containing row charges added with zero column charges
-  #used to find the positions of the unique charges
-  tmp = fuse_charges(
-      q1=charges[0],
-      flow1=flows[0],
-      q2=np.zeros(charges[1].shape[0], dtype=charges[1].dtype),
-      flow2=1)
-  unique_charges = np.unique(charges[0] * flows[0])
+  #used to find the indices of in data corresponding to a given charge
+  #(see below)
+  tmp = np.tile(charges[0] * flows[0], len(charges[1]))
+
   symmetric_indices = net_charges == 0
   charge_lookup = tmp[symmetric_indices]
+
+  row_degeneracies = dict(zip(unique_row_charges, row_dims))
+  column_degeneracies = dict(zip(unique_column_charges, column_dims))
   blocks = {}
-  for c in unique_charges:
-    blocks[c] = data[charge_lookup == c]
+
+  common_charges = np.intersect1d(unique_row_charges, -unique_column_charges)
+  for c in common_charges:
+    blocks[c] = np.reshape(data[charge_lookup == c],
+                           (row_degeneracies[c], column_degeneracies[-c]))
+
   return blocks
 
 
@@ -281,7 +289,7 @@ def compute_mapping_table(charges: List[np.ndarray],
   """
   tables = np.meshgrid([np.arange(c.shape[0]) for c in charges], indexing='ij')
   tables = tables[::-1]  #reverse the order
-  pass
+  raise NotImplementedError()
 
 
 class BlockSparseTensor:
