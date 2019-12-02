@@ -231,6 +231,7 @@ def retrieve_non_zero_diagonal_blocks_test(
     flows: List[Union[bool, int]]) -> Dict:
   """
   Testing function, does the same as `retrieve_non_zero_diagonal_blocks`.
+  This is very slow for high rank tensors with many blocks
   """
 
   if len(charges) != 2:
