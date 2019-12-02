@@ -47,7 +47,7 @@ A.reshape([shape_A[0] * shape_A[1], shape_A[2],
            shape_A[3]])  #in place reshaping
 A.reshape(shape_A)  #reshape back into original shape
 
-sparse_shape = A.sparse_shape  #returns a copy of `A.indices`. Each `Index` object is copied
+sparse_shape = A.sparse_shape  #returns a deep copy of `A.indices`.
 
 new_sparse_shape = [
     sparse_shape[0] * sparse_shape[1], sparse_shape[2], sparse_shape[3]
