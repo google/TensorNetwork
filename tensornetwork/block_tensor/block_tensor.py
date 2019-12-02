@@ -24,7 +24,7 @@ from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index
 import numpy as np
 import itertools
 import time
-from typing import List, Union, Any, Tuple, Type, Optional, Dict
+from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable
 Tensor = Any
 
 
@@ -170,8 +170,7 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   # i2 = Index(charges=q2,flow=1)
   # i3 = Index(charges=q3,flow=-1)
   # indices=[i1,i2,i3]
-  # A=BT.BlockSparseTensor.random(indices=indices, dtype=np.complex128)
-  # ts = []
+  # A = BlockSparseTensor.random(indices=indices, dtype=np.complex128)
   # A.reshape((D*2, D))
   # def multiply_blocks(blocks):
   #     for b in blocks.values():
@@ -235,7 +234,7 @@ class BlockSparseTensor:
   Minimal class implementation of block sparsity.
   The class design follows Glen's proposal (Design 0).
   The class currently only supports a single U(1) symmetry
-  and only nump.ndarray.
+  and only numpy.ndarray.
   Attributes:
     * self.data: A 1d np.ndarray storing the underlying 
       data of the tensor
@@ -318,8 +317,40 @@ class BlockSparseTensor:
   def rank(self):
     return len(self.indices)
 
+  #TODO: we should consider to switch the names
+  #`BlockSparseTensor.sparse_shape` and `BlockSparseTensor.shape`,
+  #i.e. have `BlockSparseTensor.shape`return the sparse shape of the tensor.
+  #This may be more convenient for building tensor-type and backend
+  #agnostic code. For example, in MPS code we essentially never
+  #explicitly set a shape to a certain value (apart from initialization).
+  #That is, code like this
+  #```
+  #tensor = np.random.rand(10,10,10)
+  #```
+  #is never used. Rather one inquires shapes of tensors and
+  #multiplies them to get new shapes:
+  #```
+  #new_tensor = reshape(tensor, [tensor.shape[0]*tensor.shape[1], tensor.shape[2]])
+  #```
+  #Thduis the return type of `BlockSparseTensor.shape` is never inspected explicitly
+  #(apart from debugging).
+  @property
+  def sparse_shape(self) -> Tuple:
+    """
+    The sparse shape of the tensor.
+    Returns a copy of self.indices. Note that copying
+    can be relatively expensive for deeply nested indices.
+    Returns:
+      Tuple: A tuple of `Index` objects.
+    """
+
+    return tuple([i.copy() for i in self.indices])
+
   @property
   def shape(self) -> Tuple:
+    """
+    The dense shape of the tensor.
+    """
     return tuple([i.dimension for i in self.indices])
 
   @property
@@ -339,9 +370,10 @@ class BlockSparseTensor:
     Transpose the tensor into the new order `order`
     
     """
+
     raise NotImplementedError('transpose is not implemented!!')
 
-  def reshape(self, shape):
+  def reshape(self, shape: Union[Iterable[Index], Iterable[int]]) -> None:
     """
     Reshape `tensor` into `shape` in place.
     `BlockSparseTensor.reshape` works essentially the same as the dense 
@@ -372,16 +404,23 @@ class BlockSparseTensor:
     
     Args:
       tensor: A symmetric tensor.
-      shape: The new shape.
+      shape: The new shape. Can either be a list of `Index` 
+        or a list of `int`.
     Returns:
       BlockSparseTensor: A new tensor reshaped into `shape`
     """
-
+    dense_shape = []
+    for s in shape:
+      if isinstance(s, Index):
+        dense_shape.append(s.dimension)
+      else:
+        dense_shape.append(s)
     # a few simple checks
-    if np.prod(shape) != np.prod(self.shape):
+
+    if np.prod(dense_shape) != np.prod(self.shape):
       raise ValueError("A tensor with {} elements cannot be "
                        "reshaped into a tensor with {} elements".format(
-                           np.prod(self.shape), np.prod(shape)))
+                           np.prod(self.shape), np.prod(dense_shape)))
 
     #keep a copy of the old indices for the case where reshaping fails
     #FIXME: this is pretty hacky!
@@ -398,22 +437,22 @@ class BlockSparseTensor:
       print(elementary_indices)
       raise ValueError("The shape {} is incompatible with the "
                        "elementary shape {} of the tensor.".format(
-                           shape,
+                           dense_shape,
                            tuple([e.dimension for e in elementary_indices])))
 
-    for n in range(len(shape)):
-      if shape[n] > self.shape[n]:
-        while shape[n] > self.shape[n]:
+    for n in range(len(dense_shape)):
+      if dense_shape[n] > self.shape[n]:
+        while dense_shape[n] > self.shape[n]:
           #fuse indices
           i1, i2 = self.indices.pop(n), self.indices.pop(n)
           #note: the resulting flow is set to one since the flow
           #is multiplied into the charges. As a result the tensor
           #will then be invariant in any case.
           self.indices.insert(n, fuse_index_pair(i1, i2))
-        if self.shape[n] > shape[n]:
+        if self.shape[n] > dense_shape[n]:
           raise_error()
-      elif shape[n] < self.shape[n]:
-        while shape[n] < self.shape[n]:
+      elif dense_shape[n] < self.shape[n]:
+        while dense_shape[n] < self.shape[n]:
           #split index at n
           try:
             i1, i2 = split_index(self.indices.pop(n))
@@ -421,7 +460,7 @@ class BlockSparseTensor:
             raise_error()
           self.indices.insert(n, i1)
           self.indices.insert(n + 1, i2)
-        if self.shape[n] < shape[n]:
+        if self.shape[n] < dense_shape[n]:
           raise_error()
 
   def get_diagonal_blocks(self) -> Dict:
@@ -439,7 +478,8 @@ class BlockSparseTensor:
         data=self.data, charges=self.charges, flows=self.flows)
 
 
-def reshape(tensor: BlockSparseTensor, shape: Tuple[int]) -> BlockSparseTensor:
+def reshape(tensor: BlockSparseTensor,
+            shape: Union[Iterable[Index], Iterable[int]]) -> BlockSparseTensor:
   """
   Reshape `tensor` into `shape`.
   `reshape` works essentially the same as the dense version, with the
@@ -469,7 +509,8 @@ def reshape(tensor: BlockSparseTensor, shape: Tuple[int]) -> BlockSparseTensor:
 
   Args:
     tensor: A symmetric tensor.
-    shape: The new shape.
+    shape: The new shape. Can either be a list of `Index` 
+      or a list of `int`.
   Returns:
     BlockSparseTensor: A new tensor reshaped into `shape`
   """
