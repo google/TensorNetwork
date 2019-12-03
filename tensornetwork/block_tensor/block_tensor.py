@@ -193,33 +193,36 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
 
   row_charges = flows[0] * charges[0]  # a list of charges on each row
   column_charges = flows[1] * charges[1]  # a list of charges on each column
-  # for each matrix column find the number of non-zero elements in it
-  # Note: the matrix is assumed to be symmetric, i.e. only elements where
-  # ingoing and outgoing charge are identical are non-zero
-  num_non_zero = [
-      len(np.nonzero((row_charges + c) == 0)[0]) for c in column_charges
-  ]
+
   #get the unique charges
   unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
   unique_column_charges, column_dims = np.unique(
       column_charges, return_counts=True)
+  common_charges = np.intersect1d(flows[0] * unique_row_charges,
+                                  flows[1] * unique_column_charges)
+
+  # for each matrix column find the number of non-zero elements in it
+  # Note: the matrix is assumed to be symmetric, i.e. only elements where
+  # ingoing and outgoing charge are identical are non-zero
 
   # get the degeneracies of each row and column charge
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
   blocks = {}
-
-  for c in unique_row_charges:
+  #TODO: the nested loops could probably be easily moved to cython
+  for c in common_charges:
     start = 0
     idxs = []
     #TODO: this for loop can be replaced with something
     #more sophisticated (i.e. using numpy lookups and sums)
     for column in range(len(column_charges)):
       charge = column_charges[column]
+      if charge not in common_charges:
+        continue
       if (charge + c) != 0:
-        start += num_non_zero[column]
+        start += row_degeneracies[c]
       else:
-        idxs.extend(start + np.arange(num_non_zero[column]))
+        idxs.extend(start + np.arange(row_degeneracies[c]))
     if idxs:
       blocks[c] = np.reshape(data[np.asarray(idxs)],
                              (row_degeneracies[c], column_degeneracies[-c]))
@@ -230,10 +233,12 @@ def retrieve_non_zero_diagonal_blocks_test(
     data: np.ndarray, charges: List[np.ndarray],
     flows: List[Union[bool, int]]) -> Dict:
   """
-  Testing function, does the same as `retrieve_non_zero_diagonal_blocks`.
-  This is very slow for high rank tensors with many blocks
+  For testing purposes. Produces the same output as `retrieve_non_zero_diagonal_blocks`,
+  but computes it in a different way.
+  This is currently very slow for high rank tensors with many blocks, but can be faster than
+  `retrieve_non_zero_diagonal_blocks` in certain other cases.
+  It's pretty memory heavy too.
   """
-
   if len(charges) != 2:
     raise ValueError("input has to be a two-dimensional symmetric matrix")
   check_flows(flows)
@@ -247,11 +252,13 @@ def retrieve_non_zero_diagonal_blocks_test(
       flows[1] * charges[1], return_counts=True)
 
   #a 1d array of the net charges.
+  #this can use a lot of memory
   net_charges = fuse_charges(
       q1=charges[0], flow1=flows[0], q2=charges[1], flow2=flows[1])
   #a 1d array containing row charges added with zero column charges
   #used to find the indices of in data corresponding to a given charge
   #(see below)
+  #this can be very large
   tmp = np.tile(charges[0] * flows[0], len(charges[1]))
 
   symmetric_indices = net_charges == 0
