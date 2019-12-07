@@ -214,7 +214,6 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   number_of_seen_elements = 0
   idxs = {c: [] for c in common_charges}
   mask = np.isin(column_charges, -common_charges)
-  #TODO: move this for loop to cython
   for charge in column_charges[mask]:
     idxs[-charge].append(
         np.arange(number_of_seen_elements,
