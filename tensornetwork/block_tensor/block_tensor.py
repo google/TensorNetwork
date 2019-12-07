@@ -198,7 +198,9 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
   unique_column_charges, column_dims = np.unique(
       column_charges, return_counts=True)
-  common_charges = np.intersect1d(unique_row_charges, -unique_column_charges)
+  common_charges = np.intersect1d(
+      unique_row_charges, -unique_column_charges, assume_unique=True)
+  #common_charges = np.intersect1d(row_charges, -column_charges)
 
   # for each matrix column find the number of non-zero elements in it
   # Note: the matrix is assumed to be symmetric, i.e. only elements where
@@ -211,13 +213,9 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
 
   number_of_seen_elements = 0
   idxs = {c: [] for c in common_charges}
-  for column in range(len(column_charges)):
-    #TODO: this for loop can be replaced with something
-    #more sophisticated (if.e. using numpy lookups and sums)
-    charge = column_charges[column]
-    if -charge not in common_charges:
-      continue
-
+  mask = np.isin(column_charges, -common_charges)
+  #TODO: move this for loop to cython
+  for charge in column_charges[mask]:
     idxs[-charge].extend(number_of_seen_elements +
                          np.arange(row_degeneracies[-charge]))
     number_of_seen_elements += row_degeneracies[-charge]
