@@ -198,8 +198,7 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
   unique_column_charges, column_dims = np.unique(
       column_charges, return_counts=True)
-  common_charges = np.intersect1d(flows[0] * unique_row_charges,
-                                  flows[1] * unique_column_charges)
+  common_charges = np.intersect1d(unique_row_charges, -unique_column_charges)
 
   # for each matrix column find the number of non-zero elements in it
   # Note: the matrix is assumed to be symmetric, i.e. only elements where
@@ -209,23 +208,23 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
   blocks = {}
-  #TODO: the nested loops could probably be easily moved to cython
-  for c in common_charges:
-    start = 0
-    idxs = []
+
+  number_of_seen_elements = 0
+  idxs = {c: [] for c in common_charges}
+  for column in range(len(column_charges)):
     #TODO: this for loop can be replaced with something
-    #more sophisticated (i.e. using numpy lookups and sums)
-    for column in range(len(column_charges)):
-      charge = column_charges[column]
-      if charge not in common_charges:
-        continue
-      if (charge + c) != 0:
-        start += row_degeneracies[c]
-      else:
-        idxs.extend(start + np.arange(row_degeneracies[c]))
-    if idxs:
-      blocks[c] = np.reshape(data[np.asarray(idxs)],
-                             (row_degeneracies[c], column_degeneracies[-c]))
+    #more sophisticated (if.e. using numpy lookups and sums)
+    charge = column_charges[column]
+    if -charge not in common_charges:
+      continue
+
+    idxs[-charge].extend(number_of_seen_elements +
+                         np.arange(row_degeneracies[-charge]))
+    number_of_seen_elements += row_degeneracies[-charge]
+
+  for c, idx in idxs.items():
+    blocks[c] = np.reshape(data[np.asarray(idx)],
+                           (row_degeneracies[c], column_degeneracies[-c]))
   return blocks
 
 
