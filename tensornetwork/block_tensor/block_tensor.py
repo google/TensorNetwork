@@ -135,13 +135,14 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
   return charge_shape_dict
 
 
-def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
-                                      charges: List[np.ndarray],
-                                      flows: List[Union[bool, int]]) -> Dict:
+def retrieve_non_zero_diagonal_blocks(
+    data: np.ndarray,
+    charges: List[np.ndarray],
+    flows: List[Union[bool, int]],
+    return_data: Optional[bool] = True) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
-  !!!!!!!!! This is currently very slow!!!!!!!!!!!!
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
       has to match the number of non-zero elements defined by `charges` 
@@ -153,6 +154,17 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
       with values `1` or `-1`, denoting the flow direction
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
+    return_data: If `True`, the return dictionary maps quantum numbers `q` to 
+      actual `np.ndarray` with the data. This involves a copy of data.
+      If `False`, the returned dict maps quantum numbers of a list 
+      [locations, shape], where `locations` is an np.ndarray of type np.int64
+      containing the locations of the tensor elements within A.data, i.e.
+      `A.data[locations]` contains the elements belonging to the tensor with 
+      quantum numbers `(q,q). `shape` is the shape of the corresponding array.
+
+  Returns:
+    dict: Dictionary mapping quantum numbers (integers) to either an np.ndarray 
+      or a python list of locations and shapes, depending on the value of `return_data`.
   """
   #TODO: this is currently way too slow!!!!
   #Run the following benchmark for testing (typical MPS use case)
@@ -209,7 +221,6 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
   # get the degeneracies of each row and column charge
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
-  blocks = {}
 
   number_of_seen_elements = 0
   idxs = {c: [] for c in common_charges}
@@ -220,10 +231,22 @@ def retrieve_non_zero_diagonal_blocks(data: np.ndarray,
                   row_degeneracies[-charge] + number_of_seen_elements))
     number_of_seen_elements += row_degeneracies[-charge]
 
+  blocks = {}
+  if not return_data:
+    for c, idx in idxs.items():
+      num_elements = np.sum([len(t) for t in idx])
+      indexes = np.empty(num_elements, dtype=np.int64)
+      np.concatenate(idx, out=indexes)
+      blocks[c] = [indexes, (row_degeneracies[c], column_degeneracies[-c])]
+    return blocks
+
   for c, idx in idxs.items():
-    indexes = np.concatenate(idx)
+    num_elements = np.sum([len(t) for t in idx])
+    indexes = np.empty(num_elements, dtype=np.int64)
+    np.concatenate(idx, out=indexes)
     blocks[c] = np.reshape(data[indexes],
                            (row_degeneracies[c], column_degeneracies[-c]))
+
   return blocks
 
 
@@ -532,12 +555,21 @@ class BlockSparseTensor:
         if self.shape[n] < dense_shape[n]:
           raise_error()
 
-  def get_diagonal_blocks(self) -> Dict:
+  def get_diagonal_blocks(self, return_data: Optional[bool] = True) -> Dict:
     """
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
+    Args:
+      return_data: If `True`, the return dictionary maps quantum numbers `q` to 
+        actual `np.ndarray` with the data. This involves a copy of data.
+        If `False`, the returned dict maps quantum numbers of a list 
+        [locations, shape], where `locations` is an np.ndarray of type np.int64
+        containing the locations of the tensor elements within A.data, i.e.
+        `A.data[locations]` contains the elements belonging to the tensor with 
+        quantum numbers `(q,q). `shape` is the shape of the corresponding array.
     Returns:
       dict: Dictionary mapping charge to np.ndarray of rank 2 (a matrix)
+    
     """
     if self.rank != 2:
       raise ValueError(
