@@ -161,6 +161,7 @@ def retrieve_non_zero_diagonal_blocks(
       containing the locations of the tensor elements within A.data, i.e.
       `A.data[locations]` contains the elements belonging to the tensor with 
       quantum numbers `(q,q). `shape` is the shape of the corresponding array.
+
   Returns:
     dict: Dictionary mapping quantum numbers (integers) to either an np.ndarray 
       or a python list of locations and shapes, depending on the value of `return_data`.
