@@ -576,7 +576,10 @@ class BlockSparseTensor:
           "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
           .format(self.rank))
     return retrieve_non_zero_diagonal_blocks(
-        data=self.data, charges=self.charges, flows=self.flows)
+        data=self.data,
+        charges=self.charges,
+        flows=self.flows,
+        return_data=return_data)
 
 
 def reshape(tensor: BlockSparseTensor,
