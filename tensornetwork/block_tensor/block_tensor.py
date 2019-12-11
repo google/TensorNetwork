@@ -166,37 +166,6 @@ def retrieve_non_zero_diagonal_blocks(
     dict: Dictionary mapping quantum numbers (integers) to either an np.ndarray 
       or a python list of locations and shapes, depending on the value of `return_data`.
   """
-  #TODO: this is currently way too slow!!!!
-  #Run the following benchmark for testing (typical MPS use case)
-  #retrieving the blocks is ~ 10 times as slow as multiplying them
-
-  # D=4000
-  # B=10
-  # q1 = np.random.randint(0,B,D)
-  # q2 = np.asarray([0,1])
-  # q3 = np.random.randint(0,B,D)
-  # i1 = Index(charges=q1,flow=1)
-  # i2 = Index(charges=q2,flow=1)
-  # i3 = Index(charges=q3,flow=-1)
-  # indices=[i1,i2,i3]
-  # A = BlockSparseTensor.random(indices=indices, dtype=np.complex128)
-  # A.reshape((D*2, D))
-  # def multiply_blocks(blocks):
-  #     for b in blocks.values():
-  #         np.dot(b.T, b)
-  # t1s=[]
-  # t2s=[]
-  # for n in range(10):
-  #     print(n)
-  #     t1 = time.time()
-  #     b = A.get_diagonal_blocks()
-  #     t1s.append(time.time() - t1)
-  #     t1 = time.time()
-  #     multiply_blocks(b)
-  #     t2s.append(time.time() - t1)
-  # print('average retrieval time', np.average(t1s))
-  # print('average multiplication time',np.average(t2s))
-
   if len(charges) != 2:
     raise ValueError("input has to be a two-dimensional symmetric matrix")
   check_flows(flows)
