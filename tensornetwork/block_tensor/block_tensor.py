@@ -207,11 +207,18 @@ def retrieve_non_zero_diagonal_blocks(
   column_charges = flows[1] * charges[1]  # a list of charges on each column
 
   #get the unique charges
+  t1 = time.time()
   unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
+  # print('finding unique row charges', time.time() - t1)
+  # t1 = time.time()
   unique_column_charges, column_dims = np.unique(
       column_charges, return_counts=True)
+  # print('finding unique column charges', time.time() - t1)
+  # t1 = time.time()
   common_charges = np.intersect1d(
       unique_row_charges, -unique_column_charges, assume_unique=True)
+  # print('finding unique intersections', time.time() - t1)
+  # t1 = time.time()
   #common_charges = np.intersect1d(row_charges, -column_charges)
 
   # for each matrix column find the number of non-zero elements in it
@@ -223,31 +230,70 @@ def retrieve_non_zero_diagonal_blocks(
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
 
   number_of_seen_elements = 0
-  idxs = {c: [] for c in common_charges}
+  #idxs = {c: [] for c in common_charges}
+  idxs = {
+      c: np.empty(
+          row_degeneracies[c] * column_degeneracies[-c], dtype=np.int64)
+      for c in common_charges
+  }
+  idxs_stops = {c: 0 for c in common_charges}
+  t1 = time.time()
   mask = np.isin(column_charges, -common_charges)
-  for charge in column_charges[mask]:
-    idxs[-charge].append(
-        np.arange(number_of_seen_elements,
-                  row_degeneracies[-charge] + number_of_seen_elements))
+  masked_charges = column_charges[mask]
+  print('finding mask', time.time() - t1)
+  # print(len(column_charges), len(masked_charges))
+  t1 = time.time()
+  elements = {c: np.arange(row_degeneracies[c]) for c in common_charges}
+  for charge in masked_charges:
+    # idxs[-charge].append((number_of_seen_elements,
+    #                       row_degeneracies[-charge] + number_of_seen_elements))
+
+    idxs[-charge][
+        idxs_stops[-charge]:idxs_stops[-charge] +
+        row_degeneracies[-charge]] = number_of_seen_elements + elements[-charge]
+
+    # np.arange(
+    #                   number_of_seen_elements,
+    #                   row_degeneracies[-charge] + number_of_seen_elements)
+
     number_of_seen_elements += row_degeneracies[-charge]
+    idxs_stops[-charge] += row_degeneracies[-charge]
+  print('getting start and stop', time.time() - t1)
+  # t1 = time.time()
+  # for charge in masked_charges:
+  #   tmp = np.arange(number_of_seen_elements,
+  #                   row_degeneracies[-charge] + number_of_seen_elements)
+  #   number_of_seen_elements += row_degeneracies[-charge]
+  # print('running the partial loop', time.time() - t1)
+
+  #######################################################################################
+  #looks like this takes pretty long for rectangular matrices where shape[1] >> shape[0]
+  #it's mostly np.arange that causes the overhead.
+  # t1 = time.time()
+  # for charge in masked_charges:
+  #   idxs[-charge].append(
+  #       np.arange(number_of_seen_elements,
+  #                 row_degeneracies[-charge] + number_of_seen_elements))
+  #   number_of_seen_elements += row_degeneracies[-charge]
+  # print('running the full loop', time.time() - t1)
+  #######################################################################################
 
   blocks = {}
   if not return_data:
     for c, idx in idxs.items():
-      num_elements = np.sum([len(t) for t in idx])
-      indexes = np.empty(num_elements, dtype=np.int64)
-      np.concatenate(idx, out=indexes)
-      blocks[c] = [indexes, (row_degeneracies[c], column_degeneracies[-c])]
+      #num_elements = np.sum([len(t) for t in idx])
+      #indexes = np.empty(num_elements, dtype=np.int64)
+      #np.concatenate(idx, out=indexes)
+      blocks[c] = [idx, (row_degeneracies[c], column_degeneracies[-c])]
     return blocks
 
-  for c, idx in idxs.items():
-    num_elements = np.sum([len(t) for t in idx])
-    indexes = np.empty(num_elements, dtype=np.int64)
-    np.concatenate(idx, out=indexes)
-    blocks[c] = np.reshape(data[indexes],
-                           (row_degeneracies[c], column_degeneracies[-c]))
-
-  return blocks
+  # for c, idx in idxs.items():
+  #   num_elements = np.sum([len(t) for t in idx])
+  #   indexes = np.empty(num_elements, dtype=np.int64)
+  #   np.concatenate(idx, out=indexes)
+  #   blocks[c] = np.reshape(data[indexes],
+  #                          (row_degeneracies[c], column_degeneracies[-c]))
+  #return blocks
 
 
 def retrieve_non_zero_diagonal_blocks_test(
