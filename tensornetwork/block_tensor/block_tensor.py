@@ -240,7 +240,7 @@ def retrieve_non_zero_diagonal_blocks(
     data: np.ndarray,
     charges: List[np.ndarray],
     flows: List[Union[bool, int]],
-    return_data: Optional[bool] = True) -> Dict:
+    return_data: Optional[bool] = False) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
