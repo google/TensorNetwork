@@ -547,20 +547,19 @@ class BlockSparseTensor:
     index_copy = [i.copy() for i in self.indices]
 
     def raise_error():
-      #if this error is raised `shape` is incompatible
-      #with the elementary indices. We have to reset them
-      #to the original.
+      #if this error is raised then `shape` is incompatible
+      #with the elementary indices. We then reset the shape
+      #to what is was before the call to `reshape`.
       self.indices = index_copy
       elementary_indices = []
       for i in self.indices:
         elementary_indices.extend(i.get_elementary_indices())
-      print(elementary_indices)
       raise ValueError("The shape {} is incompatible with the "
                        "elementary shape {} of the tensor.".format(
                            dense_shape,
                            tuple([e.dimension for e in elementary_indices])))
 
-    self.reset_shape()
+    self.reset_shape()  #bring tensor back into its elementary shape
     for n in range(len(dense_shape)):
       if dense_shape[n] > self.shape[n]:
         while dense_shape[n] > self.shape[n]:
