@@ -172,6 +172,7 @@ def retrieve_non_zero_diagonal_blocks(
   if len(flows) != len(charges):
     raise ValueError("`len(flows)` is different from `len(charges)`")
 
+  #we multiply the flows into the charges
   row_charges = flows[0] * charges[0]  # a list of charges on each row
   column_charges = flows[1] * charges[1]  # a list of charges on each column
 
@@ -179,14 +180,20 @@ def retrieve_non_zero_diagonal_blocks(
   unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
   unique_column_charges, column_dims = np.unique(
       column_charges, return_counts=True)
+  #get the charges common to rows and columns (only those matter)
   common_charges = np.intersect1d(
       unique_row_charges, -unique_column_charges, assume_unique=True)
 
+  #convenience container for obtaining the degeneracies of each
+  #charge
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
 
+  # we only care about common charges
   mask = np.isin(column_charges, -common_charges)
   masked_charges = column_charges[mask]
+
+  #some numpy magic to get the index locations of the blocks
   degeneracy_vector = np.empty(len(masked_charges), dtype=np.int64)
   masks = {}
   for c in common_charges:
