@@ -184,27 +184,47 @@ def retrieve_non_zero_diagonal_blocks(
   common_charges = np.intersect1d(
       unique_row_charges, -unique_column_charges, assume_unique=True)
 
-  #convenience container for obtaining the degeneracies of each
-  #charge
+  #convenience container for storing the degeneracies of each
+  #row and column charge
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
 
-  # we only care about common charges
+  # we only care about charges common to row and columns
   mask = np.isin(column_charges, -common_charges)
-  masked_charges = column_charges[mask]
+  relevant_column_charges = column_charges[mask]
 
   #some numpy magic to get the index locations of the blocks
-  degeneracy_vector = np.empty(len(masked_charges), dtype=np.int64)
+  #we generate a vector of `len(relevant_column_charges) which,
+  #for each charge `c` in `relevant_column_charges` holds the
+  #row-degeneracy of charge `c`
+  degeneracy_vector = np.empty(len(relevant_column_charges), dtype=np.int64)
+  #for each charge `c` in `common_charges` we generate a boolean mask
+  #for indexing the positions where `relevant_column_charges` has a value of `c`.
   masks = {}
   for c in common_charges:
-    mask = masked_charges == -c
+    mask = relevant_column_charges == -c
     masks[c] = mask
     degeneracy_vector[mask] = row_degeneracies[c]
-  summed_degeneracies = np.cumsum(degeneracy_vector)
+
+  # the result of the cumulative sum is a vector containing
+  # the stop positions of the non-zero values of each column
+  # within the data vector.
+  # E.g. for `relevant_column_charges` = [0,1,0,0,3],  and
+  # row_degeneracies[0] = 10
+  # row_degeneracies[1] = 20
+  # row_degeneracies[3] = 30
+  # we have
+  # `stop_positions` = [10, 10+20, 10+20+10, 10+20+10+10, 10+20+10+10+30]
+  # The starting positions of consecutive elements (in column-major order) in
+  # each column with charge `c=0` within the data vector are then simply obtained using
+  # masks[0] = [True, False, True, True, False]
+  # and `stop_positions[masks[0]] - row_degeneracies[0]`
+  stop_positions = np.cumsum(degeneracy_vector)
   blocks = {}
 
   for c in common_charges:
-    a = np.expand_dims(summed_degeneracies[masks[c]] - row_degeneracies[c], 0)
+    #numpy broadcasting is substantially faster than kron!
+    a = np.expand_dims(stop_positions[masks[c]] - row_degeneracies[c], 0)
     b = np.expand_dims(np.arange(row_degeneracies[c]), 1)
     if not return_data:
       blocks[c] = [a + b, (row_degeneracies[c], column_degeneracies[-c])]
