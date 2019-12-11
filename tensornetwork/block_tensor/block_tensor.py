@@ -238,7 +238,7 @@ def retrieve_non_zero_diagonal_blocks(
   return blocks
 
 
-def retrieve_non_zero_diagonal_blocks_bkp(
+def retrieve_non_zero_diagonal_blocks_deprecated(
     data: np.ndarray,
     charges: List[np.ndarray],
     flows: List[Union[bool, int]],
