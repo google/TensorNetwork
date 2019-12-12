@@ -26,16 +26,28 @@ def test_constructor(backend):
   assert not op.is_scalar()
   assert not op.is_vector()
   assert not op.is_adjoint_vector()
+  assert len(op.out_edges) == 1
+  assert len(op.in_edges) == 1
+  assert op.out_edges[0] is psi_node[0]
+  assert op.in_edges[0] is psi_node[1]
 
   op = qu.quantum_constructor([psi_node[0], psi_node[1]], [])
   assert not op.is_scalar()
   assert op.is_vector()
   assert not op.is_adjoint_vector()
+  assert len(op.out_edges) == 2
+  assert len(op.in_edges) == 0
+  assert op.out_edges[0] is psi_node[0]
+  assert op.out_edges[1] is psi_node[1]
 
   op = qu.quantum_constructor([], [psi_node[0], psi_node[1]])
   assert not op.is_scalar()
   assert not op.is_vector()
   assert op.is_adjoint_vector()
+  assert len(op.out_edges) == 0
+  assert len(op.in_edges) == 2
+  assert op.in_edges[0] is psi_node[0]
+  assert op.in_edges[1] is psi_node[1]
 
   with pytest.raises(ValueError):
     op = qu.quantum_constructor([], [], [psi_node])
@@ -45,6 +57,8 @@ def test_constructor(backend):
   assert op.is_scalar()
   assert not op.is_vector()
   assert not op.is_adjoint_vector()
+  assert len(op.out_edges) == 0
+  assert len(op.in_edges) == 0
 
 
 def test_checks(backend):
@@ -52,7 +66,7 @@ def test_checks(backend):
   node2 = tn.Node(np.random.rand(2, 2), backend=backend)
   _ = node1[1] ^ node2[0]
 
-  # extra edges must be explicitly ignored
+  # extra dangling edges must be explicitly ignored
   with pytest.raises(ValueError):
     _ = qu.QuVector([node1[0]])
 
@@ -96,14 +110,21 @@ def test_identity(backend):
   E = qu.identity((2, 3, 4), backend=backend)
   assert E.trace().eval() == 24
 
-  psi = qu.QuVector.from_tensor(np.random.rand(2, 2), backend=backend)
+  tensor = np.random.rand(2, 2)
+  psi = qu.QuVector.from_tensor(tensor, backend=backend)
   E = qu.identity((2, 2), backend=backend)
-  np.testing.assert_almost_equal((E @ psi).norm().eval(), psi.norm().eval())
+  np.testing.assert_allclose((E @ psi).eval(), psi.eval())
+
+  op = qu.QuOperator.from_tensor(tensor, [0], [1], backend=backend)
+  op_I = op.tensor_product(E)
+  op_times_4 = op_I.partial_trace([1, 2])
+  np.testing.assert_allclose(op_times_4.eval(), 4 * op.eval())
 
 
 def test_tensor_product(backend):
   psi = qu.QuVector.from_tensor(np.random.rand(2, 2), backend=backend)
   psi_psi = psi.tensor_product(psi)
+  assert len(psi_psi.subsystem_edges) == 4
   np.testing.assert_almost_equal(psi_psi.norm().eval(), psi.norm().eval()**2)
 
 
