@@ -184,9 +184,6 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
         the newly broken edges.
       disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
         to the newly broken edges.
-
-  Raises:
-    ValueError: If the node isn't in the network.
   """
   disconnected_edges_by_name = {}
   disconnected_edges_by_axis = {}
@@ -607,7 +604,7 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
   Args:
     inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
-    A list of `BaseNode` objects that can be reached from `node`
+    A set of `BaseNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
