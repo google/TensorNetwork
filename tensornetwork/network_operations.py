@@ -786,3 +786,4 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
                                 "backend is 'numpy'. Current backend "
                                 "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
+    node.backend = backend

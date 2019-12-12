@@ -57,7 +57,7 @@ class FiniteMPS(BaseMPS):
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
     """
-    Initialize a FiniteMPS.
+    Initialize a `FiniteMPS`.
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
@@ -114,6 +114,7 @@ class FiniteMPS(BaseMPS):
     ]
     return cls(tensors=tensors, center_position=0, backend=backend)
 
+  # pylint: disable=arguments-differ
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
     """
     Bring the MPS into canonical form according to `FiniteMPS.center_position`.

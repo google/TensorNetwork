@@ -142,3 +142,13 @@ def test_apply_two_site_gate(backend_dtype_values):
   res = tn.contract_between(mps.nodes[5], mps.nodes[6])
   res.reorder_edges(order)
   np.testing.assert_allclose(res.tensor, actual)
+
+
+def test_mps_switch_backend(backend):
+  D, d, N = 10, 2, 10
+  tensors = [get_random_np((1, d, D), np.float64)] + [
+      get_random_np((D, d, D), np.float64) for _ in range(N - 2)
+  ] + [get_random_np((D, d, 1), np.float64)]
+  mps = BaseMPS(tensors, center_position=0, backend="numpy")
+  mps.switch_backend(backend)
+  assert mps.backend.name == backend

@@ -16,11 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import functools
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
+from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj, switch_backend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
@@ -198,6 +197,15 @@ class BaseMPS:
     """
 
     return [node.shape[1] for node in self.nodes]
+
+  def switch_backend(self, new_backend: Text) -> None:
+    """
+    Change the backend of all the nodes in the MPS.
+
+    Args:
+      new_backend (str): The new backend.
+    """
+    switch_backend(self.nodes, new_backend)
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
@@ -545,7 +553,7 @@ class BaseMPS:
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = self.nodes[site]
+    n1 = self.get_node(site)  #we need to absorb the connector_matrix
     n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
@@ -557,6 +565,23 @@ class BaseMPS:
     return self.backend.norm(
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+
+  def check_canonical(self) -> Tensor:
+    """
+    Check whether the MPS is in the expected canonical form.
+    Returns:
+      The L2 norm of the vector of local deviations.
+    """
+    deviations = []
+    for site in range(len(self.nodes)):
+      if site < self.center_position:
+        deviation = self.check_orthonormality('l', site)
+      elif site > self.center_position:
+        deviation = self.check_orthonormality('r', site)
+      else:
+        continue
+      deviations.append(deviation**2)
+    return self.backend.sqrt(sum(deviations))
 
   def get_node(self, site: int) -> BaseNode:
     """
@@ -590,5 +615,5 @@ class BaseMPS:
           output_edge_order=order)
     return self.nodes[site]
 
-  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+  def canonicalize(self, *args, **kwargs) -> np.number:
     raise NotImplementedError()
