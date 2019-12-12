@@ -19,8 +19,6 @@ import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
-
-import numpy as np
 import copy
 from typing import List, Union, Any, Optional, Tuple, Text
 
