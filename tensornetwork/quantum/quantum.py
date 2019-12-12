@@ -24,7 +24,7 @@ from typing import Type
 import numpy as np
 from tensornetwork.network_components import Node, Edge, connect, CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
-from tensornetwork.network_operations import get_subgraph_dangling
+from tensornetwork.network_operations import get_subgraph_dangling, remove_node
 from tensornetwork.contractors import greedy
 Tensor = Any
 
@@ -57,22 +57,22 @@ def quantum_constructor(out_edges: Sequence[Edge], in_edges: Sequence[Edge],
   return QuOperator(out_edges, in_edges, ref_nodes, ignore_edges)
 
 
-def identity(shape: Sequence[int], backend: Optional[Text] = None,
+def identity(space: Sequence[int], backend: Optional[Text] = None,
              dtype: Type[np.number] = np.float64):
   """Construct a `QuOperator` representing the identity on a given space.
 
   Internally, this is done by constructing `CopyNode`s for each edge, with
-  dimension according to `shape`.
+  dimension according to `space`.
 
   Args:
-    shape: A sequence of integers for the dimensions of the tensor product
+    space: A sequence of integers for the dimensions of the tensor product
       factors of the space (the edges in the tensor network).
     backend: Optionally specify the backend to use for computations.
     dtype: The data type (for conversion to dense).
   Returns:
     The desired identity operator.
   """
-  nodes = [CopyNode(2, d, backend=backend, dtype=dtype) for d in shape]
+  nodes = [CopyNode(2, d, backend=backend, dtype=dtype) for d in space]
   out_edges = [n[0] for n in nodes]
   in_edges = [n[1] for n in nodes]
   return quantum_constructor(out_edges, in_edges)
@@ -97,6 +97,44 @@ def check_spaces(edges_1: Sequence[Edge], edges_2: Sequence[Edge]):
       raise ValueError("Hilbert-space mismatch on subsystems {}: Input "
                        "dimension {} != output dimension {}.".format(
                            i, e1.dimension, e2.dimension))
+
+
+def eliminate_identities(nodes: Collection[Node]):
+  """Eliminates any connected CopyNodes that are identity matrices.
+
+  This will modify the network represented by `nodes`.
+  Only identities that are connected to other nodes are eliminated.
+
+  Args:
+    nodes: Collection of nodes to search.
+  Returns:
+    nodes_dict: Dictionary mapping remaining Nodes to any replacements.
+    dangling_edges_dict: Dictionary specifying all dangling-edge replacements.
+  """
+  nodes_dict = {}
+  dangling_edges_dict = {}
+  for n in nodes:
+    if isinstance(n, CopyNode) and n.get_rank() == 2 and not (
+        n[0].is_dangling() and n[1].is_dangling()):
+      old_edges = [n[0], n[1]]
+      _, new_edges = remove_node(n)
+      if 0 in new_edges and 1 in new_edges:
+        e = connect(new_edges[0], new_edges[1])
+      elif 0 in new_edges:  # 1 was dangling
+        dangling_edges_dict[old_edges[1]] = new_edges[0]
+      elif 1 in new_edges:  # 0 was dangling
+        dangling_edges_dict[old_edges[0]] = new_edges[1]
+      else:
+        # Trace of identity, so replace with a scalar node!
+        d = n.get_dimension(0)
+        # NOTE: Assume CopyNodes have numpy dtypes.
+        nodes_dict[n] = Node(np.array(d, dtype=n.dtype), backend=n.backend)
+    else:
+      for e in n.get_all_dangling():
+        dangling_edges_dict[e] = e
+      nodes_dict[n] = n
+
+  return nodes_dict, dangling_edges_dict
 
 
 class QuOperator():
@@ -133,8 +171,8 @@ class QuOperator():
       ref_nodes: Nodes used to refer to parts of the tensor network that are
         not connected to any input or output edges (for example: a scalar
         factor).
-      ignore_edges: Optional collection of edges to ignore when performing
-        consistency checks.
+      ignore_edges: Optional collection of dangling edges to ignore when
+        performing consistency checks.
     """
     # TODO: Decide whether the user must also supply all nodes involved.
     #       This would enable extra error checking and is probably clearer
@@ -206,6 +244,10 @@ class QuOperator():
     for (i, e) in enumerate(self.in_edges):
       if not e.is_dangling():
         raise ValueError("Input edge {} is not dangling!".format(i))
+    for e in self.ignore_edges:
+      if not e.is_dangling():
+        raise ValueError("ignore_edges contains non-dangling edge: {}".format(
+            str(e)))
 
     known_edges = set(self.in_edges) | set(self.out_edges) | self.ignore_edges
     all_dangling_edges = get_subgraph_dangling(self.nodes)
@@ -253,10 +295,10 @@ class QuOperator():
     Returns:
       A new QuOperator or QuScalar representing the result.
     """
-    check_spaces(self.in_edges, self.out_edges)
-
     out_edges_trace = [self.out_edges[i] for i in subsystems_to_trace_out]
     in_edges_trace = [self.in_edges[i] for i in subsystems_to_trace_out]
+
+    check_spaces(in_edges_trace, out_edges_trace)
 
     nodes_dict, edge_dict = copy(self.nodes, False)
     for (e1, e2) in zip(out_edges_trace, in_edges_trace):
@@ -383,6 +425,12 @@ class QuOperator():
     Returns:
       The present object.
     """
+    nodes_dict, dangling_edges_dict = eliminate_identities(self.nodes)
+    self.in_edges = [dangling_edges_dict[e] for e in self.in_edges]
+    self.out_edges = [dangling_edges_dict[e] for e in self.out_edges]
+    self.ignore_edges = set(dangling_edges_dict[e] for e in self.ignore_edges)
+    self.check_network()
+
     if final_edge_order:
       self.ref_nodes = set(
           [contractor(self.nodes, output_edge_order=final_edge_order)])
