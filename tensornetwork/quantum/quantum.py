@@ -429,9 +429,12 @@ class QuOperator():
     self.in_edges = [dangling_edges_dict[e] for e in self.in_edges]
     self.out_edges = [dangling_edges_dict[e] for e in self.out_edges]
     self.ignore_edges = set(dangling_edges_dict[e] for e in self.ignore_edges)
+    self.ref_nodes = set(
+        nodes_dict[n] for n in self.ref_nodes if n in nodes_dict)
     self.check_network()
 
     if final_edge_order:
+      final_edge_order = [dangling_edges_dict[e] for e in final_edge_order]
       self.ref_nodes = set(
           [contractor(self.nodes, output_edge_order=final_edge_order)])
     else:
