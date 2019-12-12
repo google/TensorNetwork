@@ -135,7 +135,7 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
   return charge_shape_dict
 
 
-def retrieve_non_zero_diagonal_blocks_deprecated(
+def retrieve_non_zero_diagonal_blocks(
     data: np.ndarray,
     charges: List[np.ndarray],
     flows: List[Union[bool, int]],
@@ -143,8 +143,6 @@ def retrieve_non_zero_diagonal_blocks_deprecated(
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
-  This is a deprecated version which in general performs worse than the
-  current main implementation.
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
       has to match the number of non-zero elements defined by `charges` 
@@ -236,7 +234,7 @@ def retrieve_non_zero_diagonal_blocks_deprecated(
   return blocks
 
 
-def retrieve_non_zero_diagonal_blocks(
+def retrieve_non_zero_diagonal_blocks_deprecated(
     data: np.ndarray,
     charges: List[np.ndarray],
     flows: List[Union[bool, int]],
@@ -244,6 +242,9 @@ def retrieve_non_zero_diagonal_blocks(
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
+  This is a deprecated version which in general performs worse than the
+  current main implementation.
+
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
       has to match the number of non-zero elements defined by `charges` 
@@ -287,7 +288,6 @@ def retrieve_non_zero_diagonal_blocks(
       row_charges, return_inverse=True, return_counts=True)
   unique_column_charges, column_locations, column_dims = np.unique(
       column_charges, return_inverse=True, return_counts=True)
-
   #convenience container for storing the degeneracies of each
   #row and column charge
   row_degeneracies = dict(zip(unique_row_charges, row_dims))
@@ -300,12 +300,11 @@ def retrieve_non_zero_diagonal_blocks(
 
   degeneracy_vector = row_dims[column_locations]
   stop_positions = np.cumsum(degeneracy_vector)
-
   blocks = {}
   for c in common_charges:
     #numpy broadcasting is substantially faster than kron!
     a = np.expand_dims(
-        stop_positions[column_locations == -c] - row_degeneracies[c], 0)
+        stop_positions[column_charges == -c] - row_degeneracies[c], 0)
     b = np.expand_dims(np.arange(row_degeneracies[c]), 1)
     if not return_data:
       blocks[c] = [a + b, (row_degeneracies[c], column_degeneracies[-c])]
