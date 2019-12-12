@@ -626,6 +626,11 @@ class CopyNode(BaseNode):
         backend=backend_obj,
         shape=(dimension,) * rank)
 
+  @property
+  def dtype(self):
+    # Override so we don't construct the dense tensor when asked for the dtype!
+    return self.copy_node_dtype
+
   def get_tensor(self) -> Tensor:
     return self.tensor
 
