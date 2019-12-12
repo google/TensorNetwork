@@ -148,7 +148,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
                                  maxval=boundaries[1], dtype=dtype.real_dtype))
     self.tf.random.set_seed(10)
     a = self.tf.random.uniform(shape=shape, minval=boundaries[0],
-                                  maxval=boundaries[1], dtype=dtype)
+                               maxval=boundaries[1], dtype=dtype)
     return a
 
   def conj(self, tensor: Tensor) -> Tensor:
