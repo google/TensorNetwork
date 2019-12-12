@@ -207,6 +207,13 @@ class ShellBackend(base_backend.BaseBackend):
             seed: Optional[int] = None) -> Tensor:
     return ShellTensor(shape)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    return ShellTensor(shape)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
 

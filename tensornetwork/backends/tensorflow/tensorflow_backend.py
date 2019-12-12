@@ -131,6 +131,26 @@ class TensorFlowBackend(base_backend.BaseBackend):
           self.tf.random.normal(shape=shape, dtype=dtype.real_dtype))
     return self.tf.random.normal(shape=shape, dtype=dtype)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.tf.random.set_seed(seed)
+
+    dtype = dtype if dtype is not None else self.tf.float64
+    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
+      return self.tf.complex(
+          self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                                 maxval=boundaries[1], dtype=dtype.real_dtype),
+          self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                                 maxval=boundaries[1], dtype=dtype.real_dtype))
+    self.tf.random.set_seed(10)
+    a = self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                                  maxval=boundaries[1], dtype=dtype)
+    return a
+
   def conj(self, tensor: Tensor) -> Tensor:
     return self.tf.math.conj(tensor)
 

@@ -265,6 +265,25 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    """Return a random-uniform-matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         boundaries (tuple) : the boundaries of the uniform distribution
+         dtype: The dtype of the returned matrix.
+         seed:  The seed for the random number generator
+    """
+    raise NotImplementedError(("Backend '{}' has not implemented"
+                               "random_uniform.").format(self.name))
+
   def conj(self, tensor: Tensor) -> Tensor:
     """ 
     Return the complex conjugate of `tensor`

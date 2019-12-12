@@ -148,6 +148,13 @@ def test_randn(dtype):
   assert a.shape == (4, 4)
 
 
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_random_uniform(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype)
+  assert a.shape == (4, 4)
+
+
 @pytest.mark.parametrize("dtype", torch_eye_dtypes)
 def test_eye_dtype(dtype):
   backend = pytorch_backend.PyTorchBackend()
@@ -177,11 +184,45 @@ def test_randn_dtype(dtype):
 
 
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_random_uniform_dtype(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype)
+  assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
 def test_randn_seed(dtype):
   backend = pytorch_backend.PyTorchBackend()
   a = backend.randn((4, 4), seed=10, dtype=dtype)
   b = backend.randn((4, 4), seed=10, dtype=dtype)
   np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_random_uniform_seed(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  torch.allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_random_uniform_boundaries(dtype):
+  lb = 1.2
+  ub = 4.8
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
+  assert(torch.ge(a, 0).byte().all() and torch.le(a, 1).byte().all() and
+         torch.ge(b, lb).byte().all() and torch.le(b, ub).byte().all())
+
+
+def test_random_uniform_behavior():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.random_uniform((4, 4), seed=10)
+  torch.manual_seed(10)
+  b = torch.empty((4, 4), dtype=torch.float64).uniform_()
+  torch.allclose(a, b)
 
 
 def test_conj():
