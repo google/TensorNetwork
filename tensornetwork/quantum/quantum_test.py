@@ -108,12 +108,20 @@ def test_from_tensor(backend):
 
 def test_identity(backend):
   E = qu.identity((2, 3, 4), backend=backend)
-  assert E.trace().eval() == 24
+  for n in E.nodes:
+    assert isinstance(n, tn.CopyNode)
+  twentyfour = E.trace()
+  for n in twentyfour.nodes:
+    assert isinstance(n, tn.CopyNode)
+  assert twentyfour.eval() == 24
 
   tensor = np.random.rand(2, 2)
   psi = qu.QuVector.from_tensor(tensor, backend=backend)
   E = qu.identity((2, 2), backend=backend)
   np.testing.assert_allclose((E @ psi).eval(), psi.eval())
+
+  np.testing.assert_allclose(
+      (psi.adjoint() @ E @ psi).eval(), psi.norm().eval())
 
   op = qu.QuOperator.from_tensor(tensor, [0], [1], backend=backend)
   op_I = op.tensor_product(E)
