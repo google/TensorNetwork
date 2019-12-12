@@ -571,16 +571,7 @@ class BlockSparseTensor:
         if self.shape[n] > dense_shape[n]:
           raise_error()
       elif dense_shape[n] < self.shape[n]:
-        while dense_shape[n] < self.shape[n]:
-          #split index at n
-          try:
-            i1, i2 = split_index(self.indices.pop(n))
-          except ValueError:
-            raise_error()
-          self.indices.insert(n, i1)
-          self.indices.insert(n + 1, i2)
-        if self.shape[n] < dense_shape[n]:
-          raise_error()
+        raise_error()
 
   def get_diagonal_blocks(self, return_data: Optional[bool] = True) -> Dict:
     """
