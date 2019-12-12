@@ -157,6 +157,11 @@ def test_randn():
   assertBackendsAgree("randn", args)
 
 
+def test_random_uniform():
+  args = {"shape": (10, 4)}
+  assertBackendsAgree("random_uniform", args)
+
+
 def test_eigsh_lanczos_1():
   backend = shell_backend.ShellBackend()
   D = 16

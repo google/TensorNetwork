@@ -161,10 +161,24 @@ def test_randn(dtype):
   assert a.shape == (4, 4)
 
 
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform(dtype):
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype)
+  assert a.shape == (4, 4)
+
+
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 def test_randn_non_zero_imag(dtype):
   backend = jax_backend.JaxBackend()
   a = backend.randn((4, 4), dtype=dtype)
+  assert np.linalg.norm(np.imag(a)) != 0.0
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_random_uniform_non_zero_imag(dtype):
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype)
   assert np.linalg.norm(np.imag(a)) != 0.0
 
 
@@ -197,10 +211,45 @@ def test_randn_dtype(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform_dtype(dtype):
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype)
+  assert a.dtype == dtype
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_seed(dtype):
   backend = jax_backend.JaxBackend()
   a = backend.randn((4, 4), seed=10, dtype=dtype)
   b = backend.randn((4, 4), seed=10, dtype=dtype)
+  np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform_seed(dtype):
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform_boundaries(dtype):
+  lb = 1.2
+  ub = 4.8
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
+  assert((a >= 0).all() and (a <= 1).all() and
+         (b >= lb).all() and (b <= ub).all())
+
+
+def test_random_uniform_behavior():
+  seed = 10
+  key = jax.random.PRNGKey(seed)
+  backend = jax_backend.JaxBackend()
+  a = backend.random_uniform((4, 4), seed=seed)
+  b = jax.random.uniform(key, (4, 4))
   np.testing.assert_allclose(a, b)
 
 

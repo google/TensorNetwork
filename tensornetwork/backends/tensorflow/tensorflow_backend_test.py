@@ -151,10 +151,24 @@ def test_randn(dtype):
   assert a.shape == (4, 4)
 
 
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_random_uniform(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
+  assert a.shape == (4, 4)
+
+
 @pytest.mark.parametrize("dtype", [tf.complex64, tf.complex128])
 def test_randn_non_zero_imag(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.randn((4, 4), dtype=dtype)
+  assert tf.math.greater(tf.linalg.norm(tf.math.imag(a)), 0.0)
+
+
+@pytest.mark.parametrize("dtype", [tf.complex64, tf.complex128])
+def test_random_uniform_non_zero_imag(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
   assert tf.math.greater(tf.linalg.norm(tf.math.imag(a)), 0.0)
 
 
@@ -186,12 +200,40 @@ def test_randn_dtype(dtype):
   assert a.dtype == dtype
 
 
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_random_uniform_dtype(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
+  assert a.dtype == dtype
+
+
 @pytest.mark.parametrize("dtype", tf_randn_dtypes)
 def test_randn_seed(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.randn((4, 4), seed=10, dtype=dtype)
   b = backend.randn((4, 4), seed=10, dtype=dtype)
   np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_random_uniform_seed(dtype):
+  test = tf.test.TestCase()
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  test.assertAllCloseAccordingToType(a, b)
+
+
+@pytest.mark.parametrize("dtype", tf_randn_dtypes)
+def test_random_uniform_boundaries(dtype):
+  test = tf.test.TestCase()
+  lb = 1.2
+  ub = 4.8
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
+  test.assertAllInRange(a, 0, 1)
+  test.assertAllInRange(b, lb, ub)
 
 
 def test_conj():

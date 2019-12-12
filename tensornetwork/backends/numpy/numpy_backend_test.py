@@ -159,10 +159,24 @@ def test_randn(dtype):
   assert a.shape == (4, 4)
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_random_uniform(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
+  assert a.shape == (4, 4)
+
+
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 def test_randn_non_zero_imag(dtype):
   backend = numpy_backend.NumPyBackend()
   a = backend.randn((4, 4), dtype=dtype, seed=10)
+  assert np.linalg.norm(np.imag(a)) != 0.0
+
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_random_uniform_non_zero_imag(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
   assert np.linalg.norm(np.imag(a)) != 0.0
 
 
@@ -194,11 +208,45 @@ def test_randn_dtype(dtype):
   assert a.dtype == dtype
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_random_uniform_dtype(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), dtype=dtype, seed=10)
+  assert a.dtype == dtype
+
+
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
 def test_randn_seed(dtype):
   backend = numpy_backend.NumPyBackend()
   a = backend.randn((4, 4), seed=10, dtype=dtype)
   b = backend.randn((4, 4), seed=10, dtype=dtype)
+  np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_random_uniform_seed(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  np.testing.assert_allclose(a, b)
+
+
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform_boundaries(dtype):
+  lb = 1.2
+  ub = 4.8
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
+  b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
+  assert((a >= 0).all() and (a <= 1).all() and
+         (b >= lb).all() and (b <= ub).all())
+
+
+def test_random_uniform_behavior():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.random_uniform((4, 4), seed=10)
+  np.random.seed(10)
+  b = np.random.uniform(size=(4, 4))
   np.testing.assert_allclose(a, b)
 
 
