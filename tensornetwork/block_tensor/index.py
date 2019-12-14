@@ -36,15 +36,19 @@ class Index:
                name: Optional[Text] = None,
                left_child: Optional["Index"] = None,
                right_child: Optional["Index"] = None):
-    self.charges = np.asarray(charges)
+    self._charges = np.asarray(charges)
     self.flow = flow
     self.left_child = left_child
     self.right_child = right_child
     self.name = name if name else 'index'
 
   @property
+  def is_leave(self):
+    return (self.left_child is None) and (self.right_child is None)
+
+  @property
   def dimension(self):
-    return len(self.charges)
+    return np.prod([len(i.charges) for i in self.get_elementary_indices()])
 
   def _copy_helper(self, index: "Index", copied_index: "Index") -> None:
     """
@@ -52,16 +56,17 @@ class Index:
     """
     if index.left_child != None:
       left_copy = Index(
-          charges=index.left_child.charges.copy(),
+          charges=copy.copy(index.left_child.charges),
           flow=copy.copy(index.left_child.flow),
-          name=index.left_child.name)
+          name=copy.copy(index.left_child.name))
+
       copied_index.left_child = left_copy
       self._copy_helper(index.left_child, left_copy)
     if index.right_child != None:
       right_copy = Index(
-          charges=index.right_child.charges.copy(),
+          charges=copy.copy(index.right_child.charges),
           flow=copy.copy(index.right_child.flow),
-          name=index.right_child.name)
+          name=copy.copy(index.right_child.name))
       copied_index.right_child = right_copy
       self._copy_helper(index.right_child, right_copy)
 
@@ -72,7 +77,7 @@ class Index:
         `Index` are copied as well.
     """
     index_copy = Index(
-        charges=self.charges.copy(), flow=copy.copy(self.flow), name=self.name)
+        charges=self._charges.copy(), flow=copy.copy(self.flow), name=self.name)
 
     self._copy_helper(self, index_copy)
     return index_copy
@@ -100,9 +105,19 @@ class Index:
     Merge `index` and self into a single larger index.
     The flow of the resulting index is set to 1.
     Flows of `self` and `index` are multiplied into 
-    the charges upon fusing.
+    the charges upon fusing.n
     """
     return fuse_index_pair(self, index)
+
+  @property
+  def charges(self):
+    if self.is_leave:
+      return self._charges
+    fused_charges = fuse_charges(self.left_child.charges, self.left_child.flow,
+                                 self.right_child.charges,
+                                 self.right_child.flow)
+
+    return fused_charges
 
 
 def fuse_charges(q1: Union[List, np.ndarray], flow1: int,
@@ -146,7 +161,8 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
   Returns:
     np.ndarray: The result of fusing `q1` with `q2`.
   """
-  return np.kron(degen2, degen1)
+  return np.reshape(degen2[:, None] * degen1[None, :],
+                    len(degen1) * len(degen2))
 
 
 def fuse_index_pair(left_index: Index,
@@ -166,13 +182,10 @@ def fuse_index_pair(left_index: Index,
     raise ValueError(
         "index1 and index2 are the same object. Can only fuse distinct objects")
 
-  fused_charges = fuse_charges(left_index.charges, left_index.flow,
-                               right_index.charges, right_index.flow)
+  # fused_charges = fuse_charges(left_index.charges, left_index.flow,
+  #                              right_index.charges, right_index.flow)
   return Index(
-      charges=fused_charges,
-      flow=flow,
-      left_child=left_index,
-      right_child=right_index)
+      charges=None, flow=flow, left_child=left_index, right_child=right_index)
 
 
 def fuse_indices(indices: List[Index], flow: Optional[int] = 1) -> Index:
