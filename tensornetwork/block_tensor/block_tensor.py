@@ -74,7 +74,7 @@ def compute_num_nonzero(charges: List[np.ndarray],
     #compute the degeneracies of `fused_charges` charges
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    #compute the new degeneracies resulting of fusing the vectors of unique charges
+    #compute the new degeneracies resulting from fusing
     #`accumulated_charges` and `leg_charge_2`
     accumulated_charges = np.unique(fused_charges)
     accumulated_degeneracies = []
@@ -107,6 +107,7 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
     dict: Dictionary mapping a tuple of charges to a shape tuple.
       Each element corresponds to a non-zero valued block of the tensor.
   """
+  #FIXME: this routine is slow
   check_flows(flows)
   degeneracies = []
   unique_charges = []
@@ -143,6 +144,108 @@ def retrieve_non_zero_diagonal_blocks(
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
+  Args: 
+    data: An np.ndarray of the data. The number of elements in `data`
+      has to match the number of non-zero elements defined by `charges` 
+      and `flows`
+    charges: List of np.ndarray, one for each leg. 
+      Each np.ndarray `charges[leg]` is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
+    flows: A list of integers, one for each leg,
+      with values `1` or `-1`, denoting the flow direction
+      of the charges on each leg. `1` is inflowing, `-1` is outflowing
+      charge.
+    return_data: If `True`, the return dictionary maps quantum numbers `q` to 
+      actual `np.ndarray` with the data. This involves a copy of data.
+      If `False`, the returned dict maps quantum numbers of a list 
+      [locations, shape], where `locations` is an np.ndarray of type np.int64
+      containing the locations of the tensor elements within A.data, i.e.
+      `A.data[locations]` contains the elements belonging to the tensor with 
+      quantum numbers `(q,q). `shape` is the shape of the corresponding array.
+
+  Returns:
+    dict: Dictionary mapping quantum numbers (integers) to either an np.ndarray 
+      or a python list of locations and shapes, depending on the value of `return_data`.
+  """
+  if len(charges) != 2:
+    raise ValueError("input has to be a two-dimensional symmetric matrix")
+  check_flows(flows)
+  if len(flows) != len(charges):
+    raise ValueError("`len(flows)` is different from `len(charges)`")
+
+  #we multiply the flows into the charges
+  row_charges = flows[0] * charges[0]  # a list of charges on each row
+  column_charges = flows[1] * charges[1]  # a list of charges on each column
+
+  #get the unique charges
+  unique_row_charges, row_dims = np.unique(row_charges, return_counts=True)
+  unique_column_charges, column_dims = np.unique(
+      column_charges, return_counts=True)
+  #get the charges common to rows and columns (only those matter)
+  common_charges = np.intersect1d(
+      unique_row_charges, -unique_column_charges, assume_unique=True)
+
+  #convenience container for storing the degeneracies of each
+  #row and column charge
+  row_degeneracies = dict(zip(unique_row_charges, row_dims))
+  column_degeneracies = dict(zip(unique_column_charges, column_dims))
+
+  # we only care about charges common to row and columns
+  mask = np.isin(row_charges, common_charges)
+  relevant_row_charges = row_charges[mask]
+
+  #some numpy magic to get the index locations of the blocks
+  #we generate a vector of `len(relevant_row_charges) which,
+  #for each charge `c` in `relevant_row_charges` holds the
+  #column-degeneracy of charge `c`
+  degeneracy_vector = np.empty(len(relevant_row_charges), dtype=np.int64)
+  #for each charge `c` in `common_charges` we generate a boolean mask
+  #for indexing the positions where `relevant_column_charges` has a value of `c`.
+  masks = {}
+  for c in common_charges:
+    mask = relevant_row_charges == c
+    masks[c] = mask
+    degeneracy_vector[mask] = column_degeneracies[-c]
+
+  # the result of the cumulative sum is a vector containing
+  # the stop positions of the non-zero values of each row
+  # within the data vector.
+  # E.g. for `relevant_row_charges` = [0,1,0,0,3],  and
+  # column_degeneracies[0] = 10
+  # column_degeneracies[1] = 20
+  # column_degeneracies[3] = 30
+  # we have
+  # `stop_positions` = [10, 10+20, 10+20+10, 10+20+10+10, 10+20+10+10+30]
+  # The starting positions of consecutive elements (in row-major order) in
+  # each row with charge `c=0` within the data vector are then simply obtained using
+  # masks[0] = [True, False, True, True, False]
+  # and `stop_positions[masks[0]] - column_degeneracies[0]`
+  stop_positions = np.cumsum(degeneracy_vector)
+  blocks = {}
+
+  for c in common_charges:
+    #numpy broadcasting is substantially faster than kron!
+    a = np.expand_dims(stop_positions[masks[c]] - column_degeneracies[-c], 0)
+    b = np.expand_dims(np.arange(column_degeneracies[-c]), 1)
+    if not return_data:
+      blocks[c] = [a + b, (row_degeneracies[c], column_degeneracies[-c])]
+    else:
+      blocks[c] = np.reshape(data[a + b],
+                             (row_degeneracies[c], column_degeneracies[-c]))
+  return blocks
+
+
+def retrieve_non_zero_diagonal_blocks_column_major(
+    data: np.ndarray,
+    charges: List[np.ndarray],
+    flows: List[Union[bool, int]],
+    return_data: Optional[bool] = True) -> Dict:
+  """
+  Deprecated
+
+  Given the meta data and underlying data of a symmetric matrix, compute 
+  all diagonal blocks and return them in a dict, assuming column-major 
+  ordering.
   Args: 
     data: An np.ndarray of the data. The number of elements in `data`
       has to match the number of non-zero elements defined by `charges` 
@@ -240,6 +343,8 @@ def retrieve_non_zero_diagonal_blocks_deprecated(
     flows: List[Union[bool, int]],
     return_data: Optional[bool] = False) -> Dict:
   """
+  Deprecated
+
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
   This is a deprecated version which in general performs worse than the
@@ -298,14 +403,14 @@ def retrieve_non_zero_diagonal_blocks_deprecated(
   #for each charge `c` in `relevant_column_charges` holds the
   #row-degeneracy of charge `c`
 
-  degeneracy_vector = row_dims[column_locations]
+  degeneracy_vector = column_dims[row_locations]
   stop_positions = np.cumsum(degeneracy_vector)
   blocks = {}
   for c in common_charges:
     #numpy broadcasting is substantially faster than kron!
     a = np.expand_dims(
-        stop_positions[column_charges == -c] - row_degeneracies[c], 0)
-    b = np.expand_dims(np.arange(row_degeneracies[c]), 1)
+        stop_positions[row_charges == c] - column_degeneracies[-c], 0)
+    b = np.expand_dims(np.arange(column_degeneracies[-c]), 1)
     if not return_data:
       blocks[c] = [a + b, (row_degeneracies[c], column_degeneracies[-c])]
     else:
@@ -344,6 +449,7 @@ class BlockSparseTensor:
   The class design follows Glen's proposal (Design 0).
   The class currently only supports a single U(1) symmetry
   and only numpy.ndarray.
+
   Attributes:
     * self.data: A 1d np.ndarray storing the underlying 
       data of the tensor
