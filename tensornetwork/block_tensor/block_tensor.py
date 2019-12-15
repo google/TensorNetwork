@@ -554,8 +554,7 @@ class BlockSparseTensor:
   def sparse_shape(self) -> Tuple:
     """
     The sparse shape of the tensor.
-    Returns a copy of self.indices. Note that copying
-    can be relatively expensive for deeply nested indices.
+    Returns a copy of self.indices. 
     Returns:
       Tuple: A tuple of `Index` objects.
     """
