@@ -680,24 +680,6 @@ class BlockSparseTensor:
   def rank(self):
     return len(self.indices)
 
-  #TODO: we should consider to switch the names
-  #`BlockSparseTensor.sparse_shape` and `BlockSparseTensor.shape`,
-  #i.e. have `BlockSparseTensor.shape`return the sparse shape of the tensor.
-  #This may be more convenient for building tensor-type and backend
-  #agnostic code. For example, in MPS code we essentially never
-  #explicitly set a shape to a certain value (apart from initialization).
-  #That is, code like this
-  #```
-  #tensor = np.random.rand(10,10,10)
-  #```
-  #is never used. Rather one inquires shapes of tensors and
-  #multiplies them to get new shapes:
-  #```
-  #new_tensor = reshape(tensor, [tensor.shape[0]*tensor.shape[1], tensor.shape[2]])
-  #```
-  #Thduis the return type of `BlockSparseTensor.shape` is never inspected explicitly
-  #(apart from debugging).
-
   @property
   def dense_shape(self) -> Tuple:
     """
@@ -711,11 +693,10 @@ class BlockSparseTensor:
   def shape(self) -> Tuple:
     """
     The sparse shape of the tensor.
-    Returns a copy of self.indices. 
     Returns:
       Tuple: A tuple of `Index` objects.
     """
-    return tuple([i.copy() for i in self.indices])
+    return tuple(self.indices)
 
   @property
   def dtype(self) -> Type[np.number]:
@@ -829,6 +810,9 @@ class BlockSparseTensor:
     """
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
+    For matrices with shape[0] << shape[1], this routine avoids explicit fusion
+    of column charges.
+
     Args:
       return_data: If `True`, the return dictionary maps quantum numbers `q` to 
         actual `np.ndarray` with the data. This involves a copy of data.
@@ -860,6 +844,8 @@ class BlockSparseTensor:
   def get_diagonal_blocks_old_version(
       self, return_data: Optional[bool] = True) -> Dict:
     """
+    Deprecated
+
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
     Args:
@@ -888,6 +874,8 @@ class BlockSparseTensor:
   def get_diagonal_blocks_deprecated(
       self, return_data: Optional[bool] = True) -> Dict:
     """
+    Deprecated 
+
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
     Args:
