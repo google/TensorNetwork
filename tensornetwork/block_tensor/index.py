@@ -42,6 +42,9 @@ class Index:
     self.right_child = right_child
     self.name = name if name else 'index'
 
+  def __repr__(self):
+    return str(self.dimension)
+
   @property
   def is_leave(self):
     return (self.left_child is None) and (self.right_child is None)
@@ -113,22 +116,22 @@ class Index:
   def charges(self):
     if self.is_leave:
       return self._charges
-    fused_charges = fuse_charges(self.left_child.charges, self.left_child.flow,
-                                 self.right_child.charges,
-                                 self.right_child.flow)
+    fused_charges = fuse_charge_pair(
+        self.left_child.charges, self.left_child.flow, self.right_child.charges,
+        self.right_child.flow)
 
     return fused_charges
 
 
-def fuse_charges(q1: Union[List, np.ndarray], flow1: int,
-                 q2: Union[List, np.ndarray], flow2: int) -> np.ndarray:
+def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
+                     q2: Union[List, np.ndarray], flow2: int) -> np.ndarray:
   """
   Fuse charges `q1` with charges `q2` by simple addition (valid
   for U(1) charges). `q1` and `q2` typically belong to two consecutive
   legs of `BlockSparseTensor`.
   Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
   `[10, 11, 12, 100, 101, 102]`.
-  When using column-major ordering of indices in `BlockSparseTensor`, 
+  When using row-major ordering of indices in `BlockSparseTensor`, 
   the position of q1 should be "to the left" of the position of q2.
   Args:
     q1: Iterable of integers
@@ -143,6 +146,27 @@ def fuse_charges(q1: Union[List, np.ndarray], flow1: int,
       len(q1) * len(q2))
 
 
+def fuse_charges(charges: List[Union[List, np.ndarray]],
+                 flows: List[int]) -> np.ndarray:
+  """
+  Fuse all `charges` by simple addition (valid
+  for U(1) charges). 
+  Args:
+    chargs: A list of charges to be fused.
+    flows: A list of flows, one for each element in `charges`.
+  Returns:
+    np.ndarray: The result of fusing `charges`.
+  """
+  if len(charges) == 1:
+    #nothing to do
+    return charges[0]
+  fused_charges = charges[0] * flows[0]
+  for n in range(1, len(charges)):
+    fused_charges = fuse_charge_pair(
+        q1=fused_charges, flow1=1, q2=charges[n], flow2=flows[n])
+  return fused_charges
+
+
 def fuse_degeneracies(degen1: Union[List, np.ndarray],
                       degen2: Union[List, np.ndarray]) -> np.ndarray:
   """
@@ -151,7 +175,7 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
   consecutive legs of `BlockSparseTensor`.
   Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
   `[10, 11, 12, 100, 101, 102]`.
-  When using column-major ordering of indices in `BlockSparseTensor`, 
+  When using row-major ordering of indices in `BlockSparseTensor`, 
   the position of q1 should be "to the left" of the position of q2.
   Args:
     q1: Iterable of integers
@@ -182,8 +206,6 @@ def fuse_index_pair(left_index: Index,
     raise ValueError(
         "index1 and index2 are the same object. Can only fuse distinct objects")
 
-  # fused_charges = fuse_charges(left_index.charges, left_index.flow,
-  #                              right_index.charges, right_index.flow)
   return Index(
       charges=None, flow=flow, left_child=left_index, right_child=right_index)
 
