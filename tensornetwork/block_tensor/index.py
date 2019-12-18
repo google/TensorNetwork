@@ -234,7 +234,7 @@ def split_index(index: Index) -> Tuple[Index, Index]:
   Returns:
     Tuple[Index, Index]: The result of splitting `index`.
   """
-  if (not index.left_child) or (not index.right_child):
+  if index.is_leave:
     raise ValueError("cannot split an elementary index")
 
   return index.left_child, index.right_child
