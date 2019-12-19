@@ -130,7 +130,7 @@ def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
   for U(1) charges). `q1` and `q2` typically belong to two consecutive
   legs of `BlockSparseTensor`.
   Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
-  `[10, 11, 12, 100, 101, 102]`.
+  `[10, 100, 11, 101, 12, 102]`.
   When using row-major ordering of indices in `BlockSparseTensor`, 
   the position of q1 should be "to the left" of the position of q2.
   Args:
@@ -142,7 +142,7 @@ def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
     np.ndarray: The result of fusing `q1` with `q2`.
   """
   return np.reshape(
-      flow2 * np.asarray(q2)[:, None] + flow1 * np.asarray(q1)[None, :],
+      flow1 * np.asarray(q1)[:, None] + flow2 * np.asarray(q2)[None, :],
       len(q1) * len(q2))
 
 
@@ -173,19 +173,17 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
   Fuse degeneracies `degen1` and `degen2` of two leg-charges 
   by simple kronecker product. `degen1` and `degen2` typically belong to two 
   consecutive legs of `BlockSparseTensor`.
-  Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
-  `[10, 11, 12, 100, 101, 102]`.
+  Given `degen1 = [1, 2, 3]` and `degen2 = [10, 100]`, this returns
+  `[10, 100, 20, 200, 30, 300]`.
   When using row-major ordering of indices in `BlockSparseTensor`, 
-  the position of q1 should be "to the left" of the position of q2.
+  the position of `degen1` should be "to the left" of the position of `degen2`.
   Args:
-    q1: Iterable of integers
-    flow1: Flow direction of charge `q1`.
-    q2: Iterable of integers
-    flow2: Flow direction of charge `q2`.
+    degen1: Iterable of integers
+    degen2: Iterable of integers
   Returns:
-    np.ndarray: The result of fusing `q1` with `q2`.
+    np.ndarray: The result of fusing `dege1` with `degen2`.
   """
-  return np.reshape(degen2[:, None] * degen1[None, :],
+  return np.reshape(degen1[:, None] * degen2[None, :],
                     len(degen1) * len(degen2))
 
 
