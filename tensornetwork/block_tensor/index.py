@@ -133,6 +133,7 @@ def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
   `[10, 100, 11, 101, 12, 102]`.
   When using row-major ordering of indices in `BlockSparseTensor`, 
   the position of q1 should be "to the left" of the position of q2.
+
   Args:
     q1: Iterable of integers
     flow1: Flow direction of charge `q1`.
@@ -150,7 +151,9 @@ def fuse_charges(charges: List[Union[List, np.ndarray]],
                  flows: List[int]) -> np.ndarray:
   """
   Fuse all `charges` by simple addition (valid
-  for U(1) charges). 
+  for U(1) charges). Charges are fused from "right to left", 
+  in accordance with row-major order (see `fuse_charges_pair`).
+
   Args:
     chargs: A list of charges to be fused.
     flows: A list of flows, one for each element in `charges`.
