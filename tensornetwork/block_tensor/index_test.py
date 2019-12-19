@@ -21,6 +21,13 @@ def test_fuse_charges():
   assert np.all(fused_charges == np.asarray([-2, -3, -4, -1, -2, -3]))
 
 
+def test_fuse_degeneracies():
+  d1 = np.asarray([0, 1])
+  d2 = np.asarray([2, 3, 4])
+  fused_degeneracies = fuse_degeneracies(d1, d2)
+  np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
+
+
 def test_index_fusion_mul():
   D = 10
   B = 4
