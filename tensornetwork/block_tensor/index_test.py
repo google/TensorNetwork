@@ -7,18 +7,18 @@ def test_fuse_charge_pair():
   q1 = np.asarray([0, 1])
   q2 = np.asarray([2, 3, 4])
   fused_charges = fuse_charge_pair(q1, 1, q2, 1)
-  assert np.all(fused_charges == np.asarray([2, 3, 3, 4, 4, 5]))
+  assert np.all(fused_charges == np.asarray([2, 3, 4, 3, 4, 5]))
   fused_charges = fuse_charge_pair(q1, 1, q2, -1)
-  assert np.all(fused_charges == np.asarray([-2, -1, -3, -2, -4, -3]))
+  assert np.all(fused_charges == np.asarray([-2, -3, -4, -1, -2, -3]))
 
 
 def test_fuse_charges():
   q1 = np.asarray([0, 1])
   q2 = np.asarray([2, 3, 4])
   fused_charges = fuse_charges([q1, q2], flows=[1, 1])
-  assert np.all(fused_charges == np.asarray([2, 3, 3, 4, 4, 5]))
+  assert np.all(fused_charges == np.asarray([2, 3, 4, 3, 4, 5]))
   fused_charges = fuse_charges([q1, q2], flows=[1, -1])
-  assert np.all(fused_charges == np.asarray([-2, -1, -3, -2, -4, -3]))
+  assert np.all(fused_charges == np.asarray([-2, -3, -4, -1, -2, -3]))
 
 
 def test_index_fusion_mul():
