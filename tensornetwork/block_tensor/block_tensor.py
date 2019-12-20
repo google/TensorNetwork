@@ -278,7 +278,6 @@ def find_diagonal_sparse_blocks_version_1(
   # we only care about charges common to row and columns
   mask = np.isin(fused_row_charges, common_charges)
   relevant_row_charges = fused_row_charges[mask]
-
   #some numpy magic to get the index locations of the blocks
   #we generate a vector of `len(relevant_row_charges) which,
   #for each charge `c` in `relevant_row_charges` holds the
@@ -311,8 +310,8 @@ def find_diagonal_sparse_blocks_version_1(
 
   for c in common_charges:
     #numpy broadcasting is substantially faster than kron!
-    a = np.expand_dims(start_positions[masks[c]], 0)
-    b = np.expand_dims(np.arange(column_degeneracies[-c]), 1)
+    a = np.expand_dims(start_positions[masks[c]], 1)
+    b = np.expand_dims(np.arange(column_degeneracies[-c]), 0)
     if not return_data:
       blocks[c] = [
           np.reshape(a + b, row_degeneracies[c] * column_degeneracies[-c]),
@@ -398,7 +397,6 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
     common_charges = np.intersect1d(
         unique_row_charges, -unique_column_charges, assume_unique=True)
 
-    row_locations = {}
     row_locations = find_sparse_positions(
         left_charges=left_row_charges,
         left_flow=1,
@@ -421,7 +419,6 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
       row_locations[c] = np.nonzero(relevant_fused_row_charges == c)[0]
   else:
     raise ValueError('Found an empty sequence for `row_charges`')
-
   #some numpy magic to get the index locations of the blocks
   degeneracy_vector = np.empty(
       np.sum([len(v) for v in row_locations.values()]), dtype=np.int64)
@@ -450,19 +447,14 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
 
   for c in common_charges:
     #numpy broadcasting is substantially faster than kron!
-    a = np.expand_dims(start_positions[row_locations[c]], 0)
-    b = np.expand_dims(np.arange(column_degeneracies[-c]), 1)
+    a = np.expand_dims(start_positions[np.sort(row_locations[c])], 1)
+    b = np.expand_dims(np.arange(column_degeneracies[-c]), 0)
+    inds = np.reshape(a + b, len(row_locations[c]) * column_degeneracies[-c])
     if not return_data:
-      blocks[c] = [
-          np.reshape(a + b,
-                     len(row_locations[c]) * column_degeneracies[-c]),
-          (len(row_locations[c]), column_degeneracies[-c])
-      ]
+      blocks[c] = [inds, (len(row_locations[c]), column_degeneracies[-c])]
     else:
-      blocks[c] = np.reshape(
-          data[np.reshape(a + b,
-                          len(row_locations[c]) * column_degeneracies[-c])],
-          (len(row_locations[c]), column_degeneracies[-c]))
+      blocks[c] = np.reshape(data[inds],
+                             (len(row_locations[c]), column_degeneracies[-c]))
   return blocks
 
 
@@ -830,7 +822,7 @@ def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
       if len(ri) != 0:
         b = np.expand_dims(ri, 1)
         tmp = a + b
-      blocks[target_charge].append(np.reshape(tmp, np.prod(tmp.shape)))
+        blocks[target_charge].append(np.reshape(tmp, np.prod(tmp.shape)))
   out = {}
   for target_charge in target_charges:
     out[target_charge] = np.concatenate(blocks[target_charge])
