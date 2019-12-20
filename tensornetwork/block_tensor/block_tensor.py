@@ -35,6 +35,10 @@ def _check_flows(flows) -> None:
 
 
 def _find_best_partition(charges, flows):
+  if len(charges) == 1:
+    raise ValueError(
+        '_expecting `charges` with a length of at least 2, got `len(charges)={}`'
+        .format(len(charges)))
   dims = np.asarray([len(c) for c in charges])
   min_ind = np.argmin([
       np.abs(np.prod(dims[0:n]) - np.prod(dims[n::]))
@@ -199,12 +203,13 @@ def compute_nonzero_block_shapes(charges: List[np.ndarray],
   return charge_shape_dict
 
 
-def find_diagonal_sparse_blocks(data: np.ndarray,
-                                row_charges: List[Union[List, np.ndarray]],
-                                column_charges: List[Union[List, np.ndarray]],
-                                row_flows: List[Union[bool, int]],
-                                column_flows: List[Union[bool, int]],
-                                return_data: Optional[bool] = True) -> Dict:
+def find_diagonal_sparse_blocks_version_1(
+    data: np.ndarray,
+    row_charges: List[Union[List, np.ndarray]],
+    column_charges: List[Union[List, np.ndarray]],
+    row_flows: List[Union[bool, int]],
+    column_flows: List[Union[bool, int]],
+    return_data: Optional[bool] = True) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
@@ -321,13 +326,12 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
   return blocks
 
 
-def find_diagonal_sparse_blocks_test(
-    data: np.ndarray,
-    row_charges: List[Union[List, np.ndarray]],
-    column_charges: List[Union[List, np.ndarray]],
-    row_flows: List[Union[bool, int]],
-    column_flows: List[Union[bool, int]],
-    return_data: Optional[bool] = True) -> Dict:
+def find_diagonal_sparse_blocks(data: np.ndarray,
+                                row_charges: List[Union[List, np.ndarray]],
+                                column_charges: List[Union[List, np.ndarray]],
+                                row_flows: List[Union[bool, int]],
+                                column_flows: List[Union[bool, int]],
+                                return_data: Optional[bool] = True) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
@@ -373,40 +377,52 @@ def find_diagonal_sparse_blocks_test(
         "`len(flows)` is different from `len(row_charges) + len(column_charges)`"
     )
 
-  #since we are using row-major we have to fuse the row charges anyway.
-  left_row_charges, right_row_charges = _find_best_partition(
-      row_charges, row_flows)
-
-  unique_left = np.unique(left_row_charges)
-  unique_right = np.unique(right_row_charges)
-  unique_row_charges = np.unique(
-      fuse_charges(charges=[unique_left, unique_right], flows=[1, 1]))
-
   #get the unique column-charges
   #we only care about their degeneracies, not their order; that's much faster
   #to compute since we don't have to fuse all charges explicitly
   unique_column_charges, column_dims = compute_fused_charge_degeneracies(
       column_charges, column_flows)
-  #get the charges common to rows and columns (only those matter)
-  common_charges = np.intersect1d(
-      unique_row_charges, -unique_column_charges, assume_unique=True)
-
   #convenience container for storing the degeneracies of each
   #column charge
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
-  row_locations = {}
-  row_locations = find_sparse_positions(
-      left_charges=left_row_charges,
-      left_flow=1,
-      right_charges=right_row_charges,
-      right_flow=1,
-      target_charges=common_charges)
+
+  if len(row_charges) > 1:
+    left_row_charges, right_row_charges = _find_best_partition(
+        row_charges, row_flows)
+    unique_left = np.unique(left_row_charges)
+    unique_right = np.unique(right_row_charges)
+    unique_row_charges = np.unique(
+        fuse_charges(charges=[unique_left, unique_right], flows=[1, 1]))
+
+    #get the charges common to rows and columns (only those matter)
+    common_charges = np.intersect1d(
+        unique_row_charges, -unique_column_charges, assume_unique=True)
+
+    row_locations = {}
+    row_locations = find_sparse_positions(
+        left_charges=left_row_charges,
+        left_flow=1,
+        right_charges=right_row_charges,
+        right_flow=1,
+        target_charges=common_charges)
+  elif len(row_charges) == 1:
+    fused_row_charges = fuse_charges(row_charges, row_flows)
+
+    #get the unique row-charges
+    unique_row_charges, row_dims = np.unique(
+        fused_row_charges, return_counts=True)
+    #get the charges common to rows and columns (only those matter)
+    common_charges = np.intersect1d(
+        unique_row_charges, -unique_column_charges, assume_unique=True)
+    relevant_fused_row_charges = fused_row_charges[np.isin(
+        fused_row_charges, common_charges)]
+    row_locations = {}
+    for c in common_charges:
+      row_locations[c] = np.nonzero(relevant_fused_row_charges == c)[0]
+  else:
+    raise ValueError('Found an empty sequence for `row_charges`')
 
   #some numpy magic to get the index locations of the blocks
-  #we generate a vector of `len(relevant_row_charges) which,
-  #for each charge `c` in `relevant_row_charges` holds the
-  #column-degeneracy of charge `c`
-
   degeneracy_vector = np.empty(
       np.sum([len(v) for v in row_locations.values()]), dtype=np.int64)
   #for each charge `c` in `common_charges` we generate a boolean mask
@@ -450,7 +466,7 @@ def find_diagonal_sparse_blocks_test(
   return blocks
 
 
-def find_diagonal_sparse_blocks_old_version(
+def find_diagonal_sparse_blocks_version_0(
     data: np.ndarray,
     charges: List[np.ndarray],
     flows: List[Union[bool, int]],
@@ -1092,42 +1108,6 @@ class BlockSparseTensor:
       i2, i1 = self.indices.pop(), self.indices.pop()
       self.indices.append(fuse_index_pair(i1, i2))
 
-  def get_diagonal_blocks_test(self,
-                               return_data: Optional[bool] = True) -> Dict:
-    """
-    Obtain the diagonal blocks of symmetric matrix.
-    BlockSparseTensor has to be a matrix.
-    For matrices with shape[0] << shape[1], this routine avoids explicit fusion
-    of column charges.
-
-    Args:
-      return_data: If `True`, the return dictionary maps quantum numbers `q` to 
-        actual `np.ndarray` with the data. This involves a copy of data.
-        If `False`, the returned dict maps quantum numbers of a list 
-        [locations, shape], where `locations` is an np.ndarray of type np.int64
-        containing the locations of the tensor elements within A.data, i.e.
-        `A.data[locations]` contains the elements belonging to the tensor with 
-        quantum numbers `(q,q). `shape` is the shape of the corresponding array.
-    Returns:
-      dict: Dictionary mapping charge to np.ndarray of rank 2 (a matrix)
-    
-    """
-    if self.rank != 2:
-      raise ValueError(
-          "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
-          .format(self.rank))
-
-    row_indices = self.indices[0].get_elementary_indices()
-    column_indices = self.indices[1].get_elementary_indices()
-
-    return find_diagonal_sparse_blocks_test(
-        data=self.data,
-        row_charges=[i.charges for i in row_indices],
-        column_charges=[i.charges for i in column_indices],
-        row_flows=[i.flow for i in row_indices],
-        column_flows=[i.flow for i in column_indices],
-        return_data=return_data)
-
   def get_diagonal_blocks(self, return_data: Optional[bool] = True) -> Dict:
     """
     Obtain the diagonal blocks of symmetric matrix.
@@ -1163,8 +1143,44 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_old_version(
-      self, return_data: Optional[bool] = True) -> Dict:
+  def get_diagonal_blocks_version_1(self,
+                                    return_data: Optional[bool] = True) -> Dict:
+    """
+    Obtain the diagonal blocks of symmetric matrix.
+    BlockSparseTensor has to be a matrix.
+    For matrices with shape[0] << shape[1], this routine avoids explicit fusion
+    of column charges.
+
+    Args:
+      return_data: If `True`, the return dictionary maps quantum numbers `q` to 
+        actual `np.ndarray` with the data. This involves a copy of data.
+        If `False`, the returned dict maps quantum numbers of a list 
+        [locations, shape], where `locations` is an np.ndarray of type np.int64
+        containing the locations of the tensor elements within A.data, i.e.
+        `A.data[locations]` contains the elements belonging to the tensor with 
+        quantum numbers `(q,q). `shape` is the shape of the corresponding array.
+    Returns:
+      dict: Dictionary mapping charge to np.ndarray of rank 2 (a matrix)
+    
+    """
+    if self.rank != 2:
+      raise ValueError(
+          "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
+          .format(self.rank))
+
+    row_indices = self.indices[0].get_elementary_indices()
+    column_indices = self.indices[1].get_elementary_indices()
+
+    return find_diagonal_sparse_blocks_version_1(
+        data=self.data,
+        row_charges=[i.charges for i in row_indices],
+        column_charges=[i.charges for i in column_indices],
+        row_flows=[i.flow for i in row_indices],
+        column_flows=[i.flow for i in column_indices],
+        return_data=return_data)
+
+  def get_diagonal_blocks_version_0(self,
+                                    return_data: Optional[bool] = True) -> Dict:
     """
     Deprecated
 
@@ -1187,7 +1203,7 @@ class BlockSparseTensor:
           "`get_diagonal_blocks` can only be called on a matrix, but found rank={}"
           .format(self.rank))
 
-    return find_diagonal_sparse_blocks_old_version(
+    return find_diagonal_sparse_blocks_version_0(
         data=self.data,
         charges=self.charges,
         flows=self.flows,
