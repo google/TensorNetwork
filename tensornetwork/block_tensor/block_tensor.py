@@ -211,6 +211,10 @@ def find_diagonal_sparse_blocks_version_1(
     column_flows: List[Union[bool, int]],
     return_data: Optional[bool] = True) -> Dict:
   """
+  Deprecated
+
+  This version is slow for matrices with shape[0] >> shape[1], but fast otherwise.
+  
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
   `row_charges` and `column_charges` are lists of np.ndarray. The tensor
