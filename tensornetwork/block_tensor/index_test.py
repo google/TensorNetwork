@@ -1,6 +1,6 @@
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies, fuse_charge_pair, fuse_indices
+from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies, fuse_charge_pair, fuse_indices, unfuse
 
 
 def test_fuse_charge_pair():
@@ -180,3 +180,17 @@ def test_copy():
   assert elmt1234[1] is not i2
   assert elmt1234[2] is not i3
   assert elmt1234[3] is not i4
+
+
+def test_unfuse():
+  q1 = np.random.randint(-4, 5, 10).astype(np.int16)
+  q2 = np.random.randint(-4, 5, 4).astype(np.int16)
+  q3 = np.random.randint(-4, 5, 4).astype(np.int16)
+  q12 = fuse_charges([q1, q2], [1, 1])
+  q123 = fuse_charges([q12, q3], [1, 1])
+  nz = np.nonzero(q123 == 0)[0]
+  q12_inds, q3_inds = unfuse(nz, len(q12), len(q3))
+
+  q1_inds, q2_inds = unfuse(q12_inds, len(q1), len(q2))
+  np.testing.assert_allclose(q1[q1_inds] + q2[q2_inds] + q3[q3_inds],
+                             np.zeros(len(q1_inds), dtype=np.int16))
