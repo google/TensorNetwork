@@ -239,3 +239,48 @@ def split_index(index: Index) -> Tuple[Index, Index]:
     raise ValueError("cannot split an elementary index")
 
   return index.left_child, index.right_child
+
+
+def unfuse(fused_indices: np.ndarray, len_left: int,
+           len_right: int) -> Tuple[np.ndarray, np.ndarray]:
+  """
+  Given an np.ndarray `fused_indices` of integers denoting 
+  index-positions of elements within a 1d array, `unfuse`
+  obtains the index-positions of the elements in the left and 
+  right np.ndarrays `left`, `right` which, upon fusion, 
+  are placed at the index-positions given by 
+  `fused_indices` in the fused np.ndarray.
+  An example will help to illuminate this:
+  Given np.ndarrays `left`, `right` and the result
+  of their fusion (`fused`):
+
+  ```
+  left = [0,1,0,2]
+  right = [-1,3,-2]    
+  fused = fuse_charges([left, right], flows=[1,1]) 
+  print(fused) #[-1  3 -2  0  4 -1 -1  3 -2  1  5  0]
+  ```
+
+  we want to find which elements in `left` and `right`
+  fuse to a value of 0. In the above case, there are two 
+  0 in `fused`: one is obtained from fusing `left[1]` and
+  `right[0]`, the second one from fusing `left[3]` and `right[2]`
+  `unfuse` returns the index-positions of these values within
+  `left` and `right`, that is
+
+  ```
+  left_index_values, right_index_values = unfuse(np.nonzero(fused==0)[0], len(left), len(right))
+  print(left_index_values) # [1,3]
+  print(right_index_values) # [0,2]
+  ```
+
+  Args:
+    fused_indices: A 1d np.ndarray of integers.
+    len_left: The length of the left np.ndarray.
+    len_right: The length of the right np.ndarray.
+  Returns:
+    (np.ndarry, np.ndarray)
+  """
+  right = fused_indices % len_right
+  left = (fused_indices - right) // len_right
+  return left, right
