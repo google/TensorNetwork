@@ -142,6 +142,35 @@ def test_find_sparse_positions():
   np.testing.assert_allclose(np.sort(blocks[0]), np.arange(n1))
 
 
+def test_find_sparse_positions_2():
+  D = 40  #bond dimension
+  B = 4  #number of blocks
+  dtype = np.int16  #the dtype of the quantum numbers
+  flows = [1, -1]
+
+  rank = len(flows)
+  charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype)
+      for _ in range(rank)
+  ]
+  indices = [
+      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
+      for n in range(rank)
+  ]
+  i1, i2 = indices
+  common_charges = np.intersect1d(i1.charges, i2.charges)
+  row_locations = find_sparse_positions(
+      left_charges=i1.charges,
+      left_flow=flows[0],
+      right_charges=i2.charges,
+      right_flow=flows[1],
+      target_charges=common_charges)
+  fused = (i1 * i2).charges
+  relevant = fused[np.isin(fused, common_charges)]
+  for k, v in row_locations.items():
+    np.testing.assert_allclose(np.nonzero(relevant == k)[0], np.sort(v))
+
+
 def test_map_to_integer():
   dims = [4, 3, 2]
   dim_prod = [6, 2, 1]
@@ -155,3 +184,27 @@ def test_map_to_integer():
       i += dim_prod[d] * table[n, d]
     ints.append(i)
   np.testing.assert_allclose(ints, integers)
+
+
+def test_ge_diagonal_blocks():
+  D = 40  #bond dimension
+  B = 4  #number of blocks
+  dtype = np.int16  #the dtype of the quantum numbers
+  rank = 4
+  flows = np.asarray([1 for _ in range(rank)])
+  flows[-2::] = -1
+  charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype)
+      for _ in range(rank)
+  ]
+  indices = [
+      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
+      for n in range(rank)
+  ]
+  common_charges = np.intersect1d(indices[0].charges, indices[1].charges)
+  row_locations = find_sparse_positions(
+      left_charges=indices[0].charges,
+      left_flow=1,
+      right_charges=indices[1].charges,
+      right_flow=1,
+      target_charges=common_charges)
