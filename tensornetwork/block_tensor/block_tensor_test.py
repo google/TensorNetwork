@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, compute_num_nonzero, compute_dense_to_sparse_table, find_sparse_positions, find_dense_positions, map_to_integer
+from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, compute_num_nonzero, compute_dense_to_sparse_mapping, find_sparse_positions, find_dense_positions, map_to_integer
 from index import Index, fuse_charges
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
@@ -32,7 +32,7 @@ def test_block_sparse_init(dtype):
   assert len(A.data) == num_elements
 
 
-def test_block_table():
+def test_dense_to_sparse_table():
   D = 30  #bond dimension
   B = 4  #number of blocks
   dtype = np.int16  #the dtype of the quantum numbers
@@ -43,18 +43,15 @@ def test_block_table():
       np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype)
       for _ in range(rank)
   ]
-  indices = [
-      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
-      for n in range(rank)
-  ]
-  num_non_zero = compute_num_nonzero([i.charges for i in indices],
-                                     [i.flow for i in indices])
+  num_non_zero = compute_num_nonzero(charges, flows)
 
-  inds = compute_dense_to_sparse_table(
+  inds = compute_dense_to_sparse_mapping(
       charges=charges, flows=flows, target_charge=0)
-  total = flows[0] * charges[0][inds[0]] + flows[1] * charges[1][
-      inds[1]] + flows[2] * charges[2][inds[2]] + flows[3] * charges[3][inds[3]]
-  assert len(total) == len(np.nonzero(total == 0)[0])
+  total = np.zeros(len(inds[0]), dtype=np.int16)
+  for n in range(len(charges)):
+    total += flows[n] * charges[n][inds[n]]
+
+  np.testing.assert_allclose(total, 0)
   assert len(total) == num_non_zero
 
 
