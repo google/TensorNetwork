@@ -787,19 +787,23 @@ def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
     left_inds.append(li)
     right_inds.append(ri)
 
-  #compute the relevant unique left and right charges
+  #now compute the relevant unique left and right charges
   unique_left_charges = unique_left[np.unique(np.concatenate(left_inds))]
   unique_right_charges = unique_right[np.unique(np.concatenate(right_inds))]
 
+  #only keep those charges that are relevant
   relevant_left_charges = left_charges[np.isin(left_charges,
                                                unique_left_charges)]
   relevant_right_charges = right_charges[np.isin(right_charges,
                                                  unique_right_charges)]
+
   unique_right_charges, right_dims = np.unique(
       relevant_right_charges, return_counts=True)
   right_degeneracies = dict(zip(unique_right_charges, right_dims))
+  #generate a degeneracy vector which for each value r in relevant_right_charges
+  #holds the corresponding number of non-zero elements `relevant_right_charges`
+  #that can add up to `target_charges`.
   degeneracy_vector = np.empty(len(relevant_left_charges), dtype=np.int64)
-  total_row_degeneracies = {}
   right_indices = {}
   for left_charge in unique_left_charges:
     total_degeneracy = np.sum(right_dims[np.isin(
@@ -833,12 +837,30 @@ def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
   return out
 
 
-def compute_dense_to_sparse_table(charges: List[np.ndarray],
-                                  flows: List[Union[bool, int]],
-                                  target_charge: int) -> int:
+def compute_dense_to_sparse_mapping(charges: List[np.ndarray],
+                                    flows: List[Union[bool, int]],
+                                    target_charge: int) -> int:
   """
-  Compute a table mapping multi-index positions to the linear positions 
-  within the sparse data container.
+  Compute the mapping from multi-index positions to the linear positions 
+  within the sparse data container, given the meta-data of a symmetric tensor.
+  This function returns a list of np.ndarray `index_positions`, with 
+  `len(index_positions)=len(charges)` (equal to the rank of the tensor).
+  When stacked into a `(N,r)` np.ndarray `multi_indices`, i.e.
+  `
+  multi_indices = np.stack(index_positions, axis=1) #np.ndarray of shape (N,r)
+  `
+  with `r` the rank of the tensor and `N` the number of non-zero elements of 
+  the symmetric tensor, then the element at position `n` within the linear 
+  data-array `data` of the tensor have multi-indices given by `multi_indices[n,:],
+  i.e. `data[n]` has the multi-index `multi_indices[n,:]`, and the total charges
+  can for example be obtained using 
+  ```
+  index_positions = compute_dense_to_sparse_mapping(charges, flows, target_charge=0)
+  total_charges = np.zeros(len(index_positions[0]), dtype=np.int16)
+  for n in range(len(charges)):
+    total_charges += flows[n]*charges[n][index_positions[n]]
+  np.testing.assert_allclose(total_charges, 0)
+  ```
   Args:
     charges: List of np.ndarray of int, one for each leg of the 
       underlying tensor. Each np.ndarray `charges[leg]` 
