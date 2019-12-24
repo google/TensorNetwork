@@ -49,32 +49,7 @@ def _find_best_partition(charges, flows):
   fused_right_charges = fuse_charges(charges[min_ind + 1::],
                                      flows[min_ind + 1::])
 
-  return fused_left_charges, fused_right_charges
-
-
-def map_to_integer(dims: Union[List, np.ndarray],
-                   table: np.ndarray,
-                   dtype: Optional[Type[np.number]] = np.int64):
-  """
-  Map a `table` of integers of shape (N, r) bijectively into 
-  an np.ndarray `integers` of length N of unique numbers.
-  The mapping is done using
-  ```
-  `integers[n] = table[n,0] * np.prod(dims[1::]) + table[n,1] * np.prod(dims[2::]) + ... + table[n,r-1] * 1`
-  
-  Args:
-    dims: An iterable of integers.
-    table: An array of shape (N,r) of integers.
-    dtype: An optional dtype used for the conversion.
-      Care should be taken when choosing this to avoid overflow issues.
-  Returns:
-    np.ndarray: An array of integers.
-  """
-  converter_table = np.expand_dims(
-      np.flip(np.append(1, np.cumprod(np.flip(dims[1::])))), 0)
-  tmp = table * converter_table
-  integers = np.sum(tmp, axis=1)
-  return integers
+  return fused_left_charges, fused_right_charges, min_ind + 1
 
 
 def compute_fused_charge_degeneracies(charges: List[np.ndarray],
@@ -390,7 +365,7 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
   column_degeneracies = dict(zip(unique_column_charges, column_dims))
 
   if len(row_charges) > 1:
-    left_row_charges, right_row_charges = _find_best_partition(
+    left_row_charges, right_row_charges, _ = _find_best_partition(
         row_charges, row_flows)
     unique_left = np.unique(left_row_charges)
     unique_right = np.unique(right_row_charges)
@@ -879,21 +854,9 @@ def compute_dense_to_sparse_mapping(charges: List[np.ndarray],
   #find the best partition (the one where left and right dimensions are
   #closest
   dims = np.asarray([len(c) for c in charges])
-
-  # #all legs smaller or equal to `min_ind` are on the left side
-  # #of the partition. All others are on the right side.
-  # min_ind = np.argmin([
-  #     np.abs(np.prod(dims[0:n]) - np.prod(dims[n::]))
-  #     for n in range(1, len(charges))
-  # ])
-  # fused_left_charges = fuse_charges(charges[0:min_ind + 1],
-  #                                   flows[0:min_ind + 1])
-  # fused_right_charges = fuse_charges(charges[min_ind + 1::],
-  #                                    flows[min_ind + 1::])
-
+  t1 = time.time()
   fused_charges = fuse_charges(charges, flows)
   nz_indices = np.nonzero(fused_charges == target_charge)[0]
-
   if len(nz_indices) == 0:
     raise ValueError(
         "`charges` do not add up to a total charge {}".format(target_charge))
@@ -903,6 +866,145 @@ def compute_dense_to_sparse_mapping(charges: List[np.ndarray],
     nz_indices, right_indices = unfuse(nz_indices, np.prod(dims[0:n]), dims[n])
     index_locations.insert(0, right_indices)
   return index_locations
+
+
+def compute_dense_to_sparse_mapping_2(charges: List[np.ndarray],
+                                      flows: List[Union[bool, int]],
+                                      target_charge: int) -> int:
+  """
+  Compute the mapping from multi-index positions to the linear positions 
+  within the sparse data container, given the meta-data of a symmetric tensor.
+  This function returns a list of np.ndarray `index_positions`, with 
+  `len(index_positions)=len(charges)` (equal to the rank of the tensor).
+  When stacked into a `(N,r)` np.ndarray `multi_indices`, i.e.
+  `
+  multi_indices = np.stack(index_positions, axis=1) #np.ndarray of shape (N,r)
+  `
+  with `r` the rank of the tensor and `N` the number of non-zero elements of 
+  the symmetric tensor, then the element at position `n` within the linear 
+  data-array `data` of the tensor have multi-indices given by `multi_indices[n,:],
+  i.e. `data[n]` has the multi-index `multi_indices[n,:]`, and the total charges
+  can for example be obtained using 
+  ```
+  index_positions = compute_dense_to_sparse_mapping(charges, flows, target_charge=0)
+  total_charges = np.zeros(len(index_positions[0]), dtype=np.int16)
+  for n in range(len(charges)):
+    total_charges += flows[n]*charges[n][index_positions[n]]
+  np.testing.assert_allclose(total_charges, 0)
+  ```
+  Args:
+    charges: List of np.ndarray of int, one for each leg of the 
+      underlying tensor. Each np.ndarray `charges[leg]` 
+      is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
+    flows: A list of integers, one for each leg,
+      with values `1` or `-1`, denoting the flow direction
+      of the charges on each leg. `1` is inflowing, `-1` is outflowing
+      charge.
+    target_charge: The total target charge of the blocks to be calculated.
+  Returns:
+    np.ndarray: An (N, r) np.ndarray of dtype np.int16, 
+      with `N` the number of non-zero elements, and `r` 
+      the rank of the tensor.
+  """
+  #find the best partition (the one where left and right dimensions are
+  #closest
+  dims = np.asarray([len(c) for c in charges])
+
+  #note: left_charges and right_charges have been fused from RIGHT to LEFT
+  left_charges, right_charges, partition = _find_best_partition(charges, flows)
+  t1 = time.time()
+  blocks = find_dense_positions(
+      left_charges, 1, right_charges, 1, target_charge=target_charge)
+
+  #value elements of `blocks` are already sorted
+  first_elements = sorted([(k, v[0]) for k, v in blocks.items()],
+                          key=lambda x: x[1])
+
+  nz_indices = np.concatenate([blocks[t[0]] for t in first_elements])
+
+  if len(nz_indices) == 0:
+    raise ValueError(
+        "`charges` do not add up to a total charge {}".format(target_charge))
+  t1 = time.time()
+  nz_left_indices, nz_right_indices = unfuse(nz_indices, len(left_charges),
+                                             len(right_charges))
+  index_locations = []
+  #first unfuse left charges
+  for n in range(partition):
+    t1 = time.time()
+    indices, nz_left_indices = unfuse(nz_left_indices, dims[n],
+                                      np.prod(dims[n + 1:partition]))
+    index_locations.append(indices)
+
+  for n in range(partition, len(dims)):
+    indices, nz_right_indices = unfuse(nz_right_indices, dims[n],
+                                       np.prod(dims[n + 1::]))
+    index_locations.append(indices)
+
+  return index_locations
+
+
+def compute_dense_to_sparse_mapping_3(charges: List[np.ndarray],
+                                      flows: List[Union[bool, int]],
+                                      target_charge: int) -> int:
+  """
+  Compute the mapping from multi-index positions to the linear positions 
+  within the sparse data container, given the meta-data of a symmetric tensor.
+  This function returns a list of np.ndarray `index_positions`, with 
+  `len(index_positions)=len(charges)` (equal to the rank of the tensor).
+  When stacked into a `(N,r)` np.ndarray `multi_indices`, i.e.
+  `
+  multi_indices = np.stack(index_positions, axis=1) #np.ndarray of shape (N,r)
+  `
+  with `r` the rank of the tensor and `N` the number of non-zero elements of 
+  the symmetric tensor, then the element at position `n` within the linear 
+  data-array `data` of the tensor have multi-indices given by `multi_indices[n,:],
+  i.e. `data[n]` has the multi-index `multi_indices[n,:]`, and the total charges
+  can for example be obtained using 
+  ```
+  index_positions = compute_dense_to_sparse_mapping(charges, flows, target_charge=0)
+  total_charges = np.zeros(len(index_positions[0]), dtype=np.int16)
+  for n in range(len(charges)):
+    total_charges += flows[n]*charges[n][index_positions[n]]
+  np.testing.assert_allclose(total_charges, 0)
+  ```
+  Args:
+    charges: List of np.ndarray of int, one for each leg of the 
+      underlying tensor. Each np.ndarray `charges[leg]` 
+      is of shape `(D[leg],)`.
+      The bond dimension `D[leg]` can vary on each leg.
+    flows: A list of integers, one for each leg,
+      with values `1` or `-1`, denoting the flow direction
+      of the charges on each leg. `1` is inflowing, `-1` is outflowing
+      charge.
+    target_charge: The total target charge of the blocks to be calculated.
+  Returns:
+    np.ndarray: An (N, r) np.ndarray of dtype np.int16, 
+      with `N` the number of non-zero elements, and `r` 
+      the rank of the tensor.
+  """
+  #find the best partition (the one where left and right dimensions are
+  #closest
+  dims = np.asarray([len(c) for c in charges])
+
+  #note: left_charges and right_charges have been fused from RIGHT to LEFT
+  left_charges, right_charges, partition = _find_best_partition(charges, flows)
+  t1 = time.time()
+  blocks = find_dense_positions(
+      left_charges, 1, right_charges, 1, target_charge=target_charge)
+
+  #value elements of `blocks` are already sorted
+  first_elements = sorted([(k, v[0]) for k, v in blocks.items()],
+                          key=lambda x: x[1])
+
+  nz_indices = np.concatenate([blocks[t[0]] for t in first_elements])
+
+  if len(nz_indices) == 0:
+    raise ValueError(
+        "`charges` do not add up to a total charge {}".format(target_charge))
+  t1 = time.time()
+  return np.unravel_index(nz_indices, dims)
 
 
 class BlockSparseTensor:
@@ -1029,7 +1131,17 @@ class BlockSparseTensor:
     """
     Transpose the tensor into the new order `order`
     """
-    raise NotImplementedError('transpose is not implemented!!')
+    dims = [len(c) for c in self.charges]
+    left_charges, right_charges, _ = _find_best_partition(
+        self.charges, self.flows)
+    blocks = find_dense_positions(
+        left_charges, 1, right_charges, 1, target_charge=0)
+    nz_indices = np.sort(np.concatenate(list(blocks.values())))
+
+    multi_indices = np.unravel_index(nz_indices, dims)
+    transposed_linear_positions = np.ravel_multi_index(
+        [multi_indices[p] for p in order], dims=[dims[p] for p in order])
+    self.data = self.data[np.argsort(transposed_linear_positions)]
 
   def reset_shape(self) -> None:
     """
