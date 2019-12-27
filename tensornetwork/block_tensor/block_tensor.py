@@ -22,6 +22,7 @@ from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
 from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charge_pair, fuse_degeneracies, fuse_charges, unfuse
 import numpy as np
+import scipy as sp
 import itertools
 import time
 from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable
@@ -1213,41 +1214,51 @@ class BlockSparseTensor:
     Returns:
       BlockSparseTensor: The transposed tensor.
     """
+    #FIXME: this implementation uses scipy.sparse.csr_matrix to generate the
+    #lookup-table from dense to sparse indices. According to some quick
+    #testing, the final lookup is currently the bottleneck.
+    #FIXME: transpose currently shuffles data. This can in principle be postponed
+    #until `tensordot` or `find_diagonal_sparse_blocks`
     if len(order) != self.rank:
       raise ValueError(
           "`len(order)={}` is different form `self.rank={}`".format(
               len(order), self.rank))
-    t1 = time.time()
-    dims = [len(c) for c in self.charges]
+    charges = self.charges  #call only once in case some of the indices are merged indices
+    dims = [len(c) for c in charges]
 
+    strides = np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
     #find the best partition into left and right charges
-    left_charges, right_charges, _ = _find_best_partition(
-        self.charges, self.flows)
+    left_charges, right_charges, _ = _find_best_partition(charges, self.flows)
     #find the index-positions of the elements in the fusion
     #of `left_charges` and `right_charges` that have `0`
     #total charge (those are the only non-zero elements).
     t1 = time.time()
-    nz_indices = find_dense_positions(
+    linear_positions = find_dense_positions(
         left_charges, 1, right_charges, 1, target_charge=0)
-    print("time for finding dense positions", time.time() - t1)
-
-    #use numpy to unravel the linear indices into multi-indices
-    t1 = time.time()
-    multi_indices = np.unravel_index(nz_indices, dims)
-    print("time for unravelling", time.time() - t1)
-    #transposed the multi-indices and ravel the result back into
-    #a linear index. This will be now an unsorted array of int valuesn
-    t1 = time.time()
-    transposed_linear_positions = np.ravel_multi_index(
-        [multi_indices[p] for p in order], dims=[dims[p] for p in order])
-    print("time for ravelling", time.time() - t1)
-    #argsort returns an array of integers that sorts `transposed_linear_positions`.
-    #this array can then be used to transpose the linear data.
     print(time.time() - t1)
     t1 = time.time()
-    inds = np.argsort(transposed_linear_positions)
-    print("argsort:", time.time() - t1)
-    #self.data = self.data[inds]
+    dense_to_sparse_table = sp.sparse.csr_matrix(
+        (np.arange(len(self.data)), (linear_positions,
+                                     np.zeros(len(self.data), dtype=np.int64))))
+    print('creating table', time.time() - t1)
+    tr_charges = [charges[n] for n in order]
+    tr_flows = [self.flows[n] for n in order]
+    tr_strides = [strides[n] for n in order]
+    tr_dims = [dims[n] for n in order]
+    tr_left_charges, tr_right_charges, _ = _find_best_partition(
+        tr_charges, tr_flows)
+
+    tr_dense_linear_positions = fuse_charges(
+        [np.arange(tr_dims[n]) * tr_strides[n] for n in range(len(tr_dims))],
+        flows=[1] * len(tr_dims))
+    tr_linear_positions = find_dense_positions(tr_left_charges, 1,
+                                               tr_right_charges, 1, 0)
+    t1 = time.time()
+    inds = np.squeeze(
+        dense_to_sparse_table[tr_dense_linear_positions[tr_linear_positions], 0]
+        .toarray())
+    print('inds', time.time() - t1)
+    self.data = self.data[inds]
 
   def reset_shape(self) -> None:
     """

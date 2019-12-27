@@ -281,6 +281,6 @@ def unfuse(fused_indices: np.ndarray, len_left: int,
   Returns:
     (np.ndarry, np.ndarray)
   """
-  right = fused_indices % len_right
-  left = (fused_indices - right) // len_right
+  right = np.mod(fused_indices, len_right)
+  left = np.floor_divide(fused_indices - right, len_right)
   return left, right

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, compute_num_nonzero, compute_dense_to_sparse_mapping, find_sparse_positions, find_dense_positions, map_to_integer
+from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, compute_num_nonzero, find_sparse_positions, find_dense_positions
 from index import Index, fuse_charges
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
@@ -32,39 +32,15 @@ def test_block_sparse_init(dtype):
   assert len(A.data) == num_elements
 
 
-def test_dense_to_sparse_table():
-  D = 30  #bond dimension
-  B = 4  #number of blocks
-  dtype = np.int16  #the dtype of the quantum numbers
-  rank = 4
-  flows = np.asarray([1 for _ in range(rank)])
-  flows[-2::] = -1
-  charges = [
-      np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype)
-      for _ in range(rank)
-  ]
-  num_non_zero = compute_num_nonzero(charges, flows)
-
-  inds = compute_dense_to_sparse_mapping(
-      charges=charges, flows=flows, target_charge=0)
-  total = np.zeros(len(inds[0]), dtype=np.int16)
-  for n in range(len(charges)):
-    total += flows[n] * charges[n][inds[n]]
-
-  np.testing.assert_allclose(total, 0)
-  assert len(total) == num_non_zero
-
-
 def test_find_dense_positions():
-  left_charges = [-2, 0, 1, 0, 0]
-  right_charges = [-1, 0, 2, 1]
+  left_charges = np.asarray([-2, 0, 1, 0, 0]).astype(np.int16)
+  right_charges = np.asarray([-1, 0, 2, 1]).astype(np.int16)
   target_charge = 0
   fused_charges = fuse_charges([left_charges, right_charges], [1, 1])
-  blocks = find_dense_positions(left_charges, 1, right_charges, 1,
-                                target_charge)
-  np.testing.assert_allclose(blocks[(-2, 2)], [2])
-  np.testing.assert_allclose(blocks[(0, 0)], [5, 13, 17])
-  np.testing.assert_allclose(blocks[(1, -1)], [8])
+  dense_positions = find_dense_positions(left_charges, 1, right_charges, 1,
+                                         target_charge)
+  np.testing.assert_allclose(dense_positions,
+                             np.nonzero(fused_charges == target_charge)[0])
 
 
 def test_find_dense_positions_2():
@@ -92,16 +68,8 @@ def test_find_dense_positions_2():
 
   i01 = indices[0] * indices[1]
   i23 = indices[2] * indices[3]
-  blocks = find_dense_positions(i01.charges, 1, i23.charges, 1, 0)
-  assert sum([len(v) for v in blocks.values()]) == n1
-
-  tensor = BlockSparseTensor.random(indices=indices, dtype=np.float64)
-  tensor.reshape((D * D, D * D))
-  blocks_2 = tensor.get_diagonal_blocks(return_data=False)
-  np.testing.assert_allclose([k[0] for k in blocks.keys()],
-                             list(blocks_2.keys()))
-  for c in blocks.keys():
-    assert np.prod(blocks_2[c[0]][1]) == len(blocks[c])
+  positions = find_dense_positions(i01.charges, 1, i23.charges, 1, 0)
+  assert len(positions) == n1
 
 
 def test_find_sparse_positions():
@@ -168,22 +136,7 @@ def test_find_sparse_positions_2():
     np.testing.assert_allclose(np.nonzero(relevant == k)[0], np.sort(v))
 
 
-def test_map_to_integer():
-  dims = [4, 3, 2]
-  dim_prod = [6, 2, 1]
-  N = 10
-  table = np.stack([np.random.randint(0, d, N) for d in dims], axis=1)
-  integers = map_to_integer(dims, table)
-  ints = []
-  for n in range(N):
-    i = 0
-    for d in range(len(dims)):
-      i += dim_prod[d] * table[n, d]
-    ints.append(i)
-  np.testing.assert_allclose(ints, integers)
-
-
-def test_ge_diagonal_blocks():
+def test_get_diagonal_blocks():
   D = 40  #bond dimension
   B = 4  #number of blocks
   dtype = np.int16  #the dtype of the quantum numbers
@@ -205,3 +158,19 @@ def test_ge_diagonal_blocks():
       right_charges=indices[1].charges,
       right_flow=1,
       target_charges=common_charges)
+
+
+def test_dense_transpose():
+  Ds = [10, 11, 12]  #bond dimension
+  rank = len(Ds)
+  flows = np.asarray([1 for _ in range(rank)])
+  flows[-2::] = -1
+  charges = [np.zeros(Ds[n], dtype=np.int16) for n in range(rank)]
+  indices = [
+      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
+      for n in range(rank)
+  ]
+  A = BlockSparseTensor.random(indices=indices, dtype=np.float64)
+  B = np.transpose(np.reshape(A.data.copy(), Ds), (1, 0, 2))
+  A.transpose((1, 0, 2))
+  np.testing.assert_allclose(A.data, B.flat)
