@@ -40,7 +40,7 @@ class Index:
     self.flow = flow
     self.left_child = left_child
     self.right_child = right_child
-    self.name = name if name else 'index'
+    self._name = name
 
   def __repr__(self):
     return str(self.dimension)
@@ -121,6 +121,14 @@ class Index:
         self.right_child.flow)
 
     return fused_charges
+
+  @property
+  def name(self):
+    if self._name:
+      return self._name
+    if self.is_leave:
+      return self.name
+    return self.left_child.name + ' & ' + self.right_child.name
 
 
 def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
