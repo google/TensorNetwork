@@ -292,3 +292,113 @@ def unfuse(fused_indices: np.ndarray, len_left: int,
   right = np.mod(fused_indices, len_right)
   left = np.floor_divide(fused_indices - right, len_right)
   return left, right
+
+
+class BaseCharge:
+  """
+  Base class for fundamental charges (i.e. for symmetries that 
+  are not products of smaller groups)
+  """
+
+  def __init__(self, charges: np.ndarray) -> None:
+    if not isinstance(charges, np.ndarray):
+      raise TypeError("only np.ndarray allowed for argument `charges` "
+                      "in BaseCharge.__init__(charges)")
+
+    self.charges = charges
+
+  def __add__(self, other: "BaseCharge"):
+    raise NotImplementedError("`__add__` is not implemented for `BaseCharge`")
+
+  def __mul__(self, number: int) -> "U1Charge":
+    raise NotImplementedError("`__mul__` is not implemented for `BaseCharge`")
+
+  def __rmul__(self, number: int) -> "U1Charge":
+    raise NotImplementedError("`__rmul__` is not implemented for `BaseCharge`")
+
+  def __matmul__(self, other: "U1Charge") -> "Charge":
+    raise NotImplementedError(
+        "`__matmul__` is not implemented for `BaseCharge`")
+
+  def __repr__(self):
+    return self.charges.__repr__()
+
+
+class U1Charge(BaseCharge):
+  """
+  A simple charge class for a single U1 symmetry.
+  """
+
+  def __init__(self, charges: np.ndarray) -> None:
+    super().__init__(charges)
+
+  def __add__(self, other: "U1Charge") -> "U1Charge":
+    """
+    Fuse the charges of `self` with charges of `other`, and 
+    return a new `U1Charge` object holding the result.
+    Args: 
+      other: A `U1Charge` object.
+    Returns:
+      U1Charge: The result of fusing `self` with `other`.
+    """
+    fused = np.reshape(
+        np.asarray(self.charges)[:, None] + np.asarray(other.charges)[None, :],
+        len(self.charges) * len(other.charges))
+
+    return U1Charge(charges=fused)
+
+  def __mul__(self, number: int) -> "U1Charge":
+    return U1Charge(charges=self.charges * number)
+
+  def __rmul__(self, number: int) -> "U1Charge":
+    return U1Charge(charges=self.charges * number)
+
+  def __matmul__(self, other: "U1Charge") -> "Charge":
+    return Charge([self.charges, other.charges])
+
+
+class Charge:
+
+  def __init__(self, charges: List[BaseCharge]) -> None:
+    if not isinstance(charges, list):
+      raise TypeError("only list allowed for argument `charges` "
+                      "in BaseCharge.__init__(charges)")
+    if not np.all([len(c) == len(charges[0]) for c in charges]):
+      raise ValueError("not all charges have the same length. "
+                       "Got lengths = {}".format([len(c) for c in charges]))
+    self.charges = charges
+
+  def __add__(self, other: "Charge") -> "Charge":
+    """
+    Fuse `self` with `other`.
+    Args:
+      other: A `Charge` object.
+    Returns:
+      Charge: The result of fusing `self` with `other`.
+    """
+    return Charge([c1 + c2 for c1, c2 in zip(self.charges, other.charges)])
+
+  def __matmul__(self, other: Union["Charge", BaseCharge]) -> "Charge":
+    """
+    Product of `self` with `other` (group product).
+    Args:
+      other: A `BaseCharge` or `Charge` object.
+    Returns:
+      Charge: The resulting charge of the product of `self` with `other`.
+
+    """
+    if isinstance(other, BaseCharge):
+      return Charge(self.charges + [other.charges])
+    elif isinstance(other, Charge):
+      return Charge(self.charges + other.charges)
+
+    raise TypeError("datatype not understood")
+
+  def __mul__(self, number: int) -> "Charge":
+    return Charge(charges=[c * number for c in self.charges])
+
+  def __rmul__(self, number: int) -> "Charge":
+    return Charge(charges=[c * number for c in self.charges])
+
+  def __repr__(self):
+    return self.charges.__repr__()
