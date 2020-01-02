@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.block_tensor.lookup import lookup
+#from tensornetwork.block_tensor.lookup import lookup
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
@@ -464,11 +464,11 @@ def find_diagonal_sparse_blocks_depreacated_1(
   return blocks
 
 
-def find_diagonal_sparse_blocks_deprecated_0(
-    data: np.ndarray,
-    charges: List[np.ndarray],
-    flows: List[Union[bool, int]],
-    return_data: Optional[bool] = True) -> Dict:
+def find_diagonal_sparse_blocks_deprecated_0(data: np.ndarray,
+                                             charges: List[np.ndarray],
+                                             flows: List[Union[bool, int]],
+                                             return_data: Optional[bool] = True
+                                            ) -> Dict:
   """
   Deprecated: this version is about 2 times slower (worst case) than the current used
   implementation
@@ -570,11 +570,11 @@ def find_diagonal_sparse_blocks_deprecated_0(
   return blocks
 
 
-def find_diagonal_sparse_blocks_column_major(
-    data: np.ndarray,
-    charges: List[np.ndarray],
-    flows: List[Union[bool, int]],
-    return_data: Optional[bool] = True) -> Dict:
+def find_diagonal_sparse_blocks_column_major(data: np.ndarray,
+                                             charges: List[np.ndarray],
+                                             flows: List[Union[bool, int]],
+                                             return_data: Optional[bool] = True
+                                            ) -> Dict:
   """
   Deprecated
 
@@ -789,8 +789,9 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
   indices = []
   for n in range(len(left_charges)):
     c = left_charges[n]
-    indices.append(n * len_right_charges + right_locations[
-        (target_charge - left_flow * c) * right_flow])
+    indices.append(n * len_right_charges +
+                   right_locations[(target_charge - left_flow * c) *
+                                   right_flow])
   return np.concatenate(indices)
 
 
@@ -876,8 +877,9 @@ def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
 
     for target_charge in target_charges:
       right_indices[(left_charge, target_charge)] = np.nonzero(
-          tmp_relevant_right_charges ==
-          (target_charge - left_flow * left_charge) * right_flow)[0]
+          tmp_relevant_right_charges == (target_charge -
+                                         left_flow * left_charge) *
+          right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
@@ -1256,7 +1258,7 @@ class BlockSparseTensor:
       flat_strides = np.flip(np.append(1, np.cumprod(np.flip(flat_dims[1::]))))
       if not hasattr(self, 'dense_to_sparse_table'):
         #find the best partition into left and right charges
-        leftx_charges, right_charges, _ = _find_best_partition(
+        left_charges, right_charges, _ = _find_best_partition(
             flat_charges, flat_flows)
         #find the index-positions of the elements in the fusion
         #of `left_charges` and `right_charges` that have `0`
@@ -1264,9 +1266,9 @@ class BlockSparseTensor:
         linear_positions = find_dense_positions(
             left_charges, 1, right_charges, 1, target_charge=0)
 
-        self.dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(
-            len(self.data)), (linear_positions,
-                              np.zeros(len(self.data), dtype=np.int64))))
+        self.dense_to_sparse_table = sp.sparse.csr_matrix(
+            (np.arange(len(self.data)),
+             (linear_positions, np.zeros(len(self.data), dtype=np.int64))))
 
       flat_tr_charges = [flat_charges[n] for n in flat_order]
       flat_tr_flows = [flat_flows[n] for n in flat_order]
@@ -1291,8 +1293,8 @@ class BlockSparseTensor:
     self.data = self.data[inds]
     return inds
 
-  def transpose_intersect1d(
-      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
+  def transpose_intersect1d(self, order: Union[List[int], np.ndarray]
+                           ) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`
     Args: pp
@@ -1339,52 +1341,52 @@ class BlockSparseTensor:
         assume_unique=True)
     self.data = self.data[inds]
 
-  def transpose_lookup(
-      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
-    """
-    Deprecated
-    
-    Transpose the tensor into the new order `order`. Uses a simple cython std::map 
-    for the lookup
-    Args: 
-      order: The new order of indices.
-    Returns:
-      BlockSparseTensor: The transposed tensor.
-    """
-    if len(order) != self.rank:
-      raise ValueError(
-          "`len(order)={}` is different form `self.rank={}`".format(
-              len(order), self.rank))
-    charges = self.charges  #call only once in case some of the indices are merged indices
-    dims = [len(c) for c in charges]
+  # def transpose_lookup(self, order: Union[List[int], np.ndarray]
+  #                     ) -> "BlockSparseTensor":
+  #   """
+  #   Deprecated
 
-    strides = np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
-    #find the best partition into left and right charges
-    left_charges, right_charges, _ = _find_best_partition(charges, self.flows)
-    #find the index-positions of the elements in the fusion
-    #of `left_charges` and `right_charges` that have `0`
-    #total charge (those are the only non-zero elements).
-    linear_positions = find_dense_positions(
-        left_charges, 1, right_charges, 1, target_charge=0)
+  #   Transpose the tensor into the new order `order`. Uses a simple cython std::map
+  #   for the lookup
+  #   Args:
+  #     order: The new order of indices.
+  #   Returns:
+  #     BlockSparseTensor: The transposed tensor.
+  #   """
+  #   if len(order) != self.rank:
+  #     raise ValueError(
+  #         "`len(order)={}` is different form `self.rank={}`".format(
+  #             len(order), self.rank))
+  #   charges = self.charges  #call only once in case some of the indices are merged indices
+  #   dims = [len(c) for c in charges]
 
-    tr_charges = [charges[n] for n in order]
-    tr_flows = [self.flows[n] for n in order]
-    tr_strides = [strides[n] for n in order]
-    tr_dims = [dims[n] for n in order]
-    tr_left_charges, tr_right_charges, _ = _find_best_partition(
-        tr_charges, tr_flows)
-    #FIXME: this should be done without fully fusing  the strides
-    tr_dense_linear_positions = fuse_charges(
-        [np.arange(tr_dims[n]) * tr_strides[n] for n in range(len(tr_dims))],
-        flows=[1] * len(tr_dims))
-    tr_linear_positions = find_dense_positions(tr_left_charges, 1,
-                                               tr_right_charges, 1, 0)
-    inds = lookup(linear_positions,
-                  tr_dense_linear_positions[tr_linear_positions])
-    self.data = self.data[inds]
+  #   strides = np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
+  #   #find the best partition into left and right charges
+  #   left_charges, right_charges, _ = _find_best_partition(charges, self.flows)
+  #   #find the index-positions of the elements in the fusion
+  #   #of `left_charges` and `right_charges` that have `0`
+  #   #total charge (those are the only non-zero elements).
+  #   linear_positions = find_dense_positions(
+  #       left_charges, 1, right_charges, 1, target_charge=0)
 
-  def transpose_searchsorted(
-      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
+  #   tr_charges = [charges[n] for n in order]
+  #   tr_flows = [self.flows[n] for n in order]
+  #   tr_strides = [strides[n] for n in order]
+  #   tr_dims = [dims[n] for n in order]
+  #   tr_left_charges, tr_right_charges, _ = _find_best_partition(
+  #       tr_charges, tr_flows)
+  #   #FIXME: this should be done without fully fusing  the strides
+  #   tr_dense_linear_positions = fuse_charges(
+  #       [np.arange(tr_dims[n]) * tr_strides[n] for n in range(len(tr_dims))],
+  #       flows=[1] * len(tr_dims))
+  #   tr_linear_positions = find_dense_positions(tr_left_charges, 1,
+  #                                              tr_right_charges, 1, 0)
+  #   inds = lookup(linear_positions,
+  #                 tr_dense_linear_positions[tr_linear_positions])
+  #   self.data = self.data[inds]
+
+  def transpose_searchsorted(self, order: Union[List[int], np.ndarray]
+                            ) -> "BlockSparseTensor":
     """
     Deprecated:
     
@@ -1564,8 +1566,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_1(
-      self, return_data: Optional[bool] = True) -> Dict:
+  def get_diagonal_blocks_deprecated_1(self, return_data: Optional[bool] = True
+                                      ) -> Dict:
     """
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
@@ -1600,8 +1602,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_0(
-      self, return_data: Optional[bool] = True) -> Dict:
+  def get_diagonal_blocks_deprecated_0(self, return_data: Optional[bool] = True
+                                      ) -> Dict:
     """
     Deprecated
 
