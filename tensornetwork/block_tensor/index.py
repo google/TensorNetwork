@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between
+from tensornetwork.block_tensor.charge import BaseCharge, Charge
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
 import copy
@@ -135,330 +136,116 @@ def unfuse(fused_indices: np.ndarray, len_left: int,
   return left, right
 
 
-def _copy_charges(charges):
-  cs = []
-  for n in range(len(charges)):
-    c = type(charges[n]).__new__(type(
-        charges[n]))  #create a new charge object of type type(other)
-    c.__init__(charges[n].charges.copy())
-    cs.append(c)
-  return cs
-
-
-class BaseCharge:
+class Index:
   """
-  Base class for fundamental charges (i.e. for symmetries that 
-  are not products of smaller groups)
-  """
-
-  def __init__(self, charges: np.ndarray) -> None:
-    if not isinstance(charges, np.ndarray):
-      raise TypeError("only np.ndarray allowed for argument `charges` "
-                      "in BaseCharge.__init__(charges)")
-
-    self.charges = np.asarray(charges)
-
-  def __add__(self, other: "BaseCharge") -> "BaseCharge":
-    raise NotImplementedError("`__add__` is not implemented for `BaseCharge`")
-
-  def __mul__(self, number: int) -> "BaseCharge":
-    raise NotImplementedError("`__mul__` is not implemented for `BaseCharge`")
-
-  def __rmul__(self, number: int) -> "BaseCharge":
-    raise NotImplementedError("`__rmul__` is not implemented for `BaseCharge`")
-
-  def __matmul__(self, other: "BaseCharge") -> "Charge":
-    raise NotImplementedError(
-        "`__matmul__` is not implemented for `BaseCharge`")
-
-  def __len__(self) -> int:
-    return len(self.charges)
-
-  def __repr__(self) -> str:
-    return self.charges.__repr__()
-
-  @property
-  def dual_charges(self) -> np.ndarray:
-    raise NotImplementedError(
-        "`dual_charges` is not implemented for `BaseCharge`")
-
-  def get_charges(self, dual: bool) -> np.ndarray:
-    if dual:
-      return self.dual_charges
-    return self.charges
-
-
-class U1ChargeCoerced:
-  """
-  A simple charge class for a single U1 symmetry.
+  An index class to store indices of a symmetric tensor.
+  An index keeps track of all its childs by storing references
+  to them (i.e. it is a binary tree).
   """
 
   def __init__(self,
-               charges: List[np.ndarray],
-               offsets: Optional[np.ndarray] = None,
-               shifts: Optional[np.ndarray] = None) -> None:
-    itemsizes = [8 * c.dtype.itemsize for c in charges]
-    if np.sum(itemsizes) > 64:
-      raise TypeError("number of bits required to store all charges "
-                      "in a single int is larger than 64")
-    if np.sum(itemsizes) == 16:
-      dtype = np.int16
-    if np.sum(itemsizes) > 16:
-      dtype = np.int32
-    if np.sum(itemsizes) > 32:
-      dtype = np.int64
-
-    if shifts is None:
-      self.shifts = np.flip(np.append(0, np.cumsum(np.flip(
-          itemsizes[1::])))).astype(dtype)
-    else:
-      self.shifts = shifts
-
-    dtype_charges = [c.astype(dtype) for c in charges]
-    if offsets is None:
-      offsets = [np.min(dtype_charges[n]) for n in range(len(dtype_charges))]
-      pos_charges = [
-          dtype_charges[n] - offsets[n] for n in range(len(dtype_charges))
-      ]
-      self.offsets = np.sum([
-          np.left_shift(offsets[n], self.shifts[n])
-          for n in range(len(dtype_charges))
-      ],
-                            axis=0).astype(dtype)
-      self._charges = np.sum([
-          np.left_shift(pos_charges[n], self.shifts[n])
-          for n in range(len(dtype_charges))
-      ],
-                             axis=0).astype(dtype)
-    else:
-      if len(charges) > 1:
-        raise ValueError(
-            'if offsets is given, only a single charge array can be passed')
-      self.offsets = offsets
-      self._charges = dtype_charges[0]
-
-  @property
-  def num_symmetries(self):
-    return len(self.shifts)
-
-  def __add__(self, other: "U1ChargeCoerced") -> "U1ChargeCoerced":
-    """
-    Fuse the charges of `self` with charges of `other`, and 
-    return a new `U1Charge` object holding the result.
-    Args: 
-      other: A `U1ChargeCoerced` object.
-    Returns:
-      U1ChargeCoerced: The result of fusing `self` with `other`.
-    """
-    if self.num_symmetries != other.num_symmetries:
-      raise ValueError(
-          "cannot fuse charges with different number of symmetries")
-
-    if not np.all(self.shifts == other.shifts):
-      raise ValueError(
-          "Cannot fuse U1-charges with different shifts {} and {}".format(
-              self.shifts, other.shifts))
-    offsets = np.sum([self.offsets, other.offsets])
-    fused = np.reshape(self._charges[:, None] + other.charges[None, :],
-                       len(self._charges) * len(other.charges))
-    return U1ChargeCoerced(charges=[fused], offsets=offsets, shifts=self.shifts)
+               charges: Union[List, np.ndarray],
+               flow: int,
+               name: Optional[Text] = None,
+               left_child: Optional["Index"] = None,
+               right_child: Optional["Index"] = None):
+    self._charges = np.asarray(charges)
+    self.flow = flow
+    self.left_child = left_child
+    self.right_child = right_child
+    self._name = name
 
   def __repr__(self):
-    return 'U1-charge: \n' + 'shifts: ' + self.shifts.__repr__(
-    ) + '\n' + 'offsets: ' + self.offsets.__repr__(
-    ) + '\n' + 'charges: ' + self._charges.__repr__()
-
-  # def __matmul__(self, other: Union["U1Charge", "Charge"]) -> "Charge":
-  #   c1 = U1Charge(self._charges.copy())  #make a copy of the charges (np.ndarray)
-  #   if isinstance(other, U1Charge):
-  #     c2 = type(other).__new__(
-  #         type(other))  #create a new charge object of type type(other)
-  #     c2.__init__(other.charges.copy())
-  #     return Charge([c1, c2])
-  #   #`other` should be of type `Charge`.
-  #   return Charge([c1] + _copy_charges(other.charges))
+    return str(self.dimension)
 
   @property
-  def dual_charges(self) -> np.ndarray:
-    #the dual of a U1 charge is its negative value
-    return (self._charges + self.offsets) * self._charges.dtype.type(-1)
+  def is_leave(self):
+    return (self.left_child is None) and (self.right_child is None)
 
   @property
-  def charges(self) -> np.ndarray:
-    return self._charges + self.offsets
+  def dimension(self):
+    return np.prod([len(i.charges) for i in self.get_elementary_indices()])
 
-  def get_charges(self, dual: bool) -> np.ndarray:
-    if dual:
-      return self.dual_charges
-    return self._charges + self.offsets
-
-  def nonzero(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
-    if len(target_charges) != len(self.shifts):
-      raise ValueError("len(target_charges) = {} is different "
-                       "from len(U1ChargeCoerced.shifts) = {}".format(
-                           len(target_charges), len(self.shifts)))
-    charge = np.asarray(target_charges).astype(self._charges.dtype)
-    target = np.sum([
-        np.left_shift(charge[n], self.shifts[n])
-        for n in range(len(self.shifts))
-    ])
-    return np.nonzero(self._charges + self.offsets == target)[0]
-
-
-class U1Charge(BaseCharge):
-  """
-  A simple charge class for a single U1 symmetry.
-  """
-
-  def __init__(self, charges: np.ndarray) -> None:
-    super().__init__(charges)
-
-  def __add__(self, other: "U1Charge") -> "U1Charge":
+  def _copy_helper(self, index: "Index", copied_index: "Index") -> None:
     """
-    Fuse the charges of `self` with charges of `other`, and 
-    return a new `U1Charge` object holding the result.
-    Args: 
-      other: A `U1Charge` object.
+    Helper function for copy
+    """
+    if index.left_child != None:
+      left_copy = Index(
+          charges=copy.copy(index.left_child.charges),
+          flow=copy.copy(index.left_child.flow),
+          name=copy.copy(index.left_child.name))
+
+      copied_index.left_child = left_copy
+      self._copy_helper(index.left_child, left_copy)
+    if index.right_child != None:
+      right_copy = Index(
+          charges=copy.copy(index.right_child.charges),
+          flow=copy.copy(index.right_child.flow),
+          name=copy.copy(index.right_child.name))
+      copied_index.right_child = right_copy
+      self._copy_helper(index.right_child, right_copy)
+
+  def copy(self):
+    """
     Returns:
-      U1Charge: The result of fusing `self` with `other`.
+      Index: A deep copy of `Index`. Note that all children of
+        `Index` are copied as well.
     """
-    fused = np.reshape(self.charges[:, None] + other.charges[None, :],
-                       len(self.charges) * len(other.charges))
+    index_copy = Index(
+        charges=self._charges.copy(), flow=copy.copy(self.flow), name=self.name)
 
-    return U1Charge(charges=fused)
+    self._copy_helper(self, index_copy)
+    return index_copy
 
-  def __mul__(self, number: int) -> "U1Charge":
-    return U1Charge(charges=self.charges * number)
+  def _leave_helper(self, index: "Index", leave_list: List) -> None:
+    if index.left_child:
+      self._leave_helper(index.left_child, leave_list)
+    if index.right_child:
+      self._leave_helper(index.right_child, leave_list)
+    if (index.left_child is None) and (index.right_child is None):
+      leave_list.append(index)
 
-  def __rmul__(self, number: int) -> "U1Charge":
-    return U1Charge(charges=self.charges * number)
+  def get_elementary_indices(self) -> List:
+    """
+    Returns:
+    List: A list containing the elementary indices (the leaves) 
+      of `Index`.
+    """
+    leave_list = []
+    self._leave_helper(self, leave_list)
+    return leave_list
 
-  def __matmul__(self, other: Union["U1Charge", "Charge"]) -> "Charge":
-    c1 = U1Charge(self.charges.copy())  #make a copy of the charges (np.ndarray)
-    if isinstance(other, U1Charge):
-      c2 = type(other).__new__(
-          type(other))  #create a new charge object of type type(other)
-      c2.__init__(other.charges.copy())
-      return Charge([c1, c2])
-    #`other` should be of type `Charge`.
-    return Charge([c1] + _copy_charges(other.charges))
+  def __mul__(self, index: "Index") -> "Index":
+    """
+    Merge `index` and self into a single larger index.
+    The flow of the resulting index is set to 1.
+    Flows of `self` and `index` are multiplied into 
+    the charges upon fusing.n
+    """
+    return fuse_index_pair(self, index)
 
   @property
-  def dual_charges(self):
-    #the dual of a U1 charge is its negative value
-    return self.charges * self.charges.dtype.type(-1)
+  def charges(self):
+    if self.is_leave:
+      return self._charges
+    fused_charges = fuse_charge_pair(self.left_child.charges,
+                                     self.left_child.flow,
+                                     self.right_child.charges,
+                                     self.right_child.flow)
 
-
-class Z2Charge(BaseCharge):
-  """
-  A simple charge class for a single Z2 symmetry.
-  """
-
-  def __init__(self, charges: np.ndarray) -> None:
-    if charges.dtype is not np.dtype(np.bool):
-      raise TypeError("Z2 charges have to be boolian")
-    super().__init__(charges)
-
-  def __add__(self, other: "U1Charge") -> "U1Charge":
-    """
-    Fuse the charges of `self` with charges of `other`, and 
-    return a new `U1Charge` object holding the result.
-    Args: 
-      other: A `U1Charge` object.
-    Returns:
-      U1Charge: The result of fusing `self` with `other`.
-    """
-    fused = np.reshape(
-        np.logical_xor(self.charges[:, None], other.charges[None, :]),
-        len(self.charges) * len(other.charges))
-
-    return U1Charge(charges=fused)
-
-  def __mul__(self, number: int) -> "U1Charge":
-    return U1Charge(charges=self.charges * number)
-
-  def __rmul__(self, number: int) -> "U1Charge":
-    return U1Charge(charges=self.charges * number)
-
-  def __matmul__(self, other: Union["U1Charge", "Charge"]) -> "Charge":
-    c1 = U1Charge(self.charges.copy())  #make a copy of the charges (np.ndarray)
-    if isinstance(other, U1Charge):
-      c2 = type(other).__new__(
-          type(other))  #create a new charge object of type type(other)
-      c2.__init__(other.charges.copy())
-      return Charge([c1, c2])
-    #`other` should be of type `Charge`.
-    return Charge([c1] + _copy_charges(other.charges))
+    return fused_charges
 
   @property
-  def dual_charges(self):
-    #Z2 charges are self-dual
-    return self.charges
+  def name(self):
+    if self._name:
+      return self._name
+    if self.is_leave:
+      return self.name
+    return self.left_child.name + ' & ' + self.right_child.name
 
 
-class Charge:
-
-  def __init__(self, charges: List[Union[np.ndarray, BaseCharge]]) -> None:
-    if not isinstance(charges, list):
-      raise TypeError("only list allowed for argument `charges` "
-                      "in BaseCharge.__init__(charges)")
-    if not np.all([len(c) == len(charges[0]) for c in charges]):
-      raise ValueError("not all charges have the same length. "
-                       "Got lengths = {}".format([len(c) for c in charges]))
-    for n in range(len(charges)):
-      if not isinstance(charges[n], BaseCharge):
-        raise TypeError(
-            "`Charge` can only be initialized with a list of `BaseCharge`. Found {} instead"
-            .format(type(charges[n])))
-
-    self.charges = charges
-
-  def __add__(self, other: "Charge") -> "Charge":
-    """
-    Fuse `self` with `other`.
-    Args:
-      other: A `Charge` object.
-    Returns:
-      Charge: The result of fusing `self` with `other`.
-    """
-    return Charge([c1 + c2 for c1, c2 in zip(self.charges, other.charges)])
-
-  def __matmul__(self, other: Union["Charge", BaseCharge]) -> "Charge":
-    """
-    Product of `self` with `other` (group product).
-    Args:
-      other: A `BaseCharge` or `Charge` object.
-    Returns:
-      Charge: The resulting charge of the product of `self` with `other`.
-
-    """
-    if isinstance(other, BaseCharge):
-      c = type(other).__new__(
-          type(other))  #create a new charge object of type type(other)
-      c.__init__(other.charges.copy())
-      return Charge(self.charges + [c])
-    elif isinstance(other, Charge):
-      return Charge(_copy_charges(self.charges) + _copy_charges(other.charges))
-
-    raise TypeError("datatype not understood")
-
-  def __mul__(self, number: int) -> "Charge":
-    return Charge(charges=[c * number for c in self.charges])
-
-  def __rmul__(self, number: int) -> "Charge":
-    return Charge(charges=[c * number for c in self.charges])
-
-  def __len__(self):
-    return len(self.charges[0])
-
-  def __repr__(self):
-    return self.charges.__repr__()
-
-  def get_charges(self, dual: bool) -> List[np.ndarray]:
-    return [c.get_charges(dual) for c in self.charges]
-
-
-class Index:
+class IndexNew:
   """
   An index class to store indices of a symmetric tensor.
   An index keeps track of all its childs by storing references

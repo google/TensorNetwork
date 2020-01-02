@@ -101,7 +101,9 @@ class U1ChargeMerged:
                       "in a single int is larger than 64")
 
     if len(charges) > 1:
-      dtype = np.int16
+      dtype = np.int8
+      if np.sum(self._itemsizes) > 1:
+        dtype = np.int16
       if np.sum(self._itemsizes) > 2:
         dtype = np.int32
       if np.sum(self._itemsizes) > 4:
@@ -180,7 +182,9 @@ class U1ChargeMerged:
     if itemsize > 8:
       raise TypeError("number of bits required to store all charges "
                       "in a single int is larger than 64")
-    dtype = np.int32  #need at least np.int32 to store two charges
+    dtype = np.int16  #need at least np.int16 to store two charges
+    if itemsize > 2:
+      dtype = np.int32
     if itemsize > 4:
       dtype = np.int64
 

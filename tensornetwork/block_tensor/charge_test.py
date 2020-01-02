@@ -207,12 +207,12 @@ def test_U1ChargeMerged_raises():
 def test_U1ChargeMerged_fusion():
   D = 1000
   B = 6
-  O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
+  O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
   P1 = np.random.randint(0, B + 1, D).astype(np.int16)
   P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  Q1 = np.random.randint(1, B + 1, D).astype(np.int16)
-  Q2 = np.random.randint(1, B + 1, D).astype(np.int16)
+  Q1 = np.random.randint(1, B + 1, D).astype(np.int8)
+  Q2 = np.random.randint(1, B + 1, D).astype(np.int8)
 
   charges_1 = [O1, O2]
   charges_2 = [P1, P2]
