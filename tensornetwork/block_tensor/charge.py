@@ -76,7 +76,7 @@ class BaseCharge:
     return self.charges
 
 
-class U1ChargeCoerced:
+class U1ChargeMerged:
   """
   A simple charge class for a single U1 symmetry.
   """
@@ -85,26 +85,35 @@ class U1ChargeCoerced:
                charges: List[np.ndarray],
                offsets: Optional[np.ndarray] = None,
                shifts: Optional[np.ndarray] = None) -> None:
-    itemsizes = [8 * c.dtype.itemsize for c in charges]
-    if np.sum(itemsizes) > 64:
+    if len(charges) > 1:
+      if offsets is not None:
+        raise ValueError("If `offsets` is passed, only a single charge array "
+                         "can be passed. Got len(charges) = {}".format(
+                             len(charges)))
+      if shifts is not None:
+        raise ValueError("If `shifts` is passed, only a single charge array "
+                         "can be passed. Got len(charges) = {}".format(
+                             len(charges)))
+
+    self._itemsizes = [c.dtype.itemsize for c in charges]
+    if np.sum(self._itemsizes) > 8:
       raise TypeError("number of bits required to store all charges "
                       "in a single int is larger than 64")
-    if np.sum(itemsizes) == 16:
+
+    if len(charges) > 1:
       dtype = np.int16
-    if np.sum(itemsizes) > 16:
-      dtype = np.int32
-    if np.sum(itemsizes) > 32:
-      dtype = np.int64
-
-    if shifts is None:
-      self.shifts = np.flip(np.append(0, np.cumsum(np.flip(
-          itemsizes[1::])))).astype(dtype)
-    else:
-      self.shifts = shifts
-
-    dtype_charges = [c.astype(dtype) for c in charges]
-    if offsets is None:
-      offsets = [np.min(dtype_charges[n]) for n in range(len(dtype_charges))]
+      if np.sum(self._itemsizes) > 2:
+        dtype = np.int32
+      if np.sum(self._itemsizes) > 4:
+        dtype = np.int64
+      #multiply by eight to get number of bits
+      self.shifts = 8 * np.flip(
+          np.append(0, np.cumsum(np.flip(self._itemsizes[1::])))).astype(dtype)
+      dtype_charges = [c.astype(dtype) for c in charges]
+      offsets = [
+          np.min([0, np.min(dtype_charges[n])])
+          for n in range(len(dtype_charges))
+      ]
       pos_charges = [
           dtype_charges[n] - offsets[n] for n in range(len(dtype_charges))
       ]
@@ -119,24 +128,33 @@ class U1ChargeCoerced:
       ],
                              axis=0).astype(dtype)
     else:
-      if len(charges) > 1:
-        raise ValueError(
-            'if offsets is given, only a single charge array can be passed')
-      self.offsets = offsets
-      self._charges = dtype_charges[0]
+      if shifts is None:
+        shifts = np.asarray([0]).astype(charges[0].dtype)
+      self.shifts = shifts
+      if offsets is None:
+        self.offsets = np.min([0, np.min(charges[0])])
+        self._charges = charges[0] - self.offsets
+      else:
+        #we assume that `charges` are in this case already
+        #positive
+        self.offsets = offsets
+        if np.min(charges[0]) < 0:
+          raise ValueError("Expected all charges to be >= 0, "
+                           "but found negative charges")
+        self._charges = charges[0]
 
   @property
   def num_symmetries(self):
     return len(self.shifts)
 
-  def __add__(self, other: "U1ChargeCoerced") -> "U1ChargeCoerced":
+  def __add__(self, other: "U1ChargeMerged") -> "U1ChargeMerged":
     """
     Fuse the charges of `self` with charges of `other`, and 
     return a new `U1Charge` object holding the result.
     Args: 
-      other: A `U1ChargeCoerced` object.
+      other: A `U1ChargeMerged` object.
     Returns:
-      U1ChargeCoerced: The result of fusing `self` with `other`.
+      U1ChargeMerged: The result of fusing `self` with `other`.
     """
     if self.num_symmetries != other.num_symmetries:
       raise ValueError(
@@ -147,24 +165,34 @@ class U1ChargeCoerced:
           "Cannot fuse U1-charges with different shifts {} and {}".format(
               self.shifts, other.shifts))
     offsets = np.sum([self.offsets, other.offsets])
-    fused = np.reshape(self._charges[:, None] + other.charges[None, :],
-                       len(self._charges) * len(other.charges))
-    return U1ChargeCoerced(charges=[fused], offsets=offsets, shifts=self.shifts)
+    fused = np.reshape(self._charges[:, None] + other._charges[None, :],
+                       len(self._charges) * len(other._charges))
+    return U1ChargeMerged(charges=[fused], offsets=offsets, shifts=self.shifts)
 
   def __repr__(self):
     return 'U1-charge: \n' + 'shifts: ' + self.shifts.__repr__(
     ) + '\n' + 'offsets: ' + self.offsets.__repr__(
     ) + '\n' + 'charges: ' + self._charges.__repr__()
 
-  # def __matmul__(self, other: Union["U1Charge", "Charge"]) -> "Charge":
-  #   c1 = U1Charge(self._charges.copy())  #make a copy of the charges (np.ndarray)
-  #   if isinstance(other, U1Charge):
-  #     c2 = type(other).__new__(
-  #         type(other))  #create a new charge object of type type(other)
-  #     c2.__init__(other.charges.copy())
-  #     return Charge([c1, c2])
-  #   #`other` should be of type `Charge`.
-  #   return Charge([c1] + _copy_charges(other.charges))
+  def __matmul__(self, other: Union["U1ChargeMerged", "U1ChargeMerged"]
+                ) -> "U1ChargeMerged":
+    itemsize = np.sum(self._itemsizes + other._itemsizes)
+    if itemsize > 8:
+      raise TypeError("number of bits required to store all charges "
+                      "in a single int is larger than 64")
+    dtype = np.int32  #need at least np.int32 to store two charges
+    if itemsize > 4:
+      dtype = np.int64
+
+    charges = np.left_shift(
+        self._charges.astype(dtype),
+        8 * np.sum(other._itemsizes)) + other._charges.astype(dtype)
+
+    offsets = np.left_shift(
+        self.offsets.astype(dtype),
+        8 * np.sum(other._itemsizes)) + other.offsets.astype(dtype)
+    shifts = np.append(self.shifts + 8 * np.sum(other._itemsizes), other.shifts)
+    return U1ChargeMerged(charges=[charges], offsets=offsets, shifts=shifts)
 
   @property
   def dual_charges(self) -> np.ndarray:
@@ -173,24 +201,26 @@ class U1ChargeCoerced:
 
   @property
   def charges(self) -> np.ndarray:
-    return self._charges + self.offsets
+    if self.offsets != 0:
+      return self._charges + self.offsets
+    return self._charges
 
   def get_charges(self, dual: bool) -> np.ndarray:
     if dual:
       return self.dual_charges
-    return self._charges + self.offsets
+    return self.charges
 
   def nonzero(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
     if len(target_charges) != len(self.shifts):
       raise ValueError("len(target_charges) = {} is different "
-                       "from len(U1ChargeCoerced.shifts) = {}".format(
+                       "from len(U1ChargeMerged.shifts) = {}".format(
                            len(target_charges), len(self.shifts)))
-    charge = np.asarray(target_charges).astype(self._charges.dtype)
+    _target_charges = np.asarray(target_charges).astype(self._charges.dtype)
     target = np.sum([
-        np.left_shift(charge[n], self.shifts[n])
+        np.left_shift(_target_charges[n], self.shifts[n])
         for n in range(len(self.shifts))
     ])
-    return np.nonzero(self._charges + self.offsets == target)[0]
+    return np.nonzero(self.charges == target)[0]
 
 
 class U1Charge(BaseCharge):
