@@ -180,7 +180,7 @@ class U1ChargeMerged:
                 ) -> "U1ChargeMerged":
     itemsize = np.sum(self._itemsizes + other._itemsizes)
     if itemsize > 8:
-      raise TypeError("number of bits required to store all charges "
+      raise TypeError("Number of bits required to store all charges "
                       "in a single int is larger than 64")
     dtype = np.int16  #need at least np.int16 to store two charges
     if itemsize > 2:
