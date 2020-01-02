@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.charge import U1Charge, Charge, BaseCharge, U1ChargeCoerced
+from tensornetwork.block_tensor.charge import U1Charge, Charge, BaseCharge, U1ChargeMerged
 from tensornetwork.block_tensor.index import fuse_charges, fuse_degeneracies, fuse_charge_pair
 
 
@@ -122,15 +123,96 @@ def test_fuse_degeneracies():
   np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
 
 
-def test_U1ChargeCoerced_fusion():
+def test_U1ChargeMerged_charges():
+  D = 100
+  B = 6
+  charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(2)
+  ]
+
+  offsets = [np.min([0, np.min(c)]) for c in charges]
+  pos_charges = [
+      charges[n].astype(np.int32) - offsets[n].astype(np.int32)
+      for n in range(2)
+  ]
+  merged_charges = np.left_shift(pos_charges[0], 16) + pos_charges[1]
+  merged_offsets = np.left_shift(offsets[0], 16) + offsets[1]
+
+  q1 = U1ChargeMerged(charges)
+  assert np.all(q1.charges == merged_charges + merged_offsets)
+
+
+def test_U1ChargeMerged_dual():
+  D = 100
+  B = 6
+  charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(2)
+  ]
+
+  offsets = [np.min([0, np.min(c)]) for c in charges]
+  pos_charges = [
+      charges[n].astype(np.int32) - offsets[n].astype(np.int32)
+      for n in range(2)
+  ]
+  merged_charges = np.left_shift(pos_charges[0], 16) + pos_charges[1]
+  merged_offsets = np.left_shift(offsets[0], 16) + offsets[1]
+
+  q1 = U1ChargeMerged(charges)
+  assert np.all(q1.dual_charges == -(merged_charges + merged_offsets))
+
+
+def test_U1ChargeMerged_get_charges():
+  D = 100
+  B = 6
+  charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(2)
+  ]
+  q1 = U1ChargeMerged(charges)
+  assert np.all(q1.get_charges(False) == q1.charges)
+  assert np.all(q1.get_charges(True) == q1.dual_charges)
+
+
+def test_U1ChargeMerged_raises():
+  D = 100
+  B = 6
+  with pytest.raises(TypeError):
+    q1 = U1ChargeMerged([
+        np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int64)
+        for _ in range(2)
+    ])
+  with pytest.raises(ValueError):
+    q1 = U1ChargeMerged([
+        np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int64)
+        for _ in range(2)
+    ],
+                        offsets=[-5, -6])
+  with pytest.raises(ValueError):
+    q1 = U1ChargeMerged([
+        np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int64)
+        for _ in range(2)
+    ],
+                        shifts=[16, 0])
+  with pytest.raises(ValueError):
+    q1 = U1ChargeMerged([
+        np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int64)
+        for _ in range(2)
+    ],
+                        offsets=[-5, -6],
+                        shifts=[16, 0])
+
+
+def test_U1ChargeMerged_fusion():
   D = 1000
   B = 6
   O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
   O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  P1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  P1 = np.random.randint(0, B + 1, D).astype(np.int16)
   P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  Q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  Q2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  Q1 = np.random.randint(1, B + 1, D).astype(np.int16)
+  Q2 = np.random.randint(1, B + 1, D).astype(np.int16)
 
   charges_1 = [O1, O2]
   charges_2 = [P1, P2]
@@ -139,8 +221,8 @@ def test_U1ChargeCoerced_fusion():
   fused_1 = fuse_charges(charges_1, [1, 1])
   fused_2 = fuse_charges(charges_2, [1, 1])
   fused_3 = fuse_charges(charges_3, [1, 1])
-  q1 = U1ChargeCoerced([O1, P1, Q1])
-  q2 = U1ChargeCoerced([O2, P2, Q2])
+  q1 = U1ChargeMerged([O1, P1, Q1])
+  q2 = U1ChargeMerged([O2, P2, Q2])
 
   target = np.random.randint(-B // 2, B // 2 + 1, 3)
   q12 = q1 + q2
@@ -149,6 +231,24 @@ def test_U1ChargeCoerced_fusion():
   i1 = fused_1 == target[0]
   i2 = fused_2 == target[1]
   i3 = fused_3 == target[2]
-  tmp1 = np.logical_and(np.logical_and(i1, i2), i3)
-  nz_2 = np.nonzero(tmp1)[0]
+  nz_2 = np.nonzero(np.logical_and(np.logical_and(i1, i2), i3))[0]
   assert np.all(nz_1 == nz_2)
+
+
+def test_U1ChargeMerged_matmul():
+  D = 1000
+  B = 5
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1ChargeMerged([C1])
+  q2 = U1ChargeMerged([C2])
+  q3 = U1ChargeMerged([C3])
+
+  Q = q1 @ q2 @ q3
+  Q_ = U1ChargeMerged([C1, C2, C3])
+  assert np.all(Q.charges == Q_.charges)
+  assert np.all(Q._charges == Q_._charges)
+  assert Q.offsets == Q_.offsets
+  assert np.all(Q.shifts == Q_.shifts)
