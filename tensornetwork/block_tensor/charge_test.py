@@ -1,6 +1,7 @@
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies, fuse_charge_pair, fuse_indices, unfuse, U1Charge, Charge, BaseCharge
+from tensornetwork.block_tensor.charge import U1Charge, Charge, BaseCharge, U1ChargeCoerced
+from tensornetwork.block_tensor.index import fuse_charges, fuse_degeneracies, fuse_charge_pair
 
 
 def test_U1Charge_dual():
@@ -119,3 +120,35 @@ def test_fuse_degeneracies():
   d2 = np.asarray([2, 3, 4])
   fused_degeneracies = fuse_degeneracies(d1, d2)
   np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
+
+
+def test_U1ChargeCoerced_fusion():
+  D = 1000
+  B = 6
+  O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  P1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  Q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  Q2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  charges_1 = [O1, O2]
+  charges_2 = [P1, P2]
+  charges_3 = [Q1, Q2]
+
+  fused_1 = fuse_charges(charges_1, [1, 1])
+  fused_2 = fuse_charges(charges_2, [1, 1])
+  fused_3 = fuse_charges(charges_3, [1, 1])
+  q1 = U1ChargeCoerced([O1, P1, Q1])
+  q2 = U1ChargeCoerced([O2, P2, Q2])
+
+  target = np.random.randint(-B // 2, B // 2 + 1, 3)
+  q12 = q1 + q2
+
+  nz_1 = q12.nonzero(target)
+  i1 = fused_1 == target[0]
+  i2 = fused_2 == target[1]
+  i3 = fused_3 == target[2]
+  tmp1 = np.logical_and(np.logical_and(i1, i2), i3)
+  nz_2 = np.nonzero(tmp1)[0]
+  assert np.all(nz_1 == nz_2)
