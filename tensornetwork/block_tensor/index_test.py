@@ -3,6 +3,17 @@ import numpy as np
 from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charges, fuse_degeneracies, fuse_charge_pair, fuse_indices, unfuse, U1Charge, Charge, BaseCharge
 
 
+def test_U1Charge_dual():
+  q = U1Charge(np.asarray([-1, 0, 1]))
+  assert np.all(q.dual_charges == np.asarray([1, 0, -1]))
+
+
+def test_U1Charge_get_charges():
+  q = U1Charge(np.asarray([-1, 0, 1]))
+  assert np.all(q.get_charges(dual=False) == np.asarray([-1, 0, 1]))
+  assert np.all(q.get_charges(dual=True) == np.asarray([1, 0, -1]))
+
+
 def test_U1Charge_mul():
   q = U1Charge(np.asarray([0, 1]))
   q2 = 2 * q
@@ -77,6 +88,21 @@ def test_Charge_product():
   for n in range(len(prod.charges)):
     np.testing.assert_allclose(prod.charges[n].charges, expected[n].charges)
     assert isinstance(prod.charges[n], BaseCharge)
+
+
+def test_Charge_get_charges():
+  q = Charge(
+      [U1Charge(np.asarray([-1, 0, 1])),
+       U1Charge(np.asarray([-2, 0, 3]))])
+  expected = [np.asarray([-1, 0, 1]), np.asarray([-2, 0, 3])]
+  actual = q.get_charges(dual=False)
+  for n in range(len(actual)):
+    np.testing.assert_allclose(expected[n], actual[n])
+
+  expected = [np.asarray([1, 0, -1]), np.asarray([2, 0, -3])]
+  actual = q.get_charges(dual=True)
+  for n in range(len(actual)):
+    np.testing.assert_allclose(expected[n], actual[n])
 
 
 def test_fuse_charges():
