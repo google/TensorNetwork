@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from tensornetwork.network_components import Node, contract, contract_between
-from tensornetwork.block_tensor.charge import BaseCharge, Charge
+from tensornetwork.block_tensor.charge import BaseCharge, ChargeCollection
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
 import copy
@@ -63,7 +63,7 @@ def fuse_charges(charges: List[Union[List, np.ndarray]],
   """
   if len(charges) == 1:
     #nothing to do
-    return charges[0]
+    return flows[0] * charges[0]
   fused_charges = charges[0] * flows[0]
   for n in range(1, len(charges)):
     fused_charges = fuse_charge_pair(
@@ -229,10 +229,9 @@ class Index:
   def charges(self):
     if self.is_leave:
       return self._charges
-    fused_charges = fuse_charge_pair(self.left_child.charges,
-                                     self.left_child.flow,
-                                     self.right_child.charges,
-                                     self.right_child.flow)
+    fused_charges = fuse_charge_pair(
+        self.left_child.charges, self.left_child.flow, self.right_child.charges,
+        self.right_child.flow)
 
     return fused_charges
 
@@ -253,14 +252,14 @@ class IndexNew:
   """
 
   def __init__(self,
-               charges: Union[Charge, BaseCharge],
+               charges: Union[ChargeCollection, BaseCharge],
                flow: int,
                name: Optional[Text] = None,
                left_child: Optional["Index"] = None,
                right_child: Optional["Index"] = None):
     if isinstance(charges, BaseCharge):
-      self._charges = Charge([charges])
-    elif isinstance(charges, Charge):
+      self._charges = ChargeCollection([charges])
+    elif isinstance(charges, ChargeCollection):
       self._charges = charges
     self.flow = flow
     self.left_child = left_child
