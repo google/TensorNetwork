@@ -441,23 +441,45 @@ class ChargeCollection:
     return np.sum([c.num_symmetries for c in self.charges])
 
 
-def fuse_charges(charges: List[ChargeCollection],
-                 flows: List[Union[bool, int]]) -> ChargeCollection:
+def fuse_charges(
+    charges: List[Union[BaseCharge, ChargeCollection]],
+    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
   """
-  Fuse all `charges` by simple addition (valid
-  for U(1) charges). Charges are fused from "right to left", 
-  in accordance with row-major order (see `fuse_charges_pair`).
+  Fuse all `charges` into a new charge.
+  Charges are fused from "right to left", 
+  in accordance with row-major order.
 
   Args:
-    chargs: A list of charges to be fused.
+    charges: A list of charges to be fused.
     flows: A list of flows, one for each element in `charges`.
   Returns:
-    np.ndarray: The result of fusing `charges`.
+    ChargeCollection: The result of fusing `charges`.
   """
-  if len(charges) == 1:
-    #nothing to do
-    return flows[0] * charges[0]
+  if len(charges) != len(flows):
+    raise ValueError(
+        "`charges` and `flows` are of unequal lengths {} != {}".format(
+            len(charges), len(flows)))
   fused_charges = charges[0] * flows[0]
   for n in range(1, len(charges)):
     fused_charges = fused_charges + flows[n] * charges[n]
   return fused_charges
+
+
+def fuse_degeneracies(degen1: Union[List, np.ndarray],
+                      degen2: Union[List, np.ndarray]) -> np.ndarray:
+  """
+  Fuse degeneracies `degen1` and `degen2` of two leg-charges 
+  by simple kronecker product. `degen1` and `degen2` typically belong to two 
+  consecutive legs of `BlockSparseTensor`.
+  Given `degen1 = [1, 2, 3]` and `degen2 = [10, 100]`, this returns
+  `[10, 100, 20, 200, 30, 300]`.
+  When using row-major ordering of indices in `BlockSparseTensor`, 
+  the position of `degen1` should be "to the left" of the position of `degen2`.
+  Args:
+    degen1: Iterable of integers
+    degen2: Iterable of integers
+  Returns:
+    np.ndarray: The result of fusing `dege1` with `degen2`.
+  """
+  return np.reshape(degen1[:, None] * degen2[None, :],
+                    len(degen1) * len(degen2))
