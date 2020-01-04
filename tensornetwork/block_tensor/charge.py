@@ -111,6 +111,28 @@ class BaseCharge:
   def dtype(self):
     return self.charges.dtype
 
+  def unique(self,
+             return_index=False,
+             return_inverse=False,
+             return_counts=False):
+    return np.unique(
+        self.charges,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts)
+
+  def __eq__(self, target_charges):
+    if len(target_charges) != len(self.shifts):
+      raise ValueError("len(target_charges) = {} is different "
+                       "from len(shifts) = {}".format(
+                           len(target_charges), len(self.shifts)))
+    _target_charges = np.asarray(target_charges).astype(self.charges.dtype)
+    target = np.sum([
+        np.left_shift(_target_charges[n], self.shifts[n])
+        for n in range(len(self.shifts))
+    ])
+    return self.charges == target
+
 
 class U1Charge(BaseCharge):
   """
@@ -231,18 +253,6 @@ class U1Charge(BaseCharge):
     #the dual of a U1 charge is its negative value
     return self.charges * self.dtype.type(-1)
 
-  def nonzero(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
-    if len(target_charges) != len(self.shifts):
-      raise ValueError("len(target_charges) = {} is different "
-                       "from len(U1Charge.shifts) = {}".format(
-                           len(target_charges), len(self.shifts)))
-    _target_charges = np.asarray(target_charges).astype(self.charges.dtype)
-    target = np.sum([
-        np.left_shift(_target_charges[n], self.shifts[n])
-        for n in range(len(self.shifts))
-    ])
-    return np.nonzero(self.charges == target)[0]
-
 
 class Z2Charge(BaseCharge):
   """
@@ -350,21 +360,11 @@ class Z2Charge(BaseCharge):
     return 'Z2-charge: \n' + 'shifts: ' + self.shifts.__repr__(
     ) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
 
-  def nonzero(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
-    if len(target_charges) != len(self.shifts):
-      raise ValueError("len(target_charges) = {} is different "
-                       "from len(U1Charge.shifts) = {}".format(
-                           len(target_charges), len(self.shifts)))
-
+  def __eq__(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
     if not np.all(np.isin(target_charges, np.asarray([0, 1]))):
-      raise ValueError("Z2-charges can only be 0 or 1, found {}".format(
+      raise ValueError("Z2-charges can only be 0 or 1, found charges {}".format(
           np.unique(target_charges)))
-    _target_charges = np.asarray(target_charges).astype(self.charges.dtype)
-    target = np.sum([
-        np.left_shift(_target_charges[n], self.shifts[n])
-        for n in range(len(self.shifts))
-    ])
-    return np.nonzero(self.charges == target)[0]
+    return super().__eq__(target_charges)
 
 
 class ChargeCollection:
@@ -436,9 +436,27 @@ class ChargeCollection:
 
     return self.__mul__(number)
 
-  @property
-  def num_symmetries(self):
-    return np.sum([c.num_symmetries for c in self.charges])
+  def unique(self,
+             return_index=False,
+             return_inverse=False,
+             return_counts=False):
+    return np.unique(
+        np.stack([self.charges[n].charges for n in range(len(self.charges))],
+                 axis=1),
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts,
+        axis=0)
+
+  def __eq__(self, target_charges):
+    if len(target_charges) != len(self.charges):
+      raise ValueError(
+          "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
+          .format(len(target_charges), len(self.charges)))
+    return np.logical_and.reduce([
+        self.charges[n] == target_charges[n]
+        for n in range(len(target_charges))
+    ])
 
 
 def fuse_charges(
