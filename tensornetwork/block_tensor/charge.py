@@ -55,7 +55,6 @@ class BaseCharge:
         raise ValueError("If `shifts` is passed, only a single charge array "
                          "can be passed. Got len(charges) = {}".format(
                              len(charges)))
-
     if shifts is None:
       dtype = np.int8
       if np.sum(self._itemsizes) > 1:
@@ -97,8 +96,9 @@ class BaseCharge:
   def __len__(self) -> int:
     return len(self.charges)
 
-  def __repr__(self) -> str:
-    raise NotImplementedError("`__repr__` is not implemented for `BaseCharge`")
+  def __repr__(self):
+    return str(type(self)) + '\nshifts: ' + self.shifts.__repr__(
+    ) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
 
   @property
   def dual_charges(self) -> np.ndarray:
@@ -151,7 +151,7 @@ class BaseCharge:
 
     return tuple([out] + [result[n] for n in range(1, len(result))])
 
-  def equals(self, target_charges):
+  def equals(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
     """
     Find indices where `BaseCharge` equals `target_charges`.
     `target_charges` has to be an array of the same lenghts 
@@ -174,7 +174,7 @@ class BaseCharge:
     ])
     return self.charges == target
 
-  def __eq__(self, target):
+  def __eq__(self, target: int) -> np.ndarray:
     """
     Find indices where `BaseCharge` equals `target_charges`.
     `target` is a single integer encoding all symmetries of
@@ -257,10 +257,6 @@ class U1Charge(BaseCharge):
     fused = np.reshape(self.charges[:, None] - other.charges[None, :],
                        len(self.charges) * len(other.charges))
     return U1Charge(charges=[fused], shifts=self.shifts)
-
-  def __repr__(self):
-    return 'U1-charge: \n' + 'shifts: ' + self.shifts.__repr__(
-    ) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
 
   def __matmul__(self, other: Union["U1Charge", "U1Charge"]) -> "U1Charge":
     itemsize = np.sum(self._itemsizes + other._itemsizes)
@@ -416,15 +412,11 @@ class Z2Charge(BaseCharge):
     #Z2 charges are self-dual
     return self.charges
 
-  def __repr__(self):
-    return 'Z2-charge: \n' + 'shifts: ' + self.shifts.__repr__(
-    ) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
-
-  def __eq__(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
+  def equals(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
     if not np.all(np.isin(target_charges, np.asarray([0, 1]))):
       raise ValueError("Z2-charges can only be 0 or 1, found charges {}".format(
           np.unique(target_charges)))
-    return super().__eq__(target_charges)
+    return super().equals(target_charges)
 
 
 class ChargeCollection:
@@ -536,9 +528,9 @@ class ChargeCollection:
       charges.append(obj)
     out = ChargeCollection(charges)
     return tuple([out] + [result[n] for n in range(1, len(result))])
-
-  def equals(self, target_charges):
-    if len(target_charges) != len(self.charges):
+  
+  def equals(self, target_charges: List[Union[List, np.ndarray]]) -> np.ndarray:
+      if len(target_charges) != len(self.charges):
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
