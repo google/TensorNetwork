@@ -40,8 +40,10 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: List[np.ndarray],
-               shifts: Optional[np.ndarray] = None) -> None:
+               charges: Union[List[np.ndarray], np.ndarray],
+               shifts: Optional[Union[List[int], np.ndarray]] = None) -> None:
+    if isinstance(charges, np.ndarray):
+      charges = [charges]
     self._itemsizes = [c.dtype.itemsize for c in charges]
     if np.sum(self._itemsizes) > 8:
       raise TypeError("number of bits required to store all charges "
@@ -53,7 +55,7 @@ class BaseCharge:
                          "can be passed. Got len(charges) = {}".format(
                              len(charges)))
 
-    if len(charges) > 1:
+    if shifts is None:
       dtype = np.int8
       if np.sum(self._itemsizes) > 1:
         dtype = np.int16
@@ -71,9 +73,7 @@ class BaseCharge:
       ],
                             axis=0).astype(dtype)
     else:
-      if shifts is None:
-        shifts = np.asarray([0]).astype(charges[0].dtype)
-      self.shifts = shifts
+      self.shifts = np.asarray(shifts)
       self.charges = charges[0]
 
   def __add__(self, other: "BaseCharge") -> "BaseCharge":
@@ -288,7 +288,10 @@ class Z2Charge(BaseCharge):
   def __init__(self,
                charges: List[np.ndarray],
                shifts: Optional[np.ndarray] = None) -> None:
-    if len(charges) > 1:
+    if isinstance(charges, np.ndarray):
+      charges = [charges]
+
+    if shifts is None:
       itemsizes = [c.dtype.itemsize for c in charges]
       if not np.all([i == 1 for i in itemsizes]):
         # martin: This error could come back at us, but I'll leave it for now
@@ -517,9 +520,9 @@ class ChargeCollection:
     ])
 
 
-def fuse_charges(
-    charges: List[Union[BaseCharge, ChargeCollection]],
-    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
+def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
+                 flows: List[Union[bool, int]]
+                ) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 
