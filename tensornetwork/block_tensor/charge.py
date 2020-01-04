@@ -20,6 +20,7 @@ from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
 import copy
+import warnings
 from typing import List, Union, Any, Optional, Tuple, Text
 
 
@@ -86,6 +87,9 @@ class BaseCharge:
     raise NotImplementedError(
         "`__matmul__` is not implemented for `BaseCharge`")
 
+  def __getitem__(self, n: int) -> "BaseCharge":
+    return self.charges[n]
+
   @property
   def num_symmetries(self):
     return len(self.shifts)
@@ -147,7 +151,18 @@ class BaseCharge:
 
     return tuple([out] + [result[n] for n in range(1, len(result))])
 
-  def __eq__(self, target_charges):
+  def equals(self, target_charges):
+    """
+    Find indices where `BaseCharge` equals `target_charges`.
+    `target_charges` has to be an array of the same lenghts 
+    as `BaseCharge.shifts`, containing one integer per symmetry of 
+    `BaseCharge`
+    Args:
+      target_charges: np.ndarray of integers encoding charges.
+    Returns:
+      np.ndarray: Boolean array with `True` where `BaseCharge` equals
+      `target_charges` and `False` everywhere else.
+    """
     if len(target_charges) != len(self.shifts):
       raise ValueError("len(target_charges) = {} is different "
                        "from len(shifts) = {}".format(
@@ -157,6 +172,19 @@ class BaseCharge:
         np.left_shift(_target_charges[n], self.shifts[n])
         for n in range(len(self.shifts))
     ])
+    return self.charges == target
+
+  def __eq__(self, target):
+    """
+    Find indices where `BaseCharge` equals `target_charges`.
+    `target` is a single integer encoding all symmetries of
+    `BaseCharge`
+    Args:
+      target: integerger encoding charges.
+    Returns:
+      np.ndarray: Boolean array with `True` where `BaseCharge.charges` equals
+      `target` and `False` everywhere else.
+    """
     return self.charges == target
 
 
@@ -295,9 +323,12 @@ class Z2Charge(BaseCharge):
       itemsizes = [c.dtype.itemsize for c in charges]
       if not np.all([i == 1 for i in itemsizes]):
         # martin: This error could come back at us, but I'll leave it for now
-        raise ValueError("Z2 charges can be entirely stored in "
-                         "np.int8, but found dtypes = {}".format(
-                             [c.dtype for c in charges]))
+        warnings.warn(
+            "Z2 charges can be entirely stored in "
+            "np.int8, but found dtypes = {}. Converting to np.int8.".format(
+                [c.dtype for c in charges]))
+
+      charges = [c.astype(np.int8) for c in charges]
 
     super().__init__(charges, shifts)
 
@@ -417,10 +448,7 @@ class ChargeCollection:
     self.charges = charges
 
   def __getitem__(self, n: int) -> BaseCharge:
-    return self.charges[n]
-
-  def __setitem__(self, n: int, val: BaseCharge) -> None:
-    self.charges[n] = val
+    return np.asarray([c.charges[n] for c in self.charges])
 
   def __add__(self, other: "Charge") -> "Charge":
     """
@@ -508,6 +536,16 @@ class ChargeCollection:
       charges.append(obj)
     out = ChargeCollection(charges)
     return tuple([out] + [result[n] for n in range(1, len(result))])
+
+  def equals(self, target_charges):
+    if len(target_charges) != len(self.charges):
+      raise ValueError(
+          "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
+          .format(len(target_charges), len(self.charges)))
+    return np.logical_and.reduce([
+        self.charges[n].equals(target_charges[n])
+        for n in range(len(target_charges))
+    ])
 
   def __eq__(self, target_charges):
     if len(target_charges) != len(self.charges):
