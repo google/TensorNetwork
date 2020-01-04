@@ -146,10 +146,14 @@ class BaseCharge:
         return_index=return_index,
         return_inverse=return_inverse,
         return_counts=return_counts)
-    out = self.__new__(type(self))
-    out.__init__([result[0]], self.shifts)
-
-    return tuple([out] + [result[n] for n in range(1, len(result))])
+    if not (return_index or return_inverse or return_counts):
+      out = self.__new__(type(self))
+      out.__init__([result], self.shifts)
+      return out
+    else:
+      out = self.__new__(type(self))
+      out.__init__([result[0]], self.shifts)
+      return tuple([out] + [result[n] for n in range(1, len(result))])
 
   def equals(self, target_charges: Union[List, np.ndarray]) -> np.ndarray:
     """
@@ -464,11 +468,16 @@ class ChargeCollection:
     return ChargeCollection(
         [c1 - c2 for c1, c2 in zip(self.charges, other.charges)])
 
+  def __repr__(self):
+    text = str(type(self)) + '\n '
+    for n in range(len(self.charges)):
+      tmp = self.charges[n].__repr__()
+      tmp = tmp.replace('\n', '\n\t')
+      text += (tmp + '\n\t')
+    return text
+
   def __len__(self):
     return len(self.charges[0])
-
-  def __repr__(self):
-    return self.charges.__repr__()
 
   def __mul__(self, number: Union[bool, int]) -> "Charge":
     if number not in (True, False, 0, 1, -1):
@@ -520,17 +529,22 @@ class ChargeCollection:
         return_inverse=return_inverse,
         return_counts=return_counts,
         axis=0)
-
     charges = []
+    if not (return_index or return_inverse or return_counts):
+      for n in range(len(self.charges)):
+        obj = self.charges[n].__new__(type(self.charges[n]))
+        obj.__init__(charges=[result[:, n]], shifts=self.charges[n].shifts)
+        charges.append(obj)
+      return ChargeCollection(charges)
     for n in range(len(self.charges)):
       obj = self.charges[n].__new__(type(self.charges[n]))
       obj.__init__(charges=[result[0][:, n]], shifts=self.charges[n].shifts)
       charges.append(obj)
-    out = ChargeCollection(charges)
+      out = ChargeCollection(charges)
     return tuple([out] + [result[n] for n in range(1, len(result))])
-  
+
   def equals(self, target_charges: List[Union[List, np.ndarray]]) -> np.ndarray:
-      if len(target_charges) != len(self.charges):
+    if len(target_charges) != len(self.charges):
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
