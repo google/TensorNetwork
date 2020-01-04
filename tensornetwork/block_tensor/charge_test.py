@@ -421,12 +421,14 @@ def test_Charge_U1_sub():
 
 
 def test_Charge_Z2_add():
-  q1 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 1])]),
-       Z2Charge([np.asarray([1, 0])])])
-  q2 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 0])]),
-       Z2Charge([np.asarray([1, 1])])])
+  q1 = ChargeCollection([
+      Z2Charge([np.asarray([0, 1]).astype(np.int8)]),
+      Z2Charge([np.asarray([1, 0]).astype(np.int8)])
+  ])
+  q2 = ChargeCollection([
+      Z2Charge([np.asarray([0, 0]).astype(np.int8)]),
+      Z2Charge([np.asarray([1, 1]).astype(np.int8)])
+  ])
   expected = [np.asarray([0, 0, 1, 1]), np.asarray([0, 0, 1, 1])]
   q12 = q1 + q2
   for n in range(len(q12.charges)):
@@ -434,12 +436,14 @@ def test_Charge_Z2_add():
 
 
 def test_Charge_Z2_sub():
-  q1 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 1])]),
-       Z2Charge([np.asarray([1, 0])])])
-  q2 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 0])]),
-       Z2Charge([np.asarray([1, 1])])])
+  q1 = ChargeCollection([
+      Z2Charge([np.asarray([0, 1]).astype(np.int8)]),
+      Z2Charge([np.asarray([1, 0]).astype(np.int8)])
+  ])
+  q2 = ChargeCollection([
+      Z2Charge([np.asarray([0, 0]).astype(np.int8)]),
+      Z2Charge([np.asarray([1, 1]).astype(np.int8)])
+  ])
   expected = [np.asarray([0, 0, 1, 1]), np.asarray([0, 0, 1, 1])]
   q12 = q1 - q2
   for n in range(len(q12.charges)):
@@ -447,12 +451,14 @@ def test_Charge_Z2_sub():
 
 
 def test_Charge_Z2_U1_add():
-  q1 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 1])]),
-       U1Charge([np.asarray([-2, 3])])])
-  q2 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 0])]),
-       U1Charge([np.asarray([-1, 4])])])
+  q1 = ChargeCollection([
+      Z2Charge([np.asarray([0, 1]).astype(np.int8)]),
+      U1Charge([np.asarray([-2, 3]).astype(np.int8)])
+  ])
+  q2 = ChargeCollection([
+      Z2Charge([np.asarray([0, 0]).astype(np.int8)]),
+      U1Charge([np.asarray([-1, 4]).astype(np.int8)])
+  ])
   expected = [np.asarray([0, 0, 1, 1]), np.asarray([-3, 2, 2, 7])]
 
   q12 = q1 + q2
@@ -461,9 +467,10 @@ def test_Charge_Z2_U1_add():
 
 
 def test_Charge_add_Z2_U1_raises():
-  q1 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 1])]),
-       Z2Charge([np.asarray([-2, 3])])])
+  q1 = ChargeCollection([
+      Z2Charge([np.asarray([0, 1]).astype(np.int8)]),
+      Z2Charge([np.asarray([-2, 3]).astype(np.int8)])
+  ])
   q2 = ChargeCollection(
       [U1Charge([np.asarray([0, 0])]),
        U1Charge([np.asarray([-1, 4])])])
@@ -473,9 +480,10 @@ def test_Charge_add_Z2_U1_raises():
 
 
 def test_Charge_sub_Z2_U1_raises():
-  q1 = ChargeCollection(
-      [Z2Charge([np.asarray([0, 1])]),
-       Z2Charge([np.asarray([-2, 3])])])
+  q1 = ChargeCollection([
+      Z2Charge([np.asarray([0, 1]).astype(np.int8)]),
+      Z2Charge([np.asarray([-2, 3]).astype(np.int8)])
+  ])
   q2 = ChargeCollection(
       [U1Charge([np.asarray([0, 0])]),
        U1Charge([np.asarray([-1, 4])])])
@@ -487,10 +495,100 @@ def test_Charge_sub_Z2_U1_raises():
 def test_BaseCharge_eq():
   D = 1000
   B = 5
-  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q2 = np.random.randint(-B // 2 - 1, B // 2 + 2, D).astype(np.int16)
+  Q = BaseCharge(charges=[q1, q2])
+  target_charge = np.asarray([
+      np.random.randint(-B // 2, B // 2 + 1),
+      np.random.randint(-B // 2 - 1, B // 2 + 2)
+  ])
+  assert np.all(
+      (Q == target_charge
+      ) == np.logical_and(q1 == target_charge[0], q2 == target_charge[1]))
 
-  q1 = U1Charge([C1])
-  q2 = U1Charge([C2])
-  q3 = U1Charge([C3])
+
+def test_BaseCharge_unique():
+  D = 1000
+  B = 5
+  q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q2 = np.random.randint(-B // 2 - 1, B // 2 + 2, D).astype(np.int16)
+  Q = BaseCharge(charges=[q1, q2])
+  expected = np.unique(
+      Q.charges,
+      return_index=True,
+      return_inverse=True,
+      return_counts=True,
+      axis=0)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
+
+
+def test_Charge_U1_U1_eq():
+  D = 1000
+  B = 5
+  q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q2 = np.random.randint(-B // 2 - 1, B // 2 + 2, D).astype(np.int16)
+  p1 = np.random.randint(-B // 2 - 2, B // 2 + 3, D).astype(np.int16)
+  Q = ChargeCollection(charges=[U1Charge([q1, q2]), U1Charge(p1)])
+  target_q = [
+      np.random.randint(-B // 2, B // 2 + 1),
+      np.random.randint(-B // 2 - 1, B // 2 + 2)
+  ]
+  target_p = [np.random.randint(-B // 2 - 2, B // 2 + 3)]
+  target_charge = [target_q, target_p]
+  assert np.all((Q == target_charge) == np.logical_and.reduce(
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+
+
+def test_Charge_Z2_Z2_eq():
+  D = 1000
+  q1 = np.random.randint(0, 2, D).astype(np.int8)
+  q2 = np.random.randint(0, 2, D).astype(np.int8)
+  p1 = np.random.randint(0, 2, D).astype(np.int8)
+  Q = ChargeCollection(charges=[Z2Charge([q1, q2]), Z2Charge(p1)])
+  target_q = [np.random.randint(0, 2), np.random.randint(0, 2)]
+  target_p = [np.random.randint(0, 2)]
+  target_charge = [target_q, target_p]
+  assert np.all((Q == target_charge) == np.logical_and.reduce(
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+
+
+def test_Charge_U1_Z2_eq():
+  D = 1000
+  B = 5
+  q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q2 = np.random.randint(-B // 2 - 1, B // 2 + 2, D).astype(np.int16)
+  p1 = np.random.randint(0, 2, D).astype(np.int8)
+  Q = ChargeCollection(charges=[U1Charge([q1, q2]), Z2Charge(p1)])
+  target_q = [
+      np.random.randint(-B // 2, B // 2 + 1),
+      np.random.randint(-B // 2 - 1, B // 2 + 2)
+  ]
+  target_p = [np.random.randint(0, 2)]
+  target_charge = [target_q, target_p]
+  assert np.all((Q == target_charge) == np.logical_and.reduce(
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+
+
+def test_Charge_U1_U1_unique():
+  D = 1000
+  B = 5
+  q1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q2 = np.random.randint(-B // 2 - 1, B // 2 + 2, D).astype(np.int16)
+  p1 = np.random.randint(-B // 2 - 2, B // 2 + 3, D).astype(np.int16)
+  Q = ChargeCollection(charges=[U1Charge([q1, q2]), U1Charge(p1)])
+  expected = np.unique(
+      np.stack([Q[0].charges, Q[1].charges], axis=1),
+      return_index=True,
+      return_inverse=True,
+      return_counts=True,
+      axis=0)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0][0].charges == expected[0][:, 0])
+  assert np.all(actual[0][1].charges == expected[0][:, 1])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
