@@ -88,8 +88,9 @@ class BaseCharge:
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     charges = self.charges[n]
+
     obj = self.__new__(type(self))
-    obj.__init__(charges=[charges], shifts=self.shifts)
+    obj.__init__(charges=[np.asarray([charges])], shifts=self.shifts)
     return obj
 
   @property
@@ -97,7 +98,7 @@ class BaseCharge:
     return len(self.shifts)
 
   def __len__(self) -> int:
-    return len(self.charges)
+    return np.prod(self.charges.shape)
 
   def __repr__(self):
     return str(type(self)) + '\nshifts: ' + self.shifts.__repr__(
@@ -181,7 +182,7 @@ class BaseCharge:
     ])
     return self.charges == target
 
-  def __eq__(self, target: int) -> np.ndarray:
+  def __eq__(self, target: Union[int, "BaseCharge"]) -> np.ndarray:
     """
     Find indices where `BaseCharge` equals `target_charges`.
     `target` is a single integer encoding all symmetries of
@@ -192,7 +193,9 @@ class BaseCharge:
       np.ndarray: Boolean array with `True` where `BaseCharge.charges` equals
       `target` and `False` everywhere else.
     """
-    return self.charges == target
+    if isinstance(target, (np.integer, int)):
+      return self.charges == target
+    return self.charges == target.charges
 
   def concatenate(self, others: Union["BaseCharge", List["BaseCharge"]]):
     """
@@ -215,6 +218,16 @@ class BaseCharge:
     out = self.__new__(type(self))
     out.__init__([charges], self.shifts)
     return out
+
+  @property
+  def dtype(self):
+    return self.charges.dtype
+
+  @property
+  def zero_charge(self):
+    obj = self.__new__(type(self))
+    obj.__init__(charges=[np.asarray([self.dtype.type(0)])], shifts=self.shifts)
+    return obj
 
 
 class U1Charge(BaseCharge):
@@ -468,11 +481,36 @@ class ChargeCollection:
 
     self.charges = charges
 
-  def __getitem__(self, n: int) -> BaseCharge:
+  def __getitem__(self, n: Union[np.ndarray, int]) -> BaseCharge:
     if not hasattr(self, '_stacked_charges'):
       self._stacked_charges = np.stack([c.charges for c in self.charges],
                                        axis=1)
-    return self._stacked_charges[n, :]
+
+    array = self._stacked_charges[n, :]
+    charges = []
+    if len(array) == 0:
+      for n in range(len(self.charges)):
+        charge = self.charges[n].__new__(type(self.charges[n]))
+        charge.__init__(
+            charges=[np.empty(0, dtype=self.charges[n].dtype)],
+            shifts=self.charges[n].shifts)
+        charges.append(charge)
+
+      obj = self.__new__(type(self))
+      obj.__init__(charges=charges)
+      return obj
+
+    if len(array.shape) == 1:
+      array = np.expand_dims(array, 1)
+
+    for n in range(len(self.charges)):
+      charge = self.charges[n].__new__(type(self.charges[n]))
+      charge.__init__(charges=[array[n, :]], shifts=self.charges[n].shifts)
+      charges.append(charge)
+
+    obj = self.__new__(type(self))
+    obj.__init__(charges=charges)
+    return obj
 
   #return np.asarray([c.charges[n] for c in self.charges])
 
@@ -503,7 +541,7 @@ class ChargeCollection:
     for n in range(len(self.charges)):
       tmp = self.charges[n].__repr__()
       tmp = tmp.replace('\n', '\n\t')
-      text += (tmp + '\n\t')
+      text += (tmp + '\n')
     return text
 
   def __len__(self):
@@ -583,20 +621,23 @@ class ChargeCollection:
         for n in range(len(target_charges))
     ])
 
-  def __eq__(self, target_charges):
-    if len(target_charges) != len(self.charges):
+  def __eq__(self, target_charges: Union[np.ndarray, "ChargeCollection"]):
+    if isinstance(target_charges, type(self)):
+      target_charges = np.stack([c.charges for c in target_charges.charges],
+                                axis=1)
+
+    if target_charges.shape[1] != len(self.charges):
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
     if not hasattr(self, '_stacked_charges'):
       self._stacked_charges = np.stack([c.charges for c in self.charges],
                                        axis=1)
-    target = np.reshape(target_charges, (1, len(target_charges)))
-    return np.logical_and.reduce(self._stacked_charges == target, axis=1)
-    # return np.logical_and.reduce([
-    #     self.charges[n] == target_charges[n]
-    #     for n in range(len(target_charges))
-    # ])
+    if len(target_charges.shape) == 1:
+      target_charges = np.expand_dims(target_charges, 0)
+
+    return np.logical_and.reduce(
+        self._stacked_charges == target_charges, axis=1)
 
   def concatenate(self,
                   others: Union["ChargeCollection", List["ChargeCollection"]]):
@@ -617,10 +658,20 @@ class ChargeCollection:
     ]
     return ChargeCollection(charges)
 
+  @property
+  def dtype(self):
+    return np.result_type(*[c.dtype for c in self.charges])
 
-def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
-                 flows: List[Union[bool, int]]
-                ) -> Union[BaseCharge, ChargeCollection]:
+  @property
+  def zero_charge(self):
+    obj = self.__new__(type(self))
+    obj.__init__(charges=[c.zero_charge for c in self.charges])
+    return obj
+
+
+def fuse_charges(
+    charges: List[Union[BaseCharge, ChargeCollection]],
+    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 
