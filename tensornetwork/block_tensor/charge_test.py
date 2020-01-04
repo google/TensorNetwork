@@ -100,7 +100,7 @@ def test_U1Charge_fusion():
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
     q12 = q1 + q2
 
-    nz_1 = q12.nonzero(target)
+    nz_1 = np.nonzero(q12 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -143,7 +143,7 @@ def test_U1Charge_multiple_fusion():
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
     q123 = q1 + q2 + q3
 
-    nz_1 = q123.nonzero(target)
+    nz_1 = np.nonzero(q123 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -185,7 +185,7 @@ def test_U1Charge_multiple_fusion_with_flow():
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
     q123 = q1 + (-1) * q2 + q3
 
-    nz_1 = q123.nonzero(target)
+    nz_1 = np.nonzero(q123 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -223,7 +223,7 @@ def test_U1Charge_fusion_with_flow():
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
     q12 = q1 + (-1) * q2
 
-    nz_1 = q12.nonzero(target)
+    nz_1 = np.nonzero(q12 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -261,7 +261,7 @@ def test_U1Charge_sub():
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
     q12 = q1 - q2
 
-    nz_1 = q12.nonzero(target)
+    nz_1 = np.nonzero(q12 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -322,7 +322,7 @@ def test_Z2Charge_fusion():
     target = np.random.randint(0, 2, 3)
     q12 = q1 + q2
 
-    nz_1 = q12.nonzero(target)
+    nz_1 = np.nonzero(q12 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -365,7 +365,7 @@ def test_Z2Charge_sub():
     target = np.random.randint(0, 2, 3)
     q12 = q1 - q2
 
-    nz_1 = q12.nonzero(target)
+    nz_1 = np.nonzero(q12 == target)[0]
     i1 = fused_1 == target[0]
     i2 = fused_2 == target[1]
     i3 = fused_3 == target[2]
@@ -482,3 +482,15 @@ def test_Charge_sub_Z2_U1_raises():
   expected = [np.asarray([0, 0, 1, 1]), np.asarray([-3, 2, 2, 7])]
   with pytest.raises(TypeError):
     q12 = q1 - q2
+
+
+def test_BaseCharge_eq():
+  D = 1000
+  B = 5
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1Charge([C1])
+  q2 = U1Charge([C2])
+  q3 = U1Charge([C3])

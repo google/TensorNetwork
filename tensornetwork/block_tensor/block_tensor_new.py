@@ -18,10 +18,8 @@ from __future__ import print_function
 import numpy as np
 #from tensornetwork.block_tensor.lookup import lookup
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between
-from tensornetwork.backends import backend_factory
-# pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index, fuse_charge_pair, fuse_degeneracies, fuse_charges, unfuse
+from tensornetwork.block_tensor.index_new import Index, fuse_index_pair, split_index,
+from tensornetwork.block_tensor.charges import fuse_degeneracies, fuse_charges, fuse_degeneracies, BaseCharge, ChargeCollection
 import numpy as np
 import scipy as sp
 import itertools
@@ -30,13 +28,14 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable
 Tensor = Any
 
 
-def _check_flows(flows) -> None:
+def _check_flows(flows: List[int]) -> None:
   if (set(flows) != {1}) and (set(flows) != {-1}) and (set(flows) != {-1, 1}):
     raise ValueError(
         "flows = {} contains values different from 1 and -1".format(flows))
 
 
-def _find_best_partition(charges, flows):
+def _find_best_partition(charges: List[Union[BaseCharge, ChargeCollection]],
+                         flows: List[int]):
   if len(charges) == 1:
     raise ValueError(
         '_expecting `charges` with a length of at least 2, got `len(charges)={}`'
@@ -54,33 +53,9 @@ def _find_best_partition(charges, flows):
   return fused_left_charges, fused_right_charges, min_ind + 1
 
 
-def map_to_integer(dims: Union[List, np.ndarray],
-                   table: np.ndarray,
-                   dtype: Optional[Type[np.number]] = np.int64):
-  """
-  Map a `table` of integers of shape (N, r) bijectively into 
-  an np.ndarray `integers` of length N of unique numbers.
-  The mapping is done using
-  ```
-  `integers[n] = table[n,0] * np.prod(dims[1::]) + table[n,1] * np.prod(dims[2::]) + ... + table[n,r-1] * 1`
-  
-  Args:
-    dims: An iterable of integers.
-    table: An array of shape (N,r) of integers.
-    dtype: An optional dtype used for the conversion.
-      Care should be taken when choosing this to avoid overflow issues.
-  Returns:
-    np.ndarray: An array of integers.
-  """
-  converter_table = np.expand_dims(
-      np.flip(np.append(1, np.cumprod(np.flip(dims[1::])))), 0)
-  tmp = table * converter_table
-  integers = np.sum(tmp, axis=1)
-  return integers
-
-
-def compute_fused_charge_degeneracies(charges: List[np.ndarray],
-                                      flows: List[Union[bool, int]]) -> Dict:
+def compute_fused_charge_degeneracies(
+    charges: List[Union[BaseCharge, ChargeCollection]],
+    flows: List[Union[bool, int]]) -> Dict:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`, together with their respective degeneracyn
@@ -97,12 +72,12 @@ def compute_fused_charge_degeneracies(charges: List[np.ndarray],
     dict: Mapping fused charges (int) to degeneracies (int)
   """
   if len(charges) == 1:
-    return np.unique(charges[0], return_counts=True)
+    return charges[0].unique(return_counts=True)
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = np.unique(
-      charges[0], return_counts=True)
+  accumulated_charges, accumulated_degeneracies = charges[0].unique(
+      return_counts=True)
   #multiply the flow into the charges of first leg
   accumulated_charges *= flows[0]
   for n in range(1, len(charges)):

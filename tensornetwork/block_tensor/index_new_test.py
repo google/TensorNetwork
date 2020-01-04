@@ -19,7 +19,7 @@ def test_index_fusion_mul():
   i12 = i1 * i2
   assert i12.left_child is i1
   assert i12.right_child is i2
-  for n in range(i12.charges.num_symmetries):
+  for n in range(len(i12.charges.charges)):
     assert np.all(i12.charges[n].charges == (q1 + q2).charges)
 
 
@@ -37,7 +37,7 @@ def test_fuse_indices():
   i12 = fuse_indices([i1, i2])
   assert i12.left_child is i1
   assert i12.right_child is i2
-  for n in range(i12.charges.num_symmetries):
+  for n in range(len(i12.charges.charges)):
     assert np.all(i12.charges[n].charges == (q1 + q2).charges)
 
 
