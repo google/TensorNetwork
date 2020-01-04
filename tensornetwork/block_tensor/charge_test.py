@@ -570,10 +570,10 @@ def test_Charge_U1_U1_eq():
       np.random.randint(-B // 2 - 1, B // 2 + 2)
   ]
   target_q_shifted = np.left_shift(target_q[0], 16) + target_q[1]
-  target_p = [np.random.randint(-B // 2 - 2, B // 2 + 3)]
+  target_p = np.random.randint(-B // 2 - 2, B // 2 + 3)
   target_charge = [target_q_shifted, target_p]
   assert np.all((Q == target_charge) == np.logical_and.reduce(
-      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p]))
 
 
 def test_Charge_Z2_Z2_equals():
@@ -597,10 +597,10 @@ def test_Charge_Z2_Z2_eq():
   Q = ChargeCollection(charges=[Z2Charge([q1, q2]), Z2Charge(p1)])
   target_q = [np.random.randint(0, 2), np.random.randint(0, 2)]
   target_q_shifted = np.left_shift(target_q[0], 8) + target_q[1]
-  target_p = [np.random.randint(0, 2)]
+  target_p = np.random.randint(0, 2)
   target_charge = [target_q_shifted, target_p]
   assert np.all((Q == target_charge) == np.logical_and.reduce(
-      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p]))
 
 
 def test_Charge_U1_Z2_equals():
@@ -632,10 +632,10 @@ def test_Charge_U1_Z2_eq():
       np.random.randint(-B // 2 - 1, B // 2 + 2)
   ]
   target_q_shifted = np.left_shift(target_q[0], 16) + target_q[1]
-  target_p = [np.random.randint(0, 2)]
+  target_p = np.random.randint(0, 2)
   target_charge = [target_q_shifted, target_p]
   assert np.all((Q == target_charge) == np.logical_and.reduce(
-      [q1 == target_q[0], q2 == target_q[1], p1 == target_p[0]]))
+      [q1 == target_q[0], q2 == target_q[1], p1 == target_p]))
 
 
 def test_Charge_U1_U1_unique():

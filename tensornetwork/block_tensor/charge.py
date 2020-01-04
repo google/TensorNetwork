@@ -86,8 +86,11 @@ class BaseCharge:
     raise NotImplementedError(
         "`__matmul__` is not implemented for `BaseCharge`")
 
-  def __getitem__(self, n: int) -> "BaseCharge":
-    return self.charges[n]
+  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+    charges = self.charges[n]
+    obj = self.__new__(type(self))
+    obj.__init__(charges=[charges], shifts=self.shifts)
+    return obj
 
   @property
   def num_symmetries(self):
@@ -190,6 +193,28 @@ class BaseCharge:
       `target` and `False` everywhere else.
     """
     return self.charges == target
+
+  def concatenate(self, others: Union["BaseCharge", List["BaseCharge"]]):
+    """
+    Concatenate `self.charges` with `others.charges`.
+    Args: 
+      others: List of `BaseCharge` objects.
+    Returns:
+      BaseCharge: The concatenated charges.
+    """
+    if isinstance(others, type(self)):
+      others = [others]
+    for o in others:
+      if not np.all(self.shifts == o.shifts):
+        raise ValueError(
+            "Cannot fuse charges with different shifts {} and {}".format(
+                self.shifts, o.shifts))
+
+    charges = np.concatenate(
+        [self.charges] + [o.charges for o in others], axis=0)
+    out = self.__new__(type(self))
+    out.__init__([charges], self.shifts)
+    return out
 
 
 class U1Charge(BaseCharge):
@@ -444,7 +469,12 @@ class ChargeCollection:
     self.charges = charges
 
   def __getitem__(self, n: int) -> BaseCharge:
-    return np.asarray([c.charges[n] for c in self.charges])
+    if not hasattr(self, '_stacked_charges'):
+      self._stacked_charges = np.stack([c.charges for c in self.charges],
+                                       axis=1)
+    return self._stacked_charges[n, :]
+
+  #return np.asarray([c.charges[n] for c in self.charges])
 
   def __add__(self, other: "Charge") -> "Charge":
     """
@@ -558,10 +588,34 @@ class ChargeCollection:
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
-    return np.logical_and.reduce([
-        self.charges[n] == target_charges[n]
-        for n in range(len(target_charges))
-    ])
+    if not hasattr(self, '_stacked_charges'):
+      self._stacked_charges = np.stack([c.charges for c in self.charges],
+                                       axis=1)
+    target = np.reshape(target_charges, (1, len(target_charges)))
+    return np.logical_and.reduce(self._stacked_charges == target, axis=1)
+    # return np.logical_and.reduce([
+    #     self.charges[n] == target_charges[n]
+    #     for n in range(len(target_charges))
+    # ])
+
+  def concatenate(self,
+                  others: Union["ChargeCollection", List["ChargeCollection"]]):
+    """
+    Concatenate `self.charges` with `others.charges`.
+    Args: 
+      others: List of `BaseCharge` objects.
+    Returns:
+      BaseCharge: The concatenated charges.
+    """
+    if isinstance(others, type(self)):
+      others = [others]
+
+    charges = [
+        self.charges[n].concatenate([o.charges[n]
+                                     for o in others])
+        for n in range(len(self.charges))
+    ]
+    return ChargeCollection(charges)
 
 
 def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
