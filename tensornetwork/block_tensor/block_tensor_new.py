@@ -69,47 +69,35 @@ def compute_fused_charge_degeneracies(
       of the charges on each leg. `1` is inflowing, `-1` is outflowing
       charge.
   Returns:
-    dict: Mapping fused charges to degeneracies
+    Union[BaseCharge, ChargeCollection]:  The unique fused charges.
+    np.ndarray of integers: The degeneracies of each unqiue fused charge.
   """
   if len(charges) == 1:
     return (flows[0] * charges[0]).unique(return_counts=True)
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (flows[0] *
-                                                   charges[0]).unique(
-                                                       return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (
+      flows[0] * charges[0]).unique(return_counts=True)
   for n in range(1, len(charges)):
     #list of unique charges and list of their degeneracies
     #on the next unfused leg of the tensor
-    print(n, len(accumulated_charges))
-    t1 = time.time()
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
-    print('unique', time.time() - t1)
-
     #fuse the unique charges
     #Note: entries in `fused_charges` are not unique anymore.
     #flow1 = 1 because the flow of leg 0 has already been
     #mulitplied above
-    t1 = time.time()
     fused_charges = accumulated_charges + leg_charges * flows[n]
-    print('fusing charges', time.time() - t1)
     #compute the degeneracies of `fused_charges` charges
     #`fused_degeneracies` is a list of degeneracies such that
     # `fused_degeneracies[n]` is the degeneracy of of
     # charge `c = fused_charges[n]`.
-    t1 = time.time()
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    print('fusing degeneracies', time.time() - t1)
-
-    t1 = time.time()
     accumulated_charges = fused_charges.unique()
-    print('second unique', time.time() - t1)
     accumulated_degeneracies = np.empty(
         len(accumulated_charges), dtype=np.int64)
-    print(len(accumulated_charges))
-    fused_charges == accumulated_charges[n]
+
     for n in range(len(accumulated_charges)):
       accumulated_degeneracies[n] = np.sum(
           fused_degeneracies[fused_charges == accumulated_charges[n]])
@@ -136,11 +124,13 @@ def compute_num_nonzero(charges: List[np.ndarray],
   """
   accumulated_charges, accumulated_degeneracies = compute_fused_charge_degeneracies(
       charges, flows)
-  if len(np.nonzero(accumulated_charges == 0)[0]) == 0:
+  res = accumulated_charges == accumulated_charges.zero_charge
+
+  if len(np.nonzero(res)[0]) == 0:
     raise ValueError(
         "given leg-charges `charges` and flows `flows` are incompatible "
         "with a symmetric tensor")
-  return accumulated_degeneracies[accumulated_charges == 0][0]
+  return accumulated_degeneracies[res][0]
 
 
 def find_diagonal_sparse_blocks(data: np.ndarray,
@@ -402,11 +392,11 @@ def find_diagonal_sparse_blocks_depreacated_1(
   return blocks
 
 
-def find_diagonal_sparse_blocks_deprecated_0(data: np.ndarray,
-                                             charges: List[np.ndarray],
-                                             flows: List[Union[bool, int]],
-                                             return_data: Optional[bool] = True
-                                            ) -> Dict:
+def find_diagonal_sparse_blocks_deprecated_0(
+    data: np.ndarray,
+    charges: List[np.ndarray],
+    flows: List[Union[bool, int]],
+    return_data: Optional[bool] = True) -> Dict:
   """
   Deprecated: this version is about 2 times slower (worst case) than the current used
   implementation
@@ -508,11 +498,11 @@ def find_diagonal_sparse_blocks_deprecated_0(data: np.ndarray,
   return blocks
 
 
-def find_diagonal_sparse_blocks_column_major(data: np.ndarray,
-                                             charges: List[np.ndarray],
-                                             flows: List[Union[bool, int]],
-                                             return_data: Optional[bool] = True
-                                            ) -> Dict:
+def find_diagonal_sparse_blocks_column_major(
+    data: np.ndarray,
+    charges: List[np.ndarray],
+    flows: List[Union[bool, int]],
+    return_data: Optional[bool] = True) -> Dict:
   """
   Deprecated
 
@@ -727,9 +717,8 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
   indices = []
   for n in range(len(left_charges)):
     c = left_charges[n]
-    indices.append(n * len_right_charges +
-                   right_locations[(target_charge - left_flow * c) *
-                                   right_flow])
+    indices.append(n * len_right_charges + right_locations[
+        (target_charge - left_flow * c) * right_flow])
   return np.concatenate(indices)
 
 
@@ -815,9 +804,8 @@ def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
 
     for target_charge in target_charges:
       right_indices[(left_charge, target_charge)] = np.nonzero(
-          tmp_relevant_right_charges == (target_charge -
-                                         left_flow * left_charge) *
-          right_flow)[0]
+          tmp_relevant_right_charges ==
+          (target_charge - left_flow * left_charge) * right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
@@ -1204,9 +1192,9 @@ class BlockSparseTensor:
         linear_positions = find_dense_positions(
             left_charges, 1, right_charges, 1, target_charge=0)
 
-        self.dense_to_sparse_table = sp.sparse.csr_matrix(
-            (np.arange(len(self.data)),
-             (linear_positions, np.zeros(len(self.data), dtype=np.int64))))
+        self.dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(
+            len(self.data)), (linear_positions,
+                              np.zeros(len(self.data), dtype=np.int64))))
 
       flat_tr_charges = [flat_charges[n] for n in flat_order]
       flat_tr_flows = [flat_flows[n] for n in flat_order]
@@ -1231,8 +1219,8 @@ class BlockSparseTensor:
     self.data = self.data[inds]
     return inds
 
-  def transpose_intersect1d(self, order: Union[List[int], np.ndarray]
-                           ) -> "BlockSparseTensor":
+  def transpose_intersect1d(
+      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`
     Args: pp
@@ -1323,8 +1311,8 @@ class BlockSparseTensor:
   #                 tr_dense_linear_positions[tr_linear_positions])
   #   self.data = self.data[inds]
 
-  def transpose_searchsorted(self, order: Union[List[int], np.ndarray]
-                            ) -> "BlockSparseTensor":
+  def transpose_searchsorted(
+      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
     """
     Deprecated:
     
@@ -1504,8 +1492,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_1(self, return_data: Optional[bool] = True
-                                      ) -> Dict:
+  def get_diagonal_blocks_deprecated_1(
+      self, return_data: Optional[bool] = True) -> Dict:
     """
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
@@ -1540,8 +1528,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_0(self, return_data: Optional[bool] = True
-                                      ) -> Dict:
+  def get_diagonal_blocks_deprecated_0(
+      self, return_data: Optional[bool] = True) -> Dict:
     """
     Deprecated
 
