@@ -88,9 +88,10 @@ class BaseCharge:
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     charges = self.charges[n]
-
+    if isinstance(n, (np.integer, int)):
+      charges = np.asarray([charges])
     obj = self.__new__(type(self))
-    obj.__init__(charges=[np.asarray([charges])], shifts=self.shifts)
+    obj.__init__(charges=[charges], shifts=self.shifts)
     return obj
 
   @property
@@ -476,7 +477,7 @@ class ChargeCollection:
     for n in range(len(charges)):
       if not isinstance(charges[n], BaseCharge):
         raise TypeError(
-            "`Charge` can only be initialized with a list of `BaseCharge`. Found {} instead"
+            "`ChargeCollection` can only be initialized with a list of `BaseCharge`. Found {} instead"
             .format([type(charges[n]) for n in range(len(charges))]))
 
     self.charges = charges
@@ -487,8 +488,18 @@ class ChargeCollection:
                                        axis=1)
 
     array = self._stacked_charges[n, :]
+    if len(array.shape) > 2:
+      raise ValueError(
+          'array.shape = {} is larger than 2! this is a bug!'.format(
+              len(array.shape)))
+    if len(array.shape) == 2:
+      if array.shape[1] == 1:
+        array = np.squeeze(array, axis=1)
+    if len(array.shape) == 0:
+      array = np.asarray([array])
+
     charges = []
-    if len(array) == 0:
+    if np.prod(array.shape) == 0:
       for n in range(len(self.charges)):
         charge = self.charges[n].__new__(type(self.charges[n]))
         charge.__init__(
@@ -503,9 +514,9 @@ class ChargeCollection:
     if len(array.shape) == 1:
       array = np.expand_dims(array, 1)
 
-    for n in range(len(self.charges)):
-      charge = self.charges[n].__new__(type(self.charges[n]))
-      charge.__init__(charges=[array[n, :]], shifts=self.charges[n].shifts)
+    for m in range(len(self.charges)):
+      charge = self.charges[m].__new__(type(self.charges[m]))
+      charge.__init__(charges=[array[:, m]], shifts=self.charges[m].shifts)
       charges.append(charge)
 
     obj = self.__new__(type(self))
@@ -518,7 +529,7 @@ class ChargeCollection:
     """
     Fuse `self` with `other`.
     Args:
-      other: A `Charge` object.
+      other: A `ChargeCollection` object.
     Returns:
       Charge: The result of fusing `self` with `other`.
     """
@@ -529,7 +540,7 @@ class ChargeCollection:
     """
     Subtract `other` from `self`.
     Args:
-      other: A `Charge` object.
+      other: A `ChargeCollection` object.
     Returns:
       Charge: The result of fusing `self` with `other`.
     """
