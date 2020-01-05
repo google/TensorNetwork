@@ -192,7 +192,7 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
       column_charges, column_flows)
   #convenience container for storing the degeneracies of each
   #column charge
-  column_degeneracies = dict(zip(unique_column_charges, column_dims))
+  #column_degeneracies = dict(zip(unique_column_charges, column_dims))
 
   if len(row_charges) > 1:
     left_row_charges, right_row_charges, _ = _find_best_partition(
@@ -205,6 +205,7 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
     concatenated = unique_row_charges.concatenate((-1) * unique_column_charges)
     tmp_unique, counts = concatenated.unique(return_counts=True)
     common_charges = tmp_unique[counts == 2]
+    return common_charges
     row_locations = find_sparse_positions(
         left_charges=left_row_charges,
         left_flow=1,
@@ -722,14 +723,16 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
   return np.concatenate(indices)
 
 
-def find_sparse_positions(left_charges: np.ndarray, left_flow: int,
-                          right_charges: np.ndarray, right_flow: int,
-                          target_charges: Union[List[int], np.ndarray]) -> Dict:
+def find_sparse_positions(
+    left_charges: List[Union[BaseCharge, ChargeCollection]], left_flow: int,
+    right_charges: List[Union[BaseCharge, ChargeCollection]], right_flow: int,
+    target_charges: Union[List[int], np.ndarray]) -> Dict:
   """
-  Find the sparse locations of elements (i.e. the index-values within the SPARSE tensor)
-  in the vector `fused_charges` (resulting from fusing np.ndarrays 
-  `left_charges` and `right_charges`) that have a value of `target_charge`,
-  assuming that all elements different from `target_charges` are `0`.
+  Find the sparse locations of elements (i.e. the index-values within 
+  the SPARSE tensor) in the vector `fused_charges` (resulting from 
+  fusing `left_charges` and `right_charges`) 
+  that have a value of `target_charges`, assuming that all elements 
+  different from `target_charges` are `0`.
   For example, given 
   ```
   left_charges = [-2,0,1,0,0]

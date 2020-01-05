@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from tensornetwork.block_tensor.charge import U1Charge
+from tensornetwork.block_tensor.charge import U1Charge, ChargeCollection
 from tensornetwork.block_tensor.block_tensor_new import find_diagonal_sparse_blocks, compute_num_nonzero
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
