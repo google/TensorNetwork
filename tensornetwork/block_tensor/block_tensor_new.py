@@ -726,7 +726,7 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
 def find_sparse_positions(
     left_charges: List[Union[BaseCharge, ChargeCollection]], left_flow: int,
     right_charges: List[Union[BaseCharge, ChargeCollection]], right_flow: int,
-    target_charges: Union[List[int], np.ndarray]) -> Dict:
+    target_charges: List[Union[BaseCharge, ChargeCollection]]) -> Dict:
   """
   Find the sparse locations of elements (i.e. the index-values within 
   the SPARSE tensor) in the vector `fused_charges` (resulting from 
@@ -764,10 +764,10 @@ def find_sparse_positions(
   #FIXME: this is probably still not optimal
 
   _check_flows([left_flow, right_flow])
-  target_charges = np.unique(target_charges)
-  unique_left = np.unique(left_charges)
-  unique_right = np.unique(right_charges)
-  fused = fuse_charges([unique_left, unique_right], [left_flow, right_flow])
+  target_charges = target_charges.unique()
+  unique_left = left_charges.unique()
+  unique_right = right_charges.unique()
+  fused = left_flow * unique_left + right_flow * unique_right
 
   #compute all unique charges that can add up to
   #target_charges
