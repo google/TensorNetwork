@@ -122,8 +122,9 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (
-      flows[0] * charges[0]).unique(return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (flows[0] *
+                                                   charges[0]).unique(
+                                                       return_counts=True)
   for n in range(1, len(charges)):
     #list of unique charges and list of their degeneracies
     #on the next unfused leg of the tensor
@@ -183,7 +184,7 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
                                 column_charges: List[Union[List, np.ndarray]],
                                 row_flows: List[Union[bool, int]],
                                 column_flows: List[Union[bool, int]],
-                                return_data: Optional[bool] = True) -> Dict:
+                                return_data: Optional[bool] = False) -> Dict:
   """
   Given the meta data and underlying data of a symmetric matrix, compute 
   all diagonal blocks and return them in a dict.
@@ -237,7 +238,8 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
       column_charges, column_flows)
   #convenience container for storing the degeneracies of each
   #column charge
-  column_degeneracies = dict(zip(unique_column_charges, column_dims))
+  #column_degeneracies = dict(zip(unique_column_charges, column_dims))
+  column_degeneracies = dict(zip((-1) * unique_column_charges, column_dims))
   if len(row_charges) > 1:
     left_row_charges, right_row_charges, _ = _find_best_partition(
         row_charges, row_flows)
@@ -248,7 +250,8 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
     #get the charges common to rows and columns (only those matter)
     concatenated = unique_row_charges.concatenate((-1) * unique_column_charges)
     tmp_unique, counts = concatenated.unique(return_counts=True)
-    common_charges = tmp_unique[counts == 2]  #common_charges is an np.ndarray!
+    common_charges = tmp_unique[
+        counts == 2]  #common_charges is a BaseCharge or ChargeCollection
 
     row_locations = find_sparse_positions(
         left_charges=left_row_charges,
@@ -266,23 +269,25 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
     #get the charges common to rows and columns (only those matter)
     concatenated = unique_row_charges.concatenate((-1) * unique_column_charges)
     tmp_unique, counts = concatenated.unique(return_counts=True)
-    common_charges = tmp_unique[counts == 2]  #common_charges is an np.ndarray!
+    common_charges = tmp_unique[
+        counts == 2]  #common_charges is a BaseCharge or ChargeCollection
 
     relevant_fused_row_charges = fused_row_charges[fused_row_charges.isin(
         common_charges)]
     row_locations = {}
     for c in common_charges:
+      #c = common_charges.get_item(n)
       row_locations[c] = np.nonzero(relevant_fused_row_charges == c)[0]
   else:
     raise ValueError('Found an empty sequence for `row_charges`')
-  #some numpy magic to get the index locations of the blocks
+
   degeneracy_vector = np.empty(
       np.sum([len(v) for v in row_locations.values()]), dtype=np.int64)
   #for each charge `c` in `common_charges` we generate a boolean mask
   #for indexing the positions where `relevant_column_charges` has a value of `c`.
   masks = {}
   for c in common_charges:
-    degeneracy_vector[row_locations[c]] = column_degeneracies[-c]
+    degeneracy_vector[row_locations[c]] = column_degeneracies[c]
 
   # the result of the cumulative sum is a vector containing
   # the stop positions of the non-zero values of each row
@@ -304,13 +309,13 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
   for c in common_charges:
     #numpy broadcasting is substantially faster than kron!
     a = np.expand_dims(start_positions[np.sort(row_locations[c])], 1)
-    b = np.expand_dims(np.arange(column_degeneracies[-c]), 0)
-    inds = np.reshape(a + b, len(row_locations[c]) * column_degeneracies[-c])
+    b = np.expand_dims(np.arange(column_degeneracies[c]), 0)
+    inds = np.reshape(a + b, len(row_locations[c]) * column_degeneracies[c])
     if not return_data:
-      blocks[c] = [inds, (len(row_locations[c]), column_degeneracies[-c])]
+      blocks[c] = [inds, (len(row_locations[c]), column_degeneracies[c])]
     else:
       blocks[c] = np.reshape(data[inds],
-                             (len(row_locations[c]), column_degeneracies[-c]))
+                             (len(row_locations[c]), column_degeneracies[c]))
   return blocks
 
 
@@ -368,8 +373,9 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
   indices = []
   for n in range(len(left_charges)):
     c = left_charges[n]
-    indices.append(n * len_right_charges + right_locations[
-        (target_charge - left_flow * c) * right_flow])
+    indices.append(n * len_right_charges +
+                   right_locations[(target_charge - left_flow * c) *
+                                   right_flow])
   return np.concatenate(indices)
 
 
@@ -435,35 +441,41 @@ def find_sparse_positions(
 
   #only keep those charges that are relevant
   relevant_left_charges = left_charges[left_charges.isin(unique_left_charges)]
-  relevant_right_charges = right_charges[np.isin(right_charges,
-                                                 unique_right_charges)]
+  relevant_right_charges = right_charges[right_charges.isin(
+      unique_right_charges)]
 
-  unique_right_charges, right_dims = np.unique(
-      relevant_right_charges, return_counts=True)
+  unique_right_charges, right_dims = relevant_right_charges.unique(
+      return_counts=True)
   right_degeneracies = dict(zip(unique_right_charges, right_dims))
   #generate a degeneracy vector which for each value r in relevant_right_charges
   #holds the corresponding number of non-zero elements `relevant_right_charges`
   #that can add up to `target_charges`.
   degeneracy_vector = np.empty(len(relevant_left_charges), dtype=np.int64)
   right_indices = {}
-  for left_charge in unique_left_charges:
-    total_degeneracy = np.sum(right_dims[np.isin(
-        left_flow * left_charge + right_flow * unique_right_charges,
-        target_charges)])
-    tmp_relevant_right_charges = relevant_right_charges[np.isin(
-        relevant_right_charges,
-        (target_charges - left_flow * left_charge) * right_flow)]
 
-    for target_charge in target_charges:
-      right_indices[(left_charge, target_charge)] = np.nonzero(
-          tmp_relevant_right_charges ==
-          (target_charge - left_flow * left_charge) * right_flow)[0]
+  for n in range(len(unique_left_charges)):
+    left_charge = unique_left_charges[n]
+    total_charge = left_flow * left_charge + right_flow * unique_right_charges
+    total_degeneracy = np.sum(right_dims[total_charge.isin(target_charges)])
+    tmp_relevant_right_charges = relevant_right_charges[
+        relevant_right_charges.isin(
+            (target_charges + (-1) * left_flow * left_charge) * right_flow)]
+
+    for n in range(len(target_charges)):
+      target_charge = target_charges[n]
+      right_indices[(
+          left_charge.get_item(0), target_charge.get_item(0))] = np.nonzero(
+              tmp_relevant_right_charges == (target_charge +
+                                             (-1) * left_flow * left_charge) *
+              right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
   stop_positions = np.cumsum(degeneracy_vector)
   start_positions = stop_positions - degeneracy_vector
   blocks = {t: [] for t in target_charges}
+  # iterator returns tuple of `int` for ChargeCollection objects
+  # and `int` for Ba seCharge objects (both hashable)
   for left_charge in unique_left_charges:
     a = np.expand_dims(start_positions[relevant_left_charges == left_charge], 0)
     for target_charge in target_charges:
@@ -844,9 +856,9 @@ class BlockSparseTensor:
         linear_positions = find_dense_positions(
             left_charges, 1, right_charges, 1, target_charge=0)
 
-        self.dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(
-            len(self.data)), (linear_positions,
-                              np.zeros(len(self.data), dtype=np.int64))))
+        self.dense_to_sparse_table = sp.sparse.csr_matrix(
+            (np.arange(len(self.data)),
+             (linear_positions, np.zeros(len(self.data), dtype=np.int64))))
 
       flat_tr_charges = [flat_charges[n] for n in flat_order]
       flat_tr_flows = [flat_flows[n] for n in flat_order]
@@ -871,8 +883,8 @@ class BlockSparseTensor:
     self.data = self.data[inds]
     return inds
 
-  def transpose_intersect1d(
-      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
+  def transpose_intersect1d(self, order: Union[List[int], np.ndarray]
+                           ) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`
     Args: pp
@@ -963,8 +975,8 @@ class BlockSparseTensor:
   #                 tr_dense_linear_positions[tr_linear_positions])
   #   self.data = self.data[inds]
 
-  def transpose_searchsorted(
-      self, order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
+  def transpose_searchsorted(self, order: Union[List[int], np.ndarray]
+                            ) -> "BlockSparseTensor":
     """
     Deprecated:
     
@@ -1144,8 +1156,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_1(
-      self, return_data: Optional[bool] = True) -> Dict:
+  def get_diagonal_blocks_deprecated_1(self, return_data: Optional[bool] = True
+                                      ) -> Dict:
     """
     Obtain the diagonal blocks of symmetric matrix.
     BlockSparseTensor has to be a matrix.
@@ -1180,8 +1192,8 @@ class BlockSparseTensor:
         column_flows=[i.flow for i in column_indices],
         return_data=return_data)
 
-  def get_diagonal_blocks_deprecated_0(
-      self, return_data: Optional[bool] = True) -> Dict:
+  def get_diagonal_blocks_deprecated_0(self, return_data: Optional[bool] = True
+                                      ) -> Dict:
     """
     Deprecated
 
