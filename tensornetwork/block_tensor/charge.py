@@ -41,43 +41,48 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: Union[List[np.ndarray], np.ndarray],
+               charges: Optional[Union[List[np.ndarray], np.ndarray]] = None,
                shifts: Optional[Union[List[int], np.ndarray]] = None) -> None:
-    if isinstance(charges, np.ndarray):
-      charges = [charges]
-    self._itemsizes = [c.dtype.itemsize for c in charges]
-    if np.sum(self._itemsizes) > 8:
-      raise TypeError("number of bits required to store all charges "
-                      "in a single int is larger than 64")
+    if charges is not None:
+      if isinstance(charges, np.ndarray):
+        charges = [charges]
+      self._itemsizes = [c.dtype.itemsize for c in charges]
+      if np.sum(self._itemsizes) > 8:
+        raise TypeError("number of bits required to store all charges "
+                        "in a single int is larger than 64")
 
-    if len(charges) > 1:
-      if shifts is not None:
-        raise ValueError("If `shifts` is passed, only a single charge array "
-                         "can be passed. Got len(charges) = {}".format(
-                             len(charges)))
-    if shifts is None:
-      dtype = np.int8
-      if np.sum(self._itemsizes) > 1:
-        dtype = np.int16
-      if np.sum(self._itemsizes) > 2:
-        dtype = np.int32
-      if np.sum(self._itemsizes) > 4:
-        dtype = np.int64
-      #multiply by eight to get number of bits
-      self.shifts = 8 * np.flip(
-          np.append(0, np.cumsum(np.flip(self._itemsizes[1::])))).astype(dtype)
-      dtype_charges = [c.astype(dtype) for c in charges]
-      self.charges = np.sum([
-          np.left_shift(dtype_charges[n], self.shifts[n])
-          for n in range(len(dtype_charges))
-      ],
-                            axis=0).astype(dtype)
+      if len(charges) > 1:
+        if shifts is not None:
+          raise ValueError("If `shifts` is passed, only a single charge array "
+                           "can be passed. Got len(charges) = {}".format(
+                               len(charges)))
+      if shifts is None:
+        dtype = np.int8
+        if np.sum(self._itemsizes) > 1:
+          dtype = np.int16
+        if np.sum(self._itemsizes) > 2:
+          dtype = np.int32
+        if np.sum(self._itemsizes) > 4:
+          dtype = np.int64
+        #multiply by eight to get number of bits
+        self.shifts = 8 * np.flip(
+            np.append(0, np.cumsum(np.flip(
+                self._itemsizes[1::])))).astype(dtype)
+        dtype_charges = [c.astype(dtype) for c in charges]
+        self.charges = np.sum([
+            np.left_shift(dtype_charges[n], self.shifts[n])
+            for n in range(len(dtype_charges))
+        ],
+                              axis=0).astype(dtype)
+      else:
+        if np.max(shifts) >= charges[0].dtype.itemsize * 8:
+          raise TypeError("shifts {} are incompatible with dtype {}".format(
+              shifts, charges[0].dtype))
+        self.shifts = np.asarray(shifts)
+        self.charges = charges[0]
     else:
-      if np.max(shifts) >= charges[0].dtype.itemsize * 8:
-        raise TypeError("shifts {} are incompatible with dtype {}".format(
-            shifts, charges[0].dtype))
-      self.shifts = np.asarray(shifts)
-      self.charges = charges[0]
+      self.charges = np.asarray([])
+      self.shifts = np.asarray([])
 
   def __add__(self, other: "BaseCharge") -> "BaseCharge":
     raise NotImplementedError("`__add__` is not implemented for `BaseCharge`")
@@ -89,16 +94,17 @@ class BaseCharge:
     raise NotImplementedError(
         "`__matmul__` is not implemented for `BaseCharge`")
 
-  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+  def get_charges(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     return self.charges[n]
 
-  # def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
-  #   charges = self.charges[n]
-  #   if isinstance(n, (np.integer, int)):
-  #     charges = np.asarray([charges])
-  #   obj = self.__new__(type(self))
-  #   obj.__init__(charges=[charges], shifts=self.shifts)
-  #   return obj
+  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+
+    if isinstance(n, (np.integer, int)):
+      n = np.asarray([n])
+    charges = self.charges[n]
+    obj = self.__new__(type(self))
+    obj.__init__(charges=[charges], shifts=self.shifts)
+    return obj
 
   @property
   def num_symmetries(self):
@@ -500,14 +506,6 @@ class ChargeCollection:
     if not isinstance(charges, list):
       raise TypeError("only list allowed for argument `charges` "
                       "in BaseCharge.__init__(charges)")
-    if not np.all([len(c) == len(charges[0]) for c in charges]):
-      raise ValueError("not all charges have the same length. "
-                       "Got lengths = {}".format([len(c) for c in charges]))
-    for n in range(len(charges)):
-      if not isinstance(charges[n], BaseCharge):
-        raise TypeError("`ChargeCollection` can only be initialized "
-                        "with a list of `BaseCharge`. Found {} instead".format(
-                            [type(charges[n]) for n in range(len(charges))]))
     if (shifts is not None) and (stacked_charges is None):
       raise ValueError(
           "Found `shifts == None` and `stacked_charges != None`."
@@ -518,6 +516,15 @@ class ChargeCollection:
           "`shifts` and `stacked_charges` can only be passed together.")
     self.charges = []
     if stacked_charges is None:
+      if not np.all([len(c) == len(charges[0]) for c in charges]):
+        raise ValueError("not all charges have the same length. "
+                         "Got lengths = {}".format([len(c) for c in charges]))
+      for n in range(len(charges)):
+        if not isinstance(charges[n], BaseCharge):
+          raise TypeError(
+              "`ChargeCollection` can only be initialized "
+              "with a list of `BaseCharge`. Found {} instead".format(
+                  [type(charges[n]) for n in range(len(charges))]))
 
       self._stacked_charges = np.stack([c.charges for c in charges], axis=1)
       for n in range(len(charges)):
@@ -535,24 +542,24 @@ class ChargeCollection:
                          "have to be the same.")
       for n in range(len(charges)):
         charge = charges[n].__new__(type(charges[n]))
-        charge.__init__(self._stacked_charges[:, n], shifts=shifts[n])
+        charge.__init__(stacked_charges[:, n], shifts=shifts[n])
         self.charges.append(charge)
+      self._stacked_charges = stacked_charges
 
   @classmethod
-  def from_stacked_charges(cls, charge_types: Type, shifts: List[np.ndarray],
-                           stacked_charges: np.ndarray):
+  def from_charge_types(cls, charge_types: Type, shifts: List[np.ndarray],
+                        stacked_charges: np.ndarray):
     if len(charge_types) != stacked_charges.shape[1]:
       raise ValueError("`len(charge_types) and shape[1] of `stacked_charges` "
                        "have to be the same.")
     if len(charge_types) != len(shifts):
       raise ValueError(
           "`len(charge_types) and  `len(shifts)` have to be the same.")
-    charges = []
-    for n in range(len(charge_types)):
-      charge = charge_types[n].__new__(charge_types[n])
-      charge.__init__(charges=stacked_charges[:, n], shifts=shifts[n])
-      charges.append(charge)
-    return cls(charges=charges, stacked_charges=stacked_charges)
+    charges = [
+        charge_types[n].__new__(charge_types[n])
+        for n in range(len(charge_types))
+    ]
+    return cls(charges=charges, stacked_charges=stacked_charges, shifts=shifts)
 
   @property
   def num_charges(self) -> int:
@@ -565,17 +572,22 @@ class ChargeCollection:
     """
     Returns an np.ndarray `BaseCharges.charges[n].
     """
+    if isinstance(n, (np.integer, int)):
+      n = np.asarray([n])
+
     return self._stacked_charges[n, :]
 
-  def __getitem__(self, n: Union[np.ndarray, int]) -> BaseCharge:
+  def __getitem__(self, n: Union[np.ndarray, int]) -> "ChargeCollection":
 
-    if isinstance(n, np.integer, int):
+    if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
 
     array = self._stacked_charges[n, :]
 
-    return self.from_stacked_charges(
-        charge_types=[type(c) for c in self.charges])
+    return self.from_charge_types(
+        charge_types=[type(c) for c in self.charges],
+        shifts=[c.shifts for c in self.charges],
+        stacked_charges=array)
     # if self.num_charges == 1:
     #   array = np.expand_dims(array, 0)
 
@@ -661,6 +673,12 @@ class ChargeCollection:
 
     return self.__mul__(number)
 
+  def isin(self, targets: Iterable):
+    return np.logical_and.reduce([
+        np.isin(self._stacked_charges[:, n], targets[n])
+        for n in range(len(targets))
+    ])
+
   def unique(
       self,
       return_index=False,
@@ -731,7 +749,6 @@ class ChargeCollection:
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
-    print(self._stacked_charges.shape)
     return np.logical_and.reduce(
         self._stacked_charges == target_charges, axis=1)
 
@@ -807,3 +824,48 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
   """
   return np.reshape(degen1[:, None] * degen2[None, :],
                     len(degen1) * len(degen2))
+
+
+def unfuse(fused_indices: np.ndarray, len_left: int,
+           len_right: int) -> Tuple[np.ndarray, np.ndarray]:
+  """
+  Given an np.ndarray `fused_indices` of integers denoting 
+  index-positions of elements within a 1d array, `unfuse`
+  obtains the index-positions of the elements in the left and 
+  right np.ndarrays `left`, `right` which, upon fusion, 
+  are placed at the index-positions given by 
+  `fused_indices` in the fused np.ndarray.
+  An example will help to illuminate this:
+  Given np.ndarrays `left`, `right` and the result
+  of their fusion (`fused`):
+
+  ```
+  left = [0,1,0,2]
+  right = [-1,3,-2]    
+  fused = fuse_charges([left, right], flows=[1,1]) 
+  print(fused) #[-1  3 -2  0  4 -1 -1  3 -2  1  5  0]
+  ```
+
+  we want to find which elements in `left` and `right`
+  fuse to a value of 0. In the above case, there are two 
+  0 in `fused`: one is obtained from fusing `left[1]` and
+  `right[0]`, the second one from fusing `left[3]` and `right[2]`
+  `unfuse` returns the index-positions of these values within
+  `left` and `right`, that is
+
+  ```
+  left_index_values, right_index_values = unfuse(np.nonzero(fused==0)[0], len(left), len(right))
+  print(left_index_values) # [1,3]
+  print(right_index_values) # [0,2]
+  ```
+
+  Args:
+    fused_indices: A 1d np.ndarray of integers.
+    len_left: The length of the left np.ndarray.
+    len_right: The length of the right np.ndarray.
+  Returns:
+    (np.ndarry, np.ndarray)
+  """
+  right = np.mod(fused_indices, len_right)
+  left = np.floor_divide(fused_indices - right, len_right)
+  return left, right

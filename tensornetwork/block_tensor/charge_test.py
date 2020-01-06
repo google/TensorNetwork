@@ -68,11 +68,13 @@ def test_BaseCharge_raises():
         for _ in range(2)
     ])
   with pytest.raises(ValueError):
-    q1 = U1Charge([
+    q1 = BaseCharge([
         np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
         for _ in range(2)
     ],
-                  shifts=[16, 0])
+                    shifts=[16, 0])
+  with pytest.raises(TypeError):
+    BaseCharge(np.random.randint(0, 4, 10).astype(np.int16), shifts=[16, 0])
 
 
 def test_U1Charge_fusion():
@@ -392,6 +394,13 @@ def test_Z2Charge_matmul():
   Q_ = Z2Charge([C1, C2, C3])
   assert np.all(Q.charges == Q_.charges)
   assert np.all(Q.shifts == Q_.shifts)
+
+
+def test_ChargeCollection_init_from_stacked():
+  c = ChargeCollection(
+      [BaseCharge(None, None), BaseCharge(None, None)],
+      shifts=[[0], [0]],
+      stacked_charges=np.random.randint(0, 10, (10, 2)))
 
 
 def test_Charge_U1_add():
