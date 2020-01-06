@@ -21,7 +21,7 @@ from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
 import copy
 import warnings
-from typing import List, Union, Any, Optional, Tuple, Text, Iterable
+from typing import List, Union, Any, Optional, Tuple, Text, Iterable, Type
 
 
 def _copy_charges(charges):
@@ -73,6 +73,9 @@ class BaseCharge:
       ],
                             axis=0).astype(dtype)
     else:
+      if np.max(shifts) >= charges[0].dtype.itemsize * 8:
+        raise TypeError("shifts {} are incompatible with dtype {}".format(
+            shifts, charges[0].dtype))
       self.shifts = np.asarray(shifts)
       self.charges = charges[0]
 
@@ -163,6 +166,9 @@ class BaseCharge:
       out.__init__([result[0]], self.shifts)
       return tuple([out] + [result[n] for n in range(1, len(result))])
 
+  def isin(self, targets: Union[int, Iterable]):
+    return np.isin(self.charges, targets)
+
   def equals(self, target_charges: Iterable) -> np.ndarray:
     """
     Find indices where `BaseCharge` equals `target_charges`.
@@ -186,7 +192,7 @@ class BaseCharge:
     ])
     return self.charges == target
 
-  def __eq__(self, target: Union[int, Iterable, "BaseCharge"]) -> np.ndarray:
+  def __eq__(self, target: Union[int, Iterable]) -> np.ndarray:
     """
     Find indices where `BaseCharge` equals `target_charges`.
     `target` is a single integer encoding all symmetries of
@@ -487,7 +493,10 @@ class ChargeCollection:
       else:
         raise StopIteration
 
-  def __init__(self, charges: List[BaseCharge]) -> None:
+  def __init__(self,
+               charges: List[BaseCharge],
+               shifts: Optional[List[np.ndarray]] = None,
+               stacked_charges: Optional[np.ndarray] = None) -> None:
     if not isinstance(charges, list):
       raise TypeError("only list allowed for argument `charges` "
                       "in BaseCharge.__init__(charges)")
@@ -496,64 +505,112 @@ class ChargeCollection:
                        "Got lengths = {}".format([len(c) for c in charges]))
     for n in range(len(charges)):
       if not isinstance(charges[n], BaseCharge):
-        raise TypeError(
-            "`ChargeCollection` can only be initialized with a list of `BaseCharge`. Found {} instead"
-            .format([type(charges[n]) for n in range(len(charges))]))
+        raise TypeError("`ChargeCollection` can only be initialized "
+                        "with a list of `BaseCharge`. Found {} instead".format(
+                            [type(charges[n]) for n in range(len(charges))]))
+    if (shifts is not None) and (stacked_charges is None):
+      raise ValueError(
+          "Found `shifts == None` and `stacked_charges != None`."
+          "`shifts` and `stacked_charges` can only be passed together.")
+    if (shifts is None) and (stacked_charges is not None):
+      raise ValueError(
+          "Found `shifts != None` and `stacked_charges == None`."
+          "`shifts` and `stacked_charges` can only be passed together.")
+    self.charges = []
+    if stacked_charges is None:
 
-    self.charges = charges
+      self._stacked_charges = np.stack([c.charges for c in charges], axis=1)
+      for n in range(len(charges)):
+        charge = charges[n].__new__(type(charges[n]))
+        charge.__init__(self._stacked_charges[:, n], shifts=charges[n].shifts)
+        self.charges.append(charge)
+    else:
+      if len(shifts) != stacked_charges.shape[1]:
+        raise ValueError("`len(shifts)` = {} is different from "
+                         "`stacked_charges.shape[1]` = {}".format(
+                             len(shifts), stacked_charges.shape[1]))
 
-  def __getitem__(self, n: Union[np.ndarray, int]) -> BaseCharge:
-    if not hasattr(self, '_stacked_charges'):
-      self._stacked_charges = np.stack([c.charges for c in self.charges],
-                                       axis=1)
+      if stacked_charges.shape[1] != len(charges):
+        raise ValueError("`len(charges) and shape[1] of `stacked_charges` "
+                         "have to be the same.")
+      for n in range(len(charges)):
+        charge = charges[n].__new__(type(charges[n]))
+        charge.__init__(self._stacked_charges[:, n], shifts=shifts[n])
+        self.charges.append(charge)
+
+  @classmethod
+  def from_stacked_charges(cls, charge_types: Type, shifts: List[np.ndarray],
+                           stacked_charges: np.ndarray):
+    if len(charge_types) != stacked_charges.shape[1]:
+      raise ValueError("`len(charge_types) and shape[1] of `stacked_charges` "
+                       "have to be the same.")
+    if len(charge_types) != len(shifts):
+      raise ValueError(
+          "`len(charge_types) and  `len(shifts)` have to be the same.")
+    charges = []
+    for n in range(len(charge_types)):
+      charge = charge_types[n].__new__(charge_types[n])
+      charge.__init__(charges=stacked_charges[:, n], shifts=shifts[n])
+      charges.append(charge)
+    return cls(charges=charges, stacked_charges=stacked_charges)
+
+  @property
+  def num_charges(self) -> int:
+    """
+    Return the number of different charges in `ChargeCollection`
+    """
+    return self._stacked_charges.shape[1]
+
+  def get_charges(self, n: Union[np.ndarray, int]) -> BaseCharge:
+    """
+    Returns an np.ndarray `BaseCharges.charges[n].
+    """
     return self._stacked_charges[n, :]
 
-  # def __getitem__(self, n: Union[np.ndarray, int]) -> BaseCharge:
-  #   if not hasattr(self, '_stacked_charges'):
-  #     self._stacked_charges = np.stack([c.charges for c in self.charges],
-  #                                      axis=1)
+  def __getitem__(self, n: Union[np.ndarray, int]) -> BaseCharge:
 
-  #   array = self._stacked_charges[n, :]
-  #   if len(array.shape) > 2:
-  #     raise ValueError(
-  #         'array.shape = {} is larger than 2! this is a bug!'.format(
-  #             len(array.shape)))
-  #   if len(array.shape) == 2:
-  #     if array.shape[1] == 1:
-  #       array = np.squeeze(array, axis=1)
-  #   if len(array.shape) == 0:
-  #     array = np.asarray([array])
+    if isinstance(n, np.integer, int):
+      n = np.asarray([n])
 
-  #   charges = []
-  #   if np.prod(array.shape) == 0:
-  #     for n in range(len(self.charges)):
-  #       charge = self.charges[n].__new__(type(self.charges[n]))
-  #       charge.__init__(
-  #           charges=[np.empty(0, dtype=self.charges[n].dtype)],
-  #           shifts=self.charges[n].shifts)
-  #       charges.append(charge)
+    array = self._stacked_charges[n, :]
 
-  #     obj = self.__new__(type(self))
-  #     obj.__init__(charges=charges)
-  #     return obj
+    return self.from_stacked_charges(
+        charge_types=[type(c) for c in self.charges])
+    # if self.num_charges == 1:
+    #   array = np.expand_dims(array, 0)
 
-  #   if len(array.shape) == 1:
-  #     array = np.expand_dims(array, 1)
+    # if len(array.shape) == 2:
+    #   if array.shape[1] == 1:
+    #     array = np.squeeze(array, axis=1)
+    # if len(array.shape) == 0:
+    #   array = np.asarray([array])
 
-  #   for m in range(len(self.charges)):
-  #     charge = self.charges[m].__new__(type(self.charges[m]))
-  #     charge.__init__(charges=[array[:, m]], shifts=self.charges[m].shifts)
-  #     charges.append(charge)
+    # charges = []
+    # if np.prod(array.shape) == 0:
+    #   for n in range(len(self.charges)):
+    #     charge = self.charges[n].__new__(type(self.charges[n]))
+    #     charge.__init__(
+    #         charges=[np.empty(0, dtype=self.charges[n].dtype)],
+    #         shifts=self.charges[n].shifts)
+    #     charges.append(charge)
 
-  #   obj = self.__new__(type(self))
-  #   obj.__init__(charges=charges)
-  #   return obj
+    #   obj = self.__new__(type(self))
+    #   obj.__init__(charges=charges)
+    #   return obj
+
+    # if len(array.shape) == 1:
+    #   array = np.expand_dims(array, 1)
+
+    # for m in range(len(self.charges)):
+    #   charge = self.charges[m].__new__(type(self.charges[m]))
+    #   charge.__init__(charges=[array[:, m]], shifts=self.charges[m].shifts)
+    #   charges.append(charge)
+
+    # obj = self.__new__(type(self))
+    # obj.__init__(charges=charges)
+    # return obj
 
   def __iter__(self):
-    if not hasattr(self, '_stacked_charges'):
-      self._stacked_charges = np.stack([c.charges for c in self.charges],
-                                       axis=1)
-
     return self.Iterator(self._stacked_charges)
 
   def __add__(self, other: "Charge") -> "Charge":
@@ -663,14 +720,10 @@ class ChargeCollection:
         for n in range(len(target_charges))
     ])
 
-  def __eq__(self, target_charges: Union[Iterable, "ChargeCollection"]):
+  def __eq__(self, target_charges: Iterable):
     if isinstance(target_charges, type(self)):
       target_charges = np.stack([c.charges for c in target_charges.charges],
                                 axis=1)
-    if not hasattr(self, '_stacked_charges'):
-      self._stacked_charges = np.stack([c.charges for c in self.charges],
-                                       axis=1)
-
     target_charges = np.asarray(target_charges)
     if target_charges.ndim == 1:
       target_charges = np.expand_dims(target_charges, 0)
@@ -678,7 +731,7 @@ class ChargeCollection:
       raise ValueError(
           "len(target_charges) ={} is different from len(ChargeCollection.charges) = {}"
           .format(len(target_charges), len(self.charges)))
-
+    print(self._stacked_charges.shape)
     return np.logical_and.reduce(
         self._stacked_charges == target_charges, axis=1)
 
@@ -712,9 +765,9 @@ class ChargeCollection:
     return obj
 
 
-def fuse_charges(
-    charges: List[Union[BaseCharge, ChargeCollection]],
-    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
+def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
+                 flows: List[Union[bool, int]]
+                ) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 
