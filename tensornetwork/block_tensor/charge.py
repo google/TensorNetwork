@@ -94,8 +94,11 @@ class BaseCharge:
     raise NotImplementedError(
         "`__matmul__` is not implemented for `BaseCharge`")
 
-  def get_charges(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+  def get_item(self, n: int) -> np.ndarray:
     return self.charges[n]
+
+  def get_item_ndarray(self, n: Union[np.ndarray, int]) -> np.ndarray:
+    return self.get_item(n)
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
 
@@ -172,7 +175,16 @@ class BaseCharge:
       out.__init__([result[0]], self.shifts)
       return tuple([out] + [result[n] for n in range(1, len(result))])
 
-  def isin(self, targets: Union[int, Iterable]):
+  def isin(self, targets: Union[int, Iterable, "BaseCharge"]):
+
+    if isinstance(targets, type(self)):
+      if not np.all(self.shifts == targets.shifts):
+        raise ValueError(
+            "Cannot compare charges with different shifts {} and {}".format(
+                self.shifts, targets.shifts))
+
+      targets = targets.charges
+    targets = np.asarray(targets)
     return np.isin(self.charges, targets)
 
   def equals(self, target_charges: Iterable) -> np.ndarray:
@@ -564,17 +576,24 @@ class ChargeCollection:
   @property
   def num_charges(self) -> int:
     """
-    Return the number of different charges in `ChargeCollection`
+    Return the number of different charges in `ChargeCollection`.
     """
     return self._stacked_charges.shape[1]
 
-  def get_charges(self, n: Union[np.ndarray, int]) -> BaseCharge:
+  def get_item(self, n: int) -> Tuple:
     """
-    Returns an np.ndarray `BaseCharges.charges[n].
+    Returns the `n-th` charge-tuple of ChargeCollection in a tuple.
     """
     if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
+    return tuple(self._stacked_charges[n, :].flat)
 
+  def get_item_ndarray(self, n: Union[np.ndarray, int]) -> np.ndarray:
+    """
+    Returns the `n-th` charge-tuples of ChargeCollection in an np.ndarray.
+    """
+    if isinstance(n, (np.integer, int)):
+      n = np.asarray([n])
     return self._stacked_charges[n, :]
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "ChargeCollection":
@@ -673,10 +692,15 @@ class ChargeCollection:
 
     return self.__mul__(number)
 
-  def isin(self, targets: Iterable):
-    return np.logical_and.reduce([
-        np.isin(self._stacked_charges[:, n], targets[n])
-        for n in range(len(targets))
+  def isin(self, targets: Union[Iterable, "ChargeCollection"]):
+    if isinstance(targets, type(self)):
+      _targets = [t for t in targets]
+    return np.logical_or.reduce([
+        np.logical_and.reduce([
+            np.isin(self._stacked_charges[:, n], _targets[m][n])
+            for n in range(len(_targets[m]))
+        ])
+        for m in range(len(_targets))
     ])
 
   def unique(
@@ -782,9 +806,9 @@ class ChargeCollection:
     return obj
 
 
-def fuse_charges(
-    charges: List[Union[BaseCharge, ChargeCollection]],
-    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
+def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
+                 flows: List[Union[bool, int]]
+                ) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 

@@ -319,9 +319,10 @@ def find_diagonal_sparse_blocks(data: np.ndarray,
   return blocks
 
 
-def find_dense_positions(left_charges: np.ndarray, left_flow: int,
-                         right_charges: np.ndarray, right_flow: int,
-                         target_charge: int) -> Dict:
+def find_dense_positions(
+    left_charges: Union[BaseCharge, ChargeCollection], left_flow: int,
+    right_charges: Union[BaseCharge, ChargeCollection], right_flow: int,
+    target_charge: Union[BaseCharge, ChargeCollection]) -> Dict:
   """
   Find the dense locations of elements (i.e. the index-values within the DENSE tensor)
   in the vector `fused_charges` (resulting from fusing np.ndarrays 
@@ -356,27 +357,34 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
     dict: Mapping tuples of integers to np.ndarray of integers.
   """
   _check_flows([left_flow, right_flow])
-  unique_left, left_degeneracies = np.unique(left_charges, return_counts=True)
-  unique_right, right_degeneracies = np.unique(
-      right_charges, return_counts=True)
+  unique_left, left_degeneracies = left_charges.unique(return_counts=True)
+  unique_right, right_degeneracies = right_charges.unique(return_counts=True)
 
-  common_charges = np.intersect1d(
-      unique_left, (target_charge - right_flow * unique_right) * left_flow,
-      assume_unique=True)
-
+  tmp_charges = (target_charge - right_flow * unique_right) * left_flow
+  concatenated = unique_left.concatenate(tmp_charges)
+  tmp_unique, counts = concatenated.unique(return_counts=True)
+  common_charges = tmp_unique[
+      counts == 2]  #common_charges is a BaseCharge or ChargeCollection
   right_locations = {}
-  for c in common_charges:
-    right_locations[(target_charge - left_flow * c) * right_flow] = np.nonzero(
-        right_charges == (target_charge - left_flow * c) * right_flow)[0]
+
+  for n in range(len(common_charges)):
+    c = common_charges[n]
+    right_charge = (target_charge - left_flow * c) * right_flow
+    right_locations[c.get_item(0)] = np.nonzero(
+        right_charges == right_charge)[0]
 
   len_right_charges = len(right_charges)
   indices = []
+  data = []
   for n in range(len(left_charges)):
     c = left_charges[n]
+    right_charge = (target_charge - left_flow * c) * right_flow
+    data.append([c.get_item(0), right_charge.get_item(0)])
     indices.append(n * len_right_charges +
-                   right_locations[(target_charge - left_flow * c) *
-                                   right_flow])
-  return np.concatenate(indices)
+                   right_locations[right_charge.get_item(0)])
+
+  return indices
+  #return np.concatenate(indices)
 
 
 def find_sparse_positions(
@@ -459,15 +467,14 @@ def find_sparse_positions(
     total_degeneracy = np.sum(right_dims[total_charge.isin(target_charges)])
     tmp_relevant_right_charges = relevant_right_charges[
         relevant_right_charges.isin(
-            (target_charges + (-1) * left_flow * left_charge) * right_flow)]
+            (target_charges + ((-1) * left_flow) * left_charge) * right_flow)]
 
     for n in range(len(target_charges)):
       target_charge = target_charges[n]
-      right_indices[(
-          left_charge.get_item(0), target_charge.get_item(0))] = np.nonzero(
-              tmp_relevant_right_charges == (target_charge +
-                                             (-1) * left_flow * left_charge) *
-              right_flow)[0]
+      right_indices[(left_charge.get_item(0),
+                     target_charge.get_item(0))] = np.nonzero(
+                         tmp_relevant_right_charges == (target_charge + (
+                             (-1) * left_flow) * left_charge) * right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 

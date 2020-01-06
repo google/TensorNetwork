@@ -779,7 +779,6 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
   common_charges = np.intersect1d(
       unique_left, (target_charge - right_flow * unique_right) * left_flow,
       assume_unique=True)
-
   right_locations = {}
   for c in common_charges:
     right_locations[(target_charge - left_flow * c) * right_flow] = np.nonzero(
@@ -787,11 +786,14 @@ def find_dense_positions(left_charges: np.ndarray, left_flow: int,
 
   len_right_charges = len(right_charges)
   indices = []
+  data = []
   for n in range(len(left_charges)):
     c = left_charges[n]
     indices.append(n * len_right_charges +
                    right_locations[(target_charge - left_flow * c) *
                                    right_flow])
+    data.append([c, (target_charge - left_flow * c) * right_flow])
+  return indices
   return np.concatenate(indices)
 
 
