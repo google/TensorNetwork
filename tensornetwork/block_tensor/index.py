@@ -145,7 +145,7 @@ class Index:
   def __init__(self,
                charges: Union[List, np.ndarray],
                flow: int,
-               name: Optional[Text] = None,
+               name: Optional[Text] = "index",
                left_child: Optional["Index"] = None,
                right_child: Optional["Index"] = None):
     self._charges = np.asarray(charges)
