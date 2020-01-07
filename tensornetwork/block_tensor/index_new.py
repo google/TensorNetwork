@@ -31,15 +31,15 @@ class Index:
   def __init__(self,
                charges: Union[ChargeCollection, BaseCharge],
                flow: int,
-               name: Optional[Text] = None,
+               name: Optional[Text] = "index",
                left_child: Optional["Index"] = None,
                right_child: Optional["Index"] = None):
     if isinstance(charges, BaseCharge):
-      self._charges = ChargeCollection([charges])
+      self._charges = charges  #ChargeCollection([charges])
     elif isinstance(charges, ChargeCollection) or (charges is None):
       self._charges = charges
     else:
-      raise TypeError("Unknown type {}".format(type(chargesp)))
+      raise TypeError("Unknown type {}".format(type(charges)))
     self.flow = flow
     self.left_child = left_child
     self.right_child = right_child
@@ -60,19 +60,20 @@ class Index:
     """
     Helper function for copy
     """
+    print(index.left_child, index.right_child)
     if index.left_child != None:
       left_copy = Index(
-          charges=copy.copy(index.left_child.charges),
-          flow=copy.copy(index.left_child.flow),
-          name=copy.copy(index.left_child.name))
+          charges=copy.deepcopy(index.left_child.charges),
+          flow=copy.deepcopy(index.left_child.flow),
+          name=copy.deepcopy(index.left_child.name))
 
       copied_index.left_child = left_copy
       self._copy_helper(index.left_child, left_copy)
     if index.right_child != None:
       right_copy = Index(
-          charges=copy.copy(index.right_child.charges),
-          flow=copy.copy(index.right_child.flow),
-          name=copy.copy(index.right_child.name))
+          charges=copy.deepcopy(index.right_child.charges),
+          flow=copy.deepcopy(index.right_child.flow),
+          name=copy.deepcopy(index.right_child.name))
       copied_index.right_child = right_copy
       self._copy_helper(index.right_child, right_copy)
 
@@ -83,8 +84,8 @@ class Index:
         `Index` are copied as well.
     """
     index_copy = Index(
-        charges=copy.copy(self._charges),
-        flow=copy.copy(self.flow),
+        charges=copy.deepcopy(self._charges),
+        flow=copy.deepcopy(self.flow),
         name=self.name)
 
     self._copy_helper(self, index_copy)
