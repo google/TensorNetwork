@@ -176,7 +176,7 @@ class BaseCharge:
   def num_symmetries(self):
     """
     The number of individual symmetries stored in this object.
-    """n
+    """
     return len(self.shifts)
 
   def __len__(self) -> int:
@@ -219,14 +219,14 @@ class BaseCharge:
     Returns:
       BaseCharge: The result of `number * self`.
     """
-    
+
     raise NotImplementedError("`__rmul__` is not implemented for `BaseCharge`")
 
   @property
   def dtype(self):
     return self.charges.dtype
 
-  def unique(self,n
+  def unique(self,
              return_index=False,
              return_inverse=False,
              return_counts=False
@@ -294,7 +294,7 @@ class BaseCharge:
     Returns:
       np.ndarray: An array of `bool` type holding the result of the comparison.
     """
-    
+
     if isinstance(target, type(self)):
       if not np.all(self.shifts == target.shifts):
         raise ValueError(
@@ -481,12 +481,14 @@ class U1Charge(BaseCharge):
       #Note: the returned U1Charge shares its data with self
       return U1Charge(charges=[self.charges], shifts=self.shifts)
 
-  def __rmul__(self, number: Union[bool, int]) -> "U1Charge":
-    if number not in (True, False, 0, 1, -1):
-      raise ValueError(
-          "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
-              number))
-    return self.__mul__(number)
+  # def __rmul__(self, number: Union[bool, int]) -> "U1Charge":
+  #   raise
+  #   print(number not in (True, False, 0, 1, -1))
+  #   if number not in (True, False, 0, 1, -1):
+  #     raise ValueError(
+  #         "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
+  #             number))
+  #   return self.__mul__(number)
 
   @property
   def dual_charges(self) -> np.ndarray:
@@ -799,7 +801,7 @@ class ChargeCollection:
       raise ValueError(
           "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
               number))
-    return ChargeCollection(charges=[c * number for c in self.charges])
+    return ChargeCollection(charges=[number * c for c in self.charges])
 
   def __rmul__(self, number: Union[bool, int]) -> "Charge":
     if number not in (True, False, 0, 1, -1):
@@ -957,7 +959,7 @@ def fuse_charges(
             len(charges), len(flows)))
   fused_charges = charges[0] * flows[0]
   for n in range(1, len(charges)):
-    fused_charges = fused_charges + flows[n] * charges[n]
+    fused_charges = fused_charges + charges[n] * flows[n]
   return fused_charges
 
 
