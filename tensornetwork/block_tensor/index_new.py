@@ -60,7 +60,6 @@ class Index:
     """
     Helper function for copy
     """
-    print(index.left_child, index.right_child)
     if index.left_child != None:
       left_copy = Index(
           charges=copy.deepcopy(index.left_child.charges),

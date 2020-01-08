@@ -797,24 +797,23 @@ class BlockSparseTensor:
       flat_flows = [i.flow for i in flat_elementary_indices]
       flat_dims = [len(c) for c in flat_charges]
       flat_strides = np.flip(np.append(1, np.cumprod(np.flip(flat_dims[1::]))))
-      #find the best partition into left and right charges
-      left_charges, right_charges, _ = _find_best_partition(
-          flat_charges, flat_flows)
-      #find the index-positions of the elements in the fusion
-      #of `left_charges` and `right_charges` that have `0`
-      #total charge (those are the only non-zero elements).
-      linear_positions = find_dense_positions(
-          left_charges,
-          1,
-          right_charges,
-          1,
-          target_charge=flat_charges[0].zero_charge)
+      if not hasattr(self, 'dense_to_sparse_table'):
+        #find the best partition into left and right charges
+        left_charges, right_charges, _ = _find_best_partition(
+            flat_charges, flat_flows)
+        #find the index-positions of the elements in the fusion
+        #of `left_charges` and `right_charges` that have `0`
+        #total charge (those are the only non-zero elements).
+        linear_positions = find_dense_positions(
+            left_charges,
+            1,
+            right_charges,
+            1,
+            target_charge=flat_charges[0].zero_charge)
 
-      dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(len(self.data)),
-                                                    (linear_positions,
-                                                     np.zeros(
-                                                         len(self.data),
-                                                         dtype=np.int64))))
+        self.dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(
+            len(self.data)), (linear_positions,
+                              np.zeros(len(self.data), dtype=np.int64))))
 
       flat_tr_charges = [flat_charges[n] for n in flat_order]
       flat_tr_flows = [flat_flows[n] for n in flat_order]
@@ -831,14 +830,15 @@ class BlockSparseTensor:
       tr_linear_positions = find_dense_positions(
           tr_left_charges, 1, tr_right_charges, 1, tr_left_charges.zero_charge)
 
-      inds = np.squeeze(
+      self.element_order = np.squeeze(
           dense_to_sparse_table[tr_dense_linear_positions[tr_linear_positions],
                                 0].toarray())
     else:
-      inds = transposed_linear_positions
+      self.element_order = transposed_linear_positions
     self.indices = [self.indices[n] for n in order]
-    self.data = self.data[inds]
-    return inds
+
+    #self.data = self.data[self.element_order]
+    return self.element_order
 
   # def transpose(self,
   #               order: Union[List[int], np.ndarray],

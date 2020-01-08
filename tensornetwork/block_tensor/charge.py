@@ -801,7 +801,7 @@ class ChargeCollection:
       raise ValueError(
           "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
               number))
-    return ChargeCollection(charges=[number * c for c in self.charges])
+    return ChargeCollection(charges=[c * number for c in self.charges])
 
   def __rmul__(self, number: Union[bool, int]) -> "Charge":
     if number not in (True, False, 0, 1, -1):

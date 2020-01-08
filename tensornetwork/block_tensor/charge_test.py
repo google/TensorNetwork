@@ -185,7 +185,7 @@ def test_U1Charge_multiple_fusion_with_flow():
     q3 = U1Charge([O3, P3, Q3])
 
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
-    q123 = q1 + (-1) * q2 + q3
+    q123 = q1 + q2 * (-1) + q3
 
     nz_1 = np.nonzero(q123.equals(target))[0]
     i1 = fused_1 == target[0]
@@ -223,7 +223,7 @@ def test_U1Charge_fusion_with_flow():
     q2 = U1Charge([O2, P2, Q2])
 
     target = np.random.randint(-B // 2, B // 2 + 1, 3)
-    q12 = q1 + (-1) * q2
+    q12 = q1 + q2 * (-1)
 
     nz_1 = np.nonzero(q12.equals(target))[0]
     i1 = fused_1 == target[0]

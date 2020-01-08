@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, ChargeCollection
-from tensornetwork.block_tensor.block_tensor_new import find_diagonal_sparse_blocks, compute_num_nonzero, find_sparse_positions
+from tensornetwork.block_tensor.index_new import Index
+from tensornetwork.block_tensor.block_tensor_new import find_diagonal_sparse_blocks, compute_num_nonzero, find_sparse_positions, find_dense_positions, BlockSparseTensor
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 
@@ -75,9 +76,52 @@ def test_find_sparse_positions_consistency():
   assert np.all(nz1 == nz3)
 
 
+def test_find_dense_positions_consistency():
+  B = 5
+  D = 20
+  rank = 4
+
+  qs = [[
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(2)
+  ]
+        for _ in range(rank)]
+  charges1 = [U1Charge(qs[n]) for n in range(rank)]
+  charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
+  charges3 = [
+      ChargeCollection([U1Charge(qs[n][m])
+                        for m in range(2)])
+      for n in range(rank)
+  ]
+  flows = [1, 1, 1, -1]
+  data1 = find_dense_positions(
+      left_charges=charges1[0] * flows[0] + charges1[1] * flows[0],
+      left_flow=1,
+      right_charges=charges1[2] * flows[2] + charges1[3] * flows[3],
+      right_flow=1,
+      target_charge=charges1[0].zero_charge)
+  data2 = find_dense_positions(
+      left_charges=charges2[0] * flows[0] + charges2[1] * flows[1],
+      left_flow=1,
+      right_charges=charges2[2] * flows[2] + charges2[3] * flows[3],
+      right_flow=1,
+      target_charge=charges2[0].zero_charge)
+  data3 = find_dense_positions(
+      left_charges=charges3[0] * flows[0] + charges3[1] * flows[1],
+      left_flow=1,
+      right_charges=charges3[2] * flows[2] + charges3[3] * flows[3],
+      right_flow=1,
+      target_charge=charges3[0].zero_charge)
+
+  nz = compute_num_nonzero(charges1, flows)
+  assert nz == len(data1)
+  assert len(data1) == len(data2)
+  assert len(data1) == len(data3)
+
+
 def test_find_diagonal_sparse_blocks_consistency():
-  B = 4
-  D = 100
+  B = 5
+  D = 20
   rank = 4
 
   qs = [[
@@ -267,17 +311,23 @@ def test_find_diagonal_sparse_blocks_consistency():
 #       right_flow=1,
 #       target_charges=common_charges)
 
-# def test_dense_transpose():
-#   Ds = [10, 11, 12]  #bond dimension
-#   rank = len(Ds)
-#   flows = np.asarray([1 for _ in range(rank)])
-#   flows[-2::] = -1
-#   charges = [np.zeros(Ds[n], dtype=np.int16) for n in range(rank)]
-#   indices = [
-#       Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
-#       for n in range(rank)
-#   ]
-#   A = BlockSparseTensor.random(indices=indices, dtype=np.float64)
-#   B = np.transpose(np.reshape(A.data.copy(), Ds), (1, 0, 2))
-#   A.transpose((1, 0, 2))
-#   np.testing.assert_allclose(A.data, B.flat)
+
+def test_dense_transpose():
+  Ds = [10, 11, 12]  #bond dimension
+  rank = len(Ds)
+  flows = np.asarray([1 for _ in range(rank)])
+  flows[-2::] = -1
+  charges = [U1Charge(np.zeros(Ds[n], dtype=np.int16)) for n in range(rank)]
+  indices = [
+      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
+      for n in range(rank)
+  ]
+  A = BlockSparseTensor.random(indices=indices, dtype=np.float64)
+  B = np.transpose(np.reshape(A.data.copy(), Ds), (1, 0, 2))
+  A.transpose((1, 0, 2))
+  np.testing.assert_allclose(A.data, B.flat)
+
+  B = np.transpose(np.reshape(A.data.copy(), [11, 10, 12]), (1, 0, 2))
+  A.transpose((1, 0, 2))
+
+  np.testing.assert_allclose(A.data, B.flat)
