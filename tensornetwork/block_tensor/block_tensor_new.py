@@ -63,6 +63,23 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   return fused_arrays
 
 
+def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
+  """
+  Fuse all `arrays` by simple kronecker addition.
+  Arrays are fused from "right to left", 
+  Args:
+    arrays: A list of arrays to be fused.
+  Returns:
+    np.ndarray: The result of fusing `charges`.
+  """
+  if len(arrays) == 1:
+    return arrays[0]
+  fused_arrays = arrays[0]
+  for n in range(1, len(arrays)):
+    fused_arrays = fuse_ndarray_pair(array1=fused_arrays, array2=arrays[n])
+  return fused_arrays
+
+
 def unfuse(fused_indices: np.ndarray, len_left: int,
            len_right: int) -> Tuple[np.ndarray, np.ndarray]:
   """
@@ -116,15 +133,32 @@ def _check_flows(flows: List[int]) -> None:
 
 def _find_best_partition(charges: List[Union[BaseCharge, ChargeCollection]],
                          flows: List[int]):
+  #FIXME: fusing charges with dims (N,M) with M>~N is faster than fusing charges
+  # with dims (M,N). Thus, it is not always best to fuse at the minimum cut.
+  #for example, for dims (1000, 4, 1002), its better to fuse at the cut
+  #(1000, 4008) than at (4000, 1002), even though the difference between the
+  #dimensions is minimal for the latter case. We should implement some heuristic
+  #to find these cuts.
   if len(charges) == 1:
     raise ValueError(
         '_expecting `charges` with a length of at least 2, got `len(charges)={}`'
         .format(len(charges)))
   dims = np.asarray([len(c) for c in charges])
-  min_ind = np.argmin([
+  diffs = [
       np.abs(np.prod(dims[0:n]) - np.prod(dims[n::]))
       for n in range(1, len(charges))
-  ])
+  ]
+  min_inds = np.nonzero(diffs == np.min(diffs))[0]
+  if len(min_inds) > 1:
+    right_dims = [np.prod(len(charges[min_ind + 1::])) for min_ind in min_inds]
+    min_ind = min_inds[np.argmax(right_dims)]
+  else:
+    min_ind = min_inds[0]
+  # min_ind = np.argmin([
+  #     np.abs(np.prod(dims[0:n]) - np.prod(dims[n::]))
+  #     for n in range(1, len(charges))
+  # ])
+
   fused_left_charges = fuse_charges(charges[0:min_ind + 1],
                                     flows[0:min_ind + 1])
   fused_right_charges = fuse_charges(charges[min_ind + 1::],
@@ -157,8 +191,9 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (
-      charges[0] * flows[0]).unique(return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (charges[0] *
+                                                   flows[0]).unique(
+                                                       return_counts=True)
   for n in range(1, len(charges)):
     #list of unique charges and list of their degeneracies
     #on the next unfused leg of the tensor
@@ -507,8 +542,9 @@ def find_sparse_positions(
       target_charge = target_charges[n]
       right_indices[(
           left_charge.get_item(0), target_charge.get_item(0))] = np.nonzero(
-              tmp_relevant_right_charges == (target_charge + left_charge * (
-                  (-1) * left_flow)) * right_flow)[0]
+              tmp_relevant_right_charges == (target_charge + left_charge *
+                                             ((-1) * left_flow)) *
+              right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
@@ -608,6 +644,16 @@ class BlockSparseTensor:
   The tensor data is stored in self.data, a 1d np.ndarray.
   """
 
+  def copy(self):
+    new = self.__new__(type(self))
+    new._data = self._data.copy()
+    new.data_permutation = self.data_permutation
+    if hasattr(self, 'dense_to_sparse_table'):
+      new.dense_to_sparse_table = self.dense_to_sparse_table.copy()
+    new.initial_index_order = [i.copy() for i in self.initial_index_order]
+    new.indices = [i.copy() for i in self.indices]
+    return new
+
   def __init__(self, data: np.ndarray, indices: List[Index]) -> None:
     """
     Args: 
@@ -616,6 +662,21 @@ class BlockSparseTensor:
         and `flows`
       indices: List of `Index` objecst, one for each leg. 
     """
+    for n in range(len(indices)):
+      if indices[n].name is None:
+        indices[n].name = 'index_{}'.format(n)
+
+    inital_index_names = [
+        indices[n].name if indices[n].name else 'index_{}'.format(n)
+        for n in range(len(indices))
+    ]
+    unique, cnts = np.unique(inital_index_names, return_counts=True)
+    if np.any(cnts > 1):
+      raise ValueError("Index names {} appeared multiple times. "
+                       "Please rename indices uniquely.".format(
+                           unique[cnts > 1]))
+
+    self.initial_index_order = [i.copy() for i in indices]
     self.indices = indices
     _check_flows(self.flows)
     num_non_zero_elements = compute_num_nonzero(self.charges, self.flows)
@@ -625,7 +686,14 @@ class BlockSparseTensor:
                        "by `charges` is different from"
                        " len(data)={}".format(len(data.flat)))
 
-    self.data = np.asarray(data.flat)  #do not copy data
+    self._data = np.asarray(data.flat)  #do not copy data
+    self.data_permutation = None
+
+  @property
+  def data(self):
+    if self.data_permutation is not None:
+      return self._data[self.data_permutation]
+    return self._data
 
   @classmethod
   def randn(cls, indices: List[Index],
@@ -744,15 +812,15 @@ class BlockSparseTensor:
 
   def transpose(self,
                 order: Union[List[int], np.ndarray],
-                transposed_linear_positions: Optional[np.ndarray] = None
+                permutation: Optional[np.ndarray] = None
                ) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`. This routine currently shuffles
     data.
     Args:
       order: The new order of indices.
-      transposed_linear_positions: An np.ndarray of int for reshuffling the data,
-        typically the output of a prior call to `transpose`. Passing `transposed_linear_positions`
+      permutation: An np.ndarray of int for reshuffling the data,
+        typically the output of a prior call to `transpose`. Passing `permutation`
         can greatly speed up the transposition.
     Returns:
       BlockSparseTensor: The transposed tensor.
@@ -760,43 +828,73 @@ class BlockSparseTensor:
     #FIXME: this implementation uses scipy.sparse.csr_matrix to generate the
     #lookup-table from dense to sparse indices. According to some quick
     #testing, the final lookup is currently the bottleneck.
-    #FIXME: transpose currently shuffles data. This can in principle be postponed
-    #until `tensordot` or `find_diagonal_sparsenn_blocks`, at the cost of
-    #maintaining two lookup tables for sparse-to-dense positions and dense-to-sparse
-    #positions
-    if (transposed_linear_positions is
-        not None) and (len(transposed_linear_positions) != len(tensor.data)):
-      raise ValueError("len(transposed_linear_positions) != len(tensor.data).")
+
+    if (permutation is not None) and (permutation is not 'trivial') and (
+        len(permutation) != len(self.data)):
+      raise ValueError("len(permutation) != len(tensor.data).")
 
     if len(order) != self.rank:
       raise ValueError(
           "`len(order)={}` is different form `self.rank={}`".format(
               len(order), self.rank))
-    #transpose is the only function using self.dense_to_sparse_table
-    #so we can initialize it here. This will change if we are implementing
-    #lazy shuffling of data. In this case, `find_diagonal_sparse_blocks`
-    #also needs this.
+
+    #check for trivial permutation
+    if np.all(order == np.arange(len(order))):
+      #nothing to do
+      if self.data_permutation is None:
+        return 'trivial'
+      return self.data_permutation
+
+    new_index_order = [self.indices[n] for n in order]
+    if np.all([
+        new_index_order[n].name == self.initial_index_order[n].name
+        for n in range(len(self.indices))
+    ]):
+      #`order' permutes into the original ordering
+      self.data_permutation = None
+      self.indices = [self.indices[n] for n in order]
+      return 'trivial'
 
     #we use elementary indices here because it is
     #more efficient to get the fused charges using
     #the best partition
-    if transposed_linear_positions is None:
-      elementary_indices = {}
-      flat_elementary_indices = []
+    if permutation is None:
 
-      for n in range(self.rank):
-        elementary_indices[n] = self.indices[n].get_elementary_indices()
-        flat_elementary_indices.extend(elementary_indices[n])
-      flat_index_list = np.arange(len(flat_elementary_indices))
-      cum_num_legs = np.append(
-          0, np.cumsum([len(elementary_indices[n]) for n in range(self.rank)]))
-      flat_order = np.concatenate(
-          [flat_index_list[cum_num_legs[n]:cum_num_legs[n + 1]] for n in order])
+      def get_flattened_data(indices):
+        elementary_indices = {}
+        flat_elementary_indices = []
+        for n in range(len(indices)):
+          elementary_indices[n] = indices[n].get_elementary_indices()
+          flat_elementary_indices.extend(elementary_indices[n])
+        flat_index_list = np.arange(len(flat_elementary_indices))
+        cum_num_legs = np.append(
+            0,
+            np.cumsum([len(elementary_indices[n]) for n in range(len(indices))
+                      ]))
 
-      flat_charges = [i.charges for i in flat_elementary_indices]
-      flat_flows = [i.flow for i in flat_elementary_indices]
-      flat_dims = [len(c) for c in flat_charges]
-      flat_strides = np.flip(np.append(1, np.cumprod(np.flip(flat_dims[1::]))))
+        flat_charges = [i.charges for i in flat_elementary_indices]
+        flat_flows = [i.flow for i in flat_elementary_indices]
+        flat_dims = [len(c) for c in flat_charges]
+        flat_strides = np.flip(
+            np.append(1, np.cumprod(np.flip(flat_dims[1::]))))
+        return flat_charges, flat_flows, flat_dims, flat_strides, flat_index_list, cum_num_legs
+
+      #find the absolute order, i.e. the requested order with respect to the initial
+      #ordering of the indices
+      absolute_order = []
+      for o in order:
+        for n in range(len(self.initial_index_order)):
+          if self.initial_index_order[n].name == self.indices[o].name:
+            absolute_order.append(n)
+
+      flat_charges, flat_flows, flat_dims, flat_strides, flat_index_list, cum_num_legs = get_flattened_data(
+          self.initial_index_order)
+
+      flat_order = np.concatenate([
+          flat_index_list[cum_num_legs[n]:cum_num_legs[n + 1]]
+          for n in absolute_order
+      ])
+
       if not hasattr(self, 'dense_to_sparse_table'):
         #find the best partition into left and right charges
         left_charges, right_charges, _ = _find_best_partition(
@@ -804,22 +902,24 @@ class BlockSparseTensor:
         #find the index-positions of the elements in the fusion
         #of `left_charges` and `right_charges` that have `0`
         #total charge (those are the only non-zero elements).
+        t1 = time.time()
         linear_positions = find_dense_positions(
             left_charges,
             1,
             right_charges,
             1,
             target_charge=flat_charges[0].zero_charge)
-
-        self.dense_to_sparse_table = sp.sparse.csr_matrix((np.arange(
-            len(self.data)), (linear_positions,
-                              np.zeros(len(self.data), dtype=np.int64))))
+        print(len(left_charges), len(right_charges))
+        print('first finding dense positions {}s'.format(time.time() - t1))
+        data = np.arange(len(self.data))
+        zeros = np.zeros(len(self.data), dtype=np.int64)
+        self.dense_to_sparse_table = sp.sparse.csc_matrix(
+            (data, (linear_positions, zeros)))
 
       flat_tr_charges = [flat_charges[n] for n in flat_order]
       flat_tr_flows = [flat_flows[n] for n in flat_order]
       flat_tr_strides = [flat_strides[n] for n in flat_order]
       flat_tr_dims = [flat_dims[n] for n in flat_order]
-
       tr_left_charges, tr_right_charges, _ = _find_best_partition(
           flat_tr_charges, flat_tr_flows)
       #FIXME: this should be done without fully fusing  the strides
@@ -827,30 +927,38 @@ class BlockSparseTensor:
           np.arange(flat_tr_dims[n]) * flat_tr_strides[n]
           for n in range(len(flat_tr_dims))
       ])
-      tr_linear_positions = find_dense_positions(
-          tr_left_charges, 1, tr_right_charges, 1, tr_left_charges.zero_charge)
+      t1 = time.time()
+      print(len(tr_left_charges), len(tr_right_charges))
+      tr_linear_positions = find_dense_positions(tr_left_charges, 1,
+                                                 tr_right_charges, 1,
+                                                 tr_left_charges.zero_charge)
+      print(len(tr_left_charges), len(tr_right_charges))
+      print('finding dense positions {}s'.format(time.time() - t1))
+      t1 = time.time()
+      self.data_permutation = np.squeeze(self.dense_to_sparse_table[
+          tr_dense_linear_positions[tr_linear_positions], 0].toarray())
+      print('lookup took {}s'.format(time.time() - t1))
+      self.indices = [self.indices[n] for n in order]
+      return self.data_permutation
 
-      self.element_order = np.squeeze(
-          dense_to_sparse_table[tr_dense_linear_positions[tr_linear_positions],
-                                0].toarray())
+    elif permutation is 'trivial':
+      self.data_permutation = None
+      self.indices = [self.indices[n] for n in order]
+      return permutation
     else:
-      self.element_order = transposed_linear_positions
-    self.indices = [self.indices[n] for n in order]
-
-    #self.data = self.data[self.element_order]
-    return self.element_order
+      self.data_permutation = permutation
 
   # def transpose(self,
   #               order: Union[List[int], np.ndarray],
-  #               transposed_linear_positions: Optional[np.ndarray] = None
+  #               permutation: Optional[np.ndarray] = None
   #              ) -> "BlockSparseTensor":
   #   """
   #   Transpose the tensor into the new order `order`. This routine currently shuffles
   #   data.
   #   Args:
   #     order: The new order of indices.
-  #     transposed_linear_positions: An np.ndarray of int for reshuffling the data,
-  #       typically the output of a prior call to `transpose`. Passing `transposed_linear_positions`
+  #     permutation: An np.ndarray of int for reshuffling the data,
+  #       typically the output of a prior call to `transpose`. Passing `permutation`
   #       can greatly speed up the transposition.
   #   Returns:
   #     BlockSparseTensor: The transposed tensor.
@@ -862,9 +970,9 @@ class BlockSparseTensor:
   #   #until `tensordot` or `find_diagonal_sparsenn_blocks`, at the cost of
   #   #maintaining two lookup tables for sparse-to-dense positions and dense-to-sparse
   #   #positions
-  #   if (transposed_linear_positions is
-  #       not None) and (len(transposed_linear_positions) != len(tensor.data)):
-  #     raise ValueError("len(transposed_linear_positions) != len(tensor.data).")
+  #   if (permutation is
+  #       not None) and (len(permutation) != len(tensor.data)):
+  #     raise ValueError("len(permutation) != len(tensor.data).")
 
   #   if len(order) != self.rank:
   #     raise ValueError(
@@ -878,7 +986,7 @@ class BlockSparseTensor:
   #   #we use elementary indices here because it is
   #   #more efficient to get the fused charges using
   #   #the best partition
-  #   if transposed_linear_positions is None:
+  #   if permutation is None:
   #     elementary_indices = {}
   #     flat_elementary_indices = []
 
@@ -931,7 +1039,7 @@ class BlockSparseTensor:
   #     inds = np.squeeze(self.dense_to_sparse_table[
   #         tr_dense_linear_positions[tr_linear_positions], 0].toarray())
   #   else:
-  #     inds = transposed_linear_positions
+  #     inds = permutation
   #   self.indices = [self.indices[n] for n in order]
   #   self.data = self.data[inds]
   #   return inds
@@ -1115,29 +1223,28 @@ def reshape(tensor: BlockSparseTensor,
   return result
 
 
-def transpose(
-    tensor: BlockSparseTensor,
-    order: Union[List[int], np.ndarray],
-    transposed_linear_positions: Optional[np.ndarray] = None,
-    return_new_positions: Optional[bool] = False) -> "BlockSparseTensor":
+def transpose(tensor: BlockSparseTensor,
+              order: Union[List[int], np.ndarray],
+              permutation: Optional[np.ndarray] = None,
+              return_new_positions: Optional[bool] = False
+             ) -> "BlockSparseTensor":
   """
   Transpose `tensor` into the new order `order`. This routine currently shuffles
   data.
   Args: 
     tensor: The tensor to be transposed.
     order: The new order of indices.
-    transposed_linear_positions: An np.ndarray of int for reshuffling the data,
-      typically the output of a prior call to `transpose`. Passing `transposed_linear_positions`
+    permutation: An np.ndarray of int for reshuffling the data,
+      typically the output of a prior call to `transpose`. Passing `permutation`
       can greatly speed up the transposition.
   Returns:
     BlockSparseTensor: The transposed tensor.
   """
-  if (transposed_linear_positions is
-      not None) and (len(transposed_linear_positions) != len(tensor.data)):
-    raise ValueError("len(transposed_linear_positions) != len(tensor.data).")
+  if (permutation is not None) and (len(permutation) != len(tensor.data)):
+    raise ValueError("len(permutation) != len(tensor.data).")
   result = BlockSparseTensor(
       data=tensor.data.copy(), indices=[i.copy() for i in tensor.indices])
-  inds = result.transpose(order, transposed_linear_positions)
+  inds = result.transpose(order, permutation)
   if return_new_positions:
     return result, inds
   return result
