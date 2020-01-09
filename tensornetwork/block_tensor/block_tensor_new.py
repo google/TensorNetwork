@@ -90,48 +90,6 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   return fused_arrays
 
 
-def unfuse(fused_indices: np.ndarray,
-           len_right: int) -> Tuple[np.ndarray, np.ndarray]:
-  """
-  Given an np.ndarray `fused_indices` of integers denoting 
-  index-positions of elements within a 1d array, `unfuse`
-  obtains the index-positions of the elements in the left and 
-  right np.ndarrays `left`, `right` which, upon fusion, 
-  are placed at the index-positions given by 
-  `fused_indices` in the fused np.ndarray.
-  An example will help to illuminate this:
-  Given np.ndarrays `left`, `right` and the result
-  of their fusion (`fused`):
-
-  ```
-  left = [0,1,0,2]
-  right = [-1,3,-2]    
-  fused = fuse_charges([left, right], flows=[1,1]) 
-  print(fused) #[-1  3 -2  0  4 -1 -1  3 -2  1  5  0]
-  ```
-
-  we want to find which elements in `left` and `right`
-  fuse to a value of 0. In the above case, there are two 
-  0 in `fused`: one is obtained from fusing `left[1]` and
-  `right[0]`, the second one from fusing `left[3]` and `right[2]`
-  `unfuse` returns the index-positions of these values within
-  `left` and `right`, that is
-
-  ```
-  left_index_values, right_index_values = unfuse(np.nonzero(fused==0)[0], len(left), len(right))
-  print(left_index_values) # [1,3]
-  print(right_index_values) # [0,2]
-  ```
-
-  Args:
-    fused_indices: A 1d np.ndarray of integers.
-    len_right: The length of the right np.ndarray.
-  Returns:
-    (np.ndarry, np.ndarray)
-  """
-  return np.divmod(fused_indices, len_right)
-
-
 def _check_flows(flows: List[int]) -> None:
   if (set(flows) != {1}) and (set(flows) != {-1}) and (set(flows) != {-1, 1}):
     raise ValueError(
@@ -198,8 +156,9 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (
-      charges[0] * flows[0]).unique(return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (charges[0] *
+                                                   flows[0]).unique(
+                                                       return_counts=True)
   for n in range(1, len(charges)):
     #list of unique charges and list of their degeneracies
     #on the next unfused leg of the tensor
@@ -512,7 +471,7 @@ def find_sparse_positions(
   #target_charges
   left_inds, right_inds = [], []
   for target_charge in target_charges:
-    li, ri = unfuse(np.nonzero(fused == target_charge)[0], len(unique_right))
+    li, ri = np.divmod(np.nonzero(fused == target_charge)[0], len(unique_right))
     left_inds.append(li)
     right_inds.append(ri)
 
@@ -546,8 +505,9 @@ def find_sparse_positions(
       target_charge = target_charges[n]
       right_indices[(
           left_charge.get_item(0), target_charge.get_item(0))] = np.nonzero(
-              tmp_relevant_right_charges == (target_charge + left_charge * (
-                  (-1) * left_flow)) * right_flow)[0]
+              tmp_relevant_right_charges == (target_charge + left_charge *
+                                             ((-1) * left_flow)) *
+              right_flow)[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
@@ -813,10 +773,10 @@ class BlockSparseTensor:
   def charges(self):
     return [i.charges for i in self.indices]
 
-  def transpose(
-      self,
-      order: Union[List[int], np.ndarray],
-      permutation: Optional[np.ndarray] = None) -> "BlockSparseTensor":
+  def transpose(self,
+                order: Union[List[int], np.ndarray],
+                permutation: Optional[np.ndarray] = None
+               ) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`. This routine currently shuffles
     data.
@@ -872,8 +832,8 @@ class BlockSparseTensor:
         flat_index_list = np.arange(len(flat_elementary_indices))
         cum_num_legs = np.append(
             0,
-            np.cumsum(
-                [len(elementary_indices[n]) for n in range(len(indices))]))
+            np.cumsum([len(elementary_indices[n]) for n in range(len(indices))
+                      ]))
 
         flat_charges = [i.charges for i in flat_elementary_indices]
         flat_flows = [i.flow for i in flat_elementary_indices]
@@ -929,8 +889,9 @@ class BlockSparseTensor:
       #     np.arange(flat_tr_dims[n]) * flat_tr_strides[n]
       #     for n in range(len(flat_tr_dims))
       # ])
-      tr_linear_positions = find_dense_positions(
-          tr_left_charges, 1, tr_right_charges, 1, tr_left_charges.zero_charge)
+      tr_linear_positions = find_dense_positions(tr_left_charges, 1,
+                                                 tr_right_charges, 1,
+                                                 tr_left_charges.zero_charge)
       stride_arrays = [
           np.arange(flat_tr_dims[n]) * flat_tr_strides[n]
           for n in range(len(flat_tr_dims))
@@ -1228,11 +1189,11 @@ def reshape(tensor: BlockSparseTensor,
   return result
 
 
-def transpose(
-    tensor: BlockSparseTensor,
-    order: Union[List[int], np.ndarray],
-    permutation: Optional[np.ndarray] = None,
-    return_new_positions: Optional[bool] = False) -> "BlockSparseTensor":
+def transpose(tensor: BlockSparseTensor,
+              order: Union[List[int], np.ndarray],
+              permutation: Optional[np.ndarray] = None,
+              return_new_positions: Optional[bool] = False
+             ) -> "BlockSparseTensor":
   """
   Transpose `tensor` into the new order `order`. This routine currently shuffles
   data.
