@@ -1,26 +1,8 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.charge import ChargeCollection, BaseCharge, U1Charge, Z2Charge
-from tensornetwork.block_tensor.index import fuse_charges, fuse_degeneracies, fuse_charge_pair
-
-
-def test_fuse_charge_pair():
-  q1 = np.asarray([0, 1])
-  q2 = np.asarray([2, 3, 4])
-  fused_charges = fuse_charge_pair(q1, 1, q2, 1)
-  assert np.all(fused_charges == np.asarray([2, 3, 4, 3, 4, 5]))
-  fused_charges = fuse_charge_pair(q1, 1, q2, -1)
-  assert np.all(fused_charges == np.asarray([-2, -3, -4, -1, -2, -3]))
-
-
-def test_fuse_charges():
-  q1 = np.asarray([0, 1])
-  q2 = np.asarray([2, 3, 4])
-  fused_charges = fuse_charges([q1, q2], flows=[1, 1])
-  assert np.all(fused_charges == np.asarray([2, 3, 4, 3, 4, 5]))
-  fused_charges = fuse_charges([q1, q2], flows=[1, -1])
-  assert np.all(fused_charges == np.asarray([-2, -3, -4, -1, -2, -3]))
+from tensornetwork.block_tensor.charge import ChargeCollection, BaseCharge, U1Charge, Z2Charge, fuse_degeneracies
+from tensornetwork.block_tensor.block_tensor import fuse_ndarrays
 
 
 def test_fuse_degeneracies():
@@ -93,9 +75,9 @@ def test_U1Charge_fusion():
     charges_2 = [P1, P2]
     charges_3 = [Q1, Q2]
 
-    fused_1 = fuse_charges(charges_1, [1, 1])
-    fused_2 = fuse_charges(charges_2, [1, 1])
-    fused_3 = fuse_charges(charges_3, [1, 1])
+    fused_1 = fuse_ndarrays(charges_1)
+    fused_2 = fuse_ndarrays(charges_2)
+    fused_3 = fuse_ndarrays(charges_3)
     q1 = U1Charge([O1, P1, Q1])
     q2 = U1Charge([O2, P2, Q2])
 
@@ -135,9 +117,9 @@ def test_U1Charge_multiple_fusion():
     charges_2 = [P1, P2, P3]
     charges_3 = [Q1, Q2, Q3]
 
-    fused_1 = fuse_charges(charges_1, [1, 1, 1])
-    fused_2 = fuse_charges(charges_2, [1, 1, 1])
-    fused_3 = fuse_charges(charges_3, [1, 1, 1])
+    fused_1 = fuse_ndarrays(charges_1)
+    fused_2 = fuse_ndarrays(charges_2)
+    fused_3 = fuse_ndarrays(charges_3)
     q1 = U1Charge([O1, P1, Q1])
     q2 = U1Charge([O2, P2, Q2])
     q3 = U1Charge([O3, P3, Q3])
@@ -173,13 +155,13 @@ def test_U1Charge_multiple_fusion_with_flow():
     Q2 = np.random.randint(0, B + 1, D).astype(np.int8)
     Q3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
 
-    charges_1 = [O1, O2, O3]
-    charges_2 = [P1, P2, P3]
-    charges_3 = [Q1, Q2, Q3]
+    charges_1 = [O1, -O2, O3]
+    charges_2 = [P1, -P2, P3]
+    charges_3 = [Q1, -Q2, Q3]
 
-    fused_1 = fuse_charges(charges_1, [1, -1, 1])
-    fused_2 = fuse_charges(charges_2, [1, -1, 1])
-    fused_3 = fuse_charges(charges_3, [1, -1, 1])
+    fused_1 = fuse_ndarrays(charges_1)
+    fused_2 = fuse_ndarrays(charges_2)
+    fused_3 = fuse_ndarrays(charges_3)
     q1 = U1Charge([O1, P1, Q1])
     q2 = U1Charge([O2, P2, Q2])
     q3 = U1Charge([O3, P3, Q3])
@@ -212,13 +194,13 @@ def test_U1Charge_fusion_with_flow():
     Q1 = np.random.randint(1, B + 1, D).astype(np.int8)
     Q2 = np.random.randint(1, B + 1, D).astype(np.int8)
 
-    charges_1 = [O1, O2]
-    charges_2 = [P1, P2]
-    charges_3 = [Q1, Q2]
+    charges_1 = [O1, -O2]
+    charges_2 = [P1, -P2]
+    charges_3 = [Q1, -Q2]
 
-    fused_1 = fuse_charges(charges_1, [1, -1])
-    fused_2 = fuse_charges(charges_2, [1, -1])
-    fused_3 = fuse_charges(charges_3, [1, -1])
+    fused_1 = fuse_ndarrays(charges_1)
+    fused_2 = fuse_ndarrays(charges_2)
+    fused_3 = fuse_ndarrays(charges_3)
     q1 = U1Charge([O1, P1, Q1])
     q2 = U1Charge([O2, P2, Q2])
 
@@ -250,13 +232,13 @@ def test_U1Charge_sub():
     Q1 = np.random.randint(1, B + 1, D).astype(np.int8)
     Q2 = np.random.randint(1, B + 1, D).astype(np.int8)
 
-    charges_1 = [O1, O2]
-    charges_2 = [P1, P2]
-    charges_3 = [Q1, Q2]
+    charges_1 = [O1, -O2]
+    charges_2 = [P1, -P2]
+    charges_3 = [Q1, -Q2]
 
-    fused_1 = fuse_charges(charges_1, [1, -1])
-    fused_2 = fuse_charges(charges_2, [1, -1])
-    fused_3 = fuse_charges(charges_3, [1, -1])
+    fused_1 = fuse_ndarrays(charges_1)
+    fused_2 = fuse_ndarrays(charges_2)
+    fused_3 = fuse_ndarrays(charges_3)
     q1 = U1Charge([O1, P1, Q1])
     q2 = U1Charge([O2, P2, Q2])
 
