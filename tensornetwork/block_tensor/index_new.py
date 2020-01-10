@@ -123,14 +123,6 @@ class Index:
       return self._charges
     return self.left_child.charges * self.left_child.flow + self.right_child.charges * self.right_child.flow
 
-  # @property
-  # def name(self):
-  #   if self._name:
-  #     return self._name
-  #   if self.is_leave:
-  #     return self.name
-  #   return self.left_child.name + ' & ' + self.right_child.name
-
 
 def fuse_index_pair(left_index: Index,
                     right_index: Index,
