@@ -279,7 +279,7 @@ class BaseCharge:
       if not np.all(self.shifts == targets.shifts):
         raise ValueError(
             "Cannot compare charges with different shifts {} and {}".format(
-                self.shifts, tpargets.shifts))
+                self.shifts, targets.shifts))
 
       targets = targets.charges
     targets = np.asarray(targets)
@@ -376,6 +376,18 @@ class BaseCharge:
 
   def __iter__(self):
     return iter(self.charges)
+
+  def intersect(self, other: "BaseCharge") -> "BaseCharge":
+    if not np.all(self.shifts == other.shifts):
+      raise ValueError(
+          "Cannot intersect charges with different shifts {} and {}".format(
+              self.shifts, other.shifts))
+
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=[np.intersect1d(self.charges, other.charges)],
+        shifts=self.shifts)
+    return obj
 
 
 class U1Charge(BaseCharge):
@@ -589,7 +601,7 @@ class Z2Charge(BaseCharge):
           "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
               number))
     #Z2 is self-dual
-    return U1Charge(charges=[self.charges], shifts=self.shifts)
+    return Z2Charge(charges=[self.charges], shifts=self.shifts)
 
   def __rmul__(self, number: Union[bool, int]) -> "Z2Charge":
     if number not in (True, False, 0, 1, -1):
