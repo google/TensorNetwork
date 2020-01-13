@@ -189,6 +189,29 @@ def test_block_sparse_init(dtype):
   assert len(A.data) == num_elements
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_get_diagonal_blocks(dtype):
+  D = 10  #bond dimension
+  B = 10  #number of blocks
+  rank = 4
+  flows = np.asarray([1 for _ in range(rank)])
+  flows[-2::] = -1
+  charges = [
+      U1Charge(np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16))
+      for _ in range(rank)
+  ]
+  indices = [
+      Index(charges=charges[n], flow=flows[n], name='index{}'.format(n))
+      for n in range(rank)
+  ]
+  num_elements = compute_num_nonzero([i.charges for i in indices],
+                                     [i.flow for i in indices])
+  A = BlockSparseTensor.random(indices=indices, dtype=dtype)
+  A.reshape((100, 100))
+  _, blocks, _, _, _ = A._get_diagonal_blocks(return_data=False)
+  assert num_elements == np.sum([len(v[0]) for v in blocks])
+
+
 def test_find_dense_positions():
   left_charges = np.asarray([-2, 0, 1, 0, 0]).astype(np.int16)
   right_charges = np.asarray([-1, 0, 2, 1]).astype(np.int16)

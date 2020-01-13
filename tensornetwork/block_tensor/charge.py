@@ -950,6 +950,13 @@ class ChargeCollection:
     obj.__init__(charges=[c.zero_charge for c in self.charges])
     return obj
 
+  def intersect(self, other: "ChargeCollection") -> "ChargeCollection":
+    self_unique = self.unique()
+    other_unique = other.unique()
+    concatenated = self_unique.concatenate(other_unique)
+    tmp_unique, counts = concatenated.unique(return_counts=True)
+    return tmp_unique[counts == 2]
+
 
 def fuse_charges(
     charges: List[Union[BaseCharge, ChargeCollection]],
