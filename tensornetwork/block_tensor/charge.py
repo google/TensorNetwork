@@ -377,7 +377,9 @@ class BaseCharge:
   def __iter__(self):
     return iter(self.charges)
 
-  def intersect(self, other: "BaseCharge") -> "BaseCharge":
+  def intersect(self,
+                other: "BaseCharge",
+                return_indices: Optional[bool] = False) -> "BaseCharge":
     if not np.all(self.shifts == other.shifts):
       raise ValueError(
           "Cannot intersect charges with different shifts {} and {}".format(

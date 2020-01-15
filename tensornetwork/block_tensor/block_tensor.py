@@ -30,6 +30,72 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
+def _compute_sparse_lookups(row_charges, row_flows, column_charges,
+                            column_flows):
+
+  fused_column_charges = fuse_charges(column_charges, column_flows)
+  fused_row_charges = fuse_charges(row_charges, row_flows)
+  unique_column_charges, column_inverse = fused_column_charges.unique(
+      return_inverse=True)
+  unique_row_charges, row_inverse = fused_column_charges.unique(
+      return_inverse=True)
+  common_charges = unique_row_charges.intersect(unique_column_charges * (-1))
+
+  col_ind_sort = np.argsort(column_inverse, kind='stable')
+  row_ind_sort = np.argsort(row_inverse, kind='stable')
+  _, col_charge_degeneracies = compute_fused_charge_degeneracies(
+      column_charges, column_flows)
+
+  tmp = dict(zip(compute_fused_charge_degeneracies(row_charges, row_flows)))
+
+  # labelsorted_indices = column_inverse[col_ind_sort]
+  # tmp = np.nonzero(
+  #     np.append(labelsorted_indices, unique_column_charges.charges.shape[0] + 1) -
+  #     np.append(labelsorted_indices[0], labelsorted_indices))[0]
+  #charge_degeneracies = tmp - np.append(0, tmp[0:-1])
+  col_start_positions = np.cumsum(np.append(0, col_charge_degeneracies))
+  row_start_positions = np.cumsum(np.append(0, [tmp[]]))
+  column_lookup = np.empty(len(fused_column_charges), dtype=np.int64)
+  row_lookup = np.zeros(len(fused_row_charges), dtype=np.int64)
+  is_relevant = unique_column_charges.isin(common_charges * (-1))
+  for n in range(len(unique_column_charges)):
+    if is_relevant[n]:
+      column_lookup[col_ind_sort[col_start_positions[n]:col_start_positions[
+          n + 1]]] = np.arange(col_charge_degeneracies[n])
+
+      row_lookup[row_ind_sort[row_start_positions[n]:row_start_positions[
+          n + 1]]] = col_charge_degeneracies[n]
+
+  return np.append(0, np.cumsum(row_lookup[0:-1])), column_lookup
+
+
+def _compute_sparse_lookup(charges, flows, target_charges=None):
+  fused = fuse_charges(charges, flows)
+  unique, inverse = fused.unique(return_inverse=True)
+  ind_sort = np.argsort(inverse, kind='stable')
+  _, charge_degeneracies = compute_fused_charge_degeneracies(charges, flows)
+
+  # labelsorted_indices = inverse[ind_sort]
+  # tmp = np.nonzero(
+  #     np.append(labelsorted_indices, unique.charges.shape[0] + 1) -
+  #     np.append(labelsorted_indices[0], labelsorted_indices))[0]
+  # charge_degeneracies = tmp - np.append(0, tmp[0:-1])
+  start_positions = np.cumsum(np.append(0, charge_degeneracies))
+  lookup = np.empty(len(fused), dtype=np.int64)
+  if target_charges is not None:
+    is_relevant = unique.isin(target_charges)
+    for n in range(len(unique)):
+      if is_relevant[n]:
+        lookup[ind_sort[start_positions[n]:start_positions[n + 1]]] = np.arange(
+            charge_degeneracies[n])
+  else:
+    for n in range(len(unique)):
+      lookup[ind_sort[start_positions[n]:start_positions[n + 1]]] = np.arange(
+          charge_degeneracies[n])
+
+  return lookup
+
+
 def _get_strides(dims):
   return np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
 
@@ -159,9 +225,8 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (
+      charges[0] * flows[0]).unique(return_counts=True)
   for n in range(1, len(charges)):
     #list of unique charges and list of their degeneracies
     #on the next unfused leg of the tensor
@@ -819,10 +884,10 @@ def _find_transposed_dense_positions(
 #   return np.concatenate(indices)
 
 
-def find_sparse_positions(charges: List[Union[BaseCharge, ChargeCollection]],
-                          flows: List[Union[int, bool]],
-                          target_charges: Union[BaseCharge, ChargeCollection]
-                         ) -> Dict:
+def find_sparse_positions(
+    charges: List[Union[BaseCharge, ChargeCollection]],
+    flows: List[Union[int, bool]],
+    target_charges: Union[BaseCharge, ChargeCollection]) -> Dict:
   """
   Find the sparse locations of elements (i.e. the index-values within 
   the SPARSE tensor) in the vector `fused_charges` (resulting from 
@@ -916,8 +981,8 @@ def find_sparse_positions(charges: List[Union[BaseCharge, ChargeCollection]],
       target_charge = target_charges[n]
       right_indices[(left_charge.get_item(0),
                      target_charge.get_item(0))] = np.nonzero(
-                         tmp_relevant_right_charges == (target_charge +
-                                                        left_charge * (-1)))[0]
+                         tmp_relevant_right_charges == (
+                             target_charge + left_charge * (-1)))[0]
 
     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
 
@@ -1350,11 +1415,11 @@ class BlockSparseTensor:
   #     # t1 = time.time()
   #     unique, cnts = np.unique(block_vals, return_counts=True)
 
-  def transpose(self,
-                order: Union[List[int], np.ndarray],
-                permutation: Optional[np.ndarray] = None,
-                return_permutation: Optional[bool] = False
-               ) -> "BlockSparseTensor":
+  def transpose_a(
+      self,
+      order: Union[List[int], np.ndarray],
+      permutation: Optional[np.ndarray] = None,
+      return_permutation: Optional[bool] = False) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`. This routine currently shuffles
     data.
@@ -1390,8 +1455,7 @@ class BlockSparseTensor:
         np.sum([len(v) for v in sp_row_blocks.values()]), dtype=np.int64)
     for c in common_charges:
       degeneracy_vector[sp_row_blocks[c]] = column_degeneracies[c]
-    stop_positions = np.cumsum(degeneracy_vector)
-    start_positions = stop_positions - degeneracy_vector
+    start_positions = np.cumsum(degeneracy_vector) - degeneracy_vector
 
     dense_row_blocks = {
         common_charges.get_item(n): find_dense_positions(
@@ -1400,39 +1464,16 @@ class BlockSparseTensor:
             common_charges[n],
             return_sorted=False) for n in range(len(common_charges))
     }
-    dense_column_blocks = {
-        common_charges.get_item(n): find_dense_positions(
-            charges[partition:],
-            flows[partition:],
-            common_charges[n] * (-1),
-            return_sorted=False) for n in range(len(common_charges))
-    }
-    dtype = charges[0].dtype
-    drbs = list(dense_row_blocks.values())
-    block_dict = dict(zip(np.arange(len(drbs)), list(dense_row_blocks.keys())))
-
-    dense_row_positions = np.concatenate(drbs)
-    dense_block_numbers = np.concatenate([
-        np.full(len(drbs[n]), fill_value=n, dtype=np.int16)
-        for n in range(len(drbs))
-    ])
-
-    ind_sort = np.argsort(dense_row_positions)
-    dense_row_positions = dense_row_positions[ind_sort]
-    dense_block_number = dense_block_numbers[ind_sort]
-
-    #sp_column_positions = np.sort(
-    #    np.concatenate(list(sp_column_blocks.values())))
-    #dense_column_positions = np.sort(
-    #    np.concatenate(list(dense_column_blocks.values())))
-    #print('dense_row_positions:', dense_row_positions)
-    #print('dense_column_positions:', dense_column_positions)
-    #print('start_positions:', start_positions)
-
-    row_lookup = np.empty(dense_row_positions[-1] + 1, dtype=np.int64)
+    dense_row_positions = np.sort(
+        np.concatenate(list(dense_row_blocks.values())))
+    row_lookup = np.zeros(dense_row_positions[-1] + 1, dtype=np.int64)
     row_lookup[dense_row_positions] = start_positions
+    return row_lookup
+    column_lookup = _compute_sparse_lookup(charges[partition:],
+                                           flows[partition:],
+                                           common_charges * (-1))
     data = np.empty(len(self.data), dtype=self.data.dtype)
-    _, dense_blocks = _find_diagonal_dense_blocks(
+    cs, dense_blocks = _find_diagonal_dense_blocks(
         [charges[n] for n in order[0:tr_partition]],
         [charges[n] for n in order[tr_partition:]],
         [flows[n] for n in order[0:tr_partition]],
@@ -1440,82 +1481,119 @@ class BlockSparseTensor:
         row_strides=strides[order[0:tr_partition]],
         column_strides=strides[order[tr_partition:]])
 
+    column_dim = np.prod(
+        [len(charges[n]) for n in range(partition, len(charges))])
+    transposed_positions = {}
+    for n in range(len(dense_blocks)):
+      b = dense_blocks[n]
+      rinds, cinds = np.divmod(b[0], column_dim)
+      start_pos = row_lookup[rinds]
+      transposed_positions[cs.get_item(
+          n)] = row_lookup[rinds] + column_lookup[cinds]
+      #self.data[transposed_positions]
+
+    return transposed_positions
+
+  def transpose_b(
+      self,
+      order: Union[List[int], np.ndarray],
+      permutation: Optional[np.ndarray] = None,
+      return_permutation: Optional[bool] = False) -> "BlockSparseTensor":
+    """
+    Transpose the tensor into the new order `order`. This routine currently shuffles
+    data.
+    Args:
+      order: The new order of indices.
+      permutation: An np.ndarray of int for reshuffling the data,
+        typically the output of a prior call to `transpose`. Passing `permutation`
+        can greatly speed up the transposition.
+      return_permutation: If `True`, return the the permutation data.
+    Returns:
+      BlockSparseTensor: The transposed tensor.
+    """
+    strides = _get_strides(self.dense_shape)
+    dims = self.dense_shape
+    charges = self.charges
+    flows = self.flows
+    partition = _find_best_partition(charges, flows, return_charges=False)
+    tr_partition = _find_best_partition([charges[n] for n in order],
+                                        [flows[n] for n in order],
+                                        return_charges=False)
+
+    # unique_row_charges = compute_unique_fused_charges(charges[0:partition],
+    #                                                   flows[0:partition])
+    # unique_column_charges, column_dims = compute_fused_charge_degeneracies(
+    #     charges[partition:], flows[partition:])
+
+    # common_charges = unique_row_charges.intersect(unique_column_charges * (-1))
+    # column_degeneracies = dict(zip(unique_column_charges * (-1), column_dims))
+    # sp_row_blocks = find_sparse_positions(charges[0:partition],
+    #                                       flows[0:partition], common_charges)
+
+    # degeneracy_vector = np.empty(
+    #     np.sum([len(v) for v in sp_row_blocks.values()]), dtype=np.int64)
+    # for c in common_charges:
+    #   degeneracy_vector[sp_row_blocks[c]] = column_degeneracies[c]
+    # start_positions = np.cumsum(degeneracy_vector) - degeneracy_vector
+
+    # dense_row_blocks = {
+    #     common_charges.get_item(n): find_dense_positions(
+    #         charges[0:partition],
+    #         flows[0:partition],
+    #         common_charges[n],
+    #         return_sorted=False) for n in range(len(common_charges))
+    # }
+    # dense_column_blocks = {
+    #     common_charges.get_item(n): find_dense_positions(
+    #         charges[partition:],
+    #         flows[partition:],
+    #         common_charges[n] * (-1),
+    #         return_sorted=False) for n in range(len(common_charges))
+    # }
+
+    row_lookup, column_lookup = _compute_sparse_lookups(
+        charges[0:partition], flows[0:partition], charges[partition:],
+        flows[partition:])
+    return row_lookup
+    data = np.empty(len(self.data), dtype=self.data.dtype)
+    cs, dense_blocks = _find_diagonal_dense_blocks(
+        [charges[n] for n in order[0:tr_partition]],
+        [charges[n] for n in order[tr_partition:]],
+        [flows[n] for n in order[0:tr_partition]],
+        [flows[n] for n in order[tr_partition:]],
+        row_strides=strides[order[0:tr_partition]],
+        column_strides=strides[order[tr_partition:]])
+
+    column_dim = np.prod(
+        [len(charges[n]) for n in range(partition, len(charges))])
+    transposed_positions = {}
+    for n in range(len(dense_blocks)):
+      b = dense_blocks[n]
+      rinds, cinds = np.divmod(b[0], column_dim)
+      start_pos = row_lookup[rinds]
+      transposed_positions[cs.get_item(
+          n)] = row_lookup[rinds] + column_lookup[cinds]
+      #self.data[transposed_positions]
+
+    return transposed_positions
+
     # stride_arrays = [np.arange(dims[n]) * strides[n] for n in range(len(dims))]
     # tr_linear_positions = find_dense_positions([charges[n] for n in order],
     #                                            [flows[n] for n in order],
     #                                            charges[0].zero_charge)
     # tr_stride_arrays = [stride_arrays[n] for n in order]
-
     # dense_permutation = _find_values_in_fused(
     #     tr_linear_positions, fuse_ndarrays(tr_stride_arrays[0:tr_partition]),
     #     fuse_ndarrays(tr_stride_arrays[partition:]))
-
-    # dense_permutation_2 = np.sort(np.concatenate([b[0] for b in dense_blocks]))
-    # print('dense_perm == dense_perm2',
-    #       np.all(dense_permutation == dense_permutation_2))
-    column_dim = np.prod(
-        [len(charges[n]) for n in range(partition, len(charges))])
-    for b in dense_blocks:
-      # print(b[1])
-      # t1 = time.time()
-      rinds, cinds = np.divmod(b[0], column_dim)
-      # print('divmod', time.time() - t1)
-      # t1 = time.time()
-      start_pos = row_lookup[rinds]
-      # print('startpos', time.time() - t1)
-      # t1 = time.time()
-      block_vals = block_lookup[rinds]
-      # print('blockvals', time.time() - t1)
-      # t1 = time.time()
-      unique, cnts = np.unique(block_vals, return_counts=True)
-      # print('unique', time.time() - t1)
-      # for n in range(len(unique)):
-
-      #   degen = column_degeneracies[block_dict[unique[n]]]
-      #   print(degen)
-      #   np.expand_dims(row_lookup[rinds[block_vals == unique[n]]],
-      #                  1) + np.arange(degen)
-
-      # transposed_positions = +column_lookup[cinds]
-      # self.data[transposed_positions]
-    # common_charges, blocks, start_positions_2, row_locations, column_degeneracies_2 = _find_diagonal_sparse_blocks(
-    #     data=[],
-    #     row_charges=charges[0:partition],
-    #     column_charges=charges[partition:],
-    #     row_flows=flows[:partition],
-    #     column_flows=flows[partition:],
-    #     return_data=False)
-    # sp_row_positions_2 = np.sort(np.concatenate(list(row_locations.values())))
-    # sp_row_positions = np.sort(np.concatenate(list(sp_row_blocks.values())))
-    # print(np.all(sp_row_positions == sp_row_positions_2))
-    # print('asdf', np.all(start_positions == start_positions_2))
-    # print(start_positions)
-    # print(column_dim)
-    # print(partition, tr_partition)
-    # print(dense_permutation)
-    # print(tr_linear_positions)
     #rinds, cinds = np.divmod(dense_permutation, column_dim)
-    #print(np.max(rinds), np.max(cinds), len(row_lookup), len(column_lookup))
-
-    # print('row lookup', row_lookup)
-    # print('rinds', rinds)
-    # print('col lookup', column_lookup)
-    # print('cinds', cinds)
-    # print('dense col pos', dense_column_positions)
-    # u1 = np.unique(cinds)
-    # u2 = np.unique(dense_column_positions)
-    # print(np.all(u1 == u2))
-    # print('row_lookup[rinds]', row_lookup[rinds])
-    # print('col_lookup[cinds]', column_lookup[cinds])
-
     # transposed_positions = row_lookup[rinds] + column_lookup[cinds]
     # self.data[transposed_positions]
 
-  def transpose_2(self,
-                  order: Union[List[int], np.ndarray],
-                  permutation: Optional[np.ndarray] = None,
-                  return_permutation: Optional[bool] = False
-                 ) -> "BlockSparseTensor":
+  def transpose_2(
+      self,
+      order: Union[List[int], np.ndarray],
+      permutation: Optional[np.ndarray] = None,
+      return_permutation: Optional[bool] = False) -> "BlockSparseTensor":
     """
     Transpose the tensor into the new order `order`. This routine currently shuffles
     data.
@@ -1886,11 +1964,11 @@ def reshape(tensor: BlockSparseTensor,
   return result
 
 
-def transpose(tensor: BlockSparseTensor,
-              order: Union[List[int], np.ndarray],
-              permutation: Optional[np.ndarray] = None,
-              return_permutation: Optional[bool] = False
-             ) -> "BlockSparseTensor":
+def transpose(
+    tensor: BlockSparseTensor,
+    order: Union[List[int], np.ndarray],
+    permutation: Optional[np.ndarray] = None,
+    return_permutation: Optional[bool] = False) -> "BlockSparseTensor":
   """
   Transpose `tensor` into the new order `order`. This routine currently shuffles
   data.
@@ -1965,8 +2043,8 @@ def tensordot(tensor1: BlockSparseTensor,
     raise ValueError("axes1 and axes2 have incompatible elementary"
                      " shapes {} and {}".format(elementary_1, elementary_2))
   if not np.all(
-      np.array([i.flow for i in elementary_1]) == (-1) *
-      np.array([i.flow for i in elementary_2])):
+      np.array([i.flow for i in elementary_1]) ==
+      (-1) * np.array([i.flow for i in elementary_2])):
     raise ValueError("axes1 and axes2 have incompatible elementary"
                      " flows {} and {}".format(
                          np.array([i.flow for i in elementary_1]),
