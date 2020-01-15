@@ -384,11 +384,16 @@ class BaseCharge:
       raise ValueError(
           "Cannot intersect charges with different shifts {} and {}".format(
               self.shifts, other.shifts))
+    if return_indices:
+      charges, comm1, comm2 = np.intersect1d(
+          self.charges, other.charges, return_indices=return_indices)
+    else:
+      charges = np.intersect1d(self.charges, other.charges)
 
     obj = self.__new__(type(self))
-    obj.__init__(
-        charges=[np.intersect1d(self.charges, other.charges)],
-        shifts=self.shifts)
+    obj.__init__(charges=[charges], shifts=self.shifts)
+    if return_indices:
+      return obj, comm1, comm2
     return obj
 
 
@@ -952,17 +957,44 @@ class ChargeCollection:
     obj.__init__(charges=[c.zero_charge for c in self.charges])
     return obj
 
-  def intersect(self, other: "ChargeCollection") -> "ChargeCollection":
-    self_unique = self.unique()
-    other_unique = other.unique()
-    concatenated = self_unique.concatenate(other_unique)
-    tmp_unique, counts = concatenated.unique(return_counts=True)
-    return tmp_unique[counts == 2]
+  def intersect(self,
+                other: "ChargeCollection",
+                return_indices: Optional[bool] = False) -> "ChargeCollection":
+    if return_indices:
+      ua, ia = self.unique(return_index=True)
+      ub, ib = other.unique(return_index=True)
+      conc = ua.concatenate(ub)
+      uab, iab, cntab = conc.unique(return_index=True, return_counts=True)
+      intersection = uab[cntab == 2]
+      comm1 = np.argmax(
+          np.logical_and.reduce(
+              np.repeat(
+                  np.expand_dims(self._stacked_charges, 2),
+                  intersection._stacked_charges.shape[0],
+                  axis=2) == np.expand_dims(intersection._stacked_charges.T, 0),
+              axis=1),
+          axis=0)
+      comm2 = np.argmax(
+          np.logical_and.reduce(
+              np.repeat(
+                  np.expand_dims(other._stacked_charges, 2),
+                  intersection._stacked_charges.shape[0],
+                  axis=2) == np.expand_dims(intersection._stacked_charges.T, 0),
+              axis=1),
+          axis=0)
+      return intersection, comm1, comm2
+
+    else:
+      self_unique = self.unique()
+      other_unique = other.unique()
+      concatenated = self_unique.concatenate(other_unique)
+      tmp_unique, counts = concatenated.unique(return_counts=True)
+      return tmp_unique[counts == 2]
 
 
-def fuse_charges(
-    charges: List[Union[BaseCharge, ChargeCollection]],
-    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
+def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
+                 flows: List[Union[bool, int]]
+                ) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 
