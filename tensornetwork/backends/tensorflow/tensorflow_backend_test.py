@@ -43,6 +43,14 @@ def test_concat():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_stack():
+  backend = tensorflow_backend.TensorFlowBackend()
+  scalars = [backend.convert_to_tensor(1.0), backend.convert_to_tensor(2.0)]
+  actual = backend.stack(scalars)
+  expected = tf.Variable([1.0, 2.0])
+  tf.math.equal(expected, actual)
+
+
 def test_shape():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))

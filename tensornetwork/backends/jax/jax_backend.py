@@ -42,6 +42,9 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
+  def stack(self, scalars: Tensor) -> Tensor:
+    return np.array(scalars)
+
   def randn(self,
             shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None,
