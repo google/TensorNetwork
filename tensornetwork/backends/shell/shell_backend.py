@@ -118,7 +118,7 @@ class ShellBackend(base_backend.BaseBackend):
   def concat(self, values: Sequence[Tensor], axis: int = 0) -> Tensor:
     new_shape = None
     if axis == 0:
-      new_shape = ShellTensor(values)
+      new_shape = ShellTensor(tuple(v.shape[0] for v in values))
     else:
       new_shape = self.shape_concat(values, axis)
     return new_shape

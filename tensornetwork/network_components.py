@@ -1165,7 +1165,8 @@ def _flatten_trace_edges(edges: List[Edge],
   new_dim = backend.prod([backend.shape(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
   unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+  old_shape = [unaffected_shape, [new_dim, new_dim]]
+  new_shape = backend.shape_concat(old_shape, axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
