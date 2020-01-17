@@ -74,12 +74,12 @@ def test_shape_concat():
   assertBackendsAgree("shape_concat", args)
 
 
-def test_stack():
+def test_concat():
   np_backend = numpy_backend.NumPyBackend()
   sh_backend = shell_backend.ShellBackend()
   scalars = [np_backend.convert_to_tensor(1.0),
       np_backend.convert_to_tensor(2.0)]
-  actual = sh_backend.stack(scalars).shape
+  actual = sh_backend.concat(scalars).shape
   expected = np.array([1.0, 2.0])
   np.testing.assert_allclose(expected, actual)
 

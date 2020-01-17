@@ -140,9 +140,9 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented shape_concat.".format(
         self.name))
 
-  def stack(self, values: Sequence[Tensor]) -> Tensor:
+  def concat(self, values: Sequence[Tensor]) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
-    raise NotImplementedError("Backend '{}' has not implemented stack.".format(
+    raise NotImplementedError("Backend '{}' has not implemented concat.".format(
         self.name))
 
   def shape(self, tensor: Tensor) -> Tensor:

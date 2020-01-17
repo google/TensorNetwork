@@ -42,10 +42,10 @@ def test_shape_concat():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_stack():
+def test_concat():
   backend = numpy_backend.NumPyBackend()
   scalars = [backend.convert_to_tensor(1.0), backend.convert_to_tensor(2.0)]
-  actual = backend.stack(scalars)
+  actual = backend.concat(scalars)
   expected = np.array([1.0, 2.0])
   np.testing.assert_allclose(expected, actual)
 
