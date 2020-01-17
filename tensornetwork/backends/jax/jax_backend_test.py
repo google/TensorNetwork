@@ -47,7 +47,7 @@ def test_shape_concat():
 def test_concat():
   backend = jax_backend.JaxBackend()
   scalars = [backend.convert_to_tensor(1.0), backend.convert_to_tensor(2.0)]
-  actual = backend.concat(scalars)
+  actual = backend.concat(scalars, 0)
   expected = np.array([1.0, 2.0])
   np.testing.assert_allclose(expected, actual)
 

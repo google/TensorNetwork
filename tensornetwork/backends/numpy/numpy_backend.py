@@ -64,8 +64,8 @@ class NumPyBackend(base_backend.BaseBackend):
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
-  def concat(self, values: Tensor) -> Tensor:
-    return self.np.array(values)
+  def concat(self, values: Tensor, axis: int = 0) -> Tensor:
+    return self.np.stack(values, axis)
 
   def shape(self, tensor: Tensor) -> Tensor:
     return tensor.shape

@@ -46,7 +46,7 @@ def test_shape_concat():
 def test_concat():
   backend = tensorflow_backend.TensorFlowBackend()
   scalars = [backend.convert_to_tensor(1.0), backend.convert_to_tensor(2.0)]
-  actual = backend.concat(scalars)
+  actual = backend.concat(scalars, 0)
   expected = tf.Variable([1.0, 2.0])
   tf.math.equal(expected, actual)
 

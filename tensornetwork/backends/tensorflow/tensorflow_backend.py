@@ -67,8 +67,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
 
-  def concat(self, values: Tensor) -> Tensor:
-    return self.tf.Variable(values)
+  def concat(self, values: Tensor, axis: int) -> Tensor:
+    return self.tf.stack(values, axis)
 
   def shape(self, tensor: Tensor) -> Tensor:
     return self.tf.shape(tensor)

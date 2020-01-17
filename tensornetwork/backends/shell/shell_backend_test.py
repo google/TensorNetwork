@@ -79,7 +79,7 @@ def test_concat():
   sh_backend = shell_backend.ShellBackend()
   scalars = [np_backend.convert_to_tensor(1.0),
       np_backend.convert_to_tensor(2.0)]
-  actual = sh_backend.concat(scalars).shape
+  actual = sh_backend.concat(scalars, 0).shape
   expected = np.array([1.0, 2.0])
   np.testing.assert_allclose(expected, actual)
 
