@@ -73,7 +73,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     return np.concatenate(values, axis)
 
   def concat(self, values: Tensor, axis: int = 0) -> Tensor:
-    return np.stack(values, axis)
+    return self.torch.stack(values, axis)
 
   def shape(self, tensor: Tensor) -> Tensor:
     return self.torch.tensor(list(tensor.shape))
