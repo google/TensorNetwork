@@ -39,7 +39,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     result = self.jax.jit(lambda x: x)(tensor)
     return result
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
   def stack(self, scalars: Tensor) -> Tensor:

@@ -107,7 +107,7 @@ class ShellBackend(base_backend.BaseBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
     if axis < 0:
       axis += len(shape)

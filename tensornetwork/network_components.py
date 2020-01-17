@@ -1165,7 +1165,7 @@ def _flatten_trace_edges(edges: List[Edge],
   new_dim = backend.prod([backend.shape(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
   unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -1241,7 +1241,7 @@ def flatten_edges(edges: List[Edge],
     # Calculate the new axis dimension as a product of the other
     # axes dimensions.
     flattened_axis_dim = backend.prod(old_tensor_shape[len(perm_front):])
-    new_tensor_shape = backend.concat(
+    new_tensor_shape = backend.shape_concat(
         [old_tensor_shape[:len(perm_front)], [flattened_axis_dim]], axis=-1)
     new_tensor = backend.reshape(node.tensor, new_tensor_shape)
     # Modify the node in place. Currently, this is they only method that
@@ -1330,7 +1330,7 @@ def _split_trace_edge(
   perm_front = sorted(perm_front)
   node.reorder_axes(perm_front + perm_back)
   unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
+  new_shape = backend.shape_concat([unaffected_shape, shape, shape], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
   node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None]
@@ -1405,7 +1405,7 @@ def split_edge(edge: Edge,
     perm_front = sorted(perm_front)
     node.reorder_axes(perm_front + perm_back)
     unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
+    new_shape = backend.shape_concat([unaffected_shape, shape], axis=-1)
     node.tensor = backend.reshape(node.tensor, new_shape)  # in-place update
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]

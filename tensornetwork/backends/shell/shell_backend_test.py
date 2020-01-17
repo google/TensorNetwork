@@ -62,16 +62,16 @@ def test_svd_decomposition_with_max_values():
     assert x.shape == y.shape
 
 
-def test_concat():
+def test_shape_concat():
   args = {
       "values": [np.ones([3, 2, 5]),
                  np.zeros([3, 2, 5]),
                  np.ones([3, 3, 5])]
   }
   args["axis"] = 1
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
   args["axis"] = -2
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
 
 
 def test_stack():
