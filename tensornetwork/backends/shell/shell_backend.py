@@ -116,12 +116,8 @@ class ShellBackend(base_backend.BaseBackend):
     return ShellTensor(new_shape)
 
   def concat(self, values: Sequence[Tensor], axis: int = 0) -> Tensor:
-    new_shape = None
-    if axis == 0:
-      new_shape = ShellTensor(values)
-    else:
-      new_shape = self.shape_concat(values, axis)
-    return new_shape
+    raise NotImplementedError("Backend '{}' has not implemented concat.".format(
+        self.name))
 
   def concat_shape(self, values) -> Sequence:
     tuple_values = (tuple(v) for v in values)
