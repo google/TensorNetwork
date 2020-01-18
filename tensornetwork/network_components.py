@@ -109,23 +109,37 @@ class BaseNode(ABC):
     """
     self.signature = signature
 
-  def add_axis_names(self, axis_names: List[Text]) -> None:
-    """Add axis names to a Node.
+  def _unsafe_add_axis_names(self, axis_names: List[Text]) -> None:
+    """Add axis names to a Node without checking uniqueness.
+    
+    Used to attach merged axis names to a new node generated
+    from a contraction
 
     Args:
       axis_names: List of names for each of the tensor's axes.
 
     Raises:
-      ValueError: If there is a repeated name in `axis_names` or if the length
-        doesn't match the shape of the tensor.
+      ValueError: If the length doesn't match the shape of the tensor.
     """
-    if len(axis_names) != len(set(axis_names)):
-      raise ValueError("Not all axis names are unique.")
+
     if len(axis_names) != len(self.shape):
       raise ValueError("axis_names is not the same length as the tensor shape."
                        "axis_names length: {}, tensor.shape length: {}".format(
                            len(axis_names), len(self.shape)))
     self.axis_names = axis_names[:]
+
+  def add_axis_names(self, axis_names: List[Text]) -> None:
+    """Add axis names to a Node and check uniqueness.
+
+    Args:
+      axis_names: List of names for each of the tensor's axes.
+
+    Raises:
+      ValueError: If there is a repeated name in `axis_names`
+    """
+    if len(axis_names) != len(set(axis_names)):
+      raise ValueError("Not all axis names are unique.")
+    self._unsafe_add_axis_names(axis_names)
 
   def add_edge(self,
                edge: "Edge",
@@ -272,11 +286,22 @@ class BaseNode(ABC):
     """Get the axis number for a given axis name or value."""
     if isinstance(axis, int):
       return axis
+    if self.axis_names.count(axis) > 1:
+      raise ValueError("Axis name '{}' is ambiguous for node '{}'".format(
+          axis, self))
     try:
       return self.axis_names.index(axis)
     except ValueError:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
           axis, self))
+     
+  def has_nongeneric_axis_names(self) -> bool:
+    """Reports if the node has explicitly set axis names
+
+    Returns:
+      bool
+    """
+    return self.axis_names != [str(i) for i in range(len(self.shape))]
 
   def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension on the given axis.
@@ -1594,6 +1619,9 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
       backend.transpose(edge.node1.tensor, perm=permutation))
   name = name if name else edge.node1.name
   new_node = Node(new_tensor, name=name, backend=backend)
+  if edge.node1.has_nongeneric_axis_names():
+    new_node._unsafe_add_axis_names(
+        _merge_axis_names(edge.node1, None, [edge.axis1] + [edge.axis2], None))
   _remove_trace_edge(edge, new_node)  #disables edge
   return new_node
 
@@ -1645,6 +1673,11 @@ def contract(edge: Edge,
                                  [[edge.axis1], [edge.axis2]])
   new_node = Node(
       tensor=new_tensor, name=name, axis_names=axis_names, backend=backend.name)
+  if (not axis_names and 
+      (edge.node1.has_nongeneric_axis_names() or 
+       edge.node2.has_nongeneric_axis_names())):
+    new_node._unsafe_add_axis_names(
+        _merge_axis_names(edge.node1, edge.node2, [edge.axis1], [edge.axis2]))
   # edge.node1 and edge.node2 get new edges in _remove_edges
   _remove_edges(set([edge]), edge.node1, edge.node2, new_node)
   return new_node
@@ -1741,6 +1774,38 @@ def disconnect(edge,
   and adding new dangling edges instead
   """
   return edge.disconnect(edge1_name, edge2_name)
+
+
+def _merge_axis_names(
+    node1: BaseNode, 
+    node2: BaseNode, 
+    axes1: List[Text], 
+    axes2: List[Text]) -> None:
+  """
+  Merge node1 and node2 names into a new list of names,
+  excluding the axes on which the nodes will be contracted.
+
+  Args:
+    node1: The first node.
+    node2: The second node.
+    axes1: The numeric axes of the first node that are involved in the 
+      contraction
+    axes2: The numeric axes of the second node that are involved in the 
+      contraction
+
+  Returns:
+    A the merged list of axis names excluding the contracted axes
+  """
+  merged_axis_names = []
+  if node1 and axes1:
+    for i, axis in enumerate(node1.axis_names):
+      if i not in axes1:
+        merged_axis_names.append(axis)
+  if node2 and axes2:
+    for i, axis in enumerate(node2.axis_names):
+      if i not in axes2:
+        merged_axis_names.append(axis)
+  return merged_axis_names
 
 
 def contract_between(
@@ -1843,6 +1908,15 @@ def contract_between(
     new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
     new_node = Node(
         tensor=new_tensor, name=name, backend=backend)
+    # Merge and update axis names if nodes use non-generic names
+    if (not axis_names and 
+        (node1.has_nongeneric_axis_names() or 
+         node2.has_nongeneric_axis_names()) and
+        backend.name in ['tensorflow', 'jax', 'numpy', 
+                         'pytorch']):
+      new_node._unsafe_add_axis_names(
+          _merge_axis_names(node1, node2, axes1, axes2))
+
     # node1 and node2 get new edges in _remove_edges
     _remove_edges(shared_edges, node1, node2, new_node)
 
@@ -1926,6 +2000,9 @@ def outer_product(node1: BaseNode,
   new_node = Node(
       tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
   additional_axes = len(node1.tensor.shape)
+  if not axis_names and \
+      (node1.has_nongeneric_axis_names() or node2.has_nongeneric_axis_names()):
+    new_node._unsafe_add_axis_names(node1_axis_names + node2_axis_names)
 
   for i, edge in enumerate(node1.edges):
     edge.update_axis(i, node1, i, new_node)
