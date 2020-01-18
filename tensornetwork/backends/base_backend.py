@@ -135,8 +135,8 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented rq_decomposition.".format(self.name))
 
-  def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
-    """Concatenate a sequence of tensors together about the given axis,
+  def shape_concat(self, values: Sequence[Tensor]) -> Tensor:
+    """Concatenate a sequence of tensors together about last axis,
     intended only for use in shape calculations"""
     raise NotImplementedError("Backend '{}' has not implemented shape_concat.".format(
         self.name))

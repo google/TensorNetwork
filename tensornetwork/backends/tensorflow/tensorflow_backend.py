@@ -64,8 +64,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        split_axis: int) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
-  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
-    return self.tf.concat(values, axis)
+  def shape_concat(self, values: Tensor) -> Tensor:
+    return self.tf.concat(values, -1)
 
   def concat(self, values: Sequence[Tensor], axis: int = 0) -> Tensor:
     return self.tf.stack(values, axis)

@@ -69,8 +69,8 @@ class PyTorchBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
-  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
-    return np.concatenate(values, axis)
+  def shape_concat(self, values: Tensor) -> Tensor:
+    return np.concatenate(values, -1)
 
   def concat(self, values: Tensor, axis: int = 0) -> Tensor:
     return self.torch.stack(values, axis)

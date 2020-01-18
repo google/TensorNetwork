@@ -296,7 +296,7 @@ def split_node(
   # vh will be the same size as sqrt_s and would multiply across that axis
   # instead, which is bad.
   sqrt_s_broadcast_shape = backend.shape_concat(
-      [backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
+      [backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)])
   vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
