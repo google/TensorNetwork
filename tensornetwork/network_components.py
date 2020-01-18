@@ -1171,6 +1171,7 @@ def _flatten_trace_edges(edges: List[Edge],
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
   node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
   new_edge = connect(edge1, edge2, new_edge_name)
+  node.axis_names = [str(n) for n in range(len(node.edges))]
   # pylint: disable=expression-not-assigned
   [edge.disable() for edge in edges]  #disable edges!
   return new_edge
