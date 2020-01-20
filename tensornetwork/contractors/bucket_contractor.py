@@ -25,10 +25,10 @@ def bucket(
   """Contract given nodes exploiting copy tensors.
 
   This is based on the Bucket-Elimination-based algorithm described in
-  `arXiv:quant-ph/1712.05384`_, but avoids explicit construction of the graphical
-  model. Instead, it achieves the efficient contraction of sparse tensors by
-  representing them as subnetworks consisting of lower rank tensors and copy
-  tensors. This function assumes that sparse tensors have already been
+  `arXiv:quant-ph/1712.05384`_, but avoids explicit construction of the 
+  graphical model. Instead, it achieves the efficient contraction of sparse 
+  tensors by representing them as subnetworks consisting of lower rank tensors
+  and copy tensors. This function assumes that sparse tensors have already been
   decomposed this way by the caller.
 
   This contractor is efficient on networks with many copy tensors. Time and
