@@ -1779,8 +1779,8 @@ def disconnect(edge,
 def _merge_axis_names(
     node1: BaseNode, 
     node2: BaseNode, 
-    axes1: List[Text], 
-    axes2: List[Text]) -> None:
+    axes1: List[int], 
+    axes2: List[int]) -> None:
   """
   Merge node1 and node2 names into a new list of names,
   excluding the axes on which the nodes will be contracted.
@@ -2000,8 +2000,8 @@ def outer_product(node1: BaseNode,
   new_node = Node(
       tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
   additional_axes = len(node1.tensor.shape)
-  if not axis_names and \
-      (node1.has_nongeneric_axis_names() or node2.has_nongeneric_axis_names()):
+  if (not axis_names and 
+      (node1.has_nongeneric_axis_names() or node2.has_nongeneric_axis_names())):
     new_node._unsafe_add_axis_names(node1_axis_names + node2_axis_names)
 
   for i, edge in enumerate(node1.edges):
