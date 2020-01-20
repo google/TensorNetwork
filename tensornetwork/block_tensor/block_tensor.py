@@ -30,9 +30,15 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
-def _compute_sparse_lookups(row_charges, row_flows, column_charges,
-                            column_flows):
+def _compute_sparse_lookups(row_charges: Union[BaseCharge, ChargeCollection],
+                            row_flows, column_charges, column_flows):
+  """
+  Compute lookup tables for looking up how dense index positions map 
+  to sparse index positions for the diagonal blocks a symmetric matrix.
+  Args:
+    row_charges:
 
+  """
   column_flows = list(-np.asarray(column_flows))
   fused_column_charges = fuse_charges(column_charges, column_flows)
   fused_row_charges = fuse_charges(row_charges, row_flows)
@@ -479,7 +485,7 @@ def _find_diagonal_dense_blocks(
   fused = unique_row_charges + unique_column_charges
   li, ri = np.divmod(
       np.nonzero(fused == unique_column_charges.zero_charge)[0],
-      len(unique_row_charges))
+      len(unique_column_charges))
   common_charges = unique_row_charges.intersect(unique_column_charges * (-1))
   #print('_find_diagonal_sparse_blocks: unique charges ', time.time() - t1)
   if ((row_strides is None) and
@@ -758,7 +764,7 @@ def find_sparse_positions(
   # unique_target_charges, inds = target_charges.unique(return_index=True)
   # target_charges = target_charges[np.sort(inds)]
   unique_left, left_inverse = left_charges.unique(return_inverse=True)
-  unique_right, right_inverse = right_charges.unique(
+  unique_right, right_inverse, right_dims = right_charges.unique(
       return_inverse=True, return_counts=True)
 
   fused_unique = unique_left + unique_right
@@ -1058,6 +1064,18 @@ class BlockSparseTensor:
                                               len(data.flat)))
 
     self.data = np.asarray(data.flat)  #do not copy data
+
+  def todense(self) -> np.ndarray:
+    """
+    Map the sparse tensor to dense storage.
+    
+    """
+    out = np.asarray(np.zeros(self.dense_shape, dtype=self.dtype).flat)
+
+    charges = self.charges
+    out[np.nonzero(fuse_charges(charges, self.flows) == charges[0].zero_charge)
+        [0]] = self.data
+    return np.reshape(out, self.dense_shape)
 
   @classmethod
   def randn(cls, indices: List[Index],
@@ -1522,6 +1540,9 @@ def tensordot(
   indices = left_indices + right_indices
   if final_order is not None:
     indices = [indices[n] for n in final_order]
+
+  for n, i in enumerate(indices):
+    i.name = 'index_{}'.format(n) if i.name is None else i.name
   index_names = [i.name for i in indices]
   unique = np.unique(index_names)
   #rename indices if they are not unique
