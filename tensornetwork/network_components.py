@@ -68,10 +68,18 @@ class BaseNode(ABC):
     """
 
     self.is_disabled = False
-    self.name = name if name is not None else '__unnamed_node__'
+    if not name:
+      name = '__unnamed_node__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Node name should be str type")
+    self.name = name
     self.backend = backend
     self._shape = shape
     if axis_names is not None:
+      for axis_name in axis_names:
+        if not isinstance(axis_name, str):
+          raise TypeError("axis_names should be str type")
       self._edges = [
           Edge(node1=self, axis1=i, name=edge_name)
           for i, edge_name in enumerate(axis_names)
@@ -124,6 +132,9 @@ class BaseNode(ABC):
       raise ValueError("axis_names is not the same length as the tensor shape."
                        "axis_names length: {}, tensor.shape length: {}".format(
                            len(axis_names), len(self.shape)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self.axis_names = axis_names[:]
 
   def add_edge(self,
@@ -310,6 +321,8 @@ class BaseNode(ABC):
     return {edge for edge in self.edges if edge.is_dangling()}
 
   def set_name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
     self.name = name
 
   def has_nondangling_edge(self) -> bool:
@@ -372,6 +385,16 @@ class BaseNode(ABC):
     self._edges = edges
 
   @property
+  def name(self) -> Text:
+    return self._name
+
+  @name.setter
+  def name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
+    self._name = name
+
+  @property
   def axis_names(self) -> List[Text]:
     return self._axis_names
 
@@ -380,7 +403,11 @@ class BaseNode(ABC):
     if len(axis_names) != len(self.shape):
       raise ValueError("Expected {} names, only got {}.".format(
           len(self.shape), len(axis_names)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
+
 
   @property
   def signature(self) -> Optional[int]:
@@ -806,6 +833,9 @@ class Edge:
     self.is_disabled = False
     if not name:
       name = '__unnamed_edge__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Edge name should be str type")
     self._name = name
     self.node1 = node1
     self._axis1 = axis1
@@ -840,6 +870,8 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting its name is no longer possible')
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self._name = name
 
   @property
@@ -984,6 +1016,8 @@ class Edge:
     return result
 
   def set_name(self, name: Text) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self.name = name
 
   def _save_edge(self, edge_group: h5py.Group) -> None:
