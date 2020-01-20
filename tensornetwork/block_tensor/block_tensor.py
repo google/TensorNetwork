@@ -1562,12 +1562,11 @@ def tensordot(
   num_nonzero_elements = np.sum([len(v[0]) for v in sparse_blocks])
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
-
   for n in range(len(common_charges)):
     c = common_charges.get_item(n)
     permutation1 = tr_data_1[c]
     permutation2 = tr_data_2[c]
-    sparse_block = sparse_blocks[n]
+    sparse_block = sparse_blocks[np.nonzero(cs == c)[0][0]]
     b1 = np.reshape(tensor1.data[permutation1[0]], permutation1[1])
     b2 = np.reshape(tensor2.data[permutation2[0]], permutation2[1])
     res = np.matmul(b1, b2)
