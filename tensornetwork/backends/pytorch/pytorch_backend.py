@@ -128,6 +128,16 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.randn(shape, dtype=dtype)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Any] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.torch.manual_seed(seed)
+    dtype = dtype if dtype is not None else self.torch.float64
+    return self.torch.empty(shape, dtype=dtype).uniform_(*boundaries)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
 

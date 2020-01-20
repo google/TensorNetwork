@@ -37,7 +37,11 @@ pip3 install tensornetwork
 For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
 
-We also have a basic [tutorial colab](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu) for a more "hands-on" example.
+## Tutorials
+
+[Basic API tutorial](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu)
+
+[Tensor Networks inside Neural Networks using Keras](https://colab.research.google.com/drive/1JUh84N5sbfQYk6HWowWCGl0IZ1idQi6z)
 ## Basic Example
 
 Here, we build a simple 2 node contraction.

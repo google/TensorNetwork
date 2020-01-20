@@ -125,23 +125,29 @@ def copy(nodes: Iterable[BaseNode],
       node_dict: A dictionary mapping the nodes to their copies.
       edge_dict: A dictionary mapping the edges to their copies.
   """
-  #TODO: add support for copying CopyTensor
-  if conjugate:
-    node_dict = {
-        node: Node(
+  node_dict = {}
+  for node in nodes:
+    if isinstance(node, CopyNode):
+      node_dict[node] = CopyNode(
+          node.rank,
+          node.dimension,
+          name=node.name,
+          axis_names=node.axis_names,
+          backend=node.backend,
+          dtype=node.dtype)
+    else:
+      if conjugate:
+        node_dict[node] = Node(
             node.backend.conj(node.tensor),
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend) for node in nodes
-    }
-  else:
-    node_dict = {
-        node: Node(
+            backend=node.backend)
+      else:
+        node_dict[node] = Node(
             node.tensor,
             name=node.name,
             axis_names=node.axis_names,
-            backend=node.backend) for node in nodes
-    }
+            backend=node.backend)
   edge_dict = {}
   for edge in get_all_edges(nodes):
     node1 = edge.node1
@@ -184,9 +190,6 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
         the newly broken edges.
       disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
         to the newly broken edges.
-
-  Raises:
-    ValueError: If the node isn't in the network.
   """
   disconnected_edges_by_name = {}
   disconnected_edges_by_axis = {}
@@ -607,7 +610,7 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
   Args:
     inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
-    A list of `BaseNode` objects that can be reached from `node`
+    A set of `BaseNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.

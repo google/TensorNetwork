@@ -626,6 +626,11 @@ class CopyNode(BaseNode):
         backend=backend_obj,
         shape=(dimension,) * rank)
 
+  @property
+  def dtype(self):
+    # Override so we don't construct the dense tensor when asked for the dtype!
+    return self.copy_node_dtype
+
   def get_tensor(self) -> Tensor:
     return self.tensor
 
@@ -1748,6 +1753,10 @@ def contract_between(
 ) -> BaseNode:
   """Contract all of the edges between the two given nodes.
 
+  If `output_edge_order` is not set, the output axes will be ordered as:
+  [...free axes of `node1`..., ...free axes of `node2`...]. Within the axes
+  of each node, the input order is preserved.
+
   Args:
     node1: The first node.
     node2: The second node.
@@ -1759,7 +1768,8 @@ def contract_between(
       contain all edges belonging to, but not shared by `node1` and `node2`.
       The axes of the new node will be permuted (if necessary) to match this
       ordering of Edges.
-    axis_names: An optional list of names for the axis of the new node
+    axis_names: An optional list of names for the axis of the new node in order
+      of the output axes.
   Returns:
     The new node created.
 
@@ -1779,64 +1789,68 @@ def contract_between(
                                          node2.backend.name))
 
   backend = node1.backend
+  shared_edges = get_shared_edges(node1, node2)
   # Trace edges cannot be contracted using tensordot.
   if node1 is node2:
     flat_edge = flatten_edges_between(node1, node2)
     if not flat_edge:
       raise ValueError("No trace edges found on contraction of edges between "
                        "node '{}' and itself.".format(node1))
-    return contract(flat_edge, name)
-
-  shared_edges = get_shared_edges(node1, node2)
-  if not shared_edges:
-    if allow_outer_product:
-      return outer_product(node1, node2, name=name, axis_names=axis_names)
-    raise ValueError("No edges found between nodes '{}' and '{}' "
-                     "and allow_outer_product=False.".format(node1, node2))
-
-  # Collect the axis of each node corresponding to each edge, in order.
-  # This specifies the contraction for tensordot.
-  # NOTE: The ordering of node references in each contraction edge is ignored.
-  axes1 = []
-  axes2 = []
-  for edge in shared_edges:
-    if edge.node1 is node1:
-      axes1.append(edge.axis1)
-      axes2.append(edge.axis2)
-    else:
-      axes1.append(edge.axis2)
-      axes2.append(edge.axis1)
-
-  if output_edge_order:
-    # Determine heuristically if output transposition can be minimized by
-    # flipping the arguments to tensordot.
-    node1_output_axes = []
-    node2_output_axes = []
-    for (i, edge) in enumerate(output_edge_order):
-      if edge in shared_edges:
-        raise ValueError(
-            "Edge '{}' in output_edge_order is shared by the nodes to be "
-            "contracted: '{}' and '{}'.".format(edge, node1, node2))
-      edge_nodes = set(edge.get_nodes())
-      if node1 in edge_nodes:
-        node1_output_axes.append(i)
-      elif node2 in edge_nodes:
-        node2_output_axes.append(i)
+    new_node = contract(flat_edge, name)
+  elif not shared_edges:
+    if not allow_outer_product:
+      raise ValueError("No edges found between nodes '{}' and '{}' "
+                       "and allow_outer_product=False.".format(node1, node2))
+    new_node = outer_product(node1, node2, name=name)
+  else:
+    # Collect the axis of each node corresponding to each edge, in order.
+    # This specifies the contraction for tensordot.
+    # NOTE: The ordering of node references in each contraction edge is ignored.
+    axes1 = []
+    axes2 = []
+    for edge in shared_edges:
+      if edge.node1 is node1:
+        axes1.append(edge.axis1)
+        axes2.append(edge.axis2)
       else:
-        raise ValueError(
-            "Edge '{}' in output_edge_order is not connected to node '{}' or "
-            "node '{}'".format(edge, node1, node2))
-    if np.mean(node1_output_axes) > np.mean(node2_output_axes):
-      node1, node2 = node2, node1
-      axes1, axes2 = axes2, axes1
+        axes1.append(edge.axis2)
+        axes2.append(edge.axis1)
 
-  new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
-  new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
-  # node1 and node2 get new edges in _remove_edges
-  _remove_edges(shared_edges, node1, node2, new_node)
+    if output_edge_order:
+      # Determine heuristically if output transposition can be minimized by
+      # flipping the arguments to tensordot.
+      node1_output_axes = []
+      node2_output_axes = []
+      for (i, edge) in enumerate(output_edge_order):
+        if edge in shared_edges:
+          raise ValueError(
+              "Edge '{}' in output_edge_order is shared by the nodes to be "
+              "contracted: '{}' and '{}'.".format(edge, node1, node2))
+        edge_nodes = set(edge.get_nodes())
+        if node1 in edge_nodes:
+          node1_output_axes.append(i)
+        elif node2 in edge_nodes:
+          node2_output_axes.append(i)
+        else:
+          raise ValueError(
+              "Edge '{}' in output_edge_order is not connected to node '{}' or "
+              "node '{}'".format(edge, node1, node2))
+      if node1_output_axes and node2_output_axes and (
+          np.mean(node1_output_axes) > np.mean(node2_output_axes)):
+        node1, node2 = node2, node1
+        axes1, axes2 = axes2, axes1
+
+    new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
+    new_node = Node(
+        tensor=new_tensor, name=name, backend=backend)
+    # node1 and node2 get new edges in _remove_edges
+    _remove_edges(shared_edges, node1, node2, new_node)
+
   if output_edge_order:
     new_node = new_node.reorder_edges(list(output_edge_order))
+  if axis_names:
+    new_node.add_axis_names(axis_names)
+
   return new_node
 
 

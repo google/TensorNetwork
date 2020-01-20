@@ -132,6 +132,24 @@ class NumPyBackend(base_backend.BaseBackend):
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[numpy.dtype] = None,
+                     seed: Optional[int] = None) -> Tensor:
+
+    if seed:
+      self.np.random.seed(seed)
+    dtype = dtype if dtype is not None else self.np.float64
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
+      return self.np.random.uniform(boundaries[0], boundaries[1], shape).astype(
+          dtype) + 1j * self.np.random.uniform(boundaries[0],
+                                               boundaries[1],
+                                               shape).astype(dtype)
+    return self.np.random.uniform(boundaries[0],
+                                  boundaries[1], shape).astype(dtype)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
 

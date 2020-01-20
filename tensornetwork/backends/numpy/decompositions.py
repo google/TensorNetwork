@@ -33,7 +33,7 @@ def svd_decomposition(
   right_dims = tensor.shape[split_axis:]
 
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
-  u, s, vh = np.linalg.svd(tensor)
+  u, s, vh = np.linalg.svd(tensor, full_matrices=False)
 
   if max_singular_values is None:
     max_singular_values = np.size(s)
