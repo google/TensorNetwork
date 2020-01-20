@@ -238,8 +238,8 @@ def test_random_uniform_boundaries(dtype):
   backend = numpy_backend.NumPyBackend()
   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-  assert((a >= 0).all() and (a <= 1).all() and
-         (b >= lb).all() and (b <= ub).all())
+  assert ((a >= 0).all() and (a <= 1).all() and (b >= lb).all() and
+          (b <= ub).all())
 
 
 def test_random_uniform_behavior():

@@ -62,12 +62,13 @@ class ShellBackend(base_backend.BaseBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
@@ -251,16 +252,16 @@ class ShellBackend(base_backend.BaseBackend):
     raise ValueError(
         '`A` has no attribut shape and no `initial_state` is given.')
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
 
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')

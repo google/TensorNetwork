@@ -22,8 +22,8 @@ string_type = h5py.special_dtype(vlen=str)
 
 
 def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
-  """
-  Save an iterable of nodes into hdf5 format.
+  """Save an iterable of nodes into hdf5 format.
+
   Args:
     nodes: An iterable of connected nodes. All nodes have to connect within
       `nodes`.
@@ -84,8 +84,7 @@ def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
 
 
 def load_nodes(path: str) -> List[BaseNode]:
-  """
-  Load a set of nodes from disk.
+  """Load a set of nodes from disk.
 
   Args:
     path: path to file where network is saved.

@@ -31,8 +31,7 @@ _BACKENDS = {
 
 
 def get_backend(
-    backend: Union[Text, base_backend.BaseBackend]
-    ) -> base_backend.BaseBackend:
+    backend: Union[Text, base_backend.BaseBackend]) -> base_backend.BaseBackend:
   if isinstance(backend, base_backend.BaseBackend):
     return backend
   if backend not in _BACKENDS:

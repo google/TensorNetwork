@@ -313,8 +313,7 @@ def test_complicated_edge_reordering(backend):
 
 def test_edge_reorder_axis_names(backend):
   a = tn.Node(
-      np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], 
-      backend=backend)
+      np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], backend=backend)
   edge_a = a["a"]
   edge_b = a["b"]
   edge_c = a["c"]
@@ -326,8 +325,7 @@ def test_edge_reorder_axis_names(backend):
 
 def test_add_axis_names(backend):
   a = tn.Node(
-      np.eye(2), name="A", axis_names=["ignore1", "ignore2"], 
-      backend=backend)
+      np.eye(2), name="A", axis_names=["ignore1", "ignore2"], backend=backend)
   a.add_axis_names(["a", "b"])
   assert a.axis_names == ["a", "b"]
 
@@ -441,8 +439,7 @@ def test_contract_between_output_order(backend):
     d = tn.contract_between(
         a, b, name="New Node", output_edge_order=[a[2], b[2], c[0]])
   tn.check_correct({a, b, c}, check_connections=False)
-  d = tn.contract_between(
-      a, b, name="New Node", output_edge_order=[b[2], a[2]])
+  d = tn.contract_between(a, b, name="New Node", output_edge_order=[b[2], a[2]])
   tn.check_correct({c, d}, check_connections=False)
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
@@ -510,6 +507,7 @@ def test_set_default(backend):
   assert tn.config.default_backend == backend
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
+
 
 def test_copy_tensor(backend):
   a = tn.Node(np.array([1, 2, 3], dtype=np.float64), backend=backend)
@@ -582,7 +580,8 @@ def test_bad_backend():
 
 def test_remove_node(backend):
   a = tn.Node(
-      np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"], 
+      np.ones((2, 2, 2)),
+      axis_names=["test", "names", "ignore"],
       backend=backend)
   b = tn.Node(np.ones((2, 2)), backend=backend)
   c = tn.Node(np.ones((2, 2)), backend=backend)
@@ -643,6 +642,7 @@ def test_remove_after_flatten(backend):
 def test_custom_backend():
   # pylint: disable=abstract-method
   class StringBackend(tn.BaseBackend):
+
     def __init__(self):
       super().__init__()
       self.name = "string_backend"

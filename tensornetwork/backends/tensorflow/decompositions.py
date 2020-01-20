@@ -18,12 +18,13 @@ from typing import Optional, Tuple, Any
 Tensor = Any
 
 
-def svd_decomposition(tf: Any,
-                      tensor: Tensor,
-                      split_axis: int,
-                      max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None
-                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+def svd_decomposition(
+    tf: Any,
+    tensor: Tensor,
+    split_axis: int,
+    max_singular_values: Optional[int] = None,
+    max_truncation_error: Optional[float] = None
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective
@@ -123,12 +124,12 @@ def qr_decomposition(
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, 
-  with an effective left (row) index resulting from combining the 
-  axes `tensor.shape[:split_axis]` and an effective right (column) 
+  The QR decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the
+  axes `tensor.shape[:split_axis]` and an effective right (column)
   index resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
   then `q` would have shape (2, 3, 6), and `r` would
   have shape (6, 4, 5).
 
@@ -168,12 +169,12 @@ def rq_decomposition(
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, 
-  with an effective left (row) index resulting from combining the axes 
-  `tensor.shape[:split_axis]` and an effective right (column) index 
+  The QR decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the axes
+  `tensor.shape[:split_axis]` and an effective right (column) index
   resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
   then `r` would have shape (2, 3, 6), and `q` would
   have shape (6, 4, 5).
 

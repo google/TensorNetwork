@@ -29,16 +29,15 @@ Tensor = Any
 
 
 class InfiniteMPS(BaseMPS):
-  """
-  An MPS class for infinite systems. 
+  """An MPS class for infinite systems.
 
   MPS tensors are stored as a list of `Node` objects in the `InfiniteMPS.nodes`
   attribute.
-  `InfiniteMPS` has a central site, also called orthogonality center. 
-  The position of this central site is stored in `InfiniteMPS.center_position`, 
-  and it can be be shifted using the `InfiniteMPS.position` method. 
+  `InfiniteMPS` has a central site, also called orthogonality center.
+  The position of this central site is stored in `InfiniteMPS.center_position`,
+  and it can be be shifted using the `InfiniteMPS.position` method.
   `InfiniteMPS.position` uses QR and RQ methods to shift `center_position`.
-  
+
   `InfiniteMPS` can be initialized either from a `list` of tensors, or
   by calling the classmethod `InfiniteMPS.random`.
   """
@@ -48,15 +47,15 @@ class InfiniteMPS(BaseMPS):
                center_position: Optional[int] = 0,
                connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
                backend: Optional[Text] = None) -> None:
-    """
-    Initialize a InfiniteMPS.
+    """Initialize a InfiniteMPS.
+
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
       connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
         `connector_matrix`.
-      backend: The name of the backend that should be used to perform 
+      backend: The name of the backend that should be used to perform
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
@@ -73,9 +72,8 @@ class InfiniteMPS(BaseMPS):
              D: List[int],
              dtype: Type[np.number],
              backend: Optional[Text] = None):
-    """
-    Initialize a random `InfiniteMPS`. The resulting state
-    is normalized. Its center-position is at 0.
+    """Initialize a random `InfiniteMPS`. The resulting state is normalized.
+    Its center-position is at 0.
 
     Args:
       d: A list of physical dimensions.
@@ -109,18 +107,17 @@ class InfiniteMPS(BaseMPS):
       matrix = self.apply_transfer_operator(site, direction, matrix)
     return matrix
 
-  def transfer_matrix_eigs(
-      self,
-      direction: Union[Text, int],
-      initial_state: Optional[Union[BaseNode, Tensor]] = None,
-      precision: Optional[float] = 1E-10,
-      num_krylov_vecs: Optional[int] = 30,
-      maxiter: Optional[int] = None):
-    """
-    Compute the dominant eigenvector of the MPS transfer matrix.
-    
+  def transfer_matrix_eigs(self,
+                           direction: Union[Text, int],
+                           initial_state: Optional[Union[BaseNode,
+                                                         Tensor]] = None,
+                           precision: Optional[float] = 1E-10,
+                           num_krylov_vecs: Optional[int] = 30,
+                           maxiter: Optional[int] = None):
+    """Compute the dominant eigenvector of the MPS transfer matrix.
+
     Ars:
-      direction: 
+      direction:
         * If `'1','l' or 'left'`: return the left dominant eigenvalue
           and eigenvector
         * If `'-1','r' or 'right'`: return the right dominant eigenvalue
@@ -177,18 +174,17 @@ class InfiniteMPS(BaseMPS):
     raise NotImplementedError()
 
   # pylint: disable=arguments-differ
-  def canonicalize(
-      self,
-      left_initial_state: Optional[Union[BaseNode, Tensor]] = None,
-      right_initial_state: Optional[Union[BaseNode, Tensor]] = None,
-      precision: Optional[float] = 1E-10,
-      truncation_threshold: Optional[float] = 1E-15,
-      D: Optional[int] = None,
-      num_krylov_vecs: Optional[int] = 50,
-      maxiter: Optional[int] = 1000,
-      pseudo_inverse_cutoff: Optional[float] = None):
-    """
-    Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
+  def canonicalize(self,
+                   left_initial_state: Optional[Union[BaseNode, Tensor]] = None,
+                   right_initial_state: Optional[Union[BaseNode,
+                                                       Tensor]] = None,
+                   precision: Optional[float] = 1E-10,
+                   truncation_threshold: Optional[float] = 1E-15,
+                   D: Optional[int] = None,
+                   num_krylov_vecs: Optional[int] = 50,
+                   maxiter: Optional[int] = 1000,
+                   pseudo_inverse_cutoff: Optional[float] = None):
+    """Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
 
     Args:
       left_initial_state: An initial guess for the left eigenvector of
@@ -197,14 +193,14 @@ class InfiniteMPS(BaseMPS):
         the unit-cell transfer matrix
       precision: The desired precision of the dominant eigenvalues (passed
         to InfiniteMPS.transfer_matrix_eigs)
-      truncation_threshold: Truncation threshold for Schmidt-values at the 
+      truncation_threshold: Truncation threshold for Schmidt-values at the
         boundaries of the mps.
-      D: The maximum number of Schmidt values to be kept at the boundaries 
+      D: The maximum number of Schmidt values to be kept at the boundaries
         of the mps.
       num_krylov_vecs: Number of Krylov vectors to diagonalize transfer_matrix
       maxiter: Maximum number of iterations in `eigs`
       pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose pseudo-inverse
-        of a matrix. Given the SVD of a matrix :math:`M=U S V`, the inverse is 
+        of a matrix. Given the SVD of a matrix :math:`M=U S V`, the inverse is
         is computed as :math:`V^* S^{-1}_+ U^*`, where :math:`S^{-1}_+` equals
         `S^{-1}` for all values in `S` which are larger than `pseudo_inverse_cutoff`,
          and is 0 for all others.

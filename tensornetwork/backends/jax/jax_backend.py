@@ -89,12 +89,18 @@ class JaxBackend(numpy_backend.NumPyBackend):
 
       key_2 = self.jax.random.PRNGKey(seed + 1)
 
-      real_part = self.jax.random.uniform(key, shape, dtype=real_dtype,
-                                          minval=boundaries[0],
-                                          maxval=boundaries[1])
-      complex_part = self.jax.random.uniform(key_2, shape, dtype=real_dtype,
-                                             minval=boundaries[0],
-                                             maxval=boundaries[1])
+      real_part = self.jax.random.uniform(
+          key,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
+      complex_part = self.jax.random.uniform(
+          key_2,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
       unit = (
           np.complex64(1j)
           if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
@@ -105,8 +111,8 @@ class JaxBackend(numpy_backend.NumPyBackend):
     if np.dtype(dtype) is np.dtype(self.np.complex64):
       return cmplx_random_uniform(dtype, self.np.float32)
 
-    return self.jax.random.uniform(key, shape, minval=boundaries[0],
-                                   maxval=boundaries[1]).astype(dtype)
+    return self.jax.random.uniform(
+        key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
   def eigs(self,
            A: Callable,

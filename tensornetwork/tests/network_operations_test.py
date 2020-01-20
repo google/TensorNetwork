@@ -316,6 +316,7 @@ def test_reduced_density_nondangling(backend):
   with pytest.raises(ValueError, match=err_msg):
     tn.reduced_density([a[0], b[1], c[1]])
 
+
 def test_reduced_density_contraction(backend):
   if backend == "pytorch":
     pytest.skip("pytorch doesn't support complex numbers")

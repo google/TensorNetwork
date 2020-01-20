@@ -213,8 +213,8 @@ def test_random_uniform_boundaries(dtype):
   backend = pytorch_backend.PyTorchBackend()
   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-  assert(torch.ge(a, 0).byte().all() and torch.le(a, 1).byte().all() and
-         torch.ge(b, lb).byte().all() and torch.le(b, ub).byte().all())
+  assert (torch.ge(a, 0).byte().all() and torch.le(a, 1).byte().all() and
+          torch.ge(b, lb).byte().all() and torch.le(b, ub).byte().all())
 
 
 def test_random_uniform_behavior():

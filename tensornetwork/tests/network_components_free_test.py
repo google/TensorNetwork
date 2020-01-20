@@ -873,6 +873,7 @@ def test_add_to_node_collection_list():
 
   assert container == [a, b]
 
+
 def test_add_to_node_collection_set():
   container = set()
   with NodeCollection(container):
@@ -880,6 +881,7 @@ def test_add_to_node_collection_set():
     b = Node(np.eye(3))
 
   assert container == {a, b}
+
 
 def test_copy_node_add_to_node_collection():
   container = set()
@@ -896,6 +898,7 @@ def test_copy_node_add_to_node_collection():
         axis_names=[str(n) for n in range(2)])
   assert container == {a, b}
 
+
 def test_add_to_node_collection_nested():
   container1 = set()
   container2 = set()
@@ -906,6 +909,7 @@ def test_add_to_node_collection_nested():
 
   assert container1 == set()
   assert container2 == {a, b}
+
 
 def test_repr_for_Nodes_and_Edges(double_node_edge):
   node1 = repr(double_node_edge.node1)

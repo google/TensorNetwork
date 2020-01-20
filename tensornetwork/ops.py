@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 class _DefaultNodeCollectionStack:
   """A stack to keep track of contexts that were entered."""
 

@@ -45,12 +45,13 @@ class PyTorchBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(self.torch, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
@@ -103,7 +104,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, N: int, dtype: Optional[Any] = None,
+  def eye(self,
+          N: int,
+          dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     if not M:
@@ -114,7 +117,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.zeros(shape, dtype=dtype)
@@ -156,16 +160,16 @@ class PyTorchBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.

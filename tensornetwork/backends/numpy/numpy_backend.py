@@ -37,12 +37,13 @@ class NumPyBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(self.np, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error)
@@ -102,18 +103,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[numpy.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.zeros(shape, dtype=dtype)
@@ -143,12 +148,12 @@ class NumPyBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.np.float64
     if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
         (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
-      return self.np.random.uniform(boundaries[0], boundaries[1], shape).astype(
-          dtype) + 1j * self.np.random.uniform(boundaries[0],
-                                               boundaries[1],
-                                               shape).astype(dtype)
-    return self.np.random.uniform(boundaries[0],
-                                  boundaries[1], shape).astype(dtype)
+      return self.np.random.uniform(
+          boundaries[0], boundaries[1],
+          shape).astype(dtype) + 1j * self.np.random.uniform(
+              boundaries[0], boundaries[1], shape).astype(dtype)
+    return self.np.random.uniform(boundaries[0], boundaries[1],
+                                  shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
@@ -165,19 +170,17 @@ class NumPyBackend(base_backend.BaseBackend):
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None,
            dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
-    """
-    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a 
-    scipy.sparse.linalg.LinearOperator object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute 
-    `shape` so that a suitable initial state can be randomly generated.
-    This is a wrapper for scipy.sparse.linalg.eigs which only supports 
-    a subset of the arguments of scipy.sparse.linalg.eigs.
+    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs of a
+    linear operator `A`. `A` can be either a scipy.sparse.linalg.LinearOperator
+    object or a regular callable. If no `initial_state` is provided then `A`
+    has to have an attribute `shape` so that a suitable initial state can be
+    randomly generated. This is a wrapper for scipy.sparse.linalg.eigs which
+    only supports a subset of the arguments of scipy.sparse.linalg.eigs.
 
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -242,26 +245,25 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
-    """
-    Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. If no `initial_state` is provided
-    then `A` has to have an attribute `shape` so that a suitable initial
-    state can be randomly generated.
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    """Lanczos method for finding the lowest eigenvector-eigenvalue pairs of a
+    linear operator `A`. If no `initial_state` is provided then `A` has to have
+    an attribute `shape` so that a suitable initial state can be randomly
+    generated.
 
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -271,13 +273,13 @@ class NumPyBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
         to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)

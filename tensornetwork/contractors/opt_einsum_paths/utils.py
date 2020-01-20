@@ -17,16 +17,18 @@ from tensornetwork.network_operations import get_all_edges, get_subgraph_danglin
 from tensornetwork.network_components import BaseNode, Edge
 from typing import Any, Callable, Dict, List, Set, Tuple, Iterable
 # `opt_einsum` algorithm method typing
-Algorithm = Callable[[List[Set[Edge]], Set[Edge], Dict[Edge, Any]], List[
-    Tuple[int, int]]]
+Algorithm = Callable[[List[Set[Edge]], Set[Edge], Dict[Edge, Any]],
+                     List[Tuple[int, int]]]
+
 
 def multi_remove(elems: List[Any], indices: List[int]) -> List[Any]:
   """Remove multiple indicies in a list at once."""
   return [i for j, i in enumerate(elems) if j not in indices]
 
 
-def _get_path_nodes(nodes: Iterable[BaseNode], algorithm: Algorithm
-                   ) -> Tuple[List[Tuple[int, int]], List[BaseNode]]:
+def _get_path_nodes(
+    nodes: Iterable[BaseNode],
+    algorithm: Algorithm) -> Tuple[List[Tuple[int, int]], List[BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:
@@ -45,11 +47,11 @@ def _get_path_nodes(nodes: Iterable[BaseNode], algorithm: Algorithm
   return algorithm(input_sets, output_set, size_dict), sorted_nodes
 
 
-
 def get_path(
     nodes: Iterable[BaseNode],
     algorithm: Algorithm) -> Tuple[List[Tuple[int, int]], List[BaseNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
+
   Args:
     nodes: an iterable of `BaseNode` objects to contract.
     algorithm: `opt_einsum` method to use for calculating the contraction path.

@@ -1,4 +1,4 @@
-Tutorial
+TensorNetwork Quickstart
 ========
 To get started, let's first install the TensorNetwork library.
 
