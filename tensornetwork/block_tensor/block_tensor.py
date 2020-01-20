@@ -303,7 +303,7 @@ def compute_num_nonzero(charges: List[np.ndarray],
     raise ValueError(
         "given leg-charges `charges` and flows `flows` are incompatible "
         "with a symmetric tensor")
-  return accumulated_degeneracies[res][0]
+  return np.squeeze(accumulated_degeneracies[res][0])
 
 
 def _find_diagonal_sparse_blocks(
@@ -417,7 +417,7 @@ def _find_diagonal_sparse_blocks(
       blocks.append([inds, (len(rlocs), cdegs)])
     else:
       blocks.append(np.reshape(data[inds], (len(rlocs), cdegs)))
-  return common_charges, blocks, start_positions, row_locations, column_degeneracies
+  return common_charges, blocks  #, start_positions, row_locations, column_degeneracies
 
 
 def _find_diagonal_dense_blocks(
@@ -1146,6 +1146,7 @@ class BlockSparseTensor:
     flows = [i.flow for i in indices]
 
     num_non_zero_elements = compute_num_nonzero(charges, flows)
+
     dtype = dtype if dtype is not None else np.float64
 
     def init_random():
@@ -1220,16 +1221,19 @@ class BlockSparseTensor:
     flat_charges, flat_flows, _, flat_order = flatten_meta_data(
         self.indices, order)
 
-    cs, sparse_blocks, _, _, _ = _find_diagonal_sparse_blocks(
+    cs, sparse_blocks = _find_diagonal_sparse_blocks(
         [], [flat_charges[n] for n in flat_order[0:tr_partition]],
         [flat_charges[n] for n in flat_order[tr_partition:]],
         [flat_flows[n] for n in flat_order[0:tr_partition]],
         [flat_flows[n] for n in flat_order[tr_partition:]],
         return_data=False)
+
+    data = np.empty(len(self.data), dtype=self.dtype)
     for n in range(len(sparse_blocks)):
       sparse_block = sparse_blocks[n]
-      self.data[sparse_block[0]] = self.data[tr_data[cs.get_item(n)][0]]
-
+      data[sparse_block[0]] = self.data[tr_data[cs.get_item(n)][0]]
+    self.indices = [self.indices[o] for o in order]
+    self.data = data
     return self
 
   def reset_shape(self) -> None:
@@ -1554,7 +1558,8 @@ def tensordot(
   #Note that empty is not a viable choice here.
   #ts = []
   #t1 = time.time()
-  cs, sparse_blocks, _, _, _ = _find_diagonal_sparse_blocks(
+  #Note: `cs` may contain charges that are not present in `common_charges`
+  cs, sparse_blocks = _find_diagonal_sparse_blocks(
       [], [i.charges for i in left_indices], [i.charges for i in right_indices],
       [i.flow for i in left_indices], [i.flow for i in right_indices],
       return_data=False)
