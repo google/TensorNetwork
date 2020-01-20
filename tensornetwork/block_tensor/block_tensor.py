@@ -63,8 +63,8 @@ def _compute_sparse_lookups(row_charges, row_flows, column_charges,
     column_lookup[col_ind_sort[col_start_positions[
         comm_col[n]]:col_start_positions[comm_col[n] + 1]]] = np.arange(
             col_charge_degeneracies[comm_col[n]])
-    row_start_positions[comm_row[n]]
-    row_start_positions[comm_row[n] + 1]
+    # row_start_positions[comm_row[n]]
+    # row_start_positions[comm_row[n] + 1]
     row_lookup[
         row_ind_sort[row_start_positions[comm_row[n]]:row_start_positions[
             comm_row[n] + 1]]] = col_charge_degeneracies[comm_col[n]]
@@ -481,10 +481,6 @@ def _find_diagonal_dense_blocks(
       np.nonzero(fused == unique_column_charges.zero_charge)[0],
       len(unique_row_charges))
   common_charges = unique_row_charges.intersect(unique_column_charges * (-1))
-  # print(unique_row_charges.charges[li])
-  # print(unique_column_charges.charges[ri])
-  # print(common_charges.charges)
-  # return
   #print('_find_diagonal_sparse_blocks: unique charges ', time.time() - t1)
   if ((row_strides is None) and
       (column_strides is not None)) or ((row_strides is not None) and
@@ -508,35 +504,20 @@ def _find_diagonal_dense_blocks(
         target_charges=unique_row_charges[li])
     for v in row_locations.values():
       v *= column_dim
-    # row_locations = {
-    #     common_charges.get_item(n): column_dim * find_dense_positions(
-    #         charges=row_charges,
-    #         flows=row_flows,
-    #         target_charge=common_charges[n])
-    #     for n in range(len(common_charges))
-    # }
   if column_strides is not None:
     column_locations = find_dense_positions(
         charges=column_charges,
         flows=column_flows,
         target_charges=unique_column_charges[ri],
         strides=column_strides,
-        store_dual=False)
+        store_dual=True)
 
   else:
     column_locations = find_dense_positions(
         charges=column_charges,
         flows=column_flows,
         target_charges=unique_column_charges[ri],
-        store_dual=False)
-
-    # column_locations = {
-    #     common_charges.get_item(n): find_dense_positions(
-    #         charges=column_charges,
-    #         flows=column_flows,
-    #         target_charge=common_charges[n] * (-1))
-    #     for n in range(len(common_charges))
-    # }
+        store_dual=True)
   blocks = []
   for c in unique_row_charges[li]:
     #numpy broadcasting is substantially faster than kron!
@@ -545,446 +526,6 @@ def _find_diagonal_dense_blocks(
     inds = np.reshape(rlocs + clocs, rlocs.shape[0] * clocs.shape[1])
     blocks.append([inds, (rlocs.shape[0], clocs.shape[1])])
   return unique_row_charges[li], blocks
-
-
-# def find_dense_positions(charges: List[Union[BaseCharge, ChargeCollection]],
-#                          flows: List[Union[int, bool]],
-#                          target_charge: Union[BaseCharge, ChargeCollection],
-#                          order: Optional[np.ndarray] = None,
-#                          return_sorted: Optional[bool] = True) -> np.ndarray:
-#   """
-#   Find the dense locations of elements (i.e. the index-values within the DENSE tensor)
-#   in the vector of `fused_charges` resulting from fusing all elements of `charges`
-#   that have a value of `target_charge`.
-#   For example, given
-#   ```
-#   charges = [[-2,0,1,0,0],[-1,0,2,1]]
-#   target_charge = 0
-#   fused_charges = fuse_charges(charges,[1,1])
-#   print(fused_charges) # [-3,-2,0,-1,-1,0,2,1,0,1,3,2,-1,0,2,1,-1,0,2,1]
-#   ```
-#   we want to find the all different blocks
-#   that fuse to `target_charge=0`, i.e. where `fused_charges==0`,
-#   together with their corresponding index-values of the data in the dense array.
-#   `find_dense_blocks` returns an np.ndarray containing the indices-positions of
-#   these elements.
-#   For the above example, we get:
-#   * for `charge[0]` = -2 and `charge[1]` = 2 we get an array [2]. Thus, `fused_charges[2]`
-#     was obtained from fusing -2 and 2.
-#   * for `charge[0]` = 0 and `charge[1]` = 0 we get an array [5, 13, 17]. Thus,
-#     `fused_charges[5,13,17]` were obtained from fusing 0 and 0.
-#   * for `charge[0]` = 1 and `charge[1]` = -1 we get an array [8]. Thus, `fused_charges[8]`
-#     was obtained from fusing 1 and -1.
-#   Args:
-#     charges: A list of BaseCharge or ChargeCollection.
-#     flows: The flow directions of the `charges`.
-#     target_charge: The target charge.
-#     order: An optional order for the elements in `charges`.
-#       Useful for finding dense positions in a permuted tensor
-#       with respect to the unpermuted order.
-#   Returns:
-#     np.ndarray: The index-positions within the dense data array
-#       of the elements fusing to `target_charge`.
-#   """
-#   if order is not None:
-#     if len(order) != len(charges):
-#       raise ValueError("len(order) ={} != len(charges) = {}".format(
-#           len(order), len(charges)))
-
-#     if not np.all(np.sort(order) == np.arange(len(order))):
-#       raise ValueError("order = {} is not a valid permutation of {}".format(
-#           order, np.arange(len(order))))
-
-#   _check_flows(flows)
-#   if len(charges) == 1:
-#     fused_charges = charges[0] * flows[0]
-#     return np.nonzero(fused_charges == target_charge)[0]
-
-#   if order is not None:
-#     left_charges, right_charges, partition = _find_best_partition(
-#         [charges[n] for n in order], [flows[n] for n in order])
-
-#     dims = [len(c) for c in charges]
-#     strides = _get_strides(
-#         dims)  #np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
-#     stride_arrays = [np.arange(dims[n]) * strides[n] for n in order]
-#     permuted_row_inds = fuse_ndarrays(stride_arrays[0:partition])
-#     permuted_column_inds = fuse_ndarrays(stride_arrays[partition:])
-#   else:
-#     left_charges, right_charges, partition = _find_best_partition(
-#         charges, flows)
-#   t1 = time.time()
-#   unique_left = left_charges.unique()
-#   unique_right = right_charges.unique()
-
-#   tmp_left_charges = (target_charge + (unique_right * (-1)))
-#   relevant_left_charges = unique_left.intersect(tmp_left_charges)
-#   right_locations = {}
-#   len_right_charges = len(right_charges)
-#   dense_inds = []
-#   left_inds = []
-#   index_table = []
-
-#   for n in range(len(relevant_left_charges)):
-#     c = relevant_left_charges[n]
-#     left_ind = np.nonzero(left_charges == c)[0]
-#     if return_sorted:
-#       index_table.append(
-#           np.stack([
-#               np.arange(len(left_ind)),
-#               np.full(len(left_ind), n, dtype=np.int64)
-#           ],
-#                    axis=1))
-#     left_inds.append(left_ind)
-#     right_charge = (target_charge + (c * (-1)))
-#     if order is None:
-#       dim_array = np.expand_dims(len_right_charges * left_ind, 1)
-#       right_inds = np.nonzero(right_charges == right_charge)[0]
-#       mat = np.tile(right_inds, (len(dim_array), 1))
-
-#     else:
-#       dim_array = np.expand_dims(permuted_row_inds[left_ind], 1)
-#       right_inds = permuted_column_inds[np.nonzero(
-#           right_charges == right_charge)[0]]
-#       mat = np.tile(right_inds, (len(dim_array), 1))
-#     if return_sorted:
-#       dense_inds.append(mat + dim_array)
-#     else:
-#       dense_inds.append(np.reshape(mat + dim_array, np.prod(mat.shape)))
-#   if return_sorted:
-#     if len(index_table) > 0:
-#       it = np.concatenate(index_table)
-#       ind_sort = np.argsort(np.concatenate(left_inds))
-#       table = it[ind_sort, :]
-#       return np.concatenate([
-#           dense_inds[table[n, 1]][table[n, 0], :] for n in range(table.shape[0])
-#       ])
-#     return np.array([])
-#   return np.concatenate(dense_inds)
-
-# def find_dense_positions_new(
-#     charges: List[Union[BaseCharge, ChargeCollection]],
-#     flows: List[Union[int, bool]],
-#     target_charges: Union[BaseCharge, ChargeCollection],
-#     order: Optional[np.ndarray] = None,
-#     return_sorted: Optional[bool] = True) -> np.ndarray:
-#   """
-#   Find the dense locations of elements (i.e. the index-values within the DENSE tensor)
-#   in the vector of `fused_charges` resulting from fusing all elements of `charges`
-#   that have a value of `target_charge`.
-#   For example, given
-#   ```
-#   charges = [[-2,0,1,0,0],[-1,0,2,1]]
-#   target_charge = 0
-#   fused_charges = fuse_charges(charges,[1,1])
-#   print(fused_charges) # [-3,-2,0,-1,-1,0,2,1,0,1,3,2,-1,0,2,1,-1,0,2,1]
-#   ```
-#   we want to find the all different blocks
-#   that fuse to `target_charge=0`, i.e. where `fused_charges==0`,
-#   together with their corresponding index-values of the data in the dense array.
-#   `find_dense_blocks` returns an np.ndarray containing the indices-positions of
-#   these elements.
-#   For the above example, we get:
-#   * for `charge[0]` = -2 and `charge[1]` = 2 we get an array [2]. Thus, `fused_charges[2]`
-#     was obtained from fusing -2 and 2.
-#   * for `charge[0]` = 0 and `charge[1]` = 0 we get an array [5, 13, 17]. Thus,
-#     `fused_charges[5,13,17]` were obtained from fusing 0 and 0.
-#   * for `charge[0]` = 1 and `charge[1]` = -1 we get an array [8]. Thus, `fused_charges[8]`
-#     was obtained from fusing 1 and -1.
-#   Args:
-#     charges: A list of BaseCharge or ChargeCollection.
-#     flows: The flow directions of the `charges`.
-#     target_charge: The target charge.
-#     order: An optional order for the elements in `charges`.
-#       Useful for finding dense positions in a permuted tensor
-#       with respect to the unpermuted order.
-#   Returns:
-#     np.ndarray: The index-positions within the dense data array
-#       of the elements fusing to `target_charge`.
-#   """
-#   if order is not None:
-#     if len(order) != len(charges):
-#       raise ValueError("len(order) ={} != len(charges) = {}".format(
-#           len(order), len(charges)))
-
-#     if not np.all(np.sort(order) == np.arange(len(order))):
-#       raise ValueError("order = {} is not a valid permutation of {}".format(
-#           order, np.arange(len(order))))
-
-#   _check_flows(flows)
-#   if len(charges) == 1:
-#     fused_charges = charges[0] * flows[0]
-#     return np.nonzero(fused_charges == target_charge)[0]
-
-#   if order is not None:
-#     raise NotImplementedError()
-#   ts = []
-#   t00 = time.time()
-#   left_charges, right_charges, partition = _find_best_partition(charges, flows)
-
-#   target_charges = target_charges.unique()
-#   unique_left, left_inverse = left_charges.unique(return_inverse=True)
-#   unique_right, right_inverse = right_charges.unique(return_inverse=True)
-
-#   fused_unique = unique_left + unique_right
-#   relevant_positions = np.nonzero(fused_unique.isin(target_charges))[0]
-
-#   relevant_unique_left_inds, relevant_unique_right_inds = np.divmod(
-#       relevant_positions, len(unique_right))
-#   left_charge_labels = np.nonzero(
-#       np.expand_dims(left_inverse, 1) == np.expand_dims(
-#           relevant_unique_left_inds, 0))
-
-#   right_charge_labels = np.nonzero(
-#       np.expand_dims(right_inverse, 1) == np.expand_dims(
-#           relevant_unique_right_inds, 0))
-#   # t01 = time.time()
-#   # ts.append(t01 - t00)
-#   #print(ts[-1])
-
-#   dense_left_pos = {}
-
-#   len_right = len(right_charges)
-#   for n, li in enumerate(relevant_unique_left_inds):
-#     dense_left_pos[unique_left.get_item(li)] = left_charge_labels[0][
-#         left_charge_labels[1] == n]
-
-#   dense_right_pos = {}
-#   #for m in range(len(relevant_unique_right_inds)):
-#   for m, ri in enumerate(relevant_unique_right_inds):
-#     #right_charge = unique_right.get_item(relevant_unique_right_inds[m])
-#     dense_right_pos[unique_right.get_item(ri)] = right_charge_labels[0][
-#         right_charge_labels[1] == m]
-#   # t02 = time.time()
-#   # ts.append(t02 - t01)
-#   #print(ts[-1])
-
-#   # print(dense_right_pos[m])
-#   # print(np.nonzero(right_charges == unique_right[m] * (-1))[0])
-#   # print(unique_right[ri].charges)
-#   # print(
-#   #     np.all(dense_right_pos[unique_right.get_item(ri)] == np.nonzero(
-#   #         right_charges == unique_right[ri])[0]))
-
-#   # for n in range(len(relevant_unique_right_inds)):
-#   #   print((unique_left[n] + unique_right[n] * (-1)).charges)
-
-#   #fused_semi_unique = unique_left + right_charges
-#   #relevant_positions = np.nonzero(fused_semi_unique.isin(target_charges))[0]
-#   #left_inds, right_inds = np.divmod(relevant_positions, len(right_charges))
-#   blocks = {}
-
-#   #t1 = time.time()
-#   for n, li in enumerate(relevant_unique_left_inds):
-#     ri = relevant_unique_right_inds[n]
-#     target_charge = unique_left[li] + unique_right[ri]
-#     blocks[target_charge.get_item(0)] = []
-#   # t2 = time.time()
-#   # ts.append(t2 - t1)
-#   #print(ts[-1])
-#   for n, li in enumerate(relevant_unique_left_inds):
-#     ri = relevant_unique_right_inds[n]
-#     target_charge = unique_left[li] + unique_right[ri]
-#     inds = np.asarray(
-#         (np.expand_dims(dense_left_pos[unique_left.get_item(li)], 1) +
-#          np.expand_dims(dense_right_pos[unique_right.get_item(ri)], 0)))
-#     blocks[target_charge.get_item(0)].append(
-#         np.reshape(inds, np.prod(inds.shape)))
-#   # t3 = time.time()
-#   # ts.append(t3 - t2)
-#   #print(ts[-1])
-#   sorted_blocks = {}
-#   for k in blocks.keys():
-#     sorted_blocks[k] = np.sort(np.concatenate(blocks[k]))
-#   #ts.append(time.time() - t3)
-#   #print(ts[-1])
-#   #print('total', np.sum(ts))
-#   return sorted_blocks
-
-#   #####################################################
-#   #####################################################
-#   #####################################################
-#   unique_left = left_charges.unique()
-#   unique_right = right_charges.unique()
-
-#   tmp_left_charges = (target_charge + (unique_right * (-1)))
-#   relevant_left_charges = unique_left.intersect(tmp_left_charges)
-#   right_locations = {}
-#   len_right_charges = len(right_charges)
-#   dense_inds = []
-#   left_inds = []
-#   index_table = []
-
-#   for n in range(len(relevant_left_charges)):
-#     c = relevant_left_charges[n]
-#     left_ind = np.nonzero(left_charges == c)[0]
-#     if return_sorted:
-#       index_table.append(
-#           np.stack([
-#               np.arange(len(left_ind)),
-#               np.full(len(left_ind), n, dtype=np.int64)
-#           ],
-#                    axis=1))
-#     left_inds.append(left_ind)
-#     right_charge = (target_charge + (c * (-1)))
-#     if order is None:
-#       dim_array = np.expand_dims(len_right_charges * left_ind, 1)
-#       right_inds = np.nonzero(right_charges == right_charge)[0]
-#       mat = np.tile(right_inds, (len(dim_array), 1))
-
-#     else:
-#       dim_array = np.expand_dims(permuted_row_inds[left_ind], 1)
-#       right_inds = permuted_column_inds[np.nonzero(
-#           right_charges == right_charge)[0]]
-#       mat = np.tile(right_inds, (len(dim_array), 1))
-#     if return_sorted:
-#       dense_inds.append(mat + dim_array)
-#     else:
-#       dense_inds.append(np.reshape(mat + dim_array, np.prod(mat.shape)))
-#   if return_sorted:
-#     if len(index_table) > 0:
-#       it = np.concatenate(index_table)
-#       ind_sort = np.argsort(np.concatenate(left_inds))
-#       table = it[ind_sort, :]
-#       return np.concatenate([
-#           dense_inds[table[n, 1]][table[n, 0], :] for n in range(table.shape[0])
-#       ])
-#     return np.array([])
-#   return np.concatenate(dense_inds)
-
-# def _find_transposed_dense_positions(
-#     charges: List[Union[BaseCharge, ChargeCollection]],
-#     flows: List[Union[int, bool]],
-#     target_charge: Union[BaseCharge, ChargeCollection],
-#     strides: Optional[np.ndarray] = None) -> np.ndarray:
-
-#   #print('###########################################')
-#   """
-#   Find the dense locations of elements (i.e. the index-values within the DENSE tensor)
-#   in the vector of `fused_charges` resulting from fusing all elements of `charges`
-#   that have a value of `target_charge`.
-#   For example, given
-#   ```
-#   charges = [[-2,0,1,0,0],[-1,0,2,1]]
-#   target_charge = 0
-#   fused_charges = fuse_charges(charges,[1,1])
-#   print(fused_charges) # [-3,-2,0,-1,-1,0,2,1,0,1,3,2,-1,0,2,1,-1,0,2,1]
-#   ```
-#   we want to find the index-positions of charges
-#   that fuse to `target_charge=0`, i.e. where `fused_charges==0`,
-#   within the dense array. As one additional wrinkle, `charges`
-#   is a subset of the permuted charges of a tensor with rank R > len(charges),
-#   and `stride_arrays` are their corresponding range of strides, i.e.
-
-#   ```
-#   R=5
-#   D = [2,3,4,5,6]
-#   tensor_flows = np.random.randint(-1,2,R)
-#   tensor_charges = [np.random.randing(-5,5,D[n]) for n in range(R)]
-#   order = np.arange(R)
-#   np.random.shuffle(order)
-#   tensor_strides = [360, 120,  30,   6,   1]
-
-#   charges = [tensor_charges[order[n]] for n in range(3)]
-#   flows = [tensor_flows[order[n]] for n in range(len(3))]
-#   strides = [tensor_stride[order[n]] for n in range(3)]
-#   _ = _find_transposed_dense_positions(charges, flows, 0, strides)
-
-#   ```
-#   `_find_transposed_dense_blocks` returns an np.ndarray containing the
-#   index-positions of  these elements calculated using `stride_arrays`.
-#   The result only makes sense in conjuction with the complementary
-#   data computed from the complementary
-#   elements in`tensor_charges`,
-#   `tensor_strides` and `tensor_flows`.
-#   This routine is mainly used in `_find_diagonal_dense_blocks`.
-
-#   Args:
-#     charges: A list of BaseCharge or ChargeCollection.
-#     flows: The flow directions of the `charges`.
-#     target_charge: The target charge.
-#     strides: The strides for the `charges` subset.
-#       if `None`, natural stride ordering is assumed.
-
-#   Returns:
-#     np.ndarray: The index-positions within the dense data array
-#       of the elements fusing to `target_charge`.
-#   """
-
-#   _check_flows(flows)
-#   if len(charges) == 1:
-#     fused_charges = charges[0] * flows[0]
-#     inds = np.nonzero(fused_charges == target_charge)[0]
-#     if strides is not None:
-#       permuted_inds = strides[0] * np.arange(len(charges[0]))
-#       return permuted_inds[inds]
-#     return inds
-#   #t1 = time.time()
-#   left_charges, right_charges, partition = _find_best_partition(charges, flows)
-#   #print('in _find_transposed_dense_blocks: find_best_partition:',
-#   #time.time() - t1)
-#   #t1 = time.time()
-#   if strides is not None:
-#     stride_arrays = [
-#         np.arange(len(charges[n])) * strides[n] for n in range(len(charges))
-#     ]
-#     permuted_left_inds = fuse_ndarrays(stride_arrays[0:partition])
-#     permuted_right_inds = fuse_ndarrays(stride_arrays[partition:])
-
-#   #print('in _find_transposed_dense_blocks: fusing ndarrays:', time.time() - t1)
-#   #t1 = time.time()
-#   unique_left = left_charges.unique()
-#   unique_right = right_charges.unique()
-#   #print('in _find_transposed_dense_blocks: finding unique:', time.time() - t1)
-#   #t1 = time.time()
-#   tmp_left_charges = (target_charge + (unique_right * (-1)))
-#   relevant_left_charges = unique_left.intersect(tmp_left_charges)
-#   right_locations = {}
-#   len_right_charges = len(right_charges)
-#   dense_inds = []
-#   left_inds = []
-#   index_table = []
-#   # print('in _find_transposed_dense_blocks: finding relevant charges:',
-#   #       time.time() - t1)
-#   #t1 = time.time()
-#   for n in range(len(relevant_left_charges)):
-#     c = relevant_left_charges[n]
-#     left_ind = np.nonzero(left_charges == c)[0]
-#     index_table.append(
-#         np.stack([
-#             np.arange(len(left_ind)),
-#             np.full(len(left_ind), n, dtype=np.int64)
-#         ],
-#                  axis=1))
-#     left_inds.append(left_ind)
-#     right_charge = (target_charge + (c * (-1)))
-#     if strides is None:
-#       dim_array = np.expand_dims(len_right_charges * left_ind, 1)
-#       right_inds = np.expand_dims(
-#           np.nonzero(right_charges == right_charge)[0], 0)
-
-#     else:
-#       dim_array = np.expand_dims(permuted_left_inds[left_ind], 1)
-#       right_inds = np.expand_dims(
-#           permuted_right_inds[np.nonzero(right_charges == right_charge)[0]], 0)
-#     mat = np.tile(right_inds, (len(dim_array), 1))
-#     dense_inds.append(mat + dim_array)
-#   # print('in _find_transposed_dense_blocks: running nested for loop:',
-#   #       time.time() - t1)
-#   # t1 = time.time()
-
-#   if len(index_table) > 0:
-#     it = np.concatenate(index_table)
-#     ind_sort = np.argsort(np.concatenate(left_inds))
-#     table = it[ind_sort, :]
-#     return np.concatenate([
-#         dense_inds[table[n, 1]][table[n, 0], :] for n in range(table.shape[0])
-#     ])
-#   # print('in _find_transposed_dense_blocks: finding the sorted indices:',
-#   #       time.time() - t1)
-#   # t1 = time.time()
-
-#   return np.array([])
 
 
 def find_dense_positions(charges: List[Union[BaseCharge, ChargeCollection]],
@@ -1054,16 +595,24 @@ def find_dense_positions(charges: List[Union[BaseCharge, ChargeCollection]],
   if len(charges) == 1:
     fused_charges = charges[0] * flows[0]
     inds = np.nonzero(fused_charges == target_charges)
-    for n in range(len(target_charges)):
-      i = inds[0][inds[1] == n]
-      if len(i) == 0:
-        continue
+    if len(target_charges) > 1:
+      for n in range(len(target_charges)):
+        i = inds[0][inds[1] == n]
+        if len(i) == 0:
+          continue
+        if strides is not None:
+          permuted_inds = strides[0] * np.arange(len(charges[0]))
+          out[store_charges.get_item(n)] = permuted_inds[i]
+        else:
+          out[store_charges.get_item(n)] = i
+      return out
+    else:
       if strides is not None:
         permuted_inds = strides[0] * np.arange(len(charges[0]))
-        out[store_charges.get_item(n)] = permuted_inds[i]
+        out[store_charges.get_item(n)] = permuted_inds[inds[0]]
       else:
-        out[store_charges.get_item(n)] = i
-    return out
+        out[store_charges.get_item(n)] = inds[0]
+      return out
 
   left_charges, right_charges, partition = _find_best_partition(charges, flows)
   if strides is not None:
@@ -1073,7 +622,8 @@ def find_dense_positions(charges: List[Union[BaseCharge, ChargeCollection]],
     permuted_left_inds = fuse_ndarrays(stride_arrays[0:partition])
     permuted_right_inds = fuse_ndarrays(stride_arrays[partition:])
 
-  target_charges = target_charges.unique()
+  # unique_target_charges, inds = target_charges.unique(return_index=True)
+  # target_charges = target_charges[np.sort(inds)]
   unique_left, left_inverse = left_charges.unique(return_inverse=True)
   unique_right, right_inverse = right_charges.unique(return_inverse=True)
 
@@ -1205,69 +755,194 @@ def find_sparse_positions(
 
   left_charges, right_charges, partition = _find_best_partition(charges, flows)
 
-  target_charges = target_charges.unique()
-  unique_left = left_charges.unique()
-  unique_right = right_charges.unique()
-  fused = unique_left + unique_right
+  # unique_target_charges, inds = target_charges.unique(return_index=True)
+  # target_charges = target_charges[np.sort(inds)]
+  unique_left, left_inverse = left_charges.unique(return_inverse=True)
+  unique_right, right_inverse = right_charges.unique(
+      return_inverse=True, return_counts=True)
 
-  #compute all unique charges that can add up to
-  #target_charges
-  left_inds, right_inds = [], []
-  for target_charge in target_charges:
-    li, ri = np.divmod(np.nonzero(fused == target_charge)[0], len(unique_right))
-    left_inds.append(li)
-    right_inds.append(ri)
+  fused_unique = unique_left + unique_right
+  unique_inds = np.nonzero(fused_unique == target_charges)
+  relevant_positions = unique_inds[0]
+  tmp_inds_left, tmp_inds_right = np.divmod(relevant_positions,
+                                            len(unique_right))
 
-  #now compute the relevant unique left and right charges
-  unique_left_charges = unique_left[np.unique(np.concatenate(left_inds))]
-  unique_right_charges = unique_right[np.unique(np.concatenate(right_inds))]
+  relevant_unique_left_inds = np.unique(tmp_inds_left)
+  left_lookup = np.empty(np.max(relevant_unique_left_inds) + 1, dtype=np.int64)
+  left_lookup[relevant_unique_left_inds] = np.arange(
+      len(relevant_unique_left_inds))
+  relevant_unique_right_inds = np.unique(tmp_inds_right)
+  right_lookup = np.empty(
+      np.max(relevant_unique_right_inds) + 1, dtype=np.int64)
+  right_lookup[relevant_unique_right_inds] = np.arange(
+      len(relevant_unique_right_inds))
 
-  #only keep those charges that are relevant
-  relevant_left_charges = left_charges[left_charges.isin(unique_left_charges)]
-  relevant_right_charges = right_charges[right_charges.isin(
-      unique_right_charges)]
+  left_charge_labels = np.nonzero(
+      np.expand_dims(left_inverse, 1) == np.expand_dims(
+          relevant_unique_left_inds, 0))
+  relevant_left_inverse = np.arange(len(left_charge_labels[0]))
 
-  unique_right_charges, right_dims = relevant_right_charges.unique(
-      return_counts=True)
-  right_degeneracies = dict(zip(unique_right_charges, right_dims))
+  right_charge_labels = np.expand_dims(right_inverse, 1) == np.expand_dims(
+      relevant_unique_right_inds, 0)
+  right_block_information = {}
+  for n in relevant_unique_left_inds:
+    ri = np.nonzero((unique_left[n] + unique_right).isin(target_charges))[0]
+    tmp_inds = np.nonzero(right_charge_labels[:, right_lookup[ri]])
+    right_block_information[n] = [ri, np.arange(len(tmp_inds[0])), tmp_inds[1]]
+
+  relevant_right_inverse = np.arange(len(right_charge_labels[0]))
+
   #generate a degeneracy vector which for each value r in relevant_right_charges
   #holds the corresponding number of non-zero elements `relevant_right_charges`
   #that can add up to `target_charges`.
-  degeneracy_vector = np.empty(len(relevant_left_charges), dtype=np.int64)
-  right_indices = {}
-
-  for n in range(len(unique_left_charges)):
-    left_charge = unique_left_charges[n]
-    total_charge = left_charge + unique_right_charges
-    total_degeneracy = np.sum(right_dims[total_charge.isin(target_charges)])
-    tmp_relevant_right_charges = relevant_right_charges[
-        relevant_right_charges.isin((target_charges + left_charge * (-1)))]
-
-    for n in range(len(target_charges)):
-      target_charge = target_charges[n]
-      right_indices[(left_charge.get_item(0),
-                     target_charge.get_item(0))] = np.nonzero(
-                         tmp_relevant_right_charges == (
-                             target_charge + left_charge * (-1)))[0]
-
-    degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
-
+  degeneracy_vector = np.empty(len(left_charge_labels[0]), dtype=np.int64)
+  for n in range(len(relevant_unique_left_inds)):
+    degeneracy_vector[relevant_left_inverse[
+        left_charge_labels[1] == n]] = np.sum(right_dims[tmp_inds_right[
+            tmp_inds_left == relevant_unique_left_inds[n]]])
   start_positions = np.cumsum(degeneracy_vector) - degeneracy_vector
-  blocks = {t: [] for t in target_charges}
-  # iterator returns tuple of `int` for ChargeCollection objects
-  # and `int` for Ba seCharge objects (both hashable)
-  for left_charge in unique_left_charges:
-    a = np.expand_dims(start_positions[relevant_left_charges == left_charge], 0)
-    for target_charge in target_charges:
-      ri = right_indices[(left_charge, target_charge)]
-      if len(ri) != 0:
-        b = np.expand_dims(ri, 1)
-        tmp = a + b
-        blocks[target_charge].append(np.reshape(tmp, np.prod(tmp.shape)))
   out = {}
-  for target_charge in target_charges:
-    out[target_charge] = np.concatenate(blocks[target_charge])
+  for n in range(len(target_charges)):
+    block = []
+    if len(unique_inds) > 1:
+      lis, ris = np.divmod(unique_inds[0][unique_inds[1] == n],
+                           len(unique_right))
+    else:
+      lis, ris = np.divmod(unique_inds[0], len(unique_right))
+
+    for m in range(len(lis)):
+      a = np.expand_dims(
+          start_positions[relevant_left_inverse[left_charge_labels[1] ==
+                                                left_lookup[lis[m]]]], 0)
+
+      ri_tmp, arange, tmp_inds = right_block_information[lis[m]]
+      b = np.expand_dims(arange[tmp_inds == np.nonzero(ri_tmp == ris[m])[0]], 1)
+      inds = a + b
+      block.append(np.reshape(inds, np.prod(inds.shape)))
+    out[target_charges.get_item(n)] = np.concatenate(block)
   return out
+
+
+# def find_sparse_positions_2(
+#     charges: List[Union[BaseCharge, ChargeCollection]],
+#     flows: List[Union[int, bool]],
+#     target_charges: Union[BaseCharge, ChargeCollection]) -> Dict:
+#   """
+#   Find the sparse locations of elements (i.e. the index-values within
+#   the SPARSE tensor) in the vector `fused_charges` (resulting from
+#   fusing `left_charges` and `right_charges`)
+#   that have a value of `target_charges`, assuming that all elements
+#   different from `target_charges` are `0`.
+#   For example, given
+#   ```
+#   left_charges = [-2,0,1,0,0]
+#   right_charges = [-1,0,2,1]
+#   target_charges = [0,1]
+#   fused_charges = fuse_charges([left_charges, right_charges],[1,1])
+#   print(fused_charges) # [-3,-2,0,-1,-1,0,2,1,0,1,3,2,-1,0,2,1,-1,0,2,1]
+#   ```                           0       1   2 3 4        5   6    7   8
+#   we want to find the all different blocks
+#   that fuse to `target_charges=[0,1]`, i.e. where `fused_charges==0` or `1`,
+#   together with their corresponding sparse index-values of the data in the sparse array,
+#   assuming that all elements in `fused_charges` different from `target_charges` are 0.
+
+#   `find_sparse_blocks` returns a dict mapping integers `target_charge`
+#   to an array of integers denoting the sparse locations of elements within
+#   `fused_charges`.
+#   For the above example, we get:
+#   * `target_charge=0`: [0,1,3,5,7]
+#   * `target_charge=1`: [2,4,6,8]
+#   Args:
+#     left_charges: An np.ndarray of integer charges.
+#     left_flow: The flow direction of the left charges.
+#     right_charges: An np.ndarray of integer charges.
+#     right_flow: The flow direction of the right charges.
+#     target_charge: The target charge.
+#   Returns:
+#     dict: Mapping integers to np.ndarray of integers.
+#   """
+#   #FIXME: this is probably still not optimal
+
+#   _check_flows(flows)
+#   if len(charges) == 1:
+#     fused_charges = charges[0] * flows[0]
+#     unique_charges = fused_charges.unique()
+#     target_charges = target_charges.unique()
+#     relevant_target_charges = unique_charges.intersect(target_charges)
+#     relevant_fused_charges = fused_charges[fused_charges.isin(
+#         relevant_target_charges)]
+#     return {
+#         c: np.nonzero(relevant_fused_charges == c)[0]
+#         for c in relevant_target_charges
+#     }
+
+#   left_charges, right_charges, partition = _find_best_partition(charges, flows)
+
+#   unique_target_charges, inds = target_charges.unique(return_index=True)
+#   target_charges = target_charges[np.sort(inds)]
+
+#   unique_left = left_charges.unique()
+#   unique_right = right_charges.unique()
+#   fused = unique_left + unique_right
+
+#   #compute all unique charges that can add up to
+#   #target_charges
+#   left_inds, right_inds = [], []
+#   for target_charge in target_charges:
+#     li, ri = np.divmod(np.nonzero(fused == target_charge)[0], len(unique_right))
+#     left_inds.append(li)
+#     right_inds.append(ri)
+
+#   #now compute the relevant unique left and right charges
+#   unique_left_charges = unique_left[np.unique(np.concatenate(left_inds))]
+#   unique_right_charges = unique_right[np.unique(np.concatenate(right_inds))]
+
+#   #only keep those charges that are relevant
+#   relevant_left_charges = left_charges[left_charges.isin(unique_left_charges)]
+#   relevant_right_charges = right_charges[right_charges.isin(
+#       unique_right_charges)]
+
+#   unique_right_charges, right_dims = relevant_right_charges.unique(
+#       return_counts=True)
+#   right_degeneracies = dict(zip(unique_right_charges, right_dims))
+#   #generate a degeneracy vector which for each value r in relevant_right_charges
+#   #holds the corresponding number of non-zero elements `relevant_right_charges`
+#   #that can add up to `target_charges`.
+#   degeneracy_vector = np.empty(len(relevant_left_charges), dtype=np.int64)
+#   right_indices = {}
+
+#   for n in range(len(unique_left_charges)):
+#     left_charge = unique_left_charges[n]
+#     total_charge = left_charge + unique_right_charges
+#     total_degeneracy = np.sum(right_dims[total_charge.isin(target_charges)])
+#     tmp_relevant_right_charges = relevant_right_charges[
+#         relevant_right_charges.isin((target_charges + left_charge * (-1)))]
+
+#     for n in range(len(target_charges)):
+#       target_charge = target_charges[n]
+#       right_indices[(left_charge.get_item(0),
+#                      target_charge.get_item(0))] = np.nonzero(
+#                          tmp_relevant_right_charges == (
+#                              target_charge + left_charge * (-1)))[0]
+
+#     degeneracy_vector[relevant_left_charges == left_charge] = total_degeneracy
+
+#   start_positions = np.cumsum(degeneracy_vector) - degeneracy_vector
+#   blocks = {t: [] for t in target_charges}
+#   # iterator returns tuple of `int` for ChargeCollection objects
+#   # and `int` for Ba seCharge objects (both hashable)
+#   for left_charge in unique_left_charges:
+#     a = np.expand_dims(start_positions[relevant_left_charges == left_charge], 0)
+#     for target_charge in target_charges:
+#       ri = right_indices[(left_charge, target_charge)]
+#       if len(ri) != 0:
+#         b = np.expand_dims(ri, 1)
+#         tmp = a + b
+#         blocks[target_charge].append(np.reshape(tmp, np.prod(tmp.shape)))
+#   out = {}
+#   for target_charge in target_charges:
+#     out[target_charge] = np.concatenate(blocks[target_charge])
+#   return out
 
 
 def compute_dense_to_sparse_mapping(
