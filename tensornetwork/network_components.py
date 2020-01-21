@@ -1975,6 +1975,36 @@ def outer_product(node1: BaseNode,
   return new_node
 
 
+def slice_edge(edge: Edge,
+               start: int,
+               length: int):
+  """Slice an `Edge`
+  """
+  backends = [node.backend for node in edge.get_nodes() if node is not None]
+  if not all([b.name == backends[0].name for b in backends]):
+    raise ValueError("Not all backends are the same.")
+  backend = backends[0]
+
+  expected_nodes = set(edge.get_nodes())
+
+  # dangling
+  if edge.is_dangling():
+    if expected_nodes[0].shape[-1] < start:
+      raise ValueError("Start index is out of the range")
+
+    edge.node1.tensor = edge.node1.tensor[..., start:start + length]
+  
+  # standard and trace
+  if (len(expected_nodes) > 1):
+    if edge.node1.shape[-1] < start or edge.node2.shape[0] < start:
+      raise ValueError("Start index is out of the range")
+
+    edge.node1.tensor = edge.node1.tensor[..., start:start + length]
+    edge.node2.tensor = edge.node2.tensor[start:start + length, ...]
+
+  return edge
+
+
 class NodeCollection:
   """Context manager for easy collection of a set or list of nodes.
 
