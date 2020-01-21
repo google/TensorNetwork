@@ -69,16 +69,16 @@ class PyTorchBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return self.torch.tensor(list(tensor.shape))
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
 
-  def prod(self, values: Tensor) -> int:
+  def shape_prod(self, values: Tensor) -> int:
     return np.prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
