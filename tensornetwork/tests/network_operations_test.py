@@ -15,7 +15,7 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-from collections import namedtuple
+from tensornetwork.backends.base_backend import BaseBackend
 
 
 def test_split_node_full_svd_names(backend):
@@ -346,37 +346,37 @@ def test_norm_of_node_without_backend_raises_error():
 def test_conj_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.conj(node)
+    tn.conj(node)
 
 
 def test_transpose_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.transpose(node, permutation=[])
+    tn.transpose(node, permutation=[])
 
 
 def test_split_node_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.split_node(node, left_edges=[], right_edges=[])
+    tn.split_node(node, left_edges=[], right_edges=[])
 
 
 def test_split_node_qr_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.split_node_qr(node, left_edges=[], right_edges=[])
+    tn.split_node_qr(node, left_edges=[], right_edges=[])
 
 
 def test_split_node_rq_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.split_node_rq(node, left_edges=[], right_edges=[])
+    tn.split_node_rq(node, left_edges=[], right_edges=[])
 
 
 def test_split_node_full_svd_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-      tn.split_node_full_svd(node, left_edges=[], right_edges=[])
+    tn.split_node_full_svd(node, left_edges=[], right_edges=[])
 
 
 def test_reachable_raises_value_error():
@@ -416,9 +416,8 @@ def test_contract_trace_edges(backend):
     tn.contract_trace_edges(a)
 
 
-def test_switch_backend(backend):
+def test_switch_backend_raises_error(backend):
   a = tn.Node(np.random.rand(3, 3, 3))
-  MockBackend = namedtuple("MockBackend", "name")
-  a.backend = MockBackend("not_numpy")
+  a.backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     tn.switch_backend({a}, backend)
