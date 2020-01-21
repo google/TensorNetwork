@@ -65,16 +65,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        split_axis: int) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return self.tf.shape(tensor)
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
 
-  def prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> Tensor:
     return self.tf.reduce_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
