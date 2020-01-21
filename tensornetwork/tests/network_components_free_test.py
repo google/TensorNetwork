@@ -1,11 +1,12 @@
 import numpy as np
 import tensorflow as tf
 import pytest
+from unittest.mock import patch
 from collections import namedtuple
 import h5py
 import re
 #pylint: disable=line-too-long
-from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection
+from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection, BaseNode
 import tensornetwork as tn
 
 string_type = h5py.special_dtype(vlen=str)
@@ -247,6 +248,16 @@ def test_node_reorder_edges_raise_error_trace_edge(single_node_edge):
   with pytest.raises(ValueError) as e:
     node.reorder_edges([e2, e3])
   assert "Edge reordering does not support trace edges." in str(e.value)
+
+
+def test_node_reorder_edges_raise_error_no_tensor(single_node_edge):
+  node = single_node_edge.node
+  e2 = tn.connect(node[1], node[2])
+  e3 = node[0]
+  del node._tensor
+  with pytest.raises(AttributeError) as e:
+    node.reorder_edges([e2, e3])
+  assert "Please provide a valid tensor for this Node." in str(e.value)
 
 
 def test_node_magic_getitem(single_node_edge):
@@ -919,3 +930,110 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
   assert "Edge(DanglingEdge)[0]" in str(node1) and str(node2)
   assert "Edge('test_node1'[1]->'test_node2'[1])" in str(node1) and str(node2)
   assert "Edge(DanglingEdge)[2]" in str(node1) and str(node2)
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_name_list_throws_error():
+  with pytest.raises(TypeError,):
+    BaseNode(name=["A"], axis_names=['a', 'b'])
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_name_int_throws_error():
+  with pytest.raises(TypeError):
+    BaseNode(name=1, axis_names=['a', 'b'])
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_axis_names_int_throws_error():
+  with pytest.raises(TypeError):
+    BaseNode(axis_names = [0 ,1])
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_axis_names_int_throws_error():
+  with pytest.raises(TypeError):
+    BaseNode(axis_names = [0 ,1])
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_no_axis_names_no_shapes_throws_error():
+  with pytest.raises(ValueError):
+    BaseNode(name='a')
+
+
+def test_node_add_axis_names_int_throws_error():
+  n1 = Node(np.eye(2), axis_names=['a', 'b'])
+  with pytest.raises(TypeError):
+    n1.add_axis_names([0, 1])
+
+
+def test_node_dtype(backend):
+  n1 = Node(np.random.rand(2), backend=backend)
+  assert n1.dtype == n1.tensor.dtype
+
+
+def test_node_name_int_raises_error(backend):
+  n1 = Node(np.random.rand(2), backend=backend)
+  with pytest.raises(TypeError):
+    n1.set_name(1)
+
+
+def test_node_name_list_raises_error(backend):
+  n1 = Node(np.random.rand(2), backend=backend)
+  with pytest.raises(TypeError):
+    n1.set_name(['n'])
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_get_tensor():
+  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  assert n1.get_tensor() is None
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_set_tensor():
+  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  assert n1.set_tensor(np.random.rand(2)) is None
+  assert n1.tensor is None
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_shape():
+  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1._shape = None
+  with pytest.raises(ValueError):
+    n1.shape
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_tensor_getter():
+  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  assert n1.tensor is None
+
+
+@patch.multiple(BaseNode, __abstractmethods__=set())
+def test_base_node_tensor_setter():
+  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1.tensor = np.random.rand(2)
+  assert n1.tensor is None
+
+
+def test_node_has_dangling_edge_false(double_node_edge):
+  node1 = double_node_edge.node1
+  node2 = double_node_edge.node2
+  tn.connect(node1["a"], node2["a"])
+  tn.connect(node1["c"], node2["c"])
+  assert not node1.has_dangling_edge()
+
+
+def test_node_has_dangling_edge_true(single_node_edge):
+  assert single_node_edge.node.has_dangling_edge()
+
+
+def test_node_get_item(single_node_edge):
+  node = single_node_edge.node
+  edge = single_node_edge.edge
+  node.add_edge(edge, axis=0)
+  assert node[0] == edge
+  assert edge in node[0:2]
