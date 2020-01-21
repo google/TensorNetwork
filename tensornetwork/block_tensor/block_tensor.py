@@ -1217,7 +1217,9 @@ class BlockSparseTensor:
     #check for trivial permutation
     if np.all(order == np.arange(len(order))):
       return self
-    _, tr_data, tr_partition = _compute_transposition_data(self, order)
+    #TODO: flatten_meta_data is called within _compute_transposition_data
+    #as well. reuse it.
+    _, tr_data, tr_partition = _compute_transposition_data(self.indices, order)
     flat_charges, flat_flows, _, flat_order = flatten_meta_data(
         self.indices, order)
 
@@ -1527,12 +1529,6 @@ def tensordot(
   new_order1 = free_axes1 + list(axes1)
   new_order2 = list(axes2) + free_axes2
   #t1 = time.time()
-  charges1, tr_data_1, tr_partition1 = _compute_transposition_data(
-      tensor1, new_order1, len(free_axes1))
-  charges2, tr_data_2, tr_partition2 = _compute_transposition_data(
-      tensor2, new_order2, len(axes2))
-  #print('compute transposition data', time.time() - t1)
-  common_charges = charges1.intersect(charges2)
 
   #get the flattened indices for the output tensor
   left_indices = []
@@ -1542,8 +1538,6 @@ def tensordot(
   for n in free_axes2:
     right_indices.extend(tensor2.indices[n].get_elementary_indices())
   indices = left_indices + right_indices
-  if final_order is not None:
-    indices = [indices[n] for n in final_order]
 
   for n, i in enumerate(indices):
     i.name = 'index_{}'.format(n) if i.name is None else i.name
@@ -1554,33 +1548,66 @@ def tensordot(
     for n, i in enumerate(indices):
       i.name = 'index_{}'.format(n)
 
+  charges1, tr_data_1, tr_partition1 = _compute_transposition_data(
+      tensor1.indices, new_order1, len(free_axes1))
+  charges2, tr_data_2, tr_partition2 = _compute_transposition_data(
+      tensor2.indices, new_order2, len(axes2))
+
+  common_charges = charges1.intersect(charges2)
+
   #initialize the data-vector of the output with zeros;
-  #Note that empty is not a viable choice here.
-  #ts = []
-  #t1 = time.time()
-  #Note: `cs` may contain charges that are not present in `common_charges`
-  cs, sparse_blocks = _find_diagonal_sparse_blocks(
-      [], [i.charges for i in left_indices], [i.charges for i in right_indices],
-      [i.flow for i in left_indices], [i.flow for i in right_indices],
-      return_data=False)
-  #print('finding sparse positions', time.time() - t1)
-  num_nonzero_elements = np.sum([len(v[0]) for v in sparse_blocks])
-  data = np.zeros(
-      num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
-  for n in range(len(common_charges)):
-    c = common_charges.get_item(n)
-    permutation1 = tr_data_1[c]
-    permutation2 = tr_data_2[c]
-    sparse_block = sparse_blocks[np.nonzero(cs == c)[0][0]]
-    b1 = np.reshape(tensor1.data[permutation1[0]], permutation1[1])
-    b2 = np.reshape(tensor2.data[permutation2[0]], permutation2[1])
-    res = np.matmul(b1, b2)
-    data[sparse_block[0]] = res.flat
-  #print('tensordot', time.time() - t1)
-  return BlockSparseTensor(data=data, indices=indices)
+  if final_order is not None:
+    #in this case we view the result of the diagonal multiplication
+    #as a transposition of the final tensor
+    final_indices = [indices[n] for n in final_order]
+    _, reverse_order = np.unique(final_order, return_index=True)
+
+    charges_final, tr_data_final, tr_partition_final = _compute_transposition_data(
+        final_indices, reverse_order, len(free_axes1))
+    num_nonzero_elements = np.sum([len(t[0]) for t in tr_data_final.values()])
+    data = np.zeros(
+        num_nonzero_elements,
+        dtype=np.result_type(tensor1.dtype, tensor2.dtype))
+
+    for n in range(len(common_charges)):
+      c = common_charges.get_item(n)
+      permutation1 = tr_data_1[c]
+      permutation2 = tr_data_2[c]
+      permutationfinal = tr_data_final[c]
+      b1 = np.reshape(tensor1.data[permutation1[0]], permutation1[1])
+      b2 = np.reshape(tensor2.data[permutation2[0]], permutation2[1])
+      res = np.matmul(b1, b2)
+      data[permutationfinal[0]] = res.flat
+    return BlockSparseTensor(data=data, indices=final_indices)
+  else:
+    #Note: `cs` may contain charges that are not present in `common_charges`
+    cs, sparse_blocks = _find_diagonal_sparse_blocks(
+        [], [i.charges for i in left_indices],
+        [i.charges for i in right_indices], [i.flow for i in left_indices],
+        [i.flow for i in right_indices],
+        return_data=False)
+    #print('finding sparse positions', time.time() - t1)
+    num_nonzero_elements = np.sum([len(v[0]) for v in sparse_blocks])
+    #Note that empty is not a viable choice here.
+    data = np.zeros(
+        num_nonzero_elements,
+        dtype=np.result_type(tensor1.dtype, tensor2.dtype))
+    for n in range(len(common_charges)):
+      c = common_charges.get_item(n)
+      permutation1 = tr_data_1[c]
+      permutation2 = tr_data_2[c]
+      sparse_block = sparse_blocks[np.nonzero(cs == c)[0][0]]
+      b1 = np.reshape(tensor1.data[permutation1[0]], permutation1[1])
+      b2 = np.reshape(tensor2.data[permutation2[0]], permutation2[1])
+      res = np.matmul(b1, b2)
+      data[sparse_block[0]] = res.flat
+    #print('tensordot', time.time() - t1)
+    return BlockSparseTensor(data=data, indices=indices)
 
 
 def flatten_meta_data(indices, order):
+  for n, i in enumerate(indices):
+    i.name = 'index_{}'.format(n)
   elementary_indices = {}
   flat_elementary_indices = []
   for n in range(len(indices)):
@@ -1596,43 +1623,39 @@ def flatten_meta_data(indices, order):
   flat_strides = _get_strides(flat_dims)
   flat_order = np.concatenate(
       [flat_index_list[cum_num_legs[n]:cum_num_legs[n + 1]] for n in order])
+
   return flat_charges, flat_flows, flat_strides, flat_order
 
 
 def _compute_transposition_data(
-    tensor: BlockSparseTensor,
+    indices: BlockSparseTensor,
     order: Union[List[int], np.ndarray],
     transposed_partition: Optional[int] = None
 ) -> Tuple[Union[BaseCharge, ChargeCollection], Dict, int]:
   """
   Args:
-    tensor: A symmetric tensor.
+    indices: A symmetric tensor.
     order: The new order of indices.
     permutation: An np.ndarray of int for reshuffling the data,
       typically the output of a prior call to `transpose`. Passing `permutation`
       can greatly speed up the transposition.
     return_permutation: If `True`, return the the permutation data.
   Returns:
-    BlockSparseTensor: The transposed tensor.
+
   """
-  if len(order) != tensor.rank:
+  if len(order) != len(indices):
     raise ValueError(
-        "`len(order)={}` is different form `tensor.rank={}`".format(
-            len(order), tensor.rank))
+        "`len(order)={}` is different form `len(indices)={}`".format(
+            len(order), len(indices)))
 
   #we use flat meta data because it is
   #more efficient to get the fused charges using
   #the best partition
   flat_charges, flat_flows, flat_strides, flat_order = flatten_meta_data(
-      tensor.indices, order)
-  #t0 = time.time()
+      indices, order)
   partition = _find_best_partition(
       flat_charges, flat_flows, return_charges=False)
-  # ts = []
-  # t1 = time.time()
 
-  # ts.append(t1 - t0)
-  # print('in _compute_transposition_data: finding best partition', ts[-1])
   if transposed_partition is None:
     transposed_partition = _find_best_partition(
         [flat_charges[n] for n in flat_order],
@@ -1641,9 +1664,6 @@ def _compute_transposition_data(
   row_lookup, column_lookup = _compute_sparse_lookups(
       flat_charges[0:partition], flat_flows[0:partition],
       flat_charges[partition:], flat_flows[partition:])
-  # t2 = time.time()
-  # ts.append(t2 - t1)
-  # print('in _compute_transposition_data: computing lookup tables', ts[-1])
   cs, dense_blocks = _find_diagonal_dense_blocks(
       [flat_charges[n] for n in flat_order[0:transposed_partition]],
       [flat_charges[n] for n in flat_order[transposed_partition:]],
@@ -1651,9 +1671,7 @@ def _compute_transposition_data(
       [flat_flows[n] for n in flat_order[transposed_partition:]],
       row_strides=flat_strides[flat_order[0:transposed_partition]],
       column_strides=flat_strides[flat_order[transposed_partition:]])
-  # t3 = time.time()
-  # ts.append(t3 - t2)
-  # print('in _compute_transposition_data: finding dense blocks', ts[-1])
+
   column_dim = np.prod(
       [len(flat_charges[n]) for n in range(partition, len(flat_charges))])
   transposed_positions = {}
@@ -1661,12 +1679,8 @@ def _compute_transposition_data(
   for n in range(len(dense_blocks)):
     b = dense_blocks[n]
     rinds, cinds = np.divmod(b[0], column_dim)
-    start_pos = row_lookup[rinds]
     transposed_positions[cs.get_item(n)] = [
         row_lookup[rinds] + column_lookup[cinds], b[1]
     ]
-  # t4 = time.time()
-  # ts.append(t4 - t3)
-
-  # print('in _compute_transposition_data: computing the new positions', ts[-1])
+  #return row_lookup, column_lookup, cs, dense_blocks
   return cs, transposed_positions, transposed_partition
