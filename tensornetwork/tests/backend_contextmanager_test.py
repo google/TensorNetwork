@@ -7,7 +7,7 @@ def test_contextmanager_simple():
   with tn.DefaultBackend("numpy"):
     a = tn.Node(np.ones((10,)))
     b = tn.Node(np.ones((10,)))
-  assert (type(a.backend) == type(b.backend)) == True
+  assert a.backend.name == b.backend.name
   edge = a[0] ^ b[0]
   final_node = tn.contract(edge)
   assert final_node.tensor == 10.0
@@ -21,7 +21,7 @@ def test_contextmanager_interaption():
     a = tn.Node(np.ones((10,)))
     tn.set_default_backend("tensorflow")
     b = tn.Node(np.ones((10,)))
-  assert (type(a.backend) == type(b.backend)) == True
+  assert a.backend.name == b.backend.name
   assert tn.config.default_backend == "tensorflow"
 
 def test_contextmanager_nested():
@@ -40,7 +40,7 @@ def test_contextmanager_wrong_item():
   a = tn.Node(np.ones((10,)))
   try:
     with tn.DefaultBackend(a):
-      b = tn.Node(np.ones((10,)))
+        pass
     assert False
   except ValueError:
     assert True
