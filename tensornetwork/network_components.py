@@ -25,7 +25,7 @@ import tensornetwork.config as config
 from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
-from tensornetwork.backend_contextmanager import DefaultBackend
+from tensornetwork.backend_contextmanager import _default_backend_stack
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
@@ -517,8 +517,9 @@ class Node(BaseNode):
       backend = tensor.backend
       tensor = tensor.tensor
     if not backend:
-      if DefaultBackend.with_statement:
-        backend = DefaultBackend.backend
+      default_backend = _default_backend_stack.get_current_backend()
+      if default_backend:
+        backend = default_backend.backend
       else:
         backend = config.default_backend
     if isinstance(backend, BaseBackend):
