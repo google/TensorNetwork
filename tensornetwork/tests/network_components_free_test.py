@@ -37,11 +37,11 @@ class TestNode(BaseNode):
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
 
-  def _load_node(self):
-    return super()._load_node()
+  def _load_node(self, node_data):
+    return super()._load_node(node_data)
 
-  def _save_node(self):
-    return super()._save_node()
+  def _save_node(self, node_group):
+    return super()._save_node(node_group)
 
 
 
@@ -990,17 +990,17 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
 
 def test_base_node_name_list_throws_error():
   with pytest.raises(TypeError,):
-    TestNode(name=["A"], axis_names=['a', 'b'])
+    TestNode(name=["A"], axis_names=['a', 'b']) # pytype: disable=wrong-arg-types
 
 
 def test_base_node_name_int_throws_error():
   with pytest.raises(TypeError):
-    TestNode(name=1, axis_names=['a', 'b'])
+    TestNode(name=1, axis_names=['a', 'b']) # pytype: disable=wrong-arg-types
 
 
 def test_base_node_axis_names_int_throws_error():
   with pytest.raises(TypeError):
-    TestNode(axis_names=[0, 1])
+    TestNode(axis_names=[0, 1]) # pytype: disable=wrong-arg-types
 
 
 def test_base_node_no_axis_names_no_shapes_throws_error():
@@ -1011,7 +1011,7 @@ def test_base_node_no_axis_names_no_shapes_throws_error():
 def test_node_add_axis_names_int_throws_error():
   n1 = Node(np.eye(2), axis_names=['a', 'b'])
   with pytest.raises(TypeError):
-    n1.add_axis_names([0, 1])
+    n1.add_axis_names([0, 1]) # pytype: disable=wrong-arg-types
 
 
 def test_node_axis_names_setter_throws_shape_large_mismatch_error():
@@ -1265,4 +1265,4 @@ def test_remove_edges_trace_raises_value_error(single_node_edge):
   node = single_node_edge.node
   edge = tn.connect(node[1], node[2])
   with pytest.raises(ValueError):
-    _remove_edges(edge, node, node, node)
+    _remove_edges(edge, node, node, node) # pytype: disable=wrong-arg-types
