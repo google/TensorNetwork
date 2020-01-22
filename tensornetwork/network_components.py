@@ -70,10 +70,18 @@ class BaseNode(ABC):
     """
 
     self.is_disabled = False
-    self.name = name if name is not None else '__unnamed_node__'
+    if not name:
+      name = '__unnamed_node__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Node name should be str type")
+    self.name = name
     self.backend = backend
     self._shape = shape
     if axis_names is not None:
+      for axis_name in axis_names:
+        if not isinstance(axis_name, str):
+          raise TypeError("axis_names should be str type")
       self._edges = [
           Edge(node1=self, axis1=i, name=edge_name)
           for i, edge_name in enumerate(axis_names)
@@ -126,6 +134,9 @@ class BaseNode(ABC):
       raise ValueError("axis_names is not the same length as the tensor shape."
                        "axis_names length: {}, tensor.shape length: {}".format(
                            len(axis_names), len(self.shape)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self.axis_names = axis_names[:]
 
   def add_edge(self,
@@ -313,6 +324,8 @@ class BaseNode(ABC):
     return {edge for edge in self.edges if edge.is_dangling()}
 
   def set_name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
     self.name = name
 
   def has_nondangling_edge(self) -> bool:
@@ -375,6 +388,16 @@ class BaseNode(ABC):
     self._edges = edges
 
   @property
+  def name(self) -> Text:
+    return self._name
+
+  @name.setter
+  def name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
+    self._name = name
+
+  @property
   def axis_names(self) -> List[Text]:
     return self._axis_names
 
@@ -383,7 +406,11 @@ class BaseNode(ABC):
     if len(axis_names) != len(self.shape):
       raise ValueError("Expected {} names, only got {}.".format(
           len(self.shape), len(axis_names)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
+
 
   @property
   def signature(self) -> Optional[int]:
@@ -811,6 +838,9 @@ class Edge:
     self.is_disabled = False
     if not name:
       name = '__unnamed_edge__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Edge name should be str type")
     self._name = name
     self.node1 = node1
     self._axis1 = axis1
@@ -845,6 +875,8 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting its name is no longer possible')
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self._name = name
 
   @property
@@ -989,6 +1021,8 @@ class Edge:
     return result
 
   def set_name(self, name: Text) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self.name = name
 
   def _save_edge(self, edge_group: h5py.Group) -> None:
@@ -1163,10 +1197,12 @@ def _flatten_trace_edges(edges: List[Edge],
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   perm = perm_front + perm_back
-  new_dim = backend.prod([backend.shape(node.tensor)[e.axis1] for e in edges])
+  new_dim = backend.shape_prod(
+      [backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat(
+      [unaffected_shape, [new_dim, new_dim]], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -1238,11 +1274,11 @@ def flatten_edges(edges: List[Edge],
       perm_back.append(node.edges.index(edge))
     perm_front = sorted(set(range(len(node.edges))) - set(perm_back))
     node.reorder_axes(perm_front + perm_back)
-    old_tensor_shape = backend.shape(node.tensor)
+    old_tensor_shape = backend.shape_tensor(node.tensor)
     # Calculate the new axis dimension as a product of the other
     # axes dimensions.
-    flattened_axis_dim = backend.prod(old_tensor_shape[len(perm_front):])
-    new_tensor_shape = backend.concat(
+    flattened_axis_dim = backend.shape_prod(old_tensor_shape[len(perm_front):])
+    new_tensor_shape = backend.shape_concat(
         [old_tensor_shape[:len(perm_front)], [flattened_axis_dim]], axis=-1)
     new_tensor = backend.reshape(node.tensor, new_tensor_shape)
     # Modify the node in place. Currently, this is they only method that
@@ -1330,8 +1366,8 @@ def _split_trace_edge(
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   node.reorder_axes(perm_front + perm_back)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat([unaffected_shape, shape, shape], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
   node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None]
@@ -1405,8 +1441,8 @@ def split_edge(edge: Edge,
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
     node.reorder_axes(perm_front + perm_back)
-    unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
+    unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+    new_shape = backend.shape_concat([unaffected_shape, shape], axis=-1)
     node.tensor = backend.reshape(node.tensor, new_shape)  # in-place update
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]
