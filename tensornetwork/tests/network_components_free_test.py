@@ -17,6 +17,34 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
 
 
+class TestNode(BaseNode):
+
+  def get_tensor(self):
+    return super().get_tensor()
+
+  def set_tensor(self, tensor):
+    return super().set_tensor(tensor)
+
+  @property
+  def shape(self):
+    return super().shape
+
+  @property
+  def tensor(self):
+    return super().tensor
+
+  @tensor.setter
+  def tensor(self, tensor):
+    return super(TestNode, type(self)).tensor.fset(self, tensor)
+
+  def _load_node(self):
+    return super()._load_node()
+
+  def _save_node(self):
+    return super()._save_node()
+
+
+
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):
   tensor = np.ones((1, 2, 2))
@@ -960,32 +988,24 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
   assert "Edge(DanglingEdge)[2]" in str(node1) and str(node2)
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_name_list_throws_error():
   with pytest.raises(TypeError,):
-    # pylint: disable=abstract-class-instantiated
-    BaseNode(name=["A"], axis_names=['a', 'b'])
+    TestNode(name=["A"], axis_names=['a', 'b'])
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_name_int_throws_error():
   with pytest.raises(TypeError):
-    # pylint: disable=abstract-class-instantiated
-    BaseNode(name=1, axis_names=['a', 'b'])
+    TestNode(name=1, axis_names=['a', 'b'])
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_axis_names_int_throws_error():
   with pytest.raises(TypeError):
-    # pylint: disable=abstract-class-instantiated
-    BaseNode(axis_names=[0, 1])
+    TestNode(axis_names=[0, 1])
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_no_axis_names_no_shapes_throws_error():
   with pytest.raises(ValueError):
-    # pylint: disable=abstract-class-instantiated
-    BaseNode(name='a')
+    TestNode(name='a')
 
 
 def test_node_add_axis_names_int_throws_error():
@@ -1031,41 +1051,31 @@ def test_node_name_setter_raises_type_error(backend, name):
     n1.name = name
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_get_tensor():
-  # pylint: disable=abstract-class-instantiated
-  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1 = TestNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.get_tensor() is None
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_set_tensor():
-  # pylint: disable=abstract-class-instantiated
-  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1 = TestNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.set_tensor(np.random.rand(2)) is None
   assert n1.tensor is None
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_shape():
-  # pylint: disable=abstract-class-instantiated
-  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1 = TestNode(name="n1", axis_names=['a'], shape=(1,))
   n1._shape = None
   with pytest.raises(ValueError):
     n1.shape
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_tensor_getter():
-  # pylint: disable=abstract-class-instantiated
-  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1 = TestNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.tensor is None
 
 
-@patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_tensor_setter():
-  # pylint: disable=abstract-class-instantiated
-  n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
+  n1 = TestNode(name="n1", axis_names=['a'], shape=(1,))
   n1.tensor = np.random.rand(2)
   assert n1.tensor is None
 
