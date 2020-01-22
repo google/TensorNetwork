@@ -19,10 +19,10 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
 
 class TestNode(BaseNode):
 
-  def get_tensor(self):
+  def get_tensor(self): #pylint: disable=useless-super-delegation
     return super().get_tensor()
 
-  def set_tensor(self, tensor):
+  def set_tensor(self, tensor): #pylint: disable=useless-super-delegation
     return super().set_tensor(tensor)
 
   @property
@@ -37,10 +37,10 @@ class TestNode(BaseNode):
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
 
-  def _load_node(self, node_data):
+  def _load_node(self, node_data):# pylint: disable=useless-super-delegation
     return super()._load_node(node_data)
 
-  def _save_node(self, node_group):
+  def _save_node(self, node_group): #pylint: disable=useless-super-delegation
     return super()._save_node(node_group)
 
 
