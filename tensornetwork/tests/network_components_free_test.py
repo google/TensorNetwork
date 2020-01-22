@@ -963,30 +963,28 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_name_list_throws_error():
   with pytest.raises(TypeError,):
+    # pylint: disable=abstract-class-instantiated
     BaseNode(name=["A"], axis_names=['a', 'b'])
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_name_int_throws_error():
   with pytest.raises(TypeError):
+    # pylint: disable=abstract-class-instantiated
     BaseNode(name=1, axis_names=['a', 'b'])
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_axis_names_int_throws_error():
   with pytest.raises(TypeError):
-    BaseNode(axis_names = [0 ,1])
-
-
-@patch.multiple(BaseNode, __abstractmethods__=set())
-def test_base_node_axis_names_int_throws_error():
-  with pytest.raises(TypeError):
-    BaseNode(axis_names = [0 ,1])
+    # pylint: disable=abstract-class-instantiated
+    BaseNode(axis_names=[0, 1])
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_no_axis_names_no_shapes_throws_error():
   with pytest.raises(ValueError):
+    # pylint: disable=abstract-class-instantiated
     BaseNode(name='a')
 
 
@@ -1023,24 +1021,26 @@ def test_node_dtype(backend):
 def test_node_set_name_raises_type_error(backend, name):
   n1 = Node(np.random.rand(2), backend=backend)
   with pytest.raises(TypeError):
-    n1.set_name(1)
+    n1.set_name(name)
 
 
 @pytest.mark.parametrize("name", [1, ['1']])
 def test_node_name_setter_raises_type_error(backend, name):
   n1 = Node(np.random.rand(2), backend=backend)
   with pytest.raises(TypeError):
-    n1.name = ['n']
+    n1.name = name
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_get_tensor():
+  # pylint: disable=abstract-class-instantiated
   n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.get_tensor() is None
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_set_tensor():
+  # pylint: disable=abstract-class-instantiated
   n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.set_tensor(np.random.rand(2)) is None
   assert n1.tensor is None
@@ -1048,6 +1048,7 @@ def test_base_node_set_tensor():
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_shape():
+  # pylint: disable=abstract-class-instantiated
   n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
   n1._shape = None
   with pytest.raises(ValueError):
@@ -1056,12 +1057,14 @@ def test_base_node_shape():
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_tensor_getter():
+  # pylint: disable=abstract-class-instantiated
   n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
   assert n1.tensor is None
 
 
 @patch.multiple(BaseNode, __abstractmethods__=set())
 def test_base_node_tensor_setter():
+  # pylint: disable=abstract-class-instantiated
   n1 = BaseNode(name="n1", axis_names=['a'], shape=(1,))
   n1.tensor = np.random.rand(2)
   assert n1.tensor is None
@@ -1121,15 +1124,13 @@ def test_copy_node_get_partners_with_trace(backend):
   tn.connect(node1[0], node1[1])
   tn.connect(node1[2], node2[0])
   tn.connect(node1[3], node2[1])
-  print(node1.get_partners())
-  print(node2)
   assert node1.get_partners() == {node2: {0, 1}}
 
 
 @pytest.mark.parametrize("name", [1, ['1']])
 def test_edge_name_throws_type_error(single_node_edge, name):
   with pytest.raises(TypeError):
-    Edge(node1=single_node_edge.node, axis1=0, name=1), name
+    Edge(node1=single_node_edge.node, axis1=0, name=name)
 
 
 def test_edge_name_setter_disabled_throws_error(single_node_edge):
@@ -1168,7 +1169,7 @@ def test_edge_signature_setter_disabled_throws_error(single_node_edge):
 
 
 def test_edge_node1_throws_value_error(single_node_edge):
-  edge = Edge(node1=single_node_edge.node, axis1=0, name= "edge")
+  edge = Edge(node1=single_node_edge.node, axis1=0, name="edge")
   edge._node1 = None
   err_msg = "node1 for edge 'edge' no longer exists."
   with pytest.raises(ValueError, match=err_msg):
