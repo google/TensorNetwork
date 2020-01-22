@@ -121,3 +121,29 @@ def test_correlation_measurement_finite_mps(backend_dtype_values):
   actual[N // 2] = 0.25
   np.testing.assert_almost_equal(result_1, actual)
   np.testing.assert_allclose(result_2, np.ones(N) * 0.25)
+
+
+def test_left_envs_empty_seq(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
+  D, d, N = 1, 2, 10
+  tensors = [np.ones((1, d, D), dtype=dtype)] + [
+      np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1), dtype=dtype)]
+  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+
+  assert mps.left_envs(False) == {}
+
+
+def test_right_envs_empty_seq(backend_dtype_values):
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+
+  D, d, N = 1, 2, 10
+  tensors = [np.ones((1, d, D), dtype=dtype)] + [
+      np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1), dtype=dtype)]
+  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+
+  assert mps.right_envs(False) == {}
