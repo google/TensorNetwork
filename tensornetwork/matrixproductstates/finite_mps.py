@@ -29,25 +29,25 @@ Tensor = Any
 
 class FiniteMPS(BaseMPS):
   """
-  An MPS class for finite systems. 
+  An MPS class for finite systems.
 
   MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
   attribute.
-  `FiniteMPS` has a central site, also called orthogonality center. 
-  The position of this central site is stored in `FiniteMPS.center_position`, 
-  and it can be be shifted using the `FiniteMPS.position` method. 
+  `FiniteMPS` has a central site, also called orthogonality center.
+  The position of this central site is stored in `FiniteMPS.center_position`,
+  and it can be be shifted using the `FiniteMPS.position` method.
   `FiniteMPS.position` uses QR and RQ methods to shift `center_position`.
-  
+
   `FiniteMPS` can be initialized either from a `list` of tensors, or
   by calling the classmethod `FiniteMPS.random`.
-  
+
   By default, `FiniteMPS` is initialized in *canonical* form, i.e.
-  the state is normalized, and all tensors to the left of 
-  `center_position` are left orthogonal, and all tensors 
+  the state is normalized, and all tensors to the left of
+  `center_position` are left orthogonal, and all tensors
   to the right of `center_position` are right orthogonal. The tensor
   at `FiniteMPS.center_position` is neither left nor right orthogonal.
 
-  Note that canonicalization can be computationally relatively 
+  Note that canonicalization can be computationally relatively
   costly and scales :math:`\\propto ND^3`.
   """
 
@@ -62,7 +62,7 @@ class FiniteMPS(BaseMPS):
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
       canonicalize: If `True` the mps is canonicalized at initialization.
-      backend: The name of the backend that should be used to perform 
+      backend: The name of the backend that should be used to perform
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
@@ -160,10 +160,13 @@ class FiniteMPS(BaseMPS):
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      `dict` mapping `int` to `Tensor`: The left-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The left-reduced density matrices
         at each  site in `sites`.
 
     """
+    if not sites:
+      return {}
+
     n2 = max(sites)
     sites = np.array(sites)  #enable logical indexing
 
@@ -227,9 +230,11 @@ class FiniteMPS(BaseMPS):
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
-      `dict` mapping `int` to `Tensor`: The right-reduced density matrices 
+      `dict` mapping `int` to `Tensor`: The right-reduced density matrices
         at each  site in `sites`.
     """
+    if not sites:
+      return {}
 
     n1 = min(sites)
     sites = np.array(sites)
