@@ -391,6 +391,32 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default multiplication of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented addition.".format(self.name))
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default multiplication of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented subtraction.".format(self.name))
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
       Return the default multiplication of `tensor`.
@@ -403,6 +429,19 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default divide of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented divide.".format(self.name))
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

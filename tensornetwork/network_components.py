@@ -105,6 +105,18 @@ class BaseNode(ABC):
 
     super().__init__()
 
+  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+
+  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+
+  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+
+  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented divide ( / )")
+
   @property
   def dtype(self):
     #any derived instance of BaseNode always has to have a tensor
@@ -555,6 +567,71 @@ class Node(BaseNode):
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
 
+  def op_protection(self, other: Union[int, float, "Node"]) -> "Node":
+    if not isinstance(other, (int, float, Node)):
+      raise TypeError("Operand should be one of int, float, Node type")
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+    if isinstance(other, Node):
+      if not self.backend.name == other.backend.name:
+        raise TypeError("Operands backend must match.\noperand 1 backend: {}\
+                         \noperand 2 backend: {}".format(self.backend.name,
+                                                         other.backend.name))
+      if not hasattr(other, '_tensor'):
+        raise AttributeError("Please provide a valid tensor for this Node.")
+    else:
+      other_tensor = self.backend.convert_to_tensor(other)
+      other = Node(tensor=other_tensor, backend=self.backend.name)
+    return other
+
+  def __add__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.addition(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.subtraction(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.multiply(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.divide(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
   def get_tensor(self) -> Tensor:
     return self.tensor
 
@@ -652,6 +729,18 @@ class CopyNode(BaseNode):
         axis_names=axis_names,
         backend=backend_obj,
         shape=(dimension,) * rank)
+
+  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+
+  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+
+  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+
+  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented divide ( / )")
 
   @property
   def dtype(self):
