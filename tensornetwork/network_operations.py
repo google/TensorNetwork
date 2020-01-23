@@ -92,7 +92,7 @@ def transpose(node: BaseNode,
     A new node. The transpose of `Node`.
 
   Raises:
-    AttributeError: If `Node` has no ``backend`` attribute, or if
+    AttributeError: If `Node` has no `backend` attribute, or if
       `Node` has no tensor.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
@@ -120,7 +120,7 @@ def copy(nodes: Iterable[BaseNode],
   copied, the edge between them will become a dangling edge.
 
   Args:
-    nodes: An Iterable (Usually a ``list`` or ``set``) of ``nodes``.
+    nodes: An Iterable (Usually a `list` or `set`) of `nodes`.
     conjugate: Boolean. Whether to conjugate all of the nodes
       (useful for calculating norms and reduced density matrices).
 
@@ -220,29 +220,29 @@ def split_node(
 ) -> Tuple[BaseNode, BaseNode, Tensor]:
   """Split a `Node` using Singular Value Decomposition.
 
-  Let :math:`M` be the matrix created by flattening ``left_edges`` and 
-  ``right_edges`` into 2 axes. 
+  Let :math:`M` be the matrix created by flattening `left_edges` and 
+  `right_edges` into 2 axes. 
   Let :math:`U S V^* = M` be the SVD of :math:`M`. 
   This will split the network into 2 nodes. 
   The left node's tensor will be :math:`U \\sqrt{S}` 
   and the right node's tensor will be
   :math:`\\sqrt{S} V^*` where :math:`V^*` is the adjoint of :math:`V`.
 
-  The singular value decomposition is truncated if ``max_singular_values`` or
-  ``max_truncation_err`` is not ``None``.
+  The singular value decomposition is truncated if `max_singular_values` or
+  `max_truncation_err` is not `None`.
 
   The truncation error is the 2-norm of the vector of truncated singular
-  values. If only ``max_truncation_err`` is set, as many singular values will
+  values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
-  ``norm(truncated_singular_values) <= max_truncation_err``.
+  `norm(truncated_singular_values) <= max_truncation_err`.
 
-  If only ``max_singular_values`` is set, the number of singular values kept
-  will be ``min(max_singular_values, number_of_singular_values)``, so that
-  ``max(0, number_of_singular_values - max_singular_values)`` are truncated.
+  If only `max_singular_values` is set, the number of singular values kept
+  will be `min(max_singular_values, number_of_singular_values)`, so that
+  `max(0, number_of_singular_values - max_singular_values)` are truncated.
 
-  If both ``max_truncation_err`` and ``max_singular_values`` are set,
-  ``max_singular_values`` takes priority: The truncation error may be larger
-  than ``max_truncation_err`` if required to satisfy ``max_singular_values``.
+  If both `max_truncation_err` and `max_singular_values` are set,
+  `max_singular_values` takes priority: The truncation error may be larger
+  than `max_truncation_err` if required to satisfy `max_singular_values`.
 
   Args:
     node: The node you want to split.
@@ -250,21 +250,21 @@ def split_node(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
-    left_name: The name of the new left node. If ``None``, a name will be
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If ``None``, a name will be
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
     edge_name: The name of the new `Edge` connecting the new left and
-      right node. If ``None``, a name will be generated automatically.
+      right node. If `None`, a name will be generated automatically.
       The new axis will get the same name as the edge.
 
   Returns:
     A tuple containing:
       left_node:
-        A new node created that connects to all of the ``left_edges``.
+        A new node created that connects to all of the `left_edges`.
         Its underlying tensor is :math:`U \\sqrt{S}`
       right_node:
-        A new node created that connects to all of the ``right_edges``.
+        A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`\\sqrt{S} V^*`
       truncated_singular_values:
         The vector of truncated singular values.
@@ -332,7 +332,7 @@ def split_node_qr(
   """Split a `Node` using QR decomposition.
 
   Let :math:`M` be the matrix created by 
-  flattening ``left_edges`` and ``right_edges`` into 2 axes. 
+  flattening `left_edges` and `right_edges` into 2 axes. 
   Let :math:`QR = M` be the QR Decomposition of :math:`M`.
   This will split the network into 2 nodes.
   The `left node`'s tensor will be :math:`Q` (an orthonormal matrix)
@@ -342,20 +342,20 @@ def split_node_qr(
     node: The node you want to split.
     left_edges: The edges you want connected to the new left node.
     right_edges: The edges you want connected to the new right node.
-    left_name: The name of the new left node. If ``None``, a name will be
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If ``None``, a name will be
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
     edge_name: The name of the new `Edge` connecting the new left and right
-      node. If ``None``, a name will be generated automatically.
+      node. If `None`, a name will be generated automatically.
 
   Returns:
     A tuple containing:
       left_node:
-        A new node created that connects to all of the ``left_edges``.
+        A new node created that connects to all of the `left_edges`.
         Its underlying tensor is :math:`Q`
       right_node:
-        A new node created that connects to all of the ``right_edges``.
+        A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`R`
   Raises:
     AttributeError: If `Node` has no backend attribute
@@ -407,7 +407,7 @@ def split_node_rq(
   """Split a `Node` using RQ (reversed QR) decomposition.
 
   Let :math:`M` be the matrix created by 
-  flattening ``left_edges`` and ``right_edges`` into 2 axes. 
+  flattening `left_edges` and `right_edges` into 2 axes. 
 
   Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`. 
   This will split the network into 2 nodes. 
@@ -419,20 +419,20 @@ def split_node_rq(
     node: The node you want to split.
     left_edges: The edges you want connected to the new left node.
     right_edges: The edges you want connected to the new right node.
-    left_name: The name of the new left node. If ``None``, a name will be
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If ``None``, a name will be
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
     edge_name: The name of the new `Edge` connecting the new left and
-      right node. If ``None``, a name will be generated automatically.
+      right node. If `None`, a name will be generated automatically.
 
   Returns:
     A tuple containing:
       left_node:
-        A new node that connects to all of the ``left_edges``.
+        A new node that connects to all of the `left_edges`.
         Its underlying tensor is :math:`R^*`
       right_node:
-        A new node that connects to all of the ``right_edges``.
+        A new node that connects to all of the `right_edges`.
         Its underlying tensor is :math:`Q^*`
 
   Raises:
@@ -488,28 +488,28 @@ def split_node_full_svd(
   """Split a node by doing a full singular value decomposition.
 
   Let :math:`M` be the matrix created by 
-  flattening ``left_edges`` and ``right_edges`` into 2 axes. 
+  flattening `left_edges` and `right_edges` into 2 axes. 
   Let :math:`U S V^* = M` be the Singular Value Decomposition of :math:`M`.
 
   The left most node will be :math:`U` tensor of the SVD, the middle node is
   the diagonal matrix of the singular values, ordered largest to smallest,
   and the right most node will be the :math:`V*` tensor of the SVD.
 
-  The singular value decomposition is truncated if ``max_singular_values`` or
-  ``max_truncation_err`` is not ``None``.
+  The singular value decomposition is truncated if `max_singular_values` or
+  `max_truncation_err` is not `None`.
 
   The truncation error is the 2-norm of the vector of truncated singular
-  values. If only ``max_truncation_err`` is set, as many singular values will
+  values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
-  ``norm(truncated_singular_values) <= max_truncation_err``.
+  `norm(truncated_singular_values) <= max_truncation_err`.
 
-  If only ``max_singular_values`` is set, the number of singular values kept
-  will be ``min(max_singular_values, number_of_singular_values)``, so that
-  ``max(0, number_of_singular_values - max_singular_values)`` are truncated.
+  If only `max_singular_values` is set, the number of singular values kept
+  will be `min(max_singular_values, number_of_singular_values)`, so that
+  `max(0, number_of_singular_values - max_singular_values)` are truncated.
 
-  If both ``max_truncation_err`` and ``max_singular_values`` are set,
-  ``max_singular_values`` takes priority: The truncation error may be larger
-  than ``max_truncation_err`` if required to satisfy ``max_singular_values``.
+  If both `max_truncation_err` and `max_singular_values` are set,
+  `max_singular_values` takes priority: The truncation error may be larger
+  than `max_truncation_err` if required to satisfy `max_singular_values`.
 
   Args:
     node: The node you want to split.
@@ -517,29 +517,29 @@ def split_node_full_svd(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
-    left_name: The name of the new left node. If ``None``, a name will be
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    middle_name: The name of the new center node. If ``None``, a name will be
+    middle_name: The name of the new center node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If ``None``, a name will be
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
     left_edge_name: The name of the new left `Edge` connecting
       the new left node (:math:`U`) and the new central node (:math:`S`).
-      If ``None``, a name will be generated automatically.
+      If `None`, a name will be generated automatically.
     right_edge_name: The name of the new right `Edge` connecting
       the new central node (:math:`S`) and the new right node (:math:`V*`).
-      If ``None``, a name will be generated automatically.
+      If `None`, a name will be generated automatically.
 
   Returns:
     A tuple containing:
       left_node:
-        A new node created that connects to all of the ``left_edges``.
+        A new node created that connects to all of the `left_edges`.
         Its underlying tensor is :math:`U`
       singular_values_node:
         A new node that has 2 edges connecting `left_node` and `right_node`.
         Its underlying tensor is :math:`S`
       right_node:
-        A new node created that connects to all of the ``right_edges``.
+        A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`V^*`
       truncated_singular_values:
         The vector of truncated singular values.
@@ -627,7 +627,7 @@ def reachable(
     A set of `BaseNode` objects that can be reached from `Node`
     via connected edges.
   Raises:
-    ValueError: If an unknown value for ``strategy`` is passed.
+    ValueError: If an unknown value for `strategy` is passed.
   """
 
   if isinstance(inputs, BaseNode):
@@ -641,7 +641,7 @@ def reachable(
 
 def check_correct(nodes: Iterable[BaseNode],
                   check_connections: Optional[bool] = True) -> None:
-  """Check if the network defined by ``nodes`` fulfills necessary consistency
+  """Check if the network defined by `nodes` fulfills necessary consistency
   relations.
 
   Args:
@@ -649,10 +649,10 @@ def check_correct(nodes: Iterable[BaseNode],
     check_connections: Check if the network is connected.
 
   Returns:
-    ``None``
+    `None`
 
   Raises:
-    ValueError: If the network defined by ``nodes`` is not
+    ValueError: If the network defined by `nodes` is not
       correctly structured.
   """
   for node in nodes:
@@ -679,16 +679,16 @@ def check_correct(nodes: Iterable[BaseNode],
 
 
 def check_connected(nodes: Iterable[BaseNode]) -> None:
-  """Check if all nodes in ``nodes`` are connected.
+  """Check if all nodes in `nodes` are connected.
 
   Args:
-    nodes: A list of ``nodes``.
+    nodes: A list of `nodes`.
     
   Returns:
-    ``None``
+    `None`
 
   Raises:
-    ValueError: If not all nodes in ``nodes`` are connected.
+    ValueError: If not all nodes in `nodes` are connected.
   """
   nodes = list(nodes)
   if not set(nodes) <= reachable([nodes[0]]):
@@ -720,7 +720,7 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
 
   A "relatively dangling" edge is an edge that is either actually dangling
   or is connected to another node that is outside of the given collection
-  of ``nodes``.
+  of `nodes`.
 
   Args:
     nodes: A set of nodes.
@@ -756,15 +756,15 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   """Constructs the tensor network for a reduced density matrix, if it is pure.
 
-  The tensor network connected to ``traced_out_edges`` is assumed to be a pure
+  The tensor network connected to `traced_out_edges` is assumed to be a pure
   quantum state (a state vector). This modifies the network so that it
   describes the reduced density matrix obtained by "tracing out" the specified
   edges.
 
   This is done by making a conjugate copy of the original network and
-  connecting each edge in ``traced_out_edges`` with its conjugate counterpart.
+  connecting each edge in `traced_out_edges` with its conjugate counterpart.
 
-  The edges in ``edge_dict`` corresponding to ``traced_out_edges`` will be the
+  The edges in `edge_dict` corresponding to `traced_out_edges` will be the
   new non-dangling edges connecting the state with its conjugate.
 
   Args:
@@ -796,12 +796,12 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
 def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
   """Change the backend of the nodes.
 
-  This will convert all ``node``'s tensors to the ``new_backend`'s Tensor type.
+  This will convert all `node`'s tensors to the `new_backend`'s Tensor type.
 
   Args:
     nodes: iterable of nodes
     new_backend (str): The new backend.
-    dtype (datatype): The dtype of the backend. If ``None``,
+    dtype (datatype): The dtype of the backend. If `None`,
       a defautl dtype according to config.py will be chosen.
 
   Returns:

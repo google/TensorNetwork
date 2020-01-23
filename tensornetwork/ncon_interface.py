@@ -36,10 +36,10 @@ def ncon(
 
     If a contraction order `con_order` and an output order `out_order`
     are both provided, the edge labels can be anything.
-    Otherwise (``con_order == None or out_order == None``), the edge labels 
+    Otherwise (`con_order == None or out_order == None`), the edge labels 
     must be nonzero integers and edges will be contracted in ascending order.
     Negative integers denote the (dangling) indices of the output tensor,
-    which will be in descending order, e.g. ``[-1,-2,-3,...]``.
+    which will be in descending order, e.g. `[-1,-2,-3,...]`.
 
     For example, matrix multiplication:
 
@@ -170,10 +170,10 @@ def ncon_network(
 
     If a contraction order `con_order` and an output order `out_order`
     are both provided, the edge labels can be anything.
-    Otherwise (``con_order == None or out_order == None``), the edge labels 
+    Otherwise (`con_order == None or out_order == None`), the edge labels 
     must be integers and edges will be contracted in ascending order.
     Negative integers denote the (dangling) indices of the output tensor,
-    which will be in descending order, e.g. ``[-1,-2,-3,...]``.
+    which will be in descending order, e.g. `[-1,-2,-3,...]`.
 
     This is used internally by `ncon()`.
 

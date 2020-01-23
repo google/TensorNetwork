@@ -1746,16 +1746,16 @@ def contract_between(
 ) -> BaseNode:
   """Contract all of the edges between the two given nodes.
 
-  If ``output_edge_order`` is not set, the output axes will be ordered as:
-  ``[...free axes of node1..., ...free axes of node2...]``. Within the axes
-  of each ``node``, the input order is preserved.
+  If `output_edge_order` is not set, the output axes will be ordered as:
+  `[...free axes of node1..., ...free axes of node2...]`. Within the axes
+  of each `node`, the input order is preserved.
 
   Args:
     node1: The first node.
     node2: The second node.
     name: Name to give to the new node created.
     allow_outer_product: Optional boolean. If two nodes do not share any edges
-      and ``allow_outer_product`` is set to ``True`, then we return the outer
+      and `allow_outer_product` is set to `True`, then we return the outer
       product of the two nodes. Else, we raise a `ValueError`.
     output_edge_order: Optional sequence of Edges. When not `None`, must
       contain all edges belonging to, but not shared by `node1` and `node2`.
@@ -1769,7 +1769,7 @@ def contract_between(
 
   Raises:
     ValueError: If no edges are found between node1 and node2 and
-      ``allow_outer_product`` is set to ``False``.
+      `allow_outer_product` is set to `False`.
   """
   for node in [node1, node2]:
     if not hasattr(node, 'backend'):
@@ -1851,7 +1851,7 @@ def outer_product_final_nodes(nodes: Iterable[BaseNode],
                               edge_order: List[Edge]) -> BaseNode:
   """Get the outer product of `nodes`
 
-  For example, if there are 3 nodes remaining in ``nodes`` with
+  For example, if there are 3 nodes remaining in `nodes` with
   shapes :math:`(2, 3)`, :math:`(4, 5, 6)`, and :math:`(7)`
   respectively, the newly returned node will have shape
   :math:`(2, 3, 4, 5, 6, 7)`.
@@ -1883,10 +1883,10 @@ def outer_product(node1: BaseNode,
   """Calculates an outer product of the two nodes.
 
   This causes the nodes to combine their edges and axes, so the shapes are
-  combined. For example, if ``a`` had a shape (2, 3) and ``b`` had a shape
-  :math`(4, 5, 6)`, then the node ``net.outer_product(a, b)`` will have shape
-  :math:`(2, 3, 4, 5, 6)`. All edges of ``node1`` and ``node2`` are passed on to
-  the new node, and ``node1`` and ``node2`` get a new set of dangling edges.
+  combined. For example, if `a` had a shape (2, 3) and `b` had a shape
+  :math`(4, 5, 6)`, then the node `net.outer_product(a, b)` will have shape
+  :math:`(2, 3, 4, 5, 6)`. All edges of `node1` and `node2` are passed on to
+  the new node, and `node1` and `node2` get a new set of dangling edges.
 
   Args:
     node1: The first node. The axes on this node will be on the left side of
@@ -1897,10 +1897,10 @@ def outer_product(node1: BaseNode,
     axis_names: An optional list of names for the axis of the new node.
 
   Returns:
-    A new node. Its shape will be ``node1.shape + node2.shape``.
+    A new node. Its shape will be `node1.shape + node2.shape`.
 
   Raises:
-    TypeError: If ``node1`` and ``node2`` have wrong types.
+    TypeError: If `node1` and `node2` have wrong types.
   """
   for node in [node1, node2]:
     if not hasattr(node, 'backend'):
