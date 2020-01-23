@@ -30,6 +30,7 @@ Tensor = Any
 class FiniteMPS(BaseMPS):
   """An MPS class for finite systems.
 
+
   MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
   attribute.
   `FiniteMPS` has a central site, also called orthogonality center.
@@ -159,6 +160,9 @@ class FiniteMPS(BaseMPS):
       `dict` mapping `int` to `Tensor`: The left-reduced density matrices
         at each  site in `sites`.
     """
+    if not sites:
+      return {}
+
     n2 = max(sites)
     sites = np.array(sites)  #enable logical indexing
 
@@ -223,6 +227,8 @@ class FiniteMPS(BaseMPS):
       `dict` mapping `int` to `Tensor`: The right-reduced density matrices
         at each  site in `sites`.
     """
+    if not sites:
+      return {}
 
     n1 = min(sites)
     sites = np.array(sites)

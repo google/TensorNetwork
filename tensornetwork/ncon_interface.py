@@ -16,7 +16,7 @@
 import warnings
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network_components
-from tensornetwork import config
+from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 Tensor = Any
 
@@ -71,8 +71,8 @@ def ncon(
       network_structure: List of lists specifying the tensor network structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
-      backend: String specifying the backend to use. Defaults to 
-        `tensornetwork.config.default_backend`.
+      backend: String specifying the backend to use. Defaults to
+        `tensornetwork.backend_contextmanager.get_default_backend`.
 
     Returns:
       The result of the contraction. The result is returned as a `Node`
@@ -82,7 +82,7 @@ def ncon(
   if backend and (backend not in backend_factory._BACKENDS):
     raise ValueError("Backend '{}' does not exist".format(backend))
   if backend is None:
-    backend = config.default_backend
+    backend = get_default_backend()
 
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}

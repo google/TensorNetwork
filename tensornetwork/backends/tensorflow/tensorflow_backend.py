@@ -189,8 +189,17 @@ class TensorFlowBackend(base_backend.BaseBackend):
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

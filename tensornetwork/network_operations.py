@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
 import numpy as np
 
 #pylint: disable=useless-import-alias
-import tensornetwork.config as config
 #pylint: disable=line-too-long
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory

@@ -373,8 +373,17 @@ class NumPyBackend(base_backend.BaseBackend):
       eigenvectors.append(state / self.np.linalg.norm(state))
     return eigvals[0:numeig], eigenvectors
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
