@@ -19,7 +19,6 @@ from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
 from tensornetwork.backends import base_backend
-import tensornetwork.config as config_file
 
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
