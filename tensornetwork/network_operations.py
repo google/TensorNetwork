@@ -29,7 +29,7 @@ Tensor = Any
 
 
 def norm(node: BaseNode) -> Tensor:
-  """The L2 norm of `Node`
+  """The L2 norm of `node`
 
   Args:
     node: A `BaseNode`. 
@@ -38,7 +38,7 @@ def norm(node: BaseNode) -> Tensor:
     The L2 norm.
 
   Raises:
-    AttributeError: If `Node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -49,7 +49,7 @@ def norm(node: BaseNode) -> Tensor:
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate a `Node`.
+  """Conjugate a `node`.
 
   Args:
     node: A `BaseNode`.
@@ -57,10 +57,10 @@ def conj(node: BaseNode,
     axis_names: Optional list of names for the axis.
 
   Returns:
-    A new node. The complex conjugate of `Node`.
+    A new node. The complex conjugate of `node`.
 
   Raises:
-    AttributeError: If `Node` has no `backend` attribute.
+    AttributeError: If `node` has no `backend` attribute.
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -80,7 +80,7 @@ def transpose(node: BaseNode,
               permutation: Sequence[Union[Text, int]],
               name: Optional[Text] = None,
               axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Transpose `Node`
+  """Transpose `node`
 
   Args:
     node: A `BaseNode`.
@@ -89,11 +89,11 @@ def transpose(node: BaseNode,
     axis_names: Optional list of names for the axis.
 
   Returns:
-    A new node. The transpose of `Node`.
+    A new node. The transpose of `node`.
 
   Raises:
-    AttributeError: If `Node` has no `backend` attribute, or if
-      `Node` has no tensor.
+    AttributeError: If `node` has no `backend` attribute, or if
+      `node` has no tensor.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
   """
@@ -193,9 +193,9 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   Returns:
     A tuple of:
       disconnected_edges_by_name:
-        A Dictionary mapping `Node`'s axis names to the newly broken edges.
+        A Dictionary mapping `node`'s axis names to the newly broken edges.
       disconnected_edges_by_axis:
-        A Dictionary mapping `Node`'s axis numbers to the newly broken edges.
+        A Dictionary mapping `node`'s axis numbers to the newly broken edges.
   """
   disconnected_edges_by_name = {}
   disconnected_edges_by_axis = {}
@@ -218,7 +218,7 @@ def split_node(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode, Tensor]:
-  """Split a `Node` using Singular Value Decomposition.
+  """Split a `node` using Singular Value Decomposition.
 
   Let :math:`M` be the matrix created by flattening `left_edges` and 
   `right_edges` into 2 axes. 
@@ -269,7 +269,7 @@ def split_node(
       truncated_singular_values:
         The vector of truncated singular values.
   Raises:
-    AttributeError: If `Node` has no backend attribute
+    AttributeError: If `node` has no backend attribute
   """
 
   if not hasattr(node, 'backend'):
@@ -329,7 +329,7 @@ def split_node_qr(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode]:
-  """Split a `Node` using QR decomposition.
+  """Split a `node` using QR decomposition.
 
   Let :math:`M` be the matrix created by 
   flattening `left_edges` and `right_edges` into 2 axes. 
@@ -358,7 +358,7 @@ def split_node_qr(
         A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`R`
   Raises:
-    AttributeError: If `Node` has no backend attribute
+    AttributeError: If `node` has no backend attribute
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -404,7 +404,7 @@ def split_node_rq(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode]:
-  """Split a `Node` using RQ (reversed QR) decomposition.
+  """Split a `node` using RQ (reversed QR) decomposition.
 
   Let :math:`M` be the matrix created by 
   flattening `left_edges` and `right_edges` into 2 axes. 
@@ -436,7 +436,7 @@ def split_node_rq(
         Its underlying tensor is :math:`Q^*`
 
   Raises:
-    AttributeError: If `Node` has no backend attribute
+    AttributeError: If `node` has no backend attribute
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -545,7 +545,7 @@ def split_node_full_svd(
         The vector of truncated singular values.
 
   Raises:
-    AttributeError: If `Node` has no backend attribute
+    AttributeError: If `node` has no backend attribute
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -618,13 +618,13 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
 def reachable(
     inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
 ) -> Set[BaseNode]:
-  """Computes all nodes reachable from `Node` or `edge.node1` by connected
+  """Computes all nodes reachable from `node` or `edge.node1` by connected
   edges.
 
   Args:
     inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
-    A set of `BaseNode` objects that can be reached from `Node`
+    A set of `BaseNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
@@ -736,7 +736,7 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
 
 
 def contract_trace_edges(node: BaseNode) -> BaseNode:
-  """contract all trace edges of `Node`.
+  """contract all trace edges of `node`.
 
   Args:
     node: A `BaseNode` object.
@@ -745,7 +745,7 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
     A new `BaseNode` obtained from contracting all trace edges.
 
   Raises:
-    ValueError: If `Node` has no trace edges.
+    ValueError: If `node` has no trace edges.
   """
   for edge in node.edges:
     if edge.is_trace():
