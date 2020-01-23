@@ -34,20 +34,20 @@ def test_transpose():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_concat():
+def test_shape_concat():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
-  expected = backend.concat((a, b), axis=1)
+  expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
   np.testing.assert_allclose(expected, actual)
 
 
-def test_shape():
+def test_shape_tensor():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
-  assert isinstance(backend.shape(a), type(a))
-  actual = backend.shape(a)
+  assert isinstance(backend.shape_tensor(a), type(a))
+  actual = backend.shape_tensor(a)
   expected = np.array([2, 3, 4])
   np.testing.assert_allclose(expected, actual)
 
@@ -59,10 +59,10 @@ def test_shape_tuple():
   assert actual == (2, 3, 4)
 
 
-def test_prod():
+def test_shape_prod():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(2 * np.ones([1, 2, 3, 4]))
-  actual = np.array(backend.prod(a))
+  actual = np.array(backend.shape_prod(a))
   assert actual == 2**24
 
 
@@ -247,15 +247,59 @@ def test_conj():
 
 
 @pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 2),
+    pytest.param(2.*np.ones(()), 1.*np.ones((1, 2, 3)), 3.*np.ones((1, 2, 3))),
+])
+def test_addition(a, b, expected):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.addition(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 0),
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.zeros((1, 2, 3))),
+])
+def test_subtraction(a, b, expected):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.subtraction(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 1),
     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-    pytest.param(2. * np.ones(()), np.ones((1, 2, 3)), 2. * np.ones((1, 2, 3))),
 ])
 def test_multiply(a, b, expected):
   backend = tensorflow_backend.TensorFlowBackend()
   tensor1 = backend.convert_to_tensor(a)
   tensor2 = backend.convert_to_tensor(b)
+  result = backend.multiply(tensor1, tensor2)
 
-  np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(2., 2., 1.),
+    pytest.param(np.ones(()), 2.*np.ones((1, 2, 3)), 0.5*np.ones((1, 2, 3))),
+])
+def test_divide(a, b, expected):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.divide(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
 
 
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])

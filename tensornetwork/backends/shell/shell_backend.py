@@ -108,7 +108,7 @@ class ShellBackend(base_backend.BaseBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
     if axis < 0:
       axis += len(shape)
@@ -120,20 +120,20 @@ class ShellBackend(base_backend.BaseBackend):
     tuple_values = (tuple(v) for v in values)
     return functools.reduce(operator.concat, tuple_values)
 
-  def shape(self, tensor: Tensor) -> Tuple:
+  def shape_tensor(self, tensor: Tensor) -> Tuple:
     return tensor.shape
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> int:
+  def shape_prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!
     # prod calculates the product of tensor elements and cannot implemented
     # for shell tensors
     # This returns the product of sizes instead
-    return self.shape_prod(values.shape)
+    return self.shape_product(values.shape)
 
-  def shape_prod(self, shape: Sequence[int]) -> int:
+  def shape_product(self, shape: Sequence[int]) -> int:
     return functools.reduce(operator.mul, shape)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -291,10 +291,19 @@ class ShellBackend(base_backend.BaseBackend):
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented addition( + )")
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented subtraction( - )")
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     a = np.ones(tensor1.shape)
     b = np.ones(tensor2.shape)
     return ShellTensor((a * b).shape)
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented add( / )")
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
