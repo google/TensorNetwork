@@ -290,11 +290,11 @@ class ShellBackend(base_backend.BaseBackend):
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
 
-  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    raise NotImplementedError("Shell tensor has not implemented add( + )")
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented addition( + )")
 
-  def subtract(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    raise NotImplementedError("Shell tensor has not implemented subtract( - )")
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented subtraction( - )")
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     a = np.ones(tensor1.shape)

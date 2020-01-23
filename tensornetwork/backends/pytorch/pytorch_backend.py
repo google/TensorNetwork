@@ -275,10 +275,10 @@ class PyTorchBackend(base_backend.BaseBackend):
       eigenvectors.append(state / self.torch.norm(state))
     return eigvals[0:numeig], eigenvectors
 
-  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
 
-  def subtract(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 - tensor2
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:

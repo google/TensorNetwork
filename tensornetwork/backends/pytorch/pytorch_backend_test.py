@@ -296,11 +296,11 @@ def test_eigsh_lanczos_raises():
     pytest.param(1, 1, 2),
     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), 2.*np.ones((1, 2, 3))),
 ])
-def test_add(a, b, expected):
+def test_addition(a, b, expected):
   backend = pytorch_backend.PyTorchBackend()
   tensor1 = backend.convert_to_tensor(a)
   tensor2 = backend.convert_to_tensor(b)
-  result = backend.add(tensor1, tensor2)
+  result = backend.addition(tensor1, tensor2)
 
   np.testing.assert_allclose(result, expected)
   assert tensor1.dtype == tensor2.dtype == result.dtype
@@ -310,11 +310,11 @@ def test_add(a, b, expected):
     pytest.param(1, 1, 0),
     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.zeros((1, 2, 3))),
 ])
-def test_subtract(a, b, expected):
+def test_subtraction(a, b, expected):
   backend = pytorch_backend.PyTorchBackend()
   tensor1 = backend.convert_to_tensor(a)
   tensor2 = backend.convert_to_tensor(b)
-  result = backend.subtract(tensor1, tensor2)
+  result = backend.subtraction(tensor1, tensor2)
 
   np.testing.assert_allclose(result, expected)
   assert tensor1.dtype == tensor2.dtype == result.dtype
