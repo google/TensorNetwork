@@ -133,7 +133,9 @@ def test_left_envs_empty_seq(backend_dtype_values):
   ] + [np.ones((D, d, 1), dtype=dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
 
-  assert mps.left_envs(False) == {}
+  assert mps.left_envs(()) == {}
+  assert mps.left_envs([]) == {}
+  assert mps.left_envs(range(0)) == {}
 
 
 def test_right_envs_empty_seq(backend_dtype_values):
@@ -146,4 +148,6 @@ def test_right_envs_empty_seq(backend_dtype_values):
   ] + [np.ones((D, d, 1), dtype=dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
 
-  assert mps.right_envs(False) == {}
+  assert mps.right_envs(()) == {}
+  assert mps.right_envs([]) == {}
+  assert mps.right_envs(range(0)) == {}
