@@ -68,6 +68,39 @@ def test_add_copy_node_from_node_object(backend):
   np.testing.assert_allclose(c.tensor, a.tensor)
 
 
+def test_copy_node_method(backend):
+  a = tn.Node(np.ones([3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
+def test_copy_copynode_method(backend):
+  a = tn.CopyNode(3, 3, 'mynode', axis_names=['a', 'b', 'c'], backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  assert a.rank == b.rank
+  assert a.backend == b.backend
+  assert a.dtype == b.dtype
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
 def test_default_names_add_node_object(backend):
   a = tn.CopyNode(3, 3, backend=backend)
   assert a.name is not None
