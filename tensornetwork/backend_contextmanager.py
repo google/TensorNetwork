@@ -35,8 +35,7 @@ def set_default_backend(backend: Union[Text, BaseBackend]) -> None:
   if _default_backend_stack.stack:
     raise AssertionError("The default backend should not be changed "
                          "inside the backend context manager")
-  else:
-    if not isinstance(backend, (Text, BaseBackend)):
-      raise ValueError("Item passed to set_default_backend "
-                       "must be Text or BaseBackend")
-    _default_backend_stack.default_backend = backend
+  if not isinstance(backend, (Text, BaseBackend)):
+    raise ValueError("Item passed to set_default_backend "
+                     "must be Text or BaseBackend")
+  _default_backend_stack.default_backend = backend
