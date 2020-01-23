@@ -1,4 +1,5 @@
 import tensornetwork as tn
+from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 
@@ -11,7 +12,13 @@ def test_contextmanager_simple():
 def test_contextmanager_default_backend():
   tn.set_default_backend("pytorch")
   with tn.DefaultBackend("numpy"):
-    assert tn.config.default_backend == "pytorch"
+    assert _default_backend_stack.default_backend == "pytorch"
+
+def test_contextmanager_interruption():
+  tn.set_default_backend("pytorch")
+  with pytest.raises(AssertionError):
+    with tn.DefaultBackend("numpy"):
+      tn.set_default_backend("tensorflow")
 
 def test_contextmanager_nested():
   with tn.DefaultBackend("tensorflow"):
@@ -27,16 +34,13 @@ def test_contextmanager_nested():
 
 def test_contextmanager_wrong_item():
   a = tn.Node(np.ones((10,)))
-  try:
-    with tn.DefaultBackend(a):
+  with pytest.raises(ValueError):
+    with tn.DefaultBackend(a): # pytype: disable=wrong-arg-types
       pass
-    assert False
-  except ValueError:
-    assert True
 
 def test_contextmanager_BaseBackend():
-  a = tn.Node(np.ones((10,)))
   tn.set_default_backend("pytorch")
+  a = tn.Node(np.ones((10,)))
   with tn.DefaultBackend(a.backend):
     b = tn.Node(np.ones((10,)))
-  assert b.backend.name == "numpy"
+  assert b.backend.name == "pytorch"

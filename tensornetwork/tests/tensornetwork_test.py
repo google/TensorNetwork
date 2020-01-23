@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import tensornetwork as tn
+from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -507,7 +508,7 @@ def test_set_node2(backend):
 
 def test_set_default(backend):
   tn.set_default_backend(backend)
-  assert tn.config.default_backend == backend
+  assert _default_backend_stack.default_backend == backend
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
 

@@ -21,7 +21,6 @@ from abc import abstractmethod
 import h5py
 
 #pylint: disable=useless-import-alias
-import tensornetwork.config as config
 from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
@@ -640,7 +639,7 @@ class CopyNode(BaseNode):
     """
 
     if not backend:
-      backend = config.default_backend
+      backend = get_default_backend()
     backend_obj = backend_factory.get_backend(backend)
 
     self.rank = rank
