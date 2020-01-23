@@ -7,7 +7,7 @@ TensorNetwork reference documentation
 
    tutorial
    basic_api_tutorial
-   Tensor Networks inside Neural Networks using Keras <https://colab.research.google.com/drive/1JUh84N5sbfQYk6HWowWCGl0IZ1idQi6z>
+   tensor_nets_in_neural_nets
 
 .. toctree::
    :maxdepth: 4

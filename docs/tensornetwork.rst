@@ -11,5 +11,4 @@ TensorNetwork
   edges
   ncon
   mps
-  network_operations
-  network_components
+  network
