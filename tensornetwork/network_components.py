@@ -106,10 +106,10 @@ class BaseNode(ABC):
     super().__init__()
 
   def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented add ( + )")
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
 
   def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented subtract ( - )")
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
 
   def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
     raise NotImplementedError("BaseNode has not implemented multiply ( * )")
@@ -586,7 +586,7 @@ class Node(BaseNode):
 
   def __add__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
-    new_tensor = self.backend.add(self.tensor, other.tensor)
+    new_tensor = self.backend.addition(self.tensor, other.tensor)
     if len(self.axis_names) > len(other.axis_names):
       axis_names = self.axis_names
     else:
@@ -598,7 +598,7 @@ class Node(BaseNode):
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
-    new_tensor = self.backend.subtract(self.tensor, other.tensor)
+    new_tensor = self.backend.subtraction(self.tensor, other.tensor)
     if len(self.axis_names) > len(other.axis_names):
       axis_names = self.axis_names
     else:
@@ -731,10 +731,10 @@ class CopyNode(BaseNode):
         shape=(dimension,) * rank)
 
   def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented add ( + )")
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
 
   def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented subtract ( - )")
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
 
   def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
     raise NotImplementedError("BaseNode has not implemented multiply ( * )")

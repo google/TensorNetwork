@@ -391,7 +391,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
-  def add(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
       Return the default multiplication of `tensor`.
       A backend can override such implementation.
@@ -402,9 +402,9 @@ class BaseBackend:
         Tensor
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented add.".format(self.name))
+        "Backend '{}' has not implemented addition.".format(self.name))
 
-  def subtract(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
       Return the default multiplication of `tensor`.
       A backend can override such implementation.
@@ -415,7 +415,7 @@ class BaseBackend:
         Tensor
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented subtract.".format(self.name))
+        "Backend '{}' has not implemented subtraction.".format(self.name))
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
