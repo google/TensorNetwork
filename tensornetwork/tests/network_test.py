@@ -295,6 +295,30 @@ def test_flatten_trace_edges(backend):
   assert new_edge.name == "New Edge"
 
 
+def test_flatten_trace_edges_generic_names():
+  a = tn.Node(np.ones([3, 3, 2, 2, 5]))
+  a[0] ^ a[1]
+  a[2] ^ a[3]
+  tn.flatten_edges([a[0], a[2]])
+  assert(a.axis_names == ['0', '1', '2'])
+
+
+def test_flatten_trace_edges_non_generic_names():
+  a = tn.Node(np.ones([3, 3, 2, 2, 5]), axis_names=['a', 'b', 'c', 'd', 'e'])
+  a[0] ^ a[1]
+  a[2] ^ a[3]
+  tn.flatten_edges([a[0], a[2]])
+  assert(a.axis_names == ['e', 'a', 'c'])
+
+
+def test_flatten_trace_edges_non_generic_names_backwards():
+  a = tn.Node(np.ones([3, 5, 2, 3, 2]), axis_names=['a', 'b', 'c', 'd', 'e'])
+  a[0] ^ a[3]
+  a[2] ^ a[4]
+  tn.flatten_edges([a[3], a[4]])
+  assert(a.axis_names == ['b', 'a', 'c'])
+
+
 def test_flatten_edges_standard(backend):
   a = tn.Node(np.zeros((2, 3, 5)), name="A", backend=backend)
   b = tn.Node(np.zeros((2, 3, 4, 5)), name="B", backend=backend)

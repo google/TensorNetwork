@@ -1155,6 +1155,8 @@ def _flatten_trace_edges(edges: List[Edge],
     The new edge that represents the flattening of the given edges.
   """
   node = edges[0].node1  # We are in the trace case, so this is the only node.
+  has_nongeneric_names = (set(node.axis_names) != 
+                          {str(n) for n in range(len(node.edges))})
   backend = node.backend
   # Flatten all of the edge's axes into a a single list.
   perm_back = [min(e.axis1, e.axis2) for e in edges]
@@ -1171,7 +1173,12 @@ def _flatten_trace_edges(edges: List[Edge],
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
   node.edges = node.edges[:len(perm_front)] + [edge1, edge2]
   new_edge = connect(edge1, edge2, new_edge_name)
-  node.axis_names = [str(n) for n in range(len(node.edges))]
+  if has_nongeneric_names:
+    node.axis_names = (node.axis_names[0:len(perm_front)] + 
+                       [node.axis_names[new_edge.axis1], 
+                        node.axis_names[new_edge.axis2]])
+  else:
+    node.axis_names = [str(n) for n in range(len(node.edges))]
   # pylint: disable=expression-not-assigned
   [edge.disable() for edge in edges]  #disable edges!
   return new_edge
