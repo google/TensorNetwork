@@ -218,7 +218,7 @@ class NumPyBackend(base_backend.BaseBackend):
             "lanczos. Please provide a valid `initial_state` with "
             "a `dtype` attribute")
 
-      initial_state = self.randn(A.shape[1], A.dtype)
+      initial_state = self.randn((A.shape[1],), A.dtype)
 
     if not isinstance(initial_state, self.np.ndarray):
       raise TypeError("Expected a `np.array`. Got {}".format(
