@@ -1911,9 +1911,7 @@ def contract_between(
     # Merge and update axis names if nodes use non-generic names
     if (not axis_names and 
         (node1.has_nongeneric_axis_names() or 
-         node2.has_nongeneric_axis_names()) and
-        backend.name in ['tensorflow', 'jax', 'numpy', 
-                         'pytorch']):
+         node2.has_nongeneric_axis_names())):
       new_node._unsafe_add_axis_names(
           _merge_axis_names(node1, node2, axes1, axes2))
 
