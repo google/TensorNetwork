@@ -293,15 +293,59 @@ def test_eigsh_lanczos_raises():
 
 
 @pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 2),
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), 2.*np.ones((1, 2, 3))),
+])
+def test_addition(a, b, expected):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.addition(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 0),
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.zeros((1, 2, 3))),
+])
+def test_subtraction(a, b, expected):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.subtraction(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(1, 1, 1),
     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-    pytest.param(2. * np.ones(()), np.ones((1, 2, 3)), 2. * np.ones((1, 2, 3))),
 ])
 def test_multiply(a, b, expected):
   backend = pytorch_backend.PyTorchBackend()
   tensor1 = backend.convert_to_tensor(a)
   tensor2 = backend.convert_to_tensor(b)
+  result = backend.multiply(tensor1, tensor2)
 
-  np.testing.assert_allclose(backend.multiply(tensor1, tensor2), expected)
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    pytest.param(2., 2., 1.),
+    pytest.param(np.ones(()), 2.*np.ones((1, 2, 3)), 0.5*np.ones((1, 2, 3))),
+])
+def test_divide(a, b, expected):
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.convert_to_tensor(a)
+  tensor2 = backend.convert_to_tensor(b)
+  result = backend.divide(tensor1, tensor2)
+
+  np.testing.assert_allclose(result, expected)
+  assert tensor1.dtype == tensor2.dtype == result.dtype
 
 
 def test_eigh():
