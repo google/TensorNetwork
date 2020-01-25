@@ -3,22 +3,26 @@ from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 
+
 def test_contextmanager_simple():
   with tn.DefaultBackend("tensorflow"):
     a = tn.Node(np.ones((10,)))
     b = tn.Node(np.ones((10,)))
   assert a.backend.name == b.backend.name
 
+
 def test_contextmanager_default_backend():
   tn.set_default_backend("pytorch")
   with tn.DefaultBackend("numpy"):
     assert _default_backend_stack.default_backend == "pytorch"
+
 
 def test_contextmanager_interruption():
   tn.set_default_backend("pytorch")
   with pytest.raises(AssertionError):
     with tn.DefaultBackend("numpy"):
       tn.set_default_backend("tensorflow")
+
 
 def test_contextmanager_nested():
   with tn.DefaultBackend("tensorflow"):
@@ -32,11 +36,13 @@ def test_contextmanager_nested():
   d = tn.Node(np.ones((10,)))
   assert d.backend.name == "numpy"
 
+
 def test_contextmanager_wrong_item():
   a = tn.Node(np.ones((10,)))
   with pytest.raises(ValueError):
     with tn.DefaultBackend(a): # pytype: disable=wrong-arg-types
       pass
+
 
 def test_contextmanager_BaseBackend():
   tn.set_default_backend("pytorch")
@@ -44,3 +50,10 @@ def test_contextmanager_BaseBackend():
   with tn.DefaultBackend(a.backend):
     b = tn.Node(np.ones((10,)))
   assert b.backend.name == "pytorch"
+
+
+def test_set_default_backend_value_error():
+  tn.set_default_backend("pytorch")
+  with pytest.raises(ValueError, match="Item passed to set_default_backend "
+                                       "must be Text or BaseBackend"):
+    tn.set_default_backend(-1)
