@@ -431,6 +431,40 @@ def test_eigs(dtype, which):
   np.testing.assert_allclose(v1, v2)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs_no_init(dtype, which):
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  M = backend.randn((D, D), dtype=dtype, seed=10)
+
+  class MyOperator:
+    def __init__(self, M):
+      self.M = M
+
+    def __call__(self, x):
+      return np.dot(self.M, x)
+
+    @property
+    def shape(self):
+      return self.M.shape
+
+    @property
+    def dtype(self):
+      return self.M.dtype
+
+  eta1, U1 = backend.eigs(MyOperator(M), numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(M)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)
+
+
 @pytest.mark.parametrize("which", ['SI', 'LI'])
 def test_eigs_raises_error_for_unsupported_which(which):
   backend = numpy_backend.NumPyBackend()
@@ -465,6 +499,19 @@ def test_eigs_raises_error_for_untyped_A():
             "Please provide a valid `initial_state` with a `dtype` attribute"
   with pytest.raises(AttributeError, match=err_msg):
     backend.eigs(A)
+
+
+def test_eigs_raises_error_for_bad_initial_state():
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  init = [1]*D
+  M = backend.randn((D, D), dtype=np.float64)
+
+  def mv(x):
+    return np.dot(M, x)
+
+  with pytest.raises(TypeError):
+    backend.eigs(mv, initial_state=init)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
