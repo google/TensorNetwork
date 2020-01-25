@@ -271,3 +271,27 @@ def index_update(dtype):
   tensor = np.array(tensor)
   tensor[tensor > 0.1] = 0.0
   np.testing.assert_allclose(tensor, out)
+
+
+def test_base_backend_eigs_not_implemented():
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((4, 2, 3), dtype=np.float64)
+  with pytest.raises(NotImplementedError):
+    backend.eigs(tensor)
+
+
+def test_base_backend_eigsh_lanczos_not_implemented():
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((4, 2, 3), dtype=np.float64)
+  with pytest.raises(NotImplementedError):
+    backend.eigsh_lanczos(tensor)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_index_update(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
+  out = backend.index_update(tensor, tensor > 0.1, 0.0)
+  np_tensor = np.array(tensor)
+  np_tensor[np_tensor > 0.1] = 0.0
+  np.testing.assert_allclose(out, np_tensor)
