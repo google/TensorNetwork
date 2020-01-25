@@ -316,6 +316,12 @@ def test_base_backend_addition_not_implemented():
     backend.addition(np.ones((2, 2)), np.ones((2, 2)))
 
 
+def test_base_backend_subtraction_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.subtraction(np.ones((2, 2)), np.ones((2, 2)))
+
+
 def test_base_backend_multiply_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
