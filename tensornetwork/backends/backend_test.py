@@ -157,7 +157,7 @@ def test_base_backend_name():
 def test_base_backend_tensordot_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.tensordot(np.ones((2, 2)), np.ones((2, 2)), axes=[0, 0])
+    backend.tensordot(np.ones((2, 2)), np.ones((2, 2)), axes=[[0], [0]])
 
 
 def test_base_backend_reshape_not_implemented():
