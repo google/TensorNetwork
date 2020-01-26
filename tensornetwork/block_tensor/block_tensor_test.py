@@ -7,143 +7,136 @@ from tensornetwork.block_tensor.block_tensor import _find_diagonal_dense_blocks,
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 
+# def test_test_num_nonzero_consistency():
+#   B = 4
+#   D = 100
+#   rank = 4
 
-def test_test_num_nonzero_consistency():
-  B = 4
-  D = 100
-  rank = 4
+#   qs = [[
+#       np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+#       for _ in range(2)
+#   ]
+#         for _ in range(rank)]
+#   charges1 = [U1Charge(qs[n]) for n in range(rank)]
+#   charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
+#   charges3 = [
+#       ChargeCollection([U1Charge(qs[n][m])
+#                         for m in range(2)])
+#       for n in range(rank)
+#   ]
+#   flows = [1, 1, 1, -1]
+#   n1 = compute_num_nonzero(charges1, flows)
+#   n2 = compute_num_nonzero(charges3, flows)
+#   n3 = compute_num_nonzero(charges3, flows)
+#   assert n1 == n2
 
-  qs = [[
-      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-      for _ in range(2)
-  ]
-        for _ in range(rank)]
-  charges1 = [U1Charge(qs[n]) for n in range(rank)]
-  charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
-  charges3 = [
-      ChargeCollection([U1Charge(qs[n][m])
-                        for m in range(2)])
-      for n in range(rank)
-  ]
-  flows = [1, 1, 1, -1]
-  n1 = compute_num_nonzero(charges1, flows)
-  n2 = compute_num_nonzero(charges3, flows)
-  n3 = compute_num_nonzero(charges3, flows)
-  assert n1 == n2
+# def test_find_sparse_positions_consistency():
+#   B = 4
+#   D = 100
+#   rank = 4
 
+#   qs = [[
+#       np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+#       for _ in range(2)
+#   ]
+#         for _ in range(rank)]
+#   charges1 = [U1Charge(qs[n]) for n in range(rank)]
+#   charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
+#   charges3 = [
+#       ChargeCollection([U1Charge(qs[n][m])
+#                         for m in range(2)])
+#       for n in range(rank)
+#   ]
 
-def test_find_sparse_positions_consistency():
-  B = 4
-  D = 100
-  rank = 4
+#   data1 = find_sparse_positions(
+#       charges=charges1,
+#       flows=[1, 1, 1, 1],
+#       target_charges=charges1[0].zero_charge)
+#   data2 = find_sparse_positions(
+#       charges=charges2,
+#       flows=[1, 1, 1, 1],
+#       target_charges=charges2[0].zero_charge)
+#   data3 = find_sparse_positions(
+#       charges=charges3,
+#       flows=[1, 1, 1, 1],
+#       target_charges=charges3[0].zero_charge)
 
-  qs = [[
-      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-      for _ in range(2)
-  ]
-        for _ in range(rank)]
-  charges1 = [U1Charge(qs[n]) for n in range(rank)]
-  charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
-  charges3 = [
-      ChargeCollection([U1Charge(qs[n][m])
-                        for m in range(2)])
-      for n in range(rank)
-  ]
+#   nz1 = np.asarray(list(data1.values())[0])
+#   nz2 = np.asarray(list(data2.values())[0])
+#   nz3 = np.asarray(list(data3.values())[0])
+#   assert np.all(nz1 == nz2)
+#   assert np.all(nz1 == nz3)
 
-  data1 = find_sparse_positions(
-      charges=charges1,
-      flows=[1, 1, 1, 1],
-      target_charges=charges1[0].zero_charge)
-  data2 = find_sparse_positions(
-      charges=charges2,
-      flows=[1, 1, 1, 1],
-      target_charges=charges2[0].zero_charge)
-  data3 = find_sparse_positions(
-      charges=charges3,
-      flows=[1, 1, 1, 1],
-      target_charges=charges3[0].zero_charge)
+# def test_find_dense_positions_consistency():
+#   B = 5
+#   D = 20
+#   rank = 4
 
-  nz1 = np.asarray(list(data1.values())[0])
-  nz2 = np.asarray(list(data2.values())[0])
-  nz3 = np.asarray(list(data3.values())[0])
-  assert np.all(nz1 == nz2)
-  assert np.all(nz1 == nz3)
+#   qs = [[
+#       np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+#       for _ in range(2)
+#   ]
+#         for _ in range(rank)]
+#   charges1 = [U1Charge(qs[n]) for n in range(rank)]
+#   charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
+#   charges3 = [
+#       ChargeCollection([U1Charge(qs[n][m])
+#                         for m in range(2)])
+#       for n in range(rank)
+#   ]
+#   flows = [1, 1, 1, -1]
+#   data1 = find_dense_positions(
+#       charges=charges1, flows=flows, target_charge=charges1[0].zero_charge)
+#   data2 = find_dense_positions(
+#       charges=charges2, flows=flows, target_charge=charges2[0].zero_charge)
+#   data3 = find_dense_positions(
+#       charges=charges3, flows=flows, target_charge=charges3[0].zero_charge)
 
+#   nz = compute_num_nonzero(charges1, flows)
+#   assert nz == len(data1)
+#   assert len(data1) == len(data2)
+#   assert len(data1) == len(data3)
 
-def test_find_dense_positions_consistency():
-  B = 5
-  D = 20
-  rank = 4
+# def test_find_diagonal_sparse_blocks_consistency():
+#   B = 5
+#   D = 20
+#   rank = 4
 
-  qs = [[
-      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-      for _ in range(2)
-  ]
-        for _ in range(rank)]
-  charges1 = [U1Charge(qs[n]) for n in range(rank)]
-  charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
-  charges3 = [
-      ChargeCollection([U1Charge(qs[n][m])
-                        for m in range(2)])
-      for n in range(rank)
-  ]
-  flows = [1, 1, 1, -1]
-  data1 = find_dense_positions(
-      charges=charges1, flows=flows, target_charge=charges1[0].zero_charge)
-  data2 = find_dense_positions(
-      charges=charges2, flows=flows, target_charge=charges2[0].zero_charge)
-  data3 = find_dense_positions(
-      charges=charges3, flows=flows, target_charge=charges3[0].zero_charge)
+#   qs = [[
+#       np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+#       for _ in range(2)
+#   ]
+#         for _ in range(rank)]
+#   charges1 = [U1Charge(qs[n]) for n in range(rank)]
+#   charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
+#   charges3 = [
+#       ChargeCollection([U1Charge(qs[n][m])
+#                         for m in range(2)])
+#       for n in range(rank)
+#   ]
 
-  nz = compute_num_nonzero(charges1, flows)
-  assert nz == len(data1)
-  assert len(data1) == len(data2)
-  assert len(data1) == len(data3)
+#   _, _, start_positions1, _, _ = _find_diagonal_sparse_blocks(
+#       row_charges=[charges1[0], charges1[1]],
+#       column_charges=[charges1[2], charges1[3]],
+#       row_flows=[1, 1],
+#       column_flows=[1, -1],
+#       return_data=False)
 
+#   _, _, start_positions2, _, _ = _find_diagonal_sparse_blocks(
+#       row_charges=[charges2[0], charges2[1]],
+#       column_charges=[charges2[2], charges2[3]],
+#       row_flows=[1, 1],
+#       column_flows=[1, -1],
+#       return_data=False)
 
-def test_find_diagonal_sparse_blocks_consistency():
-  B = 5
-  D = 20
-  rank = 4
-
-  qs = [[
-      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-      for _ in range(2)
-  ]
-        for _ in range(rank)]
-  charges1 = [U1Charge(qs[n]) for n in range(rank)]
-  charges2 = [ChargeCollection([charges1[n]]) for n in range(rank)]
-  charges3 = [
-      ChargeCollection([U1Charge(qs[n][m])
-                        for m in range(2)])
-      for n in range(rank)
-  ]
-
-  _, _, start_positions1, _, _ = _find_diagonal_sparse_blocks(
-      data=[],
-      row_charges=[charges1[0], charges1[1]],
-      column_charges=[charges1[2], charges1[3]],
-      row_flows=[1, 1],
-      column_flows=[1, -1],
-      return_data=False)
-
-  _, _, start_positions2, _, _ = _find_diagonal_sparse_blocks(
-      data=[],
-      row_charges=[charges2[0], charges2[1]],
-      column_charges=[charges2[2], charges2[3]],
-      row_flows=[1, 1],
-      column_flows=[1, -1],
-      return_data=False)
-
-  _, _, start_positions3, _, _ = _find_diagonal_sparse_blocks(
-      data=[],
-      row_charges=[charges3[0], charges3[1]],
-      column_charges=[charges3[2], charges3[3]],
-      row_flows=[1, 1],
-      column_flows=[1, -1],
-      return_data=False)
-  assert np.all(start_positions1 == start_positions2)
-  assert np.all(start_positions1 == start_positions3)
+#   _, _, start_positions3, _, _ = _find_diagonal_sparse_blocks(
+#       row_charges=[charges3[0], charges3[1]],
+#       column_charges=[charges3[2], charges3[3]],
+#       row_flows=[1, 1],
+#       column_flows=[1, -1],
+#       return_data=False)
+#   assert np.all(start_positions1 == start_positions2)
+#   assert np.all(start_positions1 == start_positions3)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -202,7 +195,7 @@ def test_find_dense_positions():
   dense_positions = find_dense_positions(
       [U1Charge(left_charges), U1Charge(right_charges)], [1, 1],
       U1Charge(np.asarray([target_charge])))
-  np.testing.assert_allclose(dense_positions,
+  np.testing.assert_allclose(dense_positions[0],
                              np.nonzero(fused_charges == target_charge)[0])
 
 
@@ -229,7 +222,7 @@ def test_find_dense_positions_2():
   i23 = indices[2] * indices[3]
   positions = find_dense_positions([i01.charges, i23.charges], [1, 1],
                                    U1Charge(np.asarray([0])))
-  assert len(positions) == n1
+  assert len(positions[0]) == n1
 
 
 def test_find_sparse_positions():
@@ -330,8 +323,8 @@ def test_find_sparse_positions_3():
 #   np.testing.assert_allclose(A.data, B.flat)
 
 
-def test_find_diagonal_dense_blocks():
-  R = 2
+@pytest.mark.parametrize("R", [1, 2])
+def test_find_diagonal_dense_blocks(R):
   rs = [U1Charge(np.random.randint(-4, 4, 50)) for _ in range(R)]
   cs = [U1Charge(np.random.randint(-4, 4, 50)) for _ in range(R)]
   charges = rs + cs
@@ -353,11 +346,34 @@ def test_find_diagonal_dense_blocks():
     assert np.all(blocks[comm.charges[n]] == blocks_[n][0])
 
 
-def test_find_diagonal_dense_blocks_transposed():
-  R = 2
+# #@pytest.mark.parametrize("dtype", np_dtypes)
+# def test_find_diagonal_dense_blocks_2():
+#   R = 1
+#   rs = [U1Charge(np.random.randint(-4, 4, 50)) for _ in range(R)]
+#   cs = [U1Charge(np.random.randint(-4, 4, 50)) for _ in range(R)]
+#   charges = rs + cs
+
+#   left_fused = fuse_charges(charges[0:R], [1] * R)
+#   right_fused = fuse_charges(charges[R:], [1] * R)
+#   left_unique = left_fused.unique()
+#   right_unique = right_fused.unique()
+#   zero = left_unique.zero_charge
+#   blocks = {}
+#   rdim = len(right_fused)
+#   for lu in left_unique:
+#     linds = np.nonzero(left_fused == lu)[0]
+#     rinds = np.nonzero(right_fused == lu * (-1))[0]
+#     if (len(linds) > 0) and (len(rinds) > 0):
+#       blocks[lu] = fuse_ndarrays([linds * rdim, rinds])
+#   comm, blocks_ = _find_diagonal_dense_blocks(rs, cs, [1] * R, [1] * R)
+#   for n in range(len(comm)):
+#     assert np.all(blocks[comm.charges[n]] == blocks_[n][0])
+
+
+@pytest.mark.parametrize("R", [1, 2])
+def test_find_diagonal_dense_blocks_transposed(R):
   order = np.arange(2 * R)
   np.random.shuffle(order)
-  R = 2
   rs = [U1Charge(np.random.randint(-4, 4, 50)) for _ in range(R)]
   cs = [U1Charge(np.random.randint(-4, 4, 40)) for _ in range(R)]
   charges = rs + cs

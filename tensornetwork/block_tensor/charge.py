@@ -24,207 +24,54 @@ import warnings
 from typing import List, Union, Any, Optional, Tuple, Text, Iterable, Type
 
 
-def _copy_charges(charges):
-  cs = []
-  for n in range(len(charges)):
-    c = type(charges[n]).__new__(type(
-        charges[n]))  #create a new charge object of type type(other)
-    c.__init__(charges[n].charges.copy())
-    cs.append(c)
-  return cs
-
-
 class BaseCharge:
-  """
-  Base class for fundamental charges (i.e. for symmetries that 
-  are not products of smaller groups)
-  """
 
   def __init__(self,
-               charges: Optional[Union[List[np.ndarray], np.ndarray]] = None,
-               shifts: Optional[Union[List[int], np.ndarray]] = None) -> None:
-    """
-    Initialize a BaseCharge object.
-    Args:
-      charges: Optional `np.ndarray` or list of `np.ndarray` of type `int` holdingn
-        the physical charges. If a list of `np,ndarray` is passed, the arrays are merged
-        into a single `np.ndarray` by `np.left_shift`-ing and adding up charges. The amount
-        of left-shift per `np,ndarray` is determined by its `dtype`. E.g. an `np,ndarray` of
-        `dtype=np.int16` is shifted by 16 bits. Charges are shifted and added moving from 
-         small to large indices in `charges`. `BaseCharge` can hold at most 8 individual 
-         charges of `dtype=np.int8` on 64-bit architectures.
-      shifts: An optional list of shifts, used for initializing a `BaseCharge` object from 
-        an existing `BaseCharge` object.
-    """
-    if charges is not None:
-      if isinstance(charges, np.ndarray):
-        charges = [charges]
-      self._itemsizes = [c.dtype.itemsize for c in charges]
-      if np.sum(self._itemsizes) > 8:
-        raise TypeError("number of bits required to store all charges "
-                        "in a single int is larger than 64")
+               charges: np.ndarray,
+               charge_labels: Optional[np.ndarray] = None) -> None:
+    if charges.dtype is not np.int16:
+      raise TypeError("`charges` have to be of dtype `np.int16`")
+    if charge_labels.dtype is not np.int16:
+      raise TypeError("`charge_labels` have to be of dtype `np.int16`")
 
-      if len(charges) > 1:
-        if shifts is not None:
-          raise ValueError("If `shifts` is passed, only a single charge array "
-                           "can be passed. Got len(charges) = {}".format(
-                               len(charges)))
-      if shifts is None:
-        dtype = np.int8
-        if np.sum(self._itemsizes) > 1:
-          dtype = np.int16
-        if np.sum(self._itemsizes) > 2:
-          dtype = np.int32
-        if np.sum(self._itemsizes) > 4:
-          dtype = np.int64
-        #multiply by eight to get number of bits
-        self.shifts = 8 * np.flip(
-            np.append(0, np.cumsum(np.flip(
-                self._itemsizes[1::])))).astype(dtype)
-        dtype_charges = [c.astype(dtype) for c in charges]
-        self.charges = np.sum([
-            np.left_shift(dtype_charges[n], self.shifts[n])
-            for n in range(len(dtype_charges))
-        ],
-                              axis=0).astype(dtype)
-      else:
-        if np.max(shifts) >= charges[0].dtype.itemsize * 8:
-          raise TypeError("shifts {} are incompatible with dtype {}".format(
-              shifts, charges[0].dtype))
-        self.shifts = np.asarray(shifts)
-        self.charges = charges[0]
+    if charge_labels is None:
+      self.unique_charges, charge_labels = np.unique(
+          charges, return_inverse=True)
+      self.charge_labels = charge_labels.astype(np.uint16)
+
     else:
-      self.charges = np.asarray([])
-      self.shifts = np.asarray([])
+      self.unique_charges = charges
+      self.charge_labels = charge_labels.astype(np.uint16)
 
   def __add__(self, other: "BaseCharge") -> "BaseCharge":
-    """
-    Fuse the charges of two `BaseCharge` objects and return a new 
-    `BaseCharge` holding the result.
-    Args:
-      other: A `BaseChare` object.
-    Returns:
-      BaseCharge: The result of fusing `self` with `other`.
-    """
-    raise NotImplementedError("`__add__` is not implemented for `BaseCharge`")
+    # fuse the unique charges from each index, then compute new unique charges
+    comb_qnums = self.fuse(self.unique_charges, other.unique_charges)
+    [unique_charges, new_labels] = np.unique(comb_qnums, return_inverse=True)
+    new_labels = new_labels.reshape(
+        len(self.unique_charges), len(other.unique_charges)).astype(np.uint16)
 
-  def __sub__(self, other: "BaseCharge") -> "BaseCharge":
-    """
-    Subtract the charges of `other` from `self.
-    Returns a `BaseCharge` holding the result.
-    Args:
-      other: A `BaseChare` object.
-    Returns:
-      BaseCharge: The result subtracting `other` from `self`.
-    """
-
-    raise NotImplementedError("`__sub__` is not implemented for `BaseCharge`")
-
-  def __matmul__(self, other: "BaseCharge") -> "BaseCharge":
-    """
-    Build the direct product of two charges and return 
-    it in a new `BaseCharge` object.
-    Args:
-      other: A `BaseCharge` object.
-    Returns:
-      BaseCharge: The direct product of `self` and `other`.
-    """
-    raise NotImplementedError(
-        "`__matmul__` is not implemented for `BaseCharge`")
-
-  def get_item(self, n: Union[np.ndarray, int]) -> np.ndarray:
-    """
-    Return the charge-element at position `n`.
-    Args: 
-      n: An integer or `np.ndarray`.
-    Returns:
-      np.ndarray: The charges at `n`.
-    """
-    return self.charges[n]
-
-  def get_item_ndarray(self, n: Union[np.ndarray, int]) -> np.ndarray:
-    """
-    Return the charge-element at position `n`.
-    Needed to provide a common interface with `ChargeCollection`.
-    Args: 
-      n: An integer or `np.ndarray`.
-    Returns:
-      np.ndarray: The charges at `n`.
-
-    """
-
-    return self.get_item(n)
-
-  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
-    """
-    Return the charge-element at position `n`, wrapped into a `BaseCharge`
-    object.
-    Args: 
-      n: An integer or `np.ndarray`.
-    Returns:
-      BaseCharge: The charges at `n`.
-    """
-
-    if isinstance(n, (np.integer, int)):
-      n = np.asarray([n])
-    charges = self.charges[n]
+    # find new labels using broadcasting (could use np.tile but less efficient)
+    charge_labels = new_labels[(
+        self.charge_labels[:, None] + np.zeros([1, len(other)], dtype=np.uint16)
+    ).ravel(), (other.charge_labels[None, :] +
+                np.zeros([len(self), 1], dtype=np.uint16)).ravel()]
     obj = self.__new__(type(self))
-    obj.__init__(charges=[charges], shifts=self.shifts)
+    obj.__init__(unique_charges, charge_labels)
     return obj
 
-  @property
-  def num_symmetries(self):
-    """
-    The number of individual symmetries stored in this object.
-    """
-    return len(self.shifts)
-
-  def __len__(self) -> int:
-    return np.prod(self.charges.shape)
-
-  def __repr__(self):
-    return str(type(self)) + '\nshifts: ' + self.shifts.__repr__(
-    ) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
+  def __len__(self):
+    return len(self.charge_labels)
 
   @property
-  def dual_charges(self) -> np.ndarray:
-    raise NotImplementedError(
-        "`dual_charges` is not implemented for `BaseCharge`")
-
-  def __mul__(self, number: Union[bool, int]) -> "BaseCharge":
-    """
-    Multiply `self` with `number` from the left. 
-    `number` can take values in `1,-1, 0, True, False`.
-    This multiplication is used to transform between charges and dual-charges.
-    Args:
-      number: Can can take values in `1,-1, 0, True, False`. 
-        If `1,True`, return the original object
-        If `-1, 0, False` return a new `BaseCharge` holding the 
-        dual-charges.
-    Returns:
-      BaseCharge: The result of `self * number`
-    """
-    raise NotImplementedError("`__mul__` is not implemented for `BaseCharge`")
-
-  def __rmul__(self, number: Union[bool, int]) -> "BaseCharge":
-    """
-    Multiply `self` with `number` from the right. 
-    `number` can take values in `1,-1, 0, True, False`.
-    This multiplication is used to transform between charges and dual-charges.
-    Args:
-      number: Can can take values in `1,-1, 0, True, False`. 
-        If `1,True`, return the original object
-        If `-1, 0, False` return a new `BaseCharge` holding the 
-        dual-charges.
-    Returns:
-      BaseCharge: The result of `number * self`.
-    """
-
-    raise NotImplementedError("`__rmul__` is not implemented for `BaseCharge`")
+  def charges(self) -> np.ndarray:
+    return self.unique_charges[self.charge_labels]
 
   @property
   def dtype(self):
-    return self.charges.dtype
+    return self.unique_charges.dtype
+
+  def __repr__(self):
+    return str(type(self)) + '\n' + 'charges: ' + self.charges.__repr__() + '\n'
 
   def unique(self,
              return_index=False,
@@ -252,19 +99,26 @@ class BaseCharge:
       np.ndarray: The number of times each of the unique values comes up in the
         original array. Only provided if `return_counts` is True.      
     """
-    result = np.unique(
-        self.charges,
-        return_index=return_index,
-        return_inverse=return_inverse,
-        return_counts=return_counts)
-    if not (return_index or return_inverse or return_counts):
-      out = self.__new__(type(self))
-      out.__init__([result], self.shifts)
-      return out
-    else:
-      out = self.__new__(type(self))
-      out.__init__([result[0]], self.shifts)
-      return tuple([out] + [result[n] for n in range(1, len(result))])
+    obj = self.__new__(type(self))
+    obj.__init__(
+        self.unique_charges,
+        charge_labels=np.arange(len(self.unique_charges), dtype=np.uint16))
+
+    out = [obj]
+    if return_index:
+      _, index = np.unique(self.charge_labels, return_index=True)
+      out.append(index)
+    if return_inverse:
+      out.append(self.charge_labels)
+    if return_counts:
+      _, cnts = np.unique(self.charge_labels, return_counts=True)
+      out.append(cnts)
+    if len(out) == 1:
+      return out[0]
+    if len(out) == 2:
+      return out[0], out[1]
+    if len(out) == 3:
+      return out[0], out[1], out[2]
 
   def isin(self, targets: Union[int, Iterable, "BaseCharge"]) -> np.ndarray:
     """
@@ -276,56 +130,22 @@ class BaseCharge:
       np.ndarray: An array of `bool` type holding the result of the comparison.
     """
     if isinstance(targets, type(self)):
-      if not np.all(self.shifts == targets.shifts):
-        raise ValueError(
-            "Cannot compare charges with different shifts {} and {}".format(
-                self.shifts, targets.shifts))
-
-      targets = targets.charges
+      targets = targets.unique_charges
     targets = np.asarray(targets)
-    return np.isin(self.charges, targets)
+    common, label_to_unique, label_to_targets = np.intersect1d(
+        self.unique_charges, targets, return_indices=True)
+    if len(common) == 0:
+      return np.full(len(self.charge_labels), fill_value=False, dtype=np.bool)
+    return np.isin(self.charge_labels, label_to_unique)
 
   def __contains__(self, target: Union[int, Iterable, "BaseCharge"]) -> bool:
     """
-    Test each element of `BaseCharge` if it is in `targets`. Returns 
-    an `np.ndarray` of `dtype=bool`.
-    Args:
-      targets: The test elements 
-    Returns:
-      np.ndarray: An array of `bool` type holding the result of the comparison.
     """
 
     if isinstance(target, type(self)):
-      if not np.all(self.shifts == target.shifts):
-        raise ValueError(
-            "Cannot compare charges with different shifts {} and {}".format(
-                self.shifts, tparget.shifts))
-      target = target.charges
+      target = target.unique_charges
     target = np.asarray(target)
-    return target in self.charges
-
-  def equals(self, target_charges: Iterable) -> np.ndarray:
-    """
-    Find indices where `BaseCharge` equals `target_charges`.
-    `target_charges` has to be an array of the same lenghts 
-    as `BaseCharge.shifts`, containing one integer per symmetry of 
-    `BaseCharge`
-    Args:
-      target_charges: np.ndarray of integers encoding charges.
-    Returns:
-      np.ndarray: Boolean array with `True` where `BaseCharge` equals
-      `target_charges` and `False` everywhere else.
-    """
-    if len(target_charges) != len(self.shifts):
-      raise ValueError("len(target_charges) = {} is different "
-                       "from len(shifts) = {}".format(
-                           len(target_charges), len(self.shifts)))
-    _target_charges = np.asarray(target_charges).astype(self.charges.dtype)
-    target = np.sum([
-        np.left_shift(_target_charges[n], self.shifts[n])
-        for n in range(len(self.shifts))
-    ])
-    return self.charges == target
+    return target in self.unique_charges
 
   def __eq__(self, target: Union[int, Iterable]) -> np.ndarray:
     """
@@ -339,39 +159,23 @@ class BaseCharge:
       `target` and `False` everywhere else.
     """
     if isinstance(target, type(self)):
-      return self.charges == target.charges
-    return self.charges == np.asarray(target)
+      target = target.charges
+    elif isinstance(target, (np.integer, int)):
+      target = np.asarray([target])
+    target = np.asarray(target)
+    tmp = np.full(len(target), fill_value=-1, dtype=np.int16)
 
-  def concatenate(self, others: Union["BaseCharge", List["BaseCharge"]]):
-    """
-    Concatenate `self.charges` with `others.charges`.
-    Args: 
-      others: List of `BaseCharge` objects.
-    Returns:
-      BaseCharge: The concatenated charges.
-    """
-    if isinstance(others, type(self)):
-      others = [others]
-    for o in others:
-      if not np.all(self.shifts == o.shifts):
-        raise ValueError(
-            "Cannot fuse charges with different shifts {} and {}".format(
-                self.shifts, o.shifts))
-
-    charges = np.concatenate(
-        [self.charges] + [o.charges for o in others], axis=0)
-    out = self.__new__(type(self))
-    out.__init__([charges], self.shifts)
-    return out
-
-  @property
-  def dtype(self):
-    return self.charges.dtype
+    _, label_to_unique, label_to_target = np.intersect1d(
+        self.unique_charges, target, return_indices=True)
+    tmp[label_to_target] = label_to_unique
+    return np.squeeze(
+        np.expand_dims(self.charge_labels, 1) == np.expand_dims(tmp, 0))
 
   @property
   def zero_charge(self):
     obj = self.__new__(type(self))
-    obj.__init__(charges=[np.asarray([self.dtype.type(0)])], shifts=self.shifts)
+    obj.__init__(
+        np.asarray([self.dtype.type(0)]), np.asarray([0], dtype=np.uint16))
     return obj
 
   def __iter__(self):
@@ -380,10 +184,6 @@ class BaseCharge:
   def intersect(self,
                 other: "BaseCharge",
                 return_indices: Optional[bool] = False) -> "BaseCharge":
-    if not np.all(self.shifts == other.shifts):
-      raise ValueError(
-          "Cannot intersect charges with different shifts {} and {}".format(
-              self.shifts, other.shifts))
     if return_indices:
       charges, comm1, comm2 = np.intersect1d(
           self.charges, other.charges, return_indices=return_indices)
@@ -391,99 +191,36 @@ class BaseCharge:
       charges = np.intersect1d(self.charges, other.charges)
 
     obj = self.__new__(type(self))
-    obj.__init__(charges=[charges], shifts=self.shifts)
+    obj.__init__(charges, np.arange(len(charges), dtype=np.uint16))
     if return_indices:
-      return obj, comm1, comm2
+      return obj, comm1.astype(np.uint16), comm2.astype(np.uint16)
     return obj
 
-
-class U1Charge(BaseCharge):
-  """
-  A simple charge class for a single U1 symmetry.
-  This class can store multiple U1 charges in a single 
-  np.ndarray of integer dtype. Depending on the dtype of
-  the individual symmetries, this class can store:
-  * 8 np.int8 
-  * 4 np.int16
-  * 2 np.int32
-  * 1 np.int64
-  or any suitable combination of dtypes, such that their 
-  bite-sum remains below 64.
-  """
-
-  def __init__(self,
-               charges: List[np.ndarray],
-               shifts: Optional[np.ndarray] = None) -> None:
-    super().__init__(charges=charges, shifts=shifts)
-
-  def __add__(self, other: "U1Charge") -> "U1Charge":
+  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     """
-    Fuse the charges of `self` with charges of `other`, and 
-    return a new `U1Charge` object holding the result.
+    Return the charge-element at position `n`, wrapped into a `BaseCharge`
+    object.
     Args: 
-      other: A `U1Charge` object.
+      n: An integer or `np.ndarray`.
     Returns:
-      U1Charge: The result of fusing `self` with `other`.
+      BaseCharge: The charges at `n`.
     """
-    if self.num_symmetries != other.num_symmetries:
-      raise ValueError(
-          "cannot fuse charges with different number of symmetries")
 
-    if not np.all(self.shifts == other.shifts):
-      raise ValueError(
-          "Cannot fuse U1-charges with different shifts {} and {}".format(
-              self.shifts, other.shifts))
-    if not isinstance(other, U1Charge):
-      raise TypeError(
-          "can only add objects of identical types, found {} and {} instead"
-          .format(type(self), type(other)))
-    fused = np.reshape(self.charges[:, None] + other.charges[None, :],
-                       len(self.charges) * len(other.charges))
-    return U1Charge(charges=[fused], shifts=self.shifts)
+    if isinstance(n, (np.integer, int)):
+      n = np.asarray([n])
+    obj = self.__new__(type(self))
+    obj.__init__(self.unique_charges, self.charge_labels[n])
+    return obj
 
-  def __sub__(self, other: "U1Charge") -> "U1Charge":
+  def get_item(self, n: Union[np.ndarray, int]) -> np.ndarray:
     """
-    Subtract the charges of `other` from charges of `self` and 
-    return a new `U1Charge` object holding the result.
+    Return the charge-element at position `n`.
     Args: 
-      other: A `U1Charge` object.
+      n: An integer or `np.ndarray`.
     Returns:
-      U1Charge: The result of fusing `self` with `other`.
+      np.ndarray: The charges at `n`.
     """
-    if self.num_symmetries != other.num_symmetries:
-      raise ValueError(
-          "cannot fuse charges with different number of symmetries")
-
-    if not np.all(self.shifts == other.shifts):
-      raise ValueError(
-          "Cannot fuse U1-charges with different shifts {} and {}".format(
-              self.shifts, other.shifts))
-    if not isinstance(other, U1Charge):
-      raise TypeError(
-          "can only subtract objects of identical types, found {} and {} instead"
-          .format(type(self), type(other)))
-
-    fused = np.reshape(self.charges[:, None] - other.charges[None, :],
-                       len(self.charges) * len(other.charges))
-    return U1Charge(charges=[fused], shifts=self.shifts)
-
-  def __matmul__(self, other: Union["U1Charge", "U1Charge"]) -> "U1Charge":
-    itemsize = np.sum(self._itemsizes + other._itemsizes)
-    if itemsize > 8:
-      raise TypeError("Number of bits required to store all charges "
-                      "in a single int is larger than 64")
-    dtype = np.int16  #need at least np.int16 to store two charges
-    if itemsize > 2:
-      dtype = np.int32
-    if itemsize > 4:
-      dtype = np.int64
-
-    charges = np.left_shift(
-        self.charges.astype(dtype),
-        8 * np.sum(other._itemsizes)) + other.charges.astype(dtype)
-
-    shifts = np.append(self.shifts + 8 * np.sum(other._itemsizes), other.shifts)
-    return U1Charge(charges=[charges], shifts=shifts)
+    return self.charges[n]
 
   def __mul__(self, number: Union[bool, int]) -> "U1Charge":
     if number not in (True, False, 0, 1, -1):
@@ -492,27 +229,31 @@ class U1Charge(BaseCharge):
               number))
     #outflowing charges
     if number in (0, False, -1):
-      charges = self.dtype.type(-1) * self.charges
-      shifts = self.shifts
-      return U1Charge(charges=[charges], shifts=shifts)
+      return U1Charge(
+          self.dual_charges(self.unique_charges), self.charge_labels)
     #inflowing charges
     if number in (1, True):
-      #Note: the returned U1Charge shares its data with self
-      return U1Charge(charges=[self.charges], shifts=self.shifts)
-
-  # def __rmul__(self, number: Union[bool, int]) -> "U1Charge":
-  #   raise
-  #   print(number not in (True, False, 0, 1, -1))
-  #   if number not in (True, False, 0, 1, -1):
-  #     raise ValueError(
-  #         "can only multiply by `True`, `False`, `1` or `0`, found {}".format(
-  #             number))
-  #   return self.__mul__(number)
+      return U1Charge(self.unique_charges, self.charge_labels)
 
   @property
-  def dual_charges(self) -> np.ndarray:
-    #the dual of a U1 charge is its negative value
-    return self.charges * self.dtype.type(-1)
+  def dual(self, charges):
+    return self.dual_charges
+
+
+class U1Charge(BaseCharge):
+
+  def __init__(self,
+               charges: np.ndarray,
+               charge_labels: Optional[np.ndarray] = None) -> None:
+    super().__init__(charges, charge_labels)
+
+  @staticmethod
+  def fuse(charge1, charge2):
+    return np.add.outer(charge1, charge2).ravel()
+
+  @staticmethod
+  def dual_charges(charges):
+    return charges * charges.dtype.type(-1)
 
 
 class Z2Charge(BaseCharge):
@@ -915,6 +656,7 @@ class ChargeCollection:
     ])
 
   def __eq__(self, target_charges: Iterable):
+    raise NotImplementedError()
     if isinstance(target_charges, type(self)):
       target_charges = np.stack([c.charges for c in target_charges.charges],
                                 axis=1)
@@ -992,9 +734,9 @@ class ChargeCollection:
       return tmp_unique[counts == 2]
 
 
-def fuse_charges(charges: List[Union[BaseCharge, ChargeCollection]],
-                 flows: List[Union[bool, int]]
-                ) -> Union[BaseCharge, ChargeCollection]:
+def fuse_charges(
+    charges: List[Union[BaseCharge, ChargeCollection]],
+    flows: List[Union[bool, int]]) -> Union[BaseCharge, ChargeCollection]:
   """
   Fuse all `charges` into a new charge.
   Charges are fused from "right to left", 
