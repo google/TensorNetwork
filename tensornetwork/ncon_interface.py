@@ -18,6 +18,8 @@ from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
+from tensornetwork.backends.base_backend import BaseBackend
+
 Tensor = Any
 
 
@@ -25,7 +27,7 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
          network_structure: Sequence[Sequence],
          con_order: Optional[Sequence] = None,
          out_order: Optional[Sequence] = None,
-         backend: Optional[Text] = None
+         backend: Optional[Union[Text, BaseBackend]] = None
         ) -> Union[network_components.BaseNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
@@ -155,7 +157,7 @@ def ncon_network(tensors: Sequence[Tensor],
                  network_structure: Sequence[Sequence],
                  con_order: Optional[Sequence] = None,
                  out_order: Optional[Sequence] = None,
-                 backend: Optional[Text] = None
+                 backend: Optional[Union[Text, BaseBackend]] = None
                 ) -> Tuple[List[network_components.BaseNode], List[
                     network_components.Edge], List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
