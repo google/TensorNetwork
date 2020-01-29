@@ -504,7 +504,7 @@ class BaseNode(ABC):
         data=np.array([edge.name for edge in self.edges], dtype=object))
 
   @abstractmethod
-  def copy(self) -> "BaseNode":
+  def copy(self, conjugate: bool = False) -> "BaseNode":
     return
 
   def fresh_edges(self, axis_names: Optional[List[Text]] = None) -> None:
@@ -642,11 +642,13 @@ class Node(BaseNode):
   def set_tensor(self, tensor) -> None:
     self.tensor = tensor
 
-  def copy(self) -> "Node":
+  def copy(self, conjugate: bool = False) -> "Node":
     new_node = Node(self.tensor,
                     name=self.name, 
                     axis_names=self.axis_names, 
                     backend=self.backend)
+    if conjugate:
+      new_node.set_tensor(self.backend.conj(self.tensor))
     visited_edges = set()
     for i, edge in enumerate(self.edges):
       if edge in visited_edges:
@@ -778,7 +780,7 @@ class CopyNode(BaseNode):
   def set_tensor(self, tensor) -> None:
     self.tensor = tensor
 
-  def copy(self) -> "CopyNode":
+  def copy(self, conjugate: bool = False) -> "CopyNode":
     new_node = CopyNode(self.rank,
                         self.dimension,
                         name=self.name, 

@@ -101,6 +101,28 @@ def test_copy_copynode_method(backend):
   np.testing.assert_allclose(a.tensor, b.tensor)
 
 
+def test_copy_method_with_trace_edges(backend):
+  a = tn.Node(np.ones([3, 3, 3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c', 'd', 'e'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  a.add_edge(tn.Edge(a, 3, name='named_edge4'), 3)
+  a.add_edge(tn.Edge(a, 4, name='named_edge5'), 4)
+  a[0] ^ a[3]
+  a[1] ^ a[4]
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  assert b[0] is b[3]
+  assert b[1] is b[4]
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
 def test_default_names_add_node_object(backend):
   a = tn.CopyNode(3, 3, backend=backend)
   assert a.name is not None

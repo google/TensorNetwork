@@ -126,10 +126,7 @@ def copy(nodes: Iterable[BaseNode],
   """
   node_dict = {}
   for node in nodes:
-    node_dict[node] = node.copy()
-    if isinstance(node, Node) and conjugate:
-      node_dict[node].tensor = node.backend.conj(node.tensor)
-
+    node_dict[node] = node.copy(conjugate)
   edge_dict = {}
   for edge in get_all_edges(nodes):
     node1 = edge.node1
