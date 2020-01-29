@@ -19,11 +19,7 @@ import numpy as np
 Tensor = Any
 
 
-def tensordot(tf, 
-              a,
-              b,
-              axes,
-              name: Optional[Text] = None) -> Tensor:
+def tensordot(tf, a, b, axes, name: Optional[Text] = None) -> Tensor:
   r"""Tensor contraction of a and b along specified axes.
   Tensordot (also known as tensor contraction) sums the product of elements
   from `a` and `b` over the indices specified by `a_axes` and `b_axes`.
@@ -80,7 +76,7 @@ def tensordot(tf,
       return bool(np.mean(contraction_axes) < np.mean(free_axes))
     return False
 
-  def _tranpose_if_necessary(tensor: Tensor, perm: List[int]) -> Tensor:
+  def _transpose_if_necessary(tensor: Tensor, perm: List[int]) -> Tensor:
     """Like transpose(), but avoids creating a new tensor if possible.
     Although the graph optimizer should kill trivial transposes, it is best not
     to add them in the first place!
@@ -89,8 +85,7 @@ def tensordot(tf,
       return tensor
     return tf.transpose(tensor, perm)
 
-  def _reshape_if_necessary(tensor: Tensor,
-                            new_shape: List[int]) -> Tensor:
+  def _reshape_if_necessary(tensor: Tensor, new_shape: List[int]) -> Tensor:
     """Like reshape(), but avoids creating a new tensor if possible.
     Assumes shapes are both fully specified."""
     cur_shape = tensor.get_shape().as_list()
@@ -135,7 +130,7 @@ def tensordot(tf,
       prod_axes = int(np.prod([shape_a[i] for i in axes]))
       perm = axes + free if flipped else free + axes
       new_shape = [prod_axes, prod_free] if flipped else [prod_free, prod_axes]
-      transposed_a = _tranpose_if_necessary(a, perm)
+      transposed_a = _transpose_if_necessary(a, perm)
       reshaped_a = _reshape_if_necessary(transposed_a, new_shape)
       transpose_needed = (not flipped) if is_right_term else flipped
       return reshaped_a, free_dims, free_dims, transpose_needed
@@ -152,7 +147,7 @@ def tensordot(tf,
       axes = tf.convert_to_tensor(axes, dtype=tf.dtypes.int32, name="axes")
       free = tf.convert_to_tensor(free, dtype=tf.dtypes.int32, name="free")
       shape_a = tf.shape(a)
-      transposed_a = _tranpose_if_necessary(a, perm)
+      transposed_a = _transpose_if_necessary(a, perm)
     else:
       free_dims_static = None
       shape_a = tf.shape(a)
@@ -184,8 +179,7 @@ def tensordot(tf,
     transpose_needed = (not flipped) if is_right_term else flipped
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
-  def _tensordot_axes(a: Tensor, axes
-                     ) -> Tuple[Any, Any]:
+  def _tensordot_axes(a: Tensor, axes) -> Tuple[Any, Any]:
     """Generates two sets of contraction axes for the two tensor arguments."""
     a_shape = a.get_shape()
     if isinstance(axes, tf.compat.integral_types):
@@ -195,11 +189,11 @@ def tensordot(tf,
         if axes > a_shape.ndims:
           raise ValueError("'axes' must not be larger than the number of "
                            "dimensions of tensor %s." % a)
-        return (list(range(a_shape.ndims - axes,
-                           a_shape.ndims)), list(range(axes)))
+        return (list(range(a_shape.ndims - axes, a_shape.ndims)),
+                list(range(axes)))
       rank = tf.rank(a)
-      return (tf.range(rank - axes, rank,
-                       dtype=tf.int32), tf.range(axes, dtype=tf.int32))
+      return (tf.range(rank - axes, rank, dtype=tf.int32),
+              tf.range(axes, dtype=tf.int32))
     if isinstance(axes, (list, tuple)):
       if len(axes) != 2:
         raise ValueError("'axes' must be an integer or have length 2.")

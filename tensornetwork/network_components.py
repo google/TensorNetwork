@@ -21,10 +21,10 @@ from abc import abstractmethod
 import h5py
 
 #pylint: disable=useless-import-alias
-import tensornetwork.config as config
 from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backend_contextmanager import get_default_backend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
@@ -69,10 +69,18 @@ class BaseNode(ABC):
     """
 
     self.is_disabled = False
-    self.name = name if name is not None else '__unnamed_node__'
+    if name is None:
+      name = '__unnamed_node__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Node name should be str type")
+    self.name = name
     self.backend = backend
     self._shape = shape
     if axis_names is not None:
+      for axis_name in axis_names:
+        if not isinstance(axis_name, str):
+          raise TypeError("axis_names should be str type")
       self._edges = [
           Edge(node1=self, axis1=i, name=edge_name)
           for i, edge_name in enumerate(axis_names)
@@ -96,6 +104,18 @@ class BaseNode(ABC):
       collection.add(self)
 
     super().__init__()
+
+  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+
+  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+
+  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+
+  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented divide ( / )")
 
   @property
   def dtype(self):
@@ -125,6 +145,9 @@ class BaseNode(ABC):
       raise ValueError("axis_names is not the same length as the tensor shape."
                        "axis_names length: {}, tensor.shape length: {}".format(
                            len(axis_names), len(self.shape)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self.axis_names = axis_names[:]
 
   def add_edge(self,
@@ -312,6 +335,8 @@ class BaseNode(ABC):
     return {edge for edge in self.edges if edge.is_dangling()}
 
   def set_name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
     self.name = name
 
   def has_nondangling_edge(self) -> bool:
@@ -374,6 +399,16 @@ class BaseNode(ABC):
     self._edges = edges
 
   @property
+  def name(self) -> Text:
+    return self._name
+
+  @name.setter
+  def name(self, name) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Node name should be str type")
+    self._name = name
+
+  @property
   def axis_names(self) -> List[Text]:
     return self._axis_names
 
@@ -382,7 +417,11 @@ class BaseNode(ABC):
     if len(axis_names) != len(self.shape):
       raise ValueError("Expected {} names, only got {}.".format(
           len(self.shape), len(axis_names)))
+    for axis_name in axis_names:
+      if not isinstance(axis_name, str):
+        raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
+
 
   @property
   def signature(self) -> Optional[int]:
@@ -498,8 +537,8 @@ class Node(BaseNode):
     """Create a node.
 
     Args:
-      tensor: The concrete that is represented by this node, or a `BaseNode` 
-        object. If a tensor is passed, it can be 
+      tensor: The concrete that is represented by this node, or a `BaseNode`
+        object. If a tensor is passed, it can be
         be either a numpy array or the tensor-type of the used backend.
         If a `BaseNode` is passed, the passed node has to have the same \
         backend as given by `backend`.
@@ -515,8 +554,8 @@ class Node(BaseNode):
       #always use the `Node`'s backend
       backend = tensor.backend
       tensor = tensor.tensor
-    if not backend:
-      backend = config.default_backend
+    if backend is None:
+      backend = get_default_backend()
     if isinstance(backend, BaseBackend):
       backend_obj = backend
     else:
@@ -527,6 +566,71 @@ class Node(BaseNode):
         axis_names=axis_names,
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
+
+  def op_protection(self, other: Union[int, float, "Node"]) -> "Node":
+    if not isinstance(other, (int, float, Node)):
+      raise TypeError("Operand should be one of int, float, Node type")
+    if not hasattr(self, '_tensor'):
+      raise AttributeError("Please provide a valid tensor for this Node.")
+    if isinstance(other, Node):
+      if not self.backend.name == other.backend.name:
+        raise TypeError("Operands backend must match.\noperand 1 backend: {}\
+                         \noperand 2 backend: {}".format(self.backend.name,
+                                                         other.backend.name))
+      if not hasattr(other, '_tensor'):
+        raise AttributeError("Please provide a valid tensor for this Node.")
+    else:
+      other_tensor = self.backend.convert_to_tensor(other)
+      other = Node(tensor=other_tensor, backend=self.backend.name)
+    return other
+
+  def __add__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.addition(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.subtraction(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.multiply(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
+
+  def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
+    other = self.op_protection(other)
+    new_tensor = self.backend.divide(self.tensor, other.tensor)
+    if len(self.axis_names) > len(other.axis_names):
+      axis_names = self.axis_names
+    else:
+      axis_names = other.axis_names
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=axis_names,
+                backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -606,13 +710,13 @@ class CopyNode(BaseNode):
       backend: An optional backend for the node. If `None`, a default
         backend is used
       dtype: The dtype used to initialize a numpy-copy node.
-        Note that this dtype has to be a numpy dtype, and it has to be 
+        Note that this dtype has to be a numpy dtype, and it has to be
         compatible with the dtype of the backend, e.g. for a tensorflow
         backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
     """
 
-    if not backend:
-      backend = config.default_backend
+    if backend is None:
+      backend = get_default_backend()
     backend_obj = backend_factory.get_backend(backend)
 
     self.rank = rank
@@ -625,6 +729,23 @@ class CopyNode(BaseNode):
         axis_names=axis_names,
         backend=backend_obj,
         shape=(dimension,) * rank)
+
+  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+
+  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+
+  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+
+  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
+    raise NotImplementedError("BaseNode has not implemented divide ( / )")
+
+  @property
+  def dtype(self):
+    # Override so we don't construct the dense tensor when asked for the dtype!
+    return self.copy_node_dtype
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -803,8 +924,11 @@ class Edge:
       raise ValueError(
           "node2 and axis2 must either be both None or both not be None")
     self.is_disabled = False
-    if not name:
+    if name is None:
       name = '__unnamed_edge__'
+    else:
+      if not isinstance(name, str):
+        raise TypeError("Edge name should be str type")
     self._name = name
     self.node1 = node1
     self._axis1 = axis1
@@ -839,6 +963,8 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting its name is no longer possible')
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self._name = name
 
   @property
@@ -983,6 +1109,8 @@ class Edge:
     return result
 
   def set_name(self, name: Text) -> None:
+    if not isinstance(name, str):
+      raise TypeError("Edge name should be str type")
     self.name = name
 
   def _save_edge(self, edge_group: h5py.Group) -> None:
@@ -1053,14 +1181,14 @@ class Edge:
                  edge2_name: Optional[Text] = None) -> Tuple["Edge", "Edge"]:
     """
     Break an existing non-dangling edge.
-    This updates both Edge.node1 and Edge.node2 by removing the 
+    This updates both Edge.node1 and Edge.node2 by removing the
     connecting edge from `Edge.node1.edges` and `Edge.node2.edges`
     and adding new dangling edges instead
     Args:
       edge1_name: A name for the new dangling edge at `self.node1`
       edge2_name: A name for the new dangling edge at `self.node2`
     Returns:
-      (new_edge1, new_edge2): The new `Edge` objects of 
+      (new_edge1, new_edge2): The new `Edge` objects of
         `self.node1` and `self.node2`
     """
     if self.is_dangling():
@@ -1116,7 +1244,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
     edge: The given edge.
 
   Returns:
-    A `set` of all of the edges parallel to the given edge 
+    A `set` of all of the edges parallel to the given edge
     (including the given edge).
   """
   return get_shared_edges(edge.node1, edge.node2)
@@ -1157,10 +1285,12 @@ def _flatten_trace_edges(edges: List[Edge],
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   perm = perm_front + perm_back
-  new_dim = backend.prod([backend.shape(node.tensor)[e.axis1] for e in edges])
+  new_dim = backend.shape_prod(
+      [backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, [new_dim, new_dim]], axis=-1)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat(
+      [unaffected_shape, [new_dim, new_dim]], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -1232,11 +1362,11 @@ def flatten_edges(edges: List[Edge],
       perm_back.append(node.edges.index(edge))
     perm_front = sorted(set(range(len(node.edges))) - set(perm_back))
     node.reorder_axes(perm_front + perm_back)
-    old_tensor_shape = backend.shape(node.tensor)
+    old_tensor_shape = backend.shape_tensor(node.tensor)
     # Calculate the new axis dimension as a product of the other
     # axes dimensions.
-    flattened_axis_dim = backend.prod(old_tensor_shape[len(perm_front):])
-    new_tensor_shape = backend.concat(
+    flattened_axis_dim = backend.shape_prod(old_tensor_shape[len(perm_front):])
+    new_tensor_shape = backend.shape_concat(
         [old_tensor_shape[:len(perm_front)], [flattened_axis_dim]], axis=-1)
     new_tensor = backend.reshape(node.tensor, new_tensor_shape)
     # Modify the node in place. Currently, this is they only method that
@@ -1324,8 +1454,8 @@ def _split_trace_edge(
   perm_front = set(range(len(node.edges))) - set(perm_back)
   perm_front = sorted(perm_front)
   node.reorder_axes(perm_front + perm_back)
-  unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-  new_shape = backend.concat([unaffected_shape, shape, shape], axis=-1)
+  unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+  new_shape = backend.shape_concat([unaffected_shape, shape, shape], axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   # Trim edges and add placeholder edges for new axes.
   node.edges = node.edges[:len(perm_front)] + 2 * len(shape) * [None]
@@ -1348,8 +1478,8 @@ def split_edge(edge: Edge,
                shape: Tuple[int, ...],
                new_edge_names: Optional[List[Text]] = None) -> List[Edge]:
   """Split an `Edge` into multiple edges according to `shape`. Reshapes
-  the underlying tensors connected to the edge accordingly. 
-  
+  the underlying tensors connected to the edge accordingly.
+
   This method acts as the inverse operation of flattening edges and
   distinguishes between the following edge cases when adding new edges:
     1) standard edge connecting two different nodes: reshape node dimensions
@@ -1399,8 +1529,8 @@ def split_edge(edge: Edge,
     perm_front = set(range(len(node.edges))) - set(perm_back)
     perm_front = sorted(perm_front)
     node.reorder_axes(perm_front + perm_back)
-    unaffected_shape = backend.shape(node.tensor)[:len(perm_front)]
-    new_shape = backend.concat([unaffected_shape, shape], axis=-1)
+    unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
+    new_shape = backend.shape_concat([unaffected_shape, shape], axis=-1)
     node.tensor = backend.reshape(node.tensor, new_shape)  # in-place update
     # Trim edges.
     node.edges = node.edges[:len(perm_front)]
@@ -1731,7 +1861,7 @@ def disconnect(edge,
                edge2_name: Optional[Text] = None) -> Tuple[Edge, Edge]:
   """
   Break an existing non-dangling edge.
-  This updates both Edge.node1 and Edge.node2 by removing the 
+  This updates both Edge.node1 and Edge.node2 by removing the
   connecting edge from `Edge.node1.edges` and `Edge.node2.edges`
   and adding new dangling edges instead
   """
@@ -1748,6 +1878,10 @@ def contract_between(
 ) -> BaseNode:
   """Contract all of the edges between the two given nodes.
 
+  If `output_edge_order` is not set, the output axes will be ordered as:
+  [...free axes of `node1`..., ...free axes of `node2`...]. Within the axes
+  of each node, the input order is preserved.
+
   Args:
     node1: The first node.
     node2: The second node.
@@ -1759,7 +1893,8 @@ def contract_between(
       contain all edges belonging to, but not shared by `node1` and `node2`.
       The axes of the new node will be permuted (if necessary) to match this
       ordering of Edges.
-    axis_names: An optional list of names for the axis of the new node
+    axis_names: An optional list of names for the axis of the new node in order
+      of the output axes.
   Returns:
     The new node created.
 
@@ -1779,64 +1914,68 @@ def contract_between(
                                          node2.backend.name))
 
   backend = node1.backend
+  shared_edges = get_shared_edges(node1, node2)
   # Trace edges cannot be contracted using tensordot.
   if node1 is node2:
     flat_edge = flatten_edges_between(node1, node2)
     if not flat_edge:
       raise ValueError("No trace edges found on contraction of edges between "
                        "node '{}' and itself.".format(node1))
-    return contract(flat_edge, name)
-
-  shared_edges = get_shared_edges(node1, node2)
-  if not shared_edges:
-    if allow_outer_product:
-      return outer_product(node1, node2, name=name, axis_names=axis_names)
-    raise ValueError("No edges found between nodes '{}' and '{}' "
-                     "and allow_outer_product=False.".format(node1, node2))
-
-  # Collect the axis of each node corresponding to each edge, in order.
-  # This specifies the contraction for tensordot.
-  # NOTE: The ordering of node references in each contraction edge is ignored.
-  axes1 = []
-  axes2 = []
-  for edge in shared_edges:
-    if edge.node1 is node1:
-      axes1.append(edge.axis1)
-      axes2.append(edge.axis2)
-    else:
-      axes1.append(edge.axis2)
-      axes2.append(edge.axis1)
-
-  if output_edge_order:
-    # Determine heuristically if output transposition can be minimized by
-    # flipping the arguments to tensordot.
-    node1_output_axes = []
-    node2_output_axes = []
-    for (i, edge) in enumerate(output_edge_order):
-      if edge in shared_edges:
-        raise ValueError(
-            "Edge '{}' in output_edge_order is shared by the nodes to be "
-            "contracted: '{}' and '{}'.".format(edge, node1, node2))
-      edge_nodes = set(edge.get_nodes())
-      if node1 in edge_nodes:
-        node1_output_axes.append(i)
-      elif node2 in edge_nodes:
-        node2_output_axes.append(i)
+    new_node = contract(flat_edge, name)
+  elif not shared_edges:
+    if not allow_outer_product:
+      raise ValueError("No edges found between nodes '{}' and '{}' "
+                       "and allow_outer_product=False.".format(node1, node2))
+    new_node = outer_product(node1, node2, name=name)
+  else:
+    # Collect the axis of each node corresponding to each edge, in order.
+    # This specifies the contraction for tensordot.
+    # NOTE: The ordering of node references in each contraction edge is ignored.
+    axes1 = []
+    axes2 = []
+    for edge in shared_edges:
+      if edge.node1 is node1:
+        axes1.append(edge.axis1)
+        axes2.append(edge.axis2)
       else:
-        raise ValueError(
-            "Edge '{}' in output_edge_order is not connected to node '{}' or "
-            "node '{}'".format(edge, node1, node2))
-    if np.mean(node1_output_axes) > np.mean(node2_output_axes):
-      node1, node2 = node2, node1
-      axes1, axes2 = axes2, axes1
+        axes1.append(edge.axis2)
+        axes2.append(edge.axis1)
 
-  new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
-  new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
-  # node1 and node2 get new edges in _remove_edges
-  _remove_edges(shared_edges, node1, node2, new_node)
+    if output_edge_order:
+      # Determine heuristically if output transposition can be minimized by
+      # flipping the arguments to tensordot.
+      node1_output_axes = []
+      node2_output_axes = []
+      for (i, edge) in enumerate(output_edge_order):
+        if edge in shared_edges:
+          raise ValueError(
+              "Edge '{}' in output_edge_order is shared by the nodes to be "
+              "contracted: '{}' and '{}'.".format(edge, node1, node2))
+        edge_nodes = set(edge.get_nodes())
+        if node1 in edge_nodes:
+          node1_output_axes.append(i)
+        elif node2 in edge_nodes:
+          node2_output_axes.append(i)
+        else:
+          raise ValueError(
+              "Edge '{}' in output_edge_order is not connected to node '{}' or "
+              "node '{}'".format(edge, node1, node2))
+      if node1_output_axes and node2_output_axes and (
+          np.mean(node1_output_axes) > np.mean(node2_output_axes)):
+        node1, node2 = node2, node1
+        axes1, axes2 = axes2, axes1
+
+    new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
+    new_node = Node(
+        tensor=new_tensor, name=name, backend=backend)
+    # node1 and node2 get new edges in _remove_edges
+    _remove_edges(shared_edges, node1, node2, new_node)
+
   if output_edge_order:
     new_node = new_node.reorder_edges(list(output_edge_order))
+  if axis_names:
+    new_node.add_axis_names(axis_names)
+
   return new_node
 
 
@@ -1844,9 +1983,9 @@ def outer_product_final_nodes(nodes: Iterable[BaseNode],
                               edge_order: List[Edge]) -> BaseNode:
   """Get the outer product of `nodes`
 
-  For example, if there are 3 nodes remaining in `nodes` with 
+  For example, if there are 3 nodes remaining in `nodes` with
   shapes :math:`(2, 3)`, :math:`(4, 5, 6)`, and :math:`(7)`
-  respectively, the newly returned node will have shape 
+  respectively, the newly returned node will have shape
   :math:`(2, 3, 4, 5, 6, 7)`.
 
   Args:

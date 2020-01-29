@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import tensornetwork as tn
+from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -345,6 +346,21 @@ def test_reorder_axes(backend):
   assert a.shape == (4, 2, 3)
 
 
+def test_reorder_axes_raises_error_no_tensor(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  del a._tensor
+  with pytest.raises(AttributeError) as e:
+    a.reorder_axes([2, 0, 1])
+  assert "Please provide a valid tensor for this Node." in str(e.value)
+
+
+def test_reorder_axes_raises_error_bad_permutation(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  with pytest.raises(ValueError) as e:
+    a.reorder_axes([2, 0])
+  assert "A full permutation was not passed." in str(e.value)
+
+
 def test_flatten_consistent_result(backend):
   a_val = np.ones((3, 5, 5, 6))
   b_val = np.ones((5, 6, 4, 5))
@@ -507,7 +523,7 @@ def test_set_node2(backend):
 
 def test_set_default(backend):
   tn.set_default_backend(backend)
-  assert tn.config.default_backend == backend
+  assert _default_backend_stack.default_backend == backend
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
 

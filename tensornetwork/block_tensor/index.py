@@ -16,9 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, contract, contract_between
-# pylint: disable=line-too-long
-from tensornetwork.backends import backend_factory
+from tensornetwork.block_tensor.charge import BaseCharge
 import copy
 from typing import List, Union, Any, Optional, Tuple, Text
 
@@ -31,16 +29,16 @@ class Index:
   """
 
   def __init__(self,
-               charges: Union[List, np.ndarray],
+               charges: BaseCharge,
                flow: int,
                name: Optional[Text] = None,
                left_child: Optional["Index"] = None,
                right_child: Optional["Index"] = None):
-    self._charges = np.asarray(charges)
+    self._charges = charges  #ChargeCollection([charges])
     self.flow = flow
     self.left_child = left_child
     self.right_child = right_child
-    self.name = name if name else 'index'
+    self.name = name
 
   def __repr__(self):
     return str(self.dimension)
@@ -59,17 +57,17 @@ class Index:
     """
     if index.left_child != None:
       left_copy = Index(
-          charges=copy.copy(index.left_child.charges),
-          flow=copy.copy(index.left_child.flow),
-          name=copy.copy(index.left_child.name))
+          charges=copy.deepcopy(index.left_child.charges),
+          flow=copy.deepcopy(index.left_child.flow),
+          name=copy.deepcopy(index.left_child.name))
 
       copied_index.left_child = left_copy
       self._copy_helper(index.left_child, left_copy)
     if index.right_child != None:
       right_copy = Index(
-          charges=copy.copy(index.right_child.charges),
-          flow=copy.copy(index.right_child.flow),
-          name=copy.copy(index.right_child.name))
+          charges=copy.deepcopy(index.right_child.charges),
+          flow=copy.deepcopy(index.right_child.flow),
+          name=copy.deepcopy(index.right_child.name))
       copied_index.right_child = right_copy
       self._copy_helper(index.right_child, right_copy)
 
@@ -80,7 +78,9 @@ class Index:
         `Index` are copied as well.
     """
     index_copy = Index(
-        charges=self._charges.copy(), flow=copy.copy(self.flow), name=self.name)
+        charges=copy.deepcopy(self._charges),
+        flow=copy.deepcopy(self.flow),
+        name=self.name)
 
     self._copy_helper(self, index_copy)
     return index_copy
@@ -116,83 +116,12 @@ class Index:
   def charges(self):
     if self.is_leave:
       return self._charges
-    fused_charges = fuse_charge_pair(
-        self.left_child.charges, self.left_child.flow, self.right_child.charges,
-        self.right_child.flow)
-
-    return fused_charges
-
-
-def fuse_charge_pair(q1: Union[List, np.ndarray], flow1: int,
-                     q2: Union[List, np.ndarray], flow2: int) -> np.ndarray:
-  """
-  Fuse charges `q1` with charges `q2` by simple addition (valid
-  for U(1) charges). `q1` and `q2` typically belong to two consecutive
-  legs of `BlockSparseTensor`.
-  Given `q1 = [0,1,2]` and `q2 = [10,100]`, this returns
-  `[10, 100, 11, 101, 12, 102]`.
-  When using row-major ordering of indices in `BlockSparseTensor`, 
-  the position of q1 should be "to the left" of the position of q2.
-
-  Args:
-    q1: Iterable of integers
-    flow1: Flow direction of charge `q1`.
-    q2: Iterable of integers
-    flow2: Flow direction of charge `q2`.
-  Returns:
-    np.ndarray: The result of fusing `q1` with `q2`.
-  """
-  return np.reshape(
-      flow1 * np.asarray(q1)[:, None] + flow2 * np.asarray(q2)[None, :],
-      len(q1) * len(q2))
-
-
-def fuse_charges(charges: List[Union[List, np.ndarray]],
-                 flows: List[int]) -> np.ndarray:
-  """
-  Fuse all `charges` by simple addition (valid
-  for U(1) charges). Charges are fused from "right to left", 
-  in accordance with row-major order (see `fuse_charges_pair`).
-
-  Args:
-    chargs: A list of charges to be fused.
-    flows: A list of flows, one for each element in `charges`.
-  Returns:
-    np.ndarray: The result of fusing `charges`.
-  """
-  if len(charges) == 1:
-    #nothing to do
-    return charges[0]
-  fused_charges = charges[0] * flows[0]
-  for n in range(1, len(charges)):
-    fused_charges = fuse_charge_pair(
-        q1=fused_charges, flow1=1, q2=charges[n], flow2=flows[n])
-  return fused_charges
-
-
-def fuse_degeneracies(degen1: Union[List, np.ndarray],
-                      degen2: Union[List, np.ndarray]) -> np.ndarray:
-  """
-  Fuse degeneracies `degen1` and `degen2` of two leg-charges 
-  by simple kronecker product. `degen1` and `degen2` typically belong to two 
-  consecutive legs of `BlockSparseTensor`.
-  Given `degen1 = [1, 2, 3]` and `degen2 = [10, 100]`, this returns
-  `[10, 100, 20, 200, 30, 300]`.
-  When using row-major ordering of indices in `BlockSparseTensor`, 
-  the position of `degen1` should be "to the left" of the position of `degen2`.
-  Args:
-    degen1: Iterable of integers
-    degen2: Iterable of integers
-  Returns:
-    np.ndarray: The result of fusing `dege1` with `degen2`.
-  """
-  return np.reshape(degen1[:, None] * degen2[None, :],
-                    len(degen1) * len(degen2))
+    return self.left_child.charges * self.left_child.flow + self.right_child.charges * self.right_child.flow
 
 
 def fuse_index_pair(left_index: Index,
                     right_index: Index,
-                    flow: Optional[int] = 1) -> Index:
+                    flow: Optional[int] = False) -> Index:
   """
   Fuse two consecutive indices (legs) of a symmetric tensor.
   Args:
@@ -211,7 +140,7 @@ def fuse_index_pair(left_index: Index,
       charges=None, flow=flow, left_child=left_index, right_child=right_index)
 
 
-def fuse_indices(indices: List[Index], flow: Optional[int] = 1) -> Index:
+def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
   """
   Fuse a list of indices (legs) of a symmetric tensor.
   Args:
@@ -239,48 +168,3 @@ def split_index(index: Index) -> Tuple[Index, Index]:
     raise ValueError("cannot split an elementary index")
 
   return index.left_child, index.right_child
-
-
-def unfuse(fused_indices: np.ndarray, len_left: int,
-           len_right: int) -> Tuple[np.ndarray, np.ndarray]:
-  """
-  Given an np.ndarray `fused_indices` of integers denoting 
-  index-positions of elements within a 1d array, `unfuse`
-  obtains the index-positions of the elements in the left and 
-  right np.ndarrays `left`, `right` which, upon fusion, 
-  are placed at the index-positions given by 
-  `fused_indices` in the fused np.ndarray.
-  An example will help to illuminate this:
-  Given np.ndarrays `left`, `right` and the result
-  of their fusion (`fused`):
-
-  ```
-  left = [0,1,0,2]
-  right = [-1,3,-2]    
-  fused = fuse_charges([left, right], flows=[1,1]) 
-  print(fused) #[-1  3 -2  0  4 -1 -1  3 -2  1  5  0]
-  ```
-
-  we want to find which elements in `left` and `right`
-  fuse to a value of 0. In the above case, there are two 
-  0 in `fused`: one is obtained from fusing `left[1]` and
-  `right[0]`, the second one from fusing `left[3]` and `right[2]`
-  `unfuse` returns the index-positions of these values within
-  `left` and `right`, that is
-
-  ```
-  left_index_values, right_index_values = unfuse(np.nonzero(fused==0)[0], len(left), len(right))
-  print(left_index_values) # [1,3]
-  print(right_index_values) # [0,2]
-  ```
-
-  Args:
-    fused_indices: A 1d np.ndarray of integers.
-    len_left: The length of the left np.ndarray.
-    len_right: The length of the right np.ndarray.
-  Returns:
-    (np.ndarry, np.ndarray)
-  """
-  right = fused_indices % len_right
-  left = (fused_indices - right) // len_right
-  return left, right
