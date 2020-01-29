@@ -3,7 +3,7 @@ import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays
+from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 
@@ -45,6 +45,69 @@ def test_find_dense_positions():
   np.testing.assert_allclose(
       dense_positions[1],
       np.nonzero(fused_charges == target_charge[0, 0])[0])
+
+
+def test_transpose():
+  R = 4
+  Ds = [20, 3, 4, 5]
+  final_order = np.arange(R)
+  np.random.shuffle(final_order)
+  charges = [U1Charge(np.random.randint(-5, 5, Ds[n])) for n in range(R)]
+  flows = np.full(R, fill_value=False, dtype=np.bool)
+  indices = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.random(indices=indices)
+  Adense = A.todense()
+  dense_res = np.transpose(Adense, final_order)
+  A.transpose(final_order)
+  np.testing.assert_allclose(dense_res, A.todense())
+
+
+def test_tensordot():
+  R = 4
+  DsA = [10, 12, 14, 16]
+  DsB = [14, 16, 18, 20]
+  chargesA = [U1Charge(np.random.randint(-5, 5, DsA[n])) for n in range(R // 2)]
+  commoncharges = [
+      U1Charge(np.random.randint(-5, 5, DsA[n + R // 2])) for n in range(R // 2)
+  ]
+  chargesB = [
+      U1Charge(np.random.randint(-5, 5, DsB[n + R // 2])) for n in range(R // 2)
+  ]
+  indsA = np.random.choice(np.arange(R), R // 2, replace=False)
+  indsB = np.random.choice(np.arange(R), R // 2, replace=False)
+  flowsA = np.full(R, False, dtype=np.bool)
+  flowsB = np.full(R, False, dtype=np.bool)
+
+  flowsB[indsB] = True
+  indicesA = [None for _ in range(R)]
+  indicesB = [None for _ in range(R)]
+  for n in range(len(indsA)):
+    indicesA[indsA[n]] = Index(commoncharges[n], flowsA[indsA[n]])
+    indicesB[indsB[n]] = Index(commoncharges[n], flowsB[indsB[n]])
+  compA = list(set(np.arange(R)) - set(indsA))
+  compB = list(set(np.arange(R)) - set(indsB))
+
+  for n in range(len(compA)):
+    indicesA[compA[n]] = Index(chargesA[n], flowsA[compA[n]])
+    indicesB[compB[n]] = Index(chargesB[n], flowsB[compB[n]])
+  indices_final = []
+  for n in sorted(compA):
+    indices_final.append(indicesA[n])
+  for n in sorted(compB):
+    indices_final.append(indicesB[n])
+  shapes = tuple([i.dimension for i in indices_final])
+  A = BlockSparseTensor.random(indices=indicesA)
+  B = BlockSparseTensor.random(indices=indicesB)
+
+  final_order = np.arange(R)
+  np.random.shuffle(final_order)
+  Adense = A.todense()
+  Bdense = B.todense()
+  dense_res = np.transpose(
+      np.tensordot(Adense, Bdense, (indsA, indsB)), final_order)
+
+  res = tensordot(A, B, (indsA, indsB), final_order=final_order)
+  np.testing.assert_allclose(dense_res, res.todense())
 
 
 # def test_find_dense_positions_2():
