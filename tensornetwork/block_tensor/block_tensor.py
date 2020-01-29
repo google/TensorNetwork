@@ -16,12 +16,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-#from tensornetwork.block_tensor.lookup import lookup
 from tensornetwork.backends import backend_factory
-# pylint: disable=line-too-long
 from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index
-# pylint: disable=line-too-long
-from tensornetwork.block_tensor.charge import fuse_degeneracies, fuse_charges, fuse_degeneracies, BaseCharge, BaseCharge, fuse_ndarray_charges, intersect
+from tensornetwork.block_tensor.charge import fuse_degeneracies, fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
 import numpy as np
 import scipy as sp
 import itertools
