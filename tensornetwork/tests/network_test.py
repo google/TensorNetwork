@@ -483,24 +483,43 @@ def test_flatten_all_edges(backend):
 
 
 def test_contract_between(backend):
-  a_val = np.ones((2, 3, 4, 5))
-  b_val = np.ones((3, 5, 4, 2))
+  a_val = np.random.rand(2, 3, 4, 5)
+  b_val = np.random.rand(3, 5, 6, 2)
   a = tn.Node(a_val, backend=backend)
   b = tn.Node(b_val, backend=backend)
   tn.connect(a[0], b[3])
   tn.connect(b[1], a[3])
   tn.connect(a[1], b[0])
-  edge_a = a[2]
-  edge_b = b[2]
-  c = tn.contract_between(a, b, name="New Node")
-  c.reorder_edges([edge_a, edge_b])
+  output_axis_names = ["a2", "b2"]
+  c = tn.contract_between(a, b, name="New Node", axis_names=output_axis_names)
   tn.check_correct({c})
   # Check expected values.
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
-  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
+  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (6, 30))
   final_val = np.matmul(a_flat, b_flat.T)
   assert c.name == "New Node"
+  assert c.axis_names == output_axis_names
   np.testing.assert_allclose(c.tensor, final_val)
+
+
+def test_contract_between_output_edge_order(backend):
+  a_val = np.random.rand(2, 3, 4, 5)
+  b_val = np.random.rand(3, 5, 6, 2)
+  a = tn.Node(a_val, backend=backend)
+  b = tn.Node(b_val, backend=backend)
+  tn.connect(a[0], b[3])
+  tn.connect(b[1], a[3])
+  tn.connect(a[1], b[0])
+  output_axis_names = ["b2", "a2"]
+  c = tn.contract_between(a, b, name="New Node", axis_names=output_axis_names,
+                          output_edge_order=[b[2], a[2]])
+  # Check expected values.
+  a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
+  b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (6, 30))
+  final_val = np.matmul(a_flat, b_flat.T)
+  assert c.name == "New Node"
+  assert c.axis_names == output_axis_names
+  np.testing.assert_allclose(c.tensor, final_val.T)
 
 
 def test_contract_between_no_outer_product_value_error(backend):
@@ -517,8 +536,45 @@ def test_contract_between_outer_product_no_value_error(backend):
   b_val = np.ones((5, 6, 7))
   a = tn.Node(a_val, backend=backend)
   b = tn.Node(b_val, backend=backend)
-  c = tn.contract_between(a, b, allow_outer_product=True)
+  output_axis_names = ["a0", "a1", "a2", "b0", "b1", "b2"]
+  c = tn.contract_between(a, b, allow_outer_product=True,
+                          axis_names=output_axis_names)
   assert c.shape == (2, 3, 4, 5, 6, 7)
+  assert c.axis_names == output_axis_names
+
+
+def test_contract_between_outer_product_output_edge_order(backend):
+  a_val = np.ones((2, 3, 4))
+  b_val = np.ones((5, 6, 7))
+  a = tn.Node(a_val, backend=backend)
+  b = tn.Node(b_val, backend=backend)
+  output_axis_names = ["b0", "b1", "a0", "b2", "a1", "a2"]
+  c = tn.contract_between(
+      a, b,
+      allow_outer_product=True,
+      output_edge_order=[b[0], b[1], a[0], b[2], a[1], a[2]],
+      axis_names=output_axis_names)
+  assert c.shape == (5, 6, 2, 7, 3, 4)
+  assert c.axis_names == output_axis_names
+
+
+def test_contract_between_trace(backend):
+  a_val = np.ones((2, 3, 2, 4))
+  a = tn.Node(a_val, backend=backend)
+  tn.connect(a[0], a[2])
+  c = tn.contract_between(a, a, axis_names=["1", "3"])
+  assert c.shape == (3, 4)
+  assert c.axis_names == ["1", "3"]
+
+
+def test_contract_between_trace_output_edge_order(backend):
+  a_val = np.ones((2, 3, 2, 4))
+  a = tn.Node(a_val, backend=backend)
+  tn.connect(a[0], a[2])
+  c = tn.contract_between(a, a, output_edge_order=[a[3], a[1]],
+                          axis_names=["3", "1"])
+  assert c.shape == (4, 3)
+  assert c.axis_names == ["3", "1"]
 
 
 def test_contract_parallel(backend):

@@ -62,16 +62,16 @@ def test_svd_decomposition_with_max_values():
     assert x.shape == y.shape
 
 
-def test_concat():
+def test_shape_concat():
   args = {
       "values": [np.ones([3, 2, 5]),
                  np.zeros([3, 2, 5]),
                  np.ones([3, 3, 5])]
   }
   args["axis"] = 1
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
   args["axis"] = -2
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
 
 
 def test_concat_shape():
@@ -80,10 +80,10 @@ def test_concat_shape():
   assert result == (5, 2, 3, 4, 6)
 
 
-def test_shape():
+def test_shape_tensor():
   tensor = np.ones([3, 5, 2])
-  np_result = numpy_backend.NumPyBackend().shape(tensor)
-  sh_result = shell_backend.ShellBackend().shape(tensor)
+  np_result = numpy_backend.NumPyBackend().shape_tensor(tensor)
+  sh_result = shell_backend.ShellBackend().shape_tensor(tensor)
   assert np_result == sh_result
 
 
@@ -94,8 +94,8 @@ def test_shape_tuple():
   assert np_result == sh_result
 
 
-def test_prod():
-  result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))
+def test_shape_prod():
+  result = shell_backend.ShellBackend().shape_prod(np.ones([3, 5, 2]))
   assert result == 30
 
 
@@ -155,6 +155,11 @@ def test_ones():
 def test_randn():
   args = {"shape": (10, 4)}
   assertBackendsAgree("randn", args)
+
+
+def test_random_uniform():
+  args = {"shape": (10, 4)}
+  assertBackendsAgree("random_uniform", args)
 
 
 def test_eigsh_lanczos_1():

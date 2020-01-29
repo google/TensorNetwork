@@ -64,16 +64,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        split_axis: int) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.tf, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.tf.concat(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return self.tf.shape(tensor)
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
 
-  def prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> Tensor:
     return self.tf.reduce_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -131,6 +131,26 @@ class TensorFlowBackend(base_backend.BaseBackend):
           self.tf.random.normal(shape=shape, dtype=dtype.real_dtype))
     return self.tf.random.normal(shape=shape, dtype=dtype)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.tf.random.set_seed(seed)
+
+    dtype = dtype if dtype is not None else self.tf.float64
+    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
+      return self.tf.complex(
+          self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                                 maxval=boundaries[1], dtype=dtype.real_dtype),
+          self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                                 maxval=boundaries[1], dtype=dtype.real_dtype))
+    self.tf.random.set_seed(10)
+    a = self.tf.random.uniform(shape=shape, minval=boundaries[0],
+                               maxval=boundaries[1], dtype=dtype)
+    return a
+
   def conj(self, tensor: Tensor) -> Tensor:
     return self.tf.math.conj(tensor)
 
@@ -162,8 +182,17 @@ class TensorFlowBackend(base_backend.BaseBackend):
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

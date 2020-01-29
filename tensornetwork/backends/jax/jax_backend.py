@@ -39,7 +39,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     result = self.jax.jit(lambda x: x)(tensor)
     return result
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
   def randn(self,
@@ -71,6 +71,42 @@ class JaxBackend(numpy_backend.NumPyBackend):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
+
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[np.dtype] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if not seed:
+      seed = np.random.randint(0, 2**63)
+    key = self.jax.random.PRNGKey(seed)
+
+    dtype = dtype if dtype is not None else np.dtype(np.float64)
+
+    def cmplx_random_uniform(complex_dtype, real_dtype):
+      real_dtype = np.dtype(real_dtype)
+      complex_dtype = np.dtype(complex_dtype)
+
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+
+      real_part = self.jax.random.uniform(key, shape, dtype=real_dtype,
+                                          minval=boundaries[0],
+                                          maxval=boundaries[1])
+      complex_part = self.jax.random.uniform(key_2, shape, dtype=real_dtype,
+                                             minval=boundaries[0],
+                                             maxval=boundaries[1])
+      unit = (
+          np.complex64(1j)
+          if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
+      return real_part + unit * complex_part
+
+    if np.dtype(dtype) is np.dtype(self.np.complex128):
+      return cmplx_random_uniform(dtype, self.np.float64)
+    if np.dtype(dtype) is np.dtype(self.np.complex64):
+      return cmplx_random_uniform(dtype, self.np.float32)
+
+    return self.jax.random.uniform(key, shape, minval=boundaries[0],
+                                   maxval=boundaries[1]).astype(dtype)
 
   def eigs(self,
            A: Callable,

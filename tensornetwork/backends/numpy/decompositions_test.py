@@ -63,6 +63,18 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(vh.shape, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
+  def test_max_singular_values_larger_than_bond_dimension(self):
+    random_matrix = np.random.rand(10, 6)
+    unitary1, _, unitary2 = np.linalg.svd(random_matrix, full_matrices=False)
+    singular_values = np.array(range(6))
+    val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
+    u, s, vh, _ = decompositions.svd_decomposition(
+        np, val, 1, max_singular_values=30)
+    self.assertEqual(u.shape, (10, 6))
+    self.assertEqual(s.shape, (6,))
+    self.assertEqual(vh.shape, (6, 6))
+
+
   def test_max_truncation_error(self):
     random_matrix = np.random.rand(10, 10)
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)

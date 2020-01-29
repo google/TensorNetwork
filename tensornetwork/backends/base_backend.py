@@ -135,12 +135,12 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented rq_decomposition.".format(self.name))
 
-  def concat(self, values: Sequence[Tensor], axis) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
     raise NotImplementedError("Backend '{}' has not implemented concat.".format(
         self.name))
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     """Get the shape of a tensor.
 
     Args:
@@ -163,7 +163,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
-  def prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))
@@ -264,6 +264,27 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
+
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    """Return a random uniform matrix of dimension `dim`.
+       Depending on specific backends, `dim` has to be either an int 
+       (numpy, torch, tensorflow) or a `ShapeType` object 
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         boundaries (tuple): The boundaries of the uniform distribution.
+         dtype: The dtype of the returned matrix.
+         seed:  The seed for the random number generator
+       Returns:
+         Tensor : random uniform initialized tensor.
+    """
+    raise NotImplementedError(("Backend '{}' has not implemented "
+                               "random_uniform.").format(self.name))
 
   def conj(self, tensor: Tensor) -> Tensor:
     """ 
@@ -370,6 +391,32 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default multiplication of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented addition.".format(self.name))
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default multiplication of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented subtraction.".format(self.name))
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
       Return the default multiplication of `tensor`.
@@ -382,6 +429,19 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+      Return the default divide of `tensor`.
+      A backend can override such implementation.
+      Args:
+        tensor1: A tensor.
+        tensor2: A tensor.
+      Returns:
+        Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented divide.".format(self.name))
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

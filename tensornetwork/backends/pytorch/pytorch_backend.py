@@ -69,16 +69,16 @@ class PyTorchBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.torch, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return self.torch.tensor(list(tensor.shape))
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
 
-  def prod(self, values: Tensor) -> int:
+  def shape_prod(self, values: Tensor) -> int:
     return np.prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -127,6 +127,16 @@ class PyTorchBackend(base_backend.BaseBackend):
       self.torch.manual_seed(seed)
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.randn(shape, dtype=dtype)
+
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Any] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if seed:
+      self.torch.manual_seed(seed)
+    dtype = dtype if dtype is not None else self.torch.float64
+    return self.torch.empty(shape, dtype=dtype).uniform_(*boundaries)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
@@ -265,8 +275,17 @@ class PyTorchBackend(base_backend.BaseBackend):
       eigenvectors.append(state / self.torch.norm(state))
     return eigvals[0:numeig], eigenvectors
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
