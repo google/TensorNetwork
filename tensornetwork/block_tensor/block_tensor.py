@@ -30,27 +30,11 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
-def combine_index_strides(index_dims: np.ndarray,
-                          strides: np.ndarray) -> np.ndarray:
-  """
-  Combine multiple indices of some dimensions and strides into a single index, 
-  based on row-major order. Used when transposing SymTensors.
-  Args:
-    index_dims (np.ndarray): list of dim of each index.
-    strides (np.ndarray): list of strides of each index.
-  Returns:
-    np.ndarray: strides of combined index.
-  """
-  num_ind = len(index_dims)
-  comb_ind_locs = np.arange(
-      0, strides[0] * index_dims[0], strides[0], dtype=np.uint32)
-  for n in range(1, num_ind):
-    comb_ind_locs = np.add.outer(
-        comb_ind_locs,
-        np.arange(0, strides[n] * index_dims[n], strides[n],
-                  dtype=np.uint32)).ravel()
-
-  return comb_ind_locs
+def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
+  return fuse_ndarrays([
+      np.arange(0, strides[n] * dims[n], strides[n], dtype=np.uint32)
+      for n in range(len(dims))
+  ])
 
 
 def compute_sparse_lookup(charges: List[BaseCharge], flows: Iterable[bool],
@@ -83,24 +67,6 @@ def _get_strides(dims):
   return np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
 
 
-def fuse_ndarray_pair(array1: Union[List, np.ndarray],
-                      array2: Union[List, np.ndarray]) -> np.ndarray:
-  """
-  Fuse ndarrays `array1` and `array2` by kronecker-addition. 
-  Given `array1 = [0,1,2]` and `array2 = [10,100]`, this returns
-  `[10, 100, 11, 101, 12, 102]`.
-
-  Args:
-    array1: np.ndarray
-    array2: np.ndarray
-  Returns:
-    np.ndarray: The result of adding `array1` and `array2`
-  """
-  return np.reshape(
-      np.asarray(array1)[:, None] + np.asarray(array2)[None, :],
-      len(array1) * len(array2))
-
-
 def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   """
   Fuse all `arrays` by simple kronecker addition.
@@ -114,7 +80,7 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
     return arrays[0]
   fused_arrays = arrays[0]
   for n in range(1, len(arrays)):
-    fused_arrays = fuse_ndarray_pair(array1=fused_arrays, array2=arrays[n])
+    fused_arrays = np.ravel(np.add.outer(fused_arrays, arrays[n]))
   return fused_arrays
 
 
@@ -1527,10 +1493,8 @@ def reduce_charges(charges: List[BaseCharge],
   if return_locations:
     if strides is not None:
       # computed locations based on non-trivial strides
-      row_pos = combine_index_strides(tensor_dims[:partition],
-                                      strides[:partition])
-      col_pos = combine_index_strides(tensor_dims[partition:],
-                                      strides[partition:])
+      row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
+      col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
 
       # reduce combined qnums to include only those in target_charges
       reduced_rows = [0] * left_ind.num_unique
