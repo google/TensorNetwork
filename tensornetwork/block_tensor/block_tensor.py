@@ -142,9 +142,9 @@ def _find_best_partition(dims: Iterable[int]) -> int:
   return min_ind + 1
 
 
-def compute_fused_charge_degeneracies(
-    charges: List[BaseCharge],
-    flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
+def compute_fused_charge_degeneracies(charges: List[BaseCharge],
+                                      flows: List[bool]
+                                     ) -> Tuple[BaseCharge, np.ndarray]:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`, together with their respective degeneracies
@@ -166,8 +166,9 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (
-      charges[0] * flows[0]).unique(return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (charges[0] *
+                                                   flows[0]).unique(
+                                                       return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
     fused_charges = accumulated_charges + leg_charges * flows[n]
@@ -184,9 +185,9 @@ def compute_fused_charge_degeneracies(
   return accumulated_charges, accumulated_degeneracies
 
 
-def compute_unique_fused_charges(
-    charges: List[BaseCharge],
-    flows: List[Union[bool, int]]) -> Tuple[BaseCharge, np.ndarray]:
+def compute_unique_fused_charges(charges: List[BaseCharge],
+                                 flows: List[Union[bool, int]]
+                                ) -> Tuple[BaseCharge, np.ndarray]:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
@@ -241,9 +242,9 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   return np.squeeze(accumulated_degeneracies[nz_inds][0])
 
 
-def _find_diagonal_sparse_blocks(
-    charges: List[BaseCharge], flows: np.ndarray,
-    partition: int) -> (np.ndarray, np.ndarray, np.ndarray):
+def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: np.ndarray,
+                                 partition: int
+                                ) -> (np.ndarray, np.ndarray, np.ndarray):
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of SymTensor (when viewed as a matrix across some prescribed index 
@@ -309,9 +310,9 @@ def _find_diagonal_sparse_blocks(
       # calculate mappings for the position in datavector of each block
       if num_blocks < 15:
         # faster method for small number of blocks
-        row_locs = np.concatenate(
-            [(row_ind.charge_labels == n) for n in range(num_blocks)]).reshape(
-                num_blocks, row_ind.dim)
+        row_locs = np.concatenate([
+            (row_ind.charge_labels == n) for n in range(num_blocks)
+        ]).reshape(num_blocks, row_ind.dim)
       else:
         # faster method for large number of blocks
         row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)
@@ -324,8 +325,9 @@ def _find_diagonal_sparse_blocks(
           [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
            for n in range(num_blocks)],
           dtype=np.uint32).T
-      block_maps = [(cumulate_num_nz[row_locs[n, :]][:, None] + np.arange(
-          block_dims[1, n])[None, :]).ravel() for n in range(num_blocks)]
+      block_maps = [(cumulate_num_nz[row_locs[n, :]][:, None] +
+                     np.arange(block_dims[1, n])[None, :]).ravel()
+                    for n in range(num_blocks)]
       obj = charges[0].__new__(type(charges[0]))
       obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
                    charges[0].charge_types)
@@ -816,7 +818,7 @@ def reshape(tensor: BlockSparseTensor,
     BlockSparseTensor: A new tensor reshaped into `shape`
   """
 
-  return self.reshape(shape)
+  return tensor.reshape(shape)
 
 
 def transpose(tensor: BlockSparseTensor,
@@ -835,10 +837,10 @@ def transpose(tensor: BlockSparseTensor,
   return result
 
 
-def _compute_transposed_sparse_blocks(
-    indices: BlockSparseTensor,
-    order: Union[List[int], np.ndarray],
-    transposed_partition: Optional[int] = None) -> Tuple[BaseCharge, Dict, int]:
+def _compute_transposed_sparse_blocks(indices: BlockSparseTensor,
+                                      order: Union[List[int], np.ndarray],
+                                      transposed_partition: Optional[int] = None
+                                     ) -> Tuple[BaseCharge, Dict, int]:
   """
   Args:
     indices: A symmetric tensor.
@@ -867,11 +869,11 @@ def _compute_transposed_sparse_blocks(
       order=flat_order)
 
 
-def tensordot(
-    tensor1: BlockSparseTensor,
-    tensor2: BlockSparseTensor,
-    axes: Sequence[Sequence[int]],
-    final_order: Optional[Union[List, np.ndarray]] = None) -> BlockSparseTensor:
+def tensordot(tensor1: BlockSparseTensor,
+              tensor2: BlockSparseTensor,
+              axes: Sequence[Sequence[int]],
+              final_order: Optional[Union[List, np.ndarray]] = None
+             ) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -1462,12 +1464,12 @@ def _get_stride_arrays(dims):
   return [np.arange(dims[n]) * strides[n] for n in range(len(dims))]
 
 
-def reduce_charges(
-    charges: List[BaseCharge],
-    flows: Iterable[bool],
-    target_charges: np.ndarray,
-    return_locations: Optional[bool] = False,
-    strides: Optional[np.ndarray] = None) -> Tuple[BaseCharge, np.ndarray]:
+def reduce_charges(charges: List[BaseCharge],
+                   flows: Iterable[bool],
+                   target_charges: np.ndarray,
+                   return_locations: Optional[bool] = False,
+                   strides: Optional[np.ndarray] = None
+                  ) -> Tuple[BaseCharge, np.ndarray]:
   """
   Add quantum numbers arising from combining two or more charges into a
   single index, keeping only the quantum numbers that appear in 'target_charges'.
@@ -1585,12 +1587,12 @@ def reduce_charges(
     return obj
 
 
-def reduce_to_target_charges(
-    charges: List[BaseCharge],
-    flows: List[Union[int, bool]],
-    target_charges: BaseCharge,
-    strides: Optional[np.ndarray] = None,
-    return_positions: Optional[bool] = False) -> np.ndarray:
+def reduce_to_target_charges(charges: List[BaseCharge],
+                             flows: List[Union[int, bool]],
+                             target_charges: BaseCharge,
+                             strides: Optional[np.ndarray] = None,
+                             return_positions: Optional[bool] = False
+                            ) -> np.ndarray:
   """
   Find the dense locations of elements (i.e. the index-values within the DENSE tensor)
   in the vector of `fused_charges` resulting from fusing all elements of `charges`
@@ -1861,8 +1863,8 @@ def find_sparse_positions_new(charges: List[BaseCharge],
   charge_labels = np.concatenate(
       [final_relevant_labels[n] for n in relevant_left_inverse])
   inds = np.concatenate([
-      start_positions[n] + np.arange(
-          total_degen[relevant_left_inverse[n]], dtype=np.uint32)
+      start_positions[n] +
+      np.arange(total_degen[relevant_left_inverse[n]], dtype=np.uint32)
       for n in range(len(relevant_left_inverse))
   ])
 
