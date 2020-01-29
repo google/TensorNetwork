@@ -197,7 +197,6 @@ class BaseCharge:
         charges=self.unique_charges,
         charge_labels=np.arange(self.unique_charges.shape[1], dtype=np.int16),
         charge_types=self.charge_types)
-
     out = [obj]
     if return_index:
       _, index = np.unique(self.charge_labels, return_index=True)
@@ -213,6 +212,8 @@ class BaseCharge:
       return out[0], out[1]
     if len(out) == 3:
       return out[0], out[1], out[2]
+    if len(out) == 4:
+      return out[0], out[1], out[2], out[3]
 
   @property
   def dtype(self):
