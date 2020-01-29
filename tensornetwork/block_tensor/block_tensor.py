@@ -81,10 +81,6 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   return fused_arrays
 
 
-def _check_flows(flows: List[int]) -> None:
-  return
-
-
 def _find_best_partition(dims: Iterable[int]) -> int:
   """
 
@@ -574,7 +570,6 @@ class BlockSparseTensor:
       indices: List of `Index` objecst, one for each leg. 
     """
     self.indices = indices
-    _check_flows(self.flows)
     num_non_zero_elements = compute_num_nonzero(self.charges, self.flows)
 
     if num_non_zero_elements != len(data.flat):
