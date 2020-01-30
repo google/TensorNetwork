@@ -299,8 +299,8 @@ class BaseCharge:
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
-      print(isinstance(target_charges, type(self)))
-      print(type(target_charges), type(self))
+      if target_charges.ndim == 1:
+        target_charges = np.expand_dims(target_charges, 0)
       targets = np.unique(target_charges, axis=1)
     inds = np.nonzero(
         np.logical_and.reduce(
