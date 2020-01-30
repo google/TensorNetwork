@@ -183,7 +183,7 @@ def test_disconnected_network(backend, path_algorithm):
       final_edges)
   assert result.edges == final_edges
 
-def test_passes_ignore_edge_order_from_auto(backend, path_algorithm):
+def test_passes_ignore_edge_order_from_auto(backend):
   a = Node(np.eye(2), backend=backend)
   b = Node(np.eye(2), backend=backend)
   c = Node(np.eye(2), backend=backend)
