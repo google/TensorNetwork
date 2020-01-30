@@ -101,9 +101,9 @@ def _find_best_partition(dims: Iterable[int]) -> int:
   return min_ind + 1
 
 
-def compute_fused_charge_degeneracies(charges: List[BaseCharge],
-                                      flows: List[bool]
-                                     ) -> Tuple[BaseCharge, np.ndarray]:
+def compute_fused_charge_degeneracies(
+    charges: List[BaseCharge],
+    flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`, together with their respective degeneracies
@@ -125,9 +125,8 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (
+      charges[0] * flows[0]).unique(return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
     fused_charges = accumulated_charges + leg_charges * flows[n]
@@ -144,9 +143,9 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
   return accumulated_charges, accumulated_degeneracies
 
 
-def compute_unique_fused_charges(charges: List[BaseCharge],
-                                 flows: List[Union[bool, int]]
-                                ) -> Tuple[BaseCharge, np.ndarray]:
+def compute_unique_fused_charges(
+    charges: List[BaseCharge],
+    flows: List[Union[bool, int]]) -> Tuple[BaseCharge, np.ndarray]:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
@@ -201,12 +200,12 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   return np.squeeze(accumulated_degeneracies[nz_inds][0])
 
 
-def reduce_charges(charges: List[BaseCharge],
-                   flows: Iterable[bool],
-                   target_charges: np.ndarray,
-                   return_locations: Optional[bool] = False,
-                   strides: Optional[np.ndarray] = None
-                  ) -> Tuple[BaseCharge, np.ndarray]:
+def reduce_charges(
+    charges: List[BaseCharge],
+    flows: Iterable[bool],
+    target_charges: np.ndarray,
+    return_locations: Optional[bool] = False,
+    strides: Optional[np.ndarray] = None) -> Tuple[BaseCharge, np.ndarray]:
   """
   Add quantum numbers arising from combining two or more charges into a
   single index, keeping only the quantum numbers that appear in 'target_charges'.
@@ -322,9 +321,9 @@ def reduce_charges(charges: List[BaseCharge],
     return obj
 
 
-def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: np.ndarray,
-                                 partition: int
-                                ) -> (np.ndarray, np.ndarray, np.ndarray):
+def _find_diagonal_sparse_blocks(
+    charges: List[BaseCharge], flows: np.ndarray,
+    partition: int) -> (np.ndarray, np.ndarray, np.ndarray):
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of SymTensor (when viewed as a matrix across some prescribed index 
@@ -390,9 +389,9 @@ def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: np.ndarray,
       # calculate mappings for the position in datavector of each block
       if num_blocks < 15:
         # faster method for small number of blocks
-        row_locs = np.concatenate([
-            (row_ind.charge_labels == n) for n in range(num_blocks)
-        ]).reshape(num_blocks, row_ind.dim)
+        row_locs = np.concatenate(
+            [(row_ind.charge_labels == n) for n in range(num_blocks)]).reshape(
+                num_blocks, row_ind.dim)
       else:
         # faster method for large number of blocks
         row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)
@@ -405,9 +404,8 @@ def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: np.ndarray,
           [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
            for n in range(num_blocks)],
           dtype=np.uint32).T
-      block_maps = [(cumulate_num_nz[row_locs[n, :]][:, None] +
-                     np.arange(block_dims[1, n])[None, :]).ravel()
-                    for n in range(num_blocks)]
+      block_maps = [(cumulate_num_nz[row_locs[n, :]][:, None] + np.arange(
+          block_dims[1, n])[None, :]).ravel() for n in range(num_blocks)]
       obj = charges[0].__new__(type(charges[0]))
       obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
                    charges[0].charge_types)
@@ -727,8 +725,8 @@ class BlockSparseTensor:
     #check for trivial permutation
     if np.all(order == np.arange(len(order))):
       return self
-    flat_indices, flat_charges, flat_flows, _, flat_order, _ = flatten_meta_data(
-        self.indices, order, 0)
+    flat_indices, flat_charges, flat_flows, _, flat_order = flatten_meta_data(
+        self.indices, order)
     tr_partition = _find_best_partition(
         [len(flat_charges[n]) for n in flat_order])
 
@@ -908,11 +906,11 @@ def transpose(tensor: BlockSparseTensor,
   return result
 
 
-def tensordot(tensor1: BlockSparseTensor,
-              tensor2: BlockSparseTensor,
-              axes: Sequence[Sequence[int]],
-              final_order: Optional[Union[List, np.ndarray]] = None
-             ) -> BlockSparseTensor:
+def tensordot(
+    tensor1: BlockSparseTensor,
+    tensor2: BlockSparseTensor,
+    axes: Sequence[Sequence[int]],
+    final_order: Optional[Union[List, np.ndarray]] = None) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -977,6 +975,13 @@ def tensordot(tensor1: BlockSparseTensor,
   new_order1 = free_axes1 + list(axes1)
   new_order2 = list(axes2) + free_axes2
 
+  contr_flat_indices_1 = []
+  for n in axes1:
+    contr_flat_indices_1.extend(tensor1.indices[n].get_elementary_indices())
+
+  contr_flat_indices_2 = []
+  for n in axes2:
+    contr_flat_indices_2.extend(tensor2.indices[n].get_elementary_indices())
   #get the flattened indices for the output tensor
   left_indices = []
   right_indices = []
@@ -984,17 +989,30 @@ def tensordot(tensor1: BlockSparseTensor,
     left_indices.extend(tensor1.indices[n].get_elementary_indices())
   for n in free_axes2:
     right_indices.extend(tensor2.indices[n].get_elementary_indices())
+
   indices = left_indices + right_indices
 
-  _, flat_charges1, flat_flows1, flat_strides1, flat_order1, tr_partition1 = flatten_meta_data(
-      tensor1.indices, new_order1, len(free_axes1))
+  flat_charges1 = [i.charges for i in left_indices
+                  ] + [i.charges for i in contr_flat_indices_1]
+  flat_flows1 = [i.flow for i in left_indices
+                ] + [i.flow for i in contr_flat_indices_1]
+
+  flat_charges2 = [i.charges for i in contr_flat_indices_2
+                  ] + [i.charges for i in right_indices]
+
+  flat_flows2 = [i.flow for i in contr_flat_indices_2
+                ] + [i.flow for i in right_indices]
+
+  flat_order1 = new_flat_order(tensor1.indices, new_order1)
+  flat_order2 = new_flat_order(tensor2.indices, new_order2)
+
+  tr_partition1 = len(left_indices)
+  tr_partition2 = len(contr_flat_indices_2)
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
       flat_charges1, flat_flows1, tr_partition1, flat_order1)
-  _, flat_charges2, flat_flows2, flat_strides2, flat_order2, tr_partition2 = flatten_meta_data(
-      tensor2.indices, new_order2, len(axes2))
   tr_sparse_blocks_2, charges2, shapes_2 = _find_transposed_diagonal_sparse_blocks(
       flat_charges2, flat_flows2, tr_partition2, flat_order2)
-  #common_charges = charges1.intersect(charges2)
+
   common_charges, label_to_common_1, label_to_common_2 = intersect(
       charges1.unique_charges,
       charges2.unique_charges,
@@ -1062,14 +1080,27 @@ def tensordot(tensor1: BlockSparseTensor,
     return BlockSparseTensor(data=data, indices=indices)
 
 
-def flatten_meta_data(indices, order, partition):
+def new_flat_order(indices, order):
   elementary_indices = {}
   flat_elementary_indices = []
-  new_partition = 0
   for n in range(len(indices)):
     elementary_indices[n] = indices[n].get_elementary_indices()
-    if n < partition:
-      new_partition += len(elementary_indices[n])
+    flat_elementary_indices.extend(elementary_indices[n])
+  flat_index_list = np.arange(len(flat_elementary_indices))
+  cum_num_legs = np.append(
+      0, np.cumsum([len(elementary_indices[n]) for n in range(len(indices))]))
+
+  flat_order = np.concatenate(
+      [flat_index_list[cum_num_legs[n]:cum_num_legs[n + 1]] for n in order])
+
+  return flat_order
+
+
+def flatten_meta_data(indices, order):
+  elementary_indices = {}
+  flat_elementary_indices = []
+  for n in range(len(indices)):
+    elementary_indices[n] = indices[n].get_elementary_indices()
     flat_elementary_indices.extend(elementary_indices[n])
   flat_index_list = np.arange(len(flat_elementary_indices))
   cum_num_legs = np.append(
@@ -1082,4 +1113,4 @@ def flatten_meta_data(indices, order, partition):
   flat_order = np.concatenate(
       [flat_index_list[cum_num_legs[n]:cum_num_legs[n + 1]] for n in order])
 
-  return flat_elementary_indices, flat_charges, flat_flows, flat_strides, flat_order, new_partition
+  return flat_elementary_indices, flat_charges, flat_flows, flat_strides, flat_order
