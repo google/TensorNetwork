@@ -68,7 +68,7 @@ class BaseNode(ABC):
     """
 
     self.is_disabled = False
-    if not name:
+    if name is None:
       name = '__unnamed_node__'
     else:
       if not isinstance(name, str):
@@ -500,6 +500,10 @@ class BaseNode(ABC):
         dtype=string_type,
         data=np.array([edge.name for edge in self.edges], dtype=object))
 
+  @abstractmethod
+  def copy(self, conjugate: bool = False) -> "BaseNode":
+    return
+
   def fresh_edges(self, axis_names: Optional[List[Text]] = None) -> None:
     if not axis_names:
       axis_names = self.axis_names
@@ -550,7 +554,7 @@ class Node(BaseNode):
       #always use the `Node`'s backend
       backend = tensor.backend
       tensor = tensor.tensor
-    if not backend:
+    if backend is None:
       backend = get_default_backend()
     if isinstance(backend, BaseBackend):
       backend_obj = backend
@@ -634,6 +638,29 @@ class Node(BaseNode):
   def set_tensor(self, tensor) -> None:
     self.tensor = tensor
 
+  def copy(self, conjugate: bool = False) -> "Node":
+    new_node = Node(self.tensor,
+                    name=self.name, 
+                    axis_names=self.axis_names, 
+                    backend=self.backend)
+    if conjugate:
+      new_node.set_tensor(self.backend.conj(self.tensor))
+    visited_edges = set()
+    for i, edge in enumerate(self.edges):
+      if edge in visited_edges:
+        continue
+      visited_edges.add(edge)
+      if edge.node1 == edge.node2:
+        new_edge = Edge(new_node, i, 
+                        name=edge.name,
+                        node2=new_node, 
+                        axis2=edge.axis2)
+        new_node.add_edge(new_edge, i)
+        new_node.add_edge(new_edge, edge.axis2)
+      else:
+        new_node.add_edge(Edge(new_node, i, name=edge.name), i)
+    return new_node
+
   @property
   def shape(self) -> Tuple[Optional[int], ...]:
     if self.is_disabled:
@@ -711,7 +738,7 @@ class CopyNode(BaseNode):
         backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
     """
 
-    if not backend:
+    if backend is None:
       backend = get_default_backend()
     backend_obj = backend_factory.get_backend(backend)
 
@@ -748,6 +775,30 @@ class CopyNode(BaseNode):
 
   def set_tensor(self, tensor) -> None:
     self.tensor = tensor
+
+  def copy(self, conjugate: bool = False) -> "CopyNode":
+    new_node = CopyNode(self.rank,
+                        self.dimension,
+                        name=self.name, 
+                        axis_names=self.axis_names, 
+                        backend=self.backend,
+                        dtype=self.dtype)
+    new_node.set_tensor(self.get_tensor())
+    visited_edges = set()
+    for i, edge in enumerate(self.edges):
+      if edge in visited_edges:
+        continue
+      visited_edges.add(edge)
+      if edge.node1 == edge.node2:
+        new_edge = Edge(new_node, i, 
+                        name=edge.name,
+                        node2=new_node, 
+                        axis2=edge.axis2)
+        new_node.add_edge(new_edge, i)
+        new_node.add_edge(new_edge, edge.axis2)
+      else:
+        new_node.add_edge(Edge(new_node, i, name=edge.name), i)
+    return new_node
 
   @property
   def shape(self) -> Tuple[Optional[int], ...]:
@@ -920,7 +971,7 @@ class Edge:
       raise ValueError(
           "node2 and axis2 must either be both None or both not be None")
     self.is_disabled = False
-    if not name:
+    if name is None:
       name = '__unnamed_edge__'
     else:
       if not isinstance(name, str):
