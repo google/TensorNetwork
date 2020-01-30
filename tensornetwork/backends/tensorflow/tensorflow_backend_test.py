@@ -342,3 +342,14 @@ def test_matrix_inv_raises(dtype):
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
   with pytest.raises(ValueError):
     backend.inv(matrix)
+
+def test_eigs_not_implemented():
+  backend = tensorflow_backend.TensorFlowBackend()
+  with pytest.raises(NotImplementedError):
+    backend.eigs(np.ones((2, 2)))
+
+
+def test_eigsh_lanczos_not_implemented():
+  backend = tensorflow_backend.TensorFlowBackend()
+  with pytest.raises(NotImplementedError):
+    backend.eigsh_lanczos(np.ones((2, 2)))

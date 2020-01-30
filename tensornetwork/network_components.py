@@ -69,7 +69,7 @@ class BaseNode(ABC):
     """
 
     self.is_disabled = False
-    if not name:
+    if name is None:
       name = '__unnamed_node__'
     else:
       if not isinstance(name, str):
@@ -558,7 +558,7 @@ class Node(BaseNode):
       #always use the `Node`'s backend
       backend = tensor.backend
       tensor = tensor.tensor
-    if not backend:
+    if backend is None:
       backend = get_default_backend()
     if isinstance(backend, BaseBackend):
       backend_obj = backend
@@ -742,7 +742,7 @@ class CopyNode(BaseNode):
         backend with a tf.Dtype=tf.floa32, `dtype` has to be `np.float32`.
     """
 
-    if not backend:
+    if backend is None:
       backend = get_default_backend()
     backend_obj = backend_factory.get_backend(backend)
 
@@ -975,7 +975,7 @@ class Edge:
       raise ValueError(
           "node2 and axis2 must either be both None or both not be None")
     self.is_disabled = False
-    if not name:
+    if name is None:
       name = '__unnamed_edge__'
     else:
       if not isinstance(name, str):
