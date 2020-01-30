@@ -289,7 +289,7 @@ class BaseCharge:
     if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
     obj = self.__new__(type(self))
-    obj.__init__(self.unique_charges, self.charge_labels[n], self.charge_types)
+    obj.__init__(self.unique_charges, self.charge_labels[n], self.charge_types
     return obj
 
   def __eq__(self,
