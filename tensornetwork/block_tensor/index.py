@@ -24,8 +24,6 @@ from typing import List, Union, Any, Optional, Tuple, Text
 class Index:
   """
   An index class to store indices of a symmetric tensor.
-  An index keeps track of all its childs by storing references
-  to them (i.e. it is a binary tree).
   """
 
   def __init__(self,
