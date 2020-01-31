@@ -957,7 +957,7 @@ def transpose(tensor: BlockSparseTensor,
   Returns:
     BlockSparseTensor: The transposed tensor.
   """
-  return tensor.transpose()
+  return tensor.transpose(order)
 
 
 def outerproduct(tensor1: BlockSparseTensor,
