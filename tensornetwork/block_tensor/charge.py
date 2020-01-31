@@ -121,6 +121,13 @@ class BaseCharge:
       return obj
     return self
 
+  def copy(self):
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=self.unique_charges.copy(),
+        charge_labels=self.charge_labels.copy(),
+        charge_types=self.charge_types)
+
   @property
   def charges(self):
     return self.unique_charges[:, self.charge_labels]
