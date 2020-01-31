@@ -51,6 +51,18 @@ class Index:
   def dim(self):
     return np.prod([i.dim for i in self._charges])
 
+  def __eq__(self, other):
+    if len(other._charges) != len(self._charges):
+      return False
+    for n in range(len(self._charges)):
+      if not np.all(
+          self._charges[n].unique_charges == other._charges[n].unique_charges):
+        return False
+      if not np.all(
+          self._charges[n].charge_labels == other._charges[n].charge_labels):
+        return False
+    return True
+
   def copy(self):
     """
     Returns:
