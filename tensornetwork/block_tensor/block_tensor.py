@@ -212,6 +212,7 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
       charges, flows)
   res = accumulated_charges == accumulated_charges.identity_charges
   nz_inds = np.nonzero(res)[0]
+
   if len(nz_inds) > 0:
     return np.squeeze(accumulated_degeneracies[nz_inds][0])
   return 0
