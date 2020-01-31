@@ -744,6 +744,40 @@ class BlockSparseTensor:
 
     return cls(data=init_random(), indices=indices)
 
+  def __sub__(self, other: "BlockSparseTensor"):
+    if self.dense_shape != other.dense_shape:
+      raise ValueError("cannot subtract tensors with shapes {}and {}".format(
+          self.dense_shape, other.dense_shape))
+    if len(self.indices) != len(other.indices):
+      raise ValueError(
+          "cannot subtract tensors with different index-lengths {} and {}"
+          .format(len(self.indices), len(other.indices)))
+
+    if not np.all(
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))):
+      raise ValueError("cannot subtract tensors non-matching indices")
+    return BlockSparseTensor(data=self.data - other.data, indices=self.indices)
+
+  def __add__(self, other: "BlockSparseTensor"):
+    if self.dense_shape != other.dense_shape:
+      raise ValueError("cannot add tensors with shapes {}and {}".format(
+          self.dense_shape, other.dense_shape))
+    if len(self.indices) != len(other.indices):
+      raise ValueError(
+          "cannot add tensors with different index-lengths {} and {}".format(
+              len(self.indices), len(other.indices)))
+
+    if not np.all(
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))):
+      raise ValueError("cannot add tensors non-matching indices")
+    return BlockSparseTensor(data=self.data + other.data, indices=self.indices)
+
+  def __mul__(self, number: np.number):
+    return BlockSparseTensor(data=self.data * number, indices=self.indices)
+
+  def __rmul__(self, number: np.number):
+    return BlockSparseTensor(data=self.data * number, indices=self.indices)
+
   @property
   def rank(self):
     return len(self.indices)
@@ -769,14 +803,6 @@ class BlockSparseTensor:
   @property
   def dtype(self) -> Type[np.number]:
     return self.data.dtype
-
-  @property
-  def flows(self):
-    return [i.flow for i in self.indices]
-
-  @property
-  def charges(self):
-    return [i.charges for i in self.indices]
 
   @property
   def flat_charges(self):
