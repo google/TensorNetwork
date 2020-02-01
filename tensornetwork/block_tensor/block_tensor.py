@@ -1204,16 +1204,30 @@ def tensordot(
     return BlockSparseTensor(data=data, indices=free_indices)
 
 
-def svd(tensor: BlockSparseTensor,
+def svd(matrix: BlockSparseTensor,
         full_matrices: Optional[bool] = True,
         compute_uv: Optional[bool] = True,
         hermitian: Optional[bool] = False):
-  if tensor.rank != 2:
+  """
+  Compute the singular value decomposition of `matrix`.
+  The matrix if factorized into `u * s * vh`, with 
+  `u` and `vh` the left and right eigenvectors of `matrix`,
+  and `s` its singular values.
+  Args:
+    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+    full_matrices: If `True`, exand `u` and `v` to square matrices
+      If `False` return the "economic" svd, i.e. `u.shape[1]=s.shape[0]`
+      and `v.shape[0]=s.shape[1]`
+    compute_yv: If `True`, return `u` and `v`.
+    hermitian: If `True`, assume hermiticity of `matrix`.
+  """
+
+  if matrix.rank != 2:
     raise NotImplementedError("SVD currently supports only rank-2 tensors.")
 
-  flat_charges = tensor.indices[0]._charges + tensor.indices[1]._charges
-  flat_flows = tensor.flat_flows
-  partition = len(tensor.indices[0].flat_charges)
+  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_flows = matrix.flat_flows
+  partition = len(matrix.indices[0].flat_charges)
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       flat_charges, flat_flows, partition)
 
@@ -1221,24 +1235,17 @@ def svd(tensor: BlockSparseTensor,
   singvals = []
   v_blocks = []
   for n in range(len(blocks)):
-    u, s, v = np.linalg.svd(
-        np.reshape(tensor.data[blocks[n]], shapes[:, n]), full_matrices,
+    out = np.linalg.svd(
+        np.reshape(matrix.data[blocks[n]], shapes[:, n]), full_matrices,
         compute_uv, hermitian)
-    u_blocks.append(u)
-    v_blocks.append(v)
-    singvals.append(np.diag(s))
+    if compute_uv:
+      u_blocks.append(out[0])
+      singvals.append(np.diag(out[1]))
+      v_blocks.append(out[2])
 
-  #define the new charges on the two central bonds
-  new_left_charge = charges.__new__(type(charges))
-  new_right_charge = charges.__new__(type(charges))
-  left_charge_labels = np.concatenate([
-      np.full(u_blocks[n].shape[1], fill_value=n, dtype=np.int16)
-      for n in range(len(u_blocks))
-  ])
-  right_charge_labels = np.concatenate([
-      np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
-      for n in range(len(v_blocks))
-  ])
+    else:
+      singvals.append(np.diag(out))
+
   left_singval_charge = charges.__new__(type(charges))
   right_singval_charge = charges.__new__(type(charges))
   left_singval_charge_labels = np.concatenate([
@@ -1250,30 +1257,42 @@ def svd(tensor: BlockSparseTensor,
       for n in range(len(singvals))
   ])
 
-  new_left_charge.__init__(charges.unique_charges, left_charge_labels,
-                           charges.charge_types)
-  new_right_charge.__init__(charges.unique_charges, right_charge_labels,
-                            charges.charge_types)
   left_singval_charge.__init__(charges.unique_charges,
                                left_singval_charge_labels, charges.charge_types)
   right_singval_charge.__init__(
       charges.unique_charges, right_singval_charge_labels, charges.charge_types)
-
-  #get the indices of the new tensors U,S and V
-  indices_u = [Index(new_left_charge, True), tensor.indices[0]]
-  indices_v = [Index(new_right_charge, False), tensor.indices[1]]
   indices_s = [
       Index(left_singval_charge, False),
       Index(right_singval_charge, True)
   ]
+  S = BlockSparseTensor(
+      np.concatenate([np.ravel(s) for s in singvals]), indices_s)
+  if compute_uv:
+    #define the new charges on the two central bonds
+    new_left_charge = charges.__new__(type(charges))
+    new_right_charge = charges.__new__(type(charges))
+    left_charge_labels = np.concatenate([
+        np.full(u_blocks[n].shape[1], fill_value=n, dtype=np.int16)
+        for n in range(len(u_blocks))
+    ])
+    right_charge_labels = np.concatenate([
+        np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
+        for n in range(len(v_blocks))
+    ])
+    new_left_charge.__init__(charges.unique_charges, left_charge_labels,
+                             charges.charge_types)
+    new_right_charge.__init__(charges.unique_charges, right_charge_labels,
+                              charges.charge_types)
 
-  #We fill in data into the transposed U
-  #TODO: reuse data from _find_diagonal_sparse_blocks above
-  #to avoid the transpose
-  return BlockSparseTensor(
-      np.concatenate([np.ravel(u.T) for u in u_blocks]), indices_u).transpose(
-          (1, 0)), BlockSparseTensor(
-              np.concatenate([np.ravel(s) for s in singvals]),
-              indices_s), BlockSparseTensor(
-                  np.concatenate([np.ravel(v) for v in v_blocks]),
-                  indices_v), u_blocks, v_blocks, charges
+    #get the indices of the new tensors U,S and V
+    indices_u = [Index(new_left_charge, True), matrix.indices[0]]
+    indices_v = [Index(new_right_charge, False), matrix.indices[1]]
+    #We fill in data into the transposed U
+    #TODO: reuse data from _find_diagonal_sparse_blocks above
+    #to avoid the transpose
+    return BlockSparseTensor(
+        np.concatenate([np.ravel(u.T) for u in u_blocks]), indices_u).transpose(
+            (1, 0)), S, BlockSparseTensor(
+                np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
+
+  return S
