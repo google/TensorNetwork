@@ -1266,6 +1266,7 @@ def svd(tensor: BlockSparseTensor,
       Index(left_singval_charge, False),
       Index(right_singval_charge, True)
   ]
+
   #We fill in data into the transposed U
   #TODO: reuse data from _find_diagonal_sparse_blocks above
   #to avoid the transpose
