@@ -24,21 +24,22 @@ from typing import List, Union, Any, Optional, Tuple, Text
 class Index:
   """
   An index class to store indices of a symmetric tensor.
-  An index keeps track of all its childs by storing references
-  to them (i.e. it is a binary tree).
   """
 
   def __init__(self,
                charges: Union[List[BaseCharge], BaseCharge],
                flow: Union[List[int], int],
                name: Optional[Union[List[Text], Text]] = None) -> None:
+    """
+    Initialize an `Index` object.
+    """
     if isinstance(charges, BaseCharge):
       charges = [charges]
     self._charges = charges
-    if isinstance(flow, (np.bool_, bool, np.bool)):
+    if np.isscalar(flow):
       flow = [flow]
     if not all([isinstance(f, (np.bool_, np.bool, bool)) for f in flow]):
-      raise TypeError("flows have to be boolean")
+      raise TypeError("flows have to be boolean. Found flow = {}".format(flow))
     self.flow = flow
     if isinstance(name, str):
       name = [name]
@@ -50,6 +51,18 @@ class Index:
   @property
   def dim(self):
     return np.prod([i.dim for i in self._charges])
+
+  def __eq__(self, other):
+    if len(other._charges) != len(self._charges):
+      return False
+    for n in range(len(self._charges)):
+      if not np.all(
+          self._charges[n].unique_charges == other._charges[n].unique_charges):
+        return False
+      if not np.all(
+          self._charges[n].charge_labels == other._charges[n].charge_labels):
+        return False
+    return True
 
   def copy(self):
     """
