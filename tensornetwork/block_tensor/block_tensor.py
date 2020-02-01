@@ -1294,4 +1294,5 @@ def svd(matrix: BlockSparseTensor,
         np.concatenate([np.ravel(u.T) for u in u_blocks]), indices_u).transpose(
             (1, 0)), S, BlockSparseTensor(
                 np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
+
   return S
