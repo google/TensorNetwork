@@ -30,13 +30,16 @@ class Index:
                charges: Union[List[BaseCharge], BaseCharge],
                flow: Union[List[int], int],
                name: Optional[Union[List[Text], Text]] = None) -> None:
+    """
+    Initialize an `Index` object.
+    """
     if isinstance(charges, BaseCharge):
       charges = [charges]
     self._charges = charges
-    if isinstance(flow, (np.bool_, bool, np.bool)):
+    if np.isscalar(flow):
       flow = [flow]
     if not all([isinstance(f, (np.bool_, np.bool, bool)) for f in flow]):
-      raise TypeError("flows have to be boolean")
+      raise TypeError("flows have to be boolean. Found flow = {}".format(flow))
     self.flow = flow
     if isinstance(name, str):
       name = [name]
