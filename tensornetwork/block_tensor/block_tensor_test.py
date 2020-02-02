@@ -3,12 +3,13 @@ import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot
+from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
+np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
 
 
-def get_contractable_tensors(R1, R2, cont):
+def get_contractable_tensors(R1, R2, cont, dtype):
   DsA = np.random.randint(5, 10, R1)
   DsB = np.random.randint(5, 10, R2)
   assert R1 >= cont
@@ -49,8 +50,8 @@ def get_contractable_tensors(R1, R2, cont):
   for n in sorted(compB):
     indices_final.append(indicesB[n])
   shapes = tuple([i.dim for i in indices_final])
-  A = BlockSparseTensor.random(indices=indicesA)
-  B = BlockSparseTensor.random(indices=indicesB)
+  A = BlockSparseTensor.random(indices=indicesA, dtype=dtype)
+  B = BlockSparseTensor.random(indices=indicesB, dtype=dtype)
   return A, B, indsA, indsB
 
 
@@ -133,9 +134,10 @@ def test_reshape_transpose():
   np.testing.assert_allclose(dense, B.todense())
 
 
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("R1, R2, cont", [(4, 4, 2), (4, 3, 3), (3, 4, 3)])
-def test_tensordot(R1, R2, cont):
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont)
+def test_tensordot(R1, R2, cont, dtype):
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont, dtype)
   res = tensordot(A, B, (indsA, indsB))
   dense_res = np.tensordot(A.todense(), B.todense(), (indsA, indsB))
   np.testing.assert_allclose(dense_res, res.todense())
@@ -168,9 +170,10 @@ def test_tensordot_reshape():
   np.testing.assert_allclose(dense, res.todense())
 
 
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("R1, R2, cont", [(4, 4, 2), (4, 3, 3), (3, 4, 3)])
-def test_tensordot_final_order(R1, R2, cont):
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont)
+def test_tensordot_final_order(R1, R2, cont, dtype):
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont, dtype)
   final_order = np.arange(R1 + R2 - 2 * cont)
   np.random.shuffle(final_order)
   res = tensordot(A, B, (indsA, indsB), final_order=final_order)
@@ -179,18 +182,63 @@ def test_tensordot_final_order(R1, R2, cont):
   np.testing.assert_allclose(dense_res, res.todense())
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (3, 3), (4, 4), (1, 1)])
-def test_tensordot_inner(R1, R2):
+def test_tensordot_inner(R1, R2, dtype):
 
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0)
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0, dtype)
   res = tensordot(A, B, (indsA, indsB))
   dense_res = np.tensordot(A.todense(), B.todense(), (indsA, indsB))
   np.testing.assert_allclose(dense_res, res.todense())
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (2, 1), (1, 2), (1, 1)])
-def test_tensordot_outer(R1, R2):
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0)
+def test_tensordot_outer(R1, R2, dtype):
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0, dtype)
   res = tensordot(A, B, axes=0)
   dense_res = np.tensordot(A.todense(), B.todense(), axes=0)
   np.testing.assert_allclose(dense_res, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+def test_svd_prod(dtype, R, R1, R2):
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = A.reshape([D**R1, D**R2])
+  U, S, V = svd(A, full_matrices=False)
+  A_ = U @ S @ V
+  np.testing.assert_allclose(A.data, A_.data)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+def test_svd_singvals(dtype, R, R1, R2):
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = A.reshape([D**R1, D**R2])
+  U1, S1, V1 = svd(A, full_matrices=False)
+  S2 = svd(A, full_matrices=False, compute_uv=False)
+  np.testing.assert_allclose(S1.data, S2.data)
+  Sdense = np.linalg.svd(A.todense(), compute_uv=False)
+  np.testing.assert_allclose(
+      np.sort(Sdense[Sdense > 1E-15]), np.sort(S2.data[S2.data > 0.0]))
+
+
+@pytest.mark.parametrize("mode", ['complete', 'reduced'])
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+def test_qr_prod(dtype, R, R1, R2, mode):
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = A.reshape([D**R1, D**R2])
+  Q, R = qr(A, mode=mode)
+  A_ = Q @ R
+  np.testing.assert_allclose(A.data, A_.data)
