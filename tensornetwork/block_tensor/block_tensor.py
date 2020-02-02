@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from tensornetwork.backends import backend_factory
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, split_index
+from tensornetwork.block_tensor.index import Index, fuse_index_pair
 from tensornetwork.block_tensor.charge import fuse_degeneracies, fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
 import numpy as np
 import scipy as sp

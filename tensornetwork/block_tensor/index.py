@@ -254,17 +254,3 @@ def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
   for n in range(1, len(indices)):
     index = fuse_index_pair(index, indices[n], flow=flow)
   return index
-
-
-def split_index(index: Index) -> Tuple[Index, Index]:
-  """
-  Split an index (leg) of a symmetric tensor into two legs.
-  Args:
-    index: A tensor Index.
-  Returns:
-    Tuple[Index, Index]: The result of splitting `index`.
-  """
-  if index.is_leave:
-    raise ValueError("cannot split an elementary index")
-
-  return index.left_child, index.right_child
