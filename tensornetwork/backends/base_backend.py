@@ -64,7 +64,8 @@ class BaseBackend:
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
@@ -83,6 +84,8 @@ class BaseBackend:
     If `max_truncation_error > 0`, as many singular values will be truncated as
     possible, so that the truncation error (the norm of discarded singular
     values) is at most `max_truncation_error`.
+    If `relative` is set `True` then `max_truncation_err` is understood
+    relative to the largest singular value.
 
     If both `max_singular_values` and `max_truncation_error` are specified, the
     number of retained singular values will be
@@ -104,6 +107,7 @@ class BaseBackend:
         keep them all.
       max_truncation_error: The maximum allowed truncation error or `None` to 
         not do any truncation.
+      relative: Multiply `max_truncation_err` with the largest singular value.
 
     Returns:
       u: Left tensor factor.

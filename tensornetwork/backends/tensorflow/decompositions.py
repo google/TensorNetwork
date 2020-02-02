@@ -22,7 +22,8 @@ def svd_decomposition(tf: Any,
                       tensor: Tensor,
                       split_axis: int,
                       max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None
+                      max_truncation_error: Optional[float] = None,
+                      relative: Optional[bool] = False
                      ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
@@ -41,6 +42,8 @@ def svd_decomposition(tf: Any,
   If `max_truncation_error > 0`, as many singular values will be truncated as
   possible, so that the truncation error (the norm of discarded singular
   values) is at most `max_truncation_error`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If both `max_singular_values` snd `max_truncation_error` are specified, the
   number of retained singular values will be
@@ -63,6 +66,7 @@ def svd_decomposition(tf: Any,
       keep them all.
     max_truncation_error: The maximum allowed truncation error or `None` to not
       do any truncation.
+    relative: Multiply `max_truncation_err` with the largest singular value.
 
   Returns:
     u: Left tensor factor.
@@ -87,10 +91,16 @@ def svd_decomposition(tf: Any,
   if max_truncation_error is not None:
     # Cumulative norms of singular values in ascending order.
     trunc_errs = tf.sqrt(tf.cumsum(tf.square(s), reverse=True))
+    # If relative is true, rescale max_truncation error with the largest
+    # singular value to yield the absolute maximal truncation error.
+    if relative:
+      abs_max_truncation_error = max_truncation_error * s[0]
+    else:
+      abs_max_truncation_error = max_truncation_error
     # We must keep at least this many singular values to ensure the
-    # truncation error is <= max_truncation_error.
+    # truncation error is <= abs_max_truncation_error.
     num_sing_vals_err = tf.math.count_nonzero(
-        tf.cast(trunc_errs > max_truncation_error, dtype=tf.int32))
+        tf.cast(trunc_errs > abs_max_truncation_error, dtype=tf.int32))
   else:
     num_sing_vals_err = max_singular_values
 
