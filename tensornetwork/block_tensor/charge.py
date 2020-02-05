@@ -38,8 +38,9 @@ class BaseCharge:
           charges.astype(np.int16), return_inverse=True, axis=1)
       self.charge_labels = self.charge_labels.astype(np.int16)
     else:
-      if charge_labels.dtype not in (np.int16, np.int16):
-        raise TypeError("`charge_labels` have to be of dtype `np.int16`")
+      self.charge_labels = np.asarray(charge_labels, dtype=np.int16)
+      # if charge_labels.dtype not in (np.int16, np.int16):
+      #   raise TypeError("`charge_labels` have to be of dtype `np.int16`")
 
       self.unique_charges = charges.astype(np.int16)
       self.charge_labels = charge_labels.astype(np.int16)
@@ -200,19 +201,30 @@ class BaseCharge:
         original array. Only provided if `return_counts` is True.      
     """
     obj = self.__new__(type(self))
+    tmp = np.unique(
+        self.charge_labels,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts)
+    if return_index or return_inverse or return_counts:
+      if tmp[0].ndim == 0:
+        index = np.asarray([tmp[0]])
+        unique_charges = self.unique_charges[:, index]
+      else:
+        unique_charges = self.unique_charges[:, tmp[0]]
+    else:
+      if tmp.ndim == 0:
+        tmp = np.asarray([tmp])
+      unique_charges = self.unique_charges[:, tmp]
     obj.__init__(
-        charges=self.unique_charges,
-        charge_labels=np.arange(self.unique_charges.shape[1], dtype=np.int16),
+        charges=unique_charges,
+        charge_labels=np.arange(unique_charges.shape[1], dtype=np.int16),
         charge_types=self.charge_types)
     out = [obj]
-    if return_index:
-      _, index = np.unique(self.charge_labels, return_index=True)
-      out.append(index)
-    if return_inverse:
-      out.append(self.charge_labels)
-    if return_counts:
-      _, cnts = np.unique(self.charge_labels, return_counts=True)
-      out.append(cnts)
+    if return_index or return_inverse or return_counts:
+      for n in range(1, len(tmp)):
+        out.append(tmp[n])
+
     if len(out) == 1:
       return out[0]
     if len(out) == 2:
