@@ -796,10 +796,6 @@ class BlockSparseTensor:
     return BlockSparseTensor(data=self.data * number, indices=self.indices)
 
   @property
-  def rank(self):
-    return len(self.indices)
-
-  @property
   def dense_shape(self) -> Tuple:
     """
     The dense shape of the tensor.
@@ -837,10 +833,10 @@ class BlockSparseTensor:
 
   def __matmul__(self, other):
 
-    if self.rank != 2:
+    if self.ndim != 2:
       raise ValueError('__matmul__ only implemented for matrices')
 
-    if other.rank != 2:
+    if other.ndim != 2:
       raise ValueError('__matmul__ only implemented for matrices')
     return tensordot(self, other, ([1], [0]))
 
@@ -869,10 +865,10 @@ class BlockSparseTensor:
     Returns:
       BlockSparseTensor: The transposed tensor.
     """
-    if len(order) != self.rank:
+    if len(order) != self.ndim:
       raise ValueError(
-          "`len(order)={}` is different form `self.rank={}`".format(
-              len(order), self.rank))
+          "`len(order)={}` is different form `self.ndim={}`".format(
+              len(order), self.ndim))
 
     #check for trivial permutation
     if np.all(order == np.arange(len(order))):
@@ -1267,7 +1263,7 @@ def svd(matrix: BlockSparseTensor,
       singular values.
   """
 
-  if matrix.rank != 2:
+  if matrix.ndim != 2:
     raise NotImplementedError("svd currently supports only rank-2 tensors.")
 
   flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
@@ -1306,6 +1302,8 @@ def svd(matrix: BlockSparseTensor,
                                left_singval_charge_labels, charges.charge_types)
   right_singval_charge.__init__(
       charges.unique_charges, right_singval_charge_labels, charges.charge_types)
+  #Note: introducint a convetions
+  #TODO: think about this convention!
   indices_s = [
       Index(left_singval_charge, False),
       Index(right_singval_charge, True)
@@ -1364,7 +1362,7 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced'
   """
   if mode == 'raw':
     raise NotImplementedError('mode `raw` currenntly not supported')
-  if matrix.rank != 2:
+  if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
 
   flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
@@ -1427,7 +1425,7 @@ def eigh(matrix: BlockSparseTensor,
     (BlockSparseTensor,BlockSparseTensor): The eigenvalues and eigenvectors
 
   """
-  if matrix.rank != 2:
+  if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
 
   flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
@@ -1482,7 +1480,7 @@ def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
     (BlockSparseTensor,BlockSparseTensor): The eigenvalues and eigenvectors
 
   """
-  if matrix.rank != 2:
+  if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
 
   flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
