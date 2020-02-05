@@ -165,6 +165,8 @@ def compute_fused_charge_degeneracies(
       charges[0] * flows[0]).unique(return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
+    # print(accumulated_charges.unique_charges)
+    # print(accumulated_charges.charge_labels)
     fused_charges = accumulated_charges + leg_charges * flows[n]
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
@@ -225,6 +227,8 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   Returns:
     int: The number of non-zero elements.
   """
+  if np.any([len(c) == 0 for c in charges]):
+    return 0
   accumulated_charges, accumulated_degeneracies = compute_fused_charge_degeneracies(
       charges, flows)
   res = accumulated_charges == accumulated_charges.identity_charges
@@ -673,12 +677,12 @@ class BlockSparseTensor:
     Map the sparse tensor to dense storage.
     
     """
-    out = np.asarray(np.zeros(self.dense_shape, dtype=self.dtype).flat)
+    out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
     charges = self.flat_charges
     out[np.nonzero(
         fuse_charges(charges, self.flat_flows) == charges[0].identity_charges)
         [0]] = self.data
-    return np.reshape(out, self.dense_shape)
+    return np.reshape(out, self.shape)
 
   @property
   def ndim(self):
@@ -762,9 +766,9 @@ class BlockSparseTensor:
     return cls(data=init_random(), indices=indices)
 
   def __sub__(self, other: "BlockSparseTensor"):
-    if self.dense_shape != other.dense_shape:
+    if self.shape != other.shape:
       raise ValueError("cannot subtract tensors with shapes {}and {}".format(
-          self.dense_shape, other.dense_shape))
+          self.shape, other.shape))
     if len(self.indices) != len(other.indices):
       raise ValueError(
           "cannot subtract tensors with different index-lengths {} and {}"
@@ -776,9 +780,9 @@ class BlockSparseTensor:
     return BlockSparseTensor(data=self.data - other.data, indices=self.indices)
 
   def __add__(self, other: "BlockSparseTensor"):
-    if self.dense_shape != other.dense_shape:
+    if self.shape != other.shape:
       raise ValueError("cannot add tensors with shapes {}and {}".format(
-          self.dense_shape, other.dense_shape))
+          self.shape, other.shape))
     if len(self.indices) != len(other.indices):
       raise ValueError(
           "cannot add tensors with different index-lengths {} and {}".format(
@@ -790,13 +794,18 @@ class BlockSparseTensor:
     return BlockSparseTensor(data=self.data + other.data, indices=self.indices)
 
   def __mul__(self, number: np.number):
-    return BlockSparseTensor(data=self.data * number, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data * number, indices=[i.copy() for i in self.indices])
 
   def __rmul__(self, number: np.number):
     return BlockSparseTensor(data=self.data * number, indices=self.indices)
 
+  def __truediv__(self, number: np.number):
+    return BlockSparseTensor(
+        data=self.data / number, indices=[i.copy() for i in self.indices])
+
   @property
-  def dense_shape(self) -> Tuple:
+  def shape(self) -> Tuple:
     """
     The dense shape of the tensor.
     Returns:
@@ -805,7 +814,7 @@ class BlockSparseTensor:
     return tuple([i.dim for i in self.indices])
 
   @property
-  def shape(self) -> Tuple:
+  def sparse_shape(self) -> Tuple:
     """
     The sparse shape of the tensor.
     Returns:
@@ -937,7 +946,7 @@ class BlockSparseTensor:
         new_shape.append(s)
 
     # a few simple checks
-    if np.prod(new_shape) != np.prod(self.dense_shape):
+    if np.prod(new_shape) != np.prod(self.shape):
       raise ValueError("A tensor with {} elements cannot be "
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(new_shape)))
@@ -965,6 +974,10 @@ class BlockSparseTensor:
     indices = [Index(c, f) for c, f in zip(new_flat_charges, new_flat_flows)]
     result = BlockSparseTensor(data=self.data, indices=indices)
     return result
+
+
+def norm(tensor: BlockSparseTensor) -> float:
+  return np.linalg.norm(tensor.data)
 
 
 def reshape(tensor: BlockSparseTensor,
@@ -1287,8 +1300,6 @@ def svd(matrix: BlockSparseTensor,
     else:
       singvals.append(np.diag(out))
 
-  left_singval_charge = charges.__new__(type(charges))
-  right_singval_charge = charges.__new__(type(charges))
   left_singval_charge_labels = np.concatenate([
       np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
@@ -1297,11 +1308,8 @@ def svd(matrix: BlockSparseTensor,
       np.full(singvals[n].shape[1], fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
   ])
-
-  left_singval_charge.__init__(charges.unique_charges,
-                               left_singval_charge_labels, charges.charge_types)
-  right_singval_charge.__init__(
-      charges.unique_charges, right_singval_charge_labels, charges.charge_types)
+  left_singval_charge = charges[left_singval_charge_labels]
+  right_singval_charge = charges[right_singval_charge_labels]
   #Note: introducint a convetions
   #TODO: think about this convention!
   indices_s = [
@@ -1312,8 +1320,6 @@ def svd(matrix: BlockSparseTensor,
       np.concatenate([np.ravel(s) for s in singvals]), indices_s)
   if compute_uv:
     #define the new charges on the two central bonds
-    new_left_charge = charges.__new__(type(charges))
-    new_right_charge = charges.__new__(type(charges))
     left_charge_labels = np.concatenate([
         np.full(u_blocks[n].shape[1], fill_value=n, dtype=np.int16)
         for n in range(len(u_blocks))
@@ -1322,10 +1328,8 @@ def svd(matrix: BlockSparseTensor,
         np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
         for n in range(len(v_blocks))
     ])
-    new_left_charge.__init__(charges.unique_charges, left_charge_labels,
-                             charges.charge_types)
-    new_right_charge.__init__(charges.unique_charges, right_charge_labels,
-                              charges.charge_types)
+    new_left_charge = charges[left_charge_labels]
+    new_right_charge = charges[right_charge_labels]
 
     #get the indices of the new tensors U,S and V
     indices_u = [Index(new_left_charge, True), matrix.indices[0]]
@@ -1383,26 +1387,22 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced'
     else:
       raise ValueError('unknown value {} for input `mode`'.format(mode))
 
-  left_r_charge = charges.__new__(type(charges))
   left_r_charge_labels = np.concatenate([
       np.full(r_blocks[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(r_blocks))
   ])
 
-  left_r_charge.__init__(charges.unique_charges, left_r_charge_labels,
-                         charges.charge_types)
+  left_r_charge = charges[left_r_charge_labels]
   indices_r = [Index(left_r_charge, False), matrix.indices[1]]
 
   R = BlockSparseTensor(
       np.concatenate([np.ravel(r) for r in r_blocks]), indices_r)
   if mode in ('reduced', 'complete'):
-    right_q_charge = charges.__new__(type(charges))
     right_q_charge_labels = np.concatenate([
         np.full(q_blocks[n].shape[1], fill_value=n, dtype=np.int16)
         for n in range(len(q_blocks))
     ])
-    right_q_charge.__init__(charges.unique_charges, right_q_charge_labels,
-                            charges.charge_types)
+    right_q_charge = charges[right_q_charge_labels]
 
     indices_q = [Index(right_q_charge, True), matrix.indices[0]]
     #TODO: reuse data from _find_diagonal_sparse_blocks above
@@ -1442,25 +1442,21 @@ def eigh(matrix: BlockSparseTensor,
     eigvals.append(np.diag(e))
     v_blocks.append(v)
 
-  left_v_charge = charges.__new__(type(charges))
   left_v_charge_labels = np.concatenate([
       np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(v_blocks))
   ])
 
-  left_v_charge.__init__(charges.unique_charges, left_v_charge_labels,
-                         charges.charge_types)
+  left_v_charge = charges[left_v_charge_labels]
   indices_v = [Index(left_v_charge, False), matrix.indices[1]]
 
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
-  eigvalscharge = charges.__new__(type(charges))
   eigvalscharge_labels = np.concatenate([
       np.full(eigvals[n].shape[1], fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
   ])
-  eigvalscharge.__init__(charges.unique_charges, eigvalscharge_labels,
-                         charges.charge_types)
+  eigvalscharge = charges[eigvalscharge_labels]
 
   indices_q = [Index(eigvalscharge, True), matrix.indices[0]]
   #TODO: reuse data from _find_diagonal_sparse_blocks above
@@ -1496,25 +1492,21 @@ def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
     eigvals.append(np.diag(e))
     v_blocks.append(v)
 
-  left_v_charge = charges.__new__(type(charges))
   left_v_charge_labels = np.concatenate([
       np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(v_blocks))
   ])
 
-  left_v_charge.__init__(charges.unique_charges, left_v_charge_labels,
-                         charges.charge_types)
+  left_v_charge = charges[left_v_charge_labels]
   indices_v = [Index(left_v_charge, False), matrix.indices[1]]
 
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
-  eigvalscharge = charges.__new__(type(charges))
   eigvalscharge_labels = np.concatenate([
       np.full(eigvals[n].shape[1], fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
   ])
-  eigvalscharge.__init__(charges.unique_charges, eigvalscharge_labels,
-                         charges.charge_types)
+  eigvalscharge = charges[eigvalscharge_labels]
 
   indices_q = [Index(eigvalscharge, True), matrix.indices[0]]
   #TODO: reuse data from _find_diagonal_sparse_blocks above
