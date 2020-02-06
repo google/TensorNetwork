@@ -14,7 +14,7 @@
 """Tensor Decomposition Implementations."""
 
 from typing import Optional, Any, Tuple
-from tensornetwork.block_tensor.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor
+from tensornetwork.block_tensor.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
 from tensornetwork.block_tensor.index import Index
 import numpy as np
 import warnings
@@ -72,8 +72,9 @@ def svd_decomposition(
 
     maxind = inds[-1]
     if max_truncation_error is not None:
-      kept_inds_mask = np.cumsum(np.square(
-          extended_flat_singvals[inds])) > max_truncation_error
+      kept_inds_mask = np.sqrt(
+          np.cumsum(np.square(
+              extended_flat_singvals[inds]))) > max_truncation_error
       trunc_inds_mask = np.logical_not(kept_inds_mask)
       discarded_inds = inds[trunc_inds_mask]
       inds = inds[kept_inds_mask]
@@ -120,9 +121,8 @@ def svd_decomposition(
   # ]
   # S = BlockSparseTensor(
   #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  indices_s = [Index(left_singval_charge, False)]
-  S = BlockSparseTensor(
-      np.concatenate([s for s in singvals]), indices_s, is_symmetric=False)
+  S = ChargeArray(
+      np.concatenate([s for s in singvals]), Index(left_singval_charge, False))
 
   #define the new charges on the two central bonds
   left_charge_labels = np.concatenate([
