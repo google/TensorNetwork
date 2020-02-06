@@ -75,14 +75,7 @@ def test_block_sparse_init(dtype):
   assert A.dtype == dtype
   for r in range(rank):
     assert A.indices[r].name[0] == 'index{}'.format(r)
-  assert A.
-
-
-
-
-
-
-  shape == tuple([D] * rank)
+  assert A.shape == tuple([D] * rank)
   assert len(A.data) == num_elements
 
 
