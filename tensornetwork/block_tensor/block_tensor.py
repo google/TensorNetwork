@@ -656,6 +656,9 @@ class ChargeArray:
     self.index = index
     self.data = np.asarray(data.flat)
 
+  def __len__(self):
+    return self.data.shape[0]
+
   @property
   def ndim(self):
     return 1
@@ -674,7 +677,7 @@ class ChargeArray:
     Map the sparse tensor to dense storage.
     
     """
-    return np.reshape(self.data, self.shape)
+    return self.data
 
   def __sub__(self, other: "BlockSparseTensor"):
     if self.shape != other.shape:

@@ -128,6 +128,7 @@ class BaseCharge:
         charges=self.unique_charges.copy(),
         charge_labels=self.charge_labels.copy(),
         charge_types=self.charge_types)
+    return obj
 
   @property
   def charges(self):
@@ -142,7 +143,6 @@ class BaseCharge:
 
   def __mul__(self, number: bool) -> "BaseCharge":
     if not isinstance(number, (bool, np.bool_)):
-      print(type(number))
       raise ValueError(
           "can only multiply by `True` or `False`, found {}".format(number))
     return self.dual(number)
@@ -307,7 +307,12 @@ class BaseCharge:
     if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
     obj = self.__new__(type(self))
-    obj.__init__(self.unique_charges, self.charge_labels[n], self.charge_types)
+    labels = self.charge_labels[n]
+    unique_labels, new_labels = np.unique(labels, return_inverse=True)
+    if unique_labels.ndim == 0:
+      unique_labels = np.asarray(unique_labels)
+    unique_charges = self.unique_charges[:, unique_labels]
+    obj.__init__(unique_charges, new_labels, self.charge_types)
     return obj
 
   def __eq__(self,

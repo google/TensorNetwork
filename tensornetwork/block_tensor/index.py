@@ -94,6 +94,9 @@ class Index:
     """
     return self.flow
 
+  def flip_flow(self):
+    self.flow = np.logical_not(self.flow)
+
   def __mul__(self, index: "Index") -> "Index":
     """
     Merge `index` and self into a single larger index.
