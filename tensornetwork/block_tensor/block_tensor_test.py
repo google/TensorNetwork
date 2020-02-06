@@ -3,7 +3,7 @@ import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr
+from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
@@ -75,7 +75,14 @@ def test_block_sparse_init(dtype):
   assert A.dtype == dtype
   for r in range(rank):
     assert A.indices[r].name[0] == 'index{}'.format(r)
-  assert A.dense_shape == tuple([D] * rank)
+  assert A.
+
+
+
+
+
+
+  shape == tuple([D] * rank)
   assert len(A.data) == num_elements
 
 
@@ -210,7 +217,7 @@ def test_svd_prod(dtype, R, R1, R2):
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
   A = A.reshape([D**R1, D**R2])
   U, S, V = svd(A, full_matrices=False)
-  A_ = U @ S @ V
+  A_ = U @ diag(S) @ V
   np.testing.assert_allclose(A.data, A_.data)
 
 
