@@ -49,11 +49,13 @@ def svd_decomposition(
   for n in range(len(blocks)):
     out = np.linalg.svd(
         np.reshape(matrix.data[blocks[n]], shapes[:, n]),
-        full_matrices=True,
+        full_matrices=False,
         compute_uv=True)
     u_blocks.append(out[0])
     singvals.append(out[1])
     v_blocks.append(out[2])
+
+  orig_num_singvals = np.sum([len(s) for s in singvals])
   discarded_singvals = np.zeros(0, dtype=singvals[0].dtype)
   if (max_truncation_error is not None) or (max_singular_values is not None):
 
@@ -65,7 +67,7 @@ def svd_decomposition(
                                  axis=1)
     extended_flat_singvals = np.ravel(extended_singvals)
 
-    inds = np.argsort(extended_flat_singvals)
+    inds = np.argsort(extended_flat_singvals, kind='stable')
     discarded_inds = np.zeros(0, dtype=np.uint32)
 
     maxind = inds[-1]
@@ -77,6 +79,13 @@ def svd_decomposition(
       inds = inds[kept_inds_mask]
 
     if max_singular_values is not None:
+      #if the original number of non-zero singular values
+      #is smaller than `max_singular_values` we need to reset
+      #`max_singular_values` (we were filling in 0.0 into singular
+      #value blocks to facilitate trunction steps, thus we could end up
+      #with more singular values than originally there).
+      if max_singular_values > orig_num_singvals:
+        max_singular_values = orig_num_singvals
       if max_singular_values < len(inds):
         discarded_inds = np.append(discarded_inds, inds[:-max_singular_values])
         inds = inds[-max_singular_values::]
@@ -92,7 +101,6 @@ def svd_decomposition(
         for n in range(extended_singvals.shape[1])
     ]
     discarded_singvals = extended_flat_singvals[discarded_inds]
-
   left_singval_charge_labels = np.concatenate([
       np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
@@ -106,12 +114,16 @@ def svd_decomposition(
   right_singval_charge = charges[right_singval_charge_labels]
   #Note: introducing a convention
   #TODO: think about this convention!
-  indices_s = [
-      Index(left_singval_charge, False),
-      Index(right_singval_charge, True)
-  ]
+  # indices_s = [
+  #     Index(left_singval_charge, False),
+  #     Index(right_singval_charge, True)
+  # ]
+  # S = BlockSparseTensor(
+  #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
+  indices_s = [Index(left_singval_charge, False)]
   S = BlockSparseTensor(
-      np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
+      np.concatenate([s for s in singvals]), indices_s, is_symmetric=False)
+
   #define the new charges on the two central bonds
   left_charge_labels = np.concatenate([
       np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
@@ -144,7 +156,7 @@ def svd_decomposition(
       ]), indices_v)
 
   left_shape = left_dims + (S.shape[0],)
-  right_shape = (S.shape[1],) + right_dims
+  right_shape = (S.shape[0],) + right_dims
   return U.reshape(left_shape), S, V.reshape(right_shape), discarded_singvals[
       discarded_singvals > 0.0]
 
