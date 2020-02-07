@@ -92,7 +92,7 @@ class Index:
     List: A list containing the elementary indices (the leaves) 
       of `Index`.
     """
-    return self.flow
+    return list(self.flow)
 
   def flip_flow(self):
     self.flow = np.logical_not(self.flow)
