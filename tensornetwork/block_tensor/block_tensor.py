@@ -654,6 +654,55 @@ class ChargeArray:
     self.index = index
     self.data = np.asarray(data.flat)
 
+  @classmethod
+  def randn(cls, index: Index,
+            dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
+    """
+    Initialize a random ChargeArray object.
+    Args:
+      index: `Index` object
+      dtype: An optional numpy dtype. The dtype of the ChargeArray
+    Returns:
+      ChargeArray
+    """
+    num_non_zero_elements = len(index.charges)
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.randn(num_non_zero_elements).astype(
+            dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
+      return np.random.randn(num_non_zero_elements).astype(dtype)
+
+    return cls(data=init_random(), index=index)
+
+  @classmethod
+  def random(cls,
+             index: Index,
+             boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+             dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
+    """
+    Initialize a random ChargeArray object.
+    Args:
+      index: `Index` object
+      dtype: An optional numpy dtype. The dtype of the ChargeArray
+    Returns:
+      ChargeArray
+    """
+    num_non_zero_elements = len(index.charges)
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements
+        ).astype(dtype) + 1j * np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements).astype(dtype)
+      return np.random.uniform(boundaries[0], boundaries[1],
+                               num_non_zero_elements).astype(dtype)
+
+    return cls(data=init_random(), index=index)
+
   def __len__(self):
     return self.data.shape[0]
 
@@ -722,7 +771,7 @@ class BlockSparseTensor:
   Minimal class implementation of block sparsity.
   The class design follows Glen's proposal (Design 0).
   The class currently only supports a single U(1) symmetry
-  and only numpy.ndarray.
+p  and only numpy.ndarray.
 
   The tensor data is stored in self.data, a 1d np.ndarray.
   """
@@ -948,9 +997,13 @@ class BlockSparseTensor:
     ]
     return BlockSparseTensor(np.conj(self.data), indices)
 
+  @property
+  def T(self):
+    return self.transpose()
+
   def transpose(
       self,
-      order: Union[List[int], np.ndarray],
+      order: Optional[Union[List[int], np.ndarray]] = [1, 0],
   ) -> "BlockSparseTensor":
     """
     Transpose the tensor in place into the new order `order`. 
@@ -1067,8 +1120,8 @@ def norm(tensor: BlockSparseTensor) -> float:
 
 def diag(tensor: BlockSparseTensor) -> BlockSparseTensor:
   if tensor.ndim > 2:
-    raise ValueError("`diag` currently only implemented for matrices, "
-                     "found `ndim={}".format(ndim))
+    raise TypeError("`diag` currently only implemented for matrices, "
+                    "found `ndim={}".format(tensor.ndim))
   if isinstance(tensor, ChargeArray):
     charges = tensor.index.charges
     unique, labels = charges.unique(return_inverse=True)
@@ -1141,8 +1194,10 @@ def conj(tensor: BlockSparseTensor):
   return tensor.conj()
 
 
-def transpose(tensor: BlockSparseTensor,
-              order: Union[List[int], np.ndarray]) -> "BlockSparseTensor":
+def transpose(
+    tensor: BlockSparseTensor,
+    order: Optional[Union[List[int], np.ndarray]] = [1,
+                                                     0]) -> "BlockSparseTensor":
   """
   Transpose `tensor` into the new order `order`. 
   This routine currently shuffles data.
@@ -1562,31 +1617,22 @@ def eigh(matrix: BlockSparseTensor,
   for n in range(len(blocks)):
     e, v = np.linalg.eigh(
         np.reshape(matrix.data[blocks[n]], shapes[:, n]), UPLO)
-    eigvals.append(np.diag(e))
+    eigvals.append(e)
     v_blocks.append(v)
 
-  left_v_charge_labels = np.concatenate([
-      np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
-      for n in range(len(v_blocks))
-  ])
-
-  left_v_charge = charges[left_v_charge_labels]
-  indices_v = [Index(left_v_charge, False), matrix.indices[1]]
-
-  V = BlockSparseTensor(
-      np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
   eigvalscharge_labels = np.concatenate([
-      np.full(eigvals[n].shape[1], fill_value=n, dtype=np.int16)
+      np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
   ])
   eigvalscharge = charges[eigvalscharge_labels]
+  indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
 
-  indices_q = [Index(eigvalscharge, True), matrix.indices[0]]
-  #TODO: reuse data from _find_diagonal_sparse_blocks above
-  #to avoid the transpose
-  return BlockSparseTensor(
-      np.concatenate([np.ravel(q.T) for q in eigvals]), indices_q).transpose(
-          (1, 0)), V
+  E = ChargeArray(
+      np.concatenate([e for e in eigvals]), Index(eigvalscharge, False))
+  V = BlockSparseTensor(
+      np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
+
+  return E, V
 
 
 def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
@@ -1612,31 +1658,22 @@ def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
   v_blocks = []
   for n in range(len(blocks)):
     e, v = np.linalg.eig(np.reshape(matrix.data[blocks[n]], shapes[:, n]))
-    eigvals.append(np.diag(e))
+    eigvals.append(e)
     v_blocks.append(v)
 
-  left_v_charge_labels = np.concatenate([
-      np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
-      for n in range(len(v_blocks))
-  ])
-
-  left_v_charge = charges[left_v_charge_labels]
-  indices_v = [Index(left_v_charge, False), matrix.indices[1]]
-
-  V = BlockSparseTensor(
-      np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
   eigvalscharge_labels = np.concatenate([
-      np.full(eigvals[n].shape[1], fill_value=n, dtype=np.int16)
+      np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
   ])
   eigvalscharge = charges[eigvalscharge_labels]
+  indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
 
-  indices_q = [Index(eigvalscharge, True), matrix.indices[0]]
-  #TODO: reuse data from _find_diagonal_sparse_blocks above
-  #to avoid the transpose
-  return BlockSparseTensor(
-      np.concatenate([np.ravel(q.T) for q in eigvals]), indices_q).transpose(
-          (1, 0)), V
+  E = ChargeArray(
+      np.concatenate([e for e in eigvals]), Index(eigvalscharge, False))
+  V = BlockSparseTensor(
+      np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
+
+  return E, V
 
 
 def sqrt(tensor: BlockSparseTensor) -> BlockSparseTensor:
@@ -1691,8 +1728,9 @@ def randn(indices: List[Index],
 
 
 def rand(indices: List[Index],
+         boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  return BlockSparseTensor.rand(indices, dtype)
+  return BlockSparseTensor.random(indices, boundaries, dtype)
 
 
 def inv(tensor: BlockSparseTensor) -> BlockSparseTensor:

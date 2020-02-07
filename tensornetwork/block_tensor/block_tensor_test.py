@@ -93,11 +93,10 @@ def test_reduce_charges():
       np.nonzero(fused_charges == target_charge[0, 0])[0])
 
 
-def test_transpose():
-  R = 4
-  Ds = np.random.randint(10, 20, R)
+@pytest.mark.parametrize("R", [2, 3, 4, 5, 6, 7])
+def test_transpose(R):
+  Ds = np.random.randint(3, 8, R)
   final_order = np.arange(R)
-
   np.random.shuffle(final_order)
   charges = [U1Charge(np.random.randint(-5, 5, Ds[n])) for n in range(R)]
   flows = np.full(R, fill_value=False, dtype=np.bool)
