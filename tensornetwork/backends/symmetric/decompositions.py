@@ -57,8 +57,11 @@ def svd_decomposition(
 
   orig_num_singvals = np.sum([len(s) for s in singvals])
   discarded_singvals = np.zeros(0, dtype=singvals[0].dtype)
-  if (max_truncation_error is not None) or (max_singular_values is not None):
+  if (max_singular_values is not None) and (max_singular_values >=
+                                            orig_num_singvals):
+    max_singular_values = None
 
+  if (max_truncation_error is not None) or (max_singular_values is not None):
     max_D = np.max([len(s) for s in singvals])
     #fill with zeros
     extended_singvals = np.stack([
@@ -66,7 +69,6 @@ def svd_decomposition(
     ],
                                  axis=1)
     extended_flat_singvals = np.ravel(extended_singvals)
-
     inds = np.argsort(extended_flat_singvals, kind='stable')
     discarded_inds = np.zeros(0, dtype=np.uint32)
 
@@ -78,7 +80,6 @@ def svd_decomposition(
       trunc_inds_mask = np.logical_not(kept_inds_mask)
       discarded_inds = inds[trunc_inds_mask]
       inds = inds[kept_inds_mask]
-
     if max_singular_values is not None:
       #if the original number of non-zero singular values
       #is smaller than `max_singular_values` we need to reset
@@ -97,11 +98,14 @@ def svd_decomposition(
                     "Adjusting to `max_singular_values = 1`")
       inds = np.asarray([maxind])
     keep = np.divmod(inds, extended_singvals.shape[1])
-    singvals = [
-        extended_singvals[keep[0][keep[1] == n], keep[1][keep[1] == n]]
+
+    newsingvals = [
+        extended_singvals[keep[0][keep[1] == n], keep[1][keep[1] == n]][::-1]
         for n in range(extended_singvals.shape[1])
     ]
+
     discarded_singvals = extended_flat_singvals[discarded_inds]
+    singvals = newsingvals
   left_singval_charge_labels = np.concatenate([
       np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
@@ -139,10 +143,10 @@ def svd_decomposition(
   #get the indices of the new tensors U,S and V
   indices_u = [Index(new_left_charge, True), matrix.indices[0]]
   indices_v = [Index(new_right_charge, False), matrix.indices[1]]
+
   #We fill in data into the transposed U
   #TODO: reuse data from _find_diagonal_sparse_blocks above
   #to avoid the transpose
-
   U = BlockSparseTensor(
       np.concatenate([
           np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
