@@ -16,7 +16,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.backends import backend_factory
 from tensornetwork.block_tensor.index import Index, fuse_index_pair
 from tensornetwork.block_tensor.charge import fuse_degeneracies, fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
 import numpy as np
@@ -403,7 +402,6 @@ def _find_diagonal_sparse_blocks(
   else:
     unique_row_qnums, row_degen = compute_fused_charge_degeneracies(
         charges[:partition], flows[:partition])
-
     unique_col_qnums, col_degen = compute_fused_charge_degeneracies(
         charges[partition:], np.logical_not(flows[partition:]))
 
@@ -780,9 +778,15 @@ class BlockSparseTensor:
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-    backend = backend_factory.get_backend('numpy')
-    data = backend.randn((num_non_zero_elements,), dtype=dtype)
-    return cls(data=data, indices=indices)
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.randn(num_non_zero_elements).astype(
+            dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
+      return np.random.randn(num_non_zero_elements).astype(dtype)
+
+    return cls(data=init_random(), indices=indices)
 
   @classmethod
   def ones(cls, indices: List[Index],
@@ -797,8 +801,7 @@ class BlockSparseTensor:
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-    backend = backend_factory.get_backend('numpy')
-    data = backend.ones((num_non_zero_elements,), dtype=dtype)
+    data = np.ones((num_non_zero_elements,), dtype=dtype)
     return cls(data=data, indices=indices)
 
   @classmethod
@@ -814,12 +817,13 @@ class BlockSparseTensor:
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-    backend = backend_factory.get_backend('numpy')
-    data = backend.zeros((num_non_zero_elements,), dtype=dtype)
+    data = np.zeros((num_non_zero_elements,), dtype=dtype)
     return cls(data=data, indices=indices)
 
   @classmethod
-  def random(cls, indices: List[Index],
+  def random(cls,
+             indices: List[Index],
+             boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from random normal distribution.
@@ -837,10 +841,12 @@ class BlockSparseTensor:
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
           (np.dtype(dtype) is np.dtype(np.complex64))):
-        return np.random.rand(num_non_zero_elements).astype(
-            dtype) - 0.5 + 1j * (
-                np.random.rand(num_non_zero_elements).astype(dtype) - 0.5)
-      return np.random.randn(num_non_zero_elements).astype(dtype) - 0.5
+        return np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements
+        ).astype(dtype) + 1j * np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements).astype(dtype)
+      return np.random.uniform(boundaries[0], boundaries[1],
+                               num_non_zero_elements).astype(dtype)
 
     return cls(data=init_random(), indices=indices)
 
@@ -1635,3 +1641,95 @@ def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
 
 def sqrt(tensor: BlockSparseTensor) -> BlockSparseTensor:
   return BlockSparseTensor(np.sqrt(tensor.data), tensor.indices)
+
+
+def trace(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  if tensor.ndim != 2:
+    raise ValueError("trace can only be taken for matrices, "
+                     "found tensor.ndim={}".format(tensor.ndim))
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
+      tensor.flat_charges, tensor.flat_flows,
+      len(tensor.indices[0].flat_charges))
+  return np.sum([
+      np.trace(np.reshape(tensor.data[blocks[n]], shapes[:, n]))
+      for n in range(len(blocks))
+  ])
+
+
+def eye(column_index: Index,
+        row_index: Optional[Index] = None,
+        dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  if row_index is None:
+    row_index = column_index.copy()
+    row_index.flip_flow()
+  if dtype is None:
+    dtype = np.float64
+
+  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+      column_index.flat_charges + row_index.flat_charges,
+      column_index.flat_flows + row_index.flat_flows,
+      len(column_index.flat_charges))
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
+  for n in range(len(blocks)):
+    data[blocks[n]] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
+  return BlockSparseTensor(data=data, indices=[column_index, row_index])
+
+
+def ones(indices: List[Index],
+         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  return BlockSparseTensor.ones(indices, dtype)
+
+
+def zeros(indices: List[Index],
+          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  return BlockSparseTensor.zeros(indices, dtype)
+
+
+def randn(indices: List[Index],
+          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  return BlockSparseTensor.randn(indices, dtype)
+
+
+def rand(indices: List[Index],
+         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  return BlockSparseTensor.rand(indices, dtype)
+
+
+def inv(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  if tensor.ndim != 2:
+    raise ValueError("`inv` can only be taken for matrices, "
+                     "found tensor.ndim={}".format(tensor.ndim))
+
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
+      tensor.flat_charges, tensor.flat_flows,
+      len(tensor.indices[0].flat_charges))
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+  for n in range(len(blocks)):
+    data[blocks[n]] = np.ravel(
+        np.linalg.inv(np.reshape(tensor.data[blocks[n]], shapes[:, n])).T)
+  indices = [i.copy() for i in tensor.indices]
+  for i in indices:
+    i.flip_flow()
+  return BlockSparseTensor(data=data, indices=indices).transpose((1, 0))
+
+
+def pinv(tensor: BlockSparseTensor,
+         rcond: Optional[float] = 1E-15,
+         hermitian: Optional[bool] = False) -> BlockSparseTensor:
+  if tensor.ndim != 2:
+    raise ValueError("`inv` can only be taken for matrices, "
+                     "found tensor.ndim={}".format(tensor.ndim))
+
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
+      tensor.flat_charges, tensor.flat_flows,
+      len(tensor.indices[0].flat_charges))
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+  for n in range(len(blocks)):
+    data[blocks[n]] = np.ravel(
+        np.linalg.pinv(
+            np.reshape(tensor.data[blocks[n]], shapes[:, n]), rcond,
+            hermitian).T)
+  indices = [i.copy() for i in tensor.indices]
+  for i in indices:
+    i.flip_flow()
+  return BlockSparseTensor(data=data, indices=indices).transpose((1, 0))
