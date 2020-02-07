@@ -3,7 +3,7 @@ import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv
+from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
@@ -271,6 +271,68 @@ def test_trace(dtype):
   np.testing.assert_allclose(res, res_dense)
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_eye(dtype):
+  D = 10
+  charges = U1Charge.random(-3, 3, D)
+  flow = False
+  index = Index(charges, flow)
+  A = eye(index, dtype=dtype)
+  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+      A.flat_charges, A.flat_flows, 1)
+  for n in range(len(blocks)):
+    t = np.reshape(A.data[blocks[n]], shapes[:, n])
+    np.testing.assert_almost_equal(t, np.eye(t.shape[0], t.shape[1]))
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_eye_2(dtype):
+  D = 10
+  charges = U1Charge.random(-3, 3, D)
+  index0, index1 = Index(charges, False), Index(charges, True)
+  A = eye(index0, index1, dtype=dtype)
+  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+      A.flat_charges, A.flat_flows, 1)
+  for n in range(len(blocks)):
+    t = np.reshape(A.data[blocks[n]], shapes[:, n])
+    np.testing.assert_almost_equal(t, np.eye(t.shape[0], t.shape[1]))
+
+
+@pytest.mark.parametrize("dtype",
+                         [np.float32, np.float64, np.complex64, np.complex128])
+def test_rand(dtype):
+  R = 3
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  indices = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.random(indices, boundaries=(-0.5, 0.5), dtype=dtype)
+  assert np.all(A.data > -0.5)
+  assert np.all(A.data < 0.5)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_zeros(dtype):
+  R = 3
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  indices = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.zeros(indices, dtype=dtype)
+  np.testing.assert_allclose(A.data, 0.0)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_ones(dtype):
+  R = 3
+  D = 30
+  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  flows = [True] * R
+  indices = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.ones(indices, dtype=dtype)
+  np.testing.assert_allclose(A.data, 1.0)
+
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_inv(dtype):
   R = 2
@@ -280,7 +342,7 @@ def test_inv(dtype):
   indices = [Index(charges[0], flows[n]) for n in range(R)]
   A = BlockSparseTensor.random([Index(charges[0], flows[n]) for n in range(R)],
                                (-0.5, 0.5),
-                               dtype=np.complex128)
+                               dtype=dtype)
   invA = inv(A)
   left_eye = invA @ A
 
@@ -307,7 +369,7 @@ def test_pinv(dtype):
   indices = [Index(charges[0], flows[n]) for n in range(R)]
   A = BlockSparseTensor.random([Index(charges[0], flows[n]) for n in range(R)],
                                (-0.5, 0.5),
-                               dtype=np.complex128)
+                               dtype=dtype)
   invA = pinv(A)
   left_eye = invA @ A
 
