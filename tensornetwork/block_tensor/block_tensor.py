@@ -1631,3 +1631,7 @@ def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
   return BlockSparseTensor(
       np.concatenate([np.ravel(q.T) for q in eigvals]), indices_q).transpose(
           (1, 0)), V
+
+
+def sqrt(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  return BlockSparseTensor(np.sqrt(tensor.data), tensor.indices)
