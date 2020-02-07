@@ -45,6 +45,9 @@ class Index:
       name = [name]
     self.name = name
 
+  def __len__(self):
+    return np.prod([len(c) for c in self.flat_charges])
+
   def __repr__(self):
     return str(self.dim)
 
