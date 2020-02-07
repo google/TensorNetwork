@@ -3,7 +3,7 @@ import pytest
 
 from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn
+from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn, eigh, eig
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
@@ -385,3 +385,30 @@ def test_pinv(dtype):
   for n in range(len(blocks)):
     t = np.reshape(right_eye.data[blocks[n]], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [1, 2, 3])
+def test_eigh_prod(dtype, R):
+  D = 10
+  charge = U1Charge.random(-5, 5, D)
+  flows = [True] * R + [False] * R
+  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)])
+  A = A.reshape([D**R, D**R])
+  B = A + A.T.conj()
+  E, V = eigh(B)
+  B_ = V @ diag(E) @ V.conj().T
+  np.testing.assert_allclose(B.data, B_.data)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [1, 2, 3])
+def test_eig_prod(dtype, R):
+  D = 10
+  charge = U1Charge.random(-5, 5, D)
+  flows = [True] * R + [False] * R
+  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)])
+  A = A.reshape([D**R, D**R])
+  E, V = eig(A)
+  A_ = V @ diag(E) @ inv(V)
+  np.testing.assert_allclose(A.data, A_.data)
