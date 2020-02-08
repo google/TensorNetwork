@@ -5,6 +5,7 @@ import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.block_tensor.charge import U1Charge
 from tensornetwork.block_tensor.index import Index
+# pylint: disable=line-too-long
 from tensornetwork.block_tensor.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
@@ -70,22 +71,22 @@ def get_contractable_tensors(R1, R2, cont, dtype):
 
   indicesA = [None for _ in range(R1)]
   indicesB = [None for _ in range(R2)]
-  for n in range(len(indsA)):
-    indicesA[indsA[n]] = Index(commoncharges[n], flowsA[indsA[n]])
+  for n, iA in enumerate(indsA):
+    indicesA[iA] = Index(commoncharges[n], flowsA[iA])
     indicesB[indsB[n]] = Index(commoncharges[n], flowsB[indsB[n]])
   compA = list(set(np.arange(R1)) - set(indsA))
   compB = list(set(np.arange(R2)) - set(indsB))
 
-  for n in range(len(compA)):
-    indicesA[compA[n]] = Index(chargesA[n], flowsA[compA[n]])
-  for n in range(len(compB)):
-    indicesB[compB[n]] = Index(chargesB[n], flowsB[compB[n]])
+  for n, cA in enumerate(compA):
+    indicesA[cA] = Index(chargesA[n], flowsA[cA])
+  for n, cB in enumerate(compB):
+    indicesB[cB] = Index(chargesB[n], flowsB[cB])
+
   indices_final = []
   for n in sorted(compA):
     indices_final.append(indicesA[n])
   for n in sorted(compB):
     indices_final.append(indicesB[n])
-  shapes = tuple([i.dim for i in indices_final])
   A = BlockSparseTensor.random(indices=indicesA, dtype=dtype)
   B = BlockSparseTensor.random(indices=indicesB, dtype=dtype)
   return A, B, indsA, indsB
@@ -419,7 +420,7 @@ def test_addition(R, dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
   b = BlockSparseTensor.random(a.indices)
-  res = a + b
+  res = backend.addition(a, b)
   np.testing.assert_allclose(res.data, a.data + b.data)
 
 
@@ -430,11 +431,12 @@ def test_addition_raises(R, dtype):
   a = get_tensor(R, dtype)
   b = get_tensor(R + 1, dtype)
   with pytest.raises(ValueError):
-    res = a + b
+    backend.addition(a, b)
+
   c = BlockSparseTensor.random(
       [a.indices[n] for n in reversed(range(len(a.indices)))])
   with pytest.raises(ValueError):
-    res = a + c
+    backend.addition(a, c)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -443,7 +445,8 @@ def test_subtraction(R, dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
   b = BlockSparseTensor.random(a.indices)
-  res = a - b
+  res = backend.subtraction(a, b)
+
   np.testing.assert_allclose(res.data, a.data - b.data)
 
 
@@ -454,12 +457,12 @@ def test_subbtraction_raises(R, dtype):
   a = get_tensor(R, dtype)
   b = get_tensor(R + 1, dtype)
   with pytest.raises(ValueError):
-    res = a - b
+    backend.subtraction(a, b)
 
   c = BlockSparseTensor.random(
       [a.indices[n] for n in reversed(range(len(a.indices)))])
   with pytest.raises(ValueError):
-    res = a - c
+    backend.subtraction(a, c)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -467,7 +470,7 @@ def test_multiply(dtype):
   R = 4
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
-  res = a * 5.1
+  res = backend.multiply(a, 5.1)
   np.testing.assert_allclose(res.data, a.data * 5.1)
 
 
@@ -477,7 +480,7 @@ def test_multiply_raises(dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
   with pytest.raises(TypeError):
-    res = a * np.array([5.1])
+    backend.multiply(a, np.array([5.1]))
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -485,7 +488,7 @@ def test_truediv(dtype):
   R = 4
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
-  res = a / 5.1
+  res = backend.divide(a, 5.1)
   np.testing.assert_allclose(res.data, a.data / 5.1)
 
 
@@ -495,7 +498,7 @@ def test_truediv_raises(dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
   with pytest.raises(TypeError):
-    res = a / np.array([5.1])
+    backend.divide(a, np.array([5.1]))
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -528,4 +531,4 @@ def test_matrix_inv_raises(dtype):
   backend = symmetric_backend.SymmetricBackend()
   H = get_tensor(3, dtype)
   with pytest.raises(ValueError):
-    Hinv = backend.inv(H)
+    backend.inv(H)
