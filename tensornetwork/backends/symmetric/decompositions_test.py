@@ -50,9 +50,8 @@ def test_singular_values(dtype, R, R1):
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
-  u, s, v, _ = decompositions.svd_decomposition(bt, A, R1)
-  u_dense, s_dense, v_dense, _ = np_decompositions.svd_decomposition(
-      np, A.todense(), R1)
+  _, s, _, _ = decompositions.svd_decomposition(bt, A, R1)
+  _, s_dense, _, _ = np_decompositions.svd_decomposition(np, A.todense(), R1)
   np.testing.assert_almost_equal(
       np.sort(s.todense()), np.sort(s_dense[s_dense > 1E-13]))
 
@@ -66,7 +65,7 @@ def test_max_singular_values(dtype, R, R1):
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
-  u, s, v, _ = decompositions.svd_decomposition(
+  _, s, _, _ = decompositions.svd_decomposition(
       bt, A, R1, max_singular_values=max_singular_values)
   assert len(s) == max_singular_values
 
@@ -78,7 +77,7 @@ def test_max_truncation_error(dtype):
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
   random_matrix = BlockSparseTensor.random(
-      [Index(charges[n], flows[n]) for n in range(R)])
+      [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
 
   U, S, V = bt.svd(random_matrix, full_matrices=False)
   svals = np.array(range(1, len(S.data) + 1)).astype(np.float64)
@@ -86,7 +85,7 @@ def test_max_truncation_error(dtype):
   val = U @ bt.diag(S) @ V
   trunc = 30
   mask = np.sqrt(np.cumsum(np.square(svals))) >= trunc
-  U2, S2, V2, trun = decompositions.svd_decomposition(
+  _, S2, _, _ = decompositions.svd_decomposition(
       bt, val, 1, max_truncation_error=trunc)
   np.testing.assert_allclose(S2.data, svals[mask][::-1])
 
@@ -98,11 +97,11 @@ def test_max_singular_values_larger_than_bond_dimension(dtype):
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
   random_matrix = BlockSparseTensor.random(
-      [Index(charges[n], flows[n]) for n in range(R)])
+      [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
   U, S, V = bt.svd(random_matrix, full_matrices=False)
   S.data = np.array(range(len(S.data)))
   val = U @ bt.diag(S) @ V
-  U2, S2, V2, trun = decompositions.svd_decomposition(
+  _, S2, _, _ = decompositions.svd_decomposition(
       bt, val, 1, max_singular_values=40)
   assert S2.shape == S.shape
 
@@ -125,7 +124,7 @@ def test_rq_decomposition(dtype, R, R1):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
-def test_rq_decomposition(dtype, R, R1):
+def test_qr_decomposition(dtype, R, R1):
   D = 30
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
