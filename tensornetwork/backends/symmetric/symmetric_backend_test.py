@@ -5,7 +5,7 @@ import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.block_tensor.charge import U1Charge
 from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand
+from tensornetwork.block_tensor.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
@@ -26,6 +26,15 @@ def get_square_matrix(dtype=np.float64):
   flows = [False, True]
   indices = [Index(charges, flows[n]) for n in range(2)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)
+
+
+def get_hermitian_matrix(dtype=np.float64):
+  D = np.random.randint(40, 60)
+  charges = U1Charge(np.random.randint(-5, 5, D))
+  flows = [False, True]
+  indices = [Index(charges, flows[n]) for n in range(2)]
+  A = BlockSparseTensor.random(indices=indices, dtype=dtype)
+  return A + A.conj().T
 
 
 def get_chargearray(dtype=np.float64):
@@ -381,128 +390,142 @@ def test_random_uniform_seed(dtype):
   assert np.all([a.indices[n] == b.indices[n] for n in range(len(a.indices))])
 
 
-# @pytest.mark.parametrize("dtype", np_randn_dtypes)
-# def test_random_uniform_boundaries(dtype):
-#   lb = 1.2
-#   ub = 4.8
-#   backend = numpy_backend.NumPyBackend()
-#   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
-#   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-#   assert ((a >= 0).all() and (a <= 1).all() and (b >= lb).all() and
-#           (b <= ub).all())
+@pytest.mark.parametrize("dtype", np_randn_dtypes)
+def test_random_uniform_boundaries(dtype):
+  lb = 1.2
+  ub = 4.8
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(R)]
+  a = backend.random_uniform(indices, seed=10, dtype=dtype)
+  b = backend.random_uniform(indices, (lb, ub), seed=10, dtype=dtype)
+  assert ((a.data >= 0).all() and (a.data <= 1).all() and
+          (b.data >= lb).all() and (b.data <= ub).all())
 
-# def test_random_uniform_behavior():
-#   backend = numpy_backend.NumPyBackend()
-#   a = backend.random_uniform((4, 4), seed=10)
-#   np.random.seed(10)
-#   b = np.random.uniform(size=(4, 4))
-#   np.testing.assert_allclose(a, b)
 
-# def test_conj():
-#   backend = numpy_backend.NumPyBackend()
-#   real = np.random.rand(2, 2, 2)
-#   imag = np.random.rand(2, 2, 2)
-#   a = backend.convert_to_tensor(real + 1j * imag)
-#   actual = backend.conj(a)
-#   expected = real - 1j * imag
-#   np.testing.assert_allclose(expected, actual)
+@pytest.mark.parametrize(
+    "dtype", [np.complex64, np.complex128, np.float64, np.float32, np.float16])
+def test_conj(dtype):
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  aconj = backend.conj(a)
+  np.testing.assert_allclose(aconj.data, np.conj(a.data))
 
-# @pytest.mark.parametrize("a, b, expected", [
-#     pytest.param(1, 1, 2),
-#     pytest.param(1., np.ones((1, 2, 3)), 2 * np.ones((1, 2, 3))),
-#     pytest.param(2. * np.ones(()), 1., 3. * np.ones((1, 2, 3))),
-#     pytest.param(2. * np.ones(()), 1. * np.ones((1, 2, 3)), 3. * np.ones(
-#         (1, 2, 3))),
-# ])
-# def test_addition(a, b, expected):
-#   backend = numpy_backend.NumPyBackend()
-#   tensor1 = backend.convert_to_tensor(a)
-#   tensor2 = backend.convert_to_tensor(b)
-#   result = backend.addition(tensor1, tensor2)
 
-#   np.testing.assert_allclose(result, expected)
-#   assert tensor1.dtype == tensor2.dtype == result.dtype
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+def test_addition(R, dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  b = BlockSparseTensor.random(a.indices)
+  res = a + b
+  np.testing.assert_allclose(res.data, a.data + b.data)
 
-# @pytest.mark.parametrize("a, b, expected", [
-#     pytest.param(1, 1, 0),
-#     pytest.param(2., 1. * np.ones((1, 2, 3)), 1. * np.ones((1, 2, 3))),
-#     pytest.param(np.ones((1, 2, 3)), 1., np.zeros((1, 2, 3))),
-#     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.zeros((1, 2, 3))),
-# ])
-# def test_subtraction(a, b, expected):
-#   backend = numpy_backend.NumPyBackend()
-#   tensor1 = backend.convert_to_tensor(a)
-#   tensor2 = backend.convert_to_tensor(b)
-#   result = backend.subtraction(tensor1, tensor2)
 
-#   np.testing.assert_allclose(result, expected)
-#   assert tensor1.dtype == tensor2.dtype == result.dtype
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+def test_addition_raises(R, dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  b = get_tensor(R + 1, dtype)
+  with pytest.raises(ValueError):
+    res = a + b
+  c = BlockSparseTensor.random(
+      [a.indices[n] for n in reversed(range(len(a.indices)))])
+  with pytest.raises(ValueError):
+    res = a + c
 
-# @pytest.mark.parametrize("a, b, expected", [
-#     pytest.param(1, 1, 1),
-#     pytest.param(2., 1. * np.ones((1, 2, 3)), 2. * np.ones((1, 2, 3))),
-#     pytest.param(np.ones((1, 2, 3)), 1., np.ones((1, 2, 3))),
-#     pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-# ])
-# def test_multiply(a, b, expected):
-#   backend = numpy_backend.NumPyBackend()
-#   tensor1 = backend.convert_to_tensor(a)
-#   tensor2 = backend.convert_to_tensor(b)
-#   result = backend.multiply(tensor1, tensor2)
 
-#   np.testing.assert_allclose(result, expected)
-#   assert tensor1.dtype == tensor2.dtype == result.dtype
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+def test_subtraction(R, dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  b = BlockSparseTensor.random(a.indices)
+  res = a - b
+  np.testing.assert_allclose(res.data, a.data - b.data)
 
-# @pytest.mark.parametrize("a, b, expected", [
-#     pytest.param(2., 2., 1.),
-#     pytest.param(2., 0.5 * np.ones((1, 2, 3)), 4. * np.ones((1, 2, 3))),
-#     pytest.param(np.ones(()), 2., 0.5 * np.ones((1, 2, 3))),
-#     pytest.param(
-#         np.ones(()), 2. * np.ones((1, 2, 3)), 0.5 * np.ones((1, 2, 3))),
-# ])
-# def test_divide(a, b, expected):
-#   backend = numpy_backend.NumPyBackend()
-#   tensor1 = backend.convert_to_tensor(a)
-#   tensor2 = backend.convert_to_tensor(b)
-#   result = backend.divide(tensor1, tensor2)
 
-#   np.testing.assert_allclose(result, expected)
-#   assert tensor1.dtype == tensor2.dtype == result.dtype
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+def test_subbtraction_raises(R, dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  b = get_tensor(R + 1, dtype)
+  with pytest.raises(ValueError):
+    res = a - b
 
-# @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-# def test_eigh(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   np.random.seed(10)
-#   H = backend.randn((4, 4), dtype=dtype, seed=10)
-#   H = H + np.conj(np.transpose(H))
+  c = BlockSparseTensor.random(
+      [a.indices[n] for n in reversed(range(len(a.indices)))])
+  with pytest.raises(ValueError):
+    res = a - c
 
-#   eta, U = backend.eigh(H)
-#   eta_ac, U_ac = np.linalg.eigh(H)
-#   np.testing.assert_allclose(eta, eta_ac)
-#   np.testing.assert_allclose(U, U_ac)
 
-# @pytest.mark.parametrize("dtype", np_dtypes)
-# def test_index_update(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   tensor = backend.randn((4, 2, 3), dtype=dtype, seed=10)
-#   out = backend.index_update(tensor, tensor > 0.1, 0)
-#   tensor[tensor > 0.1] = 0.0
-#   np.testing.assert_allclose(tensor, out)
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_multiply(dtype):
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  res = a * 5.1
+  np.testing.assert_allclose(res.data, a.data * 5.1)
 
-# @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-# def test_matrix_inv(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   matrix = backend.randn((4, 4), dtype=dtype, seed=10)
-#   inverse = backend.inv(matrix)
-#   m1 = matrix.dot(inverse)
-#   m2 = inverse.dot(matrix)
 
-#   np.testing.assert_almost_equal(m1, np.eye(4))
-#   np.testing.assert_almost_equal(m2, np.eye(4))
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_multiply_raises(dtype):
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  with pytest.raises(TypeError):
+    res = a * np.array([5.1])
 
-# @pytest.mark.parametrize("dtype", np_dtypes)
-# def test_matrix_inv_raises(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
-#   with pytest.raises(ValueError):
-#     backend.inv(matrix)
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_truediv(dtype):
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  res = a / 5.1
+  np.testing.assert_allclose(res.data, a.data / 5.1)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_truediv_raises(dtype):
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, dtype)
+  with pytest.raises(TypeError):
+    res = a / np.array([5.1])
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigh(dtype):
+
+  backend = symmetric_backend.SymmetricBackend()
+  H = get_hermitian_matrix(dtype)
+  eta, U = backend.eigh(H)
+  eta_ac, U_ac = eigh(H)
+  np.testing.assert_allclose(eta.data, eta_ac.data)
+  np.testing.assert_allclose(U.data, U_ac.data)
+  assert eta.index == eta_ac.index
+  assert np.all(
+      [U.indices[n] == U_ac.indices[n] for n in range(len(U.indices))])
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_matrix_inv(dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  H = get_hermitian_matrix(dtype)
+  Hinv = backend.inv(H)
+  Hinv_ac = inv(H)
+  np.testing.assert_allclose(Hinv_ac.data, Hinv.data)
+  assert np.all(
+      [Hinv.indices[n] == Hinv_ac.indices[n] for n in range(len(Hinv.indices))])
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_matrix_inv_raises(dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  H = get_tensor(3, dtype)
+  with pytest.raises(ValueError):
+    Hinv = backend.inv(H)
