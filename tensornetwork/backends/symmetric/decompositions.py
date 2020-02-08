@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tensor Decomposition Implementations."""
-
 from typing import Optional, Any, Tuple
+# pylint: disable=line-too-long
 from tensornetwork.block_tensor.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
 from tensornetwork.block_tensor.index import Index
 import numpy as np
@@ -21,15 +21,14 @@ import warnings
 Tensor = Any
 
 
-def svd_decomposition(
-    bt,  # TODO: Typing
-    tensor: BlockSparseTensor,
-    split_axis: int,
-    max_singular_values: Optional[int] = None,
-    max_truncation_error: Optional[float] = None,
-) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-  """Computes the singular value decomposition (SVD) of a tensor.
-
+def svd_decomposition(bt,
+                      tensor: BlockSparseTensor,
+                      split_axis: int,
+                      max_singular_values: Optional[int] = None,
+                      max_truncation_error: Optional[float] = None
+                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  """
+  Computes the singular value decomposition (SVD) of a tensor.
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:split_axis]
@@ -46,9 +45,9 @@ def svd_decomposition(
   u_blocks = []
   singvals = []
   v_blocks = []
-  for n in range(len(blocks)):
+  for n, b in enumerate(blocks):
     out = np.linalg.svd(
-        np.reshape(matrix.data[blocks[n]], shapes[:, n]),
+        np.reshape(matrix.data[b], shapes[:, n]),
         full_matrices=False,
         compute_uv=True)
     u_blocks.append(out[0])
@@ -89,8 +88,9 @@ def svd_decomposition(
       if max_singular_values > orig_num_singvals:
         max_singular_values = orig_num_singvals
       if max_singular_values < len(inds):
-        discarded_inds = np.append(discarded_inds, inds[:-max_singular_values])
-        inds = inds[-max_singular_values::]
+        discarded_inds = np.append(discarded_inds,
+                                   inds[:(-1) * max_singular_values])
+        inds = inds[(-1) * max_singular_values::]
 
     if len(inds) == 0:
       #special case of truncation to 0 dimension;
@@ -111,12 +111,12 @@ def svd_decomposition(
       for n in range(len(singvals))
   ])
 
-  right_singval_charge_labels = np.concatenate([
-      np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
-      for n in range(len(singvals))
-  ])
+  # right_singval_charge_labels = np.concatenate([
+  #     np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
+  #     for n in range(len(singvals))
+  # ])
   left_singval_charge = charges[left_singval_charge_labels]
-  right_singval_charge = charges[right_singval_charge_labels]
+  #right_singval_charge = charges[right_singval_charge_labels]
   #Note: introducing a convention
   #TODO: think about this convention!
   # indices_s = [
@@ -125,8 +125,7 @@ def svd_decomposition(
   # ]
   # S = BlockSparseTensor(
   #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  S = ChargeArray(
-      np.concatenate([s for s in singvals]), Index(left_singval_charge, False))
+  S = ChargeArray(np.concatenate(singvals), Index(left_singval_charge, False))
 
   #define the new charges on the two central bonds
   left_charge_labels = np.concatenate([
@@ -165,11 +164,8 @@ def svd_decomposition(
       discarded_singvals > 0.0]
 
 
-def qr_decomposition(
-    bt,  # TODO: Typing
-    tensor: BlockSparseTensor,
-    split_axis: int,
-) -> Tuple[Tensor, Tensor]:
+def qr_decomposition(bt, tensor: BlockSparseTensor,
+                     split_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -184,11 +180,8 @@ def qr_decomposition(
   return q, r
 
 
-def rq_decomposition(
-    bt,  # TODO: Typing
-    tensor: BlockSparseTensor,
-    split_axis: int,
-) -> Tuple[Tensor, Tensor]:
+def rq_decomposition(bt, tensor: BlockSparseTensor,
+                     split_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
