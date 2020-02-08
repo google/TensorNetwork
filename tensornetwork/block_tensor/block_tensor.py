@@ -900,6 +900,11 @@ p  and only numpy.ndarray.
     return cls(data=init_random(), indices=indices)
 
   def __sub__(self, other: "BlockSparseTensor"):
+    if not isinstance(other, type(self)):
+      raise TypeError(
+          "Can only subtract BlockSparseTensor from BlockSparseTensor. "
+          "Found type {}".format(type(other)))
+
     if self.shape != other.shape:
       raise ValueError("cannot subtract tensors with shapes {}and {}".format(
           self.shape, other.shape))
@@ -907,13 +912,16 @@ p  and only numpy.ndarray.
       raise ValueError(
           "cannot subtract tensors with different index-lengths {} and {}"
           .format(len(self.indices), len(other.indices)))
-
-    if not np.all(
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))):
+    if not np.all([
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))
+    ]):
       raise ValueError("cannot subtract tensors non-matching indices")
     return BlockSparseTensor(data=self.data - other.data, indices=self.indices)
 
   def __add__(self, other: "BlockSparseTensor"):
+    if not isinstance(other, type(self)):
+      raise TypeError("Can only add BlockSparseTensor with BlockSparseTensor. "
+                      "Found type {}".format(type(other)))
     if self.shape != other.shape:
       raise ValueError("cannot add tensors with shapes {}and {}".format(
           self.shape, other.shape))
@@ -921,20 +929,34 @@ p  and only numpy.ndarray.
       raise ValueError(
           "cannot add tensors with different index-lengths {} and {}".format(
               len(self.indices), len(other.indices)))
-
-    if not np.all(
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))):
+    if not np.all([
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))
+    ]):
       raise ValueError("cannot add tensors non-matching indices")
     return BlockSparseTensor(data=self.data + other.data, indices=self.indices)
 
   def __mul__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only multiply BlockSparseTensor by a number. Found type {}"
+          .format(type(number)))
     return BlockSparseTensor(
         data=self.data * number, indices=[i for i in self.indices])
 
   def __rmul__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only right- multiply BlockSparseTensor by a number. Found type {}"
+          .format(type(number)))
+
     return BlockSparseTensor(data=self.data * number, indices=self.indices)
 
   def __truediv__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only divide BlockSparseTensor by a number. Found type {}".format(
+              type(number)))
+
     return BlockSparseTensor(
         data=self.data / number, indices=[i for i in self.indices])
 

@@ -367,7 +367,7 @@ class U1Charge(BaseCharge):
     return np.int16(0)
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: tuple):
+  def random(cls, minval: int, maxval: int, dimension: int):
     charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
     return cls(charges=charges)
 
