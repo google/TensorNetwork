@@ -3,10 +3,10 @@ import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
-from tensornetwork.block_tensor.charge import U1Charge
-from tensornetwork.block_tensor.index import Index
+from tensornetwork.block_sparse.charge import U1Charge
+from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
+from tensornetwork.block_sparse.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]

@@ -15,3 +15,4 @@ from tensornetwork.utils import load_nodes, save_nodes
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.backend_contextmanager import DefaultBackend, set_default_backend
+from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, ChargeArray

@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from tensornetwork.block_tensor.charge import U1Charge, fuse_charges
-from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn, eigh, eig
+from tensornetwork.block_sparse.charge import U1Charge, fuse_charges
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn, eigh, eig
 
 np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]

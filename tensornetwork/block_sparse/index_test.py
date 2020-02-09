@@ -1,7 +1,7 @@
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, fuse_indices
-from tensornetwork.block_tensor.charge import U1Charge, BaseCharge
+from tensornetwork.block_sparse.index import Index, fuse_index_pair, fuse_indices
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
 
 
 def test_index_fusion_mul():

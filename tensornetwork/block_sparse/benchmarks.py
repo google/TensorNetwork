@@ -1,9 +1,9 @@
 import tensornetwork as tn
 import numpy as np
 import time
-from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, tensordot
-from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.charge import U1Charge
+from tensornetwork.block_sparse.block_tensor import BlockSparseTensor, tensordot
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.charge import U1Charge
 
 
 def benchmark_1_U1():

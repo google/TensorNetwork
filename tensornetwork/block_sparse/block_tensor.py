@@ -16,9 +16,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.block_tensor.index import Index, fuse_index_pair
+from tensornetwork.block_sparse.index import Index, fuse_index_pair
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
+from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
 import scipy as sp
 import itertools
 import time

@@ -17,9 +17,9 @@ from __future__ import division
 from __future__ import print_function
 import tensornetwork as tn
 import numpy as np
-from tensornetwork.block_tensor.block_tensor import BlockSparseTensor, reshape
-from tensornetwork.block_tensor.index import Index
-from tensornetwork.block_tensor.charge import U1Charge
+from tensornetwork.block_sparse.block_tensor import BlockSparseTensor, reshape
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.charge import U1Charge
 B = 4  # possible charges on each leg can be between [0,B)
 ##########################################################
 #####     Generate a rank 4 symmetrix tensor       #######

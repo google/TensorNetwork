@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import math
-from tensornetwork.block_tensor.block_tensor import BlockSparseTensor
-import tensornetwork.block_tensor.block_tensor as bt
-from tensornetwork.block_tensor.charge import U1Charge
-from tensornetwork.block_tensor.index import Index
+from tensornetwork.block_sparse.block_tensor import BlockSparseTensor
+import tensornetwork.block_sparse.block_tensor as bt
+from tensornetwork.block_sparse.charge import U1Charge
+from tensornetwork.block_sparse.index import Index
 from tensornetwork.backends.symmetric import decompositions
 import tensornetwork.backends.numpy.decompositions as np_decompositions
 import pytest

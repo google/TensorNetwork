@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.charge import BaseCharge, U1Charge, fuse_degeneracies
-from tensornetwork.block_tensor.block_tensor import fuse_ndarrays
+from tensornetwork.block_sparse.charge import BaseCharge, U1Charge, fuse_degeneracies
+from tensornetwork.block_sparse.block_tensor import fuse_ndarrays
 
 
 def test_fuse_degeneracies():

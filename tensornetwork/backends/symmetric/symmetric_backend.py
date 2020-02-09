@@ -15,7 +15,7 @@
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.symmetric import decompositions
-from tensornetwork.block_tensor.index import Index
+from tensornetwork.block_sparse.index import Index
 import numpy
 import scipy
 Tensor = Any
@@ -27,7 +27,7 @@ class SymmetricBackend(base_backend.BaseBackend):
   def __init__(self):
     super(SymmetricBackend, self).__init__()
     #pylint: disable=import-outside-toplevel
-    import tensornetwork.block_tensor.block_tensor as bt
+    import tensornetwork.block_sparse.block_tensor as bt
     self.bt = bt
     self.name = "symmetric"
 

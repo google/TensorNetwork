@@ -14,8 +14,8 @@
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
-from tensornetwork.block_tensor.index import Index
+from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
+from tensornetwork.block_sparse.index import Index
 import numpy as np
 import warnings
 Tensor = Any
