@@ -70,7 +70,7 @@ def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
   ])
 
 
-def compute_sparse_lookup(charges: List[BaseCharge], flows: Iterable[bool],
+def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
                           target_charges: BaseCharge) -> np.ndarray:
   """
   Compute lookup table for looking up how dense index positions map 
@@ -117,7 +117,7 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   return fused_arrays
 
 
-def _find_best_partition(dims: Iterable[int]) -> int:
+def _find_best_partition(dims: List[int]) -> int:
   if len(dims) == 1:
     raise ValueError(
         'expecting `dims` with a length of at least 2, got `len(dims ) =1`')
@@ -178,9 +178,8 @@ def compute_fused_charge_degeneracies(
   return accumulated_charges, accumulated_degeneracies
 
 
-def compute_unique_fused_charges(
-    charges: List[BaseCharge],
-    flows: List[Union[bool, int]]) -> Tuple[BaseCharge, np.ndarray]:
+def compute_unique_fused_charges(charges: List[BaseCharge],
+                                 flows: List[Union[bool, int]]) -> BaseCharge:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
@@ -237,12 +236,11 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   return 0
 
 
-def reduce_charges(
-    charges: List[BaseCharge],
-    flows: Iterable[bool],
-    target_charges: np.ndarray,
-    return_locations: Optional[bool] = False,
-    strides: Optional[np.ndarray] = None) -> Tuple[BaseCharge, np.ndarray]:
+def reduce_charges(charges: List[BaseCharge],
+                   flows: List[bool],
+                   target_charges: np.ndarray,
+                   return_locations: Optional[bool] = False,
+                   strides: Optional[np.ndarray] = None) -> Any:
   """
   Add quantum numbers arising from combining two or more charges into a
   single index, keeping only the quantum numbers that appear in 'target_charges'.
@@ -353,7 +351,7 @@ def reduce_charges(
 
 def _find_diagonal_sparse_blocks(
     charges: List[BaseCharge], flows: np.ndarray,
-    partition: int) -> (np.ndarray, np.ndarray, np.ndarray):
+    partition: int) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
@@ -448,7 +446,7 @@ def _find_transposed_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: np.ndarray,
     tr_partition: int,
-    order: np.ndarray = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    order: np.ndarray = None) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   
   Args:
@@ -1048,7 +1046,10 @@ p  and only numpy.ndarray.
 
     return BlockSparseTensor(data, [self.indices[o] for o in order])
 
-  def reshape(self, shape: Union[Iterable[Index], Iterable[int]]) -> None:
+  def reshape(
+      self,
+      shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
+  ) -> "BlockSparseTensor":
     """
     Reshape `tensor` into `shape.
     `BlockSparseTensor.reshape` works essentially the same as the dense 
@@ -1126,7 +1127,8 @@ def norm(tensor: BlockSparseTensor) -> float:
   return np.linalg.norm(tensor.data)
 
 
-def diag(tensor: BlockSparseTensor) -> BlockSparseTensor:
+def diag(tensor: Union[BlockSparseTensor, ChargeArray]
+        ) -> Union[BlockSparseTensor, ChargeArray]:
   if tensor.ndim > 2:
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
@@ -1157,8 +1159,10 @@ def diag(tensor: BlockSparseTensor) -> BlockSparseTensor:
   return ChargeArray(data, index)
 
 
-def reshape(tensor: BlockSparseTensor,
-            shape: Union[Iterable[Index], Iterable[int]]) -> BlockSparseTensor:
+def reshape(
+    tensor: BlockSparseTensor,
+    shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
+) -> BlockSparseTensor:
   """
   Reshape `tensor` into `shape`.
   `reshape` works essentially the same as the dense version, with the
@@ -1436,8 +1440,7 @@ def tensordot(
 def svd(matrix: BlockSparseTensor,
         full_matrices: Optional[bool] = True,
         compute_uv: Optional[bool] = True,
-        hermitian: Optional[bool] = False
-       ) -> Tuple[BlockSparseTensor, BlockSparseTensor, BlockSparseTensor]:
+        hermitian: Optional[bool] = False) -> Any:
   """
   Compute the singular value decomposition of `matrix`.
   The matrix if factorized into `u * s * vh`, with 
@@ -1527,8 +1530,7 @@ def svd(matrix: BlockSparseTensor,
   return S
 
 
-def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced'
-      ) -> [BlockSparseTensor, BlockSparseTensor]:
+def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   """
   Compute the qr decomposition of an `M` by `N` matrix `matrix`.
   The matrix is factorized into `q*r`, with 
@@ -1597,7 +1599,7 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced'
 
 
 def eigh(matrix: BlockSparseTensor,
-         UPLO: Optional[Text] = 'L') -> [BlockSparseTensor, BlockSparseTensor]:
+         UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
   """
   Compute the eigen decomposition of a hermitian `M` by `M` matrix `matrix`.
   Args:
@@ -1637,7 +1639,7 @@ def eigh(matrix: BlockSparseTensor,
   return E, V
 
 
-def eig(matrix: BlockSparseTensor) -> [BlockSparseTensor, BlockSparseTensor]:
+def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
   """
   Compute the eigen decomposition of an `M` by `M` matrix `matrix`.
   Args:

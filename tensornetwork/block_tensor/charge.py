@@ -45,6 +45,25 @@ class BaseCharge:
       self.unique_charges = charges.astype(np.int16)
       self.charge_labels = charge_labels.astype(np.int16)
 
+  @staticmethod
+  def fuse(charge1, charge2):
+    raise NotImplementedError("`fuse` has to be implemented in derived classes")
+
+  @staticmethod
+  def dual_charges(charges):
+    raise NotImplementedError(
+        "`dual_charges` has to be implemented in derived classes")
+
+  @staticmethod
+  def identity_charge():
+    raise NotImplementedError(
+        "`identity_charge` has to be implemented in derived classes")
+
+  @classmethod
+  def random(cls, minval: int, maxval: int, dimension: int):
+    raise NotImplementedError(
+        "`random` has to be implemented in derived classes")
+
   @property
   def dim(self):
     return len(self.charge_labels)
@@ -147,8 +166,7 @@ class BaseCharge:
           "can only multiply by `True` or `False`, found {}".format(number))
     return self.dual(number)
 
-  def intersect(self, other, assume_unique=False,
-                return_indices=False) -> (np.ndarray, np.ndarray, np.ndarray):
+  def intersect(self, other, assume_unique=False, return_indices=False) -> Any:
     if isinstance(other, type(self)):
       out = intersect(
           self.unique_charges,
@@ -177,8 +195,7 @@ class BaseCharge:
   def unique(self,
              return_index=False,
              return_inverse=False,
-             return_counts=False
-            ) -> Tuple["BaseCharge", np.ndarray, np.ndarray, np.ndarray]:
+             return_counts=False):
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
@@ -248,16 +265,17 @@ class BaseCharge:
   def reduce(self,
              target_charges: np.ndarray,
              return_locations: bool = False,
-             strides: int = 1) -> ("SymIndex", np.ndarray):
+             strides: int = 1) -> Any:
     """
-    Reduce the dim of a SymIndex to keep only the index values that intersect target_charges
+    Reduce the dim of a charge to keep only the index values that intersect target_charges
     Args:
-      target_charges (np.ndarray): array of unique quantum numbers to keep.
-      return_locations (bool, optional): if True, also return the output index 
+      target_charges: array of unique quantum numbers to keep.
+      return_locations: If `True`, also return the output index 
         locations of target values.
     Returns:
-      SymIndex: index of reduced dimension.
-      np.ndarray: output index locations of target values.
+      BaseCharge: index of reduced dimension.
+      np.ndarray: If `return_locations = True`; the index locations 
+        of target values.
     """
     if isinstance(target_charges, (np.integer, int)):
       target_charges = np.asarray([target_charges], dtype=np.int16)
@@ -355,19 +373,19 @@ class U1Charge(BaseCharge):
     super().__init__(charges, charge_labels, charge_types=[type(self)])
 
   @staticmethod
-  def fuse(charge1, charge2):
+  def fuse(charge1, charge2) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges):
+  def dual_charges(charges) -> np.ndarray:
     return charges * charges.dtype.type(-1)
 
   @staticmethod
-  def identity_charge():
+  def identity_charge() -> np.ndarray:
     return np.int16(0)
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: int):
+  def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
     charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
     return cls(charges=charges)
 
@@ -389,14 +407,15 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
     comb_charges[n] = charge_types[n].fuse(charges_A[n, :], charges_B[n, :])
 
   return np.concatenate(
-      comb_charges, axis=0).reshape(len(charge_types), len(comb_charges[0]))
+      comb_charges, axis=0).reshape(
+          len(charge_types), charges_A.shape[1] * charges_B.shape[1])
 
 
 def intersect(A: np.ndarray,
               B: np.ndarray,
               axis=0,
               assume_unique=False,
-              return_indices=False) -> (np.ndarray, np.ndarray, np.ndarray):
+              return_indices=False) -> Any:
   """
   Extends numpy's intersect1d to find the row or column-wise intersection of
   two 2d arrays. Takes identical input to numpy intersect1d.
