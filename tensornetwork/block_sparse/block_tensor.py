@@ -758,7 +758,7 @@ class BlockSparseTensor:
   Minimal class implementation of block sparsity.
   The class design follows Glen's proposal (Design 0).
   The class currently only supports a single U(1) symmetry
-p  and only numpy.ndarray.
+  and only numpy.ndarray.
 
   The tensor data is stored in self.data, a 1d np.ndarray.
   """
@@ -772,13 +772,14 @@ p  and only numpy.ndarray.
       indices: List of `Index` objecst, one for each leg. 
     """
     self.indices = indices
-    num_non_zero_elements = compute_num_nonzero(self.flat_charges,
-                                                self.flat_flows)
-    if num_non_zero_elements != len(data.flat):
-      raise ValueError("number of tensor elements {} defined "
-                       "by `charges` is different from"
-                       " len(data)={}".format(num_non_zero_elements,
-                                              len(data.flat)))
+    if len(self.indices) > 0:
+      num_non_zero_elements = compute_num_nonzero(self.flat_charges,
+                                                  self.flat_flows)
+      if num_non_zero_elements != len(data.flat):
+        raise ValueError("number of tensor elements {} defined "
+                         "by `charges` is different from"
+                         " len(data)={}".format(num_non_zero_elements,
+                                                len(data.flat)))
 
     self.data = np.asarray(data.flat)  #do not copy data
 
@@ -1295,7 +1296,7 @@ def tensordot(
       identity_charges = tensor1.indices[0].flat_charges[0].identity_charges
 
     return BlockSparseTensor(
-        data=data, indices=[Index(identity_charges, flow=False)])
+        data=data, indices=[])  #Index(identity_charges, flow=False)])
 
   if max(axes1) >= len(tensor1.shape):
     raise ValueError(
