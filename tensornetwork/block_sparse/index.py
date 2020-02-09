@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.block_tensor.charge import BaseCharge, fuse_charges
+from tensornetwork.block_sparse.charge import BaseCharge, fuse_charges
 import copy
 from typing import List, Union, Any, Optional, Tuple, Text
 

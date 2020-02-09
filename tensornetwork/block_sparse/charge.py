@@ -16,7 +16,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.backends import backend_factory
 import copy
