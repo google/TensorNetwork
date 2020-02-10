@@ -98,10 +98,7 @@ def transpose(node: BaseNode,
     axis_names = node.axis_names
 
   new_node = Node(
-      node.tensor,
-      name=name,
-      axis_names=node.axis_names,
-      backend=node.backend)
+      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
   return new_node.reorder_axes(perm)
 
 
@@ -285,18 +282,30 @@ def split_node(
   backend = node.backend
   node.reorder_edges(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   sqrt_s = backend.sqrt(s)
-  u_s = u * sqrt_s
-  # We have to do this since we are doing element-wise multiplication against
-  # the first axis of vh. If we don't, it's possible one of the other axes of
-  # vh will be the same size as sqrt_s and would multiply across that axis
-  # instead, which is bad.
-  sqrt_s_broadcast_shape = backend.shape_concat(
-      [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
-  vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
+  if backend.name is not 'symmetric':
+    u_s = u * sqrt_s
+    # We have to do this since we are doing element-wise multiplication against
+    # the first axis of vh. If we don't, it's possible one of the other axes of
+    # vh will be the same size as sqrt_s and would multiply across that axis
+    # instead, which is bad.
+    sqrt_s_broadcast_shape = backend.shape_concat(
+        [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
+    vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
+  else:
+    u_shape = u.shape
+    vh_shape = vh.shape
+    utmp = backend.reshape(u,
+                           (np.prod(u_shape[:len(u_shape) - 1]), u_shape[-1]))
+
+    vhtmp = backend.reshape(vh,
+                            (vh_shape[0], np.prod(vh_shape[1:len(vh_shape)])))
+
+    u_s = backend.reshape(utmp @ backend.diag(sqrt_s), u_shape)
+    vh_s = backend.reshape(backend.diag(sqrt_s) @ vhtmp, vh_shape)
+
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
@@ -557,9 +566,8 @@ def split_node_full_svd(
   backend = node.backend
 
   node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
