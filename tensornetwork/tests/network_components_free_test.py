@@ -93,6 +93,9 @@ class TestNode(BaseNode):
 
   def _save_node(self, node_group):  #pylint: disable=useless-super-delegation
     return super()._save_node(node_group)
+   
+  def copy(self, conjugate: bool = False) -> "TestNode":
+    return TestNode()
 
 
 @pytest.fixture(name='single_node_edge')
