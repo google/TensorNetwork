@@ -630,7 +630,7 @@ class ChargeArray:
   elements and charges.
   """
 
-  def __init__(self, data: np.ndarray, index: Index) -> None:
+  def __init__(self, data: np.ndarray, indices: List[Index]) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
@@ -638,11 +638,11 @@ class ChargeArray:
         and `flows`
       index: List of `Index` objecst, one for each leg. 
     """
-    self.index = index
+    self.indices = indices
     self.data = np.asarray(data.flat)
 
   @classmethod
-  def randn(cls, index: Index,
+  def randn(cls, indices: List[Index],
             dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
     Initialize a random ChargeArray object.
@@ -661,11 +661,11 @@ class ChargeArray:
             dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
       return np.random.randn(num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), index=index)
+    return cls(data=init_random(), indices=indices)
 
   @classmethod
   def random(cls,
-             index: Index,
+             indices: List[Index],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
@@ -688,14 +688,14 @@ class ChargeArray:
       return np.random.uniform(boundaries[0], boundaries[1],
                                num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), index=index)
+    return cls(data=init_random(), indices=indices)
 
   def __len__(self):
     return self.data.shape[0]
 
   @property
   def ndim(self):
-    return 1
+    return len(self.indices)
 
   @property
   def shape(self) -> Tuple:
@@ -704,40 +704,44 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `int`.
     """
-    return self.data.shape
+    return tuple([i.dim for i in self.indices])
 
   def todense(self) -> np.ndarray:
     """
     Map the sparse tensor to dense storage.
     
     """
-    return self.data
+    return np.reshape(self.data, self.shape)
 
   def __sub__(self, other: "BlockSparseTensor"):
     if self.shape != other.shape:
       raise ValueError(
           "cannot subtract ChargeArrays with shapes {} and {}".format(
               self.shape, other.shape))
-    if not self.index == other.index:
+    if not np.all([
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))
+    ]):
       raise ValueError("cannot subtract ChargeArrays non-matching indices")
-    return ChargeArray(data=self.data - other.data, index=self.index)
+    return ChargeArray(data=self.data - other.data, indices=self.indices)
 
   def __add__(self, other: "BlockSparseTensor"):
     if self.shape != other.shape:
       raise ValueError("cannot add tensors with shapes {}and {}".format(
           self.shape, other.shape))
-    if not self.index == other.index:
-      raise ValueError("cannot add tensors non-matching index")
-    return ChargeArray(data=self.data + other.data, index=self.index)
+    if not np.all([
+        self.indices[n] == other.indices[n] for n in range(len(self.indices))
+    ]):
+      raise ValueError("cannot subtract ChargeArrays non-matching indices")
+    return ChargeArray(data=self.data + other.data, indices=self.indices)
 
   def __mul__(self, number: np.number):
-    return ChargeArray(data=self.data * number, index=self.index)
+    return ChargeArray(data=self.data * number, indices=self.indices)
 
   def __rmul__(self, number: np.number):
-    return ChargeArray(data=self.data * number, index=self.index)
+    return ChargeArray(data=self.data * number, indices=self.indices)
 
   def __truediv__(self, number: np.number):
-    return ChargeArray(data=self.data / number, index=self.index)
+    return ChargeArray(data=self.data / number, indices=self.indices)
 
   @property
   def sparse_shape(self) -> Tuple:
@@ -746,7 +750,7 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `Index` objects.
     """
-    return tuple([self.index])
+    return tuple([self.indices])
 
   @property
   def dtype(self) -> Type[np.number]:
@@ -1134,12 +1138,17 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
   if isinstance(tensor, ChargeArray):
-    charges = tensor.index.charges
+    if tensor.ndim > 1:
+      raise TypeError(
+          "`diag` currently only implemented for `ChargeArray` with ndim=1, "
+          "found `ndim={}`".format(tensor.ndim))
+
+    charges = tensor.indices[0].charges
     unique, labels = charges.unique(return_inverse=True)
     data = np.concatenate([
         np.ravel(np.diag(tensor.data[labels == n])) for n in range(len(unique))
     ])
-    indices = [tensor.index.copy(), tensor.index.copy()]
+    indices = [tensor.indices[0].copy(), tensor.indices[0].copy()]
     indices[1].flip_flow()
     return BlockSparseTensor(data, indices)
 
@@ -1157,7 +1166,7 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
   ])
   new_charge = charges[charge_labels]
   index = Index(new_charge, False)
-  return ChargeArray(data, index)
+  return ChargeArray(data, [index])
 
 
 def reshape(
@@ -1502,7 +1511,7 @@ def svd(matrix: BlockSparseTensor,
   # ]
   # S = BlockSparseTensor(
   #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  S = ChargeArray(np.concatenate(singvals), Index(left_singval_charge, False))
+  S = ChargeArray(np.concatenate(singvals), [Index(left_singval_charge, False)])
 
   if compute_uv:
     #define the new charges on the two central bonds
@@ -1633,7 +1642,7 @@ def eigh(matrix: BlockSparseTensor,
   eigvalscharge = charges[eigvalscharge_labels]
   indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
 
-  E = ChargeArray(np.concatenate(eigvals), Index(eigvalscharge, False))
+  E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
 
@@ -1673,7 +1682,7 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
   eigvalscharge = charges[eigvalscharge_labels]
   indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
 
-  E = ChargeArray(np.concatenate(eigvals), Index(eigvalscharge, False))
+  E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
 
