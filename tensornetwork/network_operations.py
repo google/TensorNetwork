@@ -98,10 +98,7 @@ def transpose(node: BaseNode,
     axis_names = node.axis_names
 
   new_node = Node(
-      node.tensor,
-      name=name,
-      axis_names=node.axis_names,
-      backend=node.backend)
+      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
   return new_node.reorder_axes(perm)
 
 
@@ -126,27 +123,8 @@ def copy(nodes: Iterable[BaseNode],
   """
   node_dict = {}
   for node in nodes:
-    if isinstance(node, CopyNode):
-      node_dict[node] = CopyNode(
-          node.rank,
-          node.dimension,
-          name=node.name,
-          axis_names=node.axis_names,
-          backend=node.backend,
-          dtype=node.dtype)
-    else:
-      if conjugate:
-        node_dict[node] = Node(
-            node.backend.conj(node.tensor),
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend)
-      else:
-        node_dict[node] = Node(
-            node.tensor,
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend)
+    node_dict[node] = node.copy(conjugate)
+
   edge_dict = {}
   for edge in get_all_edges(nodes):
     node1 = edge.node1
@@ -285,9 +263,8 @@ def split_node(
   backend = node.backend
   node.reorder_edges(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   sqrt_s = backend.sqrt(s)
   u_s = u * sqrt_s
   # We have to do this since we are doing element-wise multiplication against
@@ -557,9 +534,8 @@ def split_node_full_svd(
   backend = node.backend
 
   node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(

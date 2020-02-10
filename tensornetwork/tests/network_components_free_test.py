@@ -20,22 +20,22 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
 
 class TestNode(BaseNode):
 
-  def get_tensor(self): #pylint: disable=useless-super-delegation
+  def get_tensor(self):  #pylint: disable=useless-super-delegation
     return super().get_tensor()
 
-  def set_tensor(self, tensor): #pylint: disable=useless-super-delegation
+  def set_tensor(self, tensor):  #pylint: disable=useless-super-delegation
     return super().set_tensor(tensor)
 
-  def __add__(self, other): #pylint: disable=useless-super-delegation
+  def __add__(self, other):  #pylint: disable=useless-super-delegation
     return super().__add__(other)
 
-  def __sub__(self, other): #pylint: disable=useless-super-delegation
+  def __sub__(self, other):  #pylint: disable=useless-super-delegation
     return super().__sub__(other)
 
-  def __mul__(self, other): #pylint: disable=useless-super-delegation
+  def __mul__(self, other):  #pylint: disable=useless-super-delegation
     return super().__mul__(other)
 
-  def __truediv__(self, other): #pylint: disable=useless-super-delegation
+  def __truediv__(self, other):  #pylint: disable=useless-super-delegation
     return super().__truediv__(other)
 
   @property
@@ -50,12 +50,14 @@ class TestNode(BaseNode):
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
 
-  def _load_node(self, node_data):# pylint: disable=useless-super-delegation
+  def _load_node(self, node_data):  # pylint: disable=useless-super-delegation
     return super()._load_node(node_data)
 
-  def _save_node(self, node_group): #pylint: disable=useless-super-delegation
+  def _save_node(self, node_group):  #pylint: disable=useless-super-delegation
     return super()._save_node(node_group)
 
+  def copy(self, conjugate: bool = False) -> "TestNode":
+    return TestNode()
 
 
 @pytest.fixture(name='single_node_edge')
@@ -361,6 +363,7 @@ def test_node_edges_getter_raises_error_disabled_node(single_node_edge):
   with pytest.raises(ValueError):
     node.edges
 
+
 def test_node_edges_setter_raises_error_disabled_node(single_node_edge):
   node = single_node_edge.node
   node.is_disabled = True
@@ -428,7 +431,8 @@ def test_between_node_add_op(backend):
 
 
 def test_node_and_scalar_add_op(backend):
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
   expected = np.array([[3, 4], [5, 6]])
   result = (node + 2).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -437,7 +441,8 @@ def test_node_and_scalar_add_op(backend):
   else:
     assert node.tensor.dtype == result.dtype
 
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[3.5, 4.5], [5.5, 6.5]])
   result = (node + 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -479,7 +484,8 @@ def test_between_node_sub_op(backend):
 
 
 def test_node_and_scalar_sub_op(backend):
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
   expected = np.array([[-1, 0], [1, 2]])
   result = (node - 2).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -488,7 +494,8 @@ def test_node_and_scalar_sub_op(backend):
   else:
     assert node.tensor.dtype == result.dtype
 
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[-1.5, -0.5], [0.5, 1.5]])
   result = (node - 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -527,7 +534,8 @@ def test_between_node_mul_op(backend):
 
 
 def test_node_and_scalar_mul_op(backend):
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
   expected = np.array([[2, 4], [6, 8]])
   result = (node * 2).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -536,7 +544,8 @@ def test_node_and_scalar_mul_op(backend):
   else:
     assert node.tensor.dtype == result.dtype
 
-  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  node = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[2.5, 5], [7.5, 10]])
   result = (node * 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -569,7 +578,7 @@ def test_between_node_div_op(backend):
     assert node3.tensor.dtype == 'int64'
     assert result.dtype == 'float64'
 
-  expected = np.array([[2., 1.], [2/3, 0.5]])
+  expected = np.array([[2., 1.], [2 / 3, 0.5]])
   expected_pytorch = np.array([[2, 1], [0, 0]])
   result = (int_node / node3).tensor
   if backend == 'pytorch':
@@ -591,7 +600,8 @@ def test_between_node_div_op(backend):
 
 
 def test_node_and_scalar_div_op(backend):
-  node = Node(tensor=np.array([[5, 10], [15, 20]], dtype=np.int32), backend=backend)
+  node = Node(
+      tensor=np.array([[5, 10], [15, 20]], dtype=np.int32), backend=backend)
   expected = np.array([[0.5, 1.], [1.5, 2.]])
   expected_pytorch = np.array([[0, 1], [1, 2]])
   result = (node / 10).tensor
@@ -603,7 +613,9 @@ def test_node_and_scalar_div_op(backend):
     assert result.dtype == 'float64'
     assert node.tensor.dtype == 'int32'
 
-  node = Node(tensor=np.array([[5., 10.], [15., 20.]], dtype=np.float32), backend=backend)
+  node = Node(
+      tensor=np.array([[5., 10.], [15., 20.]], dtype=np.float32),
+      backend=backend)
   expected = np.array([[2., 4.], [6., 8.]])
   result = (node / 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
@@ -1267,6 +1279,7 @@ def test_add_to_node_collection_list():
 
   assert container == [a, b]
 
+
 def test_add_to_node_collection_set():
   container = set()
   with NodeCollection(container):
@@ -1274,6 +1287,7 @@ def test_add_to_node_collection_set():
     b = Node(np.eye(3))
 
   assert container == {a, b}
+
 
 def test_copy_node_add_to_node_collection():
   container = set()
@@ -1290,6 +1304,7 @@ def test_copy_node_add_to_node_collection():
         axis_names=[str(n) for n in range(2)])
   assert container == {a, b}
 
+
 def test_add_to_node_collection_nested():
   container1 = set()
   container2 = set()
@@ -1300,6 +1315,7 @@ def test_add_to_node_collection_nested():
 
   assert container1 == set()
   assert container2 == {a, b}
+
 
 def test_repr_for_Nodes_and_Edges(double_node_edge):
   node1 = repr(double_node_edge.node1)
@@ -1317,17 +1333,17 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
 
 def test_base_node_name_list_throws_error():
   with pytest.raises(TypeError,):
-    TestNode(name=["A"], axis_names=['a', 'b']) # pytype: disable=wrong-arg-types
+    TestNode(name=["A"], axis_names=['a', 'b'])  # pytype: disable=wrong-arg-types
 
 
 def test_base_node_name_int_throws_error():
   with pytest.raises(TypeError):
-    TestNode(name=1, axis_names=['a', 'b']) # pytype: disable=wrong-arg-types
+    TestNode(name=1, axis_names=['a', 'b'])  # pytype: disable=wrong-arg-types
 
 
 def test_base_node_axis_names_int_throws_error():
   with pytest.raises(TypeError):
-    TestNode(axis_names=[0, 1]) # pytype: disable=wrong-arg-types
+    TestNode(axis_names=[0, 1])  # pytype: disable=wrong-arg-types
 
 
 def test_base_node_no_axis_names_no_shapes_throws_error():
@@ -1338,7 +1354,7 @@ def test_base_node_no_axis_names_no_shapes_throws_error():
 def test_node_add_axis_names_int_throws_error():
   n1 = Node(np.eye(2), axis_names=['a', 'b'])
   with pytest.raises(TypeError):
-    n1.add_axis_names([0, 1]) # pytype: disable=wrong-arg-types
+    n1.add_axis_names([0, 1])  # pytype: disable=wrong-arg-types
 
 
 def test_node_axis_names_setter_throws_shape_large_mismatch_error():
@@ -1513,7 +1529,6 @@ def test_edge_node1_throws_value_error(single_node_edge):
     edge.node1
 
 
-
 def test_edge_node2_throws_value_error(single_node_edge):
   edge = tn.connect(single_node_edge.node[1], single_node_edge.node[2])
   edge.name = 'edge'
@@ -1544,8 +1559,8 @@ def test_get_all_dangling_single_node(single_node_edge):
 def test_get_all_dangling_double_node(double_node_edge):
   node1 = double_node_edge.node1
   node2 = double_node_edge.node2
-  assert set(tn.get_all_dangling({node1, node2})) == {node1[0], node1[2],
-                                                      node2[0], node2[2]}
+  assert set(tn.get_all_dangling(
+      {node1, node2})) == {node1[0], node1[2], node2[0], node2[2]}
 
 
 def test_flatten_edges_different_backend_raises_value_error(single_node_edge):
@@ -1553,7 +1568,7 @@ def test_flatten_edges_different_backend_raises_value_error(single_node_edge):
   node2 = tn.Node(np.random.rand(2, 2, 2))
   node2.backend = BaseBackend()
   with pytest.raises(ValueError):
-    tn.flatten_edges(node1.get_all_edges()+node2.get_all_edges())
+    tn.flatten_edges(node1.get_all_edges() + node2.get_all_edges())
 
 
 def test_split_edge_trivial(single_node_edge):
@@ -1592,4 +1607,4 @@ def test_remove_edges_trace_raises_value_error(single_node_edge):
   node = single_node_edge.node
   edge = tn.connect(node[1], node[2])
   with pytest.raises(ValueError):
-    _remove_edges(edge, node, node, node) # pytype: disable=wrong-arg-types
+    _remove_edges(edge, node, node, node)  # pytype: disable=wrong-arg-types
