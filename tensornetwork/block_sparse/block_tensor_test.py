@@ -3,10 +3,12 @@ import pytest
 
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges
 from tensornetwork.block_sparse.index import Index
+# pylint: disable=line-too-long
 from tensornetwork.block_sparse.block_tensor import compute_num_nonzero, reduce_charges, BlockSparseTensor, fuse_ndarrays, tensordot, svd, qr, diag, sqrt, trace, inv, _find_diagonal_sparse_blocks, pinv, eye, zeros, ones, randn, eigh, eig
 
-np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
-np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
+#np_dtypes = [np.float32, np.float16, np.float64, np.complex64, np.complex128]
+np_dtypes = [np.float64, np.complex128]
+np_tensordot_dtypes = [np.float64, np.complex128]
 
 
 def get_contractable_tensors(R1, R2, cont, dtype):
@@ -34,22 +36,21 @@ def get_contractable_tensors(R1, R2, cont, dtype):
 
   indicesA = [None for _ in range(R1)]
   indicesB = [None for _ in range(R2)]
-  for n in range(len(indsA)):
-    indicesA[indsA[n]] = Index(commoncharges[n], flowsA[indsA[n]])
+  for n, ia in enumerate(indsA):
+    indicesA[ia] = Index(commoncharges[n], flowsA[ia])
     indicesB[indsB[n]] = Index(commoncharges[n], flowsB[indsB[n]])
   compA = list(set(np.arange(R1)) - set(indsA))
   compB = list(set(np.arange(R2)) - set(indsB))
 
-  for n in range(len(compA)):
-    indicesA[compA[n]] = Index(chargesA[n], flowsA[compA[n]])
-  for n in range(len(compB)):
-    indicesB[compB[n]] = Index(chargesB[n], flowsB[compB[n]])
+  for n, ca in enumerate(compA):
+    indicesA[ca] = Index(chargesA[n], flowsA[ca])
+  for n, cb in enumerate(compB):
+    indicesB[cb] = Index(chargesB[n], flowsB[cb])
   indices_final = []
   for n in sorted(compA):
     indices_final.append(indicesA[n])
   for n in sorted(compB):
     indices_final.append(indicesB[n])
-  shapes = tuple([i.dim for i in indices_final])
   A = BlockSparseTensor.random(indices=indicesA, dtype=dtype)
   B = BlockSparseTensor.random(indices=indicesB, dtype=dtype)
   return A, B, indsA, indsB
@@ -195,7 +196,7 @@ def test_tensordot_inner(R1, R2, dtype):
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (2, 1), (1, 2), (1, 1)])
 def test_tensordot_outer(R1, R2, dtype):
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0, dtype)
+  A, B, _, _ = get_contractable_tensors(R1, R2, 0, dtype)
   res = tensordot(A, B, axes=0)
   dense_res = np.tensordot(A.todense(), B.todense(), axes=0)
   np.testing.assert_allclose(dense_res, res.todense())
@@ -207,7 +208,8 @@ def test_svd_prod(dtype, R, R1, R2):
   D = 30
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
-  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
   A = A.reshape([D**R1, D**R2])
   U, S, V = svd(A, full_matrices=False)
   A_ = U @ diag(S) @ V
@@ -220,9 +222,10 @@ def test_svd_singvals(dtype, R, R1, R2):
   D = 30
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
-  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
   A = A.reshape([D**R1, D**R2])
-  U1, S1, V1 = svd(A, full_matrices=False)
+  _, S1, _ = svd(A, full_matrices=False)
   S2 = svd(A, full_matrices=False, compute_uv=False)
   np.testing.assert_allclose(S1.data, S2.data)
   Sdense = np.linalg.svd(A.todense(), compute_uv=False)
@@ -237,7 +240,8 @@ def test_qr_prod(dtype, R, R1, R2, mode):
   D = 30
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
-  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)])
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
   A = A.reshape([D**R1, D**R2])
   Q, R = qr(A, mode=mode)
   A_ = Q @ R
@@ -267,7 +271,7 @@ def test_trace(dtype):
                                dtype=dtype)
   res = trace(A)
   res_dense = np.trace(A.todense())
-  np.testing.assert_allclose(res, res_dense)
+  np.testing.assert_allclose(res.todense(), res_dense)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -279,8 +283,8 @@ def test_eye(dtype):
   A = eye(index, dtype=dtype)
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       A.flat_charges, A.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(A.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(A.data[block], shapes[:, n])
     np.testing.assert_almost_equal(t, np.eye(t.shape[0], t.shape[1]))
 
 
@@ -292,8 +296,8 @@ def test_eye_2(dtype):
   A = eye(index0, index1, dtype=dtype)
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       A.flat_charges, A.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(A.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(A.data[block], shapes[:, n])
     np.testing.assert_almost_equal(t, np.eye(t.shape[0], t.shape[1]))
 
 
@@ -338,7 +342,6 @@ def test_inv(dtype):
   D = 10
   charges = [U1Charge.random(-3, 3, D) for n in range(R)]
   flows = [True, False]
-  indices = [Index(charges[0], flows[n]) for n in range(R)]
   A = BlockSparseTensor.random([Index(charges[0], flows[n]) for n in range(R)],
                                (-0.5, 0.5),
                                dtype=dtype)
@@ -347,15 +350,15 @@ def test_inv(dtype):
 
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       left_eye.flat_charges, left_eye.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(left_eye.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(left_eye.data[block], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
 
   right_eye = A @ invA
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       right_eye.flat_charges, right_eye.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(right_eye.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(right_eye.data[block], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
 
 
@@ -365,7 +368,6 @@ def test_pinv(dtype):
   D = 10
   charges = [U1Charge.random(-3, 3, D) for n in range(R)]
   flows = [True, False]
-  indices = [Index(charges[0], flows[n]) for n in range(R)]
   A = BlockSparseTensor.random([Index(charges[0], flows[n]) for n in range(R)],
                                (-0.5, 0.5),
                                dtype=dtype)
@@ -374,15 +376,15 @@ def test_pinv(dtype):
 
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       left_eye.flat_charges, left_eye.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(left_eye.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(left_eye.data[block], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
 
   right_eye = A @ invA
   blocks, charges, shapes = _find_diagonal_sparse_blocks(
       right_eye.flat_charges, right_eye.flat_flows, 1)
-  for n in range(len(blocks)):
-    t = np.reshape(right_eye.data[blocks[n]], shapes[:, n])
+  for n, block in enumerate(blocks):
+    t = np.reshape(right_eye.data[block], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
 
 
@@ -392,7 +394,8 @@ def test_eigh_prod(dtype, R):
   D = 10
   charge = U1Charge.random(-5, 5, D)
   flows = [True] * R + [False] * R
-  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)])
+  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)],
+                               dtype=dtype)
   A = A.reshape([D**R, D**R])
   B = A + A.T.conj()
   E, V = eigh(B)
@@ -406,7 +409,8 @@ def test_eig_prod(dtype, R):
   D = 10
   charge = U1Charge.random(-5, 5, D)
   flows = [True] * R + [False] * R
-  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)])
+  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)],
+                               dtype=dtype)
   A = A.reshape([D**R, D**R])
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
