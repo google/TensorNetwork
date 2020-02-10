@@ -1697,7 +1697,7 @@ def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]) -> Any:
 
 def trace(tensor: BlockSparseTensor,
           axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
-  if tensor.ndim > 2:
+  if tensor.ndim > 1:
     if axes is None:
       axes = (tensor.ndim - 2, tensor.ndim - 1)
     if len(axes) != 2:
@@ -1709,13 +1709,7 @@ def trace(tensor: BlockSparseTensor,
     identity = eye(indices[0].flip_flow())
     out = tensordot(tensor, identity, (axes, [0, 1]))
     return out
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      tensor.flat_charges, tensor.flat_flows,
-      len(tensor.indices[0].flat_charges))
-  return np.sum([
-      np.trace(np.reshape(tensor.data[blocks[n]], shapes[:, n]))
-      for n in range(len(blocks))
-  ])
+  raise ValueError("trace can only be taken for tensors with ndim>1")
 
 
 def eye(column_index: Index,
