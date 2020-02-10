@@ -16,11 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, contract, contract_between
-# pylint: disable=line-too-long
-from tensornetwork.backends import backend_factory
+
 import copy
 import warnings
+# pylint: disable=line-too-long
 from typing import List, Union, Any, Optional, Tuple, Text, Iterable, Type
 
 
@@ -38,11 +37,31 @@ class BaseCharge:
           charges.astype(np.int16), return_inverse=True, axis=1)
       self.charge_labels = self.charge_labels.astype(np.int16)
     else:
-      if charge_labels.dtype not in (np.int16, np.int16):
-        raise TypeError("`charge_labels` have to be of dtype `np.int16`")
+      self.charge_labels = np.asarray(charge_labels, dtype=np.int16)
+      # if charge_labels.dtype not in (np.int16, np.int16):
+      #   raise TypeError("`charge_labels` have to be of dtype `np.int16`")
 
       self.unique_charges = charges.astype(np.int16)
       self.charge_labels = charge_labels.astype(np.int16)
+
+  @staticmethod
+  def fuse(charge1, charge2):
+    raise NotImplementedError("`fuse` has to be implemented in derived classes")
+
+  @staticmethod
+  def dual_charges(charges):
+    raise NotImplementedError(
+        "`dual_charges` has to be implemented in derived classes")
+
+  @staticmethod
+  def identity_charge():
+    raise NotImplementedError(
+        "`identity_charge` has to be implemented in derived classes")
+
+  @classmethod
+  def random(cls, minval: int, maxval: int, dimension: int):
+    raise NotImplementedError(
+        "`random` has to be implemented in derived classes")
 
   @property
   def dim(self):
@@ -99,9 +118,10 @@ class BaseCharge:
 
     # find new labels using broadcasting
     charge_labels = charge_labels[(
-        self.charge_labels[:, None] + np.zeros([1, len(other)], dtype=np.int16)
-    ).ravel(), (other.charge_labels[None, :] +
-                np.zeros([len(self), 1], dtype=np.int16)).ravel()]
+        self.charge_labels[:, None] +
+        np.zeros([1, len(other)], dtype=np.int16)).ravel(), (
+            other.charge_labels[None, :] +
+            np.zeros([len(self), 1], dtype=np.int16)).ravel()]
 
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
@@ -127,6 +147,7 @@ class BaseCharge:
         charges=self.unique_charges.copy(),
         charge_labels=self.charge_labels.copy(),
         charge_types=self.charge_types)
+    return obj
 
   @property
   def charges(self):
@@ -141,13 +162,11 @@ class BaseCharge:
 
   def __mul__(self, number: bool) -> "BaseCharge":
     if not isinstance(number, (bool, np.bool_)):
-      print(type(number))
       raise ValueError(
           "can only multiply by `True` or `False`, found {}".format(number))
     return self.dual(number)
 
-  def intersect(self, other, assume_unique=False,
-                return_indices=False) -> (np.ndarray, np.ndarray, np.ndarray):
+  def intersect(self, other, assume_unique=False, return_indices=False) -> Any:
     if isinstance(other, type(self)):
       out = intersect(
           self.unique_charges,
@@ -164,7 +183,7 @@ class BaseCharge:
           assume_unique=assume_unique,
           return_indices=return_indices)
       obj = self.__new__(type(self))
-    if return_indices == True:
+    if return_indices:
       obj.__init__(
           charges=out[0],
           charge_labels=np.arange(len(out[0]), dtype=np.int16),
@@ -176,8 +195,7 @@ class BaseCharge:
   def unique(self,
              return_index=False,
              return_inverse=False,
-             return_counts=False
-            ) -> Tuple["BaseCharge", np.ndarray, np.ndarray, np.ndarray]:
+             return_counts=False) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
@@ -200,19 +218,30 @@ class BaseCharge:
         original array. Only provided if `return_counts` is True.      
     """
     obj = self.__new__(type(self))
+    tmp = np.unique(
+        self.charge_labels,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts)
+    if return_index or return_inverse or return_counts:
+      if tmp[0].ndim == 0:
+        index = np.asarray([tmp[0]])
+        unique_charges = self.unique_charges[:, index]
+      else:
+        unique_charges = self.unique_charges[:, tmp[0]]
+    else:
+      if tmp.ndim == 0:
+        tmp = np.asarray([tmp])
+      unique_charges = self.unique_charges[:, tmp]
     obj.__init__(
-        charges=self.unique_charges,
-        charge_labels=np.arange(self.unique_charges.shape[1], dtype=np.int16),
+        charges=unique_charges,
+        charge_labels=np.arange(unique_charges.shape[1], dtype=np.int16),
         charge_types=self.charge_types)
     out = [obj]
-    if return_index:
-      _, index = np.unique(self.charge_labels, return_index=True)
-      out.append(index)
-    if return_inverse:
-      out.append(self.charge_labels)
-    if return_counts:
-      _, cnts = np.unique(self.charge_labels, return_counts=True)
-      out.append(cnts)
+    if return_index or return_inverse or return_counts:
+      for n in range(1, len(tmp)):
+        out.append(tmp[n])
+
     if len(out) == 1:
       return out[0]
     if len(out) == 2:
@@ -221,6 +250,7 @@ class BaseCharge:
       return out[0], out[1], out[2]
     if len(out) == 4:
       return out[0], out[1], out[2], out[3]
+    return None
 
   @property
   def dtype(self):
@@ -236,16 +266,17 @@ class BaseCharge:
   def reduce(self,
              target_charges: np.ndarray,
              return_locations: bool = False,
-             strides: int = 1) -> ("SymIndex", np.ndarray):
+             strides: int = 1) -> Any:
     """
-    Reduce the dim of a SymIndex to keep only the index values that intersect target_charges
+    Reduce the dim of a charge to keep only the index values that intersect target_charges
     Args:
-      target_charges (np.ndarray): array of unique quantum numbers to keep.
-      return_locations (bool, optional): if True, also return the output index 
+      target_charges: array of unique quantum numbers to keep.
+      return_locations: If `True`, also return the output index 
         locations of target values.
     Returns:
-      SymIndex: index of reduced dimension.
-      np.ndarray: output index locations of target values.
+      BaseCharge: index of reduced dimension.
+      np.ndarray: If `return_locations = True`; the index locations 
+        of target values.
     """
     if isinstance(target_charges, (np.integer, int)):
       target_charges = np.asarray([target_charges], dtype=np.int16)
@@ -253,7 +284,7 @@ class BaseCharge:
       target_charges = np.expand_dims(target_charges, 0)
     target_charges = np.asarray(target_charges, dtype=np.int16)
     # find intersection of index charges and target charges
-    reduced_charges, label_to_unique, label_to_target = intersect(
+    reduced_charges, label_to_unique, _ = intersect(
         self.unique_charges, target_charges, axis=1, return_indices=True)
     num_unique = len(label_to_unique)
 
@@ -295,7 +326,12 @@ class BaseCharge:
     if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
     obj = self.__new__(type(self))
-    obj.__init__(self.unique_charges, self.charge_labels[n], self.charge_types)
+    labels = self.charge_labels[n]
+    unique_labels, new_labels = np.unique(labels, return_inverse=True)
+    if unique_labels.ndim == 0:
+      unique_labels = np.asarray(unique_labels)
+    unique_charges = self.unique_charges[:, unique_labels]
+    obj.__init__(unique_charges, new_labels, self.charge_types)
     return obj
 
   def __eq__(self,
@@ -309,10 +345,11 @@ class BaseCharge:
       if target_charges.ndim == 1:
         target_charges = np.expand_dims(target_charges, 0)
       targets = np.unique(target_charges, axis=1)
+    #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges, 2) == np.expand_dims(
-                targets, 1),
+            np.expand_dims(self.unique_charges,
+                           2) == np.expand_dims(targets, 1),
             axis=0))[0]
     return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
 
@@ -323,6 +360,7 @@ class BaseCharge:
     else:
       targets = np.unique(target_charges, axis=1)
     tmp = np.expand_dims(self.unique_charges, 2) == np.expand_dims(targets, 1)
+    #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_or.reduce(np.logical_and.reduce(tmp, axis=0), axis=1))[0]
 
@@ -338,19 +376,19 @@ class U1Charge(BaseCharge):
     super().__init__(charges, charge_labels, charge_types=[type(self)])
 
   @staticmethod
-  def fuse(charge1, charge2):
+  def fuse(charge1, charge2) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges):
+  def dual_charges(charges) -> np.ndarray:
     return charges * charges.dtype.type(-1)
 
   @staticmethod
-  def identity_charge():
+  def identity_charge() -> np.ndarray:
     return np.int16(0)
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: tuple):
+  def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
     charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
     return cls(charges=charges)
 
@@ -368,18 +406,19 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
     np.ndarray: n-by-(D1 * D2) dimensional array of the fused charges.
   """
   comb_charges = [0] * len(charge_types)
-  for n in range(len(charge_types)):
-    comb_charges[n] = charge_types[n].fuse(charges_A[n, :], charges_B[n, :])
+  for n, ct in enumerate(charge_types):
+    comb_charges[n] = ct.fuse(charges_A[n, :], charges_B[n, :])
 
   return np.concatenate(
-      comb_charges, axis=0).reshape(len(charge_types), len(comb_charges[0]))
+      comb_charges, axis=0).reshape(
+          len(charge_types), charges_A.shape[1] * charges_B.shape[1])
 
 
 def intersect(A: np.ndarray,
               B: np.ndarray,
               axis=0,
               assume_unique=False,
-              return_indices=False) -> (np.ndarray, np.ndarray, np.ndarray):
+              return_indices=False) -> Any:
   """
   Extends numpy's intersect1d to find the row or column-wise intersection of
   two 2d arrays. Takes identical input to numpy intersect1d.
@@ -393,6 +432,7 @@ def intersect(A: np.ndarray,
       Only provided if return_indices is True.
   """
   #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
+  #pylint: disable=no-else-return
   if A.ndim == 1:
     return np.intersect1d(
         A, B, assume_unique=assume_unique, return_indices=return_indices)
@@ -430,13 +470,10 @@ def intersect(A: np.ndarray,
         return out[0].T, out[1], out[2]
       return out.T
 
-    else:
-      raise NotImplementedError(
-          "intersection can only be performed on first or second axis")
-
-  else:
     raise NotImplementedError(
-        "intersect is only implemented for 1d or 2d arrays")
+        "intersection can only be performed on first or second axis")
+
+  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
 
 
 def fuse_charges(charges: List[BaseCharge], flows: List[bool]) -> BaseCharge:

@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.block_tensor.charge import BaseCharge, fuse_charges
+from tensornetwork.block_sparse.charge import BaseCharge, fuse_charges
 import copy
 from typing import List, Union, Any, Optional, Tuple, Text
 
@@ -44,6 +44,9 @@ class Index:
     if isinstance(name, str):
       name = [name]
     self.name = name
+
+  def __len__(self):
+    return np.prod([len(c) for c in self.flat_charges])
 
   def __repr__(self):
     return str(self.dim)
@@ -92,7 +95,11 @@ class Index:
     List: A list containing the elementary indices (the leaves) 
       of `Index`.
     """
-    return self.flow
+    return list(self.flow)
+
+  def flip_flow(self):
+    self.flow = np.logical_not(self.flow)
+    return self
 
   def __mul__(self, index: "Index") -> "Index":
     """
@@ -106,12 +113,6 @@ class Index:
   @property
   def charges(self):
     return fuse_charges(self.flat_charges, self.flat_flows)
-
-  """
-  An index class to store indices of a symmetric tensor.
-  An index keeps track of all its childs by storing references
-  to them (i.e. it is a binary tree).
-  """
 
 
 # class Index:
@@ -209,7 +210,8 @@ class Index:
 #   def charges(self):
 #     if self.is_leave:
 #       return self._charges
-#     return self.left_child.charges * self.left_child.flow + self.right_child.charges * self.right_child.flow
+#     return self.left_child.charges *
+#self.left_child.flow + self.right_child.charges * self.right_child.flow
 
 #   """
 #   An index class to store indices of a symmetric tensor.
@@ -218,9 +220,7 @@ class Index:
 #   """
 
 
-def fuse_index_pair(left_index: Index,
-                    right_index: Index,
-                    flow: Optional[int] = False) -> Index:
+def fuse_index_pair(left_index: Index, right_index: Index) -> Index:
   """
   Fuse two consecutive indices (legs) of a symmetric tensor.
   Args:
@@ -240,7 +240,7 @@ def fuse_index_pair(left_index: Index,
       flow=left_index.flat_flows + right_index.flat_flows)
 
 
-def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
+def fuse_indices(indices: List[Index]) -> Index:
   """
   Fuse a list of indices (legs) of a symmetric tensor.
   Args:
@@ -252,5 +252,5 @@ def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
 
   index = indices[0]
   for n in range(1, len(indices)):
-    index = fuse_index_pair(index, indices[n], flow=flow)
+    index = fuse_index_pair(index, indices[n])
   return index

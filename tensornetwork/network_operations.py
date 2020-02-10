@@ -266,14 +266,27 @@ def split_node(
   u, s, vh, trun_vals = backend.svd_decomposition(
       node.tensor, len(left_edges), max_singular_values, max_truncation_err)
   sqrt_s = backend.sqrt(s)
-  u_s = u * sqrt_s
-  # We have to do this since we are doing element-wise multiplication against
-  # the first axis of vh. If we don't, it's possible one of the other axes of
-  # vh will be the same size as sqrt_s and would multiply across that axis
-  # instead, which is bad.
-  sqrt_s_broadcast_shape = backend.shape_concat(
-      [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
-  vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
+  if backend.name != 'symmetric':
+    u_s = u * sqrt_s
+    # We have to do this since we are doing element-wise multiplication against
+    # the first axis of vh. If we don't, it's possible one of the other axes of
+    # vh will be the same size as sqrt_s and would multiply across that axis
+    # instead, which is bad.
+    sqrt_s_broadcast_shape = backend.shape_concat(
+        [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
+    vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
+  else:
+    u_shape = u.shape
+    vh_shape = vh.shape
+    utmp = backend.reshape(u,
+                           (np.prod(u_shape[:len(u_shape) - 1]), u_shape[-1]))
+
+    vhtmp = backend.reshape(vh,
+                            (vh_shape[0], np.prod(vh_shape[1:len(vh_shape)])))
+
+    u_s = backend.reshape(utmp @ backend.diag(sqrt_s), u_shape)
+    vh_s = backend.reshape(backend.diag(sqrt_s) @ vhtmp, vh_shape)
+
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
   for i, edge in enumerate(left_edges):
@@ -760,6 +773,11 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
     dtype (datatype): The dtype of the backend. If None, a defautl dtype according
                        to config.py will be chosen.
   """
+
+  if new_backend == 'symmetric':
+    if np.all([n.backend.name == 'symmetric' for n in nodes]):
+      return
+    raise ValueError("switching to `symmetric` backend disallowed")
   backend = backend_factory.get_backend(new_backend)
   for node in nodes:
     if node.backend.name != "numpy":

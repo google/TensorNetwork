@@ -107,7 +107,6 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
   while con_edges:
     nodes_to_contract = con_edges[-1].get_nodes()
     edges_to_contract = network_components.get_shared_edges(*nodes_to_contract)
-
     # Eat up all parallel edges that are adjacent in the ordering.
     adjacent_parallel_edges = set()
     for edge in reversed(con_edges):
@@ -244,9 +243,9 @@ def ncon_network(tensors: Sequence[Tensor],
 
 def _build_network(
     tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
-    backend: Text) -> Tuple[
-        List[network_components.BaseNode], 
-        Dict[Any, network_components.Edge]]:
+    backend: Text
+) -> Tuple[List[network_components.BaseNode], Dict[Any, network_components
+                                                   .Edge]]:
   nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):

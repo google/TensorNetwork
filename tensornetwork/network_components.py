@@ -28,6 +28,7 @@ from tensornetwork.backend_contextmanager import get_default_backend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
+
 # This is required because of the circular dependency between
 # network_components.py and network.py types.
 
@@ -422,7 +423,6 @@ class BaseNode(ABC):
         raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
 
-
   @property
   def signature(self) -> Optional[int]:
     if self.is_disabled:
@@ -564,6 +564,7 @@ class Node(BaseNode):
       backend_obj = backend
     else:
       backend_obj = backend_factory.get_backend(backend)
+
     self._tensor = backend_obj.convert_to_tensor(tensor)
     super().__init__(
         name=name,
@@ -578,9 +579,10 @@ class Node(BaseNode):
       raise AttributeError("Please provide a valid tensor for this Node.")
     if isinstance(other, Node):
       if not self.backend.name == other.backend.name:
+        #pylint: disable=bad-continuation
         raise TypeError("Operands backend must match.\noperand 1 backend: {}\
-                         \noperand 2 backend: {}".format(self.backend.name,
-                                                         other.backend.name))
+                         \noperand 2 backend: {}".format(
+            self.backend.name, other.backend.name))
       if not hasattr(other, '_tensor'):
         raise AttributeError("Please provide a valid tensor for this Node.")
     else:
@@ -595,10 +597,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -607,10 +610,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -619,10 +623,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -631,10 +636,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -1340,8 +1346,8 @@ def _flatten_trace_edges(edges: List[Edge],
       [backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
   unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
-  new_shape = backend.shape_concat(
-      [unaffected_shape, [new_dim, new_dim]], axis=-1)
+  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]],
+                                   axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -1766,6 +1772,8 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
   axes = sorted([edge.axis1, edge.axis2])
   dims = len(edge.node1.tensor.shape)
   permutation = sorted(set(range(dims)) - set(axes)) + axes
+  #TODO (martin): permuting is costly for for symmetric  backends
+  #fix this!
   new_tensor = backend.trace(
       backend.transpose(edge.node1.tensor, perm=permutation))
   name = name if name else edge.node1.name
@@ -2017,8 +2025,7 @@ def contract_between(
         axes1, axes2 = axes2, axes1
 
     new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
-    new_node = Node(
-        tensor=new_tensor, name=name, backend=backend)
+    new_node = Node(tensor=new_tensor, name=name, backend=backend)
     # node1 and node2 get new edges in _remove_edges
     _remove_edges(shared_edges, node1, node2, new_node)
 

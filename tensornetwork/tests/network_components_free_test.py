@@ -9,6 +9,7 @@ import re
 #pylint: disable=line-too-long
 from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection, BaseNode, _remove_trace_edge, _remove_edges
 import tensornetwork as tn
+from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
 from tensornetwork.backends.base_backend import BaseBackend
 
 string_type = h5py.special_dtype(vlen=str)
@@ -16,6 +17,43 @@ string_type = h5py.special_dtype(vlen=str)
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
+
+# def get_random(backend, shape, dtype=np.float64):
+#   if backend == 'symmetric':
+#     R = len(shape)
+#     Ds = np.random.randint(8, 12, R)
+#     charges = [U1Charge(np.random.randint(-5, 5, Ds[n])) for n in range(R)]
+#     flows = list(np.full(R, fill_value=False, dtype=np.bool))
+#     indices = [Index(charges[n], flows[n]) for n in range(R)]
+#     return BlockSparseTensor.random(indices=indices, dtype=dtype)
+#   be = tn.backends.backend_factory.get_backend(backend)
+#   npbe = tn.backends.backend_factory.get_backend('numpy')
+#   return be.convert_to_tensor(npbe.random_uniform(shape, dtype=dtype))
+
+# def get_zeros(backend, shape, dtype=np.float64):
+#   if backend == 'symmetric':
+#     R = len(shape)
+#     Ds = np.random.randint(8, 12, R)
+#     charges = [U1Charge(np.random.randint(-5, 5, Ds[n])) for n in range(R)]
+#     flows = list(np.full(R, fill_value=False, dtype=np.bool))
+#     indices = [Index(charges[n], flows[n]) for n in range(R)]
+#     return BlockSparseTensor.zeros(indices=indices, dtype=dtype)
+#   be = tn.backends.backend_factory.get_backend(backend)
+#   npbe = tn.backends.backend_factory.get_backend('numpy')
+#   return be.convert_to_tensor(npbe.zeros(shape, dtype=dtype))
+
+
+def get_ones(backend, shape, dtype=np.float64):
+  if backend == 'symmetric':
+    R = len(shape)
+    Ds = np.random.randint(8, 12, R)
+    charges = [U1Charge(np.random.randint(-5, 5, Ds[n])) for n in range(R)]
+    flows = list(np.full(R, fill_value=False, dtype=np.bool))
+    indices = [Index(charges[n], flows[n]) for n in range(R)]
+    return BlockSparseTensor.ones(indices=indices, dtype=dtype)
+  be = tn.backends.backend_factory.get_backend(backend)
+  npbe = tn.backends.backend_factory.get_backend('numpy')
+  return be.convert_to_tensor(npbe.ones(shape, dtype=dtype))
 
 
 class TestNode(BaseNode):
@@ -59,10 +97,10 @@ class TestNode(BaseNode):
   def copy(self, conjugate: bool = False) -> "TestNode":
     return TestNode()
 
-
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):
-  tensor = np.ones((1, 2, 2))
+  tensor = get_ones(backend, (1, 2, 2))
+
   node = Node(
       tensor=tensor,
       name="test_node",
@@ -74,7 +112,7 @@ def fixture_single_node_edge(backend):
 
 @pytest.fixture(name='double_node_edge')
 def fixture_double_node_edge(backend):
-  tensor = np.ones((1, 2, 2))
+  tensor = get_ones(backend, (1, 2, 2))
   node1 = Node(
       tensor=tensor,
       name="test_node1",
@@ -118,8 +156,23 @@ def test_node_initialize_tensorflow():
       name="test_node",
       axis_names=["a", "b", "c"],
       backend='tensorflow')
-  print(node.tensor)
   np.testing.assert_allclose(node.tensor, np.ones((1, 2, 3)))
+  assert node.name == 'test_node'
+  assert len(node.edges) == 3
+  assert isinstance(node.edges[0], Edge)
+  assert node.axis_names == ["a", "b", "c"]
+  assert node.signature == -1
+
+
+def test_node_initialize_symmetric():
+  tensor = get_ones('symmetric', (1, 2, 2))
+  node = Node(
+      tensor=tensor,
+      name="test_node",
+      axis_names=["a", "b", "c"],
+      backend='symmetric')
+
+  np.testing.assert_allclose(node.tensor.data, 1)
   assert node.name == 'test_node'
   assert len(node.edges) == 3
   assert isinstance(node.edges[0], Edge)
@@ -384,7 +437,6 @@ def test_node_magic_matmul_raises_error_different_network(single_node_edge):
 
 
 def test_node_magic_matmul(backend):
-
   tensor1 = np.ones((2, 3, 4, 5))
   tensor2 = 2 * np.ones((3, 5, 4, 2))
   node1 = tn.Node(tensor1, backend=backend)

@@ -1,7 +1,7 @@
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.block_tensor.index import Index, fuse_index_pair, fuse_indices
-from tensornetwork.block_tensor.charge import U1Charge, BaseCharge
+from tensornetwork.block_sparse.index import Index, fuse_index_pair, fuse_indices
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
 
 
 def test_index_fusion_mul():
@@ -12,13 +12,14 @@ def test_index_fusion_mul():
                                   D).astype(dtype))  #quantum numbers on leg 1
   q2 = U1Charge(np.random.randint(-B // 2, B // 2 + 1,
                                   D).astype(dtype))  #quantum numbers on leg 1
-
+  charges = [q1, q2]
   i1 = Index(charges=q1, flow=False, name='index1')  #index on leg 1
   i2 = Index(charges=q2, flow=False, name='index2')  #index on leg 2
 
   i12 = i1 * i2
   for n in range(len(i12.charges.charges)):
-    assert np.all(i12.charges.charges == (q1 + q2).charges)
+    assert np.all(i12._charges[n].charges == charges[n].charges)
+  assert np.all(i12.charges.charges == (q1 + q2).charges)
 
 
 def test_fuse_indices():
@@ -29,12 +30,14 @@ def test_fuse_indices():
                                   D).astype(dtype))  #quantum numbers on leg 1
   q2 = U1Charge(np.random.randint(-B // 2, B // 2 + 1,
                                   D).astype(dtype))  #quantum numbers on leg 1
+  charges = [q1, q2]
   i1 = Index(charges=q1, flow=False, name='index1')  #index on leg 1
   i2 = Index(charges=q2, flow=False, name='index2')  #index on leg 2
 
   i12 = fuse_indices([i1, i2])
   for n in range(len(i12.charges.charges)):
-    assert np.all(i12.charges.charges == (q1 + q2).charges)
+    assert np.all(i12._charges[n].charges == charges[n].charges)
+  assert np.all(i12.charges.charges == (q1 + q2).charges)
 
 
 def test_copy():
