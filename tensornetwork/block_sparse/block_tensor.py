@@ -1689,14 +1689,26 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
   return E, V
 
 
-def sqrt(tensor: BlockSparseTensor) -> BlockSparseTensor:
-  return BlockSparseTensor(np.sqrt(tensor.data), tensor.indices)
+def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]) -> Any:
+  obj = tensor.__new__(type(tensor))
+  obj.__init__(np.sqrt(tensor.data), tensor.indices)
+  return obj
 
 
-def trace(tensor: BlockSparseTensor) -> BlockSparseTensor:
-  if tensor.ndim != 2:
-    raise ValueError("trace can only be taken for matrices, "
-                     "found tensor.ndim={}".format(tensor.ndim))
+def trace(tensor: BlockSparseTensor,
+          axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
+  if tensor.ndim > 2:
+    if axes is None:
+      axes = (tensor.ndim - 2, tensor.ndim - 1)
+    if len(axes) != 2:
+      raise ValueError(
+          "`len(axes)` has to be 2, found `axes = {}`".format(axes))
+    indices = [tensor.indices[a].copy() for a in axes]
+    if indices[0] != indices[1].flip_flow():
+      raise ValueError("cannot take trace over unmatching indices")
+    identity = eye(indices[0].flip_flow())
+    out = tensordot(tensor, identity, (axes, [0, 1]))
+    return out
   blocks, _, shapes = _find_diagonal_sparse_blocks(
       tensor.flat_charges, tensor.flat_flows,
       len(tensor.indices[0].flat_charges))

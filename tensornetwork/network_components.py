@@ -1720,6 +1720,8 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
   axes = sorted([edge.axis1, edge.axis2])
   dims = len(edge.node1.tensor.shape)
   permutation = sorted(set(range(dims)) - set(axes)) + axes
+  #TODO (martin): permuting is costly for for symmetric  backends
+  #fix this!
   new_tensor = backend.trace(
       backend.transpose(edge.node1.tensor, perm=permutation))
   name = name if name else edge.node1.name

@@ -43,7 +43,7 @@ def get_chargearray(dtype=np.float64):
   charge = U1Charge(np.random.randint(-5, 5, D))
   flow = False
   index = Index(charge, flow)
-  return ChargeArray.random(index=index, dtype=dtype)
+  return ChargeArray.random(indices=[index], dtype=dtype)
 
 
 def get_contractable_tensors(R1, R2, cont, dtype):
@@ -195,8 +195,8 @@ def test_diag(dtype):
   with pytest.raises(TypeError):
     assert backend.diag(a)
   b = get_chargearray(dtype)
-  actual = backend.diag(b)
   expected = diag(b)
+  actual = backend.diag(b)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
       expected.indices[n] == actual.indices[n]
@@ -510,7 +510,7 @@ def test_eigh(dtype):
   eta_ac, U_ac = eigh(H)
   np.testing.assert_allclose(eta.data, eta_ac.data)
   np.testing.assert_allclose(U.data, U_ac.data)
-  assert eta.index == eta_ac.index
+  assert eta.indices[0] == eta_ac.indices[0]
   assert np.all(
       [U.indices[n] == U_ac.indices[n] for n in range(len(U.indices))])
 

@@ -99,6 +99,7 @@ class Index:
 
   def flip_flow(self):
     self.flow = np.logical_not(self.flow)
+    return self
 
   def __mul__(self, index: "Index") -> "Index":
     """

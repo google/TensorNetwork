@@ -792,6 +792,12 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
     dtype (datatype): The dtype of the backend. If None, a defautl dtype according
                        to config.py will be chosen.
   """
+
+  if new_backend == 'symmetric':
+    if np.all([n.backend.name == 'symmetric' for n in nodes]):
+      return
+    else:
+      raise ValueError("switching to `symmetric` backend disallowed")
   backend = backend_factory.get_backend(new_backend)
   for node in nodes:
     if node.backend.name != "numpy":

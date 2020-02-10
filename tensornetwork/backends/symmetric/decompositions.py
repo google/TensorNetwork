@@ -125,7 +125,7 @@ def svd_decomposition(bt,
   # ]
   # S = BlockSparseTensor(
   #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  S = ChargeArray(np.concatenate(singvals), Index(left_singval_charge, False))
+  S = ChargeArray(np.concatenate(singvals), [Index(left_singval_charge, False)])
 
   #define the new charges on the two central bonds
   left_charge_labels = np.concatenate([
