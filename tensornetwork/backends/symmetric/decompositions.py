@@ -97,6 +97,7 @@ def svd_decomposition(bt,
       warnings.warn("svd_decomposition truncated to 0 dimenions. "
                     "Adjusting to `max_singular_values = 1`")
       inds = np.asarray([maxind])
+    #pylint: disable=no-member
     keep = np.divmod(inds, extended_singvals.shape[1])
 
     newsingvals = [
