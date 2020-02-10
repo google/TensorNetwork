@@ -210,7 +210,7 @@ def test_trace(dtype):
   a = get_square_matrix(dtype)
   actual = backend.trace(a)
   expected = trace(a)
-  np.testing.assert_allclose(actual, expected)
+  np.testing.assert_allclose(actual.data, expected.data)
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
