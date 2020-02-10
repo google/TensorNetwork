@@ -652,7 +652,7 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
-    num_non_zero_elements = len(index.charges)
+    num_non_zero_elements = np.prod([len(i) for i in indices])
 
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
@@ -676,7 +676,7 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
-    num_non_zero_elements = len(index.charges)
+    num_non_zero_elements = np.prod([len(i) for i in indices])
 
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
