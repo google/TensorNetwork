@@ -114,12 +114,6 @@ class Index:
   def charges(self):
     return fuse_charges(self.flat_charges, self.flat_flows)
 
-  """
-  An index class to store indices of a symmetric tensor.
-  An index keeps track of all its childs by storing references
-  to them (i.e. it is a binary tree).
-  """
-
 
 # class Index:
 #   """
@@ -216,7 +210,8 @@ class Index:
 #   def charges(self):
 #     if self.is_leave:
 #       return self._charges
-#     return self.left_child.charges * self.left_child.flow + self.right_child.charges * self.right_child.flow
+#     return self.left_child.charges *
+#self.left_child.flow + self.right_child.charges * self.right_child.flow
 
 #   """
 #   An index class to store indices of a symmetric tensor.
@@ -225,9 +220,7 @@ class Index:
 #   """
 
 
-def fuse_index_pair(left_index: Index,
-                    right_index: Index,
-                    flow: Optional[int] = False) -> Index:
+def fuse_index_pair(left_index: Index, right_index: Index) -> Index:
   """
   Fuse two consecutive indices (legs) of a symmetric tensor.
   Args:
@@ -247,7 +240,7 @@ def fuse_index_pair(left_index: Index,
       flow=left_index.flat_flows + right_index.flat_flows)
 
 
-def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
+def fuse_indices(indices: List[Index]) -> Index:
   """
   Fuse a list of indices (legs) of a symmetric tensor.
   Args:
@@ -259,5 +252,5 @@ def fuse_indices(indices: List[Index], flow: Optional[int] = False) -> Index:
 
   index = indices[0]
   for n in range(1, len(indices)):
-    index = fuse_index_pair(index, indices[n], flow=flow)
+    index = fuse_index_pair(index, indices[n])
   return index

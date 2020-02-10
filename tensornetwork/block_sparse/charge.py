@@ -118,9 +118,10 @@ class BaseCharge:
 
     # find new labels using broadcasting
     charge_labels = charge_labels[(
-        self.charge_labels[:, None] + np.zeros([1, len(other)], dtype=np.int16)
-    ).ravel(), (other.charge_labels[None, :] +
-                np.zeros([len(self), 1], dtype=np.int16)).ravel()]
+        self.charge_labels[:, None] +
+        np.zeros([1, len(other)], dtype=np.int16)).ravel(), (
+            other.charge_labels[None, :] +
+            np.zeros([len(self), 1], dtype=np.int16)).ravel()]
 
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
@@ -182,7 +183,7 @@ class BaseCharge:
           assume_unique=assume_unique,
           return_indices=return_indices)
       obj = self.__new__(type(self))
-    if return_indices == True:
+    if return_indices:
       obj.__init__(
           charges=out[0],
           charge_labels=np.arange(len(out[0]), dtype=np.int16),
@@ -194,7 +195,7 @@ class BaseCharge:
   def unique(self,
              return_index=False,
              return_inverse=False,
-             return_counts=False):
+             return_counts=False) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
@@ -249,6 +250,7 @@ class BaseCharge:
       return out[0], out[1], out[2]
     if len(out) == 4:
       return out[0], out[1], out[2], out[3]
+    return None
 
   @property
   def dtype(self):
@@ -282,7 +284,7 @@ class BaseCharge:
       target_charges = np.expand_dims(target_charges, 0)
     target_charges = np.asarray(target_charges, dtype=np.int16)
     # find intersection of index charges and target charges
-    reduced_charges, label_to_unique, label_to_target = intersect(
+    reduced_charges, label_to_unique, _ = intersect(
         self.unique_charges, target_charges, axis=1, return_indices=True)
     num_unique = len(label_to_unique)
 
@@ -343,10 +345,11 @@ class BaseCharge:
       if target_charges.ndim == 1:
         target_charges = np.expand_dims(target_charges, 0)
       targets = np.unique(target_charges, axis=1)
+    #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges, 2) == np.expand_dims(
-                targets, 1),
+            np.expand_dims(self.unique_charges,
+                           2) == np.expand_dims(targets, 1),
             axis=0))[0]
     return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
 
@@ -357,6 +360,7 @@ class BaseCharge:
     else:
       targets = np.unique(target_charges, axis=1)
     tmp = np.expand_dims(self.unique_charges, 2) == np.expand_dims(targets, 1)
+    #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_or.reduce(np.logical_and.reduce(tmp, axis=0), axis=1))[0]
 
@@ -402,8 +406,8 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
     np.ndarray: n-by-(D1 * D2) dimensional array of the fused charges.
   """
   comb_charges = [0] * len(charge_types)
-  for n in range(len(charge_types)):
-    comb_charges[n] = charge_types[n].fuse(charges_A[n, :], charges_B[n, :])
+  for n, ct in enumerate(charge_types):
+    comb_charges[n] = ct.fuse(charges_A[n, :], charges_B[n, :])
 
   return np.concatenate(
       comb_charges, axis=0).reshape(
@@ -428,6 +432,7 @@ def intersect(A: np.ndarray,
       Only provided if return_indices is True.
   """
   #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
+  #pylint: disable=no-else-return
   if A.ndim == 1:
     return np.intersect1d(
         A, B, assume_unique=assume_unique, return_indices=return_indices)
@@ -465,13 +470,10 @@ def intersect(A: np.ndarray,
         return out[0].T, out[1], out[2]
       return out.T
 
-    else:
-      raise NotImplementedError(
-          "intersection can only be performed on first or second axis")
-
-  else:
     raise NotImplementedError(
-        "intersect is only implemented for 1d or 2d arrays")
+        "intersection can only be performed on first or second axis")
+
+  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
 
 
 def fuse_charges(charges: List[BaseCharge], flows: List[bool]) -> BaseCharge:

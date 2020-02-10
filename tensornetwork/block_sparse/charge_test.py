@@ -62,6 +62,7 @@ def test_U1Charge_fusion():
     i1 = fused_1 == target.charges[0, 0]
     i2 = fused_2 == target.charges[1, 0]
     i3 = fused_3 == target.charges[2, 0]
+    #pylint: disable=no-member
     nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
     return nz_1, nz_2
 
@@ -109,6 +110,7 @@ def test_U1Charge_multiple_fusion():
     i1 = fused_1 == target.charges[0, 0]
     i2 = fused_2 == target.charges[1, 0]
     i3 = fused_3 == target.charges[2, 0]
+    #pylint: disable=no-member
     nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
     return nz_1, nz_2
 
@@ -153,6 +155,7 @@ def test_U1Charge_multiple_fusion_with_flow():
     i1 = fused_1 == target.charges[0, 0]
     i2 = fused_2 == target.charges[1, 0]
     i3 = fused_3 == target.charges[2, 0]
+    #pylint: disable=no-member
     nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
     return nz_1, nz_2
 
@@ -195,6 +198,7 @@ def test_U1Charge_fusion_with_flow():
     i1 = fused_1 == target.charges[0, 0]
     i2 = fused_2 == target.charges[1, 0]
     i3 = fused_3 == target.charges[2, 0]
+    #pylint: disable=no-member
     nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
     return nz_1, nz_2
 

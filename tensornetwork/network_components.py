@@ -575,6 +575,7 @@ class Node(BaseNode):
       raise AttributeError("Please provide a valid tensor for this Node.")
     if isinstance(other, Node):
       if not self.backend.name == other.backend.name:
+        #pylint: disable=bad-continuation
         raise TypeError("Operands backend must match.\noperand 1 backend: {}\
                          \noperand 2 backend: {}".format(
             self.backend.name, other.backend.name))
