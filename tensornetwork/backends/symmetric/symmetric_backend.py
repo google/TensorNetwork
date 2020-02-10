@@ -16,6 +16,13 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.block_tensor import BlockSparseTensor
+# Note: this import has to stay here or some test will fail
+# Some functions in block_tensor use isinstance(tensor,bt.ChargeArray)
+# which, weirdly enough, gives the wrong result if block_tensor is imported
+# within SymmetricBackend
+#TODO: figure out what is going on here!
+import tensornetwork.block_sparse.block_tensor as bt
 import numpy
 import scipy
 Tensor = Any
@@ -26,8 +33,6 @@ class SymmetricBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(SymmetricBackend, self).__init__()
-    #pylint: disable=import-outside-toplevel
-    import tensornetwork.block_sparse.block_tensor as bt
     self.bt = bt
     self.name = "symmetric"
 
@@ -82,6 +87,10 @@ class SymmetricBackend(base_backend.BaseBackend):
     return self.bt.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
+    if not isinstance(tensor, BlockSparseTensor):
+      raise TypeError(
+          "cannot convert tensor of type `{}` to `BlockSparseTensor`".format(
+              type(tensor)))
     return tensor
 
   def trace(self, tensor: Tensor) -> Tensor:
