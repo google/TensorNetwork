@@ -795,6 +795,8 @@ class BlockSparseTensor:
     Map the sparse tensor to dense storage.
     
     """
+    if len(self.shape) == 0:
+      return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
     charges = self.flat_charges
     out[np.nonzero(
