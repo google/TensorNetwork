@@ -145,7 +145,7 @@ def test_split_node_rq_unitarity(dtype):
   u1 = q @ qbar
   qbar[0] ^ q[0]
   u2 = qbar @ q
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
       u1.tensor.flat_charges, u1.tensor.flat_flows,
       len(u1.tensor.indices[0].flat_charges))
   for n, block in enumerate(blocks):
@@ -153,7 +153,7 @@ def test_split_node_rq_unitarity(dtype):
         np.reshape(u1.tensor.data[block], shapes[:, n]),
         np.eye(N=shapes[0, n], M=shapes[1, n]))
 
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
       u2.tensor.flat_charges, u2.tensor.flat_flows,
       len(u2.tensor.indices[0].flat_charges))
   for n, block in enumerate(blocks):
@@ -191,7 +191,7 @@ def test_split_node_qr_unitarity(dtype):
   u1 = q @ qbar
   qbar[0] ^ q[0]
   u2 = qbar @ q
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
       u1.tensor.flat_charges, u1.tensor.flat_flows,
       len(u1.tensor.indices[0].flat_charges))
   for n, block in enumerate(blocks):
@@ -199,7 +199,7 @@ def test_split_node_qr_unitarity(dtype):
         np.reshape(u1.tensor.data[block], shapes[:, n]),
         np.eye(N=shapes[0, n], M=shapes[1, n]))
 
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
       u2.tensor.flat_charges, u2.tensor.flat_flows,
       len(u2.tensor.indices[0].flat_charges))
   for n, block in enumerate(blocks):
