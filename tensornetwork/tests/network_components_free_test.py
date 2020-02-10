@@ -670,7 +670,7 @@ def test_node_and_scalar_div_op(backend):
   result = (node / 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
   if backend == 'jax':
-    assert result.dtype == 'float32'
+    assert result.dtype == 'float64'
   else:
     assert node.tensor.dtype == result.dtype
 
