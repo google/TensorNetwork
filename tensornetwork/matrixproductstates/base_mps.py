@@ -84,7 +84,7 @@ class BaseMPS:
         Node(tensors[n], backend=backend, name='node{}'.format(n))
         for n in range(len(tensors))
     ]
-
+    #print(self.nodes[0].backend)
     self.connector_matrix = Node(
         connector_matrix,
         backend=backend) if connector_matrix is not None else connector_matrix
@@ -141,12 +141,12 @@ class BaseMPS:
     #shift center_position to the left using RQ decomposition
     elif site < self.center_position:
       for n in reversed(range(site + 1, self.center_position + 1)):
-
         R, Q = split_node_rq(
             self.nodes[n],
             left_edges=[self.nodes[n][0]],
             right_edges=[self.nodes[n][1], self.nodes[n][2]],
             right_name=self.nodes[n].name)
+
         #print(self.nodes[n].shape, R.shape, Q.shape)
         R[1] | Q[0]  #break the edge between R and Q
         R[0] ^ self.nodes[n - 1][2]  #connect R to the left node

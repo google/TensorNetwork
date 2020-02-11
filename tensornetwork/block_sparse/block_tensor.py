@@ -1111,19 +1111,34 @@ class BlockSparseTensor:
 
     flat_charges, flat_flows = get_flat_meta_data(self.indices)
     flat_dims = [f.dim for f in flat_charges]
-    print(flat_dims)
     partitions = [0]
+
+    # if np.array_equal(np.asarray(new_shape), np.asarray(flat_dims)):
+    #   return BlockSparseTensor(data=self.data, indices=self.flat_indices)
     for n, ns in enumerate(new_shape):
+      # print(flat_dims)
+      # print(np.cumprod(flat_dims))
+
       tmp = np.nonzero(np.cumprod(flat_dims) == ns)[0]
-      print(tmp)
       if len(tmp) == 0:
         raise ValueError("The shape {} is incompatible with the "
                          "elementary shape {} of the tensor.".format(
                              new_shape, tuple([e.dim for e in flat_charges])))
 
-      partitions.append(tmp[-1] + 1)
+      partitions.append(tmp[0] + 1)
+      # print('tmp=', tmp)
+      # print('partitios: ', partitions)
       flat_dims = flat_dims[partitions[-1]:]
+    for d in flat_dims:
+      if d != 1:
+        raise ValueError("The shape {} is incompatible with the "
+                         "elementary shape {} of the tensor.".format(
+                             new_shape, tuple([e.dim for e in flat_charges])))
+      partitions[-1] += 1
+
     partitions = np.cumsum(partitions)
+    # print('flat_dims: ', flat_dims)
+    # print('final partitios: ', partitions)
     new_flat_charges = []
     new_flat_flows = []
     for n in range(1, len(partitions)):
@@ -1131,8 +1146,7 @@ class BlockSparseTensor:
       new_flat_flows.append(flat_flows[partitions[n - 1]:partitions[n]])
 
     indices = [Index(c, f) for c, f in zip(new_flat_charges, new_flat_flows)]
-    for i in indices:
-      print(i.charges)
+
     result = BlockSparseTensor(data=self.data, indices=indices)
     return result
 
@@ -1586,7 +1600,6 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
       r_blocks.append(out)
     else:
       raise ValueError('unknown value {} for input `mode`'.format(mode))
-  print(q_blocks)
 
   left_r_charge_labels = np.concatenate([
       np.full(r_blocks[n].shape[0], fill_value=n, dtype=np.int16)

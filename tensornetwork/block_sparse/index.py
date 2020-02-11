@@ -28,7 +28,7 @@ class Index:
 
   def __init__(self,
                charges: Union[List[BaseCharge], BaseCharge],
-               flow: Union[List[int], int],
+               flow: Union[List[bool], bool],
                name: Optional[Union[List[Text], Text]] = None) -> None:
     """
     Initialize an `Index` object.
