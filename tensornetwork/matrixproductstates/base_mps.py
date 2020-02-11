@@ -562,9 +562,8 @@ class BaseMPS:
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
     result = n1 @ n2
-    return self.backend.norm(
-        abs(result.tensor - self.backend.eye(
-            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+    return self.backend.norm(result.tensor - self.backend.eye(
+        N=result.sparse_shape[0], M=result.sparse_shape[1], dtype=self.dtype))
 
   def check_canonical(self) -> Tensor:
     """

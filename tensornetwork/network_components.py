@@ -191,6 +191,11 @@ class BaseNode(ABC):
 
   @property
   @abstractmethod
+  def sparse_shape(self) -> Any:
+    raise NotImplementedError("`sparse_shape` not implemented in `BaseNode`")
+
+  @property
+  @abstractmethod
   def tensor(self) -> Tensor:
     return
 
@@ -649,10 +654,11 @@ class Node(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "Node":
-    new_node = Node(self.tensor,
-                    name=self.name, 
-                    axis_names=self.axis_names, 
-                    backend=self.backend)
+    new_node = Node(
+        self.tensor,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend)
     if conjugate:
       new_node.set_tensor(self.backend.conj(self.tensor))
     visited_edges = set()
@@ -661,10 +667,8 @@ class Node(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -677,6 +681,10 @@ class Node(BaseNode):
       raise ValueError('Node {} has been disabled. '
                        'Access its shape via self.tensor'.format(self.name))
     return self.backend.shape_tuple(self._tensor)
+
+  @property
+  def sparse_shape(self) -> Any:
+    return self.backend.sparse_shape(self._tensor)
 
   @property
   def tensor(self) -> Tensor:
@@ -787,12 +795,13 @@ class CopyNode(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "CopyNode":
-    new_node = CopyNode(self.rank,
-                        self.dimension,
-                        name=self.name, 
-                        axis_names=self.axis_names, 
-                        backend=self.backend,
-                        dtype=self.dtype)
+    new_node = CopyNode(
+        self.rank,
+        self.dimension,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend,
+        dtype=self.dtype)
     new_node.set_tensor(self.get_tensor())
     visited_edges = set()
     for i, edge in enumerate(self.edges):
@@ -800,10 +809,8 @@ class CopyNode(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:

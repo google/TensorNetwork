@@ -163,6 +163,10 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
+  def sparse_shape(self, tensor: Tensor) -> Any:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
+
   def shape_prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
@@ -350,16 +354,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -440,8 +444,8 @@ class BaseBackend:
       Returns:
         Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented divide.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented divide.".format(
+        self.name))
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

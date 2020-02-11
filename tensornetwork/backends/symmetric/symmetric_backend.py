@@ -77,6 +77,9 @@ class SymmetricBackend(base_backend.BaseBackend):
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return tensor.sparse_shape
+
   def shape_prod(self, values: Tensor) -> Tensor:
     return numpy.prod(values)
 
