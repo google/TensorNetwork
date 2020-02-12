@@ -118,10 +118,9 @@ class BaseCharge:
 
     # find new labels using broadcasting
     charge_labels = charge_labels[(
-        self.charge_labels[:, None] +
-        np.zeros([1, len(other)], dtype=np.int16)).ravel(), (
-            other.charge_labels[None, :] +
-            np.zeros([len(self), 1], dtype=np.int16)).ravel()]
+        self.charge_labels[:, None] + np.zeros([1, len(other)], dtype=np.int16)
+    ).ravel(), (other.charge_labels[None, :] +
+                np.zeros([len(self), 1], dtype=np.int16)).ravel()]
 
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
@@ -348,8 +347,8 @@ class BaseCharge:
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges,
-                           2) == np.expand_dims(targets, 1),
+            np.expand_dims(self.unique_charges, 2) == np.expand_dims(
+                targets, 1),
             axis=0))[0]
     return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
 

@@ -151,13 +151,17 @@ def svd_decomposition(bt,
       np.concatenate([
           np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
           for n in range(len(u_blocks))
-      ]), indices_u).transpose((1, 0))
+      ]),
+      indices_u,
+      check_consistency=False).transpose((1, 0))
 
   V = BlockSparseTensor(
       np.concatenate([
           np.ravel(v_blocks[n][0:len(singvals[n]), :])
           for n in range(len(v_blocks))
-      ]), indices_v)
+      ]),
+      indices_v,
+      check_consistency=False)
 
   left_shape = left_dims + (S.shape[0],)
   right_shape = (S.shape[0],) + right_dims

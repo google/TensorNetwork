@@ -134,6 +134,46 @@ def _find_best_partition(dims: List[int]) -> int:
   return min_ind + 1
 
 
+# def compute_fused_charge_degeneracies(
+#     charges: List[BaseCharge],
+#     flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
+#   """
+#   Add quantum numbers arising from combining two or more indices into a single
+#   index, computing only the unique qnums and their degeneracies.
+#   Args:
+#     indices: list of SymIndex to be combined.
+#     arrows: 1d array of bools describing index orientations.
+#   Returns:
+#     np.ndarray: array of shape (m,n) describing unique qauntum numbers, with
+#       `m` the number of symmetries and `n` the number of unique values.
+#     np.ndarray: 1d array specifying the degeneracies for each unique quantum
+#       number.
+#   """
+#   # initialize arrays containing unique qnums and their degens
+#   #unique_comb_degen = indices[0].degens
+#   unique_comb_qnums, unique_comb_degen = indices[0].dual(
+#       flows[0]).unique(return_counts=True)
+
+#   for n in range(1, len(indices)):
+#     # fuse the unique charges from each index
+#     tmp_unique_comb_qnums, tmp_unique_comb_degen = indices[n].dual(
+#         flows[n]).unique(return_counts=True)
+
+#     comb_degen = np.kron(unique_comb_degen, tmp_unique_comb_degen)
+#     comb_qnums = fuse_charges(unique_comb_qnums, tmp_unique_comb_qnums)
+
+#     # reduce to unique values only
+#     unique_comb_qnums, ind_labels = comb_qnums.unique(return_inverse=True)
+#     unique_comb_degen = np.array([
+#         np.sum(comb_degen[ind_labels == n])
+#         for n in range(unique_comb_qnums.shape[1])
+#     ])
+
+#   return np.asarray(
+#       unique_comb_qnums, dtype=np.int16), np.asarray(unique_comb_degen,
+#                                                      np.uint32)
+
+
 def compute_fused_charge_degeneracies(
     charges: List[BaseCharge],
     flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
@@ -171,9 +211,11 @@ def compute_fused_charge_degeneracies(
     accumulated_degeneracies = np.empty(
         len(accumulated_charges), dtype=np.uint32)
 
-    for m in range(len(accumulated_charges)):
-      accumulated_degeneracies[m] = np.sum(fused_degeneracies[
-          fused_charges.charge_labels == accumulated_charges.charge_labels[m]])
+    accumulated_degeneracies = np.array([
+        np.sum(fused_degeneracies[fused_charges.charge_labels ==
+                                  accumulated_charges.charge_labels[m]])
+        for m in range(len(accumulated_charges))
+    ])
 
   return accumulated_charges, accumulated_degeneracies
 
@@ -771,16 +813,21 @@ class BlockSparseTensor:
   The tensor data is stored in self.data, a 1d np.ndarray.
   """
 
-  def __init__(self, data: np.ndarray, indices: List[Index]) -> None:
+  def __init__(self,
+               data: np.ndarray,
+               indices: List[Index],
+               check_consistency: Optional[bool] = True) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
         has to match the number of non-zero elements defined by `charges` 
         and `flows`
       indices: List of `Index` objecst, one for each leg. 
+      check_consistency: If `True`, check if len(data) is consistent with 
+        number of non-zero elements given by the charges
     """
     self.indices = indices
-    if len(self.indices) > 0:
+    if check_consistency and (len(self.indices) > 0):
       num_non_zero_elements = compute_num_nonzero(self.flat_charges,
                                                   self.flat_flows)
       if num_non_zero_elements != len(data.flat):
@@ -792,7 +839,9 @@ class BlockSparseTensor:
     self.data = np.asarray(data.flat)  #do not copy data
 
   def copy(self):
-    return BlockSparseTensor(self.data.copy(), [i.copy() for i in self.indices])
+    return BlockSparseTensor(
+        self.data.copy(), [i.copy() for i in self.indices],
+        check_consistency=False)
 
   def todense(self) -> np.ndarray:
     """
@@ -914,7 +963,10 @@ class BlockSparseTensor:
         self.indices[n] == other.indices[n] for n in range(len(self.indices))
     ]):
       raise ValueError("cannot subtract tensors non-matching indices")
-    return BlockSparseTensor(data=self.data - other.data, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data - other.data,
+        indices=self.indices,
+        check_consistency=False)
 
   def __add__(self, other: "BlockSparseTensor"):
     if not isinstance(other, type(self)):
@@ -931,14 +983,18 @@ class BlockSparseTensor:
         self.indices[n] == other.indices[n] for n in range(len(self.indices))
     ]):
       raise ValueError("cannot add tensors non-matching indices")
-    return BlockSparseTensor(data=self.data + other.data, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data + other.data,
+        indices=self.indices,
+        check_consistency=False)
 
   def __mul__(self, number: np.number):
     if not np.isscalar(number):
       raise TypeError(
           "Can only multiply BlockSparseTensor by a number. Found type {}"
           .format(type(number)))
-    return BlockSparseTensor(data=self.data * number, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data * number, indices=self.indices, check_consistency=False)
 
   def __rmul__(self, number: np.number):
     if not np.isscalar(number):
@@ -946,7 +1002,8 @@ class BlockSparseTensor:
           "Can only right- multiply BlockSparseTensor by a number. Found type {}"
           .format(type(number)))
 
-    return BlockSparseTensor(data=self.data * number, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data * number, indices=self.indices, check_consistency=False)
 
   def __truediv__(self, number: np.number):
     if not np.isscalar(number):
@@ -954,7 +1011,8 @@ class BlockSparseTensor:
           "Can only divide BlockSparseTensor by a number. Found type {}".format(
               type(number)))
 
-    return BlockSparseTensor(data=self.data / number, indices=self.indices)
+    return BlockSparseTensor(
+        data=self.data / number, indices=self.indices, check_consistency=False)
 
   @property
   def shape(self) -> Tuple:
@@ -1013,7 +1071,8 @@ class BlockSparseTensor:
         Index(i.flat_charges, list(np.logical_not(i.flat_flows)), i.name)
         for i in self.indices
     ]
-    return BlockSparseTensor(np.conj(self.data), indices)
+    return BlockSparseTensor(
+        np.conj(self.data), indices, check_consistency=False)
 
   @property
   def T(self):
@@ -1037,7 +1096,7 @@ class BlockSparseTensor:
 
     #check for trivial permutation
     if np.all(order == np.arange(len(order))):
-      return BlockSparseTensor(self.data, self.indices)
+      return BlockSparseTensor(self.data, self.indices, check_consistency=False)
     flat_charges, flat_flows = get_flat_meta_data(self.indices)
     flat_order = get_flat_order(self.indices, order)
     tr_partition = _find_best_partition(
@@ -1055,7 +1114,8 @@ class BlockSparseTensor:
       permutation = tr_sparse_blocks[ind]
       data[sparse_block] = self.data[permutation]
 
-    return BlockSparseTensor(data, [self.indices[o] for o in order])
+    return BlockSparseTensor(
+        data, [self.indices[o] for o in order], check_consistency=False)
 
   def reshape(
       self,
@@ -1147,7 +1207,8 @@ class BlockSparseTensor:
 
     indices = [Index(c, f) for c, f in zip(new_flat_charges, new_flat_flows)]
 
-    result = BlockSparseTensor(data=self.data, indices=indices)
+    result = BlockSparseTensor(
+        data=self.data, indices=indices, check_consistency=False)
     return result
 
 
@@ -1173,7 +1234,7 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
     ])
     indices = [tensor.indices[0].copy(), tensor.indices[0].copy()]
     indices[1].flip_flow()
-    return BlockSparseTensor(data, indices)
+    return BlockSparseTensor(data, indices, check_consistency=False)
 
   sparse_blocks, charges, block_shapes = _find_diagonal_sparse_blocks(
       tensor.flat_charges, tensor.flat_flows,
@@ -1278,7 +1339,8 @@ def outerproduct(tensor1: BlockSparseTensor,
     data[final_block_maps[index].ravel()] = np.outer(tensor1.data,
                                                      tensor2.data).ravel()
 
-  return BlockSparseTensor(data, tensor1.indices + tensor2.indices)
+  return BlockSparseTensor(
+      data, tensor1.indices + tensor2.indices, check_consistency=False)
 
 
 def tensordot(
@@ -1325,7 +1387,8 @@ def tensordot(
     data = np.dot(tensor1.data,
                   tensor2.transpose(np.asarray(axes2)[isort]).data)
     return BlockSparseTensor(
-        data=data, indices=[])  #Index(identity_charges, flow=False)])
+        data=data, indices=[],
+        check_consistency=False)  #Index(identity_charges, flow=False)])
 
   if max(axes1) >= len(tensor1.shape):
     raise ValueError(
@@ -1436,12 +1499,13 @@ def tensordot(
       n2 = label_to_common_2[n]
       nf = label_to_common_final[n]
 
-      data[sparse_blocks_final[nf].ravel()] = (
-          tensor1.data[tr_sparse_blocks_1[n1].reshape(
-              shapes_1[:, n1])] @ tensor2.data[tr_sparse_blocks_2[n2].reshape(
-                  shapes_2[:, n2])]).ravel()
+      data[sparse_blocks_final[nf].ravel()] = np.ravel(
+          np.matmul(
+              tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
+              tensor2.data[tr_sparse_blocks_2[n2].reshape(shapes_2[:, n2])]))
 
-    return BlockSparseTensor(data=data, indices=final_indices)
+    return BlockSparseTensor(
+        data=data, indices=final_indices, check_consistency=False)
   #Note: `cs` may contain charges that are not present in `common_charges`
   charges = left_charges + right_charges
   flows = left_flows + right_flows
@@ -1460,11 +1524,12 @@ def tensordot(
     n2 = label_to_common_2[n]
     nf = label_to_common_final[n]
 
-    data[sparse_blocks[nf].ravel()] = (
-        tensor1.data[tr_sparse_blocks_1[n1].reshape(
-            shapes_1[:, n1])] @ tensor2.data[tr_sparse_blocks_2[n2].reshape(
-                shapes_2[:, n2])]).ravel()
-  return BlockSparseTensor(data=data, indices=free_indices)
+    data[sparse_blocks[nf].ravel()] = np.ravel(
+        np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
+                  tensor2.data[tr_sparse_blocks_2[n2].reshape(
+                      shapes_2[:, n2])]))
+  return BlockSparseTensor(
+      data=data, indices=free_indices, check_consistency=False)
 
 
 def svd(matrix: BlockSparseTensor,
@@ -1553,9 +1618,12 @@ def svd(matrix: BlockSparseTensor,
     #TODO: reuse data from _find_diagonal_sparse_blocks above
     #to avoid the transpose
     return BlockSparseTensor(
-        np.concatenate([np.ravel(u.T) for u in u_blocks]), indices_u).transpose(
-            (1, 0)), S, BlockSparseTensor(
-                np.concatenate([np.ravel(v) for v in v_blocks]), indices_v)
+        np.concatenate([np.ravel(u.T) for u in u_blocks]),
+        indices_u,
+        check_consistency=Falsen).transpose((1, 0)), S, BlockSparseTensor(
+            np.concatenate([np.ravel(v) for v in v_blocks]),
+            indices_v,
+            check_consistency=False)
 
   return S
 
@@ -1610,7 +1678,9 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   indices_r = [Index(left_r_charge, False), matrix.indices[1]]
 
   R = BlockSparseTensor(
-      np.concatenate([np.ravel(r) for r in r_blocks]), indices_r)
+      np.concatenate([np.ravel(r) for r in r_blocks]),
+      indices_r,
+      check_consistency=False)
   if mode in ('reduced', 'complete'):
     right_q_charge_labels = np.concatenate([
         np.full(q_blocks[n].shape[1], fill_value=n, dtype=np.int16)
@@ -1622,8 +1692,14 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     #TODO: reuse data from _find_diagonal_sparse_blocks above
     #to avoid the transpose
     return BlockSparseTensor(
-        np.concatenate([np.ravel(q.T) for q in q_blocks]), indices_q).transpose(
-            (1, 0)), R
+        np.concatenate([np.ravel(q.T) for q in q_blocks]),
+        indices_q,
+        check_consistency=False).transpose((1, 0)), R
+    #indices_q = [matrix.indices[0], Index(right_q_charge, True)]
+    #TODO: reuse data from _find_diagonal_sparse_blocks above
+    #to avoid the transpose
+    #return BlockSparseTensor(
+    #    np.concatenate([np.ravel(q) for q in q_blocks]), indices_q), R
 
   return R
 
@@ -1664,7 +1740,9 @@ def eigh(matrix: BlockSparseTensor,
 
   E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
-      np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
+      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      indices_v,
+      check_consistency=False).transpose()
 
   return E, V
 
@@ -1704,7 +1782,9 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
 
   E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
-      np.concatenate([np.ravel(v.T) for v in v_blocks]), indices_v).transpose()
+      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      indices_v,
+      check_consistency=False).transpose()
 
   return E, V
 
@@ -1748,7 +1828,8 @@ def eye(column_index: Index,
   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
-  return BlockSparseTensor(data=data, indices=[column_index, row_index])
+  return BlockSparseTensor(
+      data=data, indices=[column_index, row_index], check_consistency=False)
 
 
 def ones(indices: List[Index],
@@ -1787,7 +1868,8 @@ def inv(tensor: BlockSparseTensor) -> BlockSparseTensor:
   indices = [i.copy() for i in tensor.indices]
   for i in indices:
     i.flip_flow()
-  return BlockSparseTensor(data=data, indices=indices).transpose((1, 0))
+  return BlockSparseTensor(
+      data=data, indices=indices, check_consistency=False).transpose((1, 0))
 
 
 def pinv(tensor: BlockSparseTensor,
@@ -1808,4 +1890,5 @@ def pinv(tensor: BlockSparseTensor,
   indices = [i.copy() for i in tensor.indices]
   for i in indices:
     i.flip_flow()
-  return BlockSparseTensor(data=data, indices=indices).transpose((1, 0))
+  return BlockSparseTensor(
+      data=data, indices=indices, check_consistency=False).transpose((1, 0))
