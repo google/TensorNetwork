@@ -2013,9 +2013,10 @@ def pinv(matrix: BlockSparseTensor,
   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
-        np.linalg.pinv(np.reshape(matrix.data[block], shapes[:, n])).T,
-        rcond=rcond,
-        hermitian=hermitian)
+        np.linalg.pinv(
+            np.reshape(matrix.data[block], shapes[:, n]),
+            rcond=rcond,
+            hermitian=hermitian).T)
 
   return BlockSparseTensor(
       data=data,
