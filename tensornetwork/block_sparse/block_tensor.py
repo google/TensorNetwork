@@ -89,9 +89,9 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   Returns:
     lookup: An np.ndarray f
   """
+
   fused_charges = fuse_charges(charges, flows)
-  unique_charges, inverse, degens = fused_charges.unique(
-      return_inverse=True, return_counts=True)
+  unique_charges, inverse = fused_charges.unique(return_inverse=True)
   _, label_to_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
 
@@ -1349,11 +1349,6 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
     lookup, unique, labels = compute_sparse_lookup(tensor._charges,
                                                    tensor._flows, charges)
     for n, block in enumerate(blocks):
-      _, locations = reduce_charges(
-          tensor._charges,
-          tensor._flows,
-          charges[n].charges,
-          return_locations=True)
       label = labels[np.nonzero(unique == charges[n])[0][0]]
       data[block] = np.ravel(
           np.diag(tensor.data[np.nonzero(lookup == label)[0]]))
@@ -2018,7 +2013,8 @@ def pinv(matrix: BlockSparseTensor,
   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
-        np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
+        np.linalg.pinv(np.reshape(matrix.data[block], shapes[:, n])).T,
+        rcond=rcond)
 
   return BlockSparseTensor(
       data=data,
