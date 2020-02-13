@@ -690,8 +690,11 @@ class ChargeArray:
   elements and charges.
   """
 
-  def __init__(self, data: np.ndarray, charges: List[BaseCharge],
-               flows: List[bool]) -> None:
+  def __init__(self,
+               data: np.ndarray,
+               charges: List[BaseCharge],
+               flows: List[bool],
+               order: Optional[List[List[int]]] = None) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
@@ -700,8 +703,21 @@ class ChargeArray:
       index: List of `Index` objecst, one for each leg. 
     """
     self._charges = charges
-    self._flows = flows
-    self.data = np.asarray(data.flat)
+    self._flows = np.asarray(flows)
+
+    self.data = np.asarray(data.flat)  #do not copy data
+
+    if order is None:
+      self._order = [[n] for n in range(len(self._charges))]
+    else:
+      flat_order = []
+      for o in order:
+        flat_order.extend(o)
+      if not np.array_equal(np.sort(flat_order), np.arange(len(self._charges))):
+        raise ValueError("flat_order = {} is not a permutation of {}".format(
+            flat_order, np.arange(len(self._charges))))
+
+      self._order = order
 
   @classmethod
   def randn(cls, indices: List[Index],
@@ -714,6 +730,7 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
+    charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = np.prod([c.dim for c in charges])
 
     def init_random():
@@ -723,11 +740,11 @@ class ChargeArray:
             dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
       return np.random.randn(num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), charges=charges)
+    return cls(data=init_random(), charges=charges, flows=flows)
 
   @classmethod
   def random(cls,
-             charges: List[BaseCharge],
+             indices: List[Index],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
@@ -739,6 +756,7 @@ class ChargeArray:
       ChargeArray
     """
     num_non_zero_elements = np.prod([len(i) for i in indices])
+    charges, flows = get_flat_meta_data(indices)
 
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
@@ -750,14 +768,11 @@ class ChargeArray:
       return np.random.uniform(boundaries[0], boundaries[1],
                                num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), charges=charges)
-
-  def __len__(self):
-    return self.data.shape[0]
+    return cls(data=init_random(), charges=charges, flows=flows)
 
   @property
   def ndim(self):
-    return len(self._charges)
+    return len(self._order)
 
   @property
   def shape(self) -> Tuple:
@@ -766,7 +781,57 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `int`.
     """
+    return tuple(
+        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def charges(self):
+    return [self._charges[n] for n in self.flat_order]
+
+  @property
+  def flows(self):
+    return [self._flows[n] for n in self.flat_order]
+
+  @property
+  def flat_charges(self):
+    return self._charges
+
+  @property
+  def flat_flows(self):
+    return list(self._flows)
+
+  @property
+  def flat_order(self) -> Tuple:
+    return flatten(self._order)
+
+  @property
+  def flat_shape(self) -> Tuple:
+    """
+    The dense shape of the tensor.
+    Returns:
+      Tuple: A tuple of `int`.
+    """
     return tuple([c.dim for c in self._charges])
+
+  @property
+  def sparse_shape(self) -> Tuple:
+    """
+    The sparse shape of the tensor.
+    Returns:
+      Tuple: A tuple of `Index` objects.
+    """
+
+    indices = [
+        Index([self._charges[n]
+               for n in s], [self._flows[n]
+                             for n in s])
+        for s in self._order
+    ]
+    return tuple(indices)
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    return self.data.dtype
 
   def todense(self) -> np.ndarray:
     """
@@ -774,6 +839,25 @@ class ChargeArray:
     
     """
     return np.reshape(self.data, self.shape)
+
+  @property
+  def sparse_shape(self) -> Tuple:
+    """
+    The sparse shape of the tensor.
+    Returns:
+      Tuple: A tuple of `Index` objects.
+    """
+    indices = [
+        Index([self._charges[n]
+               for n in s], [self._flows[n]
+                             for n in s])
+        for s in self._order
+    ]
+    return tuple(indices)
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    return self.data.dtype
 
   # def _sub_add_protection(self, other):
   #   if not isinstance(other, type(self)):
@@ -811,39 +895,20 @@ class ChargeArray:
   #   return ChargeArray(
   #       data=self.data + other.data, charges=self.charges, flows=self.flows)
 
-  def __mul__(self, number: np.number):
-    return ChargeArray(
-        data=self.data * number, charges=self._charges, flows=self._flows)
+  # def __mul__(self, number: np.number):
+  #   return ChargeArray(
+  #       data=self.data * number, charges=self._charges, flows=self._flows)
 
-  def __rmul__(self, number: np.number):
-    return ChargeArray(
-        data=self.data * number, charges=self._charges, flows=self._flows)
+  # def __rmul__(self, number: np.number):
+  #   return ChargeArray(
+  #       data=self.data * number, charges=self._charges, flows=self._flows)
 
-  def __truediv__(self, number: np.number):
-    return ChargeArray(
-        data=self.data / number, charges=self._charges, flows=self._flows)
-
-  @property
-  def sparse_shape(self) -> Tuple:
-    """
-    The sparse shape of the tensor.
-    Returns:
-      Tuple: A tuple of `Index` objects.
-    """
-    indices = [
-        Index([self._charges[n]
-               for n in s], [self._flows[n]
-                             for n in s])
-        for s in self._order
-    ]
-    return tuple(indices)
-
-  @property
-  def dtype(self) -> Type[np.number]:
-    return self.data.dtype
+  # def __truediv__(self, number: np.number):
+  #   return ChargeArray(
+  #       data=self.data / number, charges=self._charges, flows=self._flows)
 
 
-class BlockSparseTensor:
+class BlockSparseTensor(ChargeArray):
   """
   Minimal class implementation of block sparsity.
   The class design follows Glen's proposal (Design 0).
@@ -877,20 +942,7 @@ class BlockSparseTensor:
                          "by `charges` is different from"
                          " len(data)={}".format(num_non_zero_elements,
                                                 len(data.flat)))
-
-    self.data = np.asarray(data.flat)  #do not copy data
-
-    if order is None:
-      self._order = [[n] for n in range(len(self._charges))]
-    else:
-      flat_order = []
-      for o in order:
-        flat_order.extend(o)
-      if not np.array_equal(np.sort(flat_order), np.arange(len(self._charges))):
-        raise ValueError("flat_order = {} is not a permutation of {}".format(
-            flat_order, np.arange(len(self._charges))))
-
-      self._order = order
+    super().__init__(data=data, charges=charges, flows=flows, order=order)
 
   def copy(self):
     return BlockSparseTensor(self.data.copy(),
@@ -912,10 +964,6 @@ class BlockSparseTensor:
     flat_order = flatten(self._order)
     return result.transpose(flat_order).reshape(self.shape)
 
-  @property
-  def ndim(self):
-    return len(self._order)
-
   @classmethod
   def randn(cls, indices: List[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
@@ -929,6 +977,8 @@ class BlockSparseTensor:
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
 
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
@@ -937,8 +987,6 @@ class BlockSparseTensor:
             dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
       return np.random.randn(num_non_zero_elements).astype(dtype)
 
-    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
     return cls(
         data=init_random(),
         charges=charges,
@@ -1117,71 +1165,6 @@ class BlockSparseTensor:
         order=self._order,
         check_consistency=False)
 
-  @property
-  def shape(self) -> Tuple:
-    """
-    The dense shape of the tensor.
-    Returns:
-      Tuple: A tuple of `int`.
-    """
-    return tuple(
-        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
-
-  @property
-  def charges(self):
-    return [self._charges[n] for n in self.flat_order]
-
-  @property
-  def flows(self):
-    return [self._flows[n] for n in self.flat_order]
-
-  @property
-  def flat_order(self) -> Tuple:
-    """
-    """
-    return flatten(self._order)
-
-  @property
-  def flat_shape(self) -> Tuple:
-    """
-    The dense shape of the tensor.
-    Returns:
-      Tuple: A tuple of `int`.
-    """
-    return tuple([self._charges[o].dim for o in self.flat_order])
-
-  @property
-  def sparse_shape(self) -> Tuple:
-    """
-    The sparse shape of the tensor.
-    Returns:
-      Tuple: A tuple of `Index` objects.
-    """
-
-    indices = [
-        Index([self._charges[n]
-               for n in s], [self._flows[n]
-                             for n in s])
-        for s in self._order
-    ]
-    return tuple(indices)
-
-  @property
-  def dtype(self) -> Type[np.number]:
-    return self.data.dtype
-
-  @property
-  def flat_charges(self):
-    return self._charges
-
-  @property
-  def charges(self):
-    return [self._charges[o] for o in flatten(self._order)]
-
-  @property
-  def flat_flows(self):
-    return list(self._flows)
-
   def __matmul__(self, other):
 
     if self.ndim != 2:
@@ -1328,7 +1311,7 @@ class BlockSparseTensor:
 
     # flat_charges, flat_flows = get_flat_meta_data(
     #     [self.indices[o] for o in self.order])
-    flat_dims = self.flat_shape
+    flat_dims = [c.dim for c in self.charges]
 
     partitions = [0]
     for n, ns in enumerate(new_shape):
@@ -1681,7 +1664,6 @@ def svd(matrix: BlockSparseTensor,
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
-  partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
       flat_charges, flat_flows, tr_partition, flat_order)
 
@@ -1772,7 +1754,6 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
-  partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
       flat_charges, flat_flows, tr_partition, flat_order)
 
@@ -1843,7 +1824,6 @@ def eigh(matrix: BlockSparseTensor,
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
-  partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
       flat_charges, flat_flows, tr_partition, flat_order)
 
@@ -1891,7 +1871,6 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
-  partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
       flat_charges, flat_flows, tr_partition, flat_order)
 

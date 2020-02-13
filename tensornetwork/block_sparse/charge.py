@@ -517,6 +517,16 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
                     len(degen1) * len(degen2))
 
 
+def charge_equal(c1, c2):
+  if c1.dim != c2.dim:
+    return False
+  if not np.all(c1.unique_charges == c2.unique_charges):
+    return False
+  if not np.all(c1.charge_labels == c2.charge_labels):
+    return False
+  return True
+
+
 # class BaseCharge:
 
 #   def __init__(self,

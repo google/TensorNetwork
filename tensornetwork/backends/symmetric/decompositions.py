@@ -36,11 +36,12 @@ def svd_decomposition(bt,
 
   matrix = bt.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
 
-  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
-  partition = len(matrix.indices[0].flat_charges)
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
-      flat_charges, flat_flows, partition)
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
   u_blocks = []
   singvals = []
@@ -112,21 +113,8 @@ def svd_decomposition(bt,
       for n in range(len(singvals))
   ])
 
-  # right_singval_charge_labels = np.concatenate([
-  #     np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
-  #     for n in range(len(singvals))
-  # ])
   left_singval_charge = charges[left_singval_charge_labels]
-  #right_singval_charge = charges[right_singval_charge_labels]
-  #Note: introducing a convention
-  #TODO: think about this convention!
-  # indices_s = [
-  #     Index(left_singval_charge, False),
-  #     Index(right_singval_charge, True)
-  # ]
-  # S = BlockSparseTensor(
-  #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  S = ChargeArray(np.concatenate(singvals), [Index(left_singval_charge, False)])
+  S = ChargeArray(np.concatenate(singvals), [left_singval_charge], [False])
 
   #define the new charges on the two central bonds
   left_charge_labels = np.concatenate([
@@ -141,8 +129,16 @@ def svd_decomposition(bt,
   new_right_charge = charges[right_charge_labels]
 
   #get the indices of the new tensors U,S and V
-  indices_u = [Index(new_left_charge, True), matrix.indices[0]]
-  indices_v = [Index(new_right_charge, False), matrix.indices[1]]
+  charges_u = [new_left_charge] + [matrix._charges[o] for o in matrix._order[0]]
+  order_u = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+  flows_u = [True] + [matrix._flows[o] for o in matrix._order[0]]
+  charges_v = [new_right_charge
+              ] + [matrix._charges[o] for o in matrix._order[1]]
+  flows_v = [False] + [matrix._flows[o] for o in matrix._order[1]]
+  order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
+
+  #indices_u = [Index(new_left_charge, True), matrix.indices[0]]
+  #indices_v = [Index(new_right_charge, False), matrix.indices[1]]
 
   #We fill in data into the transposed U
   #TODO: reuse data from _find_diagonal_sparse_blocks above
@@ -152,7 +148,9 @@ def svd_decomposition(bt,
           np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
           for n in range(len(u_blocks))
       ]),
-      indices_u,
+      charges=charges_u,
+      flows=flows_u,
+      order=order_u,
       check_consistency=False).transpose((1, 0))
 
   V = BlockSparseTensor(
@@ -160,9 +158,10 @@ def svd_decomposition(bt,
           np.ravel(v_blocks[n][0:len(singvals[n]), :])
           for n in range(len(v_blocks))
       ]),
-      indices_v,
+      charges=charges_v,
+      flows=flows_v,
+      order=order_v,
       check_consistency=False)
-
   left_shape = left_dims + (S.shape[0],)
   right_shape = (S.shape[0],) + right_dims
   return U.reshape(left_shape), S, V.reshape(right_shape), discarded_singvals[

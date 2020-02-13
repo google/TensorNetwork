@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
-from tensornetwork.block_sparse.charge import U1Charge
+from tensornetwork.block_sparse.charge import U1Charge, charge_equal
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
@@ -101,8 +101,8 @@ def test_tensordot(R1, R2, cont, dtype):
   expected = tensordot(a, b, (indsa, indsb))
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -137,8 +137,8 @@ def test_transpose(R, dtype):
   expected = transpose(a, order)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -183,8 +183,8 @@ def test_sqrt(R, dtype):
   expected = sqrt(a)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -199,8 +199,8 @@ def test_diag(dtype):
   actual = backend.diag(b)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -223,8 +223,8 @@ def test_outer_product(R1, R2, dtype):
   expected = tensordot(a, b, 0)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -244,8 +244,8 @@ def test_eye(dtype):
   expected = eye(index, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -266,8 +266,8 @@ def test_ones(R, dtype):
   expected = ones(indices, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -289,8 +289,8 @@ def test_zeros(R, dtype):
   expected = zeros(indices, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -313,8 +313,8 @@ def test_randn(R, dtype):
   expected = randn(indices, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -337,8 +337,8 @@ def test_random_uniform(R, dtype):
   expected = rand(indices, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
-      expected.indices[n] == actual.indices[n]
-      for n in range(len(actual.indices))
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
   ])
 
 
@@ -377,7 +377,10 @@ def test_randn_seed(dtype):
   a = backend.randn(indices, dtype=dtype, seed=10)
   b = backend.randn(indices, dtype=dtype, seed=10)
   np.testing.assert_allclose(a.data, b.data)
-  assert np.all([a.indices[n] == b.indices[n] for n in range(len(a.indices))])
+  assert np.all([
+      charge_equal(a._charges[n], b._charges[n])
+      for n in range(len(a._charges))
+  ])
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
@@ -388,7 +391,10 @@ def test_random_uniform_seed(dtype):
   a = backend.random_uniform(indices, dtype=dtype, seed=10)
   b = backend.random_uniform(indices, dtype=dtype, seed=10)
   np.testing.assert_allclose(a.data, b.data)
-  assert np.all([a.indices[n] == b.indices[n] for n in range(len(a.indices))])
+  assert np.all([
+      charge_equal(a._charges[n], b._charges[n])
+      for n in range(len(a._charges))
+  ])
 
 
 @pytest.mark.parametrize("dtype", np_randn_dtypes)
@@ -419,7 +425,7 @@ def test_conj(dtype):
 def test_addition(R, dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
-  b = BlockSparseTensor.random(a.indices)
+  b = BlockSparseTensor.random(a.sparse_shape)
   res = backend.addition(a, b)
   np.testing.assert_allclose(res.data, a.data + b.data)
 
@@ -433,8 +439,8 @@ def test_addition_raises(R, dtype):
   with pytest.raises(ValueError):
     backend.addition(a, b)
 
-  c = BlockSparseTensor.random(
-      [a.indices[n] for n in reversed(range(len(a.indices)))])
+  shape = b.sparse_shape
+  c = BlockSparseTensor.random([shape[n] for n in reversed(range(len(shape)))])
   with pytest.raises(ValueError):
     backend.addition(a, c)
 
@@ -444,7 +450,7 @@ def test_addition_raises(R, dtype):
 def test_subtraction(R, dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(R, dtype)
-  b = BlockSparseTensor.random(a.indices)
+  b = BlockSparseTensor.random(a.sparse_shape)
   res = backend.subtraction(a, b)
 
   np.testing.assert_allclose(res.data, a.data - b.data)
@@ -458,9 +464,8 @@ def test_subbtraction_raises(R, dtype):
   b = get_tensor(R + 1, dtype)
   with pytest.raises(ValueError):
     backend.subtraction(a, b)
-
-  c = BlockSparseTensor.random(
-      [a.indices[n] for n in reversed(range(len(a.indices)))])
+  shape = b.sparse_shape
+  c = BlockSparseTensor.random([shape[n] for n in reversed(range(len(shape)))])
   with pytest.raises(ValueError):
     backend.subtraction(a, c)
 
@@ -510,9 +515,11 @@ def test_eigh(dtype):
   eta_ac, U_ac = eigh(H)
   np.testing.assert_allclose(eta.data, eta_ac.data)
   np.testing.assert_allclose(U.data, U_ac.data)
-  assert eta.indices[0] == eta_ac.indices[0]
-  assert np.all(
-      [U.indices[n] == U_ac.indices[n] for n in range(len(U.indices))])
+  assert charge_equal(eta._charges[0], eta_ac._charges[0])
+  assert np.all([
+      charge_equal(U._charges[n], U_ac._charges[n])
+      for n in range(len(U._charges))
+  ])
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -522,8 +529,10 @@ def test_matrix_inv(dtype):
   Hinv = backend.inv(H)
   Hinv_ac = inv(H)
   np.testing.assert_allclose(Hinv_ac.data, Hinv.data)
-  assert np.all(
-      [Hinv.indices[n] == Hinv_ac.indices[n] for n in range(len(Hinv.indices))])
+  assert np.all([
+      charge_equal(Hinv._charges[n], Hinv_ac._charges[n])
+      for n in range(len(Hinv._charges))
+  ])
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])

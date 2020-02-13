@@ -74,8 +74,6 @@ def test_block_sparse_init(dtype):
   num_elements = compute_num_nonzero(charges, flows)
   A = BlockSparseTensor.random(indices=indices, dtype=dtype)
   assert A.dtype == dtype
-  for r in range(rank):
-    assert A.indices[r].name[0] == 'index{}'.format(r)
   assert A.shape == tuple([D] * rank)
   assert len(A.data) == num_elements
 
@@ -169,18 +167,6 @@ def test_tensordot_reshape():
   res = tensordot(A, B, ([0, 1], [2, 0]))
   dense = np.tensordot(Adense, Bdense, ([0, 1], [2, 0]))
   np.testing.assert_allclose(dense, res.todense())
-
-
-@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
-@pytest.mark.parametrize("R1, R2, cont", [(4, 4, 2), (4, 3, 3), (3, 4, 3)])
-def test_tensordot_final_order(R1, R2, cont, dtype):
-  A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont, dtype)
-  final_order = np.arange(R1 + R2 - 2 * cont)
-  np.random.shuffle(final_order)
-  res = tensordot(A, B, (indsA, indsB), final_order=final_order)
-  dense_res = np.transpose(
-      np.tensordot(A.todense(), B.todense(), (indsA, indsB)), final_order)
-  np.testing.assert_allclose(dense_res, res.todense())
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -415,3 +401,35 @@ def test_eig_prod(dtype, R):
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
   np.testing.assert_allclose(A.data, A_.data)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4])
+def test_add(dtype, R):
+  Ds = np.random.randint(8, 15, R)
+  charges = [U1Charge.random(-5, 5, Ds[n]) for n in range(R)]
+  flows = np.random.choice([True, False], R, replace=True)
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  B = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+
+  res = A + B
+  res_dense = A.todense() + B.todense()
+  np.testing.assert_almost_equal(res.todense(), res_dense)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4])
+def test_sub(dtype, R):
+  Ds = np.random.randint(8, 15, R)
+  charges = [U1Charge.random(-5, 5, Ds[n]) for n in range(R)]
+  flows = np.random.choice([True, False], R, replace=True)
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  B = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+
+  res = A - B
+  res_dense = A.todense() - B.todense()
+  np.testing.assert_almost_equal(res.todense(), res_dense)
