@@ -247,7 +247,7 @@ def test_eigsh_lanczos_1():
     return H.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, init)
-  eta2, U2 = H.symeig()
+  eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
   v1 = np.reshape(U1[0], (D))
@@ -275,7 +275,7 @@ def test_eigsh_lanczos_reorthogonalize():
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(mv, init)
-  eta2, U2 = H.symeig()
+  eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
   v1 = np.reshape(U1[0], (D))
@@ -303,7 +303,7 @@ def test_eigsh_lanczos_2():
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(mv, reorthogonalize=True, ndiag=1,
                                    tol=10**(-12), delta=10**(-12))
-  eta2, U2 = H.symeig()
+  eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
   v1 = np.reshape(U1[0], (D))
