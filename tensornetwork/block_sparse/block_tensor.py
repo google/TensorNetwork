@@ -548,7 +548,12 @@ def _find_transposed_diagonal_sparse_blocks(
   orig_num_blocks = orig_block_qnums.shape[1]
   if orig_num_blocks == 0:
     # special case: trivial number of non-zero elements
-    return [], np.array([], dtype=np.uint32), np.array([], dtype=np.uint32)
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(
+        np.empty(0, dtype=np.int16), np.arange(0, dtype=np.int16),
+        charges[0].charge_types)
+
+    return [], obj, np.array([], dtype=np.uint32)
 
   orig_row_ind = fuse_charges(charges[:orig_partition], flows[:orig_partition])
   orig_col_ind = fuse_charges(charges[orig_partition:],
@@ -1327,8 +1332,7 @@ def norm(tensor: BlockSparseTensor) -> float:
   return np.linalg.norm(tensor.data)
 
 
-def diag(tensor: Union[BlockSparseTensor, ChargeArray]
-        ) -> Union[BlockSparseTensor, ChargeArray]:
+def diag(tensor: ChargeArray) -> ChargeArray:
   if tensor.ndim > 2:
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
