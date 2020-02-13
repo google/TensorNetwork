@@ -18,13 +18,20 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.index import Index, fuse_index_pair
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect
+from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal
 import scipy as sp
 import itertools
 import time
 # pylint: disable=line-too-long
 from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequence, Text
 Tensor = Any
+
+
+def flatten(list_of_list):
+  res = []
+  for l in list_of_list:
+    res.extend(l)
+  return np.array(res)
 
 
 def get_flat_order(indices: List[Index],
@@ -475,8 +482,10 @@ def _find_diagonal_sparse_blocks(
        for n in range(num_blocks)],
       dtype=np.uint32).T
   #pylint: disable=unsubscriptable-object
-  block_maps = [(cumulate_num_nz[row_locs[n, :]][:, None] + np.arange(
-      block_dims[1, n])[None, :]).ravel() for n in range(num_blocks)]
+  block_maps = [
+      np.ravel(cumulate_num_nz[row_locs[n, :]][:, None] +
+               np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
+  ]
   obj = charges[0].__new__(type(charges[0]))
   obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
                charges[0].charge_types)
@@ -488,16 +497,21 @@ def _find_transposed_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: np.ndarray,
     tr_partition: int,
-    order: np.ndarray = None) -> Tuple[List, BaseCharge, np.ndarray]:
+    order: Optional[np.ndarray] = None) -> Tuple[List, BaseCharge, np.ndarray]:
   """
-  
+  Find the diagonal blocks of a transposed tensor with 
+  meta-data `charges` and `flows`. `charges` and `flows` 
+  are the charges and flows of the untransposed tensor, 
+  `order` is the final transposition, and `tr_partition`
+  is the partition of the transposed tensor according to 
+  which the diagonal blocks shoul be found.
   Args:
-    charges (List[BaseCharge]): List of charges.
-    flows (np.ndarray): vector of bools describing index orientations.
-    tr_partition (int): location of tensor partition (i.e. such that the 
+    charges: List of charges.
+    flows: vector of bools describing index orientations.q
+    tr_partition: location of tensor partition (i.e. such that the 
       tensor is viewed as a matrix between first partition charges and 
       the remaining charges).
-    order (np.ndarray): order with which to permute the tensor axes. 
+    order: order with which to permute the tensor axes. 
   Returns:
     block_maps (List[np.ndarray]): list of integer arrays, which each 
       containing the location of a symmetry block in the data vector.
@@ -676,7 +690,8 @@ class ChargeArray:
   elements and charges.
   """
 
-  def __init__(self, data: np.ndarray, indices: List[Index]) -> None:
+  def __init__(self, data: np.ndarray, charges: List[BaseCharge],
+               flows: List[bool]) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
@@ -684,7 +699,8 @@ class ChargeArray:
         and `flows`
       index: List of `Index` objecst, one for each leg. 
     """
-    self.indices = indices
+    self._charges = charges
+    self._flows = flows
     self.data = np.asarray(data.flat)
 
   @classmethod
@@ -698,7 +714,7 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
-    num_non_zero_elements = np.prod([len(i) for i in indices])
+    num_non_zero_elements = np.prod([c.dim for c in charges])
 
     def init_random():
       if ((np.dtype(dtype) is np.dtype(np.complex128)) or
@@ -707,11 +723,11 @@ class ChargeArray:
             dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
       return np.random.randn(num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), indices=indices)
+    return cls(data=init_random(), charges=charges)
 
   @classmethod
   def random(cls,
-             indices: List[Index],
+             charges: List[BaseCharge],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
@@ -734,14 +750,14 @@ class ChargeArray:
       return np.random.uniform(boundaries[0], boundaries[1],
                                num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), indices=indices)
+    return cls(data=init_random(), charges=charges)
 
   def __len__(self):
     return self.data.shape[0]
 
   @property
   def ndim(self):
-    return len(self.indices)
+    return len(self._charges)
 
   @property
   def shape(self) -> Tuple:
@@ -750,7 +766,7 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `int`.
     """
-    return tuple([i.dim for i in self.indices])
+    return tuple([c.dim for c in self._charges])
 
   def todense(self) -> np.ndarray:
     """
@@ -759,35 +775,53 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def __sub__(self, other: "BlockSparseTensor"):
-    if self.shape != other.shape:
-      raise ValueError(
-          "cannot subtract ChargeArrays with shapes {} and {}".format(
-              self.shape, other.shape))
-    if not np.all([
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))
-    ]):
-      raise ValueError("cannot subtract ChargeArrays non-matching indices")
-    return ChargeArray(data=self.data - other.data, indices=self.indices)
+  # def _sub_add_protection(self, other):
+  #   if not isinstance(other, type(self)):
+  #     raise TypeError(
+  #         "Can only add or subtract BlockSparseTensor from BlockSparseTensor. "
+  #         "Found type {}".format(type(other)))
+  #   if self.shape != other.shape:
+  #     raise ValueError(
+  #         "cannot add or subtract tensors with shapes {}and {}".format(
+  #             self.shape, other.shape))
+  #   if len(self.charges) != len(other.charges):
+  #     raise ValueError(
+  #         "cannot add or subtract tensors with different charge lengths {} and {}"
+  #         .format(len(self.charges), len(other.charges)))
+  #   if not np.array_equal(self.flat_order, other.flat_order):
+  #     raise ValueError(
+  #         "cannot add or subtract tensors with non-matching flat_order")
 
-  def __add__(self, other: "BlockSparseTensor"):
-    if self.shape != other.shape:
-      raise ValueError("cannot add tensors with shapes {}and {}".format(
-          self.shape, other.shape))
-    if not np.all([
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))
-    ]):
-      raise ValueError("cannot subtract ChargeArrays non-matching indices")
-    return ChargeArray(data=self.data + other.data, indices=self.indices)
+  #   if not np.all([
+  #       charge_equal(self.charges[n], other.charges[n])
+  #       for n in range(len(self.indices))
+  #   ]):
+  #     raise ValueError("cannot add or subtract tensors non-matching charges")
+
+  #   if not np.array_equal(self.flows, other.flows):
+  #     raise ValueError("cannot add or subtract tensors non-matching flows")
+
+  # def __sub__(self, other: "BlockSparseTensor"):
+  #   self._sub_add_protection(other)
+  #   return ChargeArray(
+  #       data=self.data - other.data, charges=self.charges, flows=self.flows)
+
+  # def __add__(self, other: "BlockSparseTensor"):
+  #   self._sub_add_protection(other)
+  #   return ChargeArray(
+  #       data=self.data + other.data, charges=self.charges, flows=self.flows)
 
   def __mul__(self, number: np.number):
-    return ChargeArray(data=self.data * number, indices=self.indices)
+    return ChargeArray(
+        data=self.data * number, charges=self._charges, flows=self._flows)
 
   def __rmul__(self, number: np.number):
-    return ChargeArray(data=self.data * number, indices=self.indices)
+    return ChargeArray(
+        data=self.data * number, charges=self._charges, flows=self._flows)
 
   def __truediv__(self, number: np.number):
-    return ChargeArray(data=self.data / number, indices=self.indices)
+    return ChargeArray(
+        data=self.data / number, charges=self._charges, flows=self._flows)
 
   @property
   def sparse_shape(self) -> Tuple:
@@ -796,7 +830,13 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `Index` objects.
     """
-    return tuple([self.indices])
+    indices = [
+        Index([self._charges[n]
+               for n in s], [self._flows[n]
+                             for n in s])
+        for s in self._order
+    ]
+    return tuple(indices)
 
   @property
   def dtype(self) -> Type[np.number]:
@@ -815,7 +855,9 @@ class BlockSparseTensor:
 
   def __init__(self,
                data: np.ndarray,
-               indices: List[Index],
+               charges: List[BaseCharge],
+               flows: List[bool],
+               order: Optional[List[Union[List, np.ndarray]]] = None,
                check_consistency: Optional[bool] = True) -> None:
     """
     Args: 
@@ -826,10 +868,10 @@ class BlockSparseTensor:
       check_consistency: If `True`, check if len(data) is consistent with 
         number of non-zero elements given by the charges
     """
-    self.indices = indices
-    if check_consistency and (len(self.indices) > 0):
-      num_non_zero_elements = compute_num_nonzero(self.flat_charges,
-                                                  self.flat_flows)
+    self._charges = charges
+    self._flows = np.asarray(flows)
+    if check_consistency and (len(self._charges) > 0):
+      num_non_zero_elements = compute_num_nonzero(self._charges, self._flows)
       if num_non_zero_elements != len(data.flat):
         raise ValueError("number of tensor elements {} defined "
                          "by `charges` is different from"
@@ -838,10 +880,22 @@ class BlockSparseTensor:
 
     self.data = np.asarray(data.flat)  #do not copy data
 
+    if order is None:
+      self._order = [[n] for n in range(len(self._charges))]
+    else:
+      flat_order = []
+      for o in order:
+        flat_order.extend(o)
+      if not np.array_equal(np.sort(flat_order), np.arange(len(self._charges))):
+        raise ValueError("flat_order = {} is not a permutation of {}".format(
+            flat_order, np.arange(len(self._charges))))
+
+      self._order = order
+
   def copy(self):
-    return BlockSparseTensor(
-        self.data.copy(), [i.copy() for i in self.indices],
-        check_consistency=False)
+    return BlockSparseTensor(self.data.copy(),
+                             [c.copy() for c in self._charges], self._flows,
+                             self._order, False)
 
   def todense(self) -> np.ndarray:
     """
@@ -851,15 +905,16 @@ class BlockSparseTensor:
     if len(self.shape) == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
-    charges = self.flat_charges
     out[np.nonzero(
-        fuse_charges(charges, self.flat_flows) == charges[0].identity_charges)
-        [0]] = self.data
-    return np.reshape(out, self.shape)
+        fuse_charges(self._charges, self._flows) ==
+        self._charges[0].identity_charges)[0]] = self.data
+    result = np.reshape(out, [c.dim for c in self._charges])
+    flat_order = flatten(self._order)
+    return result.transpose(flat_order).reshape(self.shape)
 
   @property
   def ndim(self):
-    return len(self.indices)
+    return len(self._order)
 
   @classmethod
   def randn(cls, indices: List[Index],
@@ -882,7 +937,14 @@ class BlockSparseTensor:
             dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
       return np.random.randn(num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), indices=indices)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+    return cls(
+        data=init_random(),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
 
   @classmethod
   def ones(cls, indices: List[Index],
@@ -897,8 +959,15 @@ class BlockSparseTensor:
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-    data = np.ones((num_non_zero_elements,), dtype=dtype)
-    return cls(data=data, indices=indices)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+
+    return cls(
+        data=np.ones((num_non_zero_elements,), dtype=dtype),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
 
   @classmethod
   def zeros(cls, indices: List[Index],
@@ -914,7 +983,15 @@ class BlockSparseTensor:
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
     data = np.zeros((num_non_zero_elements,), dtype=dtype)
-    return cls(data=data, indices=indices)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+
+    return cls(
+        data=np.zeros((num_non_zero_elements,), dtype=dtype),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
 
   @classmethod
   def random(cls,
@@ -944,48 +1021,63 @@ class BlockSparseTensor:
       return np.random.uniform(boundaries[0], boundaries[1],
                                num_non_zero_elements).astype(dtype)
 
-    return cls(data=init_random(), indices=indices)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
 
-  def __sub__(self, other: "BlockSparseTensor"):
+    return cls(
+        data=init_random(),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
+
+  def _sub_add_protection(self, other):
     if not isinstance(other, type(self)):
       raise TypeError(
-          "Can only subtract BlockSparseTensor from BlockSparseTensor. "
+          "Can only add or subtract BlockSparseTensor from BlockSparseTensor. "
           "Found type {}".format(type(other)))
 
     if self.shape != other.shape:
-      raise ValueError("cannot subtract tensors with shapes {}and {}".format(
-          self.shape, other.shape))
-    if len(self.indices) != len(other.indices):
       raise ValueError(
-          "cannot subtract tensors with different index-lengths {} and {}"
-          .format(len(self.indices), len(other.indices)))
+          "cannot add or subtract tensors with shapes {}and {}".format(
+              self.shape, other.shape))
+    if len(self._charges) != len(other._charges):
+      raise ValueError(
+          "cannot add or subtract tensors with different charge lengths {} and {}"
+          .format(len(self._charges), len(other._charges)))
     if not np.all([
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))
+        charge_equal(self.charges[n], other.charges[n])
+        for n in range(len(self.charges))
     ]):
-      raise ValueError("cannot subtract tensors non-matching indices")
+      raise ValueError("cannot add or subtract tensors non-matching charges")
+
+    if not np.array_equal(self.flows, other.flows):
+      raise ValueError("cannot add or subtract tensors non-matching flows")
+
+  def __sub__(self, other: "BlockSparseTensor"):
+    self._sub_add_protection(other)
+    _, index_other = np.unique(other.flat_order, return_index=True)
+    #bring self into the same storage layout as other
+    out = self.transpose_data(self.flat_order[index_other])
+    #now subtraction is save
     return BlockSparseTensor(
-        data=self.data - other.data,
-        indices=self.indices,
+        data=out.data - other.data,
+        charges=out._charges,
+        flows=out._flows,
+        order=out._order,
         check_consistency=False)
 
   def __add__(self, other: "BlockSparseTensor"):
-    if not isinstance(other, type(self)):
-      raise TypeError("Can only add BlockSparseTensor with BlockSparseTensor. "
-                      "Found type {}".format(type(other)))
-    if self.shape != other.shape:
-      raise ValueError("cannot add tensors with shapes {}and {}".format(
-          self.shape, other.shape))
-    if len(self.indices) != len(other.indices):
-      raise ValueError(
-          "cannot add tensors with different index-lengths {} and {}".format(
-              len(self.indices), len(other.indices)))
-    if not np.all([
-        self.indices[n] == other.indices[n] for n in range(len(self.indices))
-    ]):
-      raise ValueError("cannot add tensors non-matching indices")
+    self._sub_add_protection(other)
+    #bring self into the same storage layout as other
+    _, index_other = np.unique(other.flat_order, return_index=True)
+    out = self.transpose_data(self.flat_order[index_other])
+    #now subtraction is save
     return BlockSparseTensor(
-        data=self.data + other.data,
-        indices=self.indices,
+        data=out.data + other.data,
+        charges=out._charges,
+        flows=out._flows,
+        order=out._order,
         check_consistency=False)
 
   def __mul__(self, number: np.number):
@@ -994,16 +1086,23 @@ class BlockSparseTensor:
           "Can only multiply BlockSparseTensor by a number. Found type {}"
           .format(type(number)))
     return BlockSparseTensor(
-        data=self.data * number, indices=self.indices, check_consistency=False)
+        data=self.data * number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
 
   def __rmul__(self, number: np.number):
     if not np.isscalar(number):
       raise TypeError(
           "Can only right- multiply BlockSparseTensor by a number. Found type {}"
           .format(type(number)))
-
     return BlockSparseTensor(
-        data=self.data * number, indices=self.indices, check_consistency=False)
+        data=self.data * number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
 
   def __truediv__(self, number: np.number):
     if not np.isscalar(number):
@@ -1012,7 +1111,11 @@ class BlockSparseTensor:
               type(number)))
 
     return BlockSparseTensor(
-        data=self.data / number, indices=self.indices, check_consistency=False)
+        data=self.data / number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
 
   @property
   def shape(self) -> Tuple:
@@ -1021,7 +1124,31 @@ class BlockSparseTensor:
     Returns:
       Tuple: A tuple of `int`.
     """
-    return tuple([i.dim for i in self.indices])
+    return tuple(
+        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def charges(self):
+    return [self._charges[n] for n in self.flat_order]
+
+  @property
+  def flows(self):
+    return [self._flows[n] for n in self.flat_order]
+
+  @property
+  def flat_order(self) -> Tuple:
+    """
+    """
+    return flatten(self._order)
+
+  @property
+  def flat_shape(self) -> Tuple:
+    """
+    The dense shape of the tensor.
+    Returns:
+      Tuple: A tuple of `int`.
+    """
+    return tuple([self._charges[o].dim for o in self.flat_order])
 
   @property
   def sparse_shape(self) -> Tuple:
@@ -1030,7 +1157,14 @@ class BlockSparseTensor:
     Returns:
       Tuple: A tuple of `Index` objects.
     """
-    return tuple(self.indices)
+
+    indices = [
+        Index([self._charges[n]
+               for n in s], [self._flows[n]
+                             for n in s])
+        for s in self._order
+    ]
+    return tuple(indices)
 
   @property
   def dtype(self) -> Type[np.number]:
@@ -1038,17 +1172,15 @@ class BlockSparseTensor:
 
   @property
   def flat_charges(self):
-    flat = []
-    for i in self.indices:
-      flat.extend(i.flat_charges)
-    return flat
+    return self._charges
+
+  @property
+  def charges(self):
+    return [self._charges[o] for o in flatten(self._order)]
 
   @property
   def flat_flows(self):
-    flat = []
-    for i in self.indices:
-      flat.extend(i.flat_flows)
-    return flat
+    return list(self._flows)
 
   def __matmul__(self, other):
 
@@ -1067,40 +1199,31 @@ class BlockSparseTensor:
     Returns:
       BlockSparseTensor: The transposed tensor.
     """
-    indices = [
-        Index(i.flat_charges, list(np.logical_not(i.flat_flows)), i.name)
-        for i in self.indices
-    ]
     return BlockSparseTensor(
-        np.conj(self.data), indices, check_consistency=False)
+        data=np.conj(self.data),
+        charges=self._charges,
+        flows=list(np.logical_not(self._flows)),
+        order=self._order,
+        check_consistency=False)
 
   @property
   def T(self):
     return self.transpose()
 
-  def transpose(
-      self,
-      order: Optional[Union[List[int], np.ndarray]] = np.asarray([1, 0]),
-  ) -> "BlockSparseTensor":
-    """
-    Transpose the tensor in place into the new order `order`. 
-    Args:
-      order: The new order of indices.
-    Returns:
-      BlockSparseTensor: The transposed tensor.
-    """
-    if len(order) != self.ndim:
-      raise ValueError(
-          "`len(order)={}` is different form `self.ndim={}`".format(
-              len(order), self.ndim))
+  def transpose_data(self,
+                     flat_order: Optional[Union[List, np.ndarray]] = None):
 
-    #check for trivial permutation
-    if np.all(order == np.arange(len(order))):
-      return BlockSparseTensor(self.data, self.indices, check_consistency=False)
-    flat_charges, flat_flows = get_flat_meta_data(self.indices)
-    flat_order = get_flat_order(self.indices, order)
+    flat_charges = self.flat_charges
+    flat_flows = self.flat_flows
+    if flat_order is None:
+      flat_order = self.flat_order
+    else:
+      flat_order = flat_order
+    if np.array_equal(flat_order, np.arange(len(flat_order))):
+      return self
+
     tr_partition = _find_best_partition(
-        [len(flat_charges[n]) for n in flat_order])
+        [flat_charges[n].dim for n in flat_order])
 
     tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
         flat_charges, flat_flows, tr_partition, flat_order)
@@ -1113,9 +1236,43 @@ class BlockSparseTensor:
       ind = np.nonzero(tr_charges == charges[n])[0][0]
       permutation = tr_sparse_blocks[ind]
       data[sparse_block] = self.data[permutation]
-
+    tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
     return BlockSparseTensor(
-        data, [self.indices[o] for o in order], check_consistency=False)
+        data,
+        charges=[self._charges[o] for o in flat_order],
+        flows=[self._flows[o] for o in flat_order],
+        order=order,
+        check_consistency=False)
+
+  def transpose(self,
+                order: Optional[Union[List[int], np.ndarray]] = np.asarray(
+                    [1, 0]),
+                shuffle: Optional[bool] = False) -> "BlockSparseTensor":
+    """
+    Transpose the tensor in place into the new order `order`. 
+    Args:
+      order: The new order of indices.
+      shuffle: If `True`, reshuffle data.
+    Returns:
+      BlockSparseTensor: The transposed tensor.
+    """
+    if len(order) != self.ndim:
+      raise ValueError(
+          "`len(order)={}` is different form `self.ndim={}`".format(
+              len(order), self.ndim))
+
+    order = [self._order[o] for o in order]
+
+    tensor = BlockSparseTensor(
+        data=self.data,
+        charges=self._charges,
+        flows=self._flows,
+        order=order,
+        check_consistency=False)
+    if shuffle:
+      return tensor.transpose_data()
+    return tensor
 
   def reshape(
       self,
@@ -1169,46 +1326,39 @@ class BlockSparseTensor:
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(new_shape)))
 
-    flat_charges, flat_flows = get_flat_meta_data(self.indices)
-    flat_dims = [f.dim for f in flat_charges]
+    # flat_charges, flat_flows = get_flat_meta_data(
+    #     [self.indices[o] for o in self.order])
+    flat_dims = self.flat_shape
+
     partitions = [0]
-
-    # if np.array_equal(np.asarray(new_shape), np.asarray(flat_dims)):
-    #   return BlockSparseTensor(data=self.data, indices=self.flat_indices)
     for n, ns in enumerate(new_shape):
-      # print(flat_dims)
-      # print(np.cumprod(flat_dims))
-
       tmp = np.nonzero(np.cumprod(flat_dims) == ns)[0]
       if len(tmp) == 0:
         raise ValueError("The shape {} is incompatible with the "
                          "elementary shape {} of the tensor.".format(
-                             new_shape, tuple([e.dim for e in flat_charges])))
+                             new_shape, tuple(flat_dims)))
 
       partitions.append(tmp[0] + 1)
-      # print('tmp=', tmp)
-      # print('partitios: ', partitions)
       flat_dims = flat_dims[partitions[-1]:]
     for d in flat_dims:
       if d != 1:
         raise ValueError("The shape {} is incompatible with the "
                          "elementary shape {} of the tensor.".format(
-                             new_shape, tuple([e.dim for e in flat_charges])))
+                             new_shape, tuple(flat_dims)))
       partitions[-1] += 1
 
     partitions = np.cumsum(partitions)
-    # print('flat_dims: ', flat_dims)
-    # print('final partitios: ', partitions)
-    new_flat_charges = []
-    new_flat_flows = []
+
+    flat_order = self.flat_order
+    new_order = []
     for n in range(1, len(partitions)):
-      new_flat_charges.append(flat_charges[partitions[n - 1]:partitions[n]])
-      new_flat_flows.append(flat_flows[partitions[n - 1]:partitions[n]])
-
-    indices = [Index(c, f) for c, f in zip(new_flat_charges, new_flat_flows)]
-
+      new_order.append(flat_order[partitions[n - 1]:partitions[n]])
     result = BlockSparseTensor(
-        data=self.data, indices=indices, check_consistency=False)
+        data=self.data,
+        charges=self._charges,
+        flows=self._flows,
+        order=new_order,
+        check_consistency=False)
     return result
 
 
@@ -1227,18 +1377,20 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
           "`diag` currently only implemented for `ChargeArray` with ndim=1, "
           "found `ndim={}`".format(tensor.ndim))
 
-    charges = tensor.indices[0].charges
+    charges = tensor._charges[0]
     unique, labels = charges.unique(return_inverse=True)
     data = np.concatenate([
         np.ravel(np.diag(tensor.data[labels == n])) for n in range(len(unique))
     ])
-    indices = [tensor.indices[0].copy(), tensor.indices[0].copy()]
-    indices[1].flip_flow()
-    return BlockSparseTensor(data, indices, check_consistency=False)
+    new_charges = [tensor._charges[0].copy(), tensor._charges[0].copy()]
+    return BlockSparseTensor(
+        data,
+        new_charges,
+        flows=[tensor._flows[0], not tensor._flows[0]],
+        check_consistency=False)
 
   sparse_blocks, charges, block_shapes = _find_diagonal_sparse_blocks(
-      tensor.flat_charges, tensor.flat_flows,
-      len(tensor.indices[0].flat_charges))
+      tensor._charges, tensor.flat_flows, len(tensor.indices[0]._charges))
   shapes = np.min(block_shapes, axis=0)
   data = np.concatenate([
       np.diag(np.reshape(tensor.data[sparse_blocks[n]], block_shapes[:, n]))
@@ -1326,35 +1478,39 @@ def outerproduct(tensor1: BlockSparseTensor,
     BlockSparseTensor: The result of taking the outer product.
   """
 
-  final_charges = tensor1.flat_charges + tensor2.flat_charges
+  final_charges = tensor1._charges + tensor2._charges
   final_flows = tensor1.flat_flows + tensor2.flat_flows
+  order2 = [list(np.asarray(s) + len(tensor1._charges)) for s in tensor2._order]
+
   data = np.zeros(
       compute_num_nonzero(final_charges, final_flows), dtype=tensor1.dtype)
   if ((len(tensor1.data) > 0) and (len(tensor2.data) > 0)) and (len(data) > 0):
     # find the location of the zero block in the output
     final_block_maps, final_block_charges, _ = _find_diagonal_sparse_blocks(
-        final_charges, final_flows, len(tensor1.flat_charges))
+        final_charges, final_flows, len(tensor1._charges))
     index = np.nonzero(
         final_block_charges == final_block_charges.identity_charges)[0][0]
     data[final_block_maps[index].ravel()] = np.outer(tensor1.data,
                                                      tensor2.data).ravel()
 
   return BlockSparseTensor(
-      data, tensor1.indices + tensor2.indices, check_consistency=False)
+      data,
+      charges=final_charges,
+      flows=final_flows,
+      order=tensor1._order + order2,
+      check_consistency=False)
 
 
-def tensordot(
-    tensor1: BlockSparseTensor,
-    tensor2: BlockSparseTensor,
-    axes: Optional[Union[Sequence[Sequence[int]], int]] = 2,
-    final_order: Optional[Union[List, np.ndarray]] = None) -> BlockSparseTensor:
+def tensordot(tensor1: BlockSparseTensor,
+              tensor2: BlockSparseTensor,
+              axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
+             ) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
     tensor1: First tensor.
     tensor2: Second tensor.
     axes: The axes to contract.
-    final_order: An optional final order for the result
   Returns:
       BlockSparseTensor: The result of the tensor contraction.
 
@@ -1377,17 +1533,14 @@ def tensordot(
         "Some values in axes[1] = {} appear more than once!".format(axes2))
 
   if len(axes1) == 0:
-    res = outerproduct(tensor1, tensor2)
-    if final_order is not None:
-      return res.transpose(final_order)
-    return res
+    return outerproduct(tensor1, tensor2)
 
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
     isort = np.argsort(axes1)
     data = np.dot(tensor1.data,
                   tensor2.transpose(np.asarray(axes2)[isort]).data)
     return BlockSparseTensor(
-        data=data, indices=[],
+        data=data, charges=[], flows=[], order=[],
         check_consistency=False)  #Index(identity_charges, flow=False)])
 
   if max(axes1) >= len(tensor1.shape):
@@ -1405,11 +1558,11 @@ def tensordot(
   contr_charges_1 = []
   contr_charges_2 = []
   for a in axes1:
-    contr_flows_1.extend(tensor1.indices[a].flat_flows)
-    contr_charges_1.extend(tensor1.indices[a].flat_charges)
+    contr_flows_1.extend(tensor1._flows[tensor1._order[a]])
+    contr_charges_1.extend([tensor1._charges[n] for n in tensor1._order[a]])
   for a in axes2:
-    contr_flows_2.extend(tensor2.indices[a].flat_flows)
-    contr_charges_2.extend(tensor2.indices[a].flat_charges)
+    contr_flows_2.extend(tensor2._flows[tensor2._order[a]])
+    contr_charges_2.extend([tensor2._charges[n] for n in tensor2._order[a]])
 
   if len(contr_charges_2) != len(contr_charges_1):
     raise ValueError(
@@ -1421,43 +1574,40 @@ def tensordot(
     raise ValueError("axes1 and axes2 have incompatible elementary"
                      " flows {} and {}".format(contr_flows_1, contr_flows_2))
 
-  free_axes1 = sorted(set(np.arange(len(tensor1.shape))) - set(axes1))
-  free_axes2 = sorted(set(np.arange(len(tensor2.shape))) - set(axes2))
-  if (final_order is not None) and (len(final_order) !=
-                                    len(free_axes1) + len(free_axes2)):
-    raise ValueError("`final_order = {}` is not a valid order for "
-                     "a final tensor of rank {}".format(
-                         final_order,
-                         len(free_axes1) + len(free_axes2)))
+  free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
+  free_axes2 = sorted(set(np.arange(tensor2.ndim)) - set(axes2))
 
-  if (final_order is not None) and not np.all(
-      np.sort(final_order) == np.arange(len(final_order))):
-    raise ValueError(
-        "`final_order = {}` is not a valid permutation of {} ".format(
-            final_order, np.arange(len(final_order))))
+  new_order1 = [tensor1._order[n] for n in free_axes1
+               ] + [tensor1._order[n] for n in axes1]
+  new_order2 = [tensor2._order[n] for n in axes2
+               ] + [tensor2._order[n] for n in free_axes2]
 
-  new_order1 = free_axes1 + list(axes1)
-  new_order2 = list(axes2) + free_axes2
+  flat_order_1 = flatten(new_order1)
+  flat_order_2 = flatten(new_order2)
 
-  flat_charges_1, flat_flows_1 = get_flat_meta_data(tensor1.indices)
-  flat_charges_2, flat_flows_2 = get_flat_meta_data(tensor2.indices)
-
-  flat_order_1 = get_flat_order(tensor1.indices, new_order1)
-  flat_order_2 = get_flat_order(tensor2.indices, new_order2)
+  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1.flat_flows
+  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2.flat_flows
 
   left_charges = []
   right_charges = []
   left_flows = []
   right_flows = []
-  free_indices = []
+  left_order = []
+  right_order = []
+  s = 0
   for n in free_axes1:
-    free_indices.append(tensor1.indices[n])
-    left_charges.extend(tensor1.indices[n].flat_charges)
-    left_flows.extend(tensor1.indices[n].flat_flows)
+    left_charges.extend([tensor1._charges[o] for o in tensor1._order[n]])
+    left_order.append(list(np.arange(s, s + len(tensor1._order[n]))))
+    s += len(tensor1._order[n])
+    left_flows.extend([tensor1._flows[o] for o in tensor1._order[n]])
+
+  s = 0
   for n in free_axes2:
-    free_indices.append(tensor2.indices[n])
-    right_charges.extend(tensor2.indices[n].flat_charges)
-    right_flows.extend(tensor2.indices[n].flat_flows)
+    right_charges.extend([tensor2._charges[o] for o in tensor2._order[n]])
+    right_order.append(
+        list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
+    s += len(tensor2._order[n])
+    right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
 
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
@@ -1471,41 +1621,6 @@ def tensordot(
       axis=1,
       return_indices=True)
 
-  #initialize the data-vector of the output with zeros;
-  if final_order is not None:
-    #in this case we view the result of the diagonal multiplication
-    #as a transposition of the final tensor
-    final_indices = [free_indices[n] for n in final_order]
-    _, reverse_order = np.unique(final_order, return_index=True)
-    flat_reversed_order = get_flat_order(final_indices, reverse_order)
-    flat_final_charges, flat_final_flows = get_flat_meta_data(final_indices)
-
-    sparse_blocks_final, charges_final, _ = _find_transposed_diagonal_sparse_blocks(
-        flat_final_charges, flat_final_flows, len(left_charges),
-        flat_reversed_order)
-
-    num_nonzero_elements = np.sum([len(v) for v in sparse_blocks_final])
-    data = np.zeros(
-        num_nonzero_elements,
-        dtype=np.result_type(tensor1.dtype, tensor2.dtype))
-    label_to_common_final = intersect(
-        charges_final.unique_charges,
-        common_charges,
-        axis=1,
-        return_indices=True)[1]
-
-    for n in range(common_charges.shape[1]):
-      n1 = label_to_common_1[n]
-      n2 = label_to_common_2[n]
-      nf = label_to_common_final[n]
-
-      data[sparse_blocks_final[nf].ravel()] = np.ravel(
-          np.matmul(
-              tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
-              tensor2.data[tr_sparse_blocks_2[n2].reshape(shapes_2[:, n2])]))
-
-    return BlockSparseTensor(
-        data=data, indices=final_indices, check_consistency=False)
   #Note: `cs` may contain charges that are not present in `common_charges`
   charges = left_charges + right_charges
   flows = left_flows + right_flows
@@ -1528,8 +1643,13 @@ def tensordot(
         np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
                   tensor2.data[tr_sparse_blocks_2[n2].reshape(
                       shapes_2[:, n2])]))
-  return BlockSparseTensor(
-      data=data, indices=free_indices, check_consistency=False)
+  res = BlockSparseTensor(
+      data=data,
+      charges=charges,
+      flows=flows,
+      order=left_order + right_order,
+      check_consistency=False)
+  return res
 
 
 def svd(matrix: BlockSparseTensor,
@@ -1557,11 +1677,13 @@ def svd(matrix: BlockSparseTensor,
   if matrix.ndim != 2:
     raise NotImplementedError("svd currently supports only rank-2 tensors.")
 
-  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
-  partition = len(matrix.indices[0].flat_charges)
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
-      flat_charges, flat_flows, partition)
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
   u_blocks = []
   singvals = []
@@ -1582,21 +1704,8 @@ def svd(matrix: BlockSparseTensor,
       np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
   ])
-  #right_singval_charge_labels = np.concatenate([
-  #    np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
-  #    for n in range(len(singvals))
-  #])
   left_singval_charge = charges[left_singval_charge_labels]
-  # right_singval_charge = charges[right_singval_charge_labels]
-  #Note: introducint a convetions
-  #TODO: think about this convention!
-  # indices_s = [
-  #     Index(left_singval_charge, False),
-  #     Index(right_singval_charge, True)
-  # ]
-  # S = BlockSparseTensor(
-  #     np.concatenate([np.ravel(np.diag(s)) for s in singvals]), indices_s)
-  S = ChargeArray(np.concatenate(singvals), [Index(left_singval_charge, False)])
+  S = ChargeArray(np.concatenate(singvals), [left_singval_charge], [False])
 
   if compute_uv:
     #define the new charges on the two central bonds
@@ -1611,18 +1720,26 @@ def svd(matrix: BlockSparseTensor,
     new_left_charge = charges[left_charge_labels]
     new_right_charge = charges[right_charge_labels]
 
-    #get the indices of the new tensors U,S and V
-    indices_u = [Index(new_left_charge, True), matrix.indices[0]]
-    indices_v = [Index(new_right_charge, False), matrix.indices[1]]
-    #We fill in data into the transposed U
-    #TODO: reuse data from _find_diagonal_sparse_blocks above
-    #to avoid the transpose
+    charges_u = [new_left_charge
+                ] + [matrix._charges[o] for o in matrix._order[0]]
+    order_u = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+    flows_u = [True] + [matrix._flows[o] for o in matrix._order[0]]
+    charges_v = [new_right_charge
+                ] + [matrix._charges[o] for o in matrix._order[1]]
+    flows_v = [False] + [matrix._flows[o] for o in matrix._order[1]]
+    order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
+    # We fill in data into the transposed U
+    # note that transposing is essentially free
     return BlockSparseTensor(
         np.concatenate([np.ravel(u.T) for u in u_blocks]),
-        indices_u,
-        check_consistency=Falsen).transpose((1, 0)), S, BlockSparseTensor(
+        charges=charges_u,
+        flows=flows_u,
+        order=order_u,
+        check_consistency=False).transpose((1, 0)), S, BlockSparseTensor(
             np.concatenate([np.ravel(v) for v in v_blocks]),
-            indices_v,
+            charges=charges_v,
+            flows=flows_v,
+            order=order_v,
             check_consistency=False)
 
   return S
@@ -1651,11 +1768,13 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
 
-  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
-  partition = len(matrix.indices[0].flat_charges)
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
-      flat_charges, flat_flows, partition)
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
   q_blocks = []
   r_blocks = []
@@ -1675,11 +1794,15 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   ])
 
   left_r_charge = charges[left_r_charge_labels]
-  indices_r = [Index(left_r_charge, False), matrix.indices[1]]
+  charges_r = [left_r_charge] + [matrix._charges[o] for o in matrix._order[1]]
+  flows_r = [False] + [matrix._flows[o] for o in matrix._order[1]]
+  order_r = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
 
   R = BlockSparseTensor(
       np.concatenate([np.ravel(r) for r in r_blocks]),
-      indices_r,
+      charges=charges_r,
+      flows=flows_r,
+      order=order_r,
       check_consistency=False)
   if mode in ('reduced', 'complete'):
     right_q_charge_labels = np.concatenate([
@@ -1687,19 +1810,17 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
         for n in range(len(q_blocks))
     ])
     right_q_charge = charges[right_q_charge_labels]
-
-    indices_q = [Index(right_q_charge, True), matrix.indices[0]]
-    #TODO: reuse data from _find_diagonal_sparse_blocks above
-    #to avoid the transpose
+    charges_q = [
+        right_q_charge,
+    ] + [matrix._charges[o] for o in matrix._order[0]]
+    order_q = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+    flows_q = [True] + [matrix._flows[o] for o in matrix._order[0]]
     return BlockSparseTensor(
         np.concatenate([np.ravel(q.T) for q in q_blocks]),
-        indices_q,
+        charges=charges_q,
+        flows=flows_q,
+        order=order_q,
         check_consistency=False).transpose((1, 0)), R
-    #indices_q = [matrix.indices[0], Index(right_q_charge, True)]
-    #TODO: reuse data from _find_diagonal_sparse_blocks above
-    #to avoid the transpose
-    #return BlockSparseTensor(
-    #    np.concatenate([np.ravel(q) for q in q_blocks]), indices_q), R
 
   return R
 
@@ -1716,13 +1837,15 @@ def eigh(matrix: BlockSparseTensor,
 
   """
   if matrix.ndim != 2:
-    raise NotImplementedError("qr currently supports only rank-2 tensors.")
+    raise NotImplementedError("eigh currently supports only rank-2 tensors.")
 
-  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
-  partition = len(matrix.indices[0].flat_charges)
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
-      flat_charges, flat_flows, partition)
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
   eigvals = []
   v_blocks = []
@@ -1736,12 +1859,16 @@ def eigh(matrix: BlockSparseTensor,
       for n in range(len(eigvals))
   ])
   eigvalscharge = charges[eigvalscharge_labels]
-  indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
+  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+  charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
+  order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+  flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
 
-  E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v.T) for v in v_blocks]),
-      indices_v,
+      charges=charges_v,
+      flows=flows_v,
+      order=order_v,
       check_consistency=False).transpose()
 
   return E, V
@@ -1758,13 +1885,15 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
 
   """
   if matrix.ndim != 2:
-    raise NotImplementedError("qr currently supports only rank-2 tensors.")
+    raise NotImplementedError("eig currently supports only rank-2 tensors.")
 
-  flat_charges = matrix.indices[0]._charges + matrix.indices[1]._charges
+  flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
-  partition = len(matrix.indices[0].flat_charges)
-  blocks, charges, shapes = _find_diagonal_sparse_blocks(
-      flat_charges, flat_flows, partition)
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
   eigvals = []
   v_blocks = []
@@ -1778,12 +1907,16 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
       for n in range(len(eigvals))
   ])
   eigvalscharge = charges[eigvalscharge_labels]
-  indices_v = [Index(eigvalscharge, True), matrix.indices[0]]
+  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+  charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
+  order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+  flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
 
-  E = ChargeArray(np.concatenate(eigvals), [Index(eigvalscharge, False)])
   V = BlockSparseTensor(
       np.concatenate([np.ravel(v.T) for v in v_blocks]),
-      indices_v,
+      charges=charges_v,
+      flows=flows_v,
+      order=order_v,
       check_consistency=False).transpose()
 
   return E, V
@@ -1791,7 +1924,12 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
 
 def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]) -> Any:
   obj = tensor.__new__(type(tensor))
-  obj.__init__(np.sqrt(tensor.data), tensor.indices)
+  obj.__init__(
+      np.sqrt(tensor.data),
+      charges=tensor._charges,
+      flows=tensor._flows,
+      order=tensor._order,
+      check_consistency=False)
   return obj
 
 
@@ -1803,10 +1941,10 @@ def trace(tensor: BlockSparseTensor,
     if len(axes) != 2:
       raise ValueError(
           "`len(axes)` has to be 2, found `axes = {}`".format(axes))
-    indices = [tensor.indices[a].copy() for a in axes]
-    if indices[0] != indices[1].flip_flow():
-      raise ValueError("cannot take trace over unmatching indices")
-    identity = eye(indices[0].flip_flow())
+    if tensor.flows[axes[0]] == tensor.flows[axes[1]]:
+      raise ValueError("trace indices have non-matching flows.")
+    index = Index([tensor.charges[axes[0]]], [tensor.flows[axes[0]]])
+    identity = eye(index)
     out = tensordot(tensor, identity, (axes, [0, 1]))
     return out
   raise ValueError("trace can only be taken for tensors with ndim>1")
@@ -1816,8 +1954,7 @@ def eye(column_index: Index,
         row_index: Optional[Index] = None,
         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   if row_index is None:
-    row_index = column_index.copy()
-    row_index.flip_flow()
+    row_index = column_index.copy().flip_flow()
   if dtype is None:
     dtype = np.float64
 
@@ -1828,8 +1965,17 @@ def eye(column_index: Index,
   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
+  order = [np.arange(0, len(column_index.flat_charges))] + [
+      np.arange(
+          len(column_index.flat_charges),
+          len(column_index.flat_charges) + len(row_index.flat_charges))
+  ]
   return BlockSparseTensor(
-      data=data, indices=[column_index, row_index], check_consistency=False)
+      data=data,
+      charges=column_index.flat_charges + row_index.flat_charges,
+      flows=column_index.flat_flows + row_index.flat_flows,
+      order=order,
+      check_consistency=False)
 
 
 def ones(indices: List[Index],
@@ -1853,42 +1999,48 @@ def rand(indices: List[Index],
   return BlockSparseTensor.random(indices, boundaries, dtype)
 
 
-def inv(tensor: BlockSparseTensor) -> BlockSparseTensor:
-  if tensor.ndim != 2:
+def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
+  if matrix.ndim != 2:
     raise ValueError("`inv` can only be taken for matrices, "
-                     "found tensor.ndim={}".format(tensor.ndim))
+                     "found tensor.ndim={}".format(matrix.ndim))
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      tensor.flat_charges, tensor.flat_flows,
-      len(tensor.indices[0].flat_charges))
-  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
-        np.linalg.inv(np.reshape(tensor.data[block], shapes[:, n])).T)
-  indices = [i.copy() for i in tensor.indices]
-  for i in indices:
-    i.flip_flow()
+        np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
+
   return BlockSparseTensor(
-      data=data, indices=indices, check_consistency=False).transpose((1, 0))
+      data=data,
+      charges=matrix._charges,
+      flows=np.logical_not(matrix._flows),
+      order=matrix._order,
+      check_consistency=False).transpose((1, 0))
 
 
-def pinv(tensor: BlockSparseTensor,
+def pinv(matrix: BlockSparseTensor,
          rcond: Optional[float] = 1E-15,
          hermitian: Optional[bool] = False) -> BlockSparseTensor:
-  if tensor.ndim != 2:
-    raise ValueError("`inv` can only be taken for matrices, "
-                     "found tensor.ndim={}".format(tensor.ndim))
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      tensor.flat_charges, tensor.flat_flows,
-      len(tensor.indices[0].flat_charges))
-  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
-        np.linalg.pinv(
-            np.reshape(tensor.data[block], shapes[:, n]), rcond, hermitian).T)
-  indices = [i.copy() for i in tensor.indices]
-  for i in indices:
-    i.flip_flow()
+        np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
+
   return BlockSparseTensor(
-      data=data, indices=indices, check_consistency=False).transpose((1, 0))
+      data=data,
+      charges=matrix._charges,
+      flows=np.logical_not(matrix._flows),
+      order=matrix._order,
+      check_consistency=False).transpose((1, 0))
