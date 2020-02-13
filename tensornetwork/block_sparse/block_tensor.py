@@ -100,9 +100,6 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
 
-  # vec = np.empty(len(fused_charges), dtype=np.uint32)
-  # for n in label_to_unique:
-  #   vec[lookup == n] = np.arange(degens[n])
   return lookup, unique_charges, label_to_unique
 
 
