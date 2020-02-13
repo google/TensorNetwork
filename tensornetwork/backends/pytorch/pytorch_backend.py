@@ -249,7 +249,7 @@ class PyTorchBackend(base_backend.BaseBackend):
             self.torch.tensor(diag_elements)) + self.torch.diag(
                 self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
                     self.torch.tensor(norms_vector_n[1:]), -1)
-        eigvals, u = A_tridiag.symeig()
+        eigvals, u = A_tridiag.symeig(eigenvectors=True)
         if not first:
           if self.torch.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
             break
@@ -266,7 +266,7 @@ class PyTorchBackend(base_backend.BaseBackend):
         self.torch.tensor(diag_elements)) + self.torch.diag(
             self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
                 self.torch.tensor(norms_vector_n[1:]), -1)
-    eigvals, u = A_tridiag.symeig()
+    eigvals, u = A_tridiag.symeig(eigenvectors=True)
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.shape, initial_state.dtype)
