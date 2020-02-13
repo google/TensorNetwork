@@ -2014,7 +2014,8 @@ def pinv(matrix: BlockSparseTensor,
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
         np.linalg.pinv(np.reshape(matrix.data[block], shapes[:, n])).T,
-        rcond=rcond)
+        rcond=rcond,
+        hermitian=hermitian)
 
   return BlockSparseTensor(
       data=data,
