@@ -78,15 +78,16 @@ def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
 
 
 def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
-                          target_charges: BaseCharge) -> np.ndarray:
+                          target_charges: BaseCharge):
   """
   Compute lookup table for looking up how dense index positions map 
-  to sparse index positions for the diagonal blocks a symmetric matrix.
+  to sparse index positions.
   Args:
     charges:
     flows:
     target_charges:
-
+  Returns:
+    lookup: An np.ndarray f
   """
   fused_charges = fuse_charges(charges, flows)
   unique_charges, inverse, degens = fused_charges.unique(
@@ -97,10 +98,12 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   tmp = np.full(len(unique_charges), fill_value=-1, dtype=np.int16)
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
-  vec = np.empty(len(fused_charges), dtype=np.uint32)
-  for n in label_to_unique:
-    vec[lookup == n] = np.arange(degens[n])
-  return vec
+  lookup = lookup[lookup >= 0]
+
+  # vec = np.empty(len(fused_charges), dtype=np.uint32)
+  # for n in label_to_unique:
+  #   vec[lookup == n] = np.arange(degens[n])
+  return lookup, unique_charges, label_to_unique
 
 
 def _get_strides(dims):
@@ -306,8 +309,8 @@ def reduce_charges(charges: List[BaseCharge],
       return_locations of the kept elements. Defaults to trivial strides (based on
       row major order) if ommitted.
   Returns:
-    SymIndex: the fused index after reduction.
-    np.ndarray: locations of the fused SymIndex qnums that were kept.
+    BaseCharge: the fused index after reduction.
+    np.ndarray: locations of the fused BaseCharge qnums that were kept.
   """
 
   tensor_dims = [len(c) for c in charges]
@@ -775,6 +778,10 @@ class ChargeArray:
     return len(self._order)
 
   @property
+  def dtype(self) -> Type[np.number]:
+    return self.data.dtype
+
+  @property
   def shape(self) -> Tuple:
     """
     The dense shape of the tensor.
@@ -829,35 +836,12 @@ class ChargeArray:
     ]
     return tuple(indices)
 
-  @property
-  def dtype(self) -> Type[np.number]:
-    return self.data.dtype
-
   def todense(self) -> np.ndarray:
     """
     Map the sparse tensor to dense storage.
     
     """
     return np.reshape(self.data, self.shape)
-
-  @property
-  def sparse_shape(self) -> Tuple:
-    """
-    The sparse shape of the tensor.
-    Returns:
-      Tuple: A tuple of `Index` objects.
-    """
-    indices = [
-        Index([self._charges[n]
-               for n in s], [self._flows[n]
-                             for n in s])
-        for s in self._order
-    ]
-    return tuple(indices)
-
-  @property
-  def dtype(self) -> Type[np.number]:
-    return self.data.dtype
 
   # def _sub_add_protection(self, other):
   #   if not isinstance(other, type(self)):
@@ -1030,7 +1014,6 @@ class BlockSparseTensor(ChargeArray):
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-    data = np.zeros((num_non_zero_elements,), dtype=dtype)
     tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
     order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
 
@@ -1056,7 +1039,6 @@ class BlockSparseTensor(ChargeArray):
     """
     charges, flows = get_flat_meta_data(indices)
     num_non_zero_elements = compute_num_nonzero(charges, flows)
-
     dtype = dtype if dtype is not None else np.float64
 
     def init_random():
@@ -1200,8 +1182,7 @@ class BlockSparseTensor(ChargeArray):
     flat_flows = self.flat_flows
     if flat_order is None:
       flat_order = self.flat_order
-    else:
-      flat_order = flat_order
+
     if np.array_equal(flat_order, np.arange(len(flat_order))):
       return self
 
@@ -1354,26 +1335,51 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
   if tensor.ndim > 2:
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
-  if isinstance(tensor, ChargeArray):
+  if not isinstance(tensor, BlockSparseTensor):
     if tensor.ndim > 1:
       raise TypeError(
           "`diag` currently only implemented for `ChargeArray` with ndim=1, "
           "found `ndim={}`".format(tensor.ndim))
+    flat_charges = tensor._charges + tensor._charges
+    flat_flows = list(tensor.flat_flows) + list(
+        np.logical_not(tensor.flat_flows))
+    flat_order = list(tensor.flat_order) + list(
+        np.asarray(tensor.flat_order) + len(tensor._charges))
+    tr_partition = len(tensor._order[0])
+    blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+        flat_charges, flat_flows, tr_partition, flat_order)
+    data = np.zeros(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+    lookup, unique, labels = compute_sparse_lookup(tensor._charges,
+                                                   tensor._flows, charges)
+    for n, block in enumerate(blocks):
+      _, locations = reduce_charges(
+          tensor._charges,
+          tensor._flows,
+          charges[n].charges,
+          return_locations=True)
+      label = labels[np.nonzero(unique == charges[n])[0][0]]
+      data[block] = np.ravel(
+          np.diag(tensor.data[np.nonzero(lookup == label)[0]]))
 
-    charges = tensor._charges[0]
-    unique, labels = charges.unique(return_inverse=True)
-    data = np.concatenate([
-        np.ravel(np.diag(tensor.data[labels == n])) for n in range(len(unique))
-    ])
+    order = [
+        tensor._order[0],
+        list(np.asarray(tensor._order[0]) + len(tensor._charges))
+    ]
     new_charges = [tensor._charges[0].copy(), tensor._charges[0].copy()]
     return BlockSparseTensor(
         data,
-        new_charges,
-        flows=[tensor._flows[0], not tensor._flows[0]],
+        charges=new_charges,
+        flows=list(tensor._flows) + list(np.logical_not(tensor._flows)),
+        order=order,
         check_consistency=False)
 
-  sparse_blocks, charges, block_shapes = _find_diagonal_sparse_blocks(
-      tensor._charges, tensor.flat_flows, len(tensor.indices[0]._charges))
+  flat_charges = tensor._charges
+  flat_flows = tensor.flat_flows
+  flat_order = tensor.flat_order
+  tr_partition = len(tensor._order[0])
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
   shapes = np.min(block_shapes, axis=0)
   data = np.concatenate([
       np.diag(np.reshape(tensor.data[sparse_blocks[n]], block_shapes[:, n]))
@@ -1383,9 +1389,9 @@ def diag(tensor: Union[BlockSparseTensor, ChargeArray]
       np.full(shapes[n], fill_value=n, dtype=np.int16)
       for n in range(len(sparse_blocks))
   ])
-  new_charge = charges[charge_labels]
-  index = Index(new_charge, False)
-  return ChargeArray(data, [index])
+  newcharges = [charges[charge_labels]]
+  flows = [False]
+  return ChargeArray(data, newcharges, flows)
 
 
 def reshape(
