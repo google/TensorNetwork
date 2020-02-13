@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
 import numpy as np
 
 #pylint: disable=useless-import-alias
-import tensornetwork.config as config
 #pylint: disable=line-too-long
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
@@ -127,27 +126,7 @@ def copy(nodes: Iterable[BaseNode],
   """
   node_dict = {}
   for node in nodes:
-    if isinstance(node, CopyNode):
-      node_dict[node] = CopyNode(
-          node.rank,
-          node.dimension,
-          name=node.name,
-          axis_names=node.axis_names,
-          backend=node.backend,
-          dtype=node.dtype)
-    else:
-      if conjugate:
-        node_dict[node] = Node(
-            node.backend.conj(node.tensor),
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend)
-      else:
-        node_dict[node] = Node(
-            node.tensor,
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend)
+    node_dict[node] = node.copy(conjugate)
   edge_dict = {}
   for edge in get_all_edges(nodes):
     node1 = edge.node1

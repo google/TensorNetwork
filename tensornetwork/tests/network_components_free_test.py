@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import torch
 import pytest
 from unittest.mock import patch
 from collections import namedtuple
@@ -25,6 +26,18 @@ class TestNode(BaseNode):
   def set_tensor(self, tensor): #pylint: disable=useless-super-delegation
     return super().set_tensor(tensor)
 
+  def __add__(self, other): #pylint: disable=useless-super-delegation
+    return super().__add__(other)
+
+  def __sub__(self, other): #pylint: disable=useless-super-delegation
+    return super().__sub__(other)
+
+  def __mul__(self, other): #pylint: disable=useless-super-delegation
+    return super().__mul__(other)
+
+  def __truediv__(self, other): #pylint: disable=useless-super-delegation
+    return super().__truediv__(other)
+
   @property
   def shape(self):
     return super().shape
@@ -42,6 +55,9 @@ class TestNode(BaseNode):
 
   def _save_node(self, node_group): #pylint: disable=useless-super-delegation
     return super()._save_node(node_group)
+   
+  def copy(self, conjugate: bool = False) -> "TestNode":
+    return TestNode()
 
 
 
@@ -381,6 +397,320 @@ def test_node_magic_matmul(backend):
                        [60, 60, 60, 60]])
   assert isinstance(actual, Node)
   np.testing.assert_allclose(actual.tensor, expected)
+
+
+def test_between_node_add_op(backend):
+  node1 = Node(tensor=np.array([[1, 2], [3, 4]]), backend=backend)
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend=backend)
+  node3 = Node(tensor=np.array([[1., 2.], [3., 4.]]), backend=backend)
+  int_node = Node(tensor=np.array(2, dtype=np.int64), backend=backend)
+  float_node = Node(tensor=np.array(2.5, dtype=np.float64), backend=backend)
+
+  expected = np.array([[11, 12], [13, 14]])
+  result = (node1 + node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == node2.tensor.dtype == result.dtype
+
+  expected = np.array([[3, 4], [5, 6]])
+  result = (node1 + int_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == int_node.tensor.dtype == result.dtype
+  expected = np.array([[3, 4], [5, 6]])
+  result = (int_node + node1).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == int_node.tensor.dtype == result.dtype
+
+  expected = np.array([[3.5, 4.5], [5.5, 6.5]])
+  result = (node3 + float_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+  expected = np.array([[3.5, 4.5], [5.5, 6.5]])
+  result = (float_node + node3).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+
+
+def test_node_and_scalar_add_op(backend):
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  expected = np.array([[3, 4], [5, 6]])
+  result = (node + 2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'int64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  expected = np.array([[3.5, 4.5], [5.5, 6.5]])
+  result = (node + 2.5).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'float64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+
+def test_between_node_sub_op(backend):
+  node1 = Node(tensor=np.array([[1, 2], [3, 4]]), backend=backend)
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend=backend)
+  node3 = Node(tensor=np.array([[1., 2.], [3., 4.]]), backend=backend)
+  int_node = Node(tensor=np.array(2, dtype=np.int64), backend=backend)
+  float_node = Node(tensor=np.array(2.5, dtype=np.float64), backend=backend)
+
+  expected = np.array([[-9, -8], [-7, -6]])
+  result = (node1 - node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == node2.tensor.dtype == result.dtype
+
+  expected = np.array([[-1, 0], [1, 2]])
+  result = (node1 - int_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == int_node.tensor.dtype == result.dtype
+  expected = np.array([[1, 0], [-1, -2]])
+  result = (int_node - node1).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == int_node.tensor.dtype == result.dtype
+
+  expected = np.array([[-1.5, -0.5], [0.5, 1.5]])
+  result = (node3 - float_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+  expected = np.array([[1.5, 0.5], [-0.5, -1.5]])
+  result = (float_node - node3).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+
+
+def test_node_and_scalar_sub_op(backend):
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  expected = np.array([[-1, 0], [1, 2]])
+  result = (node - 2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'int64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  expected = np.array([[-1.5, -0.5], [0.5, 1.5]])
+  result = (node - 2.5).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'float64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+
+def test_between_node_mul_op(backend):
+  node1 = Node(tensor=np.array([[1, 2], [3, 4]]), backend=backend)
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend=backend)
+  node3 = Node(tensor=np.array([[1., 2.], [3., 4.]]), backend=backend)
+  int_node = Node(tensor=np.array(2, dtype=np.int64), backend=backend)
+  float_node = Node(tensor=np.array(2.5, dtype=np.float64), backend=backend)
+
+  expected = np.array([[10, 20], [30, 40]])
+  result = (node1 * node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == node2.tensor.dtype == result.dtype
+
+  expected = np.array([[2, 4], [6, 8]])
+  result = (node1 * int_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == int_node.tensor.dtype == result.dtype
+  result = (int_node * node1).tensor
+  np.testing.assert_almost_equal(result, expected)
+
+  expected = np.array([[2.5, 5], [7.5, 10]])
+  result = (node3 * float_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+  result = (float_node * node3).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.dtype == float_node.dtype == result.dtype
+
+
+def test_node_and_scalar_mul_op(backend):
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.int32), backend=backend)
+  expected = np.array([[2, 4], [6, 8]])
+  result = (node * 2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'int64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+  node = Node(tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
+  expected = np.array([[2.5, 5], [7.5, 10]])
+  result = (node * 2.5).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'float64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+
+def test_between_node_div_op(backend):
+  node1 = Node(tensor=np.array([[1., 2.], [3., 4.]]), backend=backend)
+  node2 = Node(tensor=np.array([[10., 10.], [10., 10.]]), backend=backend)
+  node3 = Node(tensor=np.array([[1, 2], [3, 4]]), backend=backend)
+  int_node = Node(tensor=np.array(2, dtype=np.int64), backend=backend)
+  float_node = Node(tensor=np.array(2.5, dtype=np.float64), backend=backend)
+
+  expected = np.array([[0.1, 0.2], [0.3, 0.4]])
+  result = (node1 / node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == node2.tensor.dtype == result.dtype
+
+  expected = np.array([[0.5, 1.], [1.5, 2.]])
+  expected_pytorch = np.array([[0, 1], [1, 2]])
+  result = (node3 / int_node).tensor
+  if backend == 'pytorch':
+    np.testing.assert_almost_equal(result, expected_pytorch)
+    assert node3.tensor.dtype == result.dtype == torch.int64
+  else:
+    np.testing.assert_almost_equal(result, expected)
+    assert node3.tensor.dtype == 'int64'
+    assert result.dtype == 'float64'
+
+  expected = np.array([[2., 1.], [2/3, 0.5]])
+  expected_pytorch = np.array([[2, 1], [0, 0]])
+  result = (int_node / node3).tensor
+  if backend == 'pytorch':
+    np.testing.assert_almost_equal(result, expected_pytorch)
+    assert node3.tensor.dtype == result.dtype == torch.int64
+  else:
+    np.testing.assert_almost_equal(result, expected)
+    assert node3.tensor.dtype == 'int64'
+    assert result.dtype == 'float64'
+
+  expected = np.array([[4., 4.], [4., 4.]])
+  result = (node2 / float_node).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node2.dtype == float_node.dtype == result.dtype
+  expected = np.array([[0.25, 0.25], [0.25, 0.25]])
+  result = (float_node / node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node2.dtype == float_node.dtype == result.dtype
+
+
+def test_node_and_scalar_div_op(backend):
+  node = Node(tensor=np.array([[5, 10], [15, 20]], dtype=np.int32), backend=backend)
+  expected = np.array([[0.5, 1.], [1.5, 2.]])
+  expected_pytorch = np.array([[0, 1], [1, 2]])
+  result = (node / 10).tensor
+  if backend == 'pytorch':
+    np.testing.assert_almost_equal(result, expected_pytorch)
+    assert node.tensor.dtype == result.dtype == torch.int32
+  else:
+    np.testing.assert_almost_equal(result, expected)
+    assert result.dtype == 'float64'
+    assert node.tensor.dtype == 'int32'
+
+  node = Node(tensor=np.array([[5., 10.], [15., 20.]], dtype=np.float32), backend=backend)
+  expected = np.array([[2., 4.], [6., 8.]])
+  result = (node / 2.5).tensor
+  np.testing.assert_almost_equal(result, expected)
+  if backend == 'jax':
+    assert result.dtype == 'float64'
+  else:
+    assert node.tensor.dtype == result.dtype
+
+
+def test_node_add_input_error():
+  #pylint: disable=unused-variable
+  #pytype: disable=unsupported-operands
+  node1 = Node(tensor=2, backend='numpy')
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='numpy')
+
+  del node1._tensor
+  with pytest.raises(AttributeError):
+    result = node1 + node2
+    result = node2 + node1
+
+  node1.tensor = 1
+  node2 = 'str'
+  copynode = tn.CopyNode(rank=4, dimension=3)
+  with pytest.raises(TypeError):
+    result = node1 + node2
+    result = node1 + copynode
+
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
+  with pytest.raises(TypeError):
+    result = node1 + node2
+  #pytype: enable=unsupported-operands
+
+
+def test_node_sub_input_error():
+  #pylint: disable=unused-variable
+  #pytype: disable=unsupported-operands
+  node1 = Node(tensor=2, backend='numpy')
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='numpy')
+
+  del node1._tensor
+  with pytest.raises(AttributeError):
+    result = node1 - node2
+    result = node2 - node1
+
+  node1.tensor = 1
+  node2 = 'str'
+  copynode = tn.CopyNode(rank=4, dimension=3)
+  with pytest.raises(TypeError):
+    result = node1 - node2
+    result = node1 - copynode
+
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
+  with pytest.raises(TypeError):
+    result = node1 - node2
+  #pytype: enable=unsupported-operands
+
+
+def test_node_mul_input_error():
+  #pylint: disable=unused-variable
+  #pytype: disable=unsupported-operands
+  node1 = Node(tensor=2, backend='numpy')
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='numpy')
+
+  del node1._tensor
+  with pytest.raises(AttributeError):
+    result = node1 * node2
+    result = node2 * node1
+
+  node1.tensor = 1
+  node2 = 'str'
+  copynode = tn.CopyNode(rank=4, dimension=3)
+  with pytest.raises(TypeError):
+    result = node1 * node2
+    result = node1 * copynode
+
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
+  with pytest.raises(TypeError):
+    result = node1 * node2
+  #pytype: enable=unsupported-operands
+
+
+def test_node_div_input_error():
+  #pylint: disable=unused-variable
+  #pytype: disable=unsupported-operands
+  node1 = Node(tensor=2, backend='numpy')
+  node1 = Node(tensor=2, backend='numpy')
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='numpy')
+
+  del node1._tensor
+  with pytest.raises(AttributeError):
+    result = node1 / node2
+    result = node2 / node1
+
+  node1.tensor = 1
+  node2 = 'str'
+  copynode = tn.CopyNode(rank=4, dimension=3)
+  with pytest.raises(TypeError):
+    result = node1 / node2
+    result = node1 / copynode
+
+  node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
+  with pytest.raises(TypeError):
+    result = node1 / node2
+  #pytype: enable=unsupported-operands
 
 
 def test_node_save_structure(tmp_path, single_node_edge):
