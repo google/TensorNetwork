@@ -1929,19 +1929,16 @@ def trace(tensor: BlockSparseTensor,
     charges0 = tensor.charges[axes[0]]
     flows0 = tensor.flows[axes[0]]
     identities = [eye(Index([c], [not f])) for c, f in zip(charges0, flows0)]
-    #flattten the shape of `tensor`
+    #flatten the shape of `tensor`
     out = tensor.reshape(
         flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
-    vals1, _, a0_ = np.intersect1d(
+    _, _, labels0 = np.intersect1d(
         tensor._order[axes[0]], flatten(out._order), return_indices=True)
-    vals2, _, a1_ = np.intersect1d(
+    _, _, labels1 = np.intersect1d(
         tensor._order[axes[1]], flatten(out._order), return_indices=True)
 
-    i0 = np.argsort(tensor._order[axes[0]])
-    i1 = np.argsort(tensor._order[axes[1]])
-
-    a0 = list(a0_[i0])
-    a1 = list(a1_[i1])
+    a0 = list(labels0[np.argsort(tensor._order[axes[0]])])
+    a1 = list(labels1[np.argsort(tensor._order[axes[1]])])
 
     while len(a0) > 0:
       i = a0.pop(0)
