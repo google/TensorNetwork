@@ -20,7 +20,7 @@ from tensornetwork.block_sparse.index import Index, fuse_index_pair
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal
 import scipy as sp
-import itertools
+import copy
 import time
 # pylint: disable=line-too-long
 from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequence, Text
@@ -699,7 +699,8 @@ class ChargeArray:
                data: np.ndarray,
                charges: List[BaseCharge],
                flows: List[bool],
-               order: Optional[List[List[int]]] = None) -> None:
+               order: Optional[List[List[int]]] = None,
+               check_consistency: Optional[bool] = False) -> None:
     """
     Args: 
       data: An np.ndarray of the data. The number of elements in `data`
@@ -795,11 +796,11 @@ class ChargeArray:
 
   @property
   def charges(self):
-    return [self._charges[n] for n in self.flat_order]
+    return [[self._charges[n] for n in o] for o in self._order]
 
   @property
   def flows(self):
-    return [self._flows[n] for n in self.flat_order]
+    return [[self._flows[n] for n in o] for o in self._order]
 
   @property
   def flat_charges(self):
@@ -1078,13 +1079,13 @@ class BlockSparseTensor(ChargeArray):
           "cannot add or subtract tensors with different charge lengths {} and {}"
           .format(len(self._charges), len(other._charges)))
     if not np.all([
-        charge_equal(self.charges[n], other.charges[n])
-        for n in range(len(self.charges))
+        self.sparse_shape[n] == other.sparse_shape[n]
+        for n in range(len(self.sparse_shape))
     ]):
-      raise ValueError("cannot add or subtract tensors non-matching charges")
-
-    if not np.array_equal(self.flows, other.flows):
-      raise ValueError("cannot add or subtract tensors non-matching flows")
+      raise ValueError(
+          "cannot add or subtract tensors non-matching sparse shapes")
+    # if not np.array_equal(self.flows, other.flows):
+    #   raise ValueError("cannot add or subtract tensors non-matching flows")
 
   def __sub__(self, other: "BlockSparseTensor"):
     self._sub_add_protection(other)
@@ -1292,9 +1293,8 @@ class BlockSparseTensor(ChargeArray):
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(new_shape)))
 
-    # flat_charges, flat_flows = get_flat_meta_data(
-    #     [self.indices[o] for o in self.order])
-    flat_dims = [c.dim for c in self.charges]
+    flat_dims = flatten(
+        [[self._charges[n].dim for n in o] for o in self._order])
 
     partitions = [0]
     for n, ns in enumerate(new_shape):
@@ -1318,7 +1318,7 @@ class BlockSparseTensor(ChargeArray):
     flat_order = self.flat_order
     new_order = []
     for n in range(1, len(partitions)):
-      new_order.append(flat_order[partitions[n - 1]:partitions[n]])
+      new_order.append(list(flat_order[partitions[n - 1]:partitions[n]]))
     result = BlockSparseTensor(
         data=self.data,
         charges=self._charges,
@@ -1332,7 +1332,7 @@ def norm(tensor: BlockSparseTensor) -> float:
   return np.linalg.norm(tensor.data)
 
 
-def diag(tensor: ChargeArray) -> ChargeArray:
+def diag(tensor: ChargeArray) -> Any:
   if tensor.ndim > 2:
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
@@ -1556,6 +1556,7 @@ def tensordot(tensor1: BlockSparseTensor,
                                    [e.dim for e in contr_charges_2]))
   if not np.all(
       np.asarray(contr_flows_1) == np.logical_not(np.asarray(contr_flows_2))):
+
     raise ValueError("axes1 and axes2 have incompatible elementary"
                      " flows {} and {}".format(contr_flows_1, contr_flows_2))
 
@@ -1922,11 +1923,47 @@ def trace(tensor: BlockSparseTensor,
     if len(axes) != 2:
       raise ValueError(
           "`len(axes)` has to be 2, found `axes = {}`".format(axes))
-    if tensor.flows[axes[0]] == tensor.flows[axes[1]]:
+    if not np.array_equal(tensor.flows[axes[0]],
+                          np.logical_not(tensor.flows[axes[1]])):
       raise ValueError("trace indices have non-matching flows.")
-    index = Index([tensor.charges[axes[0]]], [tensor.flows[axes[0]]])
-    identity = eye(index)
-    out = tensordot(tensor, identity, (axes, [0, 1]))
+    charges0 = tensor.charges[axes[0]]
+    flows0 = tensor.flows[axes[0]]
+    identities = [eye(Index([c], [not f])) for c, f in zip(charges0, flows0)]
+    #flattten the shape of `tensor`
+    out = tensor.reshape(
+        flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
+    vals1, _, a0_ = np.intersect1d(
+        tensor._order[axes[0]], flatten(out._order), return_indices=True)
+    vals2, _, a1_ = np.intersect1d(
+        tensor._order[axes[1]], flatten(out._order), return_indices=True)
+
+    i0 = np.argsort(tensor._order[axes[0]])
+    i1 = np.argsort(tensor._order[axes[1]])
+
+    a0 = list(a0_[i0])
+    a1 = list(a1_[i1])
+
+    while len(a0) > 0:
+      i = a0.pop(0)
+      j = a1.pop(0)
+      identity = eye(
+          Index([out._charges[out._order[i][0]]],
+                [not out._flows[out._order[i][0]]]))
+      out = tensordot(out, identity, ([i, j], [0, 1]))
+      a0ar = np.asarray(a0)
+
+      mask_min = a0ar > np.min([i, j])
+      mask_max = a0ar > np.max([i, j])
+      a0ar[np.logical_and(mask_min, mask_max)] -= 2
+      a0ar[np.logical_xor(mask_min, mask_max)] -= 1
+
+      a1ar = np.asarray(a1)
+      mask_min = a1ar > np.min([i, j])
+      mask_max = a1ar > np.max([i, j])
+      a1ar[np.logical_and(mask_min, mask_max)] -= 2
+      a1ar[np.logical_xor(mask_min, mask_max)] -= 1
+      a0 = list(a0ar)
+      a1 = list(a1ar)
     return out
   raise ValueError("trace can only be taken for tensors with ndim>1")
 
@@ -1946,10 +1983,11 @@ def eye(column_index: Index,
   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
-  order = [np.arange(0, len(column_index.flat_charges))] + [
-      np.arange(
-          len(column_index.flat_charges),
-          len(column_index.flat_charges) + len(row_index.flat_charges))
+  order = [list(np.arange(0, len(column_index.flat_charges)))] + [
+      list(
+          np.arange(
+              len(column_index.flat_charges),
+              len(column_index.flat_charges) + len(row_index.flat_charges)))
   ]
   return BlockSparseTensor(
       data=data,
