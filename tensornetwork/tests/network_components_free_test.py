@@ -81,6 +81,10 @@ class TestNode(BaseNode):
     return super().shape
 
   @property
+  def sparse_shape(self):
+    return super().sparse_shape
+
+  @property
   def tensor(self):
     return super().tensor
 
@@ -96,6 +100,7 @@ class TestNode(BaseNode):
 
   def copy(self, conjugate: bool = False) -> "TestNode":
     return TestNode()
+
 
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):

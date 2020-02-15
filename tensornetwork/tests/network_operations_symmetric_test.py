@@ -16,6 +16,7 @@ import tensornetwork as tn
 import pytest
 import numpy as np
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
+from tensornetwork.block_sparse.charge import charge_equal
 from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
@@ -145,17 +146,17 @@ def test_split_node_rq_unitarity(dtype):
   u1 = q @ qbar
   qbar[0] ^ q[0]
   u2 = qbar @ q
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      u1.tensor.flat_charges, u1.tensor.flat_flows,
-      len(u1.tensor.indices[0].flat_charges))
+  blocks, _, shapes = _find_diagonal_sparse_blocks(u1.tensor.flat_charges,
+                                                   u1.tensor.flat_flows,
+                                                   len(u1.tensor._order[0]))
   for n, block in enumerate(blocks):
     np.testing.assert_almost_equal(
         np.reshape(u1.tensor.data[block], shapes[:, n]),
         np.eye(N=shapes[0, n], M=shapes[1, n]))
 
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      u2.tensor.flat_charges, u2.tensor.flat_flows,
-      len(u2.tensor.indices[0].flat_charges))
+  blocks, _, shapes = _find_diagonal_sparse_blocks(u2.tensor.flat_charges,
+                                                   u2.tensor.flat_flows,
+                                                   len(u2.tensor._order[0]))
   for n, block in enumerate(blocks):
     np.testing.assert_almost_equal(
         np.reshape(u2.tensor.data[block], shapes[:, n]),
@@ -176,8 +177,8 @@ def test_split_node_rq(dtype):
   result = tn.contract(left[3])
   np.testing.assert_allclose(result.tensor.data, a.tensor.data)
   assert np.all([
-      result.tensor.indices[n] == a.tensor.indices[n]
-      for n in range(len(a.tensor.indices))
+      charge_equal(result.tensor._charges[n], a.tensor._charges[n])
+      for n in range(len(a.tensor._charges))
   ])
 
 
@@ -191,17 +192,17 @@ def test_split_node_qr_unitarity(dtype):
   u1 = q @ qbar
   qbar[0] ^ q[0]
   u2 = qbar @ q
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      u1.tensor.flat_charges, u1.tensor.flat_flows,
-      len(u1.tensor.indices[0].flat_charges))
+  blocks, _, shapes = _find_diagonal_sparse_blocks(u1.tensor.flat_charges,
+                                                   u1.tensor.flat_flows,
+                                                   len(u1.tensor._order[0]))
   for n, block in enumerate(blocks):
     np.testing.assert_almost_equal(
         np.reshape(u1.tensor.data[block], shapes[:, n]),
         np.eye(N=shapes[0, n], M=shapes[1, n]))
 
-  blocks, _, shapes = _find_diagonal_sparse_blocks(
-      u2.tensor.flat_charges, u2.tensor.flat_flows,
-      len(u2.tensor.indices[0].flat_charges))
+  blocks, _, shapes = _find_diagonal_sparse_blocks(u2.tensor.flat_charges,
+                                                   u2.tensor.flat_flows,
+                                                   len(u2.tensor._order[0]))
   for n, block in enumerate(blocks):
     np.testing.assert_almost_equal(
         np.reshape(u2.tensor.data[block], shapes[:, n]),
@@ -222,8 +223,8 @@ def test_split_node_qr(dtype):
   result = tn.contract(left[3])
   np.testing.assert_allclose(result.tensor.data, a.tensor.data)
   assert np.all([
-      result.tensor.indices[n] == a.tensor.indices[n]
-      for n in range(len(a.tensor.indices))
+      charge_equal(result.tensor._charges[n], a.tensor._charges[n])
+      for n in range(len(a.tensor._charges))
   ])
 
 
@@ -233,8 +234,8 @@ def test_conj(dtype):
   abar = tn.conj(a)
   np.testing.assert_allclose(abar.tensor.data, a.backend.conj(a.tensor.data))
   assert np.all([
-      abar.tensor.indices[n] == a.tensor.indices[n].flip_flow()
-      for n in range(len(a.tensor.indices))
+      charge_equal(abar.tensor._charges[n], a.tensor._charges[n])
+      for n in range(len(a.tensor._charges))
   ])
 
 

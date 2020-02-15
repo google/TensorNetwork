@@ -822,6 +822,10 @@ class CopyNode(BaseNode):
     return (self.dimension,) * self.rank
 
   @property
+  def sparse_shape(self) -> Tuple[Optional[int], ...]:
+    return self.shape
+
+  @property
   def tensor(self) -> Tensor:
     if self._tensor is None:
       copy_tensor = self.make_copy_tensor(self.rank, self.dimension,

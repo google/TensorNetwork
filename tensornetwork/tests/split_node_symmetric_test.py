@@ -16,6 +16,7 @@ import tensornetwork as tn
 import pytest
 import numpy as np
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
+from tensornetwork.block_sparse.charge import charge_equal
 from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
@@ -69,6 +70,6 @@ def test_svd_consistency(dtype):
   np.testing.assert_allclose(
       final_node.tensor.data, original_tensor.data, rtol=1e-6)
   assert np.all([
-      final_node.tensor.indices[n] == original_tensor.indices[n]
-      for n in range(len(original_tensor.indices))
+      charge_equal(final_node.tensor._charges[n], original_tensor._charges[n])
+      for n in range(len(original_tensor._charges))
   ])

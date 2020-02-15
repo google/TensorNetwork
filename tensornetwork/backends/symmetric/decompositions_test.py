@@ -67,7 +67,7 @@ def test_max_singular_values(dtype, R, R1):
                                dtype=dtype)
   _, s, _, _ = decompositions.svd_decomposition(
       bt, A, R1, max_singular_values=max_singular_values)
-  assert len(s) == max_singular_values
+  assert len(s.data) == max_singular_values
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)

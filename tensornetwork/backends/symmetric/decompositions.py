@@ -14,7 +14,7 @@
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
+from tensornetwork.block_sparse.block_tensor import _find_transposed_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
 from tensornetwork.block_sparse.index import Index
 import numpy as np
 import warnings
@@ -141,8 +141,6 @@ def svd_decomposition(bt,
   #indices_v = [Index(new_right_charge, False), matrix.indices[1]]
 
   #We fill in data into the transposed U
-  #TODO: reuse data from _find_diagonal_sparse_blocks above
-  #to avoid the transpose
   U = BlockSparseTensor(
       np.concatenate([
           np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
