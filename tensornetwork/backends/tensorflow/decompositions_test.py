@@ -101,6 +101,21 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(vh.shape, (7, 10))
     self.assertAllClose(trun, np.arange(2, -1, -1))
 
+  def test_max_truncation_error_relative(self):
+    absolute = np.diag([2.0, 1.0, 0.2, 0.1])
+    relative = np.diag([2.0, 1.0, 0.2, 0.1])
+    max_truncation_err = 0.2
+    _, _, _, trunc_sv_absolute = decompositions.svd_decomposition(
+        tf, absolute, 1,
+        max_truncation_error=max_truncation_err,
+        relative=False)
+    _, _, _, trunc_sv_relative = decompositions.svd_decomposition(
+        tf, relative, 1,
+        max_truncation_error=max_truncation_err,
+        relative=True)
+    np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+    np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
+
 
 if __name__ == '__main__':
   tf.test.main()
