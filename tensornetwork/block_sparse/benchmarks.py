@@ -1,6 +1,7 @@
 import tensornetwork as tn
 import numpy as np
 import time
+#pylint: disable=line-too-long
 from tensornetwork.block_sparse.block_tensor import BlockSparseTensor, tensordot, transpose
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge

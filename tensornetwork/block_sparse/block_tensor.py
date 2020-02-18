@@ -1919,7 +1919,6 @@ def trace(tensor: BlockSparseTensor,
       raise ValueError("trace indices have non-matching flows.")
     charges0 = tensor.charges[axes[0]]
     flows0 = tensor.flows[axes[0]]
-    identities = [eye(Index([c], [not f])) for c, f in zip(charges0, flows0)]
     #flatten the shape of `tensor`
     out = tensor.reshape(
         flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
