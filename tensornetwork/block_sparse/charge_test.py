@@ -28,6 +28,5 @@ def test_BaseCharge_len():
   D = 300
   B = 5
   q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
-  unique = np.unique(q, axis=1)
   Q = BaseCharge(charges=q)
   assert len(Q) == 300
