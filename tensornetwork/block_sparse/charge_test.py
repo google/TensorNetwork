@@ -30,3 +30,15 @@ def test_BaseCharge_len():
   q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
   Q = BaseCharge(charges=q)
   assert len(Q) == 300
+
+
+def test_BaseCharge_copy():
+  D = 300
+  B = 5
+  q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
+  Q = BaseCharge(charges=q)
+  Qcopy = Q.copy()
+  assert Q.charge_labels is not Qcopy.charge_labels
+  assert Q.unique_charges is not Qcopy.unique_charges
+  np.testing.assert_allclose(Q.charge_labels, Qcopy.charge_labels)
+  np.testing.assert_allclose(Q.unique_charges, Qcopy.unique_charges)
