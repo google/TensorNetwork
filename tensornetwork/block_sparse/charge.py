@@ -24,6 +24,19 @@ from typing import List, Union, Any, Optional, Tuple, Text, Iterable, Type
 
 
 class BaseCharge:
+  """
+  Base class for charges of BlockSparseTensor. All user defined charges 
+  should be derived from this class.
+  Attributes:
+    * unique_charges: np.ndarray of shape `(m,n)` with `m`
+      the number of charge types, and `n` the number of unique charges.
+    * charge_labels: np.ndarray of dtype np.int16. Used for identifying 
+      charges with integer labels. `unique_charges[:, charge_labels] 
+      is the np.ndarray of actual charges.
+    * charge_types: A list of `type` objects. Stored the different charge types,
+      on for each row in `unique_charges`.
+      
+  """
 
   def __init__(self,
                charges: np.ndarray,
@@ -38,8 +51,6 @@ class BaseCharge:
       self.charge_labels = self.charge_labels.astype(np.int16)
     else:
       self.charge_labels = np.asarray(charge_labels, dtype=np.int16)
-      # if charge_labels.dtype not in (np.int16, np.int16):
-      #   raise TypeError("`charge_labels` have to be of dtype `np.int16`")
 
       self.unique_charges = charges.astype(np.int16)
       self.charge_labels = charge_labels.astype(np.int16)
@@ -82,13 +93,11 @@ class BaseCharge:
     return self.unique_charges.shape[1]
 
   @property
-  def identity_charges(self) -> np.ndarray:
+  def identity_charges(self) -> "BaseCharge":
     """
-    Give the identity charge associated to a symmetries type in `charge_types`.
-    Args:
-      charge_types: A list of charge-types.
+    Returns the identity charge.
     Returns:
-      nd.array: vector of identity charges for each symmetry in self 
+      BaseCharge: The identity charge.
     """
     unique_charges = np.expand_dims(
         np.asarray([ct.identity_charge() for ct in self.charge_types],
@@ -104,7 +113,7 @@ class BaseCharge:
     Args:
       other: A `BaseCharge` object.
     Returns:
-      Charge: The result of fusing `self` with `other`.
+      BaseCharge: The result of fusing `self` with `other`.
     """
 
     # fuse the unique charges from each index, then compute new unique charges
@@ -127,7 +136,15 @@ class BaseCharge:
 
     return obj
 
-  def dual(self, take_dual: Optional[bool] = False) -> np.ndarray:
+  def dual(self, take_dual: Optional[bool] = False) -> "BaseCharge":
+    """
+    Return the charges of `BaseCharge`, possibly conjugated.
+    Args:
+      take_dual: If `True` return the dual charges. If `False` return 
+        regular charges.
+    Returns:
+      BaseCharge
+    """
     if take_dual:
       unique_dual_charges = np.stack([
           self.charge_types[n].dual_charges(self.unique_charges[n, :])
@@ -141,6 +158,9 @@ class BaseCharge:
     return self
 
   def copy(self):
+    """
+    Return a copy of `BaseCharge`.
+    """
     obj = self.__new__(type(self))
     obj.__init__(
         charges=self.unique_charges.copy(),
@@ -150,6 +170,9 @@ class BaseCharge:
 
   @property
   def charges(self):
+    """
+    Return the actual charges of `BaseCharge` as np.ndarray.
+    """
     return self.unique_charges[:, self.charge_labels]
 
   def __repr__(self):
@@ -166,6 +189,21 @@ class BaseCharge:
     return self.dual(number)
 
   def intersect(self, other, assume_unique=False, return_indices=False) -> Any:
+    """
+    Compute the intersection of `self` with `other`. See also np.intersect1d.
+    Args:
+      other: A BaseCharge object.
+      assume_unique: If `True` assume that elements are unique.
+      return_indices: If `True`, return index-labels.
+    Returns:
+      If `return_indices=True`:
+        BaseCharge
+        np.ndarray: The indices of the first occurrences of the common values in `self`.
+        np.ndarray: The indices of the first occurrences of the common values in `other`.
+      If `return_indices=False`:
+        BaseCharge
+    """
+
     if isinstance(other, type(self)):
       out = intersect(
           self.unique_charges,
@@ -267,11 +305,12 @@ class BaseCharge:
              return_locations: bool = False,
              strides: int = 1) -> Any:
     """
-    Reduce the dim of a charge to keep only the index values that intersect target_charges
+    Reduce the dimension of a 
+    charge to keep only the charge values that intersect target_charges
     Args:
-      target_charges: array of unique quantum numbers to keep.
-      return_locations: If `True`, also return the output index 
-        locations of target values.
+      target_charges: array of unique charges to keep.
+      return_locations: If `True`, also return the locations of 
+        target values within `BaseCharge`.
     Returns:
       BaseCharge: index of reduced dimension.
       np.ndarray: If `return_locations = True`; the index locations 
@@ -518,6 +557,10 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
 
 
 def charge_equal(c1, c2):
+  """
+  Compare two BaseCharges `c1` and `c2`.
+  Return `True` if they are equal, else `False`.
+  """
   if c1.dim != c2.dim:
     return False
   if not np.all(c1.unique_charges == c2.unique_charges):
