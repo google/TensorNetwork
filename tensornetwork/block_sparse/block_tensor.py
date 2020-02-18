@@ -1917,8 +1917,6 @@ def trace(tensor: BlockSparseTensor,
     if not np.array_equal(tensor.flows[axes[0]],
                           np.logical_not(tensor.flows[axes[1]])):
       raise ValueError("trace indices have non-matching flows.")
-    charges0 = tensor.charges[axes[0]]
-    flows0 = tensor.flows[axes[0]]
     #flatten the shape of `tensor`
     out = tensor.reshape(
         flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
