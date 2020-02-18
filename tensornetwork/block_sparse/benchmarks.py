@@ -1,7 +1,7 @@
 import tensornetwork as tn
 import numpy as np
 import time
-from tensornetwork.block_sparse.block_tensor import BlockSparseTensor, tensordot
+from tensornetwork.block_sparse.block_tensor import BlockSparseTensor, tensordot, transpose
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge
 
@@ -32,7 +32,7 @@ def benchmark_1_U1():
   np.random.shuffle(final_order)
 
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 1- U1: {}s'.format(time.time() - t1))
 
 
@@ -65,7 +65,7 @@ def benchmark_1_U1xU1():
   final_order = np.arange(R)
   np.random.shuffle(final_order)
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 1- U1xU1: {}s'.format(time.time() - t1))
 
 
@@ -88,7 +88,7 @@ def benchmark_2_U1():
   final_order = np.arange(R)
   np.random.shuffle(final_order)
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 2- U1: {}s'.format(time.time() - t1))
 
 
@@ -112,7 +112,7 @@ def benchmark_2_U1xU1():
   final_order = np.arange(R)
   np.random.shuffle(final_order)
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 2- U1xU1: {}s'.format(time.time() - t1))
 
 
@@ -136,7 +136,7 @@ def benchmark_3_U1():
   final_order = np.arange(R)
   np.random.shuffle(final_order)
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 3- U1: {}s'.format(time.time() - t1))
 
 
@@ -160,7 +160,7 @@ def benchmark_3_U1xU1():
   final_order = np.arange(R)
   np.random.shuffle(final_order)
   t1 = time.time()
-  tensordot(A, B, (indsA, indsB), final_order)
+  transpose(tensordot(A, B, (indsA, indsB)), final_order)
   print('BM 3- U1xU1: {}s'.format(time.time() - t1))
 
 

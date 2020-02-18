@@ -704,7 +704,8 @@ class ChargeArray:
       self._order = order
 
   @classmethod
-  def randn(cls, indices: List[Index],
+  def randn(cls,
+            indices: Union[Tuple[Index], List[Index]],
             dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
     Initialize a random ChargeArray object.
@@ -728,7 +729,7 @@ class ChargeArray:
 
   @classmethod
   def random(cls,
-             indices: List[Index],
+             indices: Union[Tuple[Index], List[Index]],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
@@ -810,7 +811,7 @@ class ChargeArray:
     return list(self._flows)
 
   @property
-  def flat_order(self) -> Tuple:
+  def flat_order(self) -> List:
     """
     The flattened `ChargeArray._oder`.
     """
@@ -915,7 +916,8 @@ class BlockSparseTensor(ChargeArray):
     return result.transpose(flat_order).reshape(self.shape)
 
   @classmethod
-  def randn(cls, indices: List[Index],
+  def randn(cls,
+            indices: Union[Tuple[Index], List[Index]],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from random normal distribution.
@@ -945,7 +947,8 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   @classmethod
-  def ones(cls, indices: List[Index],
+  def ones(cls,
+           indices: Union[Tuple[Index], List[Index]],
            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with ones.
@@ -968,7 +971,8 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   @classmethod
-  def zeros(cls, indices: List[Index],
+  def zeros(cls,
+            indices: Union[Tuple[Index], List[Index]],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with zeros.
@@ -992,7 +996,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def random(cls,
-             indices: List[Index],
+             indices: Union[Tuple[Index], List[Index]],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
@@ -1990,7 +1994,7 @@ def eye(column_index: Index,
       check_consistency=False)
 
 
-def ones(indices: List[Index],
+def ones(indices: Union[Tuple[Index], List[Index]],
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a symmetric tensor with ones.
@@ -2004,7 +2008,7 @@ def ones(indices: List[Index],
   return BlockSparseTensor.ones(indices, dtype)
 
 
-def zeros(indices: List[Index],
+def zeros(indices: Union[Tuple[Index], List[Index]],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a symmetric tensor with zeros.
@@ -2018,7 +2022,7 @@ def zeros(indices: List[Index],
   return BlockSparseTensor.zeros(indices, dtype)
 
 
-def randn(indices: List[Index],
+def randn(indices: Union[Tuple[Index], List[Index]],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a random symmetric tensor from random normal distribution.
@@ -2032,7 +2036,7 @@ def randn(indices: List[Index],
   return BlockSparseTensor.randn(indices, dtype)
 
 
-def rand(indices: List[Index],
+def rand(indices: Union[Tuple[Index], List[Index]],
          boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
