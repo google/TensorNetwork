@@ -76,7 +76,7 @@ def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
 
 def compute_sparse_lookup(
     charges: List[BaseCharge], flows: List[bool],
-    target_charges: BaseCharge) -> Tuple[np.ndarrray, np.ndarray, np.ndarray]:
+    target_charges: BaseCharge) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """
   Compute lookup table for looking up how dense index positions map 
   to sparse index positions.
@@ -268,16 +268,16 @@ def reduce_charges(charges: List[BaseCharge],
     flows: A list of bool, one for each leg of a tensor.
       with values `False` or `True` denoting inflowing and 
       outflowing charge direction, respectively.
-    target_charges (np.ndarray): n-by-m array describing qauntum numbers of the
-      qnums which should be kept with 'n' the number of symmetries.
-    return_locations (bool, optional): if True then return the location of the kept
+    target_charges: n-by-D array of charges which should be kept,
+      with `n` the number of symmetries.
+    return_locations: If `True` return the location of the kept
       values of the fused charges
-    strides (np.ndarray, optional): index strides with which to compute the
-      return_locations of the kept elements. Defaults to trivial strides (based on
-      row major order) if ommitted.
+    strides: Index strides with which to compute the
+      retured locations of the kept elements. Defaults to trivial strides (based on
+      row major order).
   Returns:
     BaseCharge: the fused index after reduction.
-    np.ndarray: locations of the fused BaseCharge qnums that were kept.
+    np.ndarray: Locations of the fused BaseCharge charges that were kept.
   """
 
   tensor_dims = [len(c) for c in charges]
@@ -376,18 +376,19 @@ def _find_diagonal_sparse_blocks(
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
   bi-partition).
   Args:
-    charges (List[SymIndex]): list of SymIndex.
-    flows (np.ndarray): vector of bools describing index orientations.
-    partition_loc (int): location of tensor partition (i.e. such that the 
-      tensor is viewed as a matrix between first partition_loc charges and 
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    partition: location of tensor partition (i.e. such that the 
+      tensor is viewed as a matrix between `charges[:partition]` and 
       the remaining charges).
   Returns:
     block_maps (List[np.ndarray]): list of integer arrays, which each 
       containing the location of a symmetry block in the data vector.
-    block_qnums (np.ndarray): n-by-m array describing qauntum numbers of each 
+    block_qnums (BaseCharge): The charges of the corresponding blocks.n
       block, with 'n' the number of symmetries and 'm' the number of blocks.
-    block_dims (np.ndarray): 2-by-m array describing the dims each block, 
-      with 'm' the number of blocks).
+    block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   num_inds = len(charges)
   num_syms = charges[0].num_symmetries
@@ -476,19 +477,20 @@ def _find_transposed_diagonal_sparse_blocks(
   is the partition of the transposed tensor according to 
   which the diagonal blocks shoul be found.
   Args:
-    charges: List of charges.
-    flows: vector of bools describing index orientations.q
-    tr_partition: location of tensor partition (i.e. such that the 
-      tensor is viewed as a matrix between first partition charges and 
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    tr_partition: Location of the transposed tensor partition (i.e. such that the 
+      tensor is viewed as a matrix between `charges[order[:partition]]` and 
       the remaining charges).
-    order: order with which to permute the tensor axes. 
+    order: Order with which to permute the tensor axes. 
   Returns:
     block_maps (List[np.ndarray]): list of integer arrays, which each 
       containing the location of a symmetry block in the data vector.
-    block_qnums (np.ndarray): n-by-m array describing qauntum numbers of each 
+    block_qnums (BaseCharge): The charges of the corresponding blocks.n
       block, with 'n' the number of symmetries and 'm' the number of blocks.
-    block_dims (np.ndarray): 2-by-m array describing the dims each block, 
-      with 'm' the number of blocks).
+    block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
   if np.array_equal(order, None) or (np.array_equal(
@@ -661,8 +663,8 @@ def _find_transposed_diagonal_sparse_blocks(
 
 class ChargeArray:
   """
-  Class storing a diagonal block-sparse matrix as a vector of diagonal 
-  elements and charges.
+  Base class for BlockSparseTensor.
+  Stores a dense tensor together with its charge data.
   """
 
   def __init__(self,
@@ -672,11 +674,17 @@ class ChargeArray:
                order: Optional[List[List[int]]] = None,
                check_consistency: Optional[bool] = False) -> None:
     """
+    Initialize a `ChargeArray` object. `len(data)` has to 
+    be equal to `np.prod([c.dim for c in charges])`.
+    
     Args: 
-      data: An np.ndarray of the data. The number of elements in `data`
-        has to match the number of non-zero elements defined by `charges` 
-        and `flows`
-      index: List of `Index` objecst, one for each leg. 
+      data: An np.ndarray of the data. 
+      charges: A list of `BaseCharge` objects.
+      flows: The flows of the tensor indices, `False` for inflowing, `True`
+        for outflowing.
+      order: An optional order argument, determining the shape and order of the
+        tensor.
+      check_consistency: No effect. Needed for consistency with derived class constructors.
     """
     self._charges = charges
     self._flows = np.asarray(flows)
@@ -701,7 +709,7 @@ class ChargeArray:
     """
     Initialize a random ChargeArray object.
     Args:
-      index: `Index` object
+      indices: List of `Index` objects.
       dtype: An optional numpy dtype. The dtype of the ChargeArray
     Returns:
       ChargeArray
@@ -726,7 +734,9 @@ class ChargeArray:
     """
     Initialize a random ChargeArray object.
     Args:
-      index: `Index` object
+      indices: List of `Index` objects.
+      boundaries: Tuple of interval boundaries for the random uniform 
+        distribution.
       dtype: An optional numpy dtype. The dtype of the ChargeArray
     Returns:
       ChargeArray
@@ -748,10 +758,16 @@ class ChargeArray:
 
   @property
   def ndim(self):
+    """
+    The number of tensor dimensions.
+    """
     return len(self._order)
 
   @property
   def dtype(self) -> Type[np.number]:
+    """
+    The dtype of `ChargeArray`.
+    """
     return self.data.dtype
 
   @property
@@ -765,11 +781,24 @@ class ChargeArray:
         [np.prod([self._charges[n].dim for n in s]) for s in self._order])
 
   @property
-  def charges(self):
+  def charges(self) -> List[List[BaseCharge]]:
+    """
+    A list of list of `BaseCharge`.
+    The charges, in the current shape and index order as determined by `ChargeArray._order`.
+    Returns:
+      List of List of BaseCharge
+    """
     return [[self._charges[n] for n in o] for o in self._order]
 
   @property
   def flows(self):
+    """
+    A list of list of `bool`.
+    The flows, in the current shape and index order as determined by `ChargeArray._order`.
+    Returns:
+      List of List of bool
+    """
+
     return [[self._flows[n] for n in o] for o in self._order]
 
   @property
@@ -782,16 +811,10 @@ class ChargeArray:
 
   @property
   def flat_order(self) -> Tuple:
+    """
+    The flattened `ChargeArray._oder`.
+    """
     return flatten(self._order)
-
-  @property
-  def flat_shape(self) -> Tuple:
-    """
-    The dense shape of the tensor.
-    Returns:
-      Tuple: A tuple of `int`.
-    """
-    return tuple([c.dim for c in self._charges])
 
   @property
   def sparse_shape(self) -> Tuple:
@@ -816,63 +839,28 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  # def _sub_add_protection(self, other):
-  #   if not isinstance(other, type(self)):
-  #     raise TypeError(
-  #         "Can only add or subtract BlockSparseTensor from BlockSparseTensor. "
-  #         "Found type {}".format(type(other)))
-  #   if self.shape != other.shape:
-  #     raise ValueError(
-  #         "cannot add or subtract tensors with shapes {}and {}".format(
-  #             self.shape, other.shape))
-  #   if len(self.charges) != len(other.charges):
-  #     raise ValueError(
-  #         "cannot add or subtract tensors with different charge lengths {} and {}"
-  #         .format(len(self.charges), len(other.charges)))
-  #   if not np.array_equal(self.flat_order, other.flat_order):
-  #     raise ValueError(
-  #         "cannot add or subtract tensors with non-matching flat_order")
-
-  #   if not np.all([
-  #       charge_equal(self.charges[n], other.charges[n])
-  #       for n in range(len(self.indices))
-  #   ]):
-  #     raise ValueError("cannot add or subtract tensors non-matching charges")
-
-  #   if not np.array_equal(self.flows, other.flows):
-  #     raise ValueError("cannot add or subtract tensors non-matching flows")
-
-  # def __sub__(self, other: "BlockSparseTensor"):
-  #   self._sub_add_protection(other)
-  #   return ChargeArray(
-  #       data=self.data - other.data, charges=self.charges, flows=self.flows)
-
-  # def __add__(self, other: "BlockSparseTensor"):
-  #   self._sub_add_protection(other)
-  #   return ChargeArray(
-  #       data=self.data + other.data, charges=self.charges, flows=self.flows)
-
-  # def __mul__(self, number: np.number):
-  #   return ChargeArray(
-  #       data=self.data * number, charges=self._charges, flows=self._flows)
-
-  # def __rmul__(self, number: np.number):
-  #   return ChargeArray(
-  #       data=self.data * number, charges=self._charges, flows=self._flows)
-
-  # def __truediv__(self, number: np.number):
-  #   return ChargeArray(
-  #       data=self.data / number, charges=self._charges, flows=self._flows)
-
 
 class BlockSparseTensor(ChargeArray):
   """
-  Minimal class implementation of block sparsity.
-  The class design follows Glen's proposal (Design 0).
-  The class currently only supports a single U(1) symmetry
-  and only numpy.ndarray.
-
+  A block-sparse tensor class. This class stores non-zero
+  elements of a symmetric tensor using an element wise
+  encoding.
   The tensor data is stored in self.data, a 1d np.ndarray.
+  Attributes:
+    * _data: np.ndarray; the data of the tensor.
+    * _charges: A list of `BaseCharge` objects, one for each 
+        elementary leg of the tensor.
+    * _flows: A list of bool, denoting the flow direction of
+        each elementary leg.
+    * _order: A list of list of int: Used to implement `reshape` and 
+        `transpose` operations. Both operations act entirely
+        on meta-data of the tensor. `_order` determines which elemetary 
+        legs of the tensor are combined, and where they go. 
+        E.g. a tensor of rank 4 is initialized with 
+        `_order=[[0],[1],[2],[3]]`. Fusing legs 1 and 2
+        results in `_order=[[0],[1,2],[3]]`, transposing with 
+        `(1,2,0)` results in `_order=[[1,2],[3],[0]]`.
+        No data is shuffled during these operations.
   """
 
   def __init__(self,
@@ -883,15 +871,18 @@ class BlockSparseTensor(ChargeArray):
                check_consistency: Optional[bool] = True) -> None:
     """
     Args: 
-      data: An np.ndarray of the data. The number of elements in `data`
-        has to match the number of non-zero elements defined by `charges` 
-        and `flows`
-      indices: List of `Index` objecst, one for each leg. 
-      check_consistency: If `True`, check if len(data) is consistent with 
-        number of non-zero elements given by the charges
+      data: An np.ndarray of the data. 
+      charges: A list of `BaseCharge` objects.
+      flows: The flows of the tensor indices, `False` for inflowing, `True`
+        for outflowing.
+      order: An optional order argument, determining the shape and order of the
+        tensor.
+      check_consistency: If `True`, check if `len(data)` is consistent with 
+        number of non-zero elements given by the charges. This usually causes
+        significant overhead.
     """
-    self._charges = charges
-    self._flows = np.asarray(flows)
+    super().__init__(data=data, charges=charges, flows=flows, order=order)
+
     if check_consistency and (len(self._charges) > 0):
       num_non_zero_elements = compute_num_nonzero(self._charges, self._flows)
       if num_non_zero_elements != len(data.flat):
@@ -899,9 +890,11 @@ class BlockSparseTensor(ChargeArray):
                          "by `charges` is different from"
                          " len(data)={}".format(num_non_zero_elements,
                                                 len(data.flat)))
-    super().__init__(data=data, charges=charges, flows=flows, order=order)
 
-  def copy(self):
+  def copy(self) -> "BlockSparseTensor":
+    """
+    Return a copy of the tensor.
+    """
     return BlockSparseTensor(self.data.copy(),
                              [c.copy() for c in self._charges], self._flows,
                              self._order, False)
@@ -1003,9 +996,11 @@ class BlockSparseTensor(ChargeArray):
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
-    Initialize a random symmetric tensor from random normal distribution.
+    Initialize a random symmetric tensor from random uniform distribution.
     Args:
       indices: List of `Index` objecst, one for each leg. 
+      boundaries: Tuple of interval boundaries for the random uniform 
+        distribution.
       dtype: An optional numpy dtype. The dtype of the tensor
     Returns:
       BlockSparseTensor
@@ -1054,8 +1049,6 @@ class BlockSparseTensor(ChargeArray):
     ]):
       raise ValueError(
           "cannot add or subtract tensors non-matching sparse shapes")
-    # if not np.array_equal(self.flows, other.flows):
-    #   raise ValueError("cannot add or subtract tensors non-matching flows")
 
   def __sub__(self, other: "BlockSparseTensor"):
     self._sub_add_protection(other)
@@ -1098,7 +1091,7 @@ class BlockSparseTensor(ChargeArray):
   def __rmul__(self, number: np.number):
     if not np.isscalar(number):
       raise TypeError(
-          "Can only right- multiply BlockSparseTensor by a number. Found type {}"
+          "Can only right-multiply BlockSparseTensor by a number. Found type {}"
           .format(type(number)))
     return BlockSparseTensor(
         data=self.data * number,
@@ -1122,20 +1115,17 @@ class BlockSparseTensor(ChargeArray):
 
   def __matmul__(self, other):
 
-    if self.ndim != 2:
-      raise ValueError('__matmul__ only implemented for matrices')
-
-    if other.ndim != 2:
-      raise ValueError('__matmul__ only implemented for matrices')
+    if (self.ndim != 2) or (other.ndim != 2):
+      raise ValueError("__matmul__ only implemented for matrices."
+                       " Found ndims =  {} and {}".format(
+                           self.ndim, other.ndim))
     return tensordot(self, other, ([1], [0]))
 
   def conj(self):
     """
-    Transpose the tensor in place into the new order `order`. 
-    Args:
-      order: The new order of indices.
+    Complex conjugate operation.
     Returns:
-      BlockSparseTensor: The transposed tensor.
+      BlockSparseTensor: The conjugated tensor
     """
     return BlockSparseTensor(
         data=np.conj(self.data),
@@ -1150,7 +1140,20 @@ class BlockSparseTensor(ChargeArray):
 
   def transpose_data(self,
                      flat_order: Optional[Union[List, np.ndarray]] = None):
-
+    """
+    Transpose the tensor data in place such that the linear order 
+    of the elements in `BlockSparseTensor.data` corresponds to the 
+    current order of tensor indices. 
+    Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
+    i.e. `data` was initialized according to order [0,1,2,3], and the tensor
+    has since been reshaped and transposed. The linear oder of `data` does not
+    match the desired order [1,2,3,0] of the tensor. `transpose_data` fixes this
+    by permuting `data` into this order, transposing `_charges` and `_flows`,
+    and changing `_order` to `[[0,1],[2],[3]]`.
+    Args:
+      flat_order: An optional alternative order to be used to transposed the 
+        tensor. If `None` defaults to `BlockSparseTensor.flat_order`.
+    """
     flat_charges = self.flat_charges
     flat_flows = self.flat_flows
     if flat_order is None:
@@ -1187,7 +1190,8 @@ class BlockSparseTensor(ChargeArray):
                     [1, 0]),
                 shuffle: Optional[bool] = False) -> "BlockSparseTensor":
     """
-    Transpose the tensor in place into the new order `order`. 
+    Transpose the tensor into the new order `order`. If `shuffle=False`
+    no data-reshuffling is done.
     Args:
       order: The new order of indices.
       shuffle: If `True`, reshuffle data.
@@ -1217,11 +1221,10 @@ class BlockSparseTensor(ChargeArray):
   ) -> "BlockSparseTensor":
     """
     Reshape `tensor` into `shape.
-    `BlockSparseTensor.reshape` works essentially the same as the dense 
+    `BlockSparseTensor.reshape` works the same as the dense 
     version, with the notable exception that the tensor can only be 
-    reshaped into a form compatible with its elementary indices. 
-    The elementary indices are the indices at the leaves of the `Index` 
-    objects `tensors.indices`.
+    reshaped into a form compatible with its elementary shape. 
+    The elementary shape is the shape determined by BlockSparseTensor._charges.
     For example, while the following reshaping is possible for regular 
     dense numpy tensor,
     ```
@@ -1230,12 +1233,12 @@ class BlockSparseTensor(ChargeArray):
     ```
     the same code for BlockSparseTensor
     ```
-    q1 = np.random.randint(0,10,6)
-    q2 = np.random.randint(0,10,6)
-    q3 = np.random.randint(0,10,6)
-    i1 = Index(charges=q1,flow=1)
-    i2 = Index(charges=q2,flow=-1)
-    i3 = Index(charges=q3,flow=1)
+    q1 = U1Charge(np.random.randint(0,10,6))
+    q2 = U1Charge(np.random.randint(0,10,6))
+    q3 = U1Charge(np.random.randint(0,10,6))
+    i1 = Index(charges=q1,flow=False)
+    i2 = Index(charges=q2,flow=True)
+    i3 = Index(charges=q3,flow=False)
     A=BlockSparseTensor.randn(indices=[i1,i2,i3])
     print(A.shape) #prints (6,6,6)
     A.reshape((2,3,6,6)) #raises ValueError
@@ -1299,10 +1302,18 @@ class BlockSparseTensor(ChargeArray):
 
 
 def norm(tensor: BlockSparseTensor) -> float:
+  """
+  The norm of the tensor.
+  """
   return np.linalg.norm(tensor.data)
 
 
 def diag(tensor: ChargeArray) -> Any:
+  """
+  Return a diagonal BlockSparseTensor from a ChargeArray, or 
+  return the diagonal of a BlockSparseTensor as a ChargeArray
+  
+  """
   if tensor.ndim > 2:
     raise TypeError("`diag` currently only implemented for matrices, "
                     "found `ndim={}".format(tensor.ndim))
@@ -1365,12 +1376,11 @@ def reshape(
     shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
 ) -> BlockSparseTensor:
   """
-  Reshape `tensor` into `shape`.
-  `reshape` works essentially the same as the dense version, with the
-  notable exception that the tensor can only be reshaped into a form
-  compatible with its elementary shape. The elementary shape is 
-  the shape determined by the flattened charges of all `Index` objects 
-  in `tensors.indices`.
+  Reshape `tensor` into `shape.
+  `BlockSparseTensor.reshape` works the same as the dense 
+  version, with the notable exception that the tensor can only be 
+  reshaped into a form compatible with its elementary shape. 
+  The elementary shape is the shape determined by BlockSparseTensor._charges.
   For example, while the following reshaping is possible for regular 
   dense numpy tensor,
   ```
@@ -1387,13 +1397,13 @@ def reshape(
   i3 = Index(charges=q3,flow=False)
   A=BlockSparseTensor.randn(indices=[i1,i2,i3])
   print(A.shape) #prints (6,6,6)
-  reshape(A, (2,3,6,6)) #raises ValueError
+  A.reshape((2,3,6,6)) #raises ValueError
   ```
   raises a `ValueError` since (2,3,6,6)
   is incompatible with the elementary shape (6,6,6) of the tensor.
-
+  
   Args:
-    tensopr: A symmetric tensor.
+    tensor: A symmetric tensor.
     shape: The new shape. Can either be a list of `Index` 
       or a list of `int`.
   Returns:
@@ -1411,11 +1421,11 @@ def transpose(tensor: BlockSparseTensor,
               order: Optional[Union[List[int], np.ndarray]] = np.asarray(
                   [1, 0])) -> "BlockSparseTensor":
   """
-  Transpose `tensor` into the new order `order`. 
-  This routine currently shuffles data.
-  Args: 
-    tensor: The tensor to be transposed.
+  Transpose the tensor into the new order `order`. If `shuffle=False`
+  no data-reshuffling is done.
+  Args:
     order: The new order of indices.
+    shuffle: If `True`, reshuffle data.
   Returns:
     BlockSparseTensor: The transposed tensor.
   """
@@ -1468,7 +1478,6 @@ def tensordot(tensor1: BlockSparseTensor,
     axes: The axes to contract.
   Returns:
       BlockSparseTensor: The result of the tensor contraction.
-
   """
 
   if isinstance(axes, (np.integer, int)):
@@ -1619,10 +1628,10 @@ def svd(matrix: BlockSparseTensor,
   and `s` its singular values.
   Args:
     matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
-    full_matrices: If `True`, exand `u` and `v` to square matrices
+    full_matrices: If `True`, expand `u` and `v` to square matrices
       If `False` return the "economic" svd, i.e. `u.shape[1]=s.shape[0]`
       and `v.shape[0]=s.shape[1]`
-    compute_yv: If `True`, return `u` and `v`.
+    compute_uv: If `True`, return `u` and `v`.
     hermitian: If `True`, assume hermiticity of `matrix`.
   Returns:
     If `compute_uv` is `True`: Three BlockSparseTensors `U,S,V`.
@@ -1787,7 +1796,7 @@ def eigh(matrix: BlockSparseTensor,
     matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
 
   Returns:
-    (BlockSparseTensor,BlockSparseTensor): The eigenvalues and eigenvectors
+    (ChargeArray,BlockSparseTensor): The eigenvalues and eigenvectors
 
   """
   if matrix.ndim != 2:
@@ -1834,7 +1843,7 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
     matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
 
   Returns:
-    (BlockSparseTensor,BlockSparseTensor): The eigenvalues and eigenvectors
+    (ChargeArray,BlockSparseTensor): The eigenvalues and eigenvectors
 
   """
   if matrix.ndim != 2:
@@ -1887,6 +1896,14 @@ def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]) -> Any:
 
 def trace(tensor: BlockSparseTensor,
           axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
+  """
+  Compute the trace of a matrix or tensor.
+  Args:
+    The axes over which the trace should be computed.
+      Defaults to the last two indices of the tensor.
+  Returns:
+    BlockSparseTensor: The result of taking the trace.
+  """
   if tensor.ndim > 1:
     if axes is None:
       axes = (tensor.ndim - 2, tensor.ndim - 1)
@@ -1938,6 +1955,15 @@ def trace(tensor: BlockSparseTensor,
 def eye(column_index: Index,
         row_index: Optional[Index] = None,
         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Return an identity matrix.
+  Args:
+    column_index: The column index of the matrix.
+    row_index: The row index of the matrix.
+    dtype: The dtype of the matrix.
+  Returns:
+    BlockSparseTensor
+  """
   if row_index is None:
     row_index = column_index.copy().flip_flow()
   if dtype is None:
@@ -1966,26 +1992,68 @@ def eye(column_index: Index,
 
 def ones(indices: List[Index],
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a symmetric tensor with ones.
+  Args:
+    indices: List of `Index` objecst, one for each leg. 
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
+
   return BlockSparseTensor.ones(indices, dtype)
 
 
 def zeros(indices: List[Index],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a symmetric tensor with zeros.
+  Args:
+    indices: List of `Index` objecst, one for each leg. 
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
+
   return BlockSparseTensor.zeros(indices, dtype)
 
 
 def randn(indices: List[Index],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a random symmetric tensor from random normal distribution.
+  Args:
+    indices: List of `Index` objecst, one for each leg. 
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
+
   return BlockSparseTensor.randn(indices, dtype)
 
 
 def rand(indices: List[Index],
          boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a random symmetric tensor from random uniform distribution.
+  Args:
+    indices: List of `Index` objecst, one for each leg. 
+    boundaries: Tuple of interval boundaries for the random uniform 
+      distribution.
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
   return BlockSparseTensor.random(indices, boundaries, dtype)
 
 
 def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
+  """
+  Compute the matrix inverse of `matrix`.
+  Returns:
+    BlockSparseTensor: The inverse of `matrix`.
+  """
   if matrix.ndim != 2:
     raise ValueError("`inv` can only be taken for matrices, "
                      "found tensor.ndim={}".format(matrix.ndim))
@@ -2012,6 +2080,14 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
 def pinv(matrix: BlockSparseTensor,
          rcond: Optional[float] = 1E-15,
          hermitian: Optional[bool] = False) -> BlockSparseTensor:
+  """
+  Compute the Moore-Penrose pseudo inverse of `matrix`.
+  Args:
+    rcond: Pseudo inverse cutoff.
+  Returns:
+    BlockSparseTensor: The pseudo inverse of `matrix`.
+  """
+
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
