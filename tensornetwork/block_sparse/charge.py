@@ -17,10 +17,8 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 
-import copy
-import warnings
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Optional, Tuple, Text, Iterable, Type
+from typing import List, Optional, Type
 
 
 class BaseCharge:
