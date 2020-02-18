@@ -38,6 +38,48 @@ def test_split_node_full_svd_names(backend):
   assert right.edges[0].name == 'right_edge'
 
 
+def test_split_node_relative_tolerance(backend):
+  absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend) 
+  max_truncation_err = 0.2
+
+  _, _, trunc_sv_absolute, = tn.split_node(
+      node=absolute,
+      left_edges=[absolute[0]],
+      right_edges=[absolute[1]],
+      max_truncation_err=max_truncation_err,
+      relative=False)
+  _, _, trunc_sv_relative, = tn.split_node(
+      node=relative,
+      left_edges=[relative[0]],
+      right_edges=[relative[1]],
+      max_truncation_err=max_truncation_err,
+      relative=True)
+  np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+  np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
+
+
+def test_split_node_full_svd_relative_tolerance(backend):
+  absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend) 
+  max_truncation_err = 0.2
+
+  _, _, _, trunc_sv_absolute, = tn.split_node_full_svd(
+      node=absolute,
+      left_edges=[absolute[0]],
+      right_edges=[absolute[1]],
+      max_truncation_err=max_truncation_err,
+      relative=False)
+  _, _, _, trunc_sv_relative, = tn.split_node_full_svd(
+      node=relative,
+      left_edges=[relative[0]],
+      right_edges=[relative[1]],
+      max_truncation_err=max_truncation_err,
+      relative=True)
+  np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+  np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
+
+
 def test_split_node_rq_names(backend):
   a = tn.Node(np.zeros((2, 3, 4, 5, 6)), backend=backend)
   left_edges = []
