@@ -27,32 +27,18 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
-def flatten(list_of_list):
+def flatten(list_of_list: List[List]) -> List:
+  """
+  Flatten a list of lists into a single list.
+  Args:
+    list_of_lists: A list of lists.
+  Returns:
+    list: The flattened input.
+  """
   res = []
   for l in list_of_list:
     res.extend(l)
   return np.array(res)
-
-
-def get_flat_order(indices: List[Index],
-                   order: Union[List[int], np.ndarray]) -> np.ndarray:
-  """
-  Compute the flat order of the 
-  flattened `indices` corresponding to `order`.
-  Args:
-    indices: A list of `Index` objects.
-    order: An order.
-  Returns:
-    The flat order of the flat indices correspondint 
-      to the `order` of `indices`.
-  """
-  flat_charges, _ = get_flat_meta_data(indices)
-  flat_labels = np.arange(len(flat_charges))
-  cum_num_legs = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-  flat_order = np.concatenate(
-      [flat_labels[cum_num_legs[n]:cum_num_legs[n + 1]] for n in order])
-
-  return flat_order
 
 
 def get_flat_meta_data(indices):
@@ -60,7 +46,9 @@ def get_flat_meta_data(indices):
   Return charges and flows of flattened `indices`.
   Args:
     indices: A list of `Index` objects.
-  
+  Returns:
+    List[BaseCharge]: The flattened charges.
+    List[bool]: The flattened flows.
   """
   charges = []
   flows = []
@@ -71,23 +59,38 @@ def get_flat_meta_data(indices):
 
 
 def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
+  """
+  Compute linear positions of tensor elements 
+  of a tensor with dimensions `dimsd` according to `strides`.
+  Args: 
+    dims: An np.ndarray of (original) tensor dimensions.
+    strides: An np.ndarray of (possibly permituted) strides.
+  Returns:
+    np.ndarray: Linear positions of tensor elements according to `strides`.
+  """
   return fuse_ndarrays([
       np.arange(0, strides[n] * dims[n], strides[n], dtype=np.uint32)
       for n in range(len(dims))
   ])
 
 
-def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
-                          target_charges: BaseCharge):
+def compute_sparse_lookup(
+    charges: List[BaseCharge], flows: List[bool],
+    target_charges: BaseCharge) -> Tuple[np.ndarrray, np.ndarray, np.ndarray]:
   """
   Compute lookup table for looking up how dense index positions map 
   to sparse index positions.
   Args:
-    charges:
-    flows:
-    target_charges:
+    charges: List of `BaseCharge` objects.
+    flows: A list of `bool`; the flow directions.
+    target_charges: A `BaseCharge`; the target charges for which 
+      the fusion of `charges` is non-zero.
   Returns:
-    lookup: An np.ndarray f
+    lookup: An np.ndarray of positive numbers between `0` and
+      `len(unique_charges)`. The position of values `n` in `lookup` are positions
+       with charge values `unique_values[n]`.
+    unique_charges: The unique charges of fusion of `charges`
+    lable_to_unique: The  integer labels of the unique charges.
   """
 
   fused_charges = fuse_charges(charges, flows)
@@ -104,6 +107,9 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
 
 
 def _get_strides(dims):
+  """
+  compute strides of `dims`.
+  """
   return np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
 
 
@@ -114,7 +120,7 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   Args:
     arrays: A list of arrays to be fused.
   Returns:
-    np.ndarray: The result of fusing `charges`.
+    np.ndarray: The result of fusing `arrays`.
   """
   if len(arrays) == 1:
     return arrays[0]
@@ -125,6 +131,16 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
 
 
 def _find_best_partition(dims: List[int]) -> int:
+  """
+  Find the most-levelled partition of `dims`.
+  A levelled partitioning is a partitioning such that
+  np.prod(dim[:partition]) and np.prod(dim[partition:])
+  are as close as possible.
+  Args:
+    dims: A list or np.ndarray of integers.
+  Returns:
+    int: The best partitioning.
+  """
   if len(dims) == 1:
     raise ValueError(
         'expecting `dims` with a length of at least 2, got `len(dims ) =1`')
@@ -141,64 +157,21 @@ def _find_best_partition(dims: List[int]) -> int:
   return min_ind + 1
 
 
-# def compute_fused_charge_degeneracies(
-#     charges: List[BaseCharge],
-#     flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
-#   """
-#   Add quantum numbers arising from combining two or more indices into a single
-#   index, computing only the unique qnums and their degeneracies.
-#   Args:
-#     indices: list of SymIndex to be combined.
-#     arrows: 1d array of bools describing index orientations.
-#   Returns:
-#     np.ndarray: array of shape (m,n) describing unique qauntum numbers, with
-#       `m` the number of symmetries and `n` the number of unique values.
-#     np.ndarray: 1d array specifying the degeneracies for each unique quantum
-#       number.
-#   """
-#   # initialize arrays containing unique qnums and their degens
-#   #unique_comb_degen = indices[0].degens
-#   unique_comb_qnums, unique_comb_degen = indices[0].dual(
-#       flows[0]).unique(return_counts=True)
-
-#   for n in range(1, len(indices)):
-#     # fuse the unique charges from each index
-#     tmp_unique_comb_qnums, tmp_unique_comb_degen = indices[n].dual(
-#         flows[n]).unique(return_counts=True)
-
-#     comb_degen = np.kron(unique_comb_degen, tmp_unique_comb_degen)
-#     comb_qnums = fuse_charges(unique_comb_qnums, tmp_unique_comb_qnums)
-
-#     # reduce to unique values only
-#     unique_comb_qnums, ind_labels = comb_qnums.unique(return_inverse=True)
-#     unique_comb_degen = np.array([
-#         np.sum(comb_degen[ind_labels == n])
-#         for n in range(unique_comb_qnums.shape[1])
-#     ])
-
-#   return np.asarray(
-#       unique_comb_qnums, dtype=np.int16), np.asarray(unique_comb_degen,
-#                                                      np.uint32)
-
-
 def compute_fused_charge_degeneracies(
     charges: List[BaseCharge],
     flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
   """
-  For a list of charges, compute all possible fused charges resulting
-  from fusing `charges`, together with their respective degeneracies
+  For a list of charges, computes all possible fused charges resulting
+  from fusing `charges` and their respective degeneracies
   Args:
-    charges: List of np.ndarray of int, one for each leg of the 
-      underlying tensor. Each np.ndarray `charges[leg]` 
-      is of shape `(D[leg],)`.
-      The bond dimension `D[leg]` can vary on each leg.
-    flows: A list of integers, one for each leg,
-      with values `1` or `-1`, denoting the flow direction
-      of the charges on each leg. `1` is inflowing, `-1` is outflowing
-      charge.
+    charges: List of `BaseCharge`, one for each leg of a 
+      tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
   Returns:
-    Union[BaseCharge, BaseCharge]:  The unique fused charges.
-    np.ndarray of integers: The degeneracies of each unqiue fused charge.
+    BaseCharge: The unique fused charges.
+    np.ndarray: The degeneracies of each unqiue fused charge.
   """
   if len(charges) == 1:
     return (charges[0] * flows[0]).unique(return_counts=True)
@@ -233,17 +206,14 @@ def compute_unique_fused_charges(charges: List[BaseCharge],
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
   Args:
-    charges: List of np.ndarray of int, one for each leg of the 
-      underlying tensor. Each np.ndarray `charges[leg]` 
-      is of shape `(D[leg],)`.
-      The bond dimension `D[leg]` can vary on each leg.
-    flows: A list of integers, one for each leg,
-      with values `1` or `-1`, denoting the flow direction
-      of the charges on each leg. `1` is inflowing, `-1` is outflowing
-      charge.
+    charges: List of `BaseCharge`, one for each leg of a 
+      tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
   Returns:
-    Union[BaseCharge, ChargeCollection]:  The unique fused charges.
-    np.ndarray of integers: The degeneracies of each unqiue fused charge.
+    BaseCharge: The unique fused charges.
+
   """
   if len(charges) == 1:
     return (charges[0] * flows[0]).unique()
@@ -261,14 +231,11 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   Compute the number of non-zero elements, given the meta-data of 
   a symmetric tensor.
   Args:
-    charges: List of np.ndarray of int, one for each leg of the 
-      underlying tensor. Each np.ndarray `charges[leg]` 
-      is of shape `(D[leg],)`.
-      The bond dimension `D[leg]` can vary on each leg.
-    flows: A list of integers, one for each leg,
-      with values `1` or `-1`, denoting the flow direction
-      of the charges on each leg. `1` is inflowing, `-1` is outflowing
-      charge.
+    charges: List of `BaseCharge`, one for each leg of a 
+      tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
   Returns:
     int: The number of non-zero elements.
   """
@@ -296,8 +263,11 @@ def reduce_charges(charges: List[BaseCharge],
   Equilvalent to using "combine_charges" followed by "reduce", but is
   generally much more efficient.
   Args:
-    charges (List[SymIndex]): list of SymIndex.
-    flows (np.ndarray): vector of bools describing index orientations.
+    charges: List of `BaseCharge`, one for each leg of a 
+      tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
     target_charges (np.ndarray): n-by-m array describing qauntum numbers of the
       qnums which should be kept with 'n' the number of symmetries.
     return_locations (bool, optional): if True then return the location of the kept
