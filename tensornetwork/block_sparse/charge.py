@@ -324,16 +324,7 @@ class BaseCharge:
     if return_index or return_inverse or return_counts:
       for n in range(1, len(tmp)):
         out.append(tmp[n])
-
-    if len(out) == 1:
-      return out[0]
-    if len(out) == 2:
-      return out[0], out[1]
-    if len(out) == 3:
-      return out[0], out[1], out[2]
-    if len(out) == 4:
-      return out[0], out[1], out[2], out[3]
-    return None
+    return out
 
   def reduce(self,
              target_charges: np.ndarray,
