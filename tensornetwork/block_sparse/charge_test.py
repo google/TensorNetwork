@@ -286,3 +286,13 @@ def test_fuse_charges():
   fused = fuse_charges(charges, flows)
   np_fused = fuse_ndarrays([c * f for c, f in zip(np_charges, np_flows)])
   np.testing.assert_allclose(np.squeeze(fused.charges), np_fused)
+
+
+def test_reduce():
+  q = np.array([[0, 1, 2, 0, 6, 1, -9, 0, -7], [2, 3, 4, -1, 4, 3, 1, 2, 0]])
+  Q = BaseCharge(charges=q)
+  target_charge = np.array([[0, 1, 6, -12], [2, 3, 4, 16]])
+  expected = np.array([[0, 1, 6, 1, 0], [2, 3, 4, 3, 2]])
+  res, locs = Q.reduce(target_charge, return_locations=True)
+  np.testing.assert_allclose(res.charges, expected)
+  np.testing.assert_allclose(locs, [0, 1, 4, 5, 7])
