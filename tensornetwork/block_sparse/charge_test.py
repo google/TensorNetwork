@@ -80,6 +80,13 @@ def test_intersect_4():
   np.testing.assert_allclose(lb, [0, 2])
 
 
+def test_fuse_ndarrays():
+  d1 = np.asarray([0, 1])
+  d2 = np.asarray([2, 3, 4])
+  fused = fuse_ndarrays([d1, d2])
+  np.testing.assert_allclose(fused, [2, 3, 4, 3, 4, 5])
+
+
 def test_fuse_degeneracies():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
