@@ -397,6 +397,19 @@ class BaseCharge:
     obj.__init__(unique_charges, new_labels, self.charge_types)
     return obj
 
+  def isin(self, target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
+
+    if isinstance(target_charges, type(self)):
+      targets = target_charges.unique_charges
+    else:
+      targets = np.unique(target_charges, axis=1)
+    tmp = np.expand_dims(self.unique_charges, 2) == np.expand_dims(targets, 1)
+    #pylint: disable=no-member
+    inds = np.nonzero(
+        np.logical_or.reduce(np.logical_and.reduce(tmp, axis=0), axis=1))[0]
+
+    return np.isin(self.charge_labels, inds)
+
 
 class U1Charge(BaseCharge):
 
