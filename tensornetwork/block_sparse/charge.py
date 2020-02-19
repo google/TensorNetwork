@@ -108,6 +108,17 @@ class BaseCharge:
     """
     return self.unique_charges[:, self.charge_labels]
 
+  @property
+  def dtype(self):
+    return self.unique_charges.dtype
+
+  @property
+  def degeneracies(self):
+    return np.sum(
+        np.expand_dims(self.charge_labels, 1) == np.expand_dims(
+            np.arange(self.unique_charges.shape[1], dtype=np.int16), 0),
+        axis=0)
+
   def __repr__(self):
     return str(
         type(self)) + '\n' + 'charges: \n' + self.charges.__repr__() + '\n'
@@ -263,6 +274,66 @@ class BaseCharge:
     )
 
     return obj
+
+  def unique(self,
+             return_index=False,
+             return_inverse=False,
+             return_counts=False) -> Any:
+    """
+    Compute the unique charges in `BaseCharge`.
+    See np.unique for a more detailed explanation. This function
+    does the same but instead of a np.ndarray, it returns the unique
+    elements in a `BaseCharge` object.
+    Args:
+      return_index: If `True`, also return the indices of `self.charges` (along the specified axis,
+        if provided, or in the flattened array) that result in the unique array.
+      return_inverse: If `True`, also return the indices of the unique array (for the specified
+        axis, if provided) that can be used to reconstruct `self.charges`.
+      return_counts: If `True`, also return the number of times each unique item appears
+        in `self.charges`.
+    Returns:
+      BaseCharge: The sorted unique values.
+      np.ndarray: The indices of the first occurrences of the unique values in the
+        original array. Only provided if `return_index` is True.
+      np.ndarray: The indices to reconstruct the original array from the
+        unique array. Only provided if `return_inverse` is True.
+      np.ndarray: The number of times each of the unique values comes up in the
+        original array. Only provided if `return_counts` is True.      
+    """
+    obj = self.__new__(type(self))
+    tmp = np.unique(
+        self.charge_labels,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts)
+    if return_index or return_inverse or return_counts:
+      if tmp[0].ndim == 0:
+        index = np.asarray([tmp[0]])
+        unique_charges = self.unique_charges[:, index]
+      else:
+        unique_charges = self.unique_charges[:, tmp[0]]
+    else:
+      if tmp.ndim == 0:
+        tmp = np.asarray([tmp])
+      unique_charges = self.unique_charges[:, tmp]
+    obj.__init__(
+        charges=unique_charges,
+        charge_labels=np.arange(unique_charges.shape[1], dtype=np.int16),
+        charge_types=self.charge_types)
+    out = [obj]
+    if return_index or return_inverse or return_counts:
+      for n in range(1, len(tmp)):
+        out.append(tmp[n])
+
+    if len(out) == 1:
+      return out[0]
+    if len(out) == 2:
+      return out[0], out[1]
+    if len(out) == 3:
+      return out[0], out[1], out[2]
+    if len(out) == 4:
+      return out[0], out[1], out[2], out[3]
+    return None
 
 
 class U1Charge(BaseCharge):
