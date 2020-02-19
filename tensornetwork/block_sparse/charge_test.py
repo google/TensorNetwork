@@ -277,3 +277,43 @@ def test_U1Charge_fusion_with_flow():
   while len(nz_1) == 0:
     nz_1, nz_2 = run_test()
   assert np.all(nz_1 == nz_2)
+
+
+def test_BaseCharge_intersect():
+  q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
+  q2 = np.array([[0, -2, 6], [2, 3, 4]])
+  Q1 = BaseCharge(charges=q1)
+  Q2 = BaseCharge(charges=q2)
+  res = Q1.intersect(Q2)
+  np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
+
+
+def test_BaseCharge_intersect_return_indices():
+  q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
+  q2 = np.array([[-2, 0, 6], [3, 2, 4]])
+  Q1 = BaseCharge(charges=q1)
+  Q2 = BaseCharge(charges=q2)
+  res, i1, i2 = Q1.intersect(Q2, return_indices=True)
+  #res, i1, i2 = intersect(q1, q2, axis=1, return_indices=True)
+  np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
+  np.testing.assert_allclose(i1, [0, 4])
+  np.testing.assert_allclose(i2, [1, 2])
+
+
+def test_U1Charge_matmul():
+  D = 1000
+  B = 5
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q3 = U1Charge(C3)
+
+  Q = q1 @ q2 @ q3
+  Q_ = BaseCharge(
+      np.stack([C1, C2, C3], axis=0),
+      charge_labels=None,
+      charge_types=[U1Charge, U1Charge, U1Charge])
+  assert np.all(Q.charges == Q_.charges)

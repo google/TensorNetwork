@@ -216,6 +216,55 @@ class BaseCharge:
           "can only multiply by `True` or `False`, found {}".format(number))
     return self.dual(number)
 
+  def intersect(self, other, assume_unique=False, return_indices=False) -> Any:
+    """
+    Compute the intersection of `self` with `other`. See also np.intersect1d.
+    Args:
+      other: A BaseCharge object.
+      assume_unique: If `True` assume that elements are unique.
+      return_indices: If `True`, return index-labels.
+    Returns:
+      If `return_indices=True`:
+        BaseCharge
+        np.ndarray: The indices of the first occurrences of the common values in `self`.
+        np.ndarray: The indices of the first occurrences of the common values in `other`.
+      If `return_indices=False`:
+        BaseCharge
+    """
+    if isinstance(other, type(self)):
+      out = intersect(
+          self.charges,
+          other.charges,
+          assume_unique=assume_unique,
+          axis=1,
+          return_indices=return_indices)
+
+    else:
+      if other.ndim == 1:
+        other = np.expand_dims(other, 0)
+      out = intersect(
+          self.charges,
+          np.asarray(other),
+          axis=1,
+          assume_unique=assume_unique,
+          return_indices=return_indices)
+    obj = self.__new__(type(self))
+    if return_indices:
+      obj.__init__(
+          charges=out[0],
+          charge_labels=np.arange(len(out[0]), dtype=np.int16),
+          charge_types=self.charge_types,
+      )
+      return obj, out[1], out[2]
+
+    obj.__init__(
+        charges=out,
+        charge_labels=np.arange(len(out), dtype=np.int16),
+        charge_types=self.charge_types,
+    )
+
+    return obj
+
 
 class U1Charge(BaseCharge):
 
