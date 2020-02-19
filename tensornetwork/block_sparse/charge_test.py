@@ -71,7 +71,7 @@ def test_intersect_3():
   np.testing.assert_allclose([0, 4], out)
 
 
-def test_intersect_3():
+def test_intersect_4():
   a = np.array([0, 1, 2, 3, 4])
   b = np.array([0, -1, 4])
   out, la, lb = intersect(a, b, return_indices=True)
@@ -116,7 +116,7 @@ def get_charges(B0, B1, D, num_charges):
 
 def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
   np.random.seed(seed)
-  if use_flows == True:
+  if use_flows:
     flows = np.random.choice([True, False], num_charges, replace=True)
   else:
     flows = np.asarray([False] * num_charges)
@@ -165,7 +165,7 @@ def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
       num_charge_types=num_charge_types,
       seed=20,
       D=D,
-      B=5,
+      B=B,
       use_flows=use_flows)
   assert len(nz_1) > 0
   assert len(nz_2) > 0
