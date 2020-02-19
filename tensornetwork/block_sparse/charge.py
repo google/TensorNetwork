@@ -400,9 +400,27 @@ class BaseCharge:
   def isin(self, target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
 
     if isinstance(target_charges, type(self)):
+      if not np.all([
+          a == b for a, b in zip(self.charge_types, target_charges.charge_types)
+      ]):
+        raise TypeError(
+            "isin only callable for equal charge types, found {} and {}".format(
+                self.charge_types, target_charges.charge_types))
+
       targets = target_charges.unique_charges
     else:
-      targets = np.unique(target_charges, axis=1)
+      if target_charges.ndim == 1:
+        targets = np.expand_dims(np.unique(target_charges, axis=0), 0)
+      elif target_charges.ndim == 2:
+        targets = np.unique(target_charges, axis=1)
+      else:
+        raise ValueError("targets.ndim has to be 1 or 2, found {}".format(
+            target_charges.ndim))
+      if targets.shape[0] != self.num_symmetries:
+        raise ValueError(
+            "target_charges.shape[0]={} is different from self.num_symmetries = {}"
+            .format(targets.shape[0], self.num_symmetries))
+
     tmp = np.expand_dims(self.unique_charges, 2) == np.expand_dims(targets, 1)
     #pylint: disable=no-member
     inds = np.nonzero(
