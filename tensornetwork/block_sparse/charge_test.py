@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies
+from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
 
 
 def test_BaseCharge_charges():
@@ -165,7 +165,7 @@ def fuse_many_charges(num_charges,
                          [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
                           (3, 2, 100, 6), (3, 3, 100, 6)])
 def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
-  nz_1, nz_2 = fuse_man_charges(
+  nz_1, nz_2 = fuse_many_charges(
       num_charges=num_charges,
       num_charge_types=num_charge_types,
       seed=20,
@@ -247,3 +247,20 @@ def test_U1Charge_mul():
   q = q1 @ q2
   res = q * True
   np.testing.assert_allclose(res.charges, -np.stack([C1, C2]))
+
+
+def test_fuse_charges():
+  num_charges = 5
+  B = 6
+  D = 10
+  np_charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(num_charges)
+  ]
+  charges = [U1Charge(c) for c in np_charges]
+  flows = [True, False, True, False, True]
+  np_flows = np.ones(5, dtype=np.int16)
+  np_flows[flows] = -1
+  fused = fuse_charges(charges, flows)
+  np_fused = fuse_ndarrays([c * f for c, f in zip(np_charges, np_flows)])
+  np.testing.assert_allclose(np.squeeze(fused.charges), np_fused)
