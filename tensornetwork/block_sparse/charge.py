@@ -114,10 +114,10 @@ class BaseCharge:
 
   @property
   def degeneracies(self):
-    return np.sum(
-        np.expand_dims(self.charge_labels, 1) == np.expand_dims(
-            np.arange(self.unique_charges.shape[1], dtype=np.int16), 0),
-        axis=0)
+    exp1 = np.expand_dims(self.charge_labels, 1)
+    exp2 = np.expand_dims(
+        np.arange(self.unique_charges.shape[1], dtype=np.int16), 0)
+    return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
     return str(
