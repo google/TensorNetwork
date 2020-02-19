@@ -48,6 +48,21 @@ def test_BaseCharge_copy():
   np.testing.assert_allclose(Q.unique_charges, Qcopy.unique_charges)
 
 
+def test_BaseCharge_unique():
+  D = 3000
+  B = 5
+  np.random.seed(10)
+  q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
+  Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  expected = np.unique(
+      q, return_index=True, return_inverse=True, return_counts=True, axis=1)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
+
+
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
