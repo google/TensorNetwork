@@ -114,7 +114,12 @@ def get_charges(B0, B1, D, num_charges):
   ]
 
 
-def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
+def fuse_many_charges(num_charges,
+                      num_charge_types,
+                      seed,
+                      D,
+                      B,
+                      use_flows=False):
   np.random.seed(seed)
   if use_flows:
     flows = np.random.choice([True, False], num_charges, replace=True)
@@ -160,7 +165,7 @@ def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
                          [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
                           (3, 2, 100, 6), (3, 3, 100, 6)])
 def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
-  nz_1, nz_2 = fuse_charges(
+  nz_1, nz_2 = fuse_man_charges(
       num_charges=num_charges,
       num_charge_types=num_charge_types,
       seed=20,
@@ -211,3 +216,34 @@ def test_U1Charge_matmul():
       charge_labels=None,
       charge_types=[U1Charge, U1Charge, U1Charge])
   assert np.all(Q.charges == Q_.charges)
+
+
+def test_U1Charge_identity():
+  D = 100
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q3 = U1Charge(C3)
+
+  Q = q1 @ q2 @ q3
+  eye = Q.identity_charges
+  np.testing.assert_allclose(eye.unique_charges, 0)
+  assert eye.num_symmetries == 3
+
+
+def test_U1Charge_mul():
+  D = 100
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q = q1 @ q2
+  res = q * True
+  np.testing.assert_allclose(res.charges, -np.stack([C1, C2]))
