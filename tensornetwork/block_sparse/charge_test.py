@@ -317,8 +317,9 @@ def test_getitem():
 
 def test_isin():
   np.random.seed(10)
-  c1 = U1Charge.random(-5, 5, 1000)
-  c2 = U1Charge.random(-5, 5, 1000)
+  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+
   c = c1 @ c2
   c3 = np.array([[-1, 0, 1], [-1, 0, 1]])
   n = c.isin(c3)
@@ -336,8 +337,8 @@ def test_isin():
 
 def test_isin_2():
   np.random.seed(10)
-  c1 = U1Charge.random(-5, 5, 1000)
-  c2 = U1Charge.random(-5, 5, 1000)
+  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
   c = c1 @ c2
   c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
   n = c.isin(c3)
