@@ -378,8 +378,8 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
     np.ndarray: The result of fusing `arrays`.
   """
   if len(arrays) == 1:
-    return arrays[0]
-  fused_arrays = arrays[0]
+    return np.array(arrays[0])
+  fused_arrays = np.asarray(arrays[0])
   for n in range(1, len(arrays)):
     fused_arrays = np.ravel(np.add.outer(fused_arrays, arrays[n]))
   return fused_arrays
