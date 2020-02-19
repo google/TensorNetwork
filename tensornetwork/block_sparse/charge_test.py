@@ -7,6 +7,7 @@ from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarra
 def test_BaseCharge_charges():
   D = 100
   B = 6
+  np.random.seed(10)
   charges = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
 
   q1 = BaseCharge(charges)
@@ -16,6 +17,7 @@ def test_BaseCharge_charges():
 def test_BaseCharge_generic():
   D = 300
   B = 5
+  np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
   unique = np.unique(q, axis=1)
   Q = BaseCharge(charges=q)
@@ -27,6 +29,7 @@ def test_BaseCharge_generic():
 def test_BaseCharge_len():
   D = 300
   B = 5
+  np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
   Q = BaseCharge(charges=q)
   assert len(Q) == 300
@@ -35,6 +38,7 @@ def test_BaseCharge_len():
 def test_BaseCharge_copy():
   D = 300
   B = 5
+  np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
   Q = BaseCharge(charges=q)
   Qcopy = Q.copy()
@@ -86,6 +90,7 @@ def test_fuse_degeneracies():
 def test_U1Charge_charges():
   D = 100
   B = 6
+  np.random.seed(10)
   charges = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
 
   q1 = U1Charge(charges)
@@ -95,6 +100,7 @@ def test_U1Charge_charges():
 def test_U1Charge_dual():
   D = 100
   B = 6
+  np.random.seed(10)
   charges = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
 
   q1 = U1Charge(charges)
