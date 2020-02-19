@@ -196,6 +196,7 @@ def test_BaseCharge_intersect_return_indices():
 def test_U1Charge_matmul():
   D = 1000
   B = 5
+  np.random.seed(10)
   C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
   C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
   C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
