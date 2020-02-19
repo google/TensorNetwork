@@ -400,7 +400,15 @@ class BaseCharge:
     return obj
 
   def isin(self, target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
-
+    """
+    See also np.isin. 
+    Returns an np.ndarray of `dtype=bool`, with `True` at all linear positions
+    where `self` is in `target_charges`, and `False` everywhere else.
+    Args:
+      target_charges: A `BaseCharge` object.
+    Returns:
+      np.ndarray: An array of boolean values.
+    """
     if isinstance(target_charges, type(self)):
       if not np.all([
           a == b for a, b in zip(self.charge_types, target_charges.charge_types)
