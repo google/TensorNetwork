@@ -335,6 +335,47 @@ class BaseCharge:
       return out[0], out[1], out[2], out[3]
     return None
 
+  def reduce(self,
+             target_charges: np.ndarray,
+             return_locations: bool = False,
+             strides: int = 1) -> Any:
+    """
+    Reduce the dimension of a 
+    charge to keep only the charge values that intersect target_charges
+    Args:
+      target_charges: array of unique charges to keep.
+      return_locations: If `True`, also return the locations of 
+        target values within `BaseCharge`.
+    Returns:
+      BaseCharge: index of reduced dimension.
+      np.ndarray: If `return_locations = True`; the index locations 
+        of target values.
+    """
+    if isinstance(target_charges, (np.integer, int)):
+      target_charges = np.asarray([target_charges], dtype=np.int16)
+    if target_charges.ndim == 1:
+      target_charges = np.expand_dims(target_charges, 0)
+    target_charges = np.asarray(target_charges, dtype=np.int16)
+    # find intersection of index charges and target charges
+    reduced_charges, label_to_unique, _ = intersect(
+        self.unique_charges, target_charges, axis=1, return_indices=True)
+    num_unique = len(label_to_unique)
+
+    # construct the map to the reduced charges
+    map_to_reduced = np.full(self.dim, fill_value=-1, dtype=np.int16)
+    map_to_reduced[label_to_unique] = np.arange(num_unique, dtype=np.int16)
+
+    # construct the map to the reduced charges
+    reduced_ind_labels = map_to_reduced[self.charge_labels]
+    reduced_locs = reduced_ind_labels >= 0
+    new_ind_labels = reduced_ind_labels[reduced_locs].astype(np.int16)
+    obj = self.__new__(type(self))
+    obj.__init__(reduced_charges, new_ind_labels, self.charge_types)
+
+    if return_locations:
+      return obj, strides * np.flatnonzero(reduced_locs).astype(np.uint32)
+    return obj
+
 
 class U1Charge(BaseCharge):
 
