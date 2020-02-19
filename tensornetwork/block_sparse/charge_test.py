@@ -101,179 +101,66 @@ def test_U1Charge_dual():
   assert np.all(q1.dual(True).charges == -charges)
 
 
-def test_U1Charge_fusion():
-
-  def run_test():
-    D = 2000
-    B = 6
-    O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    P1 = np.random.randint(0, B + 1, D).astype(np.int16)
-    P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    Q1 = np.random.randint(1, B + 1, D).astype(np.int16)
-    Q2 = np.random.randint(1, B + 1, D).astype(np.int16)
-
-    charges_1 = [O1, O2]
-    charges_2 = [P1, P2]
-    charges_3 = [Q1, Q2]
-
-    fused_1 = fuse_ndarrays(charges_1)
-    fused_2 = fuse_ndarrays(charges_2)
-    fused_3 = fuse_ndarrays(charges_3)
-    q1 = U1Charge(O1) @ U1Charge(P1) @ U1Charge(Q1)
-    q2 = U1Charge(O2) @ U1Charge(P2) @ U1Charge(Q2)
-
-    target = BaseCharge(
-        charges=np.random.randint(-B, B, (3, 1), dtype=np.int16),
-        charge_labels=None,
-        charge_types=[U1Charge, U1Charge, U1Charge])
-    q12 = q1 + q2
-
-    nz_1 = np.nonzero(q12 == target)[0]
-    i1 = fused_1 == target.charges[0, 0]
-    i2 = fused_2 == target.charges[1, 0]
-    i3 = fused_3 == target.charges[2, 0]
-    #pylint: disable=no-member
-    nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
-    return nz_1, nz_2
-
-  nz_1, nz_2 = run_test()
-  while len(nz_1) == 0:
-    nz_1, nz_2 = run_test()
-    break
-  assert np.all(nz_1 == nz_2)
+def get_charges(B0, B1, D, num_charges):
+  return [
+      np.random.randint(B0, B1 + 1, D).astype(np.int16)
+      for _ in range(num_charges)
+  ]
 
 
-def test_U1Charge_multiple_fusion():
+def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
+  np.random.seed(seed)
+  if use_flows == True:
+    flows = np.random.choice([True, False], num_charges, replace=True)
+  else:
+    flows = np.asarray([False] * num_charges)
+  np_flows = np.ones(num_charges, dtype=np.int16)
+  np_flows[flows] = -1
+  charges = [
+      get_charges(-B // 2, B // 2, D, num_charge_types)
+      for _ in range(num_charges)
+  ]
+  fused = [
+      fuse_ndarrays([charges[n][m] * np_flows[n]
+                     for n in range(num_charges)])
+      for m in range(num_charge_types)
+  ]
+  final_charges = [U1Charge(charges[n][0]) for n in range(num_charges)]
+  for n in range(num_charges):
+    for m in range(1, num_charge_types):
+      final_charges[n] = final_charges[n] @ U1Charge(charges[n][m])
+  np_target_charges = np.random.randint(-B, B, num_charge_types, dtype=np.int16)
+  target_charges = [
+      U1Charge(np.array([np_target_charges[n]]))
+      for n in range(num_charge_types)
+  ]
+  target = target_charges[0]
+  for m in range(1, num_charge_types):
+    target = target @ target_charges[m]
+  final = final_charges[0] * flows[0]
+  for n in range(1, num_charges):
+    final = final + final_charges[n] * flows[n]
 
-  def run_test():
-    D = 300
-    B = 4
-    O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    O3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    P1 = np.random.randint(0, B + 1, D).astype(np.int16)
-    P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    P3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    Q1 = np.random.randint(1, B + 1, D).astype(np.int16)
-    Q2 = np.random.randint(0, B + 1, D).astype(np.int16)
-    Q3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  nz_1 = np.nonzero(final == target)[0]
+  masks = [fused[m] == target.charges[m, 0] for m in range(num_charge_types)]
 
-    charges_1 = [O1, O2, O3]
-    charges_2 = [P1, P2, P3]
-    charges_3 = [Q1, Q2, Q3]
-
-    fused_1 = fuse_ndarrays(charges_1)
-    fused_2 = fuse_ndarrays(charges_2)
-    fused_3 = fuse_ndarrays(charges_3)
-    q1 = U1Charge(O1) @ U1Charge(P1) @ U1Charge(Q1)
-    q2 = U1Charge(O2) @ U1Charge(P2) @ U1Charge(Q2)
-    q3 = U1Charge(O3) @ U1Charge(P3) @ U1Charge(Q3)
-
-    target = BaseCharge(
-        charges=np.random.randint(-B, B, (3, 1), dtype=np.int16),
-        charge_labels=None,
-        charge_types=[U1Charge, U1Charge, U1Charge])
-
-    q123 = q1 + q2 + q3
-
-    nz_1 = np.nonzero(q123 == target)[0]
-    i1 = fused_1 == target.charges[0, 0]
-    i2 = fused_2 == target.charges[1, 0]
-    i3 = fused_3 == target.charges[2, 0]
-    #pylint: disable=no-member
-    nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
-    return nz_1, nz_2
-
-  nz_1, nz_2 = run_test()
-  while len(nz_1) == 0:
-    nz_1, nz_2 = run_test()
-  assert np.all(nz_1 == nz_2)
+  #pylint: disable=no-member
+  nz_2 = np.nonzero(np.logical_and.reduce(masks))[0]
+  return nz_1, nz_2
 
 
-def test_U1Charge_multiple_fusion_with_flow():
-
-  def run_test():
-    D = 300
-    B = 4
-    O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-    O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-    O3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-    P1 = np.random.randint(0, B + 1, D).astype(np.int16)
-    P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    P3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    Q1 = np.random.randint(1, B + 1, D).astype(np.int8)
-    Q2 = np.random.randint(0, B + 1, D).astype(np.int8)
-    Q3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-
-    charges_1 = [O1, -O2, O3]
-    charges_2 = [P1, -P2, P3]
-    charges_3 = [Q1, -Q2, Q3]
-
-    fused_1 = fuse_ndarrays(charges_1)
-    fused_2 = fuse_ndarrays(charges_2)
-    fused_3 = fuse_ndarrays(charges_3)
-    q1 = U1Charge(O1) @ U1Charge(P1) @ U1Charge(Q1)
-    q2 = U1Charge(O2) @ U1Charge(P2) @ U1Charge(Q2)
-    q3 = U1Charge(O3) @ U1Charge(P3) @ U1Charge(Q3)
-
-    target = BaseCharge(
-        charges=np.random.randint(-B, B, (3, 1), dtype=np.int16),
-        charge_labels=None,
-        charge_types=[U1Charge, U1Charge, U1Charge])
-    q123 = q1 + q2 * True + q3
-    nz_1 = np.nonzero(q123 == target)[0]
-    i1 = fused_1 == target.charges[0, 0]
-    i2 = fused_2 == target.charges[1, 0]
-    i3 = fused_3 == target.charges[2, 0]
-    #pylint: disable=no-member
-    nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
-    return nz_1, nz_2
-
-  nz_1, nz_2 = run_test()
-  while len(nz_1) == 0:
-    nz_1, nz_2 = run_test()
-  assert np.all(nz_1 == nz_2)
-
-
-def test_U1Charge_fusion_with_flow():
-
-  def run_test():
-    D = 2000
-    B = 6
-    O1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-    O2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int8)
-    P1 = np.random.randint(0, B + 1, D).astype(np.int16)
-    P2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-    Q1 = np.random.randint(1, B + 1, D).astype(np.int8)
-    Q2 = np.random.randint(1, B + 1, D).astype(np.int8)
-
-    charges_1 = [O1, -O2]
-    charges_2 = [P1, -P2]
-    charges_3 = [Q1, -Q2]
-
-    fused_1 = fuse_ndarrays(charges_1)
-    fused_2 = fuse_ndarrays(charges_2)
-    fused_3 = fuse_ndarrays(charges_3)
-
-    q1 = U1Charge(O1) @ U1Charge(P1) @ U1Charge(Q1)
-    q2 = U1Charge(O2) @ U1Charge(P2) @ U1Charge(Q2)
-
-    target = BaseCharge(
-        charges=np.random.randint(-B, B, (3, 1), dtype=np.int16),
-        charge_labels=None,
-        charge_types=[U1Charge, U1Charge, U1Charge])
-    q12 = q1 + q2 * True
-
-    nz_1 = np.nonzero(q12 == target)[0]
-    i1 = fused_1 == target.charges[0, 0]
-    i2 = fused_2 == target.charges[1, 0]
-    i3 = fused_3 == target.charges[2, 0]
-    #pylint: disable=no-member
-    nz_2 = np.nonzero(np.logical_and.reduce([i1, i2, i3]))[0]
-    return nz_1, nz_2
-
-  nz_1, nz_2 = run_test()
-  while len(nz_1) == 0:
-    nz_1, nz_2 = run_test()
+@pytest.mark.parametrize('use_flows', [True, False])
+@pytest.mark.parametrize('num_charges, num_charge_types, D, B',
+                         [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
+                          (3, 2, 100, 6), (3, 3, 100, 6)])
+def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
+  nz_1, nz_2 = fuse_charges(
+      num_charges=num_charges,
+      num_charge_types=num_charge_types,
+      seed=20,
+      D=D,
+      B=5,
+      use_flows=use_flows)
+  assert len(nz_1) > 0
+  assert len(nz_2) > 0
   assert np.all(nz_1 == nz_2)
