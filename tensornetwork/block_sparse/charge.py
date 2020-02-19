@@ -347,7 +347,7 @@ class BaseCharge:
       return_locations: If `True`, also return the locations of 
         target values within `BaseCharge`.
     Returns:
-      BaseCharge: index of reduced dimension.
+      BaseCharge: charge of reduced dimension.
       np.ndarray: If `return_locations = True`; the index locations 
         of target values.
     """
