@@ -313,3 +313,41 @@ def test_getitem():
   t3 = Q[[5, 2, 7]]
   assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
   np.testing.assert_allclose(t3.charges, [[1, 2, 0], [3, 4, 2]])
+
+
+def test_isin():
+  np.random.seed(10)
+  c1 = U1Charge.random(-5, 5, 1000)
+  c2 = U1Charge.random(-5, 5, 1000)
+  c = c1 @ c2
+  c3 = np.array([[-1, 0, 1], [-1, 0, 1]])
+  n = c.isin(c3)
+  for m in np.nonzero(n)[0]:
+    charges = c[m].charges
+    assert np.any(
+        [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
+  for m in np.nonzero(np.logical_not(n))[0]:
+    charges = c[m].charges
+    assert not np.any(
+        [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
+
+
+def test_isin_2():
+  np.random.seed(10)
+  c1 = U1Charge.random(-5, 5, 1000)
+  c2 = U1Charge.random(-5, 5, 1000)
+  c = c1 @ c2
+  c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+  n = c.isin(c3)
+  for m in np.nonzero(n)[0]:
+    charges = c[m].charges
+    assert np.any([
+        np.array_equal(charges[:, 0], c3.charges[:, k])
+        for k in range(c3.charges.shape[1])
+    ])
+  for m in np.nonzero(np.logical_not(n))[0]:
+    charges = c[m].charges
+    assert not np.any([
+        np.array_equal(charges[:, 0], c3.charges[:, k])
+        for k in range(c3.charges.shape[1])
+    ])
