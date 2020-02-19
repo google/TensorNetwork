@@ -117,7 +117,6 @@ class BaseCharge:
 
   def __eq__(self,
              target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
-
     if isinstance(target_charges, type(self)):
       targets = np.unique(
           target_charges.unique_charges[:, target_charges.charge_labels],
@@ -161,18 +160,18 @@ class BaseCharge:
     # fuse the unique charges from each index, then compute new unique charges
     comb_charges = fuse_ndarray_charges(self.unique_charges,
                                         other.unique_charges, self.charge_types)
-    [unique_charges, charge_labels] = np.unique(
+    unique_charges, charge_labels = np.unique(
         comb_charges, return_inverse=True, axis=1)
     charge_labels = charge_labels.reshape(self.unique_charges.shape[1],
                                           other.unique_charges.shape[1]).astype(
                                               np.int16)
 
     # find new labels using broadcasting
-    charge_labels = charge_labels[(
-        self.charge_labels[:, None] +
-        np.zeros([1, len(other)], dtype=np.int16)).ravel(), (
-            other.charge_labels[None, :] +
-            np.zeros([len(self), 1], dtype=np.int16)).ravel()]
+    left_labels = self.charge_labels[:, None] + np.zeros([1, len(other)],
+                                                         dtype=np.int16)
+    right_labels = other.charge_labels[None, :] + np.zeros([len(self), 1],
+                                                           dtype=np.int16)
+    charge_labels = charge_labels[np.ravel(left_labels), np.ravel(right_labels)]
 
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
@@ -413,8 +412,9 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
   Returns:
     np.ndarray: The result of fusing `dege1` with `degen2`.
   """
-  return np.reshape(degen1[:, None] * degen2[None, :],
-                    len(degen1) * len(degen2))
+  return np.reshape(
+      np.expand_dims(degen1, 1) * np.expand_dims(degen2, 0),
+      len(degen1) * len(degen2))
 
 
 def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
