@@ -268,7 +268,7 @@ def test_U1Charge_mul():
   q2 = U1Charge(C2)
   q = q1 @ q2
   res = q * True
-  np.testing.assert_allclose(res.charges, -np.stack([C1, C2]))
+  np.testing.assert_allclose(res.charges, (-1) * np.stack([C1, C2]))
 
 
 def test_fuse_charges():
