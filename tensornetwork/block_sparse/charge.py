@@ -596,3 +596,17 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   for n in range(1, len(arrays)):
     fused_arrays = np.ravel(np.add.outer(fused_arrays, arrays[n]))
   return fused_arrays
+
+
+def charge_equal(c1, c2):
+  """
+  Compare two BaseCharges `c1` and `c2`.
+  Return `True` if they are equal, else `False`.
+  """
+  if c1.dim != c2.dim:
+    return False
+  if not np.all(c1.unique_charges == c2.unique_charges):
+    return False
+  if not np.all(c1.charge_labels == c2.charge_labels):
+    return False
+  return True
