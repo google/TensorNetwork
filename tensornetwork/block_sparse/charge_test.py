@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies
+from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
 
 
 def test_BaseCharge_charges():
@@ -80,6 +80,13 @@ def test_intersect_4():
   np.testing.assert_allclose(lb, [0, 2])
 
 
+def test_fuse_ndarrays():
+  d1 = np.asarray([0, 1])
+  d2 = np.asarray([2, 3, 4])
+  fused = fuse_ndarrays([d1, d2])
+  np.testing.assert_allclose(fused, [2, 3, 4, 3, 4, 5])
+
+
 def test_fuse_degeneracies():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
@@ -114,7 +121,12 @@ def get_charges(B0, B1, D, num_charges):
   ]
 
 
-def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
+def fuse_many_charges(num_charges,
+                      num_charge_types,
+                      seed,
+                      D,
+                      B,
+                      use_flows=False):
   np.random.seed(seed)
   if use_flows:
     flows = np.random.choice([True, False], num_charges, replace=True)
@@ -160,7 +172,7 @@ def fuse_charges(num_charges, num_charge_types, seed, D, B, use_flows=False):
                          [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
                           (3, 2, 100, 6), (3, 3, 100, 6)])
 def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
-  nz_1, nz_2 = fuse_charges(
+  nz_1, nz_2 = fuse_many_charges(
       num_charges=num_charges,
       num_charge_types=num_charge_types,
       seed=20,
@@ -170,3 +182,92 @@ def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
   assert len(nz_1) > 0
   assert len(nz_2) > 0
   assert np.all(nz_1 == nz_2)
+
+
+def test_BaseCharge_intersect():
+  q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
+  q2 = np.array([[0, -2, 6], [2, 3, 4]])
+  Q1 = BaseCharge(charges=q1)
+  Q2 = BaseCharge(charges=q2)
+  res = Q1.intersect(Q2)
+  np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
+
+
+def test_BaseCharge_intersect_return_indices():
+  q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
+  q2 = np.array([[-2, 0, 6], [3, 2, 4]])
+  Q1 = BaseCharge(charges=q1)
+  Q2 = BaseCharge(charges=q2)
+  res, i1, i2 = Q1.intersect(Q2, return_indices=True)
+  #res, i1, i2 = intersect(q1, q2, axis=1, return_indices=True)
+  np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
+  np.testing.assert_allclose(i1, [0, 4])
+  np.testing.assert_allclose(i2, [1, 2])
+
+
+def test_U1Charge_matmul():
+  D = 1000
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q3 = U1Charge(C3)
+
+  Q = q1 @ q2 @ q3
+  Q_ = BaseCharge(
+      np.stack([C1, C2, C3], axis=0),
+      charge_labels=None,
+      charge_types=[U1Charge, U1Charge, U1Charge])
+  assert np.all(Q.charges == Q_.charges)
+
+
+def test_U1Charge_identity():
+  D = 100
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q3 = U1Charge(C3)
+
+  Q = q1 @ q2 @ q3
+  eye = Q.identity_charges
+  np.testing.assert_allclose(eye.unique_charges, 0)
+  assert eye.num_symmetries == 3
+
+
+def test_U1Charge_mul():
+  D = 100
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  q = q1 @ q2
+  res = q * True
+  np.testing.assert_allclose(res.charges, (-1) * np.stack([C1, C2]))
+
+
+def test_fuse_charges():
+  num_charges = 5
+  B = 6
+  D = 10
+  np_charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(num_charges)
+  ]
+  charges = [U1Charge(c) for c in np_charges]
+  flows = [True, False, True, False, True]
+  np_flows = np.ones(5, dtype=np.int16)
+  np_flows[flows] = -1
+  fused = fuse_charges(charges, flows)
+  np_fused = fuse_ndarrays([c * f for c, f in zip(np_charges, np_flows)])
+  np.testing.assert_allclose(np.squeeze(fused.charges), np_fused)
