@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
+from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies
 
 
 def test_BaseCharge_charges():
@@ -80,6 +80,7 @@ def test_intersect_4():
   np.testing.assert_allclose(lb, [0, 2])
 
 
+<<<<<<< HEAD
 def test_fuse_ndarrays():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
@@ -87,6 +88,8 @@ def test_fuse_ndarrays():
   np.testing.assert_allclose(fused, [2, 3, 4, 3, 4, 5])
 
 
+=======
+>>>>>>> upstream/master
 def test_fuse_degeneracies():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
@@ -182,7 +185,6 @@ def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
   assert len(nz_1) > 0
   assert len(nz_2) > 0
   assert np.all(nz_1 == nz_2)
-
 
 def test_BaseCharge_intersect():
   q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
