@@ -296,3 +296,20 @@ def test_reduce():
   res, locs = Q.reduce(target_charge, return_locations=True)
   np.testing.assert_allclose(res.charges, expected)
   np.testing.assert_allclose(locs, [0, 1, 4, 5, 7])
+
+
+def test_getitem():
+  q1 = np.array([0, 1, 2, 0, 6, 1, -9, 0, -7])
+  q2 = np.array([2, 3, 4, -1, 4, 3, 1, 2, 0])
+  Q1 = U1Charge(charges=q1)
+  Q2 = U1Charge(charges=q2)
+  Q = Q1 @ Q2
+  t1 = Q[5]
+  np.testing.assert_allclose(t1.charges, [[1], [3]])
+  assert np.all([t1.charge_types[n] == U1Charge for n in range(2)])
+  t2 = Q[[2, 5, 7]]
+  assert np.all([t2.charge_types[n] == U1Charge for n in range(2)])
+  np.testing.assert_allclose(t2.charges, [[2, 1, 0], [4, 3, 2]])
+  t3 = Q[[5, 2, 7]]
+  assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
+  np.testing.assert_allclose(t3.charges, [[1, 2, 0], [3, 4, 2]])
