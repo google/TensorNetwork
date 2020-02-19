@@ -324,10 +324,12 @@ def test_isin():
   n = c.isin(c3)
   for m in np.nonzero(n)[0]:
     charges = c[m].charges
+    #pylint: disable=unsubscriptable-object
     assert np.any(
         [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
   for m in np.nonzero(np.logical_not(n))[0]:
     charges = c[m].charges
+    #pylint: disable=unsubscriptable-object
     assert not np.any(
         [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
 
