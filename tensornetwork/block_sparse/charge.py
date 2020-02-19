@@ -608,7 +608,7 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
   return fused_arrays
 
 
-def charge_equal(c1, c2):
+def charge_equal(c1: BaseCharge, c2: BaseCharge) -> bool:
   """
   Compare two BaseCharges `c1` and `c2`.
   Return `True` if they are equal, else `False`.
