@@ -376,7 +376,7 @@ class BaseCharge:
       return obj, strides * np.flatnonzero(reduced_locs).astype(np.uint32)
     return obj
 
-  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+  def __getitem__(self, n: Union[List[int], np.ndarray, int]) -> "BaseCharge":
     """
     Return the charge-element at position `n`, wrapped into a `BaseCharge`
     object.
@@ -388,6 +388,7 @@ class BaseCharge:
 
     if isinstance(n, (np.integer, int)):
       n = np.asarray([n])
+    n = np.asarray(n)
     obj = self.__new__(type(self))
     labels = self.charge_labels[n]
     unique_labels, new_labels = np.unique(labels, return_inverse=True)
