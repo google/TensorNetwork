@@ -338,7 +338,7 @@ class BaseCharge:
   def reduce(self,
              target_charges: np.ndarray,
              return_locations: bool = False,
-             strides: int = 1) -> Any:
+             strides: Optional[int] = 1) -> Any:
     """
     Reduce the dimension of a 
     charge to keep only the charge values that intersect target_charges
@@ -346,6 +346,7 @@ class BaseCharge:
       target_charges: array of unique charges to keep.
       return_locations: If `True`, also return the locations of 
         target values within `BaseCharge`.
+      strides: An optional stride value.
     Returns:
       BaseCharge: charge of reduced dimension.
       np.ndarray: If `return_locations = True`; the index locations 
