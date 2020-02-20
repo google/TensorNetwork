@@ -95,7 +95,7 @@ def test_fuse_indices():
 
 
 def test_index_copy():
-  D = 10
+  D = 14
   B = 4
   dtype = np.int16
   np.random.seed(10)
