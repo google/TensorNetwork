@@ -27,7 +27,7 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
-def flatten(list_of_list: List[List]) -> List:
+def flatten(list_of_list: List[List]) -> np.ndarray:
   """
   Flatten a list of lists into a single list.
   Args:
@@ -58,7 +58,8 @@ def get_flat_meta_data(indices):
   return charges, flows
 
 
-def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
+def fuse_stride_arrays(dims: Union[List[int], np.ndarray],
+                       strides: Union[List[int], np.ndarray]) -> np.ndarray:
   """
   Compute linear positions of tensor elements 
   of a tensor with dimensions `dims` according to `strides`.
