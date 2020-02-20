@@ -17,9 +17,6 @@ def test_index():
 
 
 def test_index_eq():
-  D = 10
-  B = 4
-  dtype = np.int16
   q1 = U1Charge(np.array([-1, -2, 0, 8, 7]))
   q2 = U1Charge(np.array([-1, -2, 0, 8, 7]))
   q3 = U1Charge(np.array([-1, 0, 8, 7]))
@@ -30,10 +27,10 @@ def test_index_eq():
   i5 = Index(charges=[q1, q2], flow=[False, True])
   i6 = Index(charges=[q1, q2], flow=[False, False])
   assert i1 == i2
-  assert not (i1 == i3)
-  assert not (i1 == i4)
+  assert i1 != i3
+  assert i1 != i4
   assert i4 == i5
-  assert not (i5 == i6)
+  assert i5 != i6
 
 
 def test_index_flip_flow():
@@ -107,7 +104,7 @@ def test_index_copy():
   i = Index(charges=[q1, q2], flow=[False, True])
   icopy = i.copy()
   assert not np.any([a is b for a, b in zip(i._charges, icopy._charges)])
-  assert not (i.flow is icopy.flow)
+  assert i.flow is not icopy.flow
 
 
 def test_index_copy_2():
