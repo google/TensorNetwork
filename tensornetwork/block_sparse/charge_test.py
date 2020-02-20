@@ -403,8 +403,25 @@ def test_isin_raises():
 
   class FakeCharge(BaseCharge):
 
-    def __init__(self):
-      pass
+    def __init__(self, charges, charge_labels=None, charge_types=None):
+      super().__init__(charges, charge_labels, charge_types=[type(self)])
+
+    @staticmethod
+    def fuse(charge1, charge2) -> np.ndarray:
+      return np.add.outer(charge1, charge2).ravel()
+
+    @staticmethod
+    def dual_charges(charges) -> np.ndarray:
+      return charges * charges.dtype.type(-1)
+
+    @staticmethod
+    def identity_charge() -> np.ndarray:
+      return np.int16(0)
+
+    @classmethod
+    def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
+      charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
+      return cls(charges=charges)
 
   np.random.seed(10)
   c1 = BaseCharge(
