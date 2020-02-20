@@ -115,7 +115,7 @@ def _get_strides(dims: Union[List[int], np.ndarray]) -> np.ndarray:
   return np.flip(np.append(1, np.cumprod(np.flip(dims[1::]))))
 
 
-def _find_best_partition(dims: List[int]) -> int:
+def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   """
   Find the most-levelled partition of `dims`.
   A levelled partitioning is a partitioning such that
@@ -168,8 +168,6 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
                                                        return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
-    # print(accumulated_charges.unique_charges)
-    # print(accumulated_charges.charge_labels)
     fused_charges = accumulated_charges + leg_charges * flows[n]
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
