@@ -90,7 +90,7 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   Returns:
     lookup: An np.ndarray of positive numbers between `0` and
       `len(unique_charges)`. The position of values `n` in `lookup` are positions
-       with charge values `unique_values[n]`.
+       with charge values `unique_charges[n]`.
     unique_charges: The unique charges of fusion of `charges`
     lable_to_unique: The  integer labels of the unique charges.
   """
