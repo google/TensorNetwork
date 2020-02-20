@@ -350,3 +350,99 @@ def reduce_charges(charges: List[BaseCharge],
   obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
 
   return obj
+
+
+def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: List[bool],
+                                 partition: int
+                                ) -> Tuple[List, BaseCharge, np.ndarray]:
+  """
+  Find the location of all non-trivial symmetry blocks from the data vector of
+  of BlockSparseTensor (when viewed as a matrix across some prescribed index 
+  bi-partition).
+  Args:
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    partition: location of tensor partition (i.e. such that the 
+      tensor is viewed as a matrix between `charges[:partition]` and 
+      the remaining charges).
+  Returns:
+    block_maps (List[np.ndarray]): list of integer arrays, which each 
+      containing the location of a symmetry block in the data vector.
+    block_qnums (BaseCharge): The charges of the corresponding blocks.n
+      block, with 'n' the number of symmetries and 'm' the number of blocks.
+    block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
+  """
+  num_inds = len(charges)
+  num_syms = charges[0].num_symmetries
+
+  if partition in (0, num_inds):
+    # special cases (matrix of trivial height or width)
+    num_nonzero = compute_num_nonzero(charges, flows)
+    block_maps = [np.arange(0, num_nonzero, dtype=np.uint64).ravel()]
+    block_qnums = np.zeros([num_syms, 1], dtype=np.int16)
+    block_dims = np.array([[1], [num_nonzero]])
+
+    if partition == len(flows):
+      block_dims = np.flipud(block_dims)
+
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(block_qnums, np.arange(0, dtype=np.int16),
+                 charges[0].charge_types)
+
+    return block_maps, obj, block_dims
+
+  unique_row_qnums, row_degen = compute_fused_charge_degeneracies(
+      charges[:partition], flows[:partition])
+  unique_col_qnums, col_degen = compute_fused_charge_degeneracies(
+      charges[partition:], np.logical_not(flows[partition:]))
+
+  block_qnums, row_to_block, col_to_block = intersect(
+      unique_row_qnums.unique_charges,
+      unique_col_qnums.unique_charges,
+      axis=1,
+      return_indices=True)
+  num_blocks = block_qnums.shape[1]
+  if num_blocks == 0:
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(
+        np.zeros(0, dtype=np.int16), np.arange(0, dtype=np.int16),
+        charges[0].charge_types)
+
+    return [], obj, []
+
+  # calculate number of non-zero elements in each row of the matrix
+  row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
+  row_num_nz = col_degen[col_to_block[row_ind.charge_labels]]
+  cumulate_num_nz = np.insert(np.cumsum(row_num_nz[0:-1]), 0,
+                              0).astype(np.uint32)
+
+  # calculate mappings for the position in datavector of each block
+  if num_blocks < 15:
+    # faster method for small number of blocks
+    row_locs = np.concatenate([
+        (row_ind.charge_labels == n) for n in range(num_blocks)
+    ]).reshape(num_blocks, row_ind.dim)
+  else:
+    # faster method for large number of blocks
+    row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)
+    row_locs[row_ind
+             .charge_labels, np.arange(row_ind.dim)] = np.ones(
+                 row_ind.dim, dtype=bool)
+
+  # block_dims = np.array([row_degen[row_to_block],col_degen[col_to_block]], dtype=np.uint32)
+  block_dims = np.array(
+      [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
+       for n in range(num_blocks)],
+      dtype=np.uint32).T
+  #pylint: disable=unsubscriptable-object
+  block_maps = [
+      np.ravel(cumulate_num_nz[row_locs[n, :]][:, None] +
+               np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
+  ]
+  obj = charges[0].__new__(type(charges[0]))
+  obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+               charges[0].charge_types)
+
+  return block_maps, obj, block_dims
