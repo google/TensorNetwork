@@ -324,7 +324,7 @@ class BaseCharge:
     if return_index or return_inverse or return_counts:
       for n in range(1, len(tmp)):
         out.append(tmp[n])
-    #for a single return value we don't want to return a list
+    #for a single return value we don't want to return a list or tuple
     if len(out) == 1:
       return out[0]
     return tuple(out)
@@ -499,6 +499,8 @@ def intersect(A: np.ndarray,
   """
   #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
   #pylint: disable=no-else-return
+  if A.ndim != B.ndim:
+    raise ValueError("array ndims must match to intersect")
   if A.ndim == 1:
     return np.intersect1d(
         A, B, assume_unique=assume_unique, return_indices=return_indices)
@@ -525,7 +527,7 @@ def intersect(A: np.ndarray,
       return C.view(A.dtype).reshape(-1, ncols)
 
     elif axis == 1:
-      #@Glen: why the copy here?
+      #TODO: why the copy here?
       out = intersect(
           A.T.copy(),
           B.T.copy(),
