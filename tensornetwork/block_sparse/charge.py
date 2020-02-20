@@ -139,8 +139,8 @@ class BaseCharge:
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges, 2) == np.expand_dims(
-                targets, 1),
+            np.expand_dims(self.unique_charges,
+                           2) == np.expand_dims(targets, 1),
             axis=0))[0]
     return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
 
@@ -454,7 +454,7 @@ class U1Charge(BaseCharge):
     return np.int16(0)
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
+  def random(cls, minval: int, maxval: int, dimension: int) -> "BaseCharge":
     charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
     return cls(charges=charges)
 
