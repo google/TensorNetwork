@@ -108,7 +108,7 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   return lookup, unique_charges, label_to_unique
 
 
-def _get_strides(dims):
+def _get_strides(dims: Union[List[int], np.ndarray)->np.ndarray:
   """
   compute strides of `dims`.
   """
