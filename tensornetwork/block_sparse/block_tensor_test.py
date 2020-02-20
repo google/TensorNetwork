@@ -158,8 +158,12 @@ def test_reduce_charges_non_trivial_2():
   ], [False, False],
                                    target_charge,
                                    return_locations=True)
-  assert np.all(
-      np.isin(
-          np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
-  mask = np.isin(fused_charges, np.squeeze(target_charge))
-  np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
+  masks = []
+  assert np.all(dense_positions[0].isin(target_charge))
+  for n in range(target_charge.shape[1]):
+    mask1 = np.isin(fused_charges1, np.squeeze(target_charge[0, n]))
+    mask2 = np.isin(fused_charges2, np.squeeze(target_charge[1, n]))
+    masks.append(np.logical_and(mask1, mask2))
+
+  np.testing.assert_allclose(
+      np.nonzero(np.logical_or.reduce(masks))[0], dense_positions[1])
