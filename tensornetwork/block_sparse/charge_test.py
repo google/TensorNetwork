@@ -48,6 +48,21 @@ def test_BaseCharge_copy():
   np.testing.assert_allclose(Q.unique_charges, Qcopy.unique_charges)
 
 
+def test_BaseCharge_unique():
+  D = 3000
+  B = 5
+  np.random.seed(10)
+  q = np.random.randint(-B // 2, B // 2 + 1, (2, D)).astype(np.int16)
+  Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  expected = np.unique(
+      q, return_index=True, return_inverse=True, return_counts=True, axis=1)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
+
+
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
@@ -78,6 +93,23 @@ def test_intersect_4():
   np.testing.assert_allclose([0, 4], out)
   np.testing.assert_allclose(la, [0, 4])
   np.testing.assert_allclose(lb, [0, 2])
+
+
+def test_intersect_raises():
+  np.random.seed(10)
+  a = np.random.randint(0, 10, (4, 5))
+  b = np.random.randint(0, 10, (4, 6))
+  with pytest.raises(ValueError):
+    intersect(a, b, axis=0)
+  c = np.random.randint(0, 10, (3, 7))
+  with pytest.raises(ValueError):
+    intersect(a, c, axis=1)
+  with pytest.raises(NotImplementedError):
+    intersect(a, c, axis=2)
+  d = np.random.randint(0, 10, (3, 7, 3))
+  e = np.random.randint(0, 10, (3, 7, 3))
+  with pytest.raises(NotImplementedError):
+    intersect(d, e, axis=1)
 
 
 def test_fuse_ndarrays():
@@ -225,6 +257,18 @@ def test_U1Charge_matmul():
   assert np.all(Q.charges == Q_.charges)
 
 
+def test_U1Charge_matmul_raises():
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, 10).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, 11).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  with pytest.raises(ValueError):
+    q1 @ q2
+
+
 def test_U1Charge_identity():
   D = 100
   B = 5
@@ -271,3 +315,124 @@ def test_fuse_charges():
   fused = fuse_charges(charges, flows)
   np_fused = fuse_ndarrays([c * f for c, f in zip(np_charges, np_flows)])
   np.testing.assert_allclose(np.squeeze(fused.charges), np_fused)
+
+
+def test_fuse_charges_raises():
+  num_charges = 5
+  B = 6
+  D = 10
+  np_charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(num_charges)
+  ]
+  charges = [U1Charge(c) for c in np_charges]
+  flows = [True, False, True, False]
+  with pytest.raises(ValueError):
+    fuse_charges(charges, flows)
+
+
+def test_reduce():
+  q = np.array([[0, 1, 2, 0, 6, 1, -9, 0, -7], [2, 3, 4, -1, 4, 3, 1, 2, 0]])
+  Q = BaseCharge(charges=q)
+  target_charge = np.array([[0, 1, 6, -12], [2, 3, 4, 16]])
+  expected = np.array([[0, 1, 6, 1, 0], [2, 3, 4, 3, 2]])
+  res, locs = Q.reduce(target_charge, return_locations=True)
+  np.testing.assert_allclose(res.charges, expected)
+  np.testing.assert_allclose(locs, [0, 1, 4, 5, 7])
+
+
+def test_getitem():
+  q1 = np.array([0, 1, 2, 0, 6, 1, -9, 0, -7])
+  q2 = np.array([2, 3, 4, -1, 4, 3, 1, 2, 0])
+  Q1 = U1Charge(charges=q1)
+  Q2 = U1Charge(charges=q2)
+  Q = Q1 @ Q2
+  t1 = Q[5]
+  np.testing.assert_allclose(t1.charges, [[1], [3]])
+  assert np.all([t1.charge_types[n] == U1Charge for n in range(2)])
+  t2 = Q[[2, 5, 7]]
+  assert np.all([t2.charge_types[n] == U1Charge for n in range(2)])
+  np.testing.assert_allclose(t2.charges, [[2, 1, 0], [4, 3, 2]])
+  t3 = Q[[5, 2, 7]]
+  assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
+  np.testing.assert_allclose(t3.charges, [[1, 2, 0], [3, 4, 2]])
+
+
+def test_isin():
+  np.random.seed(10)
+  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+
+  c = c1 @ c2
+  c3 = np.array([[-1, 0, 1], [-1, 0, 1]])
+  n = c.isin(c3)
+  for m in np.nonzero(n)[0]:
+    charges = c[m].charges
+    #pylint: disable=unsubscriptable-object
+    assert np.any(
+        [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
+  for m in np.nonzero(np.logical_not(n))[0]:
+    charges = c[m].charges
+    #pylint: disable=unsubscriptable-object
+    assert not np.any(
+        [np.array_equal(charges[:, 0], c3[:, k]) for k in range(c3.shape[1])])
+
+
+def test_isin_2():
+  np.random.seed(10)
+  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+  c = c1 @ c2
+  c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+  n = c.isin(c3)
+  for m in np.nonzero(n)[0]:
+    charges = c[m].charges
+    assert np.any([
+        np.array_equal(charges[:, 0], c3.charges[:, k])
+        for k in range(c3.charges.shape[1])
+    ])
+  for m in np.nonzero(np.logical_not(n))[0]:
+    charges = c[m].charges
+    assert not np.any([
+        np.array_equal(charges[:, 0], c3.charges[:, k])
+        for k in range(c3.charges.shape[1])
+    ])
+
+
+def test_isin_raises():
+
+  class FakeCharge(BaseCharge):
+
+    def __init__(self, charges, charge_labels=None, charge_types=None):
+      super().__init__(charges, charge_labels, charge_types=[type(self)])
+
+    @staticmethod
+    def fuse(charge1, charge2) -> np.ndarray:
+      return np.add.outer(charge1, charge2).ravel()
+
+    @staticmethod
+    def dual_charges(charges) -> np.ndarray:
+      return charges * charges.dtype.type(-1)
+
+    @staticmethod
+    def identity_charge() -> np.ndarray:
+      return np.int16(0)
+
+    @classmethod
+    def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
+      charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
+      return cls(charges=charges)
+
+  np.random.seed(10)
+  c1 = BaseCharge(
+      np.random.randint(-5, 5, (2, 1000), dtype=np.int16),
+      charge_labels=None,
+      charge_types=[FakeCharge, FakeCharge])
+  c2 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+  with pytest.raises(TypeError):
+    c1.isin(c2)
+  with pytest.raises(ValueError):
+    c1.isin(np.random.randint(-2, 2, (2, 2, 2)))
+
+  with pytest.raises(ValueError):
+    c1.isin(np.random.randint(-2, 2, (3, 2)))
