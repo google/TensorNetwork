@@ -95,6 +95,23 @@ def test_intersect_4():
   np.testing.assert_allclose(lb, [0, 2])
 
 
+def test_intersect_raises():
+  np.random.seed(10)
+  a = np.random.randint(0, 10, (4, 5))
+  b = np.random.randint(0, 10, (4, 6))
+  with pytest.raises(ValueError):
+    intersect(a, b, axis=0)
+  c = np.random.randint(0, 10, (3, 7))
+  with pytest.raises(ValueError):
+    intersect(a, c, axis=1)
+  with pytest.raises(NotImplementedError):
+    intersect(a, c, axis=2)
+  d = np.random.randint(0, 10, (3, 7, 3))
+  e = np.random.randint(0, 10, (3, 7, 3))
+  with pytest.raises(NotImplementedError):
+    intersect(d, e, axis=1)
+
+
 def test_fuse_ndarrays():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
@@ -240,6 +257,18 @@ def test_U1Charge_matmul():
   assert np.all(Q.charges == Q_.charges)
 
 
+def test_U1Charge_matmul_raises():
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, 10).astype(np.int16)
+  C2 = np.random.randint(-B // 2, B // 2 + 1, 11).astype(np.int16)
+
+  q1 = U1Charge(C1)
+  q2 = U1Charge(C2)
+  with pytest.raises(ValueError):
+    Q = q1 @ q2
+
+
 def test_U1Charge_identity():
   D = 100
   B = 5
@@ -271,6 +300,16 @@ def test_U1Charge_mul():
   np.testing.assert_allclose(res.charges, (-1) * np.stack([C1, C2]))
 
 
+def test_U1Charge_mul_raises():
+  D = 10
+  B = 5
+  np.random.seed(10)
+  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  q1 = U1Charge(C1)
+  with pytest.raises(ValueError):
+    res = q1 * 1.0
+
+
 def test_fuse_charges():
   num_charges = 5
   B = 6
@@ -286,6 +325,20 @@ def test_fuse_charges():
   fused = fuse_charges(charges, flows)
   np_fused = fuse_ndarrays([c * f for c, f in zip(np_charges, np_flows)])
   np.testing.assert_allclose(np.squeeze(fused.charges), np_fused)
+
+
+def test_fuse_charges_raises():
+  num_charges = 5
+  B = 6
+  D = 10
+  np_charges = [
+      np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+      for _ in range(num_charges)
+  ]
+  charges = [U1Charge(c) for c in np_charges]
+  flows = [True, False, True, False]
+  with pytest.raises(ValueError):
+    fused = fuse_charges(charges, flows)
 
 
 def test_reduce():
@@ -354,3 +407,18 @@ def test_isin_2():
         np.array_equal(charges[:, 0], c3.charges[:, k])
         for k in range(c3.charges.shape[1])
     ])
+
+
+def test_isin_raises():
+  np.random.seed(10)
+  c1 = BaseCharge(
+      np.random.randint(-5, 5, (2, 1000), dtype=np.int16),
+      charge_types=[None, None])
+  c2 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+  with pytest.raises(TypeError):
+    c1.isin(c2)
+  with pytest.raises(ValueError):
+    c1.isin(np.random.randint(-2, 2, (2, 2, 2)))
+
+  with pytest.raises(ValueError):
+    c1.isin(np.random.randint(-2, 2, (3, 2)))
