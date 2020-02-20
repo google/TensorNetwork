@@ -139,8 +139,8 @@ class BaseCharge:
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges,
-                           2) == np.expand_dims(targets, 1),
+            np.expand_dims(self.unique_charges, 2) == np.expand_dims(
+                targets, 1),
             axis=0))[0]
     return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
 
@@ -324,7 +324,10 @@ class BaseCharge:
     if return_index or return_inverse or return_counts:
       for n in range(1, len(tmp)):
         out.append(tmp[n])
-    return out
+    #for a single return value we don't want to return a list
+    if len(out) == 1:
+      return out[0]
+    return tuple(out)
 
   def reduce(self,
              target_charges: np.ndarray,
