@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-
+# pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
@@ -30,8 +30,8 @@ def test_flat_meta_data():
   expected_flows = [True, False, False, True]
   charges, flows = get_flat_meta_data([i1, i2])
   np.testing.assert_allclose(flows, expected_flows)
-  for n in range(len(charges)):
-    assert charge_equal(charges[n], expected_charges[n])
+  for n, c in enumerate(charges):
+    assert charge_equal(c, expected_charges[n])
 
 
 def test_fuse_stride_arrays():
@@ -48,16 +48,8 @@ def test_fuse_stride_arrays():
 def test_compute_sparse_lookup():
   q1 = np.array([-2, 0, -5, 7])
   q2 = np.array([-3, 1, -2, 6, 2, -2])
-  fused = np.array([
-      1, -3, 0, -8, -4, 0, 3, -1, 2, -6, -2, 2, -2, -6, -3, -11, -7, -3, 10, 6,
-      9, 1, 5, 9
-  ])
   expected_unique = np.array(
       [-11, -8, -7, -6, -4, -3, -2, -1, 0, 1, 2, 3, 5, 6, 9, 10])
-  expected_labels = np.array([
-      9, 5, 8, 1, 4, 8, 11, 7, 10, 3, 6, 10, 6, 3, 5, 0, 2, 5, 15, 13, 14, 9,
-      12, 14
-  ])
 
   expected_labels_to_unique = np.array([7, 8, 9])
   expected_lookup = np.array([9, 8, 8, 7, 9])
