@@ -236,3 +236,119 @@ def compute_num_nonzero(charges: List[BaseCharge], flows: List[bool]) -> int:
   if len(nz_inds) > 0:
     return np.squeeze(accumulated_degeneracies[nz_inds][0])
   return 0
+
+
+def reduce_charges(charges: List[BaseCharge],
+                   flows: List[bool],
+                   target_charges: np.ndarray,
+                   return_locations: Optional[bool] = False,
+                   strides: Optional[np.ndarray] = None) -> Any:
+  """
+  Add quantum numbers arising from combining two or more charges into a
+  single index, keeping only the quantum numbers that appear in 'target_charges'.
+  Equilvalent to using "combine_charges" followed by "reduce", but is
+  generally much more efficient.
+  Args:
+    charges: List of `BaseCharge`, one for each leg of a 
+      tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    target_charges: n-by-D array of charges which should be kept,
+      with `n` the number of symmetries.
+    return_locations: If `True` return the location of the kept
+      values of the fused charges
+    strides: Index strides with which to compute the
+      retured locations of the kept elements. Defaults to trivial strides (based on
+      row major order).
+  Returns:
+    BaseCharge: the fused index after reduction.
+    np.ndarray: Locations of the fused BaseCharge charges that were kept.
+  """
+
+  tensor_dims = [len(c) for c in charges]
+
+  if len(charges) == 1:
+    # reduce single index
+    if strides is None:
+      strides = np.array([1], dtype=np.uint32)
+    return charges[0].dual(flows[0]).reduce(
+        target_charges, return_locations=return_locations, strides=strides[0])
+
+  # find size-balanced partition of charges
+  partition = _find_best_partition(tensor_dims)
+
+  # compute quantum numbers for each partition
+  left_ind = fuse_charges(charges[:partition], flows[:partition])
+  right_ind = fuse_charges(charges[partition:], flows[partition:])
+
+  # compute combined qnums
+  comb_qnums = fuse_ndarray_charges(left_ind.unique_charges,
+                                    right_ind.unique_charges,
+                                    charges[0].charge_types)
+  [unique_comb_qnums, comb_labels] = np.unique(
+      comb_qnums, return_inverse=True, axis=1)
+  num_unique = unique_comb_qnums.shape[1]
+
+  # intersect combined qnums and target_charges
+  reduced_qnums, label_to_unique, _ = intersect(
+      unique_comb_qnums, target_charges, axis=1, return_indices=True)
+  map_to_kept = -np.ones(num_unique, dtype=np.int16)
+  map_to_kept[label_to_unique] = np.arange(len(label_to_unique))
+  new_comb_labels = map_to_kept[comb_labels].reshape(
+      [left_ind.num_unique, right_ind.num_unique])
+  if return_locations:
+    if strides is not None:
+      # computed locations based on non-trivial strides
+      row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
+      col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
+
+      # reduce combined qnums to include only those in target_charges
+      reduced_rows = [0] * left_ind.num_unique
+      row_locs = [0] * left_ind.num_unique
+      for n in range(left_ind.num_unique):
+        temp_label = new_comb_labels[n, right_ind.charge_labels]
+        temp_keep = temp_label >= 0
+        reduced_rows[n] = temp_label[temp_keep]
+        row_locs[n] = col_pos[temp_keep]
+
+      reduced_labels = np.concatenate(
+          [reduced_rows[n] for n in left_ind.charge_labels])
+      reduced_locs = np.concatenate([
+          row_pos[n] + row_locs[left_ind.charge_labels[n]]
+          for n in range(left_ind.dim)
+      ])
+      obj = charges[0].__new__(type(charges[0]))
+      obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+      return obj, reduced_locs
+    # reduce combined qnums to include only those in target_charges
+    reduced_rows = [0] * left_ind.num_unique
+    row_locs = [0] * left_ind.num_unique
+    for n in range(left_ind.num_unique):
+      temp_label = new_comb_labels[n, right_ind.charge_labels]
+      temp_keep = temp_label >= 0
+      reduced_rows[n] = temp_label[temp_keep]
+      row_locs[n] = np.where(temp_keep)[0]
+
+    reduced_labels = np.concatenate(
+        [reduced_rows[n] for n in left_ind.charge_labels])
+    reduced_locs = np.concatenate([
+        n * right_ind.dim + row_locs[left_ind.charge_labels[n]]
+        for n in range(left_ind.dim)
+    ])
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+
+    return obj, reduced_locs
+  # reduce combined qnums to include only those in target_charges
+  reduced_rows = [0] * left_ind.num_unique
+  for n in range(left_ind.num_unique):
+    temp_label = new_comb_labels[n, right_ind.charge_labels]
+    reduced_rows[n] = temp_label[temp_label >= 0]
+
+  reduced_labels = np.concatenate(
+      [reduced_rows[n] for n in left_ind.charge_labels])
+  obj = charges[0].__new__(type(charges[0]))
+  obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+
+  return obj
