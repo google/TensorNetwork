@@ -35,8 +35,8 @@ def test_flat_meta_data():
 
 
 def test_fuse_stride_arrays():
-  dims = [2, 3, 4, 5]
-  strides = [120, 60, 20, 5, 1]
+  dims = np.asarray([2, 3, 4, 5])
+  strides = np.asarray([120, 60, 20, 5, 1])
   actual = fuse_stride_arrays(dims, strides)
   expected = fuse_ndarrays([
       np.arange(0, strides[n] * dims[n], strides[n], dtype=np.uint32)
