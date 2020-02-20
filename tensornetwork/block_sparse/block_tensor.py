@@ -61,7 +61,7 @@ def get_flat_meta_data(indices):
 def fuse_stride_arrays(dims: np.ndarray, strides: np.ndarray) -> np.ndarray:
   """
   Compute linear positions of tensor elements 
-  of a tensor with dimensions `dimsd` according to `strides`.
+  of a tensor with dimensions `dims` according to `strides`.
   Args: 
     dims: An np.ndarray of (original) tensor dimensions.
     strides: An np.ndarray of (possibly permituted) strides.
@@ -79,7 +79,8 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
                          ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """
   Compute lookup table for looking up how dense index positions map 
-  to sparse index positions.
+  to sparse index positions, treating only charges that fuse to `target_charges` 
+  as non-zero.
   Args:
     charges: List of `BaseCharge` objects.
     flows: A list of `bool`; the flow directions.
