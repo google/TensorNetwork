@@ -26,10 +26,8 @@ class Index:
   An index class to store indices of a symmetric tensor.
   """
 
-  def __init__(self,
-               charges: Union[List[BaseCharge], BaseCharge],
-               flow: Union[List[bool], bool],
-               name: Optional[Union[List[Text], Text]] = None) -> None:
+  def __init__(self, charges: Union[List[BaseCharge], BaseCharge],
+               flow: Union[List[bool], bool]) -> None:
     """
     Initialize an `Index` object.
     """
@@ -41,12 +39,9 @@ class Index:
     if not all([isinstance(f, (np.bool_, np.bool, bool)) for f in flow]):
       raise TypeError("flows have to be boolean. Found flow = {}".format(flow))
     self.flow = flow
-    if isinstance(name, str):
-      name = [name]
-    self.name = name
 
   def __len__(self):
-    return np.prod([len(c) for c in self.flat_charges])
+    return self.dim
 
   def __repr__(self):
     return str(self.dim)
@@ -65,6 +60,8 @@ class Index:
       if not np.all(
           self._charges[n].charge_labels == other._charges[n].charge_labels):
         return False
+    if not np.all(np.asarray(self.flow) == np.asarray(other.flow)):
+      return False
     return True
 
   def copy(self):
@@ -75,8 +72,8 @@ class Index:
     """
     index_copy = Index(
         charges=[c.copy() for c in self._charges],
-        flow=copy.deepcopy(self.flow),
-        name=copy.deepcopy(self.name))
+        flow=copy.deepcopy(self.flow))
+
     return index_copy
 
   @property
@@ -125,10 +122,6 @@ def fuse_index_pair(left_index: Index, right_index: Index) -> Index:
   Returns:
     Index: The result of fusing `index1` and `index2`.
   """
-  #Fuse the charges of the two indices
-  if left_index is right_index:
-    raise ValueError(
-        "index1 and index2 are the same object. Can only fuse distinct objects")
 
   return Index(
       charges=left_index.flat_charges + right_index.flat_charges,
