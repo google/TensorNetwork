@@ -4,7 +4,7 @@ import pytest
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -104,3 +104,62 @@ def test_compute_num_nonzero():
   nz1 = compute_num_nonzero(charges, flows)
   nz2 = len(np.nonzero(fused == 0)[0])
   assert nz1 == nz2
+
+
+def test_reduce_charges():
+  left_charges = np.asarray([-2, 0, 1, 0, 0]).astype(np.int16)
+  right_charges = np.asarray([-1, 0, 2, 1]).astype(np.int16)
+  target_charge = np.zeros((1, 1), dtype=np.int16)
+  fused_charges = fuse_ndarrays([left_charges, right_charges])
+  dense_positions = reduce_charges(
+      [U1Charge(left_charges), U1Charge(right_charges)], [False, False],
+      target_charge,
+      return_locations=True)
+
+  np.testing.assert_allclose(dense_positions[0].charges, 0)
+
+  np.testing.assert_allclose(
+      dense_positions[1],
+      np.nonzero(fused_charges == target_charge[0, 0])[0])
+
+
+def test_reduce_charges_non_trivial():
+  np.random.seed(10)
+  left_charges = np.random.randint(-5, 5, 200, dtype=np.int16)
+  right_charges = np.random.randint(-5, 5, 200, dtype=np.int16)
+
+  target_charge = np.array([[-2, 0, 3]]).astype(np.int16)
+  fused_charges = fuse_ndarrays([left_charges, right_charges])
+  dense_positions = reduce_charges(
+      [U1Charge(left_charges), U1Charge(right_charges)], [False, False],
+      target_charge,
+      return_locations=True)
+  assert np.all(
+      np.isin(
+          np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
+  mask = np.isin(fused_charges, np.squeeze(target_charge))
+  np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
+
+
+def test_reduce_charges_non_trivial_2():
+  np.random.seed(10)
+  left_charges1 = np.random.randint(-5, 5, 200, dtype=np.int16)
+  left_charges2 = np.random.randint(-5, 5, 200, dtype=np.int16)
+  right_charges1 = np.random.randint(-5, 5, 200, dtype=np.int16)
+  right_charges2 = np.random.randint(-5, 5, 200, dtype=np.int16)
+
+  target_charge = np.array([[-2, 0, 3], [-1, 1, 0]]).astype(np.int16)
+  fused_charges1 = fuse_ndarrays([left_charges1, right_charges1])
+  fused_charges2 = fuse_ndarrays([left_charges2, right_charges2])
+
+  dense_positions = reduce_charges([
+      U1Charge(left_charges1) @ U1Charge(left_charges2),
+      U1Charge(right_charges1) @ U1Charge(right_charges2)
+  ], [False, False],
+                                   target_charge,
+                                   return_locations=True)
+  assert np.all(
+      np.isin(
+          np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
+  mask = np.isin(fused_charges, np.squeeze(target_charge))
+  np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])

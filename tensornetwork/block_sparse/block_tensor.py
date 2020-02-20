@@ -245,7 +245,7 @@ def reduce_charges(charges: List[BaseCharge],
                    strides: Optional[np.ndarray] = None) -> Any:
   """
   Add quantum numbers arising from combining two or more charges into a
-  single index, keeping only the quantum numbers that appear in 'target_charges'.
+  single index, keeping only the quantum numbers that appear in `target_charges`.
   Equilvalent to using "combine_charges" followed by "reduce", but is
   generally much more efficient.
   Args:
