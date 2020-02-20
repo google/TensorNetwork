@@ -79,9 +79,9 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
                           target_charges: BaseCharge
                          ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """
-  Compute lookup table for looking up how dense index positions map 
-  to sparse index positions, treating only charges that fuse to `target_charges` 
-  as non-zero.
+  Compute lookup table for how dense index positions map 
+  to sparse index positions, treating only those elements as non-zero
+  whose charges fuse to `target_charges`.
   Args:
     charges: List of `BaseCharge` objects.
     flows: A list of `bool`; the flow directions.
