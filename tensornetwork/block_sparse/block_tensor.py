@@ -187,7 +187,7 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
 
 
 def compute_unique_fused_charges(charges: List[BaseCharge],
-                                 flows: List[Union[bool, int]]) -> BaseCharge:
+                                 flows: List[bool]) -> BaseCharge:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
