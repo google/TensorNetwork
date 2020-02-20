@@ -41,7 +41,7 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   return np.array(res)
 
 
-def get_flat_meta_data(indices):
+def get_flat_meta_data(indices: List[Index]) -> Tuple[List, List]:
   """
   Return charges and flows of flattened `indices`.
   Args:
@@ -90,9 +90,9 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   Returns:
     lookup: An np.ndarray of positive numbers between `0` and
       `len(unique_charges)`. The position of values `n` in `lookup` are positions
-       with charge values `unique_values[n]`.
+       with charge values `unique_charges[n]`.
     unique_charges: The unique charges of fusion of `charges`
-    lable_to_unique: The  integer labels of the unique charges.
+    label_to_unique: The  integer labels of the unique charges.
   """
 
   fused_charges = fuse_charges(charges, flows)
@@ -108,7 +108,7 @@ def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
   return lookup, unique_charges, label_to_unique
 
 
-def _get_strides(dims):
+def _get_strides(dims: Union[List[int], np.ndarray]) -> np.ndarray:
   """
   compute strides of `dims`.
   """
@@ -187,7 +187,7 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
 
 
 def compute_unique_fused_charges(charges: List[BaseCharge],
-                                 flows: List[Union[bool, int]]) -> BaseCharge:
+                                 flows: List[bool]) -> BaseCharge:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
