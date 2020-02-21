@@ -4,7 +4,7 @@ import pytest
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -167,3 +167,28 @@ def test_reduce_charges_non_trivial_2():
 
   np.testing.assert_allclose(
       np.nonzero(np.logical_or.reduce(masks))[0], dense_positions[1])
+
+
+@pytest.mark.parametrize('num_charges', [2, 3, 4])
+def test_find_diagonal_sparse_blocks(num_charges):
+  np.random.seed(10)
+  np_charges = [
+      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_charges)
+  ]
+  fused = fuse_ndarrays(np_charges)
+  left_charges = fuse_ndarrays(np_charges[:num_charges // 2])
+  right_charges = fuse_ndarrays(np_charges[num_charges // 2:])
+  nz = np.nonzero(fused == 0)[0]
+  linear_locs = np.arange(len(nz))
+  left_inds, right_inds = np.divmod(nz, len(right_charges))
+  left = left_charges[left_inds]
+  right = right_charges[right_inds]
+  unique_left = np.unique(left)
+  blocks = []
+  for ul in unique_left:
+    blocks.append(linear_locs[np.nonzero(left == ul)])
+  charges = [U1Charge(left_charges), U1Charge(right_charges)]
+  bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
+  np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
+  for b1, b2 in zip(blocks, bs):
+    assert np.all(b1 == b2)
