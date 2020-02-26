@@ -192,3 +192,5 @@ def test_find_diagonal_sparse_blocks(num_charges):
   np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
   for b1, b2 in zip(blocks, bs):
     assert np.all(b1 == b2)
+  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
+  np.testing.assert_allclose(unique_left, np.squeeze(cs.charges))
