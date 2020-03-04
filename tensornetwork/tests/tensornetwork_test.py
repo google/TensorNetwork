@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import tensornetwork as tn
+from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -65,6 +66,61 @@ def test_add_copy_node_from_node_object(backend):
   e = a[0] ^ b[0]
   c = tn.contract(e)
   np.testing.assert_allclose(c.tensor, a.tensor)
+
+
+def test_copy_node_method(backend):
+  a = tn.Node(np.ones([3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
+def test_copy_copynode_method(backend):
+  a = tn.CopyNode(3, 3, 'mynode', axis_names=['a', 'b', 'c'], backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  assert a.rank == b.rank
+  assert a.backend == b.backend
+  assert a.dtype == b.dtype
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
+def test_copy_method_with_trace_edges(backend):
+  a = tn.Node(np.ones([3, 3, 3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c', 'd', 'e'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  a.add_edge(tn.Edge(a, 3, name='named_edge4'), 3)
+  a.add_edge(tn.Edge(a, 4, name='named_edge5'), 4)
+  a[0] ^ a[3]
+  a[1] ^ a[4]
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  assert b[0] is b[3]
+  assert b[1] is b[4]
+  np.testing.assert_allclose(a.tensor, b.tensor)
 
 
 def test_default_names_add_node_object(backend):
@@ -345,6 +401,21 @@ def test_reorder_axes(backend):
   assert a.shape == (4, 2, 3)
 
 
+def test_reorder_axes_raises_error_no_tensor(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  del a._tensor
+  with pytest.raises(AttributeError) as e:
+    a.reorder_axes([2, 0, 1])
+  assert "Please provide a valid tensor for this Node." in str(e.value)
+
+
+def test_reorder_axes_raises_error_bad_permutation(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  with pytest.raises(ValueError) as e:
+    a.reorder_axes([2, 0])
+  assert "A full permutation was not passed." in str(e.value)
+
+
 def test_flatten_consistent_result(backend):
   a_val = np.ones((3, 5, 5, 6))
   b_val = np.ones((5, 6, 4, 5))
@@ -507,7 +578,7 @@ def test_set_node2(backend):
 
 def test_set_default(backend):
   tn.set_default_backend(backend)
-  assert tn.config.default_backend == backend
+  assert _default_backend_stack.default_backend == backend
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
 

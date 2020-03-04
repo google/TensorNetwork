@@ -41,11 +41,13 @@ class NumPyBackend(base_backend.BaseBackend):
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(self.np, tensor, split_axis,
                                             max_singular_values,
-                                            max_truncation_error)
+                                            max_truncation_error,
+                                            relative=relative)
 
   def qr_decomposition(
       self,
@@ -61,16 +63,16 @@ class NumPyBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.np, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> Tensor:
+  def shape_prod(self, values: Tensor) -> Tensor:
     return self.np.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -131,6 +133,24 @@ class NumPyBackend(base_backend.BaseBackend):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
+
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[numpy.dtype] = None,
+                     seed: Optional[int] = None) -> Tensor:
+
+    if seed:
+      self.np.random.seed(seed)
+    dtype = dtype if dtype is not None else self.np.float64
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
+      return self.np.random.uniform(boundaries[0], boundaries[1], shape).astype(
+          dtype) + 1j * self.np.random.uniform(boundaries[0],
+                                               boundaries[1],
+                                               shape).astype(dtype)
+    return self.np.random.uniform(boundaries[0],
+                                  boundaries[1], shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
@@ -353,8 +373,17 @@ class NumPyBackend(base_backend.BaseBackend):
       eigenvectors.append(state / self.np.linalg.norm(state))
     return eigvals[0:numeig], eigenvectors
 
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

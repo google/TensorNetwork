@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
 import numpy as np
 
 #pylint: disable=useless-import-alias
-import tensornetwork.config as config
 #pylint: disable=line-too-long
 from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
 from tensornetwork.backends import backend_factory
@@ -125,23 +124,9 @@ def copy(nodes: Iterable[BaseNode],
       node_dict: A dictionary mapping the nodes to their copies.
       edge_dict: A dictionary mapping the edges to their copies.
   """
-  #TODO: add support for copying CopyTensor
-  if conjugate:
-    node_dict = {
-        node: Node(
-            node.backend.conj(node.tensor),
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend) for node in nodes
-    }
-  else:
-    node_dict = {
-        node: Node(
-            node.tensor,
-            name=node.name,
-            axis_names=node.axis_names,
-            backend=node.backend) for node in nodes
-    }
+  node_dict = {}
+  for node in nodes:
+    node_dict[node] = node.copy(conjugate)
   edge_dict = {}
   for edge in get_all_edges(nodes):
     node1 = edge.node1
@@ -184,9 +169,6 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
         the newly broken edges.
       disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
         to the newly broken edges.
-
-  Raises:
-    ValueError: If the node isn't in the network.
   """
   disconnected_edges_by_name = {}
   disconnected_edges_by_axis = {}
@@ -205,6 +187,7 @@ def split_node(
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
     max_truncation_err: Optional[float] = None,
+    relative: Optional[bool] = False,
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
@@ -225,6 +208,8 @@ def split_node(
   values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
   `norm(truncated_singular_values) <= max_truncation_err`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If only `max_singular_values` is set, the number of singular values kept
   will be `min(max_singular_values, number_of_singular_values)`, so that
@@ -240,6 +225,7 @@ def split_node(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
+    relative: Multiply `max_truncation_err` with the largest singular value.
     left_name: The name of the new left node. If `None`, a name will be 
       generated automatically.
     right_name: The name of the new right node. If `None`, a name will be 
@@ -285,15 +271,16 @@ def split_node(
 
   u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
                                                   max_singular_values,
-                                                  max_truncation_err)
+                                                  max_truncation_err,
+                                                  relative=relative)
   sqrt_s = backend.sqrt(s)
   u_s = u * sqrt_s
   # We have to do this since we are doing element-wise multiplication against
   # the first axis of vh. If we don't, it's possible one of the other axes of
   # vh will be the same size as sqrt_s and would multiply across that axis
   # instead, which is bad.
-  sqrt_s_broadcast_shape = backend.concat(
-      [backend.shape(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
+  sqrt_s_broadcast_shape = backend.shape_concat(
+      [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
   vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
@@ -465,6 +452,7 @@ def split_node_full_svd(
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
     max_truncation_err: Optional[float] = None,
+    relative: Optional[bool] = False,
     left_name: Optional[Text] = None,
     middle_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
@@ -488,6 +476,8 @@ def split_node_full_svd(
   values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
   `norm(truncated_singular_values) <= max_truncation_err`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If only `max_singular_values` is set, the number of singular values kept
   will be `min(max_singular_values, number_of_singular_values)`, so that
@@ -503,6 +493,7 @@ def split_node_full_svd(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
+    relative: Multiply `max_truncation_err` with the largest singular value.
     left_name: The name of the new left node. If None, a name will be 
       generated automatically.
     middle_name: The name of the new center node. If None, a name will be 
@@ -557,7 +548,8 @@ def split_node_full_svd(
   node.reorder_edges(left_edges + right_edges)
   u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
                                                   max_singular_values,
-                                                  max_truncation_err)
+                                                  max_truncation_err,
+                                                  relative=relative)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
@@ -607,7 +599,7 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
   Args:
     inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
-    A list of `BaseNode` objects that can be reached from `node`
+    A set of `BaseNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.

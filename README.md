@@ -37,7 +37,11 @@ pip3 install tensornetwork
 For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
 
-We also have a basic [tutorial colab](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu) for a more "hands-on" example.
+## Tutorials
+
+[Basic API tutorial](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu)
+
+[Tensor Networks inside Neural Networks using Keras](https://colab.research.google.com/drive/1JUh84N5sbfQYk6HWowWCGl0IZ1idQi6z)
 ## Basic Example
 
 Here, we build a simple 2 node contraction.
@@ -73,7 +77,7 @@ c = tn.contract_parallel(edge)
 You can split a node by doing a singular value decomposition. 
 ```python
 # This will return two nodes and a tensor of the truncation error.
-# The two nodes are the unitary matricies multiplied by the square root of the
+# The two nodes are the unitary matrices multiplied by the square root of the
 # singular values.
 # The `left_edges` are the edges that will end up on the `u_s` node, and `right_edges`
 # will be on the `vh_s` node.
