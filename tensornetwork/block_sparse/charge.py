@@ -151,7 +151,7 @@ class BaseCharge:
           axis=1)
     else:
       if target_charges.ndim == 1:
-        target_charges = target_charges[:, None]
+        target_charges = target_charges[None, :]
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
