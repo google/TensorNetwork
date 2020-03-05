@@ -128,9 +128,8 @@ class BaseCharge:
 
   @property
   def degeneracies(self):
-    exp1 = np.expand_dims(self.charge_labels, 1)
-    exp2 = np.expand_dims(
-        np.arange(self.unique_charges.shape[1], dtype=np.int16), 0)
+    exp1 = self.charge_labels[:, None]
+    exp2 = np.arange(self.unique_charges.shape[1], dtype=np.int16)[None, :]
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
@@ -168,9 +167,9 @@ class BaseCharge:
     Returns:
       BaseCharge: The identity charge.
     """
-    unique_charges = np.expand_dims(
-        np.asarray([ct.identity_charge() for ct in self.charge_types],
-                   dtype=np.int16), 1)
+    unique_charges = np.asarray(
+        [ct.identity_charge() for ct in self.charge_types],
+        dtype=np.int16)[:, None]
     charge_labels = np.zeros(1, dtype=np.int16)
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
@@ -268,7 +267,7 @@ class BaseCharge:
 
     else:
       if other.ndim == 1:
-        other = np.expand_dims(other, 0)
+        other = other[None, :]
       out = intersect(
           self.charges,
           np.asarray(other),
@@ -366,7 +365,7 @@ class BaseCharge:
     if isinstance(target_charges, (np.integer, int)):
       target_charges = np.asarray([target_charges], dtype=np.int16)
     if target_charges.ndim == 1:
-      target_charges = np.expand_dims(target_charges, 0)
+      target_charges = target_charges[None, :]
     target_charges = np.asarray(target_charges, dtype=np.int16)
     # find intersection of index charges and target charges
     reduced_charges, label_to_unique, _ = intersect(
@@ -431,7 +430,7 @@ class BaseCharge:
       targets = target_charges.unique_charges
     else:
       if target_charges.ndim == 1:
-        targets = np.expand_dims(np.unique(target_charges, axis=0), 0)
+        targets = np.unique(target_charges, axis=0)[None, :]
       elif target_charges.ndim == 2:
         targets = np.unique(target_charges, axis=1)
       else:
@@ -442,7 +441,7 @@ class BaseCharge:
             "target_charges.shape[0]={} is different from self.num_symmetries = {}"
             .format(targets.shape[0], self.num_symmetries))
 
-    tmp = np.expand_dims(self.unique_charges, 2) == np.expand_dims(targets, 1)
+    tmp = self.unique_charges[:, :, None] == targets[:, None, :]
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_or.reduce(np.logical_and.reduce(tmp, axis=0), axis=1))[0]
@@ -600,7 +599,7 @@ def fuse_degeneracies(degen1: Union[List, np.ndarray],
     np.ndarray: The result of fusing `dege1` with `degen2`.
   """
   return np.reshape(
-      np.expand_dims(degen1, 1) * np.expand_dims(degen2, 0),
+      np.array(degen1)[:, None] * np.array(degen2)[None, :],
       len(degen1) * len(degen2))
 
 
