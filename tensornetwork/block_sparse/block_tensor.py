@@ -75,9 +75,9 @@ def fuse_stride_arrays(dims: Union[List[int], np.ndarray],
   ])
 
 
-def compute_sparse_lookup(charges: List[BaseCharge], flows: List[bool],
-                          target_charges: BaseCharge
-                         ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def compute_sparse_lookup(
+    charges: List[BaseCharge], flows: List[bool],
+    target_charges: BaseCharge) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
   """
   Compute lookup table for how dense index positions map 
   to sparse index positions, treating only those elements as non-zero
@@ -142,9 +142,9 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   return min_ind + 1
 
 
-def compute_fused_charge_degeneracies(charges: List[BaseCharge],
-                                      flows: List[bool]
-                                     ) -> Tuple[BaseCharge, np.ndarray]:
+def compute_fused_charge_degeneracies(
+    charges: List[BaseCharge],
+    flows: List[bool]) -> Tuple[BaseCharge, np.ndarray]:
   """
   For a list of charges, computes all possible fused charges resulting
   from fusing `charges` and their respective degeneracies
@@ -163,9 +163,8 @@ def compute_fused_charge_degeneracies(charges: List[BaseCharge],
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True)
+  accumulated_charges, accumulated_degeneracies = (
+      charges[0] * flows[0]).unique(return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
     fused_charges = accumulated_charges + leg_charges * flows[n]
@@ -352,9 +351,9 @@ def reduce_charges(charges: List[BaseCharge],
   return obj
 
 
-def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: List[bool],
-                                 partition: int
-                                ) -> Tuple[List, BaseCharge, np.ndarray]:
+def _find_diagonal_sparse_blocks(
+    charges: List[BaseCharge], flows: List[bool],
+    partition: int) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
@@ -421,9 +420,9 @@ def _find_diagonal_sparse_blocks(charges: List[BaseCharge], flows: List[bool],
   # calculate mappings for the position in datavector of each block
   if num_blocks < 15:
     # faster method for small number of blocks
-    row_locs = np.concatenate([
-        (row_ind.charge_labels == n) for n in range(num_blocks)
-    ]).reshape(num_blocks, row_ind.dim)
+    row_locs = np.concatenate(
+        [(row_ind.charge_labels == n) for n in range(num_blocks)]).reshape(
+            num_blocks, row_ind.dim)
   else:
     # faster method for large number of blocks
     row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)

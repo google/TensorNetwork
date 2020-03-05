@@ -36,8 +36,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.jax.jit(lambda x: x)(tensor)
-    return result
+    return self.np.asarray(tensor)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
