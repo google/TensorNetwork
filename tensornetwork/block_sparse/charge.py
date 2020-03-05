@@ -56,7 +56,7 @@ class BaseCharge:
                charge_types: Optional[List[Type["BaseCharge"]]] = None) -> None:
     self.charge_types = charge_types
     if charges.ndim == 1:
-      charges = np.expand_dims(charges, 0)
+      charges = charges[None, :]
     if charge_labels is None:
       self.unique_charges, self.charge_labels = np.unique(
           charges.astype(np.int16), return_inverse=True, axis=1)
