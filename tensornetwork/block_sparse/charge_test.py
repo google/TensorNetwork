@@ -462,3 +462,16 @@ def test_eq_2():
   np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
   for i, j in zip(inds[0], inds[1]):
     np.array_equal(c[i].charges, c3[:, j])
+
+
+def test_iter():
+  np.random.seed(10)
+  arr1 = np.array([-2, -1, 0, 1, -1, 3, 4, 5, 1], dtype=np.int16)
+  arr2 = np.array([-1, 0, 1, 2, 0, 4, 5, 6, 2], dtype=np.int16)
+  c1 = U1Charge(arr1)
+  c2 = U1Charge(arr2)
+  c = c1 @ c2
+  m = 0
+  for n in c:
+    np.testing.assert_allclose(n, np.array([arr1[m], arr2[m]]))
+    m += 1
