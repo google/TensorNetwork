@@ -36,6 +36,20 @@ class BaseCharge:
       
   """
 
+  class Iterator:
+
+    def __init__(self, unique: np.ndarray, labels: np.ndarray):
+      self.n = 0
+      self.unique = unique
+      self.labels = labels
+
+    def __next__(self):
+      if self.n < len(self.labels):
+        out = self.unique[:, self.labels[self.n]]
+        self.n += 1
+        return out
+      raise StopIteration
+
   def __init__(self,
                charges: np.ndarray,
                charge_labels: Optional[np.ndarray] = None,
@@ -123,26 +137,29 @@ class BaseCharge:
     return str(
         type(self)) + '\n' + 'charges: \n' + self.charges.__repr__() + '\n'
 
+  def __iter__(self):
+    return self.Iterator(self.unique_charges, self.charge_labels)
+
   def __len__(self):
     return len(self.charge_labels)
 
   def __eq__(self,
              target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
+
     if isinstance(target_charges, type(self)):
       targets = np.unique(
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
       if target_charges.ndim == 1:
-        target_charges = np.expand_dims(target_charges, 0)
+        target_charges = target_charges[:, None]
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            np.expand_dims(self.unique_charges,
-                           2) == np.expand_dims(targets, 1),
-            axis=0))[0]
-    return np.expand_dims(self.charge_labels, 1) == np.expand_dims(inds, 0)
+            self.unique_charges[:, :, None] == targets[:, None, :], axis=0))[0]
+
+    return self.charge_labels[:, None] == inds[None, :]
 
   @property
   def identity_charges(self) -> "BaseCharge":
