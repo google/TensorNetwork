@@ -18,6 +18,18 @@ import numpy as np
 from tensornetwork.backends.base_backend import BaseBackend
 
 
+def test_replicate_nodes(backend):
+  a = tn.Node(np.random.rand(10, 10), backend=backend)
+  b = tn.Node(np.random.rand(10, 10), backend=backend)
+  c = tn.Node(np.random.rand(10, 10), backend=backend)
+  tn.connect(a[1], b[0])
+  tn.connect(b[1], c[0])
+  [a_copy, b_copy] = tn.replicate_nodes([a, b])
+  assert b_copy in tn.reachable([a_copy])
+  assert not set([a_copy, b_copy]).issubset(tn.reachable([c]))
+  assert len(b_copy.get_all_dangling()) == 1
+
+
 def test_split_node_full_svd_names(backend):
   a = tn.Node(np.random.rand(10, 10), backend=backend)
   e1 = a[0]

@@ -157,6 +157,26 @@ def copy(nodes: Iterable[BaseNode],
   return node_dict, edge_dict
 
 
+def replicate_nodes(nodes: Iterable[BaseNode],
+                    conjugate: bool = False) -> List[BaseNode]:
+  """Copy the given nodes and their edges.
+
+  If nodes A and B are connected but only A is passed in to be
+  copied, the edge between them will become a dangling edge.
+
+  Args:
+    nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
+    conjugate: Boolean. Whether to conjugate all of the nodes
+        (useful for calculating norms and reduced density
+        matrices).
+
+  Returns:
+    A list containing the copies of the nodes.
+  """
+  new_nodes, _ = copy(nodes, conjugate=conjugate)
+  return [new_nodes[node] for node in nodes]
+
+
 def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   """Remove a node from the network.
 
