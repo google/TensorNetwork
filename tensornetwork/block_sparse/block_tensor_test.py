@@ -293,7 +293,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_legs, num_charges):
   ]
   flows = [False] * num_legs
   bs, cs, ss = _find_transposed_diagonal_sparse_blocks(
-      charges, flows, tr_partition=2, order=order)
+      charges, flows, tr_partition=num_legs // 2, order=order)
   np.testing.assert_allclose(cs.charges, unique_left)
   for b1, b2 in zip(blocks, bs):
     assert np.all(b1 == b2)
