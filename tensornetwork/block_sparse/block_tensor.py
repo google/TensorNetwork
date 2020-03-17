@@ -445,3 +445,199 @@ def _find_diagonal_sparse_blocks(
                charges[0].charge_types)
 
   return block_maps, obj, block_dims
+
+
+def _find_transposed_diagonal_sparse_blocks(
+    charges: List[BaseCharge],
+    flows: List[bool],
+    tr_partition: int,
+    order: Optional[np.ndarray] = None) -> Tuple[List, BaseCharge, np.ndarray]:
+  """
+  Find the diagonal blocks of a transposed tensor with 
+  meta-data `charges` and `flows`. `charges` and `flows` 
+  are the charges and flows of the untransposed tensor, 
+  `order` is the final transposition, and `tr_partition`
+  is the partition of the transposed tensor according to 
+  which the diagonal blocks should be found.
+  Args:
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    tr_partition: Location of the transposed tensor partition (i.e. such that the 
+      tensor is viewed as a matrix between `charges[order[:partition]]` and 
+      `charges[order[partition:]]`).
+    order: Order with which to permute the tensor axes. 
+  Returns:
+    block_maps (List[np.ndarray]): list of integer arrays, which each 
+      containing the location of a symmetry block in the data vector.
+    block_qnums (BaseCharge): The charges of the corresponding blocks.
+    block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
+  """
+  flows = np.asarray(flows)
+  if np.array_equal(order, None) or (np.array_equal(
+      np.array(order), np.arange(len(charges)))):
+    # no transpose order
+    return _find_diagonal_sparse_blocks(charges, flows, tr_partition)
+
+  # general case: non-trivial transposition is required
+  num_inds = len(charges)
+  tensor_dims = np.array([charges[n].dim for n in range(num_inds)], dtype=int)
+  strides = np.append(np.flip(np.cumprod(np.flip(tensor_dims[1:]))), 1)
+
+  # compute qnums of row/cols in original tensor
+  orig_partition = _find_best_partition(tensor_dims)
+  orig_width = np.prod(tensor_dims[orig_partition:])
+
+  orig_unique_row_qnums = compute_unique_fused_charges(charges[:orig_partition],
+                                                       flows[:orig_partition])
+  orig_unique_col_qnums, orig_col_degen = compute_fused_charge_degeneracies(
+      charges[orig_partition:], np.logical_not(flows[orig_partition:]))
+
+  orig_block_qnums, row_map, col_map = intersect(
+      orig_unique_row_qnums.unique_charges,
+      orig_unique_col_qnums.unique_charges,
+      axis=1,
+      return_indices=True)
+  orig_num_blocks = orig_block_qnums.shape[1]
+  if orig_num_blocks == 0:
+    # special case: trivial number of non-zero elements
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(
+        np.empty(0, dtype=np.int16), np.arange(0, dtype=np.int16),
+        charges[0].charge_types)
+
+    return [], obj, np.array([], dtype=np.uint32)
+
+  orig_row_ind = fuse_charges(charges[:orig_partition], flows[:orig_partition])
+  orig_col_ind = fuse_charges(charges[orig_partition:],
+                              np.logical_not(flows[orig_partition:]))
+
+  inv_row_map = -np.ones(
+      orig_unique_row_qnums.unique_charges.shape[1], dtype=np.int16)
+  inv_row_map[row_map] = np.arange(len(row_map), dtype=np.int16)
+
+  all_degens = np.append(orig_col_degen[col_map],
+                         0)[inv_row_map[orig_row_ind.charge_labels]]
+  all_cumul_degens = np.cumsum(np.insert(all_degens[:-1], 0,
+                                         0)).astype(np.uint32)
+  dense_to_sparse = np.zeros(orig_width, dtype=np.uint32)
+  for n in range(orig_num_blocks):
+    dense_to_sparse[orig_col_ind.charge_labels == col_map[n]] = np.arange(
+        orig_col_degen[col_map[n]], dtype=np.uint32)
+
+  # define properties of new tensor resulting from transposition
+  new_strides = strides[order]
+  new_row_charges = [charges[n] for n in order[:tr_partition]]
+  new_col_charges = [charges[n] for n in order[tr_partition:]]
+  new_row_flows = flows[order[:tr_partition]]
+  new_col_flows = flows[order[tr_partition:]]
+
+  if tr_partition == 0:
+    # special case: reshape into row vector
+
+    # compute qnums of row/cols in transposed tensor
+    unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
+        new_col_charges, np.logical_not(new_col_flows))
+    identity_charges = charges[0].identity_charges
+    block_qnums, new_row_map, new_col_map = intersect(
+        identity_charges.unique_charges,
+        unique_col_qnums.unique_charges,
+        axis=1,
+        return_indices=True)
+    block_dims = np.array([[1], new_col_degen[new_col_map]], dtype=np.uint32)
+    num_blocks = 1
+    col_ind, col_locs = reduce_charges(
+        new_col_charges,
+        np.logical_not(new_col_flows),
+        block_qnums,
+        return_locations=True,
+        strides=new_strides[tr_partition:])
+
+    # find location of blocks in transposed tensor (w.r.t positions in original)
+    #pylint: disable=no-member
+    orig_row_posR, orig_col_posR = np.divmod(
+        col_locs[col_ind.charge_labels == 0], orig_width)
+    block_maps = [(all_cumul_degens[orig_row_posR] +
+                   dense_to_sparse[orig_col_posR]).ravel()]
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+                 charges[0].charge_types)
+
+  elif tr_partition == len(charges):
+    # special case: reshape into col vector
+
+    # compute qnums of row/cols in transposed tensor
+    unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
+        new_row_charges, new_row_flows)
+    identity_charges = charges[0].identity_charges
+    block_qnums, new_row_map, new_col_map = intersect(
+        unique_row_qnums.unique_charges,
+        identity_charges.unique_charges,
+        axis=1,
+        return_indices=True)
+    block_dims = np.array([new_row_degen[new_row_map], [1]], dtype=np.uint32)
+    num_blocks = 1
+    row_ind, row_locs = reduce_charges(
+        new_row_charges,
+        new_row_flows,
+        block_qnums,
+        return_locations=True,
+        strides=new_strides[:tr_partition])
+
+    # find location of blocks in transposed tensor (w.r.t positions in original)
+    #pylint: disable=no-member
+    orig_row_posL, orig_col_posL = np.divmod(
+        row_locs[row_ind.charge_labels == 0], orig_width)
+    block_maps = [(all_cumul_degens[orig_row_posL] +
+                   dense_to_sparse[orig_col_posL]).ravel()]
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+                 charges[0].charge_types)
+  else:
+
+    unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
+        new_row_charges, new_row_flows)
+
+    unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
+        new_col_charges, np.logical_not(new_col_flows))
+    block_qnums, new_row_map, new_col_map = intersect(
+        unique_row_qnums.unique_charges,
+        unique_col_qnums.unique_charges,
+        axis=1,
+        return_indices=True)
+    block_dims = np.array(
+        [new_row_degen[new_row_map], new_col_degen[new_col_map]],
+        dtype=np.uint32)
+    num_blocks = len(new_row_map)
+
+    row_ind, row_locs = reduce_charges(
+        new_row_charges,
+        new_row_flows,
+        block_qnums,
+        return_locations=True,
+        strides=new_strides[:tr_partition])
+
+    col_ind, col_locs = reduce_charges(
+        new_col_charges,
+        np.logical_not(new_col_flows),
+        block_qnums,
+        return_locations=True,
+        strides=new_strides[tr_partition:])
+
+    block_maps = [0] * num_blocks
+    for n in range(num_blocks):
+      #pylint: disable=no-member
+      orig_row_posL, orig_col_posL = np.divmod(
+          row_locs[row_ind.charge_labels == n], orig_width)
+      #pylint: disable=no-member
+      orig_row_posR, orig_col_posR = np.divmod(
+          col_locs[col_ind.charge_labels == n], orig_width)
+      block_maps[n] = (
+          all_cumul_degens[np.add.outer(orig_row_posL, orig_row_posR)] +
+          dense_to_sparse[np.add.outer(orig_col_posL, orig_col_posR)]).ravel()
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+                 charges[0].charge_types)
+
+  return block_maps, obj, block_dims
