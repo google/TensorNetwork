@@ -65,7 +65,7 @@ def fuse_stride_arrays(dims: Union[List[int], np.ndarray],
   of a tensor with dimensions `dims` according to `strides`.
   Args: 
     dims: An np.ndarray of (original) tensor dimensions.
-    strides: An np.ndarray of (possibly permituted) strides.
+    strides: An np.ndarray of (possibly permuted) strides.
   Returns:
     np.ndarray: Linear positions of tensor elements according to `strides`.
   """
