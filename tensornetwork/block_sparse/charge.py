@@ -21,6 +21,8 @@ import numpy as np
 from typing import List, Optional, Type, Any, Union
 
 
+#TODO: change from column to row order for unique labels
+#TODO: implement more efficient unique function
 class BaseCharge:
   """
   Base class for charges of BlockSparseTensor. All user defined charges 
@@ -144,13 +146,15 @@ class BaseCharge:
 
   def __eq__(self,
              target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
-
+    #FIXME: calling np.unique can cause significan overhead in some cases
+    #fix code in block_tensor.py to work on np.ndarray instead
     if isinstance(target_charges, type(self)):
       targets = np.unique(
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
       if target_charges.ndim == 1:
+
         target_charges = target_charges[None, :]
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
