@@ -171,7 +171,7 @@ def test_reduce_charges_non_trivial_2():
 
 
 @pytest.mark.parametrize('num_legs', [2, 3, 4])
-@pytest.mark.parametrize('num_charges', [2, 3])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.random.seed(10)
   np_charges = [
@@ -215,9 +215,9 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
       BaseCharge(right_charges, charge_types=[U1Charge] * num_charges)
   ]
   bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
-  np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
+  np.testing.assert_allclose(cs.charges, unique_left)
   for b1, b2 in zip(blocks, bs):
     assert np.all(b1 == b2)
 
   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
-  np.testing.assert_allclose(unique_left, np.squeeze(cs.charges))
+  np.testing.assert_allclose(unique_left, cs.charges)
