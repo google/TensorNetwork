@@ -170,15 +170,41 @@ def test_reduce_charges_non_trivial_2():
       np.nonzero(np.logical_or.reduce(masks))[0], dense_positions[1])
 
 
-@pytest.mark.parametrize('num_charges', [2, 3, 4])
-def test_find_diagonal_sparse_blocks(num_charges):
+@pytest.mark.parametrize('num_legs', [2, 3, 4])
+def test_find_diagonal_sparse_blocks(num_legs):
   np.random.seed(10)
   np_charges = [
-      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_charges)
+      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_legs)
   ]
   fused = fuse_ndarrays(np_charges)
-  left_charges = fuse_ndarrays(np_charges[:num_charges // 2])
-  right_charges = fuse_ndarrays(np_charges[num_charges // 2:])
+  left_charges = fuse_ndarrays(np_charges[:num_legs // 2])
+  right_charges = fuse_ndarrays(np_charges[num_legs // 2:])
+  nz = np.nonzero(fused == 0)[0]
+  linear_locs = np.arange(len(nz))
+  left_inds, _ = np.divmod(nz, len(right_charges))
+  left = left_charges[left_inds]
+  unique_left = np.unique(left)
+  blocks = []
+  for ul in unique_left:
+    blocks.append(linear_locs[np.nonzero(left == ul)])
+  charges = [U1Charge(left_charges), U1Charge(right_charges)]
+  bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
+  np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
+  for b1, b2 in zip(blocks, bs):
+    assert np.all(b1 == b2)
+  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
+  np.testing.assert_allclose(unique_left, np.squeeze(cs.charges))
+
+
+@pytest.mark.parametrize('num_legs', [2, 3, 4])
+def test_find_transposed_diagonal_sparse_blocks(num_legs):
+  np.random.seed(10)
+  np_charges = [
+      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_legs)
+  ]
+  fused = fuse_ndarrays(np_charges)
+  left_charges = fuse_ndarrays(np_charges[:num_legs // 2])
+  right_charges = fuse_ndarrays(np_charges[num_legs // 2:])
   nz = np.nonzero(fused == 0)[0]
   linear_locs = np.arange(len(nz))
   left_inds, _ = np.divmod(nz, len(right_charges))
