@@ -160,11 +160,12 @@ def test_reduce_charges_non_trivial_2():
                                    return_locations=True)
   masks = []
   assert np.all(dense_positions[0].isin(target_charge))
+  #pylint: disable=unsubscriptable-object
   for n in range(target_charge.shape[1]):
     mask1 = np.isin(fused_charges1, np.squeeze(target_charge[0, n]))
     mask2 = np.isin(fused_charges2, np.squeeze(target_charge[1, n]))
     masks.append(np.logical_and(mask1, mask2))
-
+  #pylint: disable=no-member
   np.testing.assert_allclose(
       np.nonzero(np.logical_or.reduce(masks))[0], dense_positions[1])
 
@@ -180,9 +181,8 @@ def test_find_diagonal_sparse_blocks(num_charges):
   right_charges = fuse_ndarrays(np_charges[num_charges // 2:])
   nz = np.nonzero(fused == 0)[0]
   linear_locs = np.arange(len(nz))
-  left_inds, right_inds = np.divmod(nz, len(right_charges))
+  left_inds, _ = np.divmod(nz, len(right_charges))
   left = left_charges[left_inds]
-  right = right_charges[right_inds]
   unique_left = np.unique(left)
   blocks = []
   for ul in unique_left:
