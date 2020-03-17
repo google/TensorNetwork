@@ -64,7 +64,7 @@ class BaseCharge:
     if charges.ndim == 1:
       charges = charges[None, :]
 
-    if len(charge_types) != charges.shape[0]:
+    if (charge_types is not None) and (len(charge_types) != charges.shape[0]):
       raise ValueError(
           "`len(charge_types) = {}` does not match `charges.shape[0]={}`"
           .format(len(charge_types), charges.shape[0]))
