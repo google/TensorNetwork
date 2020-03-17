@@ -198,6 +198,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
       for c in range(num_charges)
   ],
                            axis=0)
+  #pylint: disable=no-member
   nz = np.nonzero(
       np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
   linear_locs = np.arange(len(nz))
@@ -207,6 +208,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   blocks = []
   for n in range(unique_left.shape[1]):
     ul = unique_left[:, n][None, :]
+    #pylint: disable=no-member
     blocks.append(linear_locs[np.nonzero(
         np.logical_and.reduce(left.T == ul, axis=1))[0]])
 
