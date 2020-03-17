@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays
+from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks
@@ -171,52 +171,70 @@ def test_reduce_charges_non_trivial_2():
 
 
 @pytest.mark.parametrize('num_legs', [2, 3, 4])
-def test_find_diagonal_sparse_blocks(num_legs):
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.random.seed(10)
   np_charges = [
-      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_legs)
+      np.random.randint(-5, 5, (num_charges, 60), dtype=np.int16)
+      for _ in range(num_legs)
   ]
-  fused = fuse_ndarrays(np_charges)
-  left_charges = fuse_ndarrays(np_charges[:num_legs // 2])
-  right_charges = fuse_ndarrays(np_charges[num_legs // 2:])
-  nz = np.nonzero(fused == 0)[0]
-  linear_locs = np.arange(len(nz))
-  left_inds, _ = np.divmod(nz, len(right_charges))
-  left = left_charges[left_inds]
-  unique_left = np.unique(left)
-  blocks = []
-  for ul in unique_left:
-    blocks.append(linear_locs[np.nonzero(left == ul)])
-  charges = [U1Charge(left_charges), U1Charge(right_charges)]
-  bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
-  np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
-  for b1, b2 in zip(blocks, bs):
-    assert np.all(b1 == b2)
-  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
-  np.testing.assert_allclose(unique_left, np.squeeze(cs.charges))
+  fused = np.stack([
+      fuse_ndarrays([np_charges[n][c, :]
+                     for n in range(num_legs)])
+      for c in range(num_charges)
+  ],
+                   axis=0)
+
+  left_charges = np.stack([
+      fuse_ndarrays([np_charges[n][c, :]
+                     for n in range(num_legs // 2)])
+      for c in range(num_charges)
+  ],
+                          axis=0)
+  right_charges = np.stack([
+      fuse_ndarrays(
+          [np_charges[n][c, :]
+           for n in range(num_legs // 2, num_legs)])
+      for c in range(num_charges)
+  ],
+                           axis=0)
+  #pylint: disable=no-member
+  nz = np.nonzero(
+      np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
 
 
 @pytest.mark.parametrize('num_legs', [2, 3, 4])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_find_transposed_diagonal_sparse_blocks(num_legs):
   np.random.seed(10)
+  order = np.arange(num_legs)
+  while np.all(order == np.arange(num_legs)):
+    np.random.shuffle(order)
+
   np_charges = [
-      np.random.randint(-5, 5, 30, dtype=np.int16) for _ in range(num_legs)
+      np.random.randint(-5, 5, (num_charges, 60), dtype=np.int16)
+      for _ in range(num_legs)
   ]
-  fused = fuse_ndarrays(np_charges)
-  left_charges = fuse_ndarrays(np_charges[:num_legs // 2])
-  right_charges = fuse_ndarrays(np_charges[num_legs // 2:])
-  nz = np.nonzero(fused == 0)[0]
-  linear_locs = np.arange(len(nz))
-  left_inds, _ = np.divmod(nz, len(right_charges))
-  left = left_charges[left_inds]
-  unique_left = np.unique(left)
-  blocks = []
-  for ul in unique_left:
-    blocks.append(linear_locs[np.nonzero(left == ul)])
-  charges = [U1Charge(left_charges), U1Charge(right_charges)]
-  bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
-  np.testing.assert_allclose(np.squeeze(cs.charges), unique_left)
-  for b1, b2 in zip(blocks, bs):
-    assert np.all(b1 == b2)
-  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
-  np.testing.assert_allclose(unique_left, np.squeeze(cs.charges))
+  fused = np.stack([
+      fuse_ndarrays([np_charges[order[n]][c, :]
+                     for n in range(num_legs)])
+      for c in range(num_charges)
+  ],
+                   axis=0)
+
+  left_charges = np.stack([
+      fuse_ndarrays([np_charges[order[n]][c, :]
+                     for n in range(num_legs // 2)])
+      for c in range(num_charges)
+  ],
+                          axis=0)
+  right_charges = np.stack([
+      fuse_ndarrays(
+          [np_charges[order[n]][c, :]
+           for n in range(num_legs // 2, num_legs)])
+      for c in range(num_charges)
+  ],
+                           axis=0)
+  #pylint: disable=no-member
+  nz = np.nonzero(
+      np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]

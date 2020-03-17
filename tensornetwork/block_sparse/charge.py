@@ -20,9 +20,13 @@ import numpy as np
 # pylint: disable=line-too-long
 from typing import List, Optional, Type, Any, Union
 
+#TODO (mganahl): switch from column to row order for unique labels
+#TODO (mganahl): implement more efficient unique function
+#TODO (mganahl): clean up implementation of identity charges
+#TODO (mganahl): for rank-3 tensors with small bond dimensions, finding
+#                blocks brute force is much faster. Implement this.
 
-#TODO: change from column to row order for unique labels
-#TODO: implement more efficient unique function
+
 class BaseCharge:
   """
   Base class for charges of BlockSparseTensor. All user defined charges 
@@ -56,9 +60,16 @@ class BaseCharge:
                charges: np.ndarray,
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None) -> None:
-    self.charge_types = charge_types
+
     if charges.ndim == 1:
       charges = charges[None, :]
+
+    if (charge_types is not None) and (len(charge_types) != charges.shape[0]):
+      raise ValueError(
+          "`len(charge_types) = {}` does not match `charges.shape[0]={}`"
+          .format(len(charge_types), charges.shape[0]))
+
+    self.charge_types = charge_types
     if charge_labels is None:
       self.unique_charges, self.charge_labels = np.unique(
           charges.astype(np.int16), return_inverse=True, axis=1)
@@ -146,7 +157,7 @@ class BaseCharge:
 
   def __eq__(self,
              target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
-    #FIXME: calling np.unique can cause significan overhead in some cases
+    #FIXME (mganahl): calling np.unique can cause significant overhead in some cases
     #fix code in block_tensor.py to work on np.ndarray instead
     if isinstance(target_charges, type(self)):
       targets = np.unique(
@@ -547,7 +558,6 @@ def intersect(A: np.ndarray,
       return C.view(A.dtype).reshape(-1, ncols)
 
     elif axis == 1:
-      #TODO: why the copy here?
       out = intersect(
           A.T.copy(),
           B.T.copy(),
