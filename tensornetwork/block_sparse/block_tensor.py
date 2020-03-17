@@ -283,7 +283,7 @@ def reduce_charges(charges: List[BaseCharge],
   comb_qnums = fuse_ndarray_charges(left_ind.unique_charges,
                                     right_ind.unique_charges,
                                     charges[0].charge_types)
-  [unique_comb_qnums, comb_labels] = np.unique(
+  unique_comb_qnums, comb_labels = np.unique(
       comb_qnums, return_inverse=True, axis=1)
   num_unique = unique_comb_qnums.shape[1]
 
@@ -292,53 +292,13 @@ def reduce_charges(charges: List[BaseCharge],
       unique_comb_qnums, target_charges, axis=1, return_indices=True)
   map_to_kept = -np.ones(num_unique, dtype=np.int16)
   map_to_kept[label_to_unique] = np.arange(len(label_to_unique))
+  #new_comb_labels is a matrix of shape (left_ind.num_unique, right_ind.num_unique)
+  #each row new_comb_labels[n,:] contains integers values. Positions where values > 0
+  #denote labels of right-charges that are kept.
   new_comb_labels = map_to_kept[comb_labels].reshape(
       [left_ind.num_unique, right_ind.num_unique])
-  if return_locations:
-    if strides is not None:
-      # computed locations based on non-trivial strides
-      row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
-      col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
-
-      # reduce combined qnums to include only those in target_charges
-      reduced_rows = [0] * left_ind.num_unique
-      row_locs = [0] * left_ind.num_unique
-      for n in range(left_ind.num_unique):
-        temp_label = new_comb_labels[n, right_ind.charge_labels]
-        temp_keep = temp_label >= 0
-        reduced_rows[n] = temp_label[temp_keep]
-        row_locs[n] = col_pos[temp_keep]
-
-      reduced_labels = np.concatenate(
-          [reduced_rows[n] for n in left_ind.charge_labels])
-      reduced_locs = np.concatenate([
-          row_pos[n] + row_locs[left_ind.charge_labels[n]]
-          for n in range(left_ind.dim)
-      ])
-      obj = charges[0].__new__(type(charges[0]))
-      obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
-      return obj, reduced_locs
-    # reduce combined qnums to include only those in target_charges
-    reduced_rows = [0] * left_ind.num_unique
-    row_locs = [0] * left_ind.num_unique
-    for n in range(left_ind.num_unique):
-      temp_label = new_comb_labels[n, right_ind.charge_labels]
-      temp_keep = temp_label >= 0
-      reduced_rows[n] = temp_label[temp_keep]
-      row_locs[n] = np.where(temp_keep)[0]
-
-    reduced_labels = np.concatenate(
-        [reduced_rows[n] for n in left_ind.charge_labels])
-    reduced_locs = np.concatenate([
-        n * right_ind.dim + row_locs[left_ind.charge_labels[n]]
-        for n in range(left_ind.dim)
-    ])
-    obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
-
-    return obj, reduced_locs
-  # reduce combined qnums to include only those in target_charges
   reduced_rows = [0] * left_ind.num_unique
+
   for n in range(left_ind.num_unique):
     temp_label = new_comb_labels[n, right_ind.charge_labels]
     reduced_rows[n] = temp_label[temp_label >= 0]
@@ -348,7 +308,87 @@ def reduce_charges(charges: List[BaseCharge],
   obj = charges[0].__new__(type(charges[0]))
   obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
 
+  if return_locations:
+    row_locs = [0] * left_ind.num_unique
+    if strides is not None:
+      # computed locations based on non-trivial strides
+      row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
+      col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
+    for n in range(left_ind.num_unique):
+      temp_label = new_comb_labels[n, right_ind.charge_labels]
+      temp_keep = temp_label >= 0
+      if strides is not None:
+        row_locs[n] = col_pos[temp_keep]
+      else:
+        row_locs[n] = np.where(temp_keep)[0]
+
+    if strides is not None:
+      reduced_locs = np.concatenate([
+          row_pos[n] + row_locs[left_ind.charge_labels[n]]
+          for n in range(left_ind.dim)
+      ])
+    else:
+      reduced_locs = np.concatenate([
+          n * right_ind.dim + row_locs[left_ind.charge_labels[n]]
+          for n in range(left_ind.dim)
+      ])
+    return obj, reduced_locs
+
   return obj
+
+  # reduce combined qnums to include only those in target_charges
+
+  # if return_locations:
+  #   if strides is not None:a
+  #     # computed locations based on non-trivial strides
+  #     row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
+  #     col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
+  #     # reduce combined qnums to include only those in target_charges
+  #     # reduced_rows = [0] * left_ind.num_unique
+  #     # row_locs = [0] * left_ind.num_unique
+  #     for n in range(left_ind.num_unique):
+  #       temp_label = new_comb_labels[n, right_ind.charge_labels]
+  #       temp_keep = temp_label >= 0
+  #       reduced_rows[n] = temp_label[temp_keep]
+  #       row_locs[n] = col_pos[temp_keep]
+
+  #     reduced_labels = np.concatenate(
+  #         [reduced_rows[n] for n in left_ind.charge_labels])
+  #     reduced_locs = np.concatenate([
+  #         row_pos[n] + row_locs[left_ind.charge_labels[n]]
+  #         for n in range(left_ind.dim)
+  #     ])
+  #   else:
+  #     # reduce combined qnums to include only those in target_charges
+  #     # reduced_rows = [0] * left_ind.num_unique
+  #     # row_locs = [0] * left_ind.num_unique
+  #     for n in range(left_ind.num_unique):
+  #       temp_label = new_comb_labels[n, right_ind.charge_labels]
+  #       temp_keep = temp_label >= 0
+  #       reduced_rows[n] = temp_label[temp_keep]
+  #       row_locs[n] = np.where(temp_keep)[0]
+
+  #     reduced_labels = np.concatenate(
+  #         [reduced_rows[n] for n in left_ind.charge_labels])
+  #     reduced_locs = np.concatenate([
+  #         n * right_ind.dim + row_locs[left_ind.charge_labels[n]]
+  #         for n in range(left_ind.dim)
+  #     ])
+  #     obj = charges[0].__new__(type(charges[0]))
+  #     obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+  #     return obj, reduced_locs
+  # # reduce combined qnums to include only those in target_charges
+  # reduced_rows = [0] * left_ind.num_unique
+  # for n in range(left_ind.num_unique):
+  #   temp_label = new_comb_labels[n, right_ind.charge_labels]
+  #   reduced_rows[n] = temp_label[temp_label >= 0]
+
+  # reduced_labels = np.concatenate(
+  #     [reduced_rows[n] for n in left_ind.charge_labels])
+  # obj = charges[0].__new__(type(charges[0]))
+  # obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+
+  # return obj
 
 
 def _find_diagonal_sparse_blocks(
@@ -430,7 +470,6 @@ def _find_diagonal_sparse_blocks(
              .charge_labels, np.arange(row_ind.dim)] = np.ones(
                  row_ind.dim, dtype=bool)
 
-  # block_dims = np.array([row_degen[row_to_block],col_degen[col_to_block]], dtype=np.uint32)
   block_dims = np.array(
       [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
        for n in range(num_blocks)],
