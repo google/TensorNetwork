@@ -626,3 +626,189 @@ def _find_transposed_diagonal_sparse_blocks(
                  charges[0].charge_types)
 
   return block_maps, obj, block_dims
+
+
+class ChargeArray:
+  """
+  Base class for BlockSparseTensor.
+  Stores a dense tensor together with its charge data.
+  Attributes:
+  * _charges: A list of `BaseCharge` objects, one for each leg of the tensor
+  * _flows: An np.ndarray of boolean dtype, storing the flow direction of each 
+      leg
+  * data: A flat np.ndarray storing the actual tensor data
+  * _order: A list of list, storing transposition information of the tensor
+  """
+
+  def __init__(self,
+               data: np.ndarray,
+               charges: List[BaseCharge],
+               flows: List[bool],
+               order: Optional[List[List[int]]] = None,
+               check_consistency: Optional[bool] = False) -> None:
+    """
+    Initialize a `ChargeArray` object. `len(data)` has to 
+    be equal to `np.prod([c.dim for c in charges])`.
+    
+    Args: 
+      data: An np.ndarray of the data. 
+      charges: A list of `BaseCharge` objects.
+      flows: The flows of the tensor indices, `False` for inflowing, `True`
+        for outflowing.
+      order: An optional order argument, determining the shape and order of the
+        tensor.
+      check_consistency: No effect. Needed for signature consistency with
+        derived class constructors.
+    """
+    self._charges = charges
+    self._flows = np.asarray(flows)
+
+    self.data = np.asarray(data.flat)  #no copy
+
+    if order is None:
+      self._order = [[n] for n in range(len(self._charges))]
+    else:
+      flat_order = []
+      for o in order:
+        flat_order.extend(o)
+      if not np.array_equal(np.sort(flat_order), np.arange(len(self._charges))):
+        raise ValueError("flat_order = {} is not a permutation of {}".format(
+            flat_order, np.arange(len(self._charges))))
+
+      self._order = order
+
+  @classmethod
+  def randn(cls,
+            indices: Union[Tuple[Index], List[Index]],
+            dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
+    """
+    Initialize a random ChargeArray object from a random normal distribution.
+    Args:
+      indices: List of `Index` objects.
+      dtype: An optional numpy dtype. The dtype of the ChargeArray
+    Returns:
+      ChargeArray
+    """
+    charges, flows = get_flat_meta_data(indices)
+    num_non_zero_elements = np.prod([c.dim for c in charges])
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.randn(num_non_zero_elements).astype(
+            dtype) + 1j * np.random.randn(num_non_zero_elements).astype(dtype)
+      return np.random.randn(num_non_zero_elements).astype(dtype)
+
+    return cls(data=init_random(), charges=charges, flows=flows)
+
+  @classmethod
+  def random(cls,
+             indices: Union[Tuple[Index], List[Index]],
+             boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+             dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
+    """
+    Initialize a random ChargeArray object.
+    Args:
+      indices: List of `Index` objects.
+      boundaries: Tuple of interval boundaries for the random uniform 
+        distribution.
+      dtype: An optional numpy dtype. The dtype of the ChargeArray
+    Returns:
+      ChargeArray
+    """
+    num_non_zero_elements = np.prod([len(i) for i in indices])
+    charges, flows = get_flat_meta_data(indices)
+
+    def init_random():
+      if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+          (np.dtype(dtype) is np.dtype(np.complex64))):
+        return np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements
+        ).astype(dtype) + 1j * np.random.uniform(
+            boundaries[0], boundaries[1], num_non_zero_elements).astype(dtype)
+      return np.random.uniform(boundaries[0], boundaries[1],
+                               num_non_zero_elements).astype(dtype)
+
+    return cls(data=init_random(), charges=charges, flows=flows)
+
+  @property
+  def ndim(self):
+    """
+    The number of tensor dimensions.
+    """
+    return len(self._order)
+
+  @property
+  def dtype(self) -> Type[np.number]:
+    """
+    The dtype of `ChargeArray`.
+    """
+    return self.data.dtype
+
+  @property
+  def shape(self) -> Tuple:
+    """
+    The dense shape of the tensor.
+    Returns:
+      Tuple: A tuple of `int`.
+    """
+    return tuple(
+        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def charges(self) -> List[List[BaseCharge]]:
+    """
+    A list of list of `BaseCharge`.
+    The charges, in the current shape and index order as determined by `ChargeArray._order`.
+    Returns:
+      List of List of BaseCharge
+    """
+    return [[self._charges[n] for n in o] for o in self._order]
+
+  @property
+  def flows(self):
+    """
+    A list of list of `bool`.
+    The flows, in the current shape and index order as determined by `ChargeArray._order`.
+    Returns:
+      List of List of bool
+    """
+
+    return [[self._flows[n] for n in o] for o in self._order]
+
+  @property
+  def flat_charges(self):
+    return self._charges
+
+  @property
+  def flat_flows(self):
+    return list(self._flows)
+
+  @property
+  def flat_order(self) -> List:
+    """
+    The flattened `ChargeArray._oder`.
+    """
+    return flatten(self._order)
+
+  @property
+  def sparse_shape(self) -> Tuple:
+    """
+    The sparse shape of the tensor.
+    Returns:
+      Tuple: A tuple of `Index` objects.
+    """
+
+    indices = [
+        Index([self._charges[n]
+               for n in s], [self._flows[n]
+                             for n in s])
+        for s in self._order
+    ]
+    return tuple(indices)
+
+  def todense(self) -> np.ndarray:
+    """
+    Map the sparse tensor to dense storage.
+    """
+    return np.reshape(self.data, self.shape)
