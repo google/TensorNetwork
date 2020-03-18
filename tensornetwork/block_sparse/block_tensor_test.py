@@ -225,14 +225,13 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.testing.assert_allclose(unique_left, cs.charges)
 
 
-@pytest.mark.parametrize('num_legs', [2, 3, 4])
+@pytest.mark.parametrize('num_legs, order',
+                         [(2, [1, 0]), (3, [0, 2, 1]), (3, [2, 1, 0]),
+                          (3, [2, 0, 1]), (4, [2, 0, 3, 1]), (4, [0, 2, 1, 3]),
+                          (4, [0, 3, 2, 1])])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_find_transposed_diagonal_sparse_blocks(num_legs, num_charges):
+def test_find_transposed_diagonal_sparse_blocks(num_legs, num_charges, order):
   np.random.seed(10)
-  order = np.arange(num_legs)
-  while np.all(order == np.arange(num_legs)):
-    np.random.shuffle(order)
-
   np_charges = [
       np.random.randint(-5, 5, (num_charges, 60), dtype=np.int16)
       for _ in range(num_legs)
