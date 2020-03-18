@@ -244,18 +244,16 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
       np.random.randint(-5, 5, (num_charges, D), dtype=np.int16)
       for _ in range(num_legs)
   ]
-  tr_fused = np.stack([
-      fuse_ndarrays([np_charges[order[n]][c, :]
-                     for n in range(num_legs)])
-      for c in range(num_charges)
-  ],
-                      axis=0)
-  fused = np.stack([
-      fuse_ndarrays([np_charges[n][c, :]
-                     for n in range(num_legs)])
-      for c in range(num_charges)
-  ],
-                   axis=0)
+  tr_charge_list = []
+  charge_list = []
+  for c in range(num_charges):
+    tr_charge_list.append(
+        fuse_ndarrays([np_charges[order[n]][c, :] for n in range(num_legs)]))
+    charge_list.append(
+        fuse_ndarrays([np_charges[n][c, :] for n in range(num_legs)]))
+
+  tr_fused = np.stack(tr_charge_list, axis=0)
+  fused = np.stack(charge_list, axis=0)
 
   dims = [c.shape[1] for c in np_charges]
   strides = _get_strides(dims)
