@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
+import itertools
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -217,6 +218,87 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
       BaseCharge(right_charges, charge_types=[U1Charge] * num_charges)
   ]
   bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
+  np.testing.assert_allclose(cs.charges, unique_left)
+  for b1, b2 in zip(blocks, bs):
+    assert np.all(b1 == b2)
+
+  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
+  np.testing.assert_allclose(unique_left, cs.charges)
+
+
+orders = []
+Ds = []
+for dim, nl in zip([60, 30, 20], [2, 3, 4]):
+  o = list(itertools.permutations(np.arange(nl)))
+  orders.extend(o)
+  Ds.extend([dim] * len(o))
+
+
+@pytest.mark.parametrize('order,D', zip(orders, Ds))
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
+  order = list(order)
+  num_legs = len(order)
+  np.random.seed(10)
+  np_charges = [
+      np.random.randint(-5, 5, (num_charges, D), dtype=np.int16)
+      for _ in range(num_legs)
+  ]
+  tr_charge_list = []
+  charge_list = []
+  for c in range(num_charges):
+    tr_charge_list.append(
+        fuse_ndarrays([np_charges[order[n]][c, :] for n in range(num_legs)]))
+    charge_list.append(
+        fuse_ndarrays([np_charges[n][c, :] for n in range(num_legs)]))
+
+  tr_fused = np.stack(tr_charge_list, axis=0)
+  fused = np.stack(charge_list, axis=0)
+
+  dims = [c.shape[1] for c in np_charges]
+  strides = _get_strides(dims)
+  transposed_linear_positions = fuse_stride_arrays(dims,
+                                                   [strides[o] for o in order])
+  left_charges = np.stack([
+      fuse_ndarrays([np_charges[order[n]][c, :]
+                     for n in range(num_legs // 2)])
+      for c in range(num_charges)
+  ],
+                          axis=0)
+  right_charges = np.stack([
+      fuse_ndarrays(
+          [np_charges[order[n]][c, :]
+           for n in range(num_legs // 2, num_legs)])
+      for c in range(num_charges)
+  ],
+                           axis=0)
+  #pylint: disable=no-member
+  mask = np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1)
+  nz = np.nonzero(mask)[0]
+  dense_to_sparse = np.empty(len(mask), dtype=np.int64)
+  dense_to_sparse[mask] = np.arange(len(nz))
+
+  tr_mask = np.logical_and.reduce(
+      tr_fused.T == np.zeros((1, num_charges)), axis=1)
+  tr_nz = np.nonzero(tr_mask)[0]
+  tr_linear_locs = transposed_linear_positions[tr_nz]
+
+  left_inds, _ = np.divmod(tr_nz, right_charges.shape[1])
+  left = left_charges[:, left_inds]
+  unique_left = np.unique(left, axis=1)
+  blocks = []
+  for n in range(unique_left.shape[1]):
+    ul = unique_left[:, n][None, :]
+    #pylint: disable=no-member
+    blocks.append(dense_to_sparse[tr_linear_locs[np.nonzero(
+        np.logical_and.reduce(left.T == ul, axis=1))[0]]])
+
+  charges = [
+      BaseCharge(c, charge_types=[U1Charge] * num_charges) for c in np_charges
+  ]
+  flows = [False] * num_legs
+  bs, cs, ss = _find_transposed_diagonal_sparse_blocks(
+      charges, flows, tr_partition=num_legs // 2, order=order)
   np.testing.assert_allclose(cs.charges, unique_left)
   for b1, b2 in zip(blocks, bs):
     assert np.all(b1 == b2)
