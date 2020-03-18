@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import itertools
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
@@ -225,15 +226,22 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.testing.assert_allclose(unique_left, cs.charges)
 
 
-@pytest.mark.parametrize('num_legs, order',
-                         [(2, [1, 0]), (3, [0, 2, 1]), (3, [2, 1, 0]),
-                          (3, [2, 0, 1]), (4, [2, 0, 3, 1]), (4, [0, 2, 1, 3]),
-                          (4, [0, 3, 2, 1])])
+orders = []
+Ds = []
+for D, num_legs in zip([60, 30, 20], [2, 3, 4]):
+  o = list(itertools.permutations(np.arange(num_legs)))
+  orders.extend(o)
+  Ds.extend([D] * len(o))
+
+
+@pytest.mark.parametrize('order,D', zip(orders, Ds))
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_find_transposed_diagonal_sparse_blocks(num_legs, num_charges, order):
+def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
+  order = list(order)
+  num_legs = len(order)
   np.random.seed(10)
   np_charges = [
-      np.random.randint(-5, 5, (num_charges, 60), dtype=np.int16)
+      np.random.randint(-5, 5, (num_charges, D), dtype=np.int16)
       for _ in range(num_legs)
   ]
   tr_fused = np.stack([
