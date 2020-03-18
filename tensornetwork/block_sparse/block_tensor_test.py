@@ -228,10 +228,10 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
 
 orders = []
 Ds = []
-for D, num_legs in zip([60, 30, 20], [2, 3, 4]):
-  o = list(itertools.permutations(np.arange(num_legs)))
+for dim, nl in zip([60, 30, 20], [2, 3, 4]):
+  o = list(itertools.permutations(np.arange(nl)))
   orders.extend(o)
-  Ds.extend([D] * len(o))
+  Ds.extend([dim] * len(o))
 
 
 @pytest.mark.parametrize('order,D', zip(orders, Ds))
