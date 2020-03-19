@@ -346,7 +346,7 @@ def test_ChargeArray_todense(dtype):
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
-def test_ChargeArray_reshpae(dtype):
+def test_ChargeArray_reshape(dtype):
   Ds = [8, 9, 10, 11]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
   arr = ChargeArray.random(indices, dtype=dtype)
