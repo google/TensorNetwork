@@ -798,7 +798,7 @@ class ChargeArray:
   def reshape(
       self,
       shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
-  ) -> "BlockSparseTensor":
+  ) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `BlockSparseTensor.reshape` works the same as the dense 
