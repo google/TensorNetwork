@@ -692,22 +692,6 @@ class ChargeArray:
       self._order = order
 
   @classmethod
-  def randn(cls,
-            indices: Union[Tuple[Index], List[Index]],
-            dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
-    """
-    Initialize a random ChargeArray object with data from a random normal distribution.
-    Args:
-      indices: List of `Index` objects.
-      dtype: An optional numpy dtype. The dtype of the ChargeArray
-    Returns:
-      ChargeArray
-    """
-    data, charges, flows, order = _data_initializer(np.random.randn, indices,
-                                                    dtype)
-    return cls(data=data, charges=charges, flows=flows, order=order)
-
-  @classmethod
   def random(cls,
              indices: Union[Tuple[Index], List[Index]],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
@@ -726,44 +710,6 @@ class ChargeArray:
     data, charges, flows, order = _data_initializer(
         lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
         indices, dtype)
-    return cls(data=data, charges=charges, flows=flows, order=order)
-
-  @classmethod
-  def zeros(cls,
-            indices: Union[Tuple[Index], List[Index]],
-            boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-            dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
-    """
-    Initialize data of a ChargeArray object with zeros.
-    Args:
-      indices: List of `Index` objects.
-      boundaries: Tuple of interval boundaries for the random uniform 
-        distribution.
-      dtype: An optional numpy dtype. The dtype of the ChargeArray
-    Returns:
-      ChargeArray
-    """
-
-    data, charges, flows, order = _data_initializer(np.zeros, indices, dtype)
-    return cls(data=data, charges=charges, flows=flows, order=order)
-
-  @classmethod
-  def ones(cls,
-           indices: Union[Tuple[Index], List[Index]],
-           boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-           dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
-    """
-    Initialize data of a ChargeArray object with zeros.
-    Args:
-      indices: List of `Index` objects.
-      boundaries: Tuple of interval boundaries for the random uniform 
-        distribution.
-      dtype: An optional numpy dtype. The dtype of the ChargeArray
-    Returns:
-      ChargeArray
-    """
-
-    data, charges, flows, order = _data_initializer(np.ones, indices, dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
