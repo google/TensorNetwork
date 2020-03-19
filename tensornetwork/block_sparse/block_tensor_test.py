@@ -5,7 +5,7 @@ import itertools
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -254,6 +254,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
 
   tr_fused = np.stack(tr_charge_list, axis=0)
   fused = np.stack(charge_list, axis=0)
+
   dims = [c.shape[1] for c in np_charges]
   strides = _get_strides(dims)
   transposed_linear_positions = fuse_stride_arrays(dims,
@@ -304,3 +305,77 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
 
   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
   np.testing.assert_allclose(unique_left, cs.charges)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_ChargeArray_init(dtype):
+  np.random.seed(10)
+  D = 10
+  rank = 4
+  charges = [U1Charge.random(-5, 5, D) for _ in range(rank)]
+  data = np.random.uniform(0, 1, size=D**rank)
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  order = [[n] for n in range(rank)]
+  arr = ChargeArray(data, charges, flows, order=order)
+  np.testing.assert_allclose(data, arr.data)
+  for c1, c2 in zip(charges, arr.charges):
+    assert charge_equal(c1, c2[0])
+  for c1, c2 in zip(charges, arr._charges):
+    assert charge_equal(c1, c2)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_ChargeArray_generic(dtype):
+  Ds = [8, 9, 10, 11]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  arr = ChargeArray.random(indices, dtype=dtype)
+  assert arr.ndim == 4
+  assert arr.dtype == dtype
+  np.testing.assert_allclose(arr.shape, Ds)
+  np.testing.assert_allclose(arr.flat_flows, [False, False, False, False])
+  for n in range(4):
+    assert charge_equal(indices[n]._charges[0], arr.flat_charges[n])
+    assert arr.sparse_shape[n] == indices[n]
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_ChargeArray_todense(dtype):
+  Ds = [8, 9, 10, 11]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  arr = ChargeArray.random(indices, dtype=dtype)
+  np.testing.assert_allclose(arr.todense(), np.reshape(arr.data, Ds))
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_ChargeArray_reshpae(dtype):
+  Ds = [8, 9, 10, 11]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  arr = ChargeArray.random(indices, dtype=dtype)
+  arr2 = arr.reshape([72, 110])
+  for n in range(2):
+    for m in range(2):
+      assert charge_equal(arr2.charges[n][m], indices[n * 2 + m].charges)
+  np.testing.assert_allclose(arr2.shape, [72, 110])
+  np.testing.assert_allclose(arr2._order, [[0, 1], [2, 3]])
+  np.testing.assert_allclose(arr2.flows, [[False, False], [False, False]])
+  assert arr2.ndim == 2
+  arr3 = arr.reshape(Ds)
+  for n in range(4):
+    assert charge_equal(arr3.charges[n][0], indices[n].charges)
+
+  np.testing.assert_allclose(arr3.shape, Ds)
+  np.testing.assert_allclose(arr3._order, [[0], [1], [2], [3]])
+  np.testing.assert_allclose(arr3.flows, [[False], [False], [False], [False]])
+  assert arr3.ndim == 4
+
+
+def test_reshape_raises():
+  Ds = [8, 9, 10, 11]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  arr = ChargeArray.random(indices)
+  with pytest.raises(ValueError):
+    arr.reshape([64, 65])
+
+  arr2 = arr.reshape([72, 110])
+  with pytest.raises(ValueError):
+    arr2.reshape([9, 8, 10, 11])
