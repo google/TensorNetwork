@@ -629,7 +629,7 @@ def _find_transposed_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
-def _data_initializer(numpy_initializer, indices, dtype, *args):
+def _data_initializer(numpy_initializer, indices, dtype):
   charges, flows = get_flat_meta_data(indices)
   num_non_zero_elements = np.prod([c.dim for c in charges])
   tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
