@@ -845,9 +845,8 @@ class ChargeArray:
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(new_shape)))
 
-    flat_dims = flatten(
-        [[self._charges[n].dim for n in o] for o in self._order])
-
+    flat_dims = np.asarray(
+        [self._charges[n].dim for o in self._order for n in o])
     partitions = [0]
     for n, ns in enumerate(new_shape):
       tmp = np.nonzero(np.cumprod(flat_dims) == ns)[0]
