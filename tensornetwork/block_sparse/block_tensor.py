@@ -1262,3 +1262,4 @@ class BlockSparseTensor(ChargeArray):
     self._order = order
     self._charges = charges
     self._flows = flows
+    return self
