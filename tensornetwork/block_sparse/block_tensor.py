@@ -638,7 +638,6 @@ def _data_initializer(numpy_initializer, comp_num_elements, indices, dtype):
   if ((np.dtype(dtype) is np.dtype(np.complex128)) or
       (np.dtype(dtype) is np.dtype(np.complex64))):
     data += 1j * numpy_initializer(num_elements).astype(dtype)
-
   return data, charges, flows, order
 
 
