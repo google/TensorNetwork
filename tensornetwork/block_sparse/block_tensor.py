@@ -1043,7 +1043,7 @@ class BlockSparseTensor(ChargeArray):
     """
     Initialize a random symmetric tensor from random uniform distribution.
     Args:
-      indices: List of `Index` objecst, one for each leg. 
+      indices: List of `Index` objects, one for each leg. 
       boundaries: Tuple of interval boundaries for the random uniform 
         distribution.
       dtype: An optional numpy dtype. The dtype of the tensor
@@ -1067,7 +1067,7 @@ class BlockSparseTensor(ChargeArray):
     """
     Initialize a symmetric tensor with ones.
     Args:
-      indices: List of `Index` objecst, one for each leg. 
+      indices: List of `Index` objects, one for each leg. 
       dtype: An optional numpy dtype. The dtype of the tensor
     Returns:
       BlockSparseTensor
@@ -1091,7 +1091,7 @@ class BlockSparseTensor(ChargeArray):
     """
     Initialize a symmetric tensor with zeros.
     Args:
-      indices: List of `Index` objecst, one for each leg. 
+      indices: List of `Index` objects, one for each leg. 
       dtype: An optional numpy dtype. The dtype of the tensor
     Returns:
       BlockSparseTensor
