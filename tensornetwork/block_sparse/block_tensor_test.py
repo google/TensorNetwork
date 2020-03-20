@@ -12,9 +12,9 @@ np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
 
 
-def get_contractable_tensors(R1, R2, cont, dtype, num_charges):
-  DsA = np.random.randint(5, 10, R1)
-  DsB = np.random.randint(5, 10, R2)
+def get_contractable_tensors(R1, R2, cont, dtype, num_charges, Dmin=5, Dmax=10):
+  DsA = np.random.randint(Dmin, Dmax, R1)
+  DsB = np.random.randint(Dmin, Dmax, R2)
   assert R1 >= cont
   assert R2 >= cont
   chargesA = [
@@ -844,6 +844,7 @@ def test_tn_conj(dtype):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_legs', [1, 2, 3, 4])
 def test_outerproduct(dtype, num_legs):
+  np.random.seed(10)
   Ds1 = np.arange(2, 2 + num_legs)
   Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
   is1 = [Index(U1Charge.random(-5, 5, Ds1[n]), False) for n in range(num_legs)]
@@ -863,6 +864,7 @@ def test_outerproduct(dtype, num_legs):
 @pytest.mark.parametrize("R1, R2, cont", [(4, 4, 2), (4, 3, 3), (3, 4, 3)])
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_tensordot(R1, R2, cont, dtype, num_charges):
+  np.random.seed(10)
   A, B, indsA, indsB = get_contractable_tensors(R1, R2, cont, dtype,
                                                 num_charges)
   res = tensordot(A, B, (indsA, indsB))
@@ -872,6 +874,7 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
 
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_tensordot_reshape(num_charges):
+  np.random.seed(10)
   R1 = 4
   R2 = 4
 
@@ -898,3 +901,27 @@ def test_tensordot_reshape(num_charges):
   res = tensordot(A, B, ([0, 1], [2, 0]))
   dense = np.tensordot(Adense, Bdense, ([0, 1], [2, 0]))
   np.testing.assert_allclose(dense, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R1, R2", [(2, 2), (3, 3), (4, 4), (1, 1)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_tensordot_inner(R1, R2, dtype, num_charges):
+  np.random.seed(10)
+  A, B, indsA, indsB = get_contractable_tensors(
+      R1, R2, 0, dtype, num_charges, Dmin=3, Dmax=5)
+  res = tensordot(A, B, (indsA, indsB))
+  dense_res = np.tensordot(A.todense(), B.todense(), (indsA, indsB))
+  np.testing.assert_allclose(dense_res, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R1, R2", [(2, 2), (2, 1), (1, 2), (1, 1)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_tensordot_outer(R1, R2, dtype, num_charges):
+  np.random.seed(10)
+  A, B, _, _ = get_contractable_tensors(
+      R1, R2, 0, dtype, num_charges, Dmin=3, Dmax=5)
+  res = tensordot(A, B, axes=0)
+  dense_res = np.tensordot(A.todense(), B.todense(), axes=0)
+  np.testing.assert_allclose(dense_res, res.todense())
