@@ -950,5 +950,4 @@ def test_matmul(dtype, num_charges):
   result = tensor1 @ tensor2
   assert result.dtype == dtype
   dense_result = tensor1.todense() @ tensor2.todense()
-
   np.testing.assert_allclose(dense_result, result.todense())
