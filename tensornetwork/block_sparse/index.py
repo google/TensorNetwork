@@ -109,6 +109,10 @@ class Index:
 
   @property
   def charges(self):
+    """
+    Return the fused charges of the index. Note that
+    flows are merged into the charges.
+    """
     return fuse_charges(self.flat_charges, self.flat_flows)
 
 

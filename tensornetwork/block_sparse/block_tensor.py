@@ -713,7 +713,7 @@ class ChargeArray:
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
-  def ndim(self):
+  def ndim(self) -> int:
     """
     The number of tensor dimensions.
     """
@@ -747,7 +747,7 @@ class ChargeArray:
     return [[self._charges[n] for n in o] for o in self._order]
 
   @property
-  def flows(self):
+  def flows(self) -> List[List]:
     """
     A list of list of `bool`.
     The flows, in the current shape and index order as determined by `ChargeArray._order`.
@@ -758,11 +758,11 @@ class ChargeArray:
     return [[self._flows[n] for n in o] for o in self._order]
 
   @property
-  def flat_charges(self):
+  def flat_charges(self) -> List[BaseCharge]:
     return self._charges
 
   @property
-  def flat_flows(self):
+  def flat_flows(self) -> List:
     return list(self._flows)
 
   @property
@@ -879,7 +879,7 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose_data(self):
+  def transpose_data(self) -> "ChargeArray":
     """
     Transpose the tensor data such that the linear order 
     of the elements in `ChargeArray.data` corresponds to the 
@@ -895,11 +895,8 @@ class ChargeArray:
     flat_charges = self.flat_charges
     flat_shape = [c.dim for c in flat_charges]
     flat_order = self.flat_order
-    print(flat_order)
     tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
-    print(tmp)
     order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-    print(order)
     data = np.array(
         np.ascontiguousarray(
             np.transpose(np.reshape(self.data, flat_shape), flat_order)).flat)
@@ -1133,7 +1130,7 @@ class BlockSparseTensor(ChargeArray):
       raise ValueError(
           "cannot add or subtract tensors non-matching sparse shapes")
 
-  def __sub__(self, other: "BlockSparseTensor"):
+  def __sub__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     self._sub_add_protection(other)
     _, index_other = np.unique(other.flat_order, return_index=True)
     #bring self into the same storage layout as other
@@ -1146,7 +1143,7 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-  def __add__(self, other: "BlockSparseTensor"):
+  def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     self._sub_add_protection(other)
     #bring self into the same storage layout as other
     _, index_other = np.unique(other.flat_order, return_index=True)
@@ -1159,7 +1156,7 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-  def __mul__(self, number: np.number):
+  def __mul__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(
           "Can only multiply BlockSparseTensor by a number. Found type {}"
@@ -1171,7 +1168,7 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-  def __rmul__(self, number: np.number):
+  def __rmul__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(
           "Can only right-multiply BlockSparseTensor by a number. Found type {}"
@@ -1183,7 +1180,7 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-  def __truediv__(self, number: np.number):
+  def __truediv__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(
           "Can only divide BlockSparseTensor by a number. Found type {}".format(
@@ -1196,7 +1193,7 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-  def conj(self):
+  def conj(self) -> "BlockSparseTensor":
     """
     Complex conjugate operation.
     Returns:
@@ -1210,12 +1207,12 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   @property
-  def T(self):
+  def T(self) -> "BlockSparseTensor":
     return self.transpose()
 
   def transpose_data(self,
                      flat_order: Optional[Union[List, np.ndarray]] = None,
-                     inplace: Optional[bool] = False):
+                     inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
     of the elements in `BlockSparseTensor.data` corresponds to the 
