@@ -629,15 +629,15 @@ def _find_transposed_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
-def _data_initializer(numpy_initializer, indices, dtype):
+def _data_initializer(numpy_initializer, comp_num_elements, indices, dtype):
   charges, flows = get_flat_meta_data(indices)
-  num_non_zero_elements = np.prod([c.dim for c in charges])
+  num_elements = comp_num_elements(charges, flows)
   tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
   order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-  data = numpy_initializer(num_non_zero_elements).astype(dtype)
+  data = numpy_initializer(num_elements).astype(dtype)
   if ((np.dtype(dtype) is np.dtype(np.complex128)) or
       (np.dtype(dtype) is np.dtype(np.complex64))):
-    data += 1j * numpy_initializer(num_non_zero_elements).astype(dtype)
+    data += 1j * numpy_initializer(num_elements).astype(dtype)
 
   return data, charges, flows, order
 
@@ -706,9 +706,9 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
-
     data, charges, flows, order = _data_initializer(
-        lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
+        lambda size: np.random.uniform(boundaries[0], boundaries[
+            1], size), lambda charges, flows: np.prod([c.dim for c in charges]),
         indices, dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
@@ -941,3 +941,173 @@ class ChargeArray:
     if shuffle:
       return tensor.transpose_data()
     return tensor
+
+
+class BlockSparseTensor(ChargeArray):
+  """
+  A block-sparse tensor class. This class stores non-zero
+  elements of a symmetric tensor using an element wise
+  encoding.
+  The tensor data is stored in a flat np.ndarray `data`.
+  Attributes:
+    * _data: An np.ndarray containing the data of the tensor.
+    * _charges: A list of `BaseCharge` objects, one for each 
+        elementary leg of the tensor.
+    * _flows: A list of bool, denoting the flow direction of
+        each elementary leg.
+    * _order: A list of list of int: Used to implement `reshape` and 
+        `transpose` operations. Both operations act entirely
+        on meta-data of the tensor. `_order` determines which elemetary 
+        legs of the tensor are combined, and where they go. 
+        E.g. a tensor of rank 4 is initialized with 
+        `_order=[[0],[1],[2],[3]]`. Fusing legs 1 and 2
+        results in `_order=[[0],[1,2],[3]]`, transposing with 
+        `(1,2,0)` results in `_order=[[1,2],[3],[0]]`.
+        No data is shuffled during these operations.
+  """
+
+  def __init__(self,
+               data: np.ndarray,
+               charges: List[BaseCharge],
+               flows: List[bool],
+               order: Optional[List[Union[List, np.ndarray]]] = None,
+               check_consistency: Optional[bool] = False) -> None:
+    """
+    Args: 
+      data: An np.ndarray containing the actual data. 
+      charges: A list of `BaseCharge` objects.
+      flows: The flows of the tensor indices, `False` for inflowing, `True`
+        for outflowing.
+      order: An optional order argument, determining the shape and order of the
+        tensor.
+      check_consistency: If `True`, check if `len(data)` is consistent with 
+        number of non-zero elements given by the charges. This usually causes
+        significant overhead, so use only for debugging.
+    """
+    super().__init__(data=data, charges=charges, flows=flows, order=order)
+
+    if check_consistency and (len(self._charges) > 0):
+      num_non_zero_elements = compute_num_nonzero(self._charges, self._flows)
+      if num_non_zero_elements != len(data.flat):
+        raise ValueError("number of tensor elements {} defined "
+                         "by `charges` is different from"
+                         " len(data)={}".format(num_non_zero_elements,
+                                                len(data.flat)))
+
+  def copy(self) -> "BlockSparseTensor":
+    """
+    Return a copy of the tensor.
+    """
+    return BlockSparseTensor(
+        self.data.copy(), [c.copy() for c in self._charges], self._flows.copy(),
+        copy.deepcopy(self._order), False)
+
+  def todense(self) -> np.ndarray:
+    """
+    Map the sparse tensor to dense storage.
+    
+    """
+    if len(self.shape) == 0:
+      return self.data
+    out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
+    out[np.nonzero(
+        fuse_charges(self._charges, self._flows) ==
+        self._charges[0].identity_charges)[0]] = self.data
+    result = np.reshape(out, [c.dim for c in self._charges])
+    flat_order = flatten(self._order)
+    return result.transpose(flat_order).reshape(self.shape)
+
+  @classmethod
+  def randn(cls,
+            indices: Union[Tuple[Index], List[Index]],
+            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
+    """
+    Initialize a random symmetric tensor from a random normal distribution
+    with mean 0 and variance 1.
+    Args:
+      indices: List of `Index` objects, one for each leg. 
+      dtype: An optional numpy dtype. The dtype of the tensor
+    Returns:
+      BlockSparseTensor
+    """
+    data, charges, flows, order = _data_initializer(
+        np.random.randn, compute_num_nonzero, indices, dtype)
+    return cls(
+        data=data,
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
+
+  @classmethod
+  def random(cls,
+             indices: Union[Tuple[Index], List[Index]],
+             boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
+    """
+    Initialize a random symmetric tensor from random uniform distribution.
+    Args:
+      indices: List of `Index` objecst, one for each leg. 
+      boundaries: Tuple of interval boundaries for the random uniform 
+        distribution.
+      dtype: An optional numpy dtype. The dtype of the tensor
+    Returns:
+      BlockSparseTensor
+    """
+    data, charges, flows, order = _data_initializer(
+        lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
+        compute_num_nonzero, indices, dtype)
+    return cls(
+        data=data,
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
+
+  @classmethod
+  def ones(cls,
+           indices: Union[Tuple[Index], List[Index]],
+           dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
+    """
+    Initialize a symmetric tensor with ones.
+    Args:
+      indices: List of `Index` objecst, one for each leg. 
+      dtype: An optional numpy dtype. The dtype of the tensor
+    Returns:
+      BlockSparseTensor
+    """
+    charges, flows = get_flat_meta_data(indices)
+    num_non_zero_elements = compute_num_nonzero(charges, flows)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+
+    return cls(
+        data=np.ones((num_non_zero_elements,), dtype=dtype),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
+
+  @classmethod
+  def zeros(cls,
+            indices: Union[Tuple[Index], List[Index]],
+            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
+    """
+    Initialize a symmetric tensor with zeros.
+    Args:
+      indices: List of `Index` objecst, one for each leg. 
+      dtype: An optional numpy dtype. The dtype of the tensor
+    Returns:
+      BlockSparseTensor
+    """
+    charges, flows = get_flat_meta_data(indices)
+    num_non_zero_elements = compute_num_nonzero(charges, flows)
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+
+    return cls(
+        data=np.zeros((num_non_zero_elements,), dtype=dtype),
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
