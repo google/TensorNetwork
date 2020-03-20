@@ -1594,3 +1594,95 @@ def tensordot(tensor1: BlockSparseTensor,
       order=left_order + right_order,
       check_consistency=False)
   return res
+
+
+def svd(matrix: BlockSparseTensor,
+        full_matrices: Optional[bool] = True,
+        compute_uv: Optional[bool] = True,
+        hermitian: Optional[bool] = False) -> Any:
+  """
+  Compute the singular value decomposition of `matrix`.
+  The matrix if factorized into `u * s * vh`, with 
+  `u` and `vh` the left and right eigenvectors of `matrix`,
+  and `s` its singular values.
+  Args:
+    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+    full_matrices: If `True`, expand `u` and `v` to square matrices
+      If `False` return the "economic" svd, i.e. `u.shape[1]=s.shape[0]`
+      and `v.shape[0]=s.shape[1]`
+    compute_uv: If `True`, return `u` and `v`.
+    hermitian: If `True`, assume hermiticity of `matrix`.
+  Returns:
+    If `compute_uv` is `True`: Three BlockSparseTensors `U,S,V`.
+    If `compute_uv` is `False`: A BlockSparseTensors `S` containing the 
+      singular values.
+  """
+
+  if matrix.ndim != 2:
+    raise NotImplementedError("svd currently supports only rank-2 tensors.")
+
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  u_blocks = []
+  singvals = []
+  v_blocks = []
+  for n, block in enumerate(blocks):
+    out = np.linalg.svd(
+        np.reshape(matrix.data[block], shapes[:, n]), full_matrices, compute_uv,
+        hermitian)
+    if compute_uv:
+      u_blocks.append(out[0])
+      singvals.append(out[1])
+      v_blocks.append(out[2])
+
+    else:
+      singvals.append(out)
+
+  left_singval_charge_labels = np.concatenate([
+      np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
+      for n in range(len(singvals))
+  ])
+  left_singval_charge = charges[left_singval_charge_labels]
+  S = ChargeArray(np.concatenate(singvals), [left_singval_charge], [False])
+
+  if compute_uv:
+    #define the new charges on the two central bonds
+    left_charge_labels = np.concatenate([
+        np.full(u_blocks[n].shape[1], fill_value=n, dtype=np.int16)
+        for n in range(len(u_blocks))
+    ])
+    right_charge_labels = np.concatenate([
+        np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
+        for n in range(len(v_blocks))
+    ])
+    new_left_charge = charges[left_charge_labels]
+    new_right_charge = charges[right_charge_labels]
+
+    charges_u = [new_left_charge
+                ] + [matrix._charges[o] for o in matrix._order[0]]
+    order_u = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+    flows_u = [True] + [matrix._flows[o] for o in matrix._order[0]]
+    charges_v = [new_right_charge
+                ] + [matrix._charges[o] for o in matrix._order[1]]
+    flows_v = [False] + [matrix._flows[o] for o in matrix._order[1]]
+    order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
+    # We fill in data into the transposed U
+    # note that transposing is essentially free
+    return BlockSparseTensor(
+        np.concatenate([np.ravel(u.T) for u in u_blocks]),
+        charges=charges_u,
+        flows=flows_u,
+        order=order_u,
+        check_consistency=False).transpose((1, 0)), S, BlockSparseTensor(
+            np.concatenate([np.ravel(v) for v in v_blocks]),
+            charges=charges_v,
+            flows=flows_v,
+            order=order_v,
+            check_consistency=False)
+
+  return S
