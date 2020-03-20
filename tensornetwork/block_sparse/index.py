@@ -95,6 +95,11 @@ class Index:
     return list(self.flow)
 
   def flip_flow(self):
+    """
+    Flip the flow if `Index` in place.
+    Returns:
+      Index
+    """
     self.flow = np.logical_not(self.flow)
     return self
 
