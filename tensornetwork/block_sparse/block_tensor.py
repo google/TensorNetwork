@@ -393,8 +393,8 @@ def _find_diagonal_sparse_blocks(
   if num_blocks == 0:
     obj = charges[0].__new__(type(charges[0]))
     obj.__init__(
-        np.zeros(0, dtype=np.int16), np.arange(0, dtype=np.int16),
-        charges[0].charge_types)
+        np.zeros((charges[0].num_symmetries, 0), dtype=np.int16),
+        np.arange(0, dtype=np.int16), charges[0].charge_types)
 
     return [], obj, []
 
@@ -490,8 +490,8 @@ def _find_transposed_diagonal_sparse_blocks(
     # special case: trivial number of non-zero elements
     obj = charges[0].__new__(type(charges[0]))
     obj.__init__(
-        np.empty(0, dtype=np.int16), np.arange(0, dtype=np.int16),
-        charges[0].charge_types)
+        np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
+        np.arange(0, dtype=np.int16), charges[0].charge_types)
 
     return [], obj, np.array([], dtype=np.uint32)
 
@@ -1563,7 +1563,7 @@ def tensordot(tensor1: BlockSparseTensor,
   flows = left_flows + right_flows
   sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
                                                       len(left_charges))
-  num_nonzero_elements = np.sum([len(v) for v in sparse_blocks])
+  num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
   #Note that empty is not a viable choice here.
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
