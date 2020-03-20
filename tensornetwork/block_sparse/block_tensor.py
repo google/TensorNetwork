@@ -1209,7 +1209,7 @@ class BlockSparseTensor(ChargeArray):
   def T(self) -> "BlockSparseTensor":
     return self.transpose()
 
-  #pylint: disable=arguments-differ
+  # pylint: disable=arguments-differ
   def transpose_data(self,
                      flat_order: Optional[Union[List, np.ndarray]] = None,
                      inplace: Optional[bool] = False) -> Any:
