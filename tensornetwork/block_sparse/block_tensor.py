@@ -1436,3 +1436,154 @@ def outerproduct(tensor1: BlockSparseTensor,
       flows=final_flows,
       order=tensor1._order + order2,
       check_consistency=False)
+
+
+def tensordot(tensor1: BlockSparseTensor,
+              tensor2: BlockSparseTensor,
+              axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
+             ) -> BlockSparseTensor:
+  """
+  Contract two `BlockSparseTensor`s along `axes`.
+  Args:
+    tensor1: First tensor.
+    tensor2: Second tensor.
+    axes: The axes to contract.
+  Returns:
+      BlockSparseTensor: The result of the tensor contraction.
+  """
+
+  if isinstance(axes, (np.integer, int)):
+    axes = [
+        np.arange(tensor1.ndim - axes, tensor1.ndim, dtype=np.int16),
+        np.arange(0, axes, dtype=np.int16)
+    ]
+  elif isinstance(axes[0], (np.integer, int)):
+    axes = [np.array(axes, dtype=np.int16), np.array(axes, dtype=np.int16)]
+  axes1 = axes[0]
+  axes2 = axes[1]
+  if not np.all(np.unique(axes1) == np.sort(axes1)):
+    raise ValueError(
+        "Some values in axes[0] = {} appear more than once!".format(axes1))
+  if not np.all(np.unique(axes2) == np.sort(axes2)):
+    raise ValueError(
+        "Some values in axes[1] = {} appear more than once!".format(axes2))
+
+  if len(axes1) == 0:
+    return outerproduct(tensor1, tensor2)
+
+  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
+    isort = np.argsort(axes1)
+    data = np.dot(tensor1.data,
+                  tensor2.transpose(np.asarray(axes2)[isort]).data)
+    return BlockSparseTensor(
+        data=data, charges=[], flows=[], order=[],
+        check_consistency=False)  #Index(identity_charges, flow=False)])
+
+  if max(axes1) >= len(tensor1.shape):
+    raise ValueError(
+        "rank of `tensor1` is smaller than `max(axes1) = {}.`".format(
+            max(axes1)))
+
+  if max(axes2) >= len(tensor2.shape):
+    raise ValueError(
+        "rank of `tensor2` is smaller than `max(axes2) = {}`".format(
+            max(axes1)))
+
+  contr_flows_1 = []
+  contr_flows_2 = []
+  contr_charges_1 = []
+  contr_charges_2 = []
+  for a in axes1:
+    contr_flows_1.extend(tensor1._flows[tensor1._order[a]])
+    contr_charges_1.extend([tensor1._charges[n] for n in tensor1._order[a]])
+  for a in axes2:
+    contr_flows_2.extend(tensor2._flows[tensor2._order[a]])
+    contr_charges_2.extend([tensor2._charges[n] for n in tensor2._order[a]])
+
+  if len(contr_charges_2) != len(contr_charges_1):
+    raise ValueError(
+        "axes1 and axes2 have incompatible elementary"
+        " shapes {} and {}".format([e.dim for e in contr_charges_1],
+                                   [e.dim for e in contr_charges_2]))
+  if not np.all(
+      np.asarray(contr_flows_1) == np.logical_not(np.asarray(contr_flows_2))):
+
+    raise ValueError("axes1 and axes2 have incompatible elementary"
+                     " flows {} and {}".format(contr_flows_1, contr_flows_2))
+
+  free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
+  free_axes2 = sorted(set(np.arange(tensor2.ndim)) - set(axes2))
+
+  new_order1 = [tensor1._order[n] for n in free_axes1
+               ] + [tensor1._order[n] for n in axes1]
+  new_order2 = [tensor2._order[n] for n in axes2
+               ] + [tensor2._order[n] for n in free_axes2]
+
+  flat_order_1 = flatten(new_order1)
+  flat_order_2 = flatten(new_order2)
+
+  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1.flat_flows
+  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2.flat_flows
+
+  left_charges = []
+  right_charges = []
+  left_flows = []
+  right_flows = []
+  left_order = []
+  right_order = []
+  s = 0
+  for n in free_axes1:
+    left_charges.extend([tensor1._charges[o] for o in tensor1._order[n]])
+    left_order.append(list(np.arange(s, s + len(tensor1._order[n]))))
+    s += len(tensor1._order[n])
+    left_flows.extend([tensor1._flows[o] for o in tensor1._order[n]])
+
+  s = 0
+  for n in free_axes2:
+    right_charges.extend([tensor2._charges[o] for o in tensor2._order[n]])
+    right_order.append(
+        list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
+    s += len(tensor2._order[n])
+    right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
+
+  tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
+      flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
+
+  tr_sparse_blocks_2, charges2, shapes_2 = _find_transposed_diagonal_sparse_blocks(
+      flat_charges_2, flat_flows_2, len(contr_charges_2), flat_order_2)
+
+  common_charges, label_to_common_1, label_to_common_2 = intersect(
+      charges1.unique_charges,
+      charges2.unique_charges,
+      axis=1,
+      return_indices=True)
+
+  #Note: `cs` may contain charges that are not present in `common_charges`
+  charges = left_charges + right_charges
+  flows = left_flows + right_flows
+  sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
+                                                      len(left_charges))
+  num_nonzero_elements = np.sum([len(v) for v in sparse_blocks])
+  #Note that empty is not a viable choice here.
+  data = np.zeros(
+      num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
+
+  label_to_common_final = intersect(
+      cs.unique_charges, common_charges, axis=1, return_indices=True)[1]
+
+  for n in range(common_charges.shape[1]):
+    n1 = label_to_common_1[n]
+    n2 = label_to_common_2[n]
+    nf = label_to_common_final[n]
+
+    data[sparse_blocks[nf].ravel()] = np.ravel(
+        np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
+                  tensor2.data[tr_sparse_blocks_2[n2].reshape(
+                      shapes_2[:, n2])]))
+  res = BlockSparseTensor(
+      data=data,
+      charges=charges,
+      flows=flows,
+      order=left_order + right_order,
+      check_consistency=False)
+  return res
