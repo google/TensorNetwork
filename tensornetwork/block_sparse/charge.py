@@ -486,7 +486,7 @@ class U1Charge(BaseCharge):
 
   @classmethod
   def random(cls, minval: int, maxval: int, dimension: int) -> BaseCharge:
-    charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
+    charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
     return cls(charges=charges)
 
 
