@@ -878,3 +878,66 @@ class ChargeArray:
         order=new_order,
         check_consistency=False)
     return result
+
+  def transpose_data(self):
+    """
+    Transpose the tensor data such that the linear order 
+    of the elements in `BlockSparseTensor.data` corresponds to the 
+    current order of tensor indices. 
+    Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
+    i.e. `data` was initialized according to order [0,1,2,3], and the tensor
+    has since been reshaped and transposed. The linear order of `data` does not
+    match the desired order [1,2,3,0] of the tensor. `transpose_data` fixes this
+    by permuting `data` into this order, transposing `_charges` and `_flows`,
+    and changing `_order` to `[[0,1],[2],[3]]`.
+    """
+
+    flat_charges = self.flat_charges
+    flat_shape = [c.dim for c in flat_charges]
+    flat_order = self.flat_order
+    print(flat_order)
+    tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
+    print(tmp)
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+    print(order)
+    data = np.array(
+        np.ascontiguousarray(
+            np.transpose(np.reshape(self.data, flat_shape), flat_order)).flat)
+    result = self.__new__(type(self))
+    result.__init__(
+        data,
+        charges=[self._charges[o] for o in flat_order],
+        flows=[self._flows[o] for o in flat_order],
+        order=order,
+        check_consistency=False)
+    return result
+
+  def transpose(self,
+                order: Optional[Union[List[int], np.ndarray]] = np.asarray(
+                    [1, 0]),
+                shuffle: Optional[bool] = False) -> "BlockSparseTensor":
+    """
+    Transpose the tensor into the new order `order`. If `shuffle=False`
+    no data-reshuffling is done.
+    Args:
+      order: The new order of indices.
+      shuffle: If `True`, reshuffle data.
+    Returns:
+      BlockSparseTensor: The transposed tensor.
+    """
+    if len(order) != self.ndim:
+      raise ValueError(
+          "`len(order)={}` is different form `self.ndim={}`".format(
+              len(order), self.ndim))
+
+    order = [self._order[o] for o in order]
+    tensor = self.__new__(type(self))
+    tensor.__init__(
+        data=self.data,
+        charges=self._charges,
+        flows=self._flows,
+        order=order,
+        check_consistency=False)
+    if shuffle:
+      return tensor.transpose_data()
+    return tensor
