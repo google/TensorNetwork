@@ -925,3 +925,30 @@ def test_tensordot_outer(R1, R2, dtype, num_charges):
   res = tensordot(A, B, axes=0)
   dense_res = np.tensordot(A.todense(), B.todense(), axes=0)
   np.testing.assert_allclose(dense_res, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_matmul(dtype, num_charges):
+  np.random.seed(10)
+  Ds1 = [100, 200]
+  is1 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 5, (num_charges, Ds1[n]), dtype=np.int16),
+              charge_types=[U1Charge] * num_charges), False) for n in range(2)
+  ]
+  is2 = [
+      is1[1].copy().flip_flow(),
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 5, (num_charges, 150), dtype=np.int16),
+              charge_types=[U1Charge] * num_charges), False)
+  ]
+  tensor1 = BlockSparseTensor.random(is1, dtype=dtype)
+  tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
+  result = tensor1 @ tensor2
+  assert result.dtype == dtype
+  dense_result = tensor1.todense() @ tensor2.todense()
+
+  np.testing.assert_allclose(dense_result, result.todense())
