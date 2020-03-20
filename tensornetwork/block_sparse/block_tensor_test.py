@@ -378,3 +378,76 @@ def test_reshape_raises():
   arr2 = arr.reshape([72, 110])
   with pytest.raises(ValueError):
     arr2.reshape([9, 8, 10, 11])
+
+
+def test_transpose():
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = ChargeArray.random(indices)
+  order = [2, 1, 0, 3]
+  arr2 = arr.transpose(order)
+  np.testing.assert_allclose(Ds[order], arr2.shape)
+  np.testing.assert_allclose(arr2._order, [[2], [1], [0], [3]])
+  np.testing.assert_allclose(arr2.flows, [[True], [False], [True], [False]])
+
+
+def test_transpose_reshape():
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = ChargeArray.random(indices)
+  arr2 = arr.transpose([2, 0, 1, 3])
+  arr3 = arr2.reshape([80, 99])
+  np.testing.assert_allclose(arr3.shape, [80, 99])
+  np.testing.assert_allclose(arr3._order, [[2, 0], [1, 3]])
+  np.testing.assert_allclose(arr3.flows, [[True, True], [False, False]])
+
+  arr4 = arr3.transpose([1, 0])
+  np.testing.assert_allclose(arr4.shape, [99, 80])
+  np.testing.assert_allclose(arr4._order, [[1, 3], [2, 0]])
+  np.testing.assert_allclose(arr4.flows, [[False, False], [True, True]])
+
+  arr5 = arr4.reshape([9, 11, 10, 8])
+  np.testing.assert_allclose(arr5.shape, [9, 11, 10, 8])
+  np.testing.assert_allclose(arr5._order, [[1], [3], [2], [0]])
+  np.testing.assert_allclose(arr5.flows, [[False], [False], [True], [True]])
+
+
+def test_transpose_data():
+  Ds = np.array([8, 9, 10, 11])
+  order = [2, 0, 1, 3]
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = ChargeArray.random(indices)
+  data = np.ascontiguousarray(np.transpose(np.reshape(arr.data, Ds), order))
+  arr2 = arr.transpose(order).transpose_data()
+  data3 = np.reshape(arr2.data, Ds[order])
+  np.testing.assert_allclose(data, data3)
+  np.testing.assert_allclose(arr2.shape, Ds[order])
+  np.testing.assert_allclose(arr2._order, [[0], [1], [2], [3]])
+  np.testing.assert_allclose(arr2.flows, [[True], [True], [False], [False]])
+
+
+def test_transpose_reshape_transpose_data():
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = ChargeArray.random(indices)
+  nparr = np.reshape(arr.data, Ds)
+
+  arr2 = arr.transpose([2, 0, 1, 3])
+  nparr2 = nparr.transpose([2, 0, 1, 3])
+  arr3 = arr2.reshape([80, 99])
+  nparr3 = nparr2.reshape([80, 99])
+  arr4 = arr3.transpose([1, 0])
+  nparr4 = nparr3.transpose([1, 0])
+
+  arr5 = arr4.reshape([9, 11, 10, 8])
+  nparr5 = nparr4.reshape([9, 11, 10, 8])
+  np.testing.assert_allclose(arr3.transpose_data().data,
+                             np.ascontiguousarray(nparr3).flat)
+  np.testing.assert_allclose(arr4.transpose_data().data,
+                             np.ascontiguousarray(nparr4).flat)
+  np.testing.assert_allclose(arr5.transpose_data().data,
+                             np.ascontiguousarray(nparr5).flat)
