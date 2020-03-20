@@ -1111,3 +1111,158 @@ class BlockSparseTensor(ChargeArray):
         flows=flows,
         order=order,
         check_consistency=False)
+
+  def _sub_add_protection(self, other):
+    if not isinstance(other, type(self)):
+      raise TypeError(
+          "Can only add or subtract BlockSparseTensor from BlockSparseTensor. "
+          "Found type {}".format(type(other)))
+
+    if self.shape != other.shape:
+      raise ValueError(
+          "cannot add or subtract tensors with shapes {} and {}".format(
+              self.shape, other.shape))
+    if len(self._charges) != len(other._charges):
+      raise ValueError(
+          "cannot add or subtract tensors with different charge lengths {} and {}"
+          .format(len(self._charges), len(other._charges)))
+    if not np.all([
+        self.sparse_shape[n] == other.sparse_shape[n]
+        for n in range(len(self.sparse_shape))
+    ]):
+      raise ValueError(
+          "cannot add or subtract tensors non-matching sparse shapes")
+
+  def __sub__(self, other: "BlockSparseTensor"):
+    self._sub_add_protection(other)
+    _, index_other = np.unique(other.flat_order, return_index=True)
+    #bring self into the same storage layout as other
+    self.transpose_data(self.flat_order[index_other], inplace=True)
+    #now subtraction is save
+    return BlockSparseTensor(
+        data=self.data - other.data,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
+  def __add__(self, other: "BlockSparseTensor"):
+    self._sub_add_protection(other)
+    #bring self into the same storage layout as other
+    _, index_other = np.unique(other.flat_order, return_index=True)
+    self.transpose_data(self.flat_order[index_other], inplace=True)
+    #now addition is save
+    return BlockSparseTensor(
+        data=self.data + other.data,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
+  def __mul__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only multiply BlockSparseTensor by a number. Found type {}"
+          .format(type(number)))
+    return BlockSparseTensor(
+        data=self.data * number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
+  def __rmul__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only right-multiply BlockSparseTensor by a number. Found type {}"
+          .format(type(number)))
+    return BlockSparseTensor(
+        data=self.data * number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
+  def __truediv__(self, number: np.number):
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only divide BlockSparseTensor by a number. Found type {}".format(
+              type(number)))
+
+    return BlockSparseTensor(
+        data=self.data / number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
+  def conj(self):
+    """
+    Complex conjugate operation.
+    Returns:
+      BlockSparseTensor: The conjugated tensor
+    """
+    return BlockSparseTensor(
+        data=np.conj(self.data),
+        charges=self._charges,
+        flows=list(np.logical_not(self._flows)),
+        order=self._order,
+        check_consistency=False)
+
+  @property
+  def T(self):
+    return self.transpose()
+
+  def transpose_data(self,
+                     flat_order: Optional[Union[List, np.ndarray]] = None,
+                     inplace: Optional[bool] = False):
+    """
+    Transpose the tensor data in place such that the linear order 
+    of the elements in `BlockSparseTensor.data` corresponds to the 
+    current order of tensor indices. 
+    Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
+    i.e. `data` was initialized according to order [0,1,2,3], and the tensor
+    has since been reshaped and transposed. The linear oder of `data` does not
+    match the desired order [1,2,3,0] of the tensor. `transpose_data` fixes this
+    by permuting `data` into this order, transposing `_charges` and `_flows`,
+    and changing `_order` to `[[0,1],[2],[3]]`.
+    Args:
+      flat_order: An optional alternative order to be used to transposed the 
+        tensor. If `None` defaults to `BlockSparseTensor.flat_order`.
+    """
+    flat_charges = self.flat_charges
+    flat_flows = self.flat_flows
+    if flat_order is None:
+      flat_order = self.flat_order
+
+    if np.array_equal(flat_order, np.arange(len(flat_order))):
+      return self
+    tr_partition = _find_best_partition(
+        [flat_charges[n].dim for n in flat_order])
+
+    tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
+        flat_charges, flat_flows, tr_partition, flat_order)
+
+    sparse_blocks, charges, _ = _find_diagonal_sparse_blocks(
+        [flat_charges[n] for n in flat_order],
+        [flat_flows[n] for n in flat_order], tr_partition)
+    data = np.empty(len(self.data), dtype=self.dtype)
+    for n, sparse_block in enumerate(sparse_blocks):
+      ind = np.nonzero(tr_charges == charges[n])[0][0]
+      permutation = tr_sparse_blocks[ind]
+      data[sparse_block] = self.data[permutation]
+    tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+    charges = [self._charges[o] for o in flat_order]
+    flows = [self._flows[o] for o in flat_order]
+    if not inplace:
+      return BlockSparseTensor(
+          data,
+          charges=charges,
+          flows=flows,
+          order=order,
+          check_consistency=False)
+    self.data = data
+    self._order = order
+    self._charges = charges
+    self._flows = flows
