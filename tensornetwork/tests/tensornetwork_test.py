@@ -582,6 +582,10 @@ def test_set_default(backend):
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
 
+def test_bad_backend_name():
+  with pytest.raises(ValueError, match="Backend 'BAD_NAME' was not found."):
+    tn.set_default_backend("BAD_NAME")
+
 def test_copy_tensor(backend):
   a = tn.Node(np.array([1, 2, 3], dtype=np.float64), backend=backend)
   b = tn.Node(np.array([10, 20, 30], dtype=np.float64), backend=backend)
