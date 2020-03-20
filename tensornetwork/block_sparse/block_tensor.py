@@ -800,17 +800,17 @@ class ChargeArray:
   ) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
-    `BlockSparseTensor.reshape` works the same as the dense 
+    `ChargeArray.reshape` works the same as the dense 
     version, with the notable exception that the tensor can only be 
     reshaped into a form compatible with its elementary shape. 
-    The elementary shape is the shape determined by BlockSparseTensor._charges.
+    The elementary shape is the shape determined by ChargeArray._charges.
     For example, while the following reshaping is possible for regular 
     dense numpy tensor,
     ```
     A = np.random.rand(6,6,6)
     np.reshape(A, (2,3,6,6))
     ```
-    the same code for BlockSparseTensor
+    the same code for ChargeArray
     ```
     q1 = U1Charge(np.random.randint(0,10,6))
     q2 = U1Charge(np.random.randint(0,10,6))
@@ -818,7 +818,7 @@ class ChargeArray:
     i1 = Index(charges=q1,flow=False)
     i2 = Index(charges=q2,flow=True)
     i3 = Index(charges=q3,flow=False)
-    A=BlockSparseTensor.randn(indices=[i1,i2,i3])
+    A=ChargeArray.randn(indices=[i1,i2,i3])
     print(A.shape) #prints (6,6,6)
     A.reshape((2,3,6,6)) #raises ValueError
     ```
@@ -830,7 +830,7 @@ class ChargeArray:
       shape: The new shape. Can either be a list of `Index` 
         or a list of `int`.
     Returns:
-      BlockSparseTensor: A new tensor reshaped into `shape`
+      ChargeArray: A new tensor reshaped into `shape`
     """
     new_shape = []
     for s in shape:
@@ -882,7 +882,7 @@ class ChargeArray:
   def transpose_data(self):
     """
     Transpose the tensor data such that the linear order 
-    of the elements in `BlockSparseTensor.data` corresponds to the 
+    of the elements in `ChargeArray.data` corresponds to the 
     current order of tensor indices. 
     Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
     i.e. `data` was initialized according to order [0,1,2,3], and the tensor
@@ -915,7 +915,7 @@ class ChargeArray:
   def transpose(self,
                 order: Optional[Union[List[int], np.ndarray]] = np.asarray(
                     [1, 0]),
-                shuffle: Optional[bool] = False) -> "BlockSparseTensor":
+                shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
     no data-reshuffling is done.
@@ -923,7 +923,7 @@ class ChargeArray:
       order: The new order of indices.
       shuffle: If `True`, reshuffle data.
     Returns:
-      BlockSparseTensor: The transposed tensor.
+      ChargeArray: The transposed tensor.
     """
     if len(order) != self.ndim:
       raise ValueError(
