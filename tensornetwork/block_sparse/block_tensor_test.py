@@ -576,3 +576,70 @@ def test_todense():
   dense = np.array(arr.todense().flat)
   np.testing.assert_allclose(dense[inds], arr.data)
   np.testing.assert_allclose(dense[inds2], 0)
+
+
+@pytest.mark.parametrize('op', [np.add, np.subtract])
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_add_sub(op, dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  order = np.arange(4)
+  np.random.shuffle(order)
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = BlockSparseTensor.randn([indices[o] for o in order], dtype=dtype)
+  npb = np.reshape(b.todense(), b.shape)
+  npa = np.reshape(a.todense(), a.shape)
+
+  c = a.transpose(order)
+  npc = npa.transpose(order)
+  d = op(c, b)
+  npd = op(npc, npb)
+  np.testing.assert_allclose(d.todense(), npd)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_mul(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = 5 * a
+  np.testing.assert_allclose(b.data, a.data * 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_rmul(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a * 5
+  np.testing.assert_allclose(b.data, a.data * 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_truediv(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a / 5
+  np.testing.assert_allclose(b.data, a.data / 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_conj(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a.conj()
+  np.testing.assert_allclose(b.data, np.conj(a.data))
+
+
+def test_BlockSparseTensor_transpose_data():
+  Ds = np.array([8, 9, 10, 11])
+  order = [2, 0, 1, 3]
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = BlockSparseTensor.random(indices)
+  data1 = np.ascontiguousarray(np.transpose(arr.todense(), order))
+  data2 = arr.transpose(order).transpose_data().todense()
+  np.testing.assert_allclose(data1.strides, data2.strides)
+  np.testing.assert_allclose(data1, data2)
