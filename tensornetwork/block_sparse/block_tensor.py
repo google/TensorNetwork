@@ -1846,18 +1846,29 @@ def eigh(matrix: BlockSparseTensor,
     eigvals.append(e)
     v_blocks.append(v)
 
-  eigvalscharge_labels = np.concatenate([
+  tmp_labels = [
       np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
-  ])
+  ]
+  if len(tmp_labels) > 0:
+    eigvalscharge_labels = np.concatenate(tmp_labels)
+  else:
+    eigvalscharge_labels = np.empty(0, dtype=np.int16)
   eigvalscharge = charges[eigvalscharge_labels]
-  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+  if len(eigvals) > 0:
+    all_eigvals = np.concatenate(eigvals)
+  else:
+    all_eigvals = np.empty(0, dtype=get_real_dtype(matrix.dtype))
+  E = ChargeArray(all_eigvals, [eigvalscharge], [False])
   charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
   order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
   flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
-
+  if len(v_blocks) > 0:
+    all_v_blocks = np.concatenate([np.ravel(v.T) for v in v_blocks])
+  else:
+    all_v_blocks = np.empty(0, dtype=matrix.dtype)
   V = BlockSparseTensor(
-      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      all_v_blocks,
       charges=charges_v,
       flows=flows_v,
       order=order_v,
