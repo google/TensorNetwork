@@ -28,6 +28,14 @@ from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequ
 Tensor = Any
 
 
+def get_real_dtype(dtype):
+  if dtype == np.complex128:
+    return np.float64
+  if dtype == np.complex64:
+    return np.float32
+  return dtype
+
+
 def flatten(list_of_list: List[List]) -> np.ndarray:
   """
   Flatten a list of lists into a single list.
@@ -1309,7 +1317,8 @@ def diag(tensor: ChargeArray) -> Any:
     tr_partition = len(tensor._order[0])
     blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
         flat_charges, flat_flows, tr_partition, flat_order)
-    data = np.zeros(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+    data = np.zeros(
+        np.int64(np.sum(np.prod(shapes, axis=0))), dtype=tensor.dtype)
     lookup, unique, labels = compute_sparse_lookup(tensor._charges,
                                                    tensor._flows, charges)
     for n, block in enumerate(blocks):
@@ -1620,7 +1629,7 @@ def svd(matrix: BlockSparseTensor,
 
   if matrix.ndim != 2:
     raise NotImplementedError("svd currently supports only rank-2 tensors.")
-
+  dtype = get_real_dtype(matrix.dtype)
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
@@ -1643,23 +1652,41 @@ def svd(matrix: BlockSparseTensor,
     else:
       singvals.append(out)
 
-  left_singval_charge_labels = np.concatenate([
+  tmp_labels = [
       np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(singvals))
-  ])
+  ]
+  if len(tmp_labels) > 0:
+    left_singval_charge_labels = np.concatenate(tmp_labels)
+  else:
+    left_singval_charge_labels = np.empty(0, dtype=np.int16)
   left_singval_charge = charges[left_singval_charge_labels]
-  S = ChargeArray(np.concatenate(singvals), [left_singval_charge], [False])
+  if len(singvals) > 0:
+    all_singvals = np.concatenate(singvals)
+  else:
+
+    all_singvals = np.empty(0, dtype=dtype)
+  S = ChargeArray(all_singvals, [left_singval_charge], [False])
 
   if compute_uv:
     #define the new charges on the two central bonds
-    left_charge_labels = np.concatenate([
+    tmp_left_labels = [
         np.full(u_blocks[n].shape[1], fill_value=n, dtype=np.int16)
         for n in range(len(u_blocks))
-    ])
-    right_charge_labels = np.concatenate([
+    ]
+    if len(tmp_left_labels) > 0:
+      left_charge_labels = np.concatenate(tmp_left_labels)
+    else:
+      left_charge_labels = np.empty(0, dtype=np.int16)
+
+    tmp_right_labels = [
         np.full(v_blocks[n].shape[0], fill_value=n, dtype=np.int16)
         for n in range(len(v_blocks))
-    ])
+    ]
+    if len(tmp_right_labels) > 0:
+      right_charge_labels = np.concatenate(tmp_right_labels)
+    else:
+      right_charge_labels = np.empty(0, dtype=np.int16)
     new_left_charge = charges[left_charge_labels]
     new_right_charge = charges[right_charge_labels]
 
@@ -1673,13 +1700,20 @@ def svd(matrix: BlockSparseTensor,
     order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
     # We fill in data into the transposed U
     # note that transposing is essentially free
+    if len(u_blocks) > 0:
+      all_u_blocks = np.concatenate([np.ravel(u.T) for u in u_blocks])
+      all_v_blocks = np.concatenate([np.ravel(v) for v in v_blocks])
+    else:
+      all_u_blocks = np.empty(0, dtype=dtype)
+      all_v_blocks = np.empty(0, dtype=dtype)
+
     return BlockSparseTensor(
-        np.concatenate([np.ravel(u.T) for u in u_blocks]),
+        all_u_blocks,
         charges=charges_u,
         flows=flows_u,
         order=order_u,
         check_consistency=False).transpose((1, 0)), S, BlockSparseTensor(
-            np.concatenate([np.ravel(v) for v in v_blocks]),
+            all_v_blocks,
             charges=charges_v,
             flows=flows_v,
             order=order_v,
