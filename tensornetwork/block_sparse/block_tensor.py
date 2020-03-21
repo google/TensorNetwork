@@ -1629,7 +1629,7 @@ def svd(matrix: BlockSparseTensor,
 
   if matrix.ndim != 2:
     raise NotImplementedError("svd currently supports only rank-2 tensors.")
-  dtype = get_real_dtype(matrix.dtype)
+
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
@@ -1659,13 +1659,13 @@ def svd(matrix: BlockSparseTensor,
   if len(tmp_labels) > 0:
     left_singval_charge_labels = np.concatenate(tmp_labels)
   else:
+
     left_singval_charge_labels = np.empty(0, dtype=np.int16)
   left_singval_charge = charges[left_singval_charge_labels]
   if len(singvals) > 0:
     all_singvals = np.concatenate(singvals)
   else:
-
-    all_singvals = np.empty(0, dtype=dtype)
+    all_singvals = np.empty(0, dtype=get_real_dtype(matrix.dtype))
   S = ChargeArray(all_singvals, [left_singval_charge], [False])
 
   if compute_uv:
@@ -1704,8 +1704,8 @@ def svd(matrix: BlockSparseTensor,
       all_u_blocks = np.concatenate([np.ravel(u.T) for u in u_blocks])
       all_v_blocks = np.concatenate([np.ravel(v) for v in v_blocks])
     else:
-      all_u_blocks = np.empty(0, dtype=dtype)
-      all_v_blocks = np.empty(0, dtype=dtype)
+      all_u_blocks = np.empty(0, dtype=matrix.dtype)
+      all_v_blocks = np.empty(0, dtype=matrix.dtype)
 
     return BlockSparseTensor(
         all_u_blocks,
@@ -1720,3 +1720,147 @@ def svd(matrix: BlockSparseTensor,
             check_consistency=False)
 
   return S
+
+
+def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
+  """
+  Compute the qr decomposition of an `M` by `N` matrix `matrix`.
+  The matrix is factorized into `q*r`, with 
+  `q` an orthogonal matrix and `r` an upper triangular matrix.
+  Args:
+    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+    mode : Can take values {'reduced', 'complete', 'r', 'raw'}.
+    If K = min(M, N), then
+
+    * 'reduced'  : returns q, r with dimensions (M, K), (K, N) (default)
+    * 'complete' : returns q, r with dimensions (M, M), (M, N)
+    * 'r'        : returns r only with dimensions (K, N)
+
+  Returns:
+    (BlockSparseTensor,BlockSparseTensor): If mode = `reduced` or `complete`
+    BlockSparseTensor: If mode = `r`.
+  """
+  if mode == 'raw':
+    raise NotImplementedError('mode `raw` currenntly not supported')
+  if matrix.ndim != 2:
+    raise NotImplementedError("qr currently supports only rank-2 tensors.")
+
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  q_blocks = []
+  r_blocks = []
+  for n, block in enumerate(blocks):
+    out = np.linalg.qr(np.reshape(matrix.data[block], shapes[:, n]), mode)
+    if mode in ('reduced', 'complete'):
+      q_blocks.append(out[0])
+      r_blocks.append(out[1])
+    elif mode == 'r':
+      r_blocks.append(out)
+    else:
+      raise ValueError('unknown value {} for input `mode`'.format(mode))
+
+  tmp_r_charge_labels = [
+      np.full(r_blocks[n].shape[0], fill_value=n, dtype=np.int16)
+      for n in range(len(r_blocks))
+  ]
+  if len(tmp_r_charge_labels) > 0:
+    left_r_charge_labels = np.concatenate(tmp_r_charge_labels)
+  else:
+    left_r_charge_labels = np.empty(0, dtype=np.int16)
+
+  left_r_charge = charges[left_r_charge_labels]
+  charges_r = [left_r_charge] + [matrix._charges[o] for o in matrix._order[1]]
+  flows_r = [False] + [matrix._flows[o] for o in matrix._order[1]]
+  order_r = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
+  if len(r_blocks) > 0:
+    all_r_blocks = np.concatenate([np.ravel(r) for r in r_blocks])
+  else:
+    all_r_blocks = np.empty(0, dtype=matrix.dtype)
+  R = BlockSparseTensor(
+      all_r_blocks,
+      charges=charges_r,
+      flows=flows_r,
+      order=order_r,
+      check_consistency=False)
+
+  if mode in ('reduced', 'complete'):
+    tmp_right_q_charge_labels = [
+        np.full(q_blocks[n].shape[1], fill_value=n, dtype=np.int16)
+        for n in range(len(q_blocks))
+    ]
+    if len(tmp_right_q_charge_labels) > 0:
+      right_q_charge_labels = np.concatenate(tmp_right_q_charge_labels)
+    else:
+      right_q_charge_labels = np.empty(0, dtype=np.int16)
+
+    right_q_charge = charges[right_q_charge_labels]
+    charges_q = [
+        right_q_charge,
+    ] + [matrix._charges[o] for o in matrix._order[0]]
+    order_q = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+    flows_q = [True] + [matrix._flows[o] for o in matrix._order[0]]
+    if len(q_blocks) > 0:
+      all_q_blocks = np.concatenate([np.ravel(q.T) for q in q_blocks])
+    else:
+      all_q_blocks = np.empty(0, dtype=matrix.dtype)
+    return BlockSparseTensor(
+        all_q_blocks,
+        charges=charges_q,
+        flows=flows_q,
+        order=order_q,
+        check_consistency=False).transpose((1, 0)), R
+
+  return R
+
+
+def eigh(matrix: BlockSparseTensor,
+         UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
+  """
+  Compute the eigen decomposition of a hermitian `M` by `M` matrix `matrix`.
+  Args:
+    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+
+  Returns:
+    (ChargeArray,BlockSparseTensor): The eigenvalues and eigenvectors
+
+  """
+  if matrix.ndim != 2:
+    raise NotImplementedError("eigh currently supports only rank-2 tensors.")
+
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  eigvals = []
+  v_blocks = []
+  for n, block in enumerate(blocks):
+    e, v = np.linalg.eigh(np.reshape(matrix.data[block], shapes[:, n]), UPLO)
+    eigvals.append(e)
+    v_blocks.append(v)
+
+  eigvalscharge_labels = np.concatenate([
+      np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
+      for n in range(len(eigvals))
+  ])
+  eigvalscharge = charges[eigvalscharge_labels]
+  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+  charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
+  order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+  flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
+
+  V = BlockSparseTensor(
+      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      charges=charges_v,
+      flows=flows_v,
+      order=order_v,
+      check_consistency=False).transpose()
+
+  return E, V
