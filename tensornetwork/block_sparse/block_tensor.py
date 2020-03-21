@@ -946,6 +946,21 @@ class ChargeArray:
       return tensor.transpose_data()
     return tensor
 
+  def __sub__(self, other: "BlockSparseTensor") -> "ChargeArray":
+    raise NotImplementedError("__sub__ not implemented for ChargeArray")
+
+  def __add__(self, other: "ChargeArray") -> "ChargeArray":
+    raise NotImplementedError("__add__ not implemented for ChargeArray")
+
+  def __mul__(self, number: np.number) -> "ChargeArray":
+    raise NotImplementedError("__mul__ not implemented for ChargeArray")
+
+  def __rmul__(self, number: np.number) -> "ChargeArray":
+    raise NotImplementedError("__rmul__ not implemented for ChargeArray")
+
+  def __truediv__(self, number: np.number) -> "ChargeArray":
+    raise NotImplementedError("__truediv__ not implemented for ChargeArray")
+
 
 class BlockSparseTensor(ChargeArray):
   """
@@ -1204,14 +1219,16 @@ class BlockSparseTensor(ChargeArray):
     """
     Complex conjugate operation.
     Returns:
-      BlockSparseTensor: The conjugated tensor
+      ChargeArray: The conjugated tensor
     """
-    return BlockSparseTensor(
+    tensor = self.__new__(type(self))
+    tensor.__init__(
         data=np.conj(self.data),
         charges=self._charges,
         flows=list(np.logical_not(self._flows)),
         order=self._order,
         check_consistency=False)
+    return tensor
 
   @property
   def T(self) -> "BlockSparseTensor":
@@ -1605,6 +1622,7 @@ def tensordot(tensor1: BlockSparseTensor,
   return res
 
 
+#Note (mganahl): for an unknown reason, pytype complains when returngin types here
 def svd(matrix: BlockSparseTensor,
         full_matrices: Optional[bool] = True,
         compute_uv: Optional[bool] = True,
@@ -1722,6 +1740,7 @@ def svd(matrix: BlockSparseTensor,
   return S
 
 
+#Note (mganahl): for an unknown reason, pytype complains when returngin types here
 def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   """
   Compute the qr decomposition of an `M` by `N` matrix `matrix`.
@@ -1818,8 +1837,8 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   return R
 
 
-def eigh(matrix: BlockSparseTensor,
-         UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
+#Note (mganahl): for an unknown reason, pytype complains when returngin types here
+def eigh(matrix: BlockSparseTensor, UPLO: Optional[Text] = 'L') -> Any:
   """
   Compute the eigen decomposition of a hermitian `M` by `M` matrix `matrix`.
   Args:
