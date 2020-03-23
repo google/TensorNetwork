@@ -1287,7 +1287,7 @@ def diag(tensor: ChargeArray) -> Any:
   Args:
     tensor: A `ChargeArray`.
   Returns:
-    ChargeArray: A 1d `ChargeArray` containing the diagonal of `tensor`, 
+    ChargeArray: A 1d `CharggeArray` containing the diagonal of `tensor`, 
       or a diagonal matrix of type `BlockSparseTensor` containing `tensor` 
       on its diagonal.
 
@@ -1373,7 +1373,7 @@ def reshape(
   i1 = Index(charges=q1,flow=False)
   i2 = Index(charges=q2,flow=True)
   i3 = Index(charges=q3,flow=False)
-  A=ChargeArray.randn(indices=[i1,i2,i3])
+  A = ChargeArray.randn(indices=[i1,i2,i3])
   print(A.shape) #prints (6,6,6)
   A.reshape((2,3,6,6)) #raises ValueError
   ```
