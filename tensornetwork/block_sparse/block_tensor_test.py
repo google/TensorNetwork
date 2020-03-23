@@ -5,7 +5,7 @@ import itertools
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray, BlockSparseTensor
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -451,3 +451,195 @@ def test_transpose_reshape_transpose_data():
                              np.ascontiguousarray(nparr4).flat)
   np.testing.assert_allclose(arr5.transpose_data().data,
                              np.ascontiguousarray(nparr5).flat)
+
+
+def test_BlockSparseTensor_init():
+  np.random.seed(10)
+  D = 10
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  charges = [U1Charge.random(-5, 5, D) for _ in range(rank)]
+  fused = fuse_charges(charges, flows)
+  data = np.random.uniform(
+      0, 1, size=len(np.nonzero(fused == np.zeros((1, 1)))[0]))
+  order = [[n] for n in range(rank)]
+  arr = BlockSparseTensor(data, charges, flows, order=order)
+  np.testing.assert_allclose(data, arr.data)
+  for c1, c2 in zip(charges, arr.charges):
+    assert charge_equal(c1, c2[0])
+  for c1, c2 in zip(charges, arr._charges):
+    assert charge_equal(c1, c2)
+  data = np.random.uniform(
+      0, 1, size=len(np.nonzero(fused == np.zeros((1, 1)))[0]) + 1)
+  with pytest.raises(ValueError):
+    arr = BlockSparseTensor(
+        data, charges, flows, order=order, check_consistency=True)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_BlockSparseTensor_random(dtype):
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  indices = [
+      Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(rank)
+  ]
+  arr = BlockSparseTensor.random(indices, dtype=dtype)
+
+  np.testing.assert_allclose(Ds, arr.shape)
+  np.testing.assert_allclose(arr.flat_flows, flows)
+  for n in range(4):
+    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_BlockSparseTensor_randn(dtype):
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  indices = [
+      Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(rank)
+  ]
+  arr = BlockSparseTensor.randn(indices, dtype=dtype)
+
+  np.testing.assert_allclose(Ds, arr.shape)
+  np.testing.assert_allclose(arr.flat_flows, flows)
+  for n in range(4):
+    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_BlockSparseTensor_ones(dtype):
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  indices = [
+      Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(rank)
+  ]
+  arr = BlockSparseTensor.ones(indices, dtype=dtype)
+  np.testing.assert_allclose(arr.data, 1)
+  np.testing.assert_allclose(Ds, arr.shape)
+  np.testing.assert_allclose(arr.flat_flows, flows)
+  for n in range(4):
+    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_BlockSparseTensor_zeros(dtype):
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  indices = [
+      Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(rank)
+  ]
+  arr = BlockSparseTensor.zeros(indices, dtype=dtype)
+  np.testing.assert_allclose(arr.data, 0)
+  np.testing.assert_allclose(Ds, arr.shape)
+  np.testing.assert_allclose(arr.flat_flows, flows)
+  for n in range(4):
+    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
+
+
+def test_copy():
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  indices = [
+      Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(rank)
+  ]
+  arr = BlockSparseTensor.randn(indices)
+  copy = arr.copy()
+  assert arr.data is not copy.data
+  for n in range(len(arr._charges)):
+    assert arr._charges[n] is not copy._charges[n]
+  assert arr._flows is not copy._flows
+  assert arr._order is not copy._order
+
+
+def test_todense():
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  charges = [U1Charge.random(-5, 5, Ds[n]) for n in range(rank)]
+  fused = fuse_charges(charges, flows)
+  mask = fused == np.zeros((1, 1))
+  inds = np.nonzero(mask)[0]
+  inds2 = np.nonzero(np.logical_not(mask))[0]
+  indices = [Index(charges[n], flows[n]) for n in range(rank)]
+  arr = BlockSparseTensor.randn(indices)
+  dense = np.array(arr.todense().flat)
+  np.testing.assert_allclose(dense[inds], arr.data)
+  np.testing.assert_allclose(dense[inds2], 0)
+
+
+@pytest.mark.parametrize('op', [np.add, np.subtract])
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_add_sub(op, dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  order = np.arange(4)
+  np.random.shuffle(order)
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = BlockSparseTensor.randn([indices[o] for o in order], dtype=dtype)
+  npb = np.reshape(b.todense(), b.shape)
+  npa = np.reshape(a.todense(), a.shape)
+
+  c = a.transpose(order)
+  npc = npa.transpose(order)
+  d = op(c, b)
+  npd = op(npc, npb)
+  np.testing.assert_allclose(d.todense(), npd)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_mul(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = 5 * a
+  np.testing.assert_allclose(b.data, a.data * 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_rmul(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a * 5
+  np.testing.assert_allclose(b.data, a.data * 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_truediv(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a / 5
+  np.testing.assert_allclose(b.data, a.data / 5)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_conj(dtype):
+  np.random.seed(10)
+  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  a = BlockSparseTensor.randn(indices, dtype=dtype)
+  b = a.conj()
+  np.testing.assert_allclose(b.data, np.conj(a.data))
+
+
+def test_BlockSparseTensor_transpose_data():
+  Ds = np.array([8, 9, 10, 11])
+  order = [2, 0, 1, 3]
+  flows = [True, False, True, False]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  arr = BlockSparseTensor.random(indices)
+  data1 = np.ascontiguousarray(np.transpose(arr.todense(), order))
+  data2 = arr.transpose(order).transpose_data().todense()
+  np.testing.assert_allclose(data1.strides, data2.strides)
+  np.testing.assert_allclose(data1, data2)
