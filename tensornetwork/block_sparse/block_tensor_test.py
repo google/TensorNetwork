@@ -1124,8 +1124,8 @@ def test_eye(dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize('num_charges', [1, 2, 4])
-def test_trace(dtype, num_charges):
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_trace_matrix(dtype, num_charges):
   np.random.seed(10)
   D = 20
   R = 2
@@ -1133,8 +1133,55 @@ def test_trace(dtype, num_charges):
       np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   flows = [True, False]
-  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(R)],
-                               dtype=dtype)
-  res = trace(A)
-  res_dense = np.trace(A.todense())
+  matrix = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(R)],
+                                    dtype=dtype)
+  res = trace(matrix)
+  res_dense = np.trace(matrix.todense())
   np.testing.assert_allclose(res.todense(), res_dense)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_trace_tensor(dtype, num_charges):
+  np.random.seed(10)
+  D = 20
+  charge1 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  charge2 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  indices = [Index(charge1, False), Index(charge2, False), Index(charge1, True)]
+  tensor = BlockSparseTensor.random(indices, dtype=dtype)
+  res = trace(tensor, (0, 2))
+  assert res.sparse_shape[0] == indices[1]
+  res_dense = np.trace(tensor.todense(), axis1=0, axis2=2)
+  np.testing.assert_allclose(res.todense(), res_dense)
+
+
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_trace_raises(num_charges):
+  np.random.seed(10)
+  D = 20
+  charge1 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  A1 = BlockSparseTensor.random([Index(charge1, False)])
+  with pytest.raises(ValueError):
+    trace(A1)
+
+  charge2 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  indices = [
+      Index(charge1, False),
+      Index(charge2, False),
+      Index(charge1, False)
+  ]
+  A2 = BlockSparseTensor.random(indices)
+  with pytest.raises(ValueError):
+    trace(A2, axes=(0, 1))
+  with pytest.raises(ValueError):
+    trace(A2, axes=(0, 2))
+  with pytest.raises(ValueError):
+    trace(A2, axes=(0, 1, 2))
