@@ -6,6 +6,7 @@ from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equ
 from tensornetwork.block_sparse.index import Index
 from tensornetwork import ncon
 # pylint: disable=line-too-long
+
 from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray, BlockSparseTensor, norm, diag, reshape, transpose, conj, outerproduct
 
 np_dtypes = [np.float64, np.complex128]
