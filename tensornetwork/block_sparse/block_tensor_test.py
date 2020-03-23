@@ -205,6 +205,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   nz = np.nonzero(
       np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
   linear_locs = np.arange(len(nz))
+  # pylint: disable=no-member
   left_inds, _ = np.divmod(nz, right_charges.shape[1])
   left = left_charges[:, left_inds]
   unique_left = np.unique(left, axis=1)
