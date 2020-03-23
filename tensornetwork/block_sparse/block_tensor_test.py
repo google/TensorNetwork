@@ -285,7 +285,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
       tr_fused.T == np.zeros((1, num_charges)), axis=1)
   tr_nz = np.nonzero(tr_mask)[0]
   tr_linear_locs = transposed_linear_positions[tr_nz]
-
+  # pylint: disable=no-member
   left_inds, _ = np.divmod(tr_nz, right_charges.shape[1])
   left = left_charges[:, left_inds]
   unique_left = np.unique(left, axis=1)
