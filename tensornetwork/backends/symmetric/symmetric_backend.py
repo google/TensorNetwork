@@ -49,7 +49,8 @@ class SymmetricBackend(base_backend.BaseBackend):
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         self.bt, tensor, split_axis, max_singular_values, max_truncation_error)
