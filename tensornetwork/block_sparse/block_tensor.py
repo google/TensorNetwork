@@ -1414,7 +1414,7 @@ def transpose(tensor: ChargeArray,
     order: The new order of indices.
     shuffle: If `True`, reshuffle data.
   Returns:
-    BlockSparseTensor: The transposed tensor.
+    ChargeArray: The transposed tensor.
   """
   return tensor.transpose(order, shuffle)
 
