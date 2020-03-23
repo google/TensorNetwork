@@ -1,5 +1,6 @@
 from typing import Text, Union
 from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends import backend_factory
 
 
 class DefaultBackend():
@@ -43,4 +44,6 @@ def set_default_backend(backend: Union[Text, BaseBackend]) -> None:
   if not isinstance(backend, (Text, BaseBackend)):
     raise ValueError("Item passed to set_default_backend "
                      "must be Text or BaseBackend")
+  if isinstance(backend, Text) and backend not in backend_factory._BACKENDS:
+    raise ValueError(f"Backend '{backend}' was not found.")
   _default_backend_stack.default_backend = backend
