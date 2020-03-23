@@ -1395,6 +1395,8 @@ def conj(tensor: ChargeArray) -> ChargeArray:
   """
   Return the complex conjugate of `tensor` in a new 
   `ChargeArray`.
+  Args:
+    tensor: A `ChargeArray` object.
   Returns:
     ChargeArray
   """
