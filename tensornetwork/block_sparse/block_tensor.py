@@ -952,12 +952,14 @@ class ChargeArray:
     Returns:
       ChargeArray: The conjugated tensor
     """
-    return ChargeArray(
+    tensor = self.__new__(type(self))
+    tensor.__init__(
         data=np.conj(self.data),
         charges=self._charges,
         flows=list(np.logical_not(self._flows)),
         order=self._order,
         check_consistency=False)
+    return tensor
 
   @property
   def T(self) -> "ChargeArray":
@@ -1295,23 +1297,6 @@ class BlockSparseTensor(ChargeArray):
                        " Found ndims =  {} and {}".format(
                            self.ndim, other.ndim))
     return tensordot(self, other, ([1], [0]))
-
-  def conj(self) -> "BlockSparseTensor":
-    """
-    Complex conjugate operation.
-    Returns:
-      ChargeArray: The conjugated tensor
-    """
-    return BlockSparseTensor(
-        data=np.conj(self.data),
-        charges=self._charges,
-        flows=list(np.logical_not(self._flows)),
-        order=self._order,
-        check_consistency=False)
-
-  @property
-  def T(self) -> "BlockSparseTensor":
-    return self.transpose()
 
 
 def norm(tensor: BlockSparseTensor) -> float:
@@ -2098,89 +2083,93 @@ def trace(tensor: BlockSparseTensor,
   raise ValueError("trace can only be taken for tensors with ndim > 1")
 
 
-# def pinv(matrix: BlockSparseTensor,
-#          rcond: Optional[float] = 1E-15,
-#          hermitian: Optional[bool] = False) -> BlockSparseTensor:
-#   """
-#   Compute the Moore-Penrose pseudo inverse of `matrix`.
-#   Args:
-#     rcond: Pseudo inverse cutoff.
-#   Returns:
-#     BlockSparseTensor: The pseudo inverse of `matrix`.
-#   """
+def pinv(matrix: BlockSparseTensor,
+         rcond: Optional[float] = 1E-15,
+         hermitian: Optional[bool] = False) -> BlockSparseTensor:
+  """
+  Compute the Moore-Penrose pseudo inverse of `matrix`.
+  Args:
+    rcond: Pseudo inverse cutoff.
+  Returns:
+    BlockSparseTensor: The pseudo inverse of `matrix`.
+  """
 
-#   flat_charges = matrix._charges
-#   flat_flows = matrix.flat_flows
-#   flat_order = matrix.flat_order
-#   tr_partition = len(matrix._order[0])
-#   blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
-#       flat_charges, flat_flows, tr_partition, flat_order)
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
 
-#   data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
-#   for n, block in enumerate(blocks):
-#     data[block] = np.ravel(
-#         np.linalg.pinv(
-#             np.reshape(matrix.data[block], shapes[:, n]),
-#             rcond=rcond,
-#             hermitian=hermitian).T)
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
+  for n, block in enumerate(blocks):
+    data[block] = np.ravel(
+        np.linalg.pinv(
+            np.reshape(matrix.data[block], shapes[:, n]),
+            rcond=rcond,
+            hermitian=hermitian).T)
 
-#   return BlockSparseTensor(
-#       data=data,
-#       charges=matrix._charges,
-#       flows=np.logical_not(matrix._flows),
-#       order=matrix._order,
-#       check_consistency=False).transpose((1, 0))
+  return BlockSparseTensor(
+      data=data,
+      charges=matrix._charges,
+      flows=np.logical_not(matrix._flows),
+      order=matrix._order,
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
-# def ones(indices: Union[Tuple[Index], List[Index]],
-#          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-#   """
-#   Initialize a symmetric tensor with ones.
-#   Args:
-#     indices: List of `Index` objecst, one for each leg.
-#     dtype: An optional numpy dtype. The dtype of the tensor
-#   Returns:
-#     BlockSparseTensor
-#   """
 
-#   return BlockSparseTensor.ones(indices, dtype)
+def ones(indices: Union[Tuple[Index], List[Index]],
+         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a symmetric tensor with ones.
+  Args:
+    indices: List of `Index` objecst, one for each leg.
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
 
-# def zeros(indices: Union[Tuple[Index], List[Index]],
-#           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-#   """
-#   Initialize a symmetric tensor with zeros.
-#   Args:
-#     indices: List of `Index` objecst, one for each leg.
-#     dtype: An optional numpy dtype. The dtype of the tensor
-#   Returns:
-#     BlockSparseTensor
-#   """
+  return BlockSparseTensor.ones(indices, dtype)
 
-#   return BlockSparseTensor.zeros(indices, dtype)
 
-# def randn(indices: Union[Tuple[Index], List[Index]],
-#           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-#   """
-#   Initialize a random symmetric tensor from random normal distribution.
-#   Args:
-#     indices: List of `Index` objecst, one for each leg.
-#     dtype: An optional numpy dtype. The dtype of the tensor
-#   Returns:
-#     BlockSparseTensor
-#   """
+def zeros(indices: Union[Tuple[Index], List[Index]],
+          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a symmetric tensor with zeros.
+  Args:
+    indices: List of `Index` objecst, one for each leg.
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
 
-#   return BlockSparseTensor.randn(indices, dtype)
+  return BlockSparseTensor.zeros(indices, dtype)
 
-# def rand(indices: Union[Tuple[Index], List[Index]],
-#          boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-#          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-#   """
-#   Initialize a random symmetric tensor from random uniform distribution.
-#   Args:
-#     indices: List of `Index` objecst, one for each leg.
-#     boundaries: Tuple of interval boundaries for the random uniform
-#       distribution.
-#     dtype: An optional numpy dtype. The dtype of the tensor
-#   Returns:
-#     BlockSparseTensor
-#   """
-#   return BlockSparseTensor.random(indices, boundaries, dtype)
+
+def randn(indices: Union[Tuple[Index], List[Index]],
+          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a random symmetric tensor from random normal distribution.
+  Args:
+    indices: List of `Index` objecst, one for each leg.
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
+
+  return BlockSparseTensor.randn(indices, dtype)
+
+
+def random(indices: Union[Tuple[Index], List[Index]],
+           boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Initialize a random symmetric tensor from random uniform distribution.
+  Args:
+    indices: List of `Index` objecst, one for each leg.
+    boundaries: Tuple of interval boundaries for the random uniform
+      distribution.
+    dtype: An optional numpy dtype. The dtype of the tensor
+  Returns:
+    BlockSparseTensor
+  """
+  return BlockSparseTensor.random(indices, boundaries, dtype)
