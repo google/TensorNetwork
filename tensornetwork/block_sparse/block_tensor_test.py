@@ -636,6 +636,7 @@ def test_conj(dtype):
 
 
 def test_BlockSparseTensor_transpose_data():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   order = [2, 0, 1, 3]
   flows = [True, False, True, False]
@@ -649,6 +650,7 @@ def test_BlockSparseTensor_transpose_data():
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_norm(dtype):
+  np.random.seed(10)
   Ds = np.asarray([8, 9, 10, 11])
   rank = Ds.shape[0]
   flows = np.random.choice([True, False], size=rank, replace=True)
@@ -661,6 +663,7 @@ def test_norm(dtype):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_get_diag(dtype, num_charges):
+  np.random.seed(10)
   Ds = [100, 200]
   indices = [
       Index(
@@ -687,6 +690,7 @@ def test_get_diag(dtype, num_charges):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_create_diag(dtype, num_charges):
+  np.random.seed(10)
   D = 200
   index = Index(
       BaseCharge(
@@ -710,6 +714,7 @@ def test_create_diag(dtype, num_charges):
 
 
 def test_diag_raises():
+  np.random.seed(10)
   Ds = [8, 9, 10]
   rank = len(Ds)
   indices = [
@@ -728,6 +733,7 @@ def test_diag_raises():
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_tn_reshape(dtype):
+  np.random.seed(10)
   Ds = [8, 9, 10, 11]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
@@ -750,6 +756,7 @@ def test_tn_reshape(dtype):
 
 
 def test_tn_transpose():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
@@ -762,6 +769,7 @@ def test_tn_transpose():
 
 
 def test_tn_transpose_reshape():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
