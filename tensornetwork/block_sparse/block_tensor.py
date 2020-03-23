@@ -952,14 +952,12 @@ class ChargeArray:
     Returns:
       ChargeArray: The conjugated tensor
     """
-    tensor = self.__new__(type(self))
-    tensor.__init__(
+    return ChargeArray(
         data=np.conj(self.data),
         charges=self._charges,
         flows=list(np.logical_not(self._flows)),
         order=self._order,
         check_consistency=False)
-    return tensor
 
   @property
   def T(self) -> "ChargeArray":
@@ -1297,6 +1295,23 @@ class BlockSparseTensor(ChargeArray):
                        " Found ndims =  {} and {}".format(
                            self.ndim, other.ndim))
     return tensordot(self, other, ([1], [0]))
+
+  def conj(self) -> "BlockSparseTensor":
+    """
+    Complex conjugate operation.
+    Returns:
+      ChargeArray: The conjugated tensor
+    """
+    return BlockSparseTensor(
+        data=np.conj(self.data),
+        charges=self._charges,
+        flows=list(np.logical_not(self._flows)),
+        order=self._order,
+        check_consistency=False)
+
+  @property
+  def T(self) -> "BlockSparseTensor":
+    return self.transpose()
 
 
 def norm(tensor: BlockSparseTensor) -> float:
