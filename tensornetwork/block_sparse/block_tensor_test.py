@@ -882,8 +882,9 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
   np.testing.assert_allclose(dense_res, res.todense())
 
 
+@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
-def test_tensordot_reshape(num_charges):
+def test_tensordot_reshape(dtype, num_charges):
   np.random.seed(10)
   R1 = 4
   R2 = 4
@@ -898,9 +899,9 @@ def test_tensordot_reshape(num_charges):
   flowsA = np.asarray([False] * R1)
   flowsB = np.asarray([True] * R2)
   A = BlockSparseTensor.random(
-      indices=[Index(charges1[n], flowsA[n]) for n in range(R1)])
+      indices=[Index(charges1[n], flowsA[n]) for n in range(R1)], dtype=dtype)
   B = BlockSparseTensor.random(
-      indices=[Index(charges2[n], flowsB[n]) for n in range(R2)])
+      indices=[Index(charges2[n], flowsB[n]) for n in range(R2)], dtype=dtype)
 
   Adense = A.todense().reshape((10, 10 * 10, 10))
   Bdense = B.todense().reshape((10 * 10, 10, 10))
