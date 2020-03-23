@@ -1264,3 +1264,193 @@ class BlockSparseTensor(ChargeArray):
     self._charges = charges
     self._flows = flows
     return self
+
+
+def norm(tensor: BlockSparseTensor) -> float:
+  """
+  The norm of the tensor.
+  """
+  return np.linalg.norm(tensor.data)
+
+
+def diag(tensor: ChargeArray) -> Any:
+  """
+  Return a diagonal `BlockSparseTensor` from a `ChargeArray`, or 
+  return the diagonal of a `BlockSparseTensor` as a `ChargeArray`.
+  For input of type `BlockSparseTensor`:
+    The full diagonal is obtained from finding the diagonal blocks of the 
+    `BlockSparseTensor`, taking the diagonal elements of those and packing
+    the result into a ChargeArray. Note that the computed diagonal elements 
+    are usually different from the  diagonal elements obtained from 
+    converting the `BlockSparseTensor` to dense storage and taking the diagonal.
+    Note that the flow of the resulting 1d `ChargeArray` object is `False`.
+  Args:
+    tensor: A `ChargeArray`.
+  Returns:
+    ChargeArray: A 1d `CharggeArray` containing the diagonal of `tensor`, 
+      or a diagonal matrix of type `BlockSparseTensor` containing `tensor` 
+      on its diagonal.
+
+  """
+  if tensor.ndim > 2:
+    raise ValueError("`diag` currently only implemented for matrices, "
+                     "found `ndim={}".format(tensor.ndim))
+  if not isinstance(tensor, BlockSparseTensor):
+    if tensor.ndim > 1:
+      raise ValueError(
+          "`diag` currently only implemented for `ChargeArray` with ndim=1, "
+          "found `ndim={}`".format(tensor.ndim))
+    flat_charges = tensor._charges + tensor._charges
+    flat_flows = list(tensor.flat_flows) + list(
+        np.logical_not(tensor.flat_flows))
+    flat_order = list(tensor.flat_order) + list(
+        np.asarray(tensor.flat_order) + len(tensor._charges))
+    tr_partition = len(tensor._order[0])
+    blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+        flat_charges, flat_flows, tr_partition, flat_order)
+    data = np.zeros(np.sum(np.prod(shapes, axis=0)), dtype=tensor.dtype)
+    lookup, unique, labels = compute_sparse_lookup(tensor._charges,
+                                                   tensor._flows, charges)
+    for n, block in enumerate(blocks):
+      label = labels[np.nonzero(unique == charges[n])[0][0]]
+      data[block] = np.ravel(
+          np.diag(tensor.data[np.nonzero(lookup == label)[0]]))
+
+    order = [
+        tensor._order[0],
+        list(np.asarray(tensor._order[0]) + len(tensor._charges))
+    ]
+    new_charges = [tensor._charges[0].copy(), tensor._charges[0].copy()]
+    return BlockSparseTensor(
+        data,
+        charges=new_charges,
+        flows=list(tensor._flows) + list(np.logical_not(tensor._flows)),
+        order=order,
+        check_consistency=False)
+
+  flat_charges = tensor._charges
+  flat_flows = tensor.flat_flows
+  flat_order = tensor.flat_order
+  tr_partition = len(tensor._order[0])
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  shapes = np.min(block_shapes, axis=0)
+  data = np.concatenate([
+      np.diag(np.reshape(tensor.data[sparse_blocks[n]], block_shapes[:, n]))
+      for n in range(len(sparse_blocks))
+  ])
+  charge_labels = np.concatenate([
+      np.full(shapes[n], fill_value=n, dtype=np.int16)
+      for n in range(len(sparse_blocks))
+  ])
+  newcharges = [charges[charge_labels]]
+  flows = [False]
+  return ChargeArray(data, newcharges, flows)
+
+
+def reshape(
+    tensor: ChargeArray,
+    shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
+) -> ChargeArray:
+  """
+  Reshape `tensor` into `shape.
+  `ChargeArray.reshape` works the same as the dense 
+  version, with the notable exception that the tensor can only be 
+  reshaped into a form compatible with its elementary shape. 
+  The elementary shape is the shape determined by ChargeArray._charges.
+  For example, while the following reshaping is possible for regular 
+  dense numpy tensor,
+  ```
+  A = np.random.rand(6,6,6)
+  np.reshape(A, (2,3,6,6))
+  ```
+  the same code for ChargeArray
+  ```
+  q1 = U1Charge(np.random.randint(0,10,6))
+  q2 = U1Charge(np.random.randint(0,10,6))
+  q3 = U1Charge(np.random.randint(0,10,6))
+  i1 = Index(charges=q1,flow=False)
+  i2 = Index(charges=q2,flow=True)
+  i3 = Index(charges=q3,flow=False)
+  A = ChargeArray.randn(indices=[i1,i2,i3])
+  print(A.shape) #prints (6,6,6)
+  A.reshape((2,3,6,6)) #raises ValueError
+  ```
+  raises a `ValueError` since (2,3,6,6)
+  is incompatible with the elementary shape (6,6,6) of the tensor.
+  
+  Args:
+    tensor: A symmetric tensor.
+    shape: The new shape. Can either be a list of `Index` 
+      or a list of `int`.
+  Returns:
+    ChargeArray: A new tensor reshaped into `shape`
+  """
+
+  return tensor.reshape(shape)
+
+
+def conj(tensor: ChargeArray) -> ChargeArray:
+  """
+  Return the complex conjugate of `tensor` in a new 
+  `ChargeArray`.
+  Args:
+    tensor: A `ChargeArray` object.
+  Returns:
+    ChargeArray
+  """
+  return tensor.conj()
+
+
+def transpose(tensor: ChargeArray,
+              order: Optional[Union[List[int], np.ndarray]] = np.asarray([1,
+                                                                          0]),
+              shuffle: Optional[bool] = False) -> ChargeArray:
+  """
+  Transpose the tensor into the new order `order`. If `shuffle=False`
+  no data-reshuffling is done.
+  Args:
+    order: The new order of indices.
+    shuffle: If `True`, reshuffle data.
+  Returns:
+    ChargeArray: The transposed tensor.
+  """
+  return tensor.transpose(order, shuffle)
+
+
+def outerproduct(tensor1: BlockSparseTensor,
+                 tensor2: BlockSparseTensor) -> BlockSparseTensor:
+  """
+  Compute the outer product of two `BlockSparseTensor`
+  The first `tensor1.ndim` indices of the resulting tensor are the 
+  indices of `tensor1`, the last `tensor2.ndim` indices are those
+  of `tensor2`.
+  Args:
+    tensor1: A tensor.
+    tensor2: A tensor.
+  Returns:
+    BlockSparseTensor: The result of taking the outer product.
+  """
+
+  final_charges = tensor1._charges + tensor2._charges
+  final_flows = tensor1.flat_flows + tensor2.flat_flows
+  order2 = [list(np.asarray(s) + len(tensor1._charges)) for s in tensor2._order]
+
+  data = np.zeros(
+      compute_num_nonzero(final_charges, final_flows), dtype=tensor1.dtype)
+  if ((len(tensor1.data) > 0) and (len(tensor2.data) > 0)) and (len(data) > 0):
+    # find the location of the zero block in the output
+    final_block_maps, final_block_charges, _ = _find_diagonal_sparse_blocks(
+        final_charges, final_flows, len(tensor1._charges))
+    index = np.nonzero(
+        final_block_charges == final_block_charges.identity_charges)[0][0]
+    data[final_block_maps[index].ravel()] = np.outer(tensor1.data,
+                                                     tensor2.data).ravel()
+
+  return BlockSparseTensor(
+      data,
+      charges=final_charges,
+      flows=final_flows,
+      order=tensor1._order + order2,
+      check_consistency=False)
