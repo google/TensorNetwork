@@ -1323,15 +1323,22 @@ def norm(tensor: BlockSparseTensor) -> float:
 
 def diag(tensor: ChargeArray) -> Any:
   """
-  Return a diagonal BlockSparseTensor from a ChargeArray, or 
-  return the diagonal of a BlockSparseTensor as a ChargeArray.
-  For input of type BlockSparseTensor:
+  Return a diagonal `BlockSparseTensor` from a `ChargeArray`, or 
+  return the diagonal of a `BlockSparseTensor` as a `ChargeArray`.
+  For input of type `BlockSparseTensor`:
     The full diagonal is obtained from finding the diagonal blocks of the 
-    BlockSparseTensor, taking the diagonal elements of those and packing
+    `BlockSparseTensor`, taking the diagonal elements of those and packing
     the result into a ChargeArray. Note that the computed diagonal elements 
     are usually different from the  diagonal elements obtained from 
-    converting the BlockSparseTensor to dense storage and taking the diagonal.
+    converting the `BlockSparseTensor` to dense storage and taking the diagonal.
     Note that the flow of the resulting 1d `ChargeArray` object is `False`.
+  Args:
+    tensor: A `ChargeArray`.
+  Returns:
+    ChargeArray: A 1d `CharggeArray` containing the diagonal of `tensor`, 
+      or a diagonal matrix of type `BlockSparseTensor` containing `tensor` 
+      on its diagonal.
+
   """
   if tensor.ndim > 2:
     raise ValueError("`diag` currently only implemented for matrices, "
@@ -1415,7 +1422,7 @@ def reshape(
   i1 = Index(charges=q1,flow=False)
   i2 = Index(charges=q2,flow=True)
   i3 = Index(charges=q3,flow=False)
-  A=ChargeArray.randn(indices=[i1,i2,i3])
+  A = ChargeArray.randn(indices=[i1,i2,i3])
   print(A.shape) #prints (6,6,6)
   A.reshape((2,3,6,6)) #raises ValueError
   ```
@@ -1433,13 +1440,22 @@ def reshape(
   return tensor.reshape(shape)
 
 
-def conj(tensor: ChargeArray) -> Union[ChargeArray, BlockSparseTensor]:
+def conj(tensor: ChargeArray) -> ChargeArray:
+  """
+  Return the complex conjugate of `tensor` in a new 
+  `ChargeArray`.
+  Args:
+    tensor: A `ChargeArray` object.
+  Returns:
+    ChargeArray
+  """
   return tensor.conj()
 
 
 def transpose(tensor: ChargeArray,
-              order: Optional[Union[List[int], np.ndarray]] = np.asarray(
-                  [1, 0])) -> ChargeArray:
+              order: Optional[Union[List[int], np.ndarray]] = np.asarray([1,
+                                                                          0]),
+              shuffle: Optional[bool] = False) -> ChargeArray:
   """
   Transpose the tensor into the new order `order`. If `shuffle=False`
   no data-reshuffling is done.
@@ -1447,15 +1463,18 @@ def transpose(tensor: ChargeArray,
     order: The new order of indices.
     shuffle: If `True`, reshuffle data.
   Returns:
-    BlockSparseTensor: The transposed tensor.
+    ChargeArray: The transposed tensor.
   """
-  return tensor.transpose(order)
+  return tensor.transpose(order, shuffle)
 
 
 def outerproduct(tensor1: BlockSparseTensor,
                  tensor2: BlockSparseTensor) -> BlockSparseTensor:
   """
-  Compute the outer product of two BlockSparseTensor.
+  Compute the outer product of two `BlockSparseTensor`
+  The first `tensor1.ndim` indices of the resulting tensor are the 
+  indices of `tensor1`, the last `tensor2.ndim` indices are those
+  of `tensor2`.
   Args:
     tensor1: A tensor.
     tensor2: A tensor.
