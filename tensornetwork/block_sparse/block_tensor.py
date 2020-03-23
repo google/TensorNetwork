@@ -1275,15 +1275,22 @@ def norm(tensor: BlockSparseTensor) -> float:
 
 def diag(tensor: ChargeArray) -> Any:
   """
-  Return a diagonal BlockSparseTensor from a ChargeArray, or 
-  return the diagonal of a BlockSparseTensor as a ChargeArray.
-  For input of type BlockSparseTensor:
+  Return a diagonal `BlockSparseTensor` from a `ChargeArray`, or 
+  return the diagonal of a `BlockSparseTensor` as a `ChargeArray`.
+  For input of type `BlockSparseTensor`:
     The full diagonal is obtained from finding the diagonal blocks of the 
-    BlockSparseTensor, taking the diagonal elements of those and packing
+    `BlockSparseTensor`, taking the diagonal elements of those and packing
     the result into a ChargeArray. Note that the computed diagonal elements 
     are usually different from the  diagonal elements obtained from 
-    converting the BlockSparseTensor to dense storage and taking the diagonal.
+    converting the `BlockSparseTensor` to dense storage and taking the diagonal.
     Note that the flow of the resulting 1d `ChargeArray` object is `False`.
+  Args:
+    tensor: A `ChargeArray`.
+  Returns:
+    ChargeArray: A 1d `ChaergeArray` containing the diagonal of `tensor`, 
+      or a diagonal matrix of type `BlockSparseTensor` containing `tensor` 
+      on its diagonal.
+
   """
   if tensor.ndim > 2:
     raise ValueError("`diag` currently only implemented for matrices, "
