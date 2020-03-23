@@ -1287,7 +1287,7 @@ def diag(tensor: ChargeArray) -> Any:
   Args:
     tensor: A `ChargeArray`.
   Returns:
-    ChargeArray: A 1d `ChaergeArray` containing the diagonal of `tensor`, 
+    ChargeArray: A 1d `ChargeArray` containing the diagonal of `tensor`, 
       or a diagonal matrix of type `BlockSparseTensor` containing `tensor` 
       on its diagonal.
 
