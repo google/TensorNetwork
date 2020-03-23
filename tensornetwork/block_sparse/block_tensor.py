@@ -1385,12 +1385,19 @@ def reshape(
 
 
 def conj(tensor: ChargeArray) -> ChargeArray:
+  """
+  Return the complex conjugate of `tensor` in a new 
+  `ChargeArray`.
+  Returns:
+    ChargeArray
+  """
   return tensor.conj()
 
 
 def transpose(tensor: ChargeArray,
-              order: Optional[Union[List[int], np.ndarray]] = np.asarray(
-                  [1, 0])) -> ChargeArray:
+              order: Optional[Union[List[int], np.ndarray]] = np.asarray([1,
+                                                                          0]),
+              shuffle: Optional[bool] = False) -> ChargeArray:
   """
   Transpose the tensor into the new order `order`. If `shuffle=False`
   no data-reshuffling is done.
@@ -1400,7 +1407,7 @@ def transpose(tensor: ChargeArray,
   Returns:
     BlockSparseTensor: The transposed tensor.
   """
-  return tensor.transpose(order)
+  return tensor.transpose(order, shuffle)
 
 
 def outerproduct(tensor1: BlockSparseTensor,
