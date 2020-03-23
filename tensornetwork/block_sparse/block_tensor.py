@@ -1422,7 +1422,10 @@ def transpose(tensor: ChargeArray,
 def outerproduct(tensor1: BlockSparseTensor,
                  tensor2: BlockSparseTensor) -> BlockSparseTensor:
   """
-  Compute the outer product of two BlockSparseTensor.
+  Compute the outer product of two `BlockSparseTensor`
+  The first `tensor1.ndim` indices of the resulting tensor are the 
+  indices of `tensor1`, the last `tensor2.ndim` indices are those
+  of `tensor2`.
   Args:
     tensor1: A tensor.
     tensor2: A tensor.
