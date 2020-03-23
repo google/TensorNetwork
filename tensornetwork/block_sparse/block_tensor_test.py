@@ -674,6 +674,7 @@ def test_get_diag(dtype, num_charges):
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
   inds = np.nonzero(fused == np.zeros((1, 1), dtype=np.int16))[0]
+  # pylint: disable=no-member
   left, _ = np.divmod(inds, 200)
   unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
   diagonal = diag(arr)
