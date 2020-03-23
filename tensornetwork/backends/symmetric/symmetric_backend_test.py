@@ -6,7 +6,7 @@ from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, rand, eigh, inv
+from tensornetwork.block_sparse.block_tensor import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, random, eigh, inv
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
@@ -192,8 +192,8 @@ def test_sqrt(R, dtype):
 def test_diag(dtype):
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(3, dtype)
-  with pytest.raises(TypeError):
-    assert backend.diag(a)
+  with pytest.raises(ValueError):
+    backend.diag(a)
   b = get_chargearray(dtype)
   expected = diag(b)
   actual = backend.diag(b)
@@ -334,7 +334,7 @@ def test_random_uniform(R, dtype):
   indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(R)]
   actual = backend.random_uniform(indices, dtype=dtype, seed=10)
   np.random.seed(10)
-  expected = rand(indices, dtype=dtype)
+  expected = random(indices, dtype=dtype)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
       charge_equal(expected._charges[n], actual._charges[n])
