@@ -2026,7 +2026,8 @@ def trace(tensor: BlockSparseTensor,
   """
   Compute the trace of a matrix or tensor.
   Args:
-    The axes over which the trace should be computed.
+    tensor: A `BlockSparseTensor`.
+    axes: The axes over which the trace should be computed.
       Defaults to the last two indices of the tensor.
   Returns:
     BlockSparseTensor: The result of taking the trace.
@@ -2035,11 +2036,16 @@ def trace(tensor: BlockSparseTensor,
     if axes is None:
       axes = (tensor.ndim - 2, tensor.ndim - 1)
     if len(axes) != 2:
-      raise ValueError(
-          "`len(axes)` has to be 2, found `axes = {}`".format(axes))
+      raise ValueError(f"`len(axes)` has to be 2, found `axes = {axes}`")
     if not np.array_equal(tensor.flows[axes[0]],
                           np.logical_not(tensor.flows[axes[1]])):
-      raise ValueError("trace indices have non-matching flows.")
+      raise ValueError(
+          f"trace indices for axes {axes} have non-matching flows.")
+
+    sparse_shape = tensor.sparse_shape
+    if sparse_shape[axes[0]].copy().flip_flow() != sparse_shape[axes[1]]:
+      raise ValueError(f"trace indices for axes {axes} are not matching")
+
     #flatten the shape of `tensor`
     out = tensor.reshape(
         flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
@@ -2074,4 +2080,4 @@ def trace(tensor: BlockSparseTensor,
       a0 = list(a0ar)
       a1 = list(a1ar)
     return out  # pytype: disable=bad-return-type
-  raise ValueError("trace can only be taken for tensors with ndim>1")
+  raise ValueError("trace can only be taken for tensors with ndim > 1")
