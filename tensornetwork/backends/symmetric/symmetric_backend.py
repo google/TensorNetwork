@@ -52,8 +52,9 @@ class SymmetricBackend(base_backend.BaseBackend):
                         max_truncation_error: Optional[float] = None,
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
-        self.bt, tensor, split_axis, max_singular_values, max_truncation_error)
+    return decompositions.svd_decomposition(self.bt, tensor, split_axis,
+                                            max_singular_values,
+                                            max_truncation_error, relative)
 
   def qr_decomposition(
       self,
