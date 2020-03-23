@@ -145,7 +145,7 @@ class SymmetricBackend(base_backend.BaseBackend):
     if seed:
       numpy.random.seed(seed)
     dtype = dtype if dtype is not None else numpy.float64
-    return self.bt.rand(shape, boundaries, dtype)
+    return self.bt.random(shape, boundaries, dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.bt.conj(tensor)
