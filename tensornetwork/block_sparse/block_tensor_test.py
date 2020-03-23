@@ -254,6 +254,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   nz = np.nonzero(
       np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
   linear_locs = np.arange(len(nz))
+  # pylint: disable=no-member
   left_inds, _ = np.divmod(nz, right_charges.shape[1])
   left = left_charges[:, left_inds]
   unique_left = np.unique(left, axis=1)
@@ -333,7 +334,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
       tr_fused.T == np.zeros((1, num_charges)), axis=1)
   tr_nz = np.nonzero(tr_mask)[0]
   tr_linear_locs = transposed_linear_positions[tr_nz]
-
+  # pylint: disable=no-member
   left_inds, _ = np.divmod(tr_nz, right_charges.shape[1])
   left = left_charges[:, left_inds]
   unique_left = np.unique(left, axis=1)
@@ -685,6 +686,7 @@ def test_conj(dtype):
 
 
 def test_BlockSparseTensor_transpose_data():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   order = [2, 0, 1, 3]
   flows = [True, False, True, False]
@@ -698,6 +700,7 @@ def test_BlockSparseTensor_transpose_data():
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_norm(dtype):
+  np.random.seed(10)
   Ds = np.asarray([8, 9, 10, 11])
   rank = Ds.shape[0]
   flows = np.random.choice([True, False], size=rank, replace=True)
@@ -710,6 +713,7 @@ def test_norm(dtype):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_get_diag(dtype, num_charges):
+  np.random.seed(10)
   Ds = [100, 200]
   indices = [
       Index(
@@ -720,6 +724,7 @@ def test_get_diag(dtype, num_charges):
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
   inds = np.nonzero(fused == np.zeros((1, 1), dtype=np.int16))[0]
+  # pylint: disable=no-member
   left, _ = np.divmod(inds, 200)
   unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
   diagonal = diag(arr)
@@ -736,6 +741,7 @@ def test_get_diag(dtype, num_charges):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_create_diag(dtype, num_charges):
+  np.random.seed(10)
   D = 200
   index = Index(
       BaseCharge(
@@ -759,6 +765,7 @@ def test_create_diag(dtype, num_charges):
 
 
 def test_diag_raises():
+  np.random.seed(10)
   Ds = [8, 9, 10]
   rank = len(Ds)
   indices = [
@@ -777,6 +784,7 @@ def test_diag_raises():
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_tn_reshape(dtype):
+  np.random.seed(10)
   Ds = [8, 9, 10, 11]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
@@ -799,6 +807,7 @@ def test_tn_reshape(dtype):
 
 
 def test_tn_transpose():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
@@ -811,6 +820,7 @@ def test_tn_transpose():
 
 
 def test_tn_transpose_reshape():
+  np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
   indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
