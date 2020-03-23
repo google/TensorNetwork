@@ -21,12 +21,14 @@ import warnings
 Tensor = Any
 
 
-def svd_decomposition(bt,
-                      tensor: BlockSparseTensor,
-                      split_axis: int,
-                      max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None
-                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+def svd_decomposition(
+    bt,
+    tensor: BlockSparseTensor,
+    split_axis: int,
+    max_singular_values: Optional[int] = None,
+    max_truncation_error: Optional[float] = None,
+    relative: Optional[bool] = False,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """
   Computes the singular value decomposition (SVD) of a tensor.
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -74,6 +76,10 @@ def svd_decomposition(bt,
 
     maxind = inds[-1]
     if max_truncation_error is not None:
+      if relative:
+        max_truncation_error = max_truncation_error * np.max(
+            [s[0] for s in singvals])
+
       kept_inds_mask = np.sqrt(
           np.cumsum(np.square(
               extended_flat_singvals[inds]))) > max_truncation_error
