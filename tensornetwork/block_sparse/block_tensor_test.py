@@ -882,6 +882,33 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
   np.testing.assert_allclose(dense_res, res.todense())
 
 
+def test_tensordot_raises():
+  R1 = 3
+  R2 = 3
+  cont = 2
+  dtype = np.float64
+  np.random.seed(10)
+  Ds1 = np.arange(2, 2 + R1)
+  Ds2 = np.arange(2 + R1, 2 + R1 + R2)
+  is1 = [Index(U1Charge.random(-5, 5, Ds1[n]), False) for n in range(R1)]
+  is2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(R2)]
+  A = BlockSparseTensor.random(is1, dtype=dtype)
+  B = BlockSparseTensor.random(is2, dtype=dtype)
+
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 0], [1, 2]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1], [1, 1]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 4], [1, 2]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 4], [1, 4]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1], [0, 1]))
+  with pytest.raises(ValueError):
+    tensordot(A, A, ([0, 1], [0, 1]))
+
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_tensordot_reshape(dtype, num_charges):
