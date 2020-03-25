@@ -201,12 +201,18 @@ class BaseCharge:
     # fuse the unique charges from each index, then compute new unique charges
     comb_charges = fuse_ndarray_charges(self.unique_charges,
                                         other.unique_charges, self.charge_types)
+    if (comb_charges.shape[1] == 0) or (len(self.charge_labels) == 0) or (len(
+        other.charge_labels) == 0):
+      obj = self.__new__(type(self))
+      obj.__init__(
+          np.empty((self.num_symmetries, 0), dtype=np.int16),
+          np.empty(0, dtype=np.int16), self.charge_types)
+      return obj
     unique_charges, charge_labels = np.unique(
         comb_charges, return_inverse=True, axis=1)
     charge_labels = charge_labels.reshape(self.unique_charges.shape[1],
                                           other.unique_charges.shape[1]).astype(
                                               np.int16)
-
     # find new labels using broadcasting
     left_labels = self.charge_labels[:, None] + np.zeros([1, len(other)],
                                                          dtype=np.int16)
