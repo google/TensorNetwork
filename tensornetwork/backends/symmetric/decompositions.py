@@ -14,7 +14,7 @@
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import _find_transposed_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray
+from tensornetwork.block_sparse.block_tensor import _find_transposed_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray, get_real_dtype, SIZE_T
 from tensornetwork.block_sparse.index import Index
 import numpy as np
 import warnings
@@ -32,6 +32,7 @@ def svd_decomposition(
   Computes the singular value decomposition (SVD) of a tensor.
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
+
   left_dims = tensor.shape[:split_axis]
   right_dims = tensor.shape[split_axis:]
 
@@ -57,23 +58,33 @@ def svd_decomposition(
     v_blocks.append(out[2])
 
   orig_num_singvals = np.sum([len(s) for s in singvals])
-  discarded_singvals = np.zeros(0, dtype=singvals[0].dtype)
+  discarded_singvals = np.zeros(0, dtype=get_real_dtype(tensor.dtype))
   if (max_singular_values is not None) and (max_singular_values >=
                                             orig_num_singvals):
     max_singular_values = None
 
   if (max_truncation_error is not None) or (max_singular_values is not None):
-    max_D = np.max([len(s) for s in singvals])
+    if len(singvals) > 0:
+      max_D = np.max([len(s) for s in singvals])
+    else:
+      max_D = 0
     #fill with zeros
-    extended_singvals = np.stack([
-        np.append(s, np.zeros(max_D - len(s), dtype=s.dtype)) for s in singvals
-    ],
-                                 axis=1)
+    if len(singvals) > 0:
+      extended_singvals = np.stack([
+          np.append(s, np.zeros(max_D - len(s), dtype=s.dtype))
+          for s in singvals
+      ],
+                                   axis=1)
+    else:
+      extended_singvals = np.empty((0, 0), dtype=get_real_dtype(tensor.dtype))
+
     extended_flat_singvals = np.ravel(extended_singvals)
     inds = np.argsort(extended_flat_singvals, kind='stable')
-    discarded_inds = np.zeros(0, dtype=np.uint32)
-
-    maxind = inds[-1]
+    discarded_inds = np.zeros(0, dtype=SIZE_T)
+    if inds.shape[0] > 0:
+      maxind = inds[-1]
+    else:
+      maxind = 0
     if max_truncation_error is not None:
       if relative:
         max_truncation_error = max_truncation_error * np.max(
@@ -100,7 +111,7 @@ def svd_decomposition(
 
     if len(inds) == 0:
       #special case of truncation to 0 dimension;
-      warnings.warn("svd_decomposition truncated to 0 dimenions. "
+      warnings.warn("svd_decomposition truncated to 0 dimensions. "
                     "Adjusting to `max_singular_values = 1`")
       inds = np.asarray([maxind])
     #pylint: disable=no-member
@@ -113,23 +124,39 @@ def svd_decomposition(
 
     discarded_singvals = extended_flat_singvals[discarded_inds]
     singvals = newsingvals
-  left_singval_charge_labels = np.concatenate([
-      np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
-      for n in range(len(singvals))
-  ])
-
+  if len(singvals) > 0:
+    left_singval_charge_labels = np.concatenate([
+        np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
+        for n in range(len(singvals))
+    ])
+    all_singvals = np.concatenate(singvals)
+    #define the new charges on the two central bonds
+    left_charge_labels = np.concatenate([
+        np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
+        for n in range(len(u_blocks))
+    ])
+    right_charge_labels = np.concatenate([
+        np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
+        for n in range(len(v_blocks))
+    ])
+    all_ublocks = np.concatenate([
+        np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
+        for n in range(len(u_blocks))
+    ])
+    all_vblocks = np.concatenate([
+        np.ravel(v_blocks[n][0:len(singvals[n]), :])
+        for n in range(len(v_blocks))
+    ])
+  else:
+    left_singval_charge_labels = np.empty(0, dtype=np.int16)
+    all_singvals = np.empty(0, dtype=get_real_dtype(tensor.dtype))
+    left_charge_labels = np.empty(0, dtype=np.int16)
+    right_charge_labels = np.empty(0, dtype=np.int16)
+    all_ublocks = np.empty(0, dtype=get_real_dtype(tensor.dtype))
+    all_vblocks = np.empty(0, dtype=get_real_dtype(tensor.dtype))
   left_singval_charge = charges[left_singval_charge_labels]
-  S = ChargeArray(np.concatenate(singvals), [left_singval_charge], [False])
+  S = ChargeArray(all_singvals, [left_singval_charge], [False])
 
-  #define the new charges on the two central bonds
-  left_charge_labels = np.concatenate([
-      np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
-      for n in range(len(u_blocks))
-  ])
-  right_charge_labels = np.concatenate([
-      np.full(len(singvals[n]), fill_value=n, dtype=np.int16)
-      for n in range(len(v_blocks))
-  ])
   new_left_charge = charges[left_charge_labels]
   new_right_charge = charges[right_charge_labels]
 
@@ -147,20 +174,14 @@ def svd_decomposition(
 
   #We fill in data into the transposed U
   U = BlockSparseTensor(
-      np.concatenate([
-          np.ravel(np.transpose(u_blocks[n][:, 0:len(singvals[n])]))
-          for n in range(len(u_blocks))
-      ]),
+      all_ublocks,
       charges=charges_u,
       flows=flows_u,
       order=order_u,
       check_consistency=False).transpose((1, 0))
 
   V = BlockSparseTensor(
-      np.concatenate([
-          np.ravel(v_blocks[n][0:len(singvals[n]), :])
-          for n in range(len(v_blocks))
-      ]),
+      all_vblocks,
       charges=charges_v,
       flows=flows_v,
       order=order_v,
