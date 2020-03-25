@@ -60,7 +60,6 @@ class BaseCharge:
                charges: np.ndarray,
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None) -> None:
-
     if charges.ndim == 1:
       charges = charges[None, :]
 
