@@ -1646,7 +1646,7 @@ def svd(matrix: BlockSparseTensor,
 
   if matrix.ndim != 2:
     raise NotImplementedError("svd currently supports only rank-2 tensors.")
-  dtype = get_real_dtype(matrix.dtype)
+
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
   flat_order = matrix.flat_order
@@ -1676,13 +1676,13 @@ def svd(matrix: BlockSparseTensor,
   if len(tmp_labels) > 0:
     left_singval_charge_labels = np.concatenate(tmp_labels)
   else:
+
     left_singval_charge_labels = np.empty(0, dtype=np.int16)
   left_singval_charge = charges[left_singval_charge_labels]
   if len(singvals) > 0:
     all_singvals = np.concatenate(singvals)
   else:
-
-    all_singvals = np.empty(0, dtype=dtype)
+    all_singvals = np.empty(0, dtype=get_real_dtype(matrix.dtype))
   S = ChargeArray(all_singvals, [left_singval_charge], [False])
 
   if compute_uv:
@@ -1721,8 +1721,8 @@ def svd(matrix: BlockSparseTensor,
       all_u_blocks = np.concatenate([np.ravel(u.T) for u in u_blocks])
       all_v_blocks = np.concatenate([np.ravel(v) for v in v_blocks])
     else:
-      all_u_blocks = np.empty(0, dtype=dtype)
-      all_v_blocks = np.empty(0, dtype=dtype)
+      all_u_blocks = np.empty(0, dtype=matrix.dtype)
+      all_v_blocks = np.empty(0, dtype=matrix.dtype)
 
     return BlockSparseTensor(
         all_u_blocks,
