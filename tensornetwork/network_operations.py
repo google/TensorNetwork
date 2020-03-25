@@ -98,10 +98,7 @@ def transpose(node: BaseNode,
     axis_names = node.axis_names
 
   new_node = Node(
-      node.tensor,
-      name=name,
-      axis_names=node.axis_names,
-      backend=node.backend)
+      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
   return new_node.reorder_axes(perm)
 
 
@@ -289,10 +286,12 @@ def split_node(
   backend = node.backend
   node.reorder_edges(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err,
-                                                  relative=relative)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor,
+      len(left_edges),
+      max_singular_values,
+      max_truncation_err,
+      relative=relative)
   sqrt_s = backend.sqrt(s)
   u_s = u * sqrt_s
   # We have to do this since we are doing element-wise multiplication against
@@ -389,6 +388,7 @@ def split_node_qr(
     right_node.add_edge(edge, i + 1)
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, right_node
 
 
@@ -463,6 +463,7 @@ def split_node_rq(
     right_node.add_edge(edge, i + 1)
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, right_node
 
 
@@ -566,10 +567,12 @@ def split_node_full_svd(
   backend = node.backend
 
   node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err,
-                                                  relative=relative)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      node.tensor,
+      len(left_edges),
+      max_singular_values,
+      max_truncation_err,
+      relative=relative)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
@@ -592,6 +595,7 @@ def split_node_full_svd(
       left_node.edges[-1], singular_values_node.edges[0], name=left_edge_name)
   connect(
       singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, singular_values_node, right_node, trun_vals
 
 
