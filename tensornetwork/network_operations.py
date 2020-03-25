@@ -401,6 +401,7 @@ def split_node_qr(
     right_node.add_edge(edge, i + 1)
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, right_node
 
 
@@ -475,6 +476,7 @@ def split_node_rq(
     right_node.add_edge(edge, i + 1)
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, right_node
 
 
@@ -606,6 +608,7 @@ def split_node_full_svd(
       left_node.edges[-1], singular_values_node.edges[0], name=left_edge_name)
   connect(
       singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, singular_values_node, right_node, trun_vals
 
 
