@@ -1356,10 +1356,6 @@ def diag(tensor: ChargeArray) -> Any:
         flat_charges, flat_flows, tr_partition, flat_order)
     data = np.zeros(
         np.int64(np.sum(np.prod(shapes, axis=0))), dtype=tensor.dtype)
-    print('prod:', np.prod(shapes, axis=0))
-    print('shapes', shapes)
-    print('shapes.shape', shapes.shape)
-    print('data:', data)
     lookup, unique, labels = compute_sparse_lookup(tensor._charges,
                                                    tensor._flows, charges)
     for n, block in enumerate(blocks):
