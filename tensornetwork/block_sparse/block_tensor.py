@@ -293,6 +293,17 @@ def reduce_charges(charges: List[BaseCharge],
   comb_qnums = fuse_ndarray_charges(left_ind.unique_charges,
                                     right_ind.unique_charges,
                                     charges[0].charge_types)
+  #special case of empty charges
+  if (comb_qnums.shape[1] == 0) or (len(left_ind.charge_labels) == 0) or (len(
+      right_ind.charge_labels) == 0):
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(
+        np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
+        np.empty(0, dtype=np.int16), charges[0].charge_types)
+    if return_locations:
+      return obj, np.empty(0, dtype=SIZE_T)
+    return obj
+
   unique_comb_qnums, comb_labels = np.unique(
       comb_qnums, return_inverse=True, axis=1)
   num_unique = unique_comb_qnums.shape[1]
