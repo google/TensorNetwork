@@ -15,7 +15,7 @@
 import math
 from tensornetwork.block_sparse.block_tensor import BlockSparseTensor
 import tensornetwork.block_sparse.block_tensor as bt
-from tensornetwork.block_sparse.charge import U1Charge
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.backends.symmetric import decompositions
 import tensornetwork.backends.numpy.decompositions as np_decompositions
@@ -27,9 +27,15 @@ np_dtypes = [np.float64, np.complex128]
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
-def test_svd_decompositions(dtype, R, R1):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_svd_decompositions(dtype, R, R1, num_charges):
+  np.random.seed(10)
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
@@ -44,9 +50,15 @@ def test_svd_decompositions(dtype, R, R1):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
-def test_singular_values(dtype, R, R1):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_singular_values(dtype, R, R1, num_charges):
+  np.random.seed(10)
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
@@ -58,23 +70,36 @@ def test_singular_values(dtype, R, R1):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
-def test_max_singular_values(dtype, R, R1):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_max_singular_values(dtype, R, R1, num_charges):
+  np.random.seed(10)
   D = 30
   max_singular_values = 12
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
   _, s, _, _ = decompositions.svd_decomposition(
       bt, A, R1, max_singular_values=max_singular_values)
-  assert len(s.data) == max_singular_values
+  assert len(s.data) <= max_singular_values
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_max_truncation_error(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_max_truncation_error(dtype, num_charges):
+  np.random.seed(10)
   R = 2
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+
   flows = [True] * R
   random_matrix = BlockSparseTensor.random(
       [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
@@ -83,7 +108,7 @@ def test_max_truncation_error(dtype):
   svals = np.array(range(1, len(S.data) + 1)).astype(np.float64)
   S.data = svals[::-1]
   val = U @ bt.diag(S) @ V
-  trunc = 30
+  trunc = 8
   mask = np.sqrt(np.cumsum(np.square(svals))) >= trunc
   _, S2, _, _ = decompositions.svd_decomposition(
       bt, val, 1, max_truncation_error=trunc)
@@ -91,10 +116,17 @@ def test_max_truncation_error(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_max_singular_values_larger_than_bond_dimension(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_max_singular_values_larger_than_bond_dimension(dtype, num_charges):
+  np.random.seed(10)
   R = 2
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+
   flows = [True] * R
   random_matrix = BlockSparseTensor.random(
       [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
@@ -108,9 +140,16 @@ def test_max_singular_values_larger_than_bond_dimension(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
-def test_rq_decomposition(dtype, R, R1):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_rq_decomposition(dtype, R, R1, num_charges):
+  np.random.seed(10)
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
@@ -125,6 +164,7 @@ def test_rq_decomposition(dtype, R, R1):
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
 def test_qr_decomposition(dtype, R, R1):
+  np.random.seed(10)
   D = 30
   charges = [U1Charge.random(-5, 5, D) for n in range(R)]
   flows = [True] * R
