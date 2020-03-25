@@ -96,7 +96,6 @@ def test_split_node_mixed_order(dtype, num_charges):
   np.testing.assert_allclose(left.tensor.shape[0:3], (2, 4, 6))
   np.testing.assert_allclose(right.tensor.shape[1:], (3, 5))
 
-  order = a.tensor._order
   assert np.all([
       charge_equal(a.tensor.charges[n][0], actual.tensor.charges[n][0])
       for n in range(len(a.tensor._charges))
