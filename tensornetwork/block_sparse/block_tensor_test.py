@@ -1099,3 +1099,45 @@ def test_matmul_raises():
     tensor1 @ tensor2
   with pytest.raises(ValueError):
     tensor2 @ tensor1
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_svd_prod(dtype, R, R1, R2, num_charges):
+  D = 30
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  A = A.reshape([D**R1, D**R2])
+  U, S, V = svd(A, full_matrices=False)
+  A_ = U @ diag(S) @ V
+  assert A_.dtype == A.dtype
+  np.testing.assert_allclose(A.data, A_.data)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_svd_singvals(dtype, R, R1, R2, num_charges):
+  D = 30
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  A = A.reshape([D**R1, D**R2])
+  _, S1, _ = svd(A, full_matrices=False)
+  S2 = svd(A, full_matrices=False, compute_uv=False)
+  np.testing.assert_allclose(S1.data, S2.data)
+  Sdense = np.linalg.svd(A.todense(), compute_uv=False)
+  np.testing.assert_allclose(
+      np.sort(Sdense[Sdense > 1E-15]), np.sort(S2.data[S2.data > 0.0]))
