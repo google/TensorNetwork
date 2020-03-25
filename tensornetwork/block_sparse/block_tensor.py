@@ -405,7 +405,7 @@ def _find_diagonal_sparse_blocks(
         np.zeros((charges[0].num_symmetries, 0), dtype=np.int16),
         np.arange(0, dtype=np.int16), charges[0].charge_types)
 
-    return [], obj, []
+    return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
   # calculate number of non-zero elements in each row of the matrix
   row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
@@ -501,7 +501,7 @@ def _find_transposed_diagonal_sparse_blocks(
         np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
         np.arange(0, dtype=np.int16), charges[0].charge_types)
 
-    return [], obj, np.array([], dtype=SIZE_T)
+    return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
   orig_row_ind = fuse_charges(charges[:orig_partition], flows[:orig_partition])
   orig_col_ind = fuse_charges(charges[orig_partition:],
@@ -1356,6 +1356,10 @@ def diag(tensor: ChargeArray) -> Any:
         flat_charges, flat_flows, tr_partition, flat_order)
     data = np.zeros(
         np.int64(np.sum(np.prod(shapes, axis=0))), dtype=tensor.dtype)
+    print('prod:', np.prod(shapes, axis=0))
+    print('shapes', shapes)
+    print('shapes.shape', shapes.shape)
+    print('data:', data)
     lookup, unique, labels = compute_sparse_lookup(tensor._charges,
                                                    tensor._flows, charges)
     for n, block in enumerate(blocks):
