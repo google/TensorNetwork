@@ -600,7 +600,7 @@ def _find_transposed_diagonal_sparse_blocks(
         axis=1,
         return_indices=True)
     block_dims = np.array(
-        [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_Tg)
+        [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_T)
     num_blocks = len(new_row_map)
 
     row_ind, row_locs = reduce_charges(
