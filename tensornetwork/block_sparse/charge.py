@@ -169,12 +169,10 @@ class BaseCharge:
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
-
       if target_charges.ndim == 1:
         target_charges = target_charges[None, :]
       if target_charges.shape[1] == 0:
         raise ValueError('input to __eq__ cannot be an empty np.ndarray')
-
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
