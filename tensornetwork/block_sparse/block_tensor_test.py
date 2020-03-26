@@ -414,26 +414,43 @@ def test_ChargeArray_todense(dtype):
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
-def test_ChargeArray_reshape(dtype):
-  Ds = [8, 9, 10, 11]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+@pytest.mark.parametrize(
+    'Ds', [[[10, 12], [11]], [[8, 9], [10, 11]], [[8, 9], [10, 11], [12, 13]]])
+def test_ChargeArray_reshape(dtype, Ds):
+  flat_Ds = sum(Ds, [])
+  R = len(flat_Ds)
+  indices = [Index(U1Charge.random(-5, 5, flat_Ds[n]), False) for n in range(R)]
   arr = ChargeArray.random(indices, dtype=dtype)
-  arr2 = arr.reshape([72, 110])
-  for n in range(2):
-    for m in range(2):
-      assert charge_equal(arr2.charges[n][m], indices[n * 2 + m].charges)
-  np.testing.assert_allclose(arr2.shape, [72, 110])
-  np.testing.assert_allclose(arr2._order, [[0, 1], [2, 3]])
-  np.testing.assert_allclose(arr2.flows, [[False, False], [False, False]])
-  assert arr2.ndim == 2
-  arr3 = arr.reshape(Ds)
-  for n in range(4):
+
+  ds = [np.prod(D) for D in Ds]
+  arr2 = arr.reshape(ds)
+  cnt = 0
+  for n in range(arr2.ndim):
+    for m in range(len(arr2.charges[n])):
+      assert charge_equal(arr2.charges[n][m], indices[cnt].charges)
+      cnt += 1
+  order = []
+  flows = []
+  start = 0
+  for D in Ds:
+    order.append(list(range(start, start + len(D))))
+    start += len(D)
+    flows.append([False] * len(D))
+
+  np.testing.assert_allclose(arr2.shape, ds)
+  for n in range(len(arr2._order)):
+    np.testing.assert_allclose(arr2._order[n], order[n])
+    np.testing.assert_allclose(arr2.flows[n], flows[n])
+  assert arr2.ndim == len(Ds)
+  arr3 = arr.reshape(flat_Ds)
+  for n in range(len(Ds)):
     assert charge_equal(arr3.charges[n][0], indices[n].charges)
 
-  np.testing.assert_allclose(arr3.shape, Ds)
-  np.testing.assert_allclose(arr3._order, [[0], [1], [2], [3]])
-  np.testing.assert_allclose(arr3.flows, [[False], [False], [False], [False]])
-  assert arr3.ndim == 4
+  np.testing.assert_allclose(arr3.shape, flat_Ds)
+
+  np.testing.assert_allclose(arr3._order, [[n] for n in range(len(flat_Ds))])
+  np.testing.assert_allclose(arr3.flows, [[False] for n in range(len(flat_Ds))])
+  assert arr3.ndim == len(flat_Ds)
 
 
 def test_ChargeArray_reshape_raises():
@@ -446,6 +463,12 @@ def test_ChargeArray_reshape_raises():
   arr2 = arr.reshape([72, 110])
   with pytest.raises(ValueError):
     arr2.reshape([9, 8, 10, 11])
+
+  Ds = [8, 9, 0, 11]
+  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  arr3 = ChargeArray.random(indices)
+  with pytest.raises(ValueError):
+    arr3.reshape([72, 0])
 
 
 def test_transpose():
@@ -809,7 +832,7 @@ def test_get_diag(dtype, num_charges, Ds):
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
   inds = np.nonzero(fused == np.zeros((1, 1), dtype=np.int16))[0]
   # pylint: disable=no-member
-  left, _ = np.divmod(inds, 200)
+  left, _ = np.divmod(inds, Ds[1])
   unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
   diagonal = diag(arr)
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
@@ -1160,20 +1183,25 @@ def test_matmul_raises():
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+@pytest.mark.parametrize("Ds, R1", [([20, 21], 1), ([18, 19, 20], 2),
+                                    ([18, 19, 20], 1), ([0, 10], 1),
+                                    ([10, 0], 1)])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_svd_prod(dtype, R, R1, R2, num_charges):
+def test_svd_prod(dtype, Ds, R1, num_charges):
   np.random.seed(10)
-  D = 30
+  R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (num_charges, Ds[n])),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
-  A = A.reshape([D**R1, D**R2])
+  d1 = np.prod(Ds[:R1])
+  d2 = np.prod(Ds[R1:])
+  A = A.reshape([d1, d2])
+
   U, S, V = svd(A, full_matrices=False)
   A_ = U @ diag(S) @ V
   assert A_.dtype == A.dtype
@@ -1184,7 +1212,8 @@ def test_svd_prod(dtype, R, R1, R2, num_charges):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("Ds, R1", [([20, 21], 1), ([18, 19, 20], 2),
-                                    ([18, 19, 20], 1), ([9, 0, 10, 11], 2)])
+                                    ([18, 19, 20], 1), ([0, 10], 1),
+                                    ([10, 0], 1)])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_svd_singvals(dtype, Ds, R1, num_charges):
   np.random.seed(10)
@@ -1212,7 +1241,8 @@ def test_svd_singvals(dtype, Ds, R1, num_charges):
 @pytest.mark.parametrize("mode", ['complete', 'reduced'])
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("Ds, R1", [([20, 21], 1), ([18, 19, 20], 2),
-                                    ([18, 19, 20], 1), ([9, 0, 10, 11], 2)])
+                                    ([18, 19, 20], 1), ([10, 0], 1),
+                                    ([0, 10], 1)])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_qr_prod(dtype, Ds, R1, mode, num_charges):
   np.random.seed(10)
@@ -1237,7 +1267,7 @@ def test_qr_prod(dtype, Ds, R1, mode, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [9, 0]])
+@pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [0]])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_eigh_prod(dtype, Ds, num_charges):
   np.random.seed(10)
@@ -1292,7 +1322,7 @@ def test_inv(dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [9, 0]])
+@pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [0]])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_eig_prod(dtype, Ds, num_charges):
   np.random.seed(10)
