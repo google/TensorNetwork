@@ -54,11 +54,11 @@ class Index:
     if len(other._charges) != len(self._charges):
       return False
     for n in range(len(self._charges)):
-      if not np.all(
-          self._charges[n].unique_charges == other._charges[n].unique_charges):
+      if not np.array_equal(self._charges[n].unique_charges,
+                            other._charges[n].unique_charges):
         return False
-      if not np.all(
-          self._charges[n].charge_labels == other._charges[n].charge_labels):
+      if not np.array_equal(self._charges[n].charge_labels,
+                            other._charges[n].charge_labels):
         return False
     if not np.all(np.asarray(self.flow) == np.asarray(other.flow)):
       return False
