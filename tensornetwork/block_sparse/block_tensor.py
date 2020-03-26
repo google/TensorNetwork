@@ -293,6 +293,18 @@ def reduce_charges(charges: List[BaseCharge],
   comb_qnums = fuse_ndarray_charges(left_ind.unique_charges,
                                     right_ind.unique_charges,
                                     charges[0].charge_types)
+  #special case of empty charges
+  #pylint: disable=unsubscriptable-object
+  if (comb_qnums.shape[1] == 0) or (len(left_ind.charge_labels) == 0) or (len(
+      right_ind.charge_labels) == 0):
+    obj = charges[0].__new__(type(charges[0]))
+    obj.__init__(
+        np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
+        np.empty(0, dtype=np.int16), charges[0].charge_types)
+    if return_locations:
+      return obj, np.empty(0, dtype=SIZE_T)
+    return obj
+
   unique_comb_qnums, comb_labels = np.unique(
       comb_qnums, return_inverse=True, axis=1)
   num_unique = unique_comb_qnums.shape[1]
@@ -405,7 +417,7 @@ def _find_diagonal_sparse_blocks(
         np.zeros((charges[0].num_symmetries, 0), dtype=np.int16),
         np.arange(0, dtype=np.int16), charges[0].charge_types)
 
-    return [], obj, []
+    return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
   # calculate number of non-zero elements in each row of the matrix
   row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
@@ -1952,19 +1964,33 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
     e, v = np.linalg.eig(np.reshape(matrix.data[block], shapes[:, n]))
     eigvals.append(e)
     v_blocks.append(v)
-
-  eigvalscharge_labels = np.concatenate([
+  tmp_labels = [
       np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
       for n in range(len(eigvals))
-  ])
+  ]
+  if len(tmp_labels) > 0:
+    eigvalscharge_labels = np.concatenate(tmp_labels)
+  else:
+    eigvalscharge_labels = np.empty(0, dtype=np.int16)
+
   eigvalscharge = charges[eigvalscharge_labels]
-  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+
+  if len(eigvals) > 0:
+    all_eigvals = np.concatenate(eigvals)
+  else:
+    all_eigvals = np.empty(0, dtype=get_real_dtype(matrix.dtype))
+
+  E = ChargeArray(all_eigvals, [eigvalscharge], [False])
   charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
   order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
   flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
+  if len(v_blocks) > 0:
+    all_v_blocks = np.concatenate([np.ravel(v.T) for v in v_blocks])
+  else:
+    all_v_blocks = np.empty(0, dtype=matrix.dtype)
 
   V = BlockSparseTensor(
-      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      all_v_blocks,
       charges=charges_v,
       flows=flows_v,
       order=order_v,
@@ -2035,7 +2061,7 @@ def eye(column_index: Index,
       column_index.flat_charges + row_index.flat_charges,
       column_index.flat_flows + row_index.flat_flows,
       len(column_index.flat_charges))
-  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
+  data = np.empty(np.int64(np.sum(np.prod(shapes, axis=0))), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
   order = [list(np.arange(0, len(column_index.flat_charges)))] + [
