@@ -513,7 +513,7 @@ def _find_transposed_diagonal_sparse_blocks(
         np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
         np.arange(0, dtype=np.int16), charges[0].charge_types)
 
-    return [], obj, np.array([], dtype=SIZE_T)
+    return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
   orig_row_ind = fuse_charges(charges[:orig_partition], flows[:orig_partition])
   orig_col_ind = fuse_charges(charges[orig_partition:],
