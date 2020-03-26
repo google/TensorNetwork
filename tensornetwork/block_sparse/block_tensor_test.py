@@ -1228,7 +1228,34 @@ def test_qr_prod(dtype, R, R1, R2, mode, num_charges):
   A = A.reshape([D**R1, D**R2])
   Q, R = qr(A, mode=mode)
   A_ = Q @ R
+  assert A_.dtype == A.dtype
   np.testing.assert_allclose(A.data, A_.data)
+  for n in range(len(A._charges)):
+    assert charge_equal(A_._charges[n], A._charges[n])
+
+
+@pytest.mark.parametrize("mode", ['complete', 'reduced'])
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_qr_prod_empty(dtype, mode, num_charges):
+  np.random.seed(10)
+  Ds = [9, 0, 10, 11]
+  R = len(Ds)
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  A = A.reshape([0, 110])
+  Q, R = qr(A, mode=mode)
+  A_ = Q @ R
+  assert A_.dtype == A.dtype
+  np.testing.assert_allclose(A.data, A_.data)
+  for n in range(len(A._charges)):
+    assert charge_equal(A_._charges[n], A._charges[n])
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
