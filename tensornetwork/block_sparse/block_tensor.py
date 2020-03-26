@@ -1852,7 +1852,6 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   return R
 
 
-#Note (mganahl): for an unknown reason, pytype complains when returngin types here
 def eigh(matrix: BlockSparseTensor, UPLO: Optional[Text] = 'L') -> Any:
   """
   Compute the eigen decomposition of a hermitian `M` by `M` matrix `matrix`.
