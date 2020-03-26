@@ -1395,14 +1395,19 @@ def diag(tensor: ChargeArray) -> Any:
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
-  data = np.concatenate([
-      np.diag(np.reshape(tensor.data[sparse_blocks[n]], block_shapes[:, n]))
-      for n in range(len(sparse_blocks))
-  ])
-  charge_labels = np.concatenate([
-      np.full(shapes[n], fill_value=n, dtype=np.int16)
-      for n in range(len(sparse_blocks))
-  ])
+  if len(sparse_blocks) > 0:
+    data = np.concatenate([
+        np.diag(np.reshape(tensor.data[sparse_blocks[n]], block_shapes[:, n]))
+        for n in range(len(sparse_blocks))
+    ])
+    charge_labels = np.concatenate([
+        np.full(shapes[n], fill_value=n, dtype=np.int16)
+        for n in range(len(sparse_blocks))
+    ])
+
+  else:
+    data = np.empty(0, dtype=tensor.dtype)
+    charge_labels = np.empty(0, dtype=np.int16)
   newcharges = [charges[charge_labels]]
   flows = [False]
   return ChargeArray(data, newcharges, flows)
