@@ -163,13 +163,18 @@ class BaseCharge:
     #FIXME (mganahl): calling np.unique can cause significant overhead in some cases
     #fix code in block_tensor.py to work on np.ndarray instead
     if isinstance(target_charges, type(self)):
+      if len(target_charges) == 0:
+        raise ValueError('input to __eq__ cannot be an empty charge')
       targets = np.unique(
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
-      if target_charges.ndim == 1:
 
+      if target_charges.ndim == 1:
         target_charges = target_charges[None, :]
+      if len(target_charges.shape[1]) == 0:
+        raise ValueError('input to __eq__ cannot be an empty np.ndarray')
+
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
