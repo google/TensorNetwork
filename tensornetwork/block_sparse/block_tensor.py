@@ -1852,7 +1852,8 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
   return R
 
 
-def eigh(matrix: BlockSparseTensor, UPLO: Optional[Text] = 'L') -> Any:
+def eigh(matrix: BlockSparseTensor,
+         UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
   """
   Compute the eigen decomposition of a hermitian `M` by `M` matrix `matrix`.
   Args:
@@ -1907,4 +1908,192 @@ def eigh(matrix: BlockSparseTensor, UPLO: Optional[Text] = 'L') -> Any:
       order=order_v,
       check_consistency=False).transpose()
 
-  return E, V
+  return E, V  #pytype: disable=bad-return-type
+
+
+def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
+  """
+  Compute the eigen decomposition of an `M` by `M` matrix `matrix`.
+  Args:
+    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+
+  Returns:
+    (ChargeArray,BlockSparseTensor): The eigenvalues and eigenvectors
+
+  """
+  if matrix.ndim != 2:
+    raise NotImplementedError("eig currently supports only rank-2 tensors.")
+
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  eigvals = []
+  v_blocks = []
+  for n, block in enumerate(blocks):
+    e, v = np.linalg.eig(np.reshape(matrix.data[block], shapes[:, n]))
+    eigvals.append(e)
+    v_blocks.append(v)
+
+  eigvalscharge_labels = np.concatenate([
+      np.full(len(eigvals[n]), fill_value=n, dtype=np.int16)
+      for n in range(len(eigvals))
+  ])
+  eigvalscharge = charges[eigvalscharge_labels]
+  E = ChargeArray(np.concatenate(eigvals), [eigvalscharge], [False])
+  charges_v = [eigvalscharge] + [matrix._charges[o] for o in matrix._order[0]]
+  order_v = [[0]] + [list(np.arange(1, len(matrix._order[0]) + 1))]
+  flows_v = [True] + [matrix._flows[o] for o in matrix._order[0]]
+
+  V = BlockSparseTensor(
+      np.concatenate([np.ravel(v.T) for v in v_blocks]),
+      charges=charges_v,
+      flows=flows_v,
+      order=order_v,
+      check_consistency=False).transpose()
+
+  return E, V  #pytype: disable=bad-return-type
+
+
+def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
+  """
+  Compute the matrix inverse of `matrix`.
+  Returns:
+    BlockSparseTensor: The inverse of `matrix`.
+  """
+  if matrix.ndim != 2:
+    raise ValueError("`inv` can only be taken for matrices, "
+                     "found tensor.ndim={}".format(matrix.ndim))
+  flat_charges = matrix._charges
+  flat_flows = matrix.flat_flows
+  flat_order = matrix.flat_order
+  tr_partition = len(matrix._order[0])
+  blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
+      flat_charges, flat_flows, tr_partition, flat_order)
+
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=matrix.dtype)
+  for n, block in enumerate(blocks):
+    data[block] = np.ravel(
+        np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
+
+  return BlockSparseTensor(
+      data=data,
+      charges=matrix._charges,
+      flows=np.logical_not(matrix._flows),
+      order=matrix._order,
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
+
+
+def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]
+        ) -> Union[ChargeArray, BlockSparseTensor]:
+  obj = tensor.__new__(type(tensor))
+  obj.__init__(
+      np.sqrt(tensor.data),
+      charges=tensor._charges,
+      flows=tensor._flows,
+      order=tensor._order,
+      check_consistency=False)
+  return obj
+
+
+def eye(column_index: Index,
+        row_index: Optional[Index] = None,
+        dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
+  """
+  Return an identity matrix.
+  Args:
+    column_index: The column index of the matrix.
+    row_index: The row index of the matrix.
+    dtype: The dtype of the matrix.
+  Returns:
+    BlockSparseTensor
+  """
+  if row_index is None:
+    row_index = column_index.copy().flip_flow()
+  if dtype is None:
+    dtype = np.float64
+
+  blocks, _, shapes = _find_diagonal_sparse_blocks(
+      column_index.flat_charges + row_index.flat_charges,
+      column_index.flat_flows + row_index.flat_flows,
+      len(column_index.flat_charges))
+  data = np.empty(np.sum(np.prod(shapes, axis=0)), dtype=dtype)
+  for n, block in enumerate(blocks):
+    data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
+  order = [list(np.arange(0, len(column_index.flat_charges)))] + [
+      list(
+          np.arange(
+              len(column_index.flat_charges),
+              len(column_index.flat_charges) + len(row_index.flat_charges)))
+  ]
+  return BlockSparseTensor(
+      data=data,
+      charges=column_index.flat_charges + row_index.flat_charges,
+      flows=column_index.flat_flows + row_index.flat_flows,
+      order=order,
+      check_consistency=False)
+
+
+def trace(tensor: BlockSparseTensor,
+          axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
+  """
+  Compute the trace of a matrix or tensor.
+  Args:
+    tensor: A `BlockSparseTensor`.
+    axes: The axes over which the trace should be computed.
+      Defaults to the last two indices of the tensor.
+  Returns:
+    BlockSparseTensor: The result of taking the trace.
+  """
+  if tensor.ndim > 1:
+    if axes is None:
+      axes = (tensor.ndim - 2, tensor.ndim - 1)
+    if len(axes) != 2:
+      raise ValueError(f"`len(axes)` has to be 2, found `axes = {axes}`")
+    if not np.array_equal(tensor.flows[axes[0]],
+                          np.logical_not(tensor.flows[axes[1]])):
+      raise ValueError(
+          f"trace indices for axes {axes} have non-matching flows.")
+
+    sparse_shape = tensor.sparse_shape
+    if sparse_shape[axes[0]].copy().flip_flow() != sparse_shape[axes[1]]:
+      raise ValueError(f"trace indices for axes {axes} are not matching")
+
+    #flatten the shape of `tensor`
+    out = tensor.reshape(
+        flatten([[tensor._charges[n].dim for n in o] for o in tensor._order]))
+    _, _, labels0 = np.intersect1d(
+        tensor._order[axes[0]], flatten(out._order), return_indices=True)
+    _, _, labels1 = np.intersect1d(
+        tensor._order[axes[1]], flatten(out._order), return_indices=True)
+
+    a0 = list(labels0[np.argsort(tensor._order[axes[0]])])
+    a1 = list(labels1[np.argsort(tensor._order[axes[1]])])
+
+    while len(a0) > 0:
+      i = a0.pop(0)
+      j = a1.pop(0)
+      identity = eye(
+          Index([out._charges[out._order[i][0]]],
+                [not out._flows[out._order[i][0]]]))
+
+      out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
+      a0ar = np.asarray(a0)
+
+      mask_min = a0ar > np.min([i, j])
+      mask_max = a0ar > np.max([i, j])
+      a0ar[np.logical_and(mask_min, mask_max)] -= 2
+      a0ar[np.logical_xor(mask_min, mask_max)] -= 1
+
+      a1ar = np.asarray(a1)
+      mask_min = a1ar > np.min([i, j])
+      mask_max = a1ar > np.max([i, j])
+      a1ar[np.logical_and(mask_min, mask_max)] -= 2
+      a1ar[np.logical_xor(mask_min, mask_max)] -= 1
+      a0 = list(a0ar)
+      a1 = list(a1ar)
+    return out  # pytype: disable=bad-return-type
+  raise ValueError("trace can only be taken for tensors with ndim > 1")
