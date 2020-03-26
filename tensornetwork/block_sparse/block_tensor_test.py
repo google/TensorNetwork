@@ -1275,6 +1275,35 @@ def test_eigh_prod(dtype, R, num_charges):
   E, V = eigh(B)
   B_ = V @ diag(E) @ V.conj().T
   np.testing.assert_allclose(B.data, B_.data)
+  for n in range(len(B._charges)):
+    assert charge_equal(B_._charges[n], B._charges[n])
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_eigh_prod_empty(dtype, num_charges):
+  np.random.seed(10)
+  Ds = [9, 0]
+  R = len(Ds)
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          charge_types=[U1Charge] * num_charges) for n in range(2)
+  ]
+  flows = [False, False, True, True]
+  indices = [
+      Index(charges[0], flows[0]),
+      Index(charges[1], flows[1]),
+      Index(charges[0], flows[2]),
+      Index(charges[1], flows[3])
+  ]
+  A = BlockSparseTensor.random(indices, dtype=dtype)
+  B = A.reshape([0, 0])
+  E, V = eigh(B)
+  B_ = V @ diag(E) @ V.conj().T
+  np.testing.assert_allclose(B.data, B_.data)
+  for n in range(len(B._charges)):
+    assert charge_equal(B_._charges[n], B._charges[n])
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
