@@ -70,9 +70,13 @@ class BaseCharge:
 
     self.charge_types = charge_types
     if charge_labels is None:
-      self.unique_charges, self.charge_labels = np.unique(
-          charges.astype(np.int16), return_inverse=True, axis=1)
-      self.charge_labels = self.charge_labels.astype(np.int16)
+      if charges.shape[1] > 0:
+        self.unique_charges, self.charge_labels = np.unique(
+            charges.astype(np.int16), return_inverse=True, axis=1)
+        self.charge_labels = self.charge_labels.astype(np.int16)
+      else:
+        self.unique_charges = np.empty((charges.shape[0], 0), dtype=np.int16)
+        self.charge_labels = np.empty(0, dtype=np.int16)
     else:
       self.charge_labels = np.asarray(charge_labels, dtype=np.int16)
 
