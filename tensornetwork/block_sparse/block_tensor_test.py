@@ -6,7 +6,7 @@ from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equ
 from tensornetwork.block_sparse.index import Index
 from tensornetwork import ncon
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray, BlockSparseTensor, norm, diag, reshape, transpose, conj, outerproduct, tensordot, svd
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray, BlockSparseTensor, norm, diag, reshape, transpose, conj, outerproduct, tensordot, svd, qr, eigh
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -1057,14 +1057,14 @@ def test_matmul(dtype, num_charges):
   is1 = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 5, (num_charges, Ds1[n]), dtype=np.int16),
+              np.random.randint(-5, 6, (num_charges, Ds1[n]), dtype=np.int16),
               charge_types=[U1Charge] * num_charges), False) for n in range(2)
   ]
   is2 = [
       is1[1].copy().flip_flow(),
       Index(
           BaseCharge(
-              np.random.randint(-5, 5, (num_charges, 150), dtype=np.int16),
+              np.random.randint(-5, 6, (num_charges, 150), dtype=np.int16),
               charge_types=[U1Charge] * num_charges), False)
   ]
   tensor1 = BlockSparseTensor.random(is1, dtype=dtype)
@@ -1141,3 +1141,41 @@ def test_svd_singvals(dtype, R, R1, R2, num_charges):
   Sdense = np.linalg.svd(A.todense(), compute_uv=False)
   np.testing.assert_allclose(
       np.sort(Sdense[Sdense > 1E-15]), np.sort(S2.data[S2.data > 0.0]))
+
+
+@pytest.mark.parametrize("mode", ['complete', 'reduced'])
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R, R1, R2", [(2, 1, 1), (3, 2, 1), (3, 1, 2)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_qr_prod(dtype, R, R1, R2, mode, num_charges):
+  D = 30
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D)),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  A = A.reshape([D**R1, D**R2])
+  Q, R = qr(A, mode=mode)
+  A_ = Q @ R
+  np.testing.assert_allclose(A.data, A_.data)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [1, 2, 3])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_eigh_prod(dtype, R, num_charges):
+  D = 10
+  charge = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  flows = [True] * R + [False] * R
+  A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(2 * R)],
+                               dtype=dtype)
+  A = A.reshape([D**R, D**R])
+  B = A + A.T.conj()
+  E, V = eigh(B)
+  B_ = V @ diag(E) @ V.conj().T
+  np.testing.assert_allclose(B.data, B_.data)
