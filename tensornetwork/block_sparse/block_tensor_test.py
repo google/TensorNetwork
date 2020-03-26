@@ -219,8 +219,8 @@ def test_reduce_charges_2():
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_reduce_charges_non_trivial(num_charges):
   np.random.seed(10)
-  left_charges = np.random.randint(-5, 5, (num_charges, 200), dtype=np.int16)
-  right_charges = np.random.randint(-5, 5, (num_charges, 200), dtype=np.int16)
+  left_charges = np.random.randint(-5, 6, (num_charges, 200), dtype=np.int16)
+  right_charges = np.random.randint(-5, 6, (num_charges, 200), dtype=np.int16)
 
   target_charge = np.random.randint(-2, 3, (num_charges, 3), dtype=np.int16)
   charge_types = [U1Charge] * num_charges
@@ -243,35 +243,6 @@ def test_reduce_charges_non_trivial(num_charges):
             fused_charges.T == target_charge[:, n][None, :], axis=1))
   mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
-
-
-def test_reduce_charges_non_trivial_2():
-  np.random.seed(10)
-  left_charges1 = np.random.randint(-5, 5, 200, dtype=np.int16)
-  left_charges2 = np.random.randint(-5, 5, 200, dtype=np.int16)
-  right_charges1 = np.random.randint(-5, 5, 200, dtype=np.int16)
-  right_charges2 = np.random.randint(-5, 5, 200, dtype=np.int16)
-
-  target_charge = np.array([[-2, 0, 3], [-1, 1, 0]]).astype(np.int16)
-  fused_charges1 = fuse_ndarrays([left_charges1, right_charges1])
-  fused_charges2 = fuse_ndarrays([left_charges2, right_charges2])
-
-  dense_positions = reduce_charges([
-      U1Charge(left_charges1) @ U1Charge(left_charges2),
-      U1Charge(right_charges1) @ U1Charge(right_charges2)
-  ], [False, False],
-                                   target_charge,
-                                   return_locations=True)
-  masks = []
-  assert np.all(dense_positions[0].isin(target_charge))
-  #pylint: disable=unsubscriptable-object
-  for n in range(target_charge.shape[1]):
-    mask1 = np.isin(fused_charges1, np.squeeze(target_charge[0, n]))
-    mask2 = np.isin(fused_charges2, np.squeeze(target_charge[1, n]))
-    masks.append(np.logical_and(mask1, mask2))
-  #pylint: disable=no-member
-  np.testing.assert_allclose(
-      np.nonzero(np.logical_or.reduce(masks))[0], dense_positions[1])
 
 
 @pytest.mark.parametrize('num_legs', [2, 3, 4])
