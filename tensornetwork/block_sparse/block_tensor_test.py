@@ -1160,6 +1160,8 @@ def test_svd_prod(dtype, R, R1, R2, num_charges):
   A_ = U @ diag(S) @ V
   assert A_.dtype == A.dtype
   np.testing.assert_allclose(A.data, A_.data)
+  for n in range(len(A._charges)):
+    assert charge_equal(A_._charges[n], A._charges[n])
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
