@@ -1654,7 +1654,6 @@ def tensordot(tensor1: BlockSparseTensor,
   return res
 
 
-#Note (mganahl): pytype is not working well with variable number of return values
 def svd(matrix: BlockSparseTensor,
         full_matrices: Optional[bool] = True,
         compute_uv: Optional[bool] = True,
@@ -1662,10 +1661,10 @@ def svd(matrix: BlockSparseTensor,
   """
   Compute the singular value decomposition of `matrix`.
   The matrix if factorized into `u * s * vh`, with 
-  `u` and `vh` the left and right eigenvectors of `matrix`,
+  `u` and `vh` the left and right singular vectors of `matrix`,
   and `s` its singular values.
   Args:
-    matrix: A matrix (i.e. a rank-2 tensor) of type  `BlockSparseTensor`
+    matrix: A matrix (i.e. an order-2 tensor) of type  `BlockSparseTensor`
     full_matrices: If `True`, expand `u` and `v` to square matrices
       If `False` return the "economic" svd, i.e. `u.shape[1]=s.shape[0]`
       and `v.shape[0]=s.shape[1]`
@@ -1678,7 +1677,7 @@ def svd(matrix: BlockSparseTensor,
   """
 
   if matrix.ndim != 2:
-    raise NotImplementedError("svd currently supports only rank-2 tensors.")
+    raise NotImplementedError("svd currently supports only tensors of order 2.")
 
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
