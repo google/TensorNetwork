@@ -1009,8 +1009,8 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
   np.testing.assert_allclose(dense_res, res.todense())
   free_inds_A = np.sort(list(set(np.arange(len(A.shape))) - set(indsA)))
   free_inds_B = np.sort(list(set(np.arange(len(B.shape))) - set(indsB)))
-  for n in range(len(free_inds_A)):
-    assert charge_equal(res.charges[n][0], A.charges[free_inds_A[n]][0])
+  for n, fiA in enumerate(free_inds_A):
+    assert charge_equal(res.charges[n][0], A.charges[fiA][0])
   for n in range(len(free_inds_A), len(free_inds_A) + len(free_inds_B)):
     assert charge_equal(res.charges[n][0],
                         B.charges[free_inds_B[n - len(free_inds_A)]][0])
@@ -1281,8 +1281,8 @@ def test_eigh_prod(dtype, Ds, num_charges):
   inds = [Index(charges[n], flows[n]) for n in range(R)]
   A = BlockSparseTensor.random(
       inds + [i.copy().flip_flow() for i in inds], dtype=dtype)
-  dim = np.prod(Ds)
-  A = A.reshape([dim, dim])
+  dims = np.prod(Ds)
+  A = A.reshape([dims, dims])
   B = A + A.T.conj()
   E, V = eigh(B)
   B_ = V @ diag(E) @ V.conj().T
@@ -1337,8 +1337,8 @@ def test_eig_prod(dtype, Ds, num_charges):
 
   A = BlockSparseTensor.random(
       inds + [i.copy().flip_flow() for i in inds], dtype=dtype)
-  dim = np.prod(Ds)
-  A = A.reshape([dim, dim])
+  dims = np.prod(Ds)
+  A = A.reshape([dims, dims])
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
   np.testing.assert_allclose(A.data, A_.data)
@@ -1347,17 +1347,17 @@ def test_eig_prod(dtype, Ds, num_charges):
 #Note the case num_charges=4 is most likely testing  empty tensors
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_sqrt(dtype, num_charges):
+@pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [9, 8, 0, 10]])
+def test_sqrt(dtype, num_charges, Ds):
   np.random.seed(10)
-
-  Ds = np.array([8, 9, 10, 11])
-  flows = [True, False, True, False]
+  R = len(Ds)
+  flows = np.random.choice([True, False], replace=True, size=R)
   indices = [
       Index(
           BaseCharge(
               np.random.randint(-5, 6, (num_charges, Ds[n]), dtype=np.int16),
               charge_types=[U1Charge] * num_charges), flows[n])
-      for n in range(4)
+      for n in range(R)
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   sqrtarr = sqrt(arr)
