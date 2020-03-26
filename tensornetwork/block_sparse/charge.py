@@ -460,8 +460,13 @@ class BaseCharge:
       targets = target_charges.unique_charges
     else:
       if target_charges.ndim == 1:
+        if target_charges.shape[0] == 0:
+          raise ValueError("input to `isin` cannot be an empty np.ndarray")
         targets = np.unique(target_charges, axis=0)[None, :]
       elif target_charges.ndim == 2:
+        if target_charges.shape[1] == 0:
+          raise ValueError("input to `isin` cannot be an empty np.ndarray")
+
         targets = np.unique(target_charges, axis=1)
       else:
         raise ValueError("targets.ndim has to be 1 or 2, found {}".format(
