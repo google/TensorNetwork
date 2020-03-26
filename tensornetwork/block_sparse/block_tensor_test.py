@@ -168,7 +168,7 @@ def test_compute_num_nonzero(num_charges):
   fused = fuse_many_ndarray_charges([qs[n] * np_flows[n] for n in range(3)],
                                     [U1Charge] * num_charges)
   nz1 = compute_num_nonzero(charges, flows)
-  #pylint: disable=no-member
+  #pylint: disable=no-memberpy
   nz2 = len(
       np.nonzero(
           np.logical_and.reduce(
@@ -194,21 +194,54 @@ def test_reduce_charges():
       np.nonzero(fused_charges == target_charge[0, 0])[0])
 
 
-def test_reduce_charges_non_trivial():
-  np.random.seed(10)
-  left_charges = np.random.randint(-5, 5, 200, dtype=np.int16)
-  right_charges = np.random.randint(-5, 5, 200, dtype=np.int16)
+def test_reduce_charges_2():
+  left_charges = np.asarray([[-2, 0, 1, 0, 0], [-3, 0, 2, 1,
+                                                0]]).astype(np.int16)
+  right_charges = np.asarray([[-1, 0, 2, 1], [-2, 2, 7, 0]]).astype(np.int16)
+  target_charge = np.zeros((2, 1), dtype=np.int16)
+  fused_charges = fuse_ndarray_charges(left_charges, right_charges,
+                                       [U1Charge, U1Charge])
+  dense_positions = reduce_charges([
+      BaseCharge(left_charges, charge_types=[U1Charge, U1Charge]),
+      BaseCharge(right_charges, charge_types=[U1Charge, U1Charge])
+  ], [False, False],
+                                   target_charge,
+                                   return_locations=True)
 
-  target_charge = np.array([[-2, 0, 3]]).astype(np.int16)
-  fused_charges = fuse_ndarrays([left_charges, right_charges])
-  dense_positions = reduce_charges(
-      [U1Charge(left_charges), U1Charge(right_charges)], [False, False],
-      target_charge,
-      return_locations=True)
+  np.testing.assert_allclose(dense_positions[0].charges, 0)
+
+  np.testing.assert_allclose(
+      dense_positions[1],
+      np.nonzero(
+          np.logical_and.reduce(fused_charges.T == target_charge.T, axis=1))[0])
+
+
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_reduce_charges_non_trivial(num_charges):
+  np.random.seed(10)
+  left_charges = np.random.randint(-5, 5, (num_charges, 200), dtype=np.int16)
+  right_charges = np.random.randint(-5, 5, (num_charges, 200), dtype=np.int16)
+
+  target_charge = np.random.randint(-2, 3, (num_charges, 3), dtype=np.int16)
+  charge_types = [U1Charge] * num_charges
+  fused_charges = fuse_ndarray_charges(left_charges, right_charges,
+                                       charge_types)
+
+  dense_positions = reduce_charges([
+      BaseCharge(left_charges, charge_types=charge_types),
+      BaseCharge(right_charges, charge_types=charge_types)
+  ], [False, False],
+                                   target_charge,
+                                   return_locations=True)
   assert np.all(
       np.isin(
           np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
-  mask = np.isin(fused_charges, np.squeeze(target_charge))
+  tmp = []
+  for n in range(target_charge.shape[1]):
+    tmp.append(
+        np.logical_and.reduce(
+            fused_charges.T == target_charge[:, n][None, :], axis=1))
+  mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
 
 
