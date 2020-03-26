@@ -168,6 +168,7 @@ def test_compute_num_nonzero(num_charges):
   fused = fuse_many_ndarray_charges([qs[n] * np_flows[n] for n in range(3)],
                                     [U1Charge] * num_charges)
   nz1 = compute_num_nonzero(charges, flows)
+  #pylint: disable=no-member
   nz2 = len(
       np.nonzero(
           np.logical_and.reduce(
