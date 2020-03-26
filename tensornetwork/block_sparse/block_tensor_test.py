@@ -168,7 +168,7 @@ def test_compute_num_nonzero(num_charges):
   fused = fuse_many_ndarray_charges([qs[n] * np_flows[n] for n in range(3)],
                                     [U1Charge] * num_charges)
   nz1 = compute_num_nonzero(charges, flows)
-  #pylint: disable=no-memberpy
+  #pylint: disable=no-member
   nz2 = len(
       np.nonzero(
           np.logical_and.reduce(
@@ -209,7 +209,7 @@ def test_reduce_charges_2():
                                    return_locations=True)
 
   np.testing.assert_allclose(dense_positions[0].charges, 0)
-
+  #pylint: disable=no-member
   np.testing.assert_allclose(
       dense_positions[1],
       np.nonzero(
@@ -237,10 +237,13 @@ def test_reduce_charges_non_trivial(num_charges):
       np.isin(
           np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
   tmp = []
+  #pylint: disable=unsubscriptable-object
   for n in range(target_charge.shape[1]):
+    #pylint: disable=no-member
     tmp.append(
         np.logical_and.reduce(
             fused_charges.T == target_charge[:, n][None, :], axis=1))
+  #pylint: disable=no-member
   mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
 
@@ -352,7 +355,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   nz = np.nonzero(mask)[0]
   dense_to_sparse = np.empty(len(mask), dtype=np.int64)
   dense_to_sparse[mask] = np.arange(len(nz))
-
+  #pylint: disable=no-member
   tr_mask = np.logical_and.reduce(
       tr_fused.T == np.zeros((1, num_charges)), axis=1)
   tr_nz = np.nonzero(tr_mask)[0]
