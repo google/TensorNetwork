@@ -861,24 +861,37 @@ class ChargeArray:
       raise ValueError("A tensor with {} elements cannot be "
                        "reshaped into a tensor with {} elements".format(
                            np.prod(self.shape), np.prod(new_shape)))
-
     flat_dims = np.asarray(
         [self._charges[n].dim for o in self._order for n in o])
+
+    if len(new_shape) > len(self.flat_charges):
+      raise ValueError("The shape {} is incompatible with the "
+                       "elementary shape {} of the tensor.".format(
+                           tuple(new_shape), tuple(flat_dims)))
+
+    if np.any(new_shape == 0) or np.any(flat_dims == 0):
+      raise ValueError("reshaping empty arrays is ambiguous, and is currently "
+                       "not supported.")
+
     partitions = [0]
     for n, ns in enumerate(new_shape):
       tmp = np.nonzero(np.cumprod(flat_dims) == ns)[0]
       if len(tmp) == 0:
-        raise ValueError("The shape {} is incompatible with the "
-                         "elementary shape {} of the tensor.".format(
-                             new_shape, tuple(flat_dims)))
+        raise ValueError(
+            "The shape {} is incompatible with the "
+            "elementary shape {} of the tensor.".format(
+                tuple(new_shape),
+                tuple([self._charges[n].dim for o in self._order for n in o])))
 
       partitions.append(tmp[0] + 1)
       flat_dims = flat_dims[partitions[-1]:]
     for d in flat_dims:
       if d != 1:
-        raise ValueError("The shape {} is incompatible with the "
-                         "elementary shape {} of the tensor.".format(
-                             new_shape, tuple(flat_dims)))
+        raise ValueError(
+            "The shape {} is incompatible with the "
+            "elementary shape {} of the tensor.".format(
+                tuple(new_shape),
+                tuple([self._charges[n].dim for o in self._order for n in o])))
       partitions[-1] += 1
 
     partitions = np.cumsum(partitions)
