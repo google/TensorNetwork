@@ -12,6 +12,13 @@ np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
 
 
+def fuse_many_ndarray_charges(charges, charge_types):
+  res = fuse_ndarray_charges(charges[0], charges[1], charge_types)
+  for n in range(2, len(charges)):
+    res = fuse_ndarray_charges(res, charges[n], charge_types)
+  return res
+
+
 def get_contractable_tensors(R1, R2, cont, dtype, num_charges, DsA, Dscomm,
                              DsB):
   assert R1 >= cont
@@ -150,15 +157,22 @@ def test_compute_unique_fused_charges():
   np.testing.assert_allclose(np.squeeze(unique.charges), exp_unique)
 
 
-def test_compute_num_nonzero():
-  np.random.seed(10)
-  qs = [np.random.randint(-3, 3, 100) for _ in range(3)]
-  charges = [U1Charge(q) for q in qs]
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_compute_num_nonzero(num_charges):
+  np.random.seed(12)
+  D = 40
+  qs = [np.random.randint(-3, 3, (num_charges, D)) for _ in range(3)]
+  charges = [BaseCharge(q, charge_types=[U1Charge] * num_charges) for q in qs]
   flows = [False, True, False]
   np_flows = [1, -1, 1]
-  fused = fuse_ndarrays([qs[n] * np_flows[n] for n in range(3)])
+  fused = fuse_many_ndarray_charges([qs[n] * np_flows[n] for n in range(3)],
+                                    [U1Charge] * num_charges)
   nz1 = compute_num_nonzero(charges, flows)
-  nz2 = len(np.nonzero(fused == 0)[0])
+  nz2 = len(
+      np.nonzero(
+          np.logical_and.reduce(
+              fused.T == np.zeros((1, num_charges), dtype=np.int16),
+              axis=1))[0])
   assert nz1 == nz2
 
 
