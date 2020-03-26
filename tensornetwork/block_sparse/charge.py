@@ -70,9 +70,13 @@ class BaseCharge:
 
     self.charge_types = charge_types
     if charge_labels is None:
-      self.unique_charges, self.charge_labels = np.unique(
-          charges.astype(np.int16), return_inverse=True, axis=1)
-      self.charge_labels = self.charge_labels.astype(np.int16)
+      if charges.shape[1] > 0:
+        self.unique_charges, self.charge_labels = np.unique(
+            charges.astype(np.int16), return_inverse=True, axis=1)
+        self.charge_labels = self.charge_labels.astype(np.int16)
+      else:
+        self.unique_charges = np.empty((charges.shape[0], 0), dtype=np.int16)
+        self.charge_labels = np.empty(0, dtype=np.int16)
     else:
       self.charge_labels = np.asarray(charge_labels, dtype=np.int16)
 
@@ -159,13 +163,16 @@ class BaseCharge:
     #FIXME (mganahl): calling np.unique can cause significant overhead in some cases
     #fix code in block_tensor.py to work on np.ndarray instead
     if isinstance(target_charges, type(self)):
+      if len(target_charges) == 0:
+        raise ValueError('input to __eq__ cannot be an empty charge')
       targets = np.unique(
           target_charges.unique_charges[:, target_charges.charge_labels],
           axis=1)
     else:
       if target_charges.ndim == 1:
-
         target_charges = target_charges[None, :]
+      if target_charges.shape[1] == 0:
+        raise ValueError('input to __eq__ cannot be an empty np.ndarray')
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
@@ -201,6 +208,7 @@ class BaseCharge:
     # fuse the unique charges from each index, then compute new unique charges
     comb_charges = fuse_ndarray_charges(self.unique_charges,
                                         other.unique_charges, self.charge_types)
+    #pylint: disable=unsubscriptable-object
     if (comb_charges.shape[1] == 0) or (len(self.charge_labels) == 0) or (len(
         other.charge_labels) == 0):
       obj = self.__new__(type(self))
@@ -450,8 +458,13 @@ class BaseCharge:
       targets = target_charges.unique_charges
     else:
       if target_charges.ndim == 1:
+        if target_charges.shape[0] == 0:
+          raise ValueError("input to `isin` cannot be an empty np.ndarray")
         targets = np.unique(target_charges, axis=0)[None, :]
       elif target_charges.ndim == 2:
+        if target_charges.shape[1] == 0:
+          raise ValueError("input to `isin` cannot be an empty np.ndarray")
+
         targets = np.unique(target_charges, axis=1)
       else:
         raise ValueError("targets.ndim has to be 1 or 2, found {}".format(

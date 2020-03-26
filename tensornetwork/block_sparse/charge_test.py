@@ -4,7 +4,7 @@ import pytest
 from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
 
 
-def test_BaseCharge_charges():
+def est_BaseCharge_charges():
   D = 100
   B = 6
   np.random.seed(10)
@@ -444,7 +444,7 @@ def test_eq_1():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1], [0]])
-  inds = np.nonzero(c3 == c)[0]
+  inds = np.nonzero(c == c3)[0]
   np.testing.assert_allclose(inds, [1, 4])
   for i in inds:
     np.array_equal(c[i].charges, c3)
@@ -456,7 +456,7 @@ def test_eq_2():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6, 2], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1, 1], [0, 2]])
-  inds = np.nonzero(c3 == c)
+  inds = np.nonzero(c == c3)
 
   np.testing.assert_allclose(inds[0][inds[1] == 0], [1, 4])
   np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
@@ -475,3 +475,34 @@ def test_iter():
   for n in c:
     np.testing.assert_allclose(n, np.array([arr1[m], arr2[m]]))
     m += 1
+
+
+def test_empty():
+  num_charges = 4
+  charges = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 0)),
+      charge_types=[U1Charge] * num_charges)
+  assert len(charges) == 0
+
+
+def test_init_raises():
+  num_charges = 4
+  with pytest.raises(ValueError):
+    BaseCharge(
+        np.random.randint(-5, 6, (num_charges, 10)),
+        charge_types=[U1Charge] * (num_charges - 1))
+
+
+def test_eq_raises():
+  num_charges = 4
+  c1 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 10)),
+      charge_types=[U1Charge] * num_charges)
+  c2 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 0)),
+      charge_types=[U1Charge] * num_charges)
+  npc = np.empty((num_charges, 0), dtype=np.int16)
+  with pytest.raises(ValueError):
+    c1 == c2
+  with pytest.raises(ValueError):
+    c1 == npc
