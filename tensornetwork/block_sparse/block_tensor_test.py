@@ -796,9 +796,9 @@ def test_norm(dtype):
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_get_diag(dtype, num_charges):
+@pytest.mark.parametrize('Ds', [[200, 100], [100, 200]])
+def test_get_diag(dtype, num_charges, Ds):
   np.random.seed(10)
-  Ds = [100, 200]
   indices = [
       Index(
           BaseCharge(
@@ -820,6 +820,24 @@ def test_get_diag(dtype, num_charges):
   ])
   np.testing.assert_allclose(data, diagonal.data)
   np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+@pytest.mark.parametrize('Ds', [[0, 100], [100, 0]])
+def test_get_empty_diag(dtype, num_charges, Ds):
+  np.random.seed(10)
+  indices = [
+      Index(
+          BaseCharge(
+              np.random.randint(-2, 3, (num_charges, Ds[n])),
+              charge_types=[U1Charge] * num_charges), False) for n in range(2)
+  ]
+  arr = BlockSparseTensor.random(indices, dtype=dtype)
+  diagonal = diag(arr)
+  np.testing.assert_allclose([], diagonal.data)
+  for c in diagonal.flat_charges:
+    assert len(c) == 0
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
