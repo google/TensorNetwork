@@ -294,6 +294,7 @@ def reduce_charges(charges: List[BaseCharge],
                                     right_ind.unique_charges,
                                     charges[0].charge_types)
   #special case of empty charges
+  #pylint: disable=unsubscriptable-object
   if (comb_qnums.shape[1] == 0) or (len(left_ind.charge_labels) == 0) or (len(
       right_ind.charge_labels) == 0):
     obj = charges[0].__new__(type(charges[0]))
