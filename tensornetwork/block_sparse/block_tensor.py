@@ -856,6 +856,16 @@ class ChargeArray:
       else:
         new_shape.append(s)
 
+    if np.array_equal(new_shape, self.shape):
+      result = self.__new__(type(self))
+      result.__init__(
+          data=self.data,
+          charges=self._charges,
+          flows=self._flows,
+          order=self._order,
+          check_consistency=False)
+      return result
+
     # a few simple checks
     if np.prod(new_shape) != np.prod(self.shape):
       raise ValueError("A tensor with {} elements cannot be "
