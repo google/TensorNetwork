@@ -24,7 +24,7 @@ import scipy as sp
 import copy
 import time
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequence, Text
+from typing import List, Union, Any, Tuple, Optional
 Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
