@@ -1581,6 +1581,7 @@ def tensordot(tensor1: BlockSparseTensor,
     raise ValueError(
         "Some values in axes[1] = {} appear more than once!".format(axes2))
 
+  #special case outer product
   if len(axes1) == 0:
     return outerproduct(tensor1, tensor2)
 
@@ -1627,10 +1628,6 @@ def tensordot(tensor1: BlockSparseTensor,
     #NOTE (mganahl): for t1.data=[] and t2.data=[] this returns 0.0,
     #is consistent with numpy behaviour.
     return np.dot(t1.data, t2.data)
-
-  #special case outer product
-  if (len(axes1) == 0) and (len(axes2) == 0):
-    return outerproduct(tensor1, tensor2)
 
   #in all other cases we perform a regular tensordot
   free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
