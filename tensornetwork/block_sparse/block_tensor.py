@@ -1576,14 +1576,6 @@ def tensordot(tensor1: BlockSparseTensor,
   if len(axes1) == 0:
     return outerproduct(tensor1, tensor2)
 
-  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
-    isort = np.argsort(axes1)
-    data = np.dot(tensor1.data,
-                  tensor2.transpose(np.asarray(axes2)[isort]).data)
-    return BlockSparseTensor(
-        data=data, charges=[], flows=[], order=[],
-        check_consistency=False)  #Index(identity_charges, flow=False)])
-
   if max(axes1) >= len(tensor1.shape):
     raise ValueError(
         "rank of `tensor1` is smaller than `max(axes1) = {}.`".format(
@@ -1593,6 +1585,17 @@ def tensordot(tensor1: BlockSparseTensor,
     raise ValueError(
         "rank of `tensor2` is smaller than `max(axes2) = {}`".format(
             max(axes1)))
+
+  #inner product
+  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
+    data = np.dot(
+        tensor1.transpose(axes1, shuffle=True).data,
+        tensor2.transpose(axes2, shuffle=True).data)
+    return BlockSparseTensor(
+        data=data, charges=[], flows=[], order=[], check_consistency=False)
+  #outer product
+  if (len(axes1) == 0) and (len(axes2) == 0):
+    return outerproduct(tensor1, tensor2)
 
   contr_flows_1 = []
   contr_flows_2 = []
@@ -1666,6 +1669,7 @@ def tensordot(tensor1: BlockSparseTensor,
   #Note: `cs` may contain charges that are not present in `common_charges`
   charges = left_charges + right_charges
   flows = left_flows + right_flows
+
   sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
                                                       len(left_charges))
   num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
@@ -2148,8 +2152,10 @@ def trace(tensor: BlockSparseTensor,
       identity = eye(
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
-
+      print(out.data)
+      print(identity.data)
       out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
+      print(out.data)
       a0ar = np.asarray(a0)
 
       mask_min = a0ar > np.min([i, j])
