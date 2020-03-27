@@ -1110,7 +1110,10 @@ def test_tensordot_raises():
   is2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(R2)]
   A = BlockSparseTensor.random(is1, dtype=dtype)
   B = BlockSparseTensor.random(is2, dtype=dtype)
-
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1, 2, 3], [1, 2]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1], [0, 1, 2, 3]))
   with pytest.raises(ValueError):
     tensordot(A, B, ([0], [1, 2]))
   with pytest.raises(ValueError):
