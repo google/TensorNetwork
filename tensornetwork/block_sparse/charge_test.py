@@ -475,3 +475,34 @@ def test_iter():
   for n in c:
     np.testing.assert_allclose(n, np.array([arr1[m], arr2[m]]))
     m += 1
+
+
+def test_empty():
+  num_charges = 4
+  charges = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 0)),
+      charge_types=[U1Charge] * num_charges)
+  assert len(charges) == 0
+
+
+def test_init_raises():
+  num_charges = 4
+  with pytest.raises(ValueError):
+    BaseCharge(
+        np.random.randint(-5, 6, (num_charges, 10)),
+        charge_types=[U1Charge] * (num_charges - 1))
+
+
+def test_eq_raises():
+  num_charges = 4
+  c1 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 10)),
+      charge_types=[U1Charge] * num_charges)
+  c2 = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, 0)),
+      charge_types=[U1Charge] * num_charges)
+  npc = np.empty((num_charges, 0), dtype=np.int16)
+  with pytest.raises(ValueError):
+    c1 == c2
+  with pytest.raises(ValueError):
+    c1 == npc
