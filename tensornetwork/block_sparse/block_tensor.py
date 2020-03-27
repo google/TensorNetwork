@@ -1574,6 +1574,16 @@ def tensordot(tensor1: BlockSparseTensor,
         "`axes1 = {}` and `axes2 = {}` have to be of same length. ".format(
             axes1, axes2))
 
+  if len(axes1) > len(tensor1.shape):
+    raise ValueError(
+        "`axes1 = {}` is incompatible with `tensor1.shape = {}. ".format(
+            axes1, tensor1.shape))
+
+  if len(axes2) > len(tensor2.shape):
+    raise ValueError(
+        "`axes2 = {}` is incompatible with `tensor2.shape = {}. ".format(
+            axes2, tensor2.shape))
+
   if not np.all(np.unique(axes1) == np.sort(axes1)):
     raise ValueError(
         "Some values in axes[0] = {} appear more than once!".format(axes1))
