@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import math
-from tensornetwork.block_sparse.block_tensor import BlockSparseTensor
-import tensornetwork.block_sparse.block_tensor as bt
+from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
 from tensornetwork.block_sparse.index import Index
+import tensornetwork.block_sparse as bs
 from tensornetwork.backends.symmetric import decompositions
 import tensornetwork.backends.numpy.decompositions as np_decompositions
 import pytest
@@ -43,7 +41,7 @@ def test_svd_decompositions(dtype, R, R1, num_charges):
   u, s, v, _ = decompositions.svd_decomposition(bt, A, R1)
   u_dense, s_dense, v_dense, _ = np_decompositions.svd_decomposition(
       np, A.todense(), R1)
-  res1 = bt.tensordot(bt.tensordot(u, bt.diag(s), 1), v, 1)
+  res1 = bs.tensordot(bs.tensordot(u, bs.diag(s), 1), v, 1)
   res2 = np.tensordot(np.tensordot(u_dense, np.diag(s_dense), 1), v_dense, 1)
   np.testing.assert_almost_equal(res1.todense(), res2)
 
@@ -104,10 +102,10 @@ def test_max_truncation_error(dtype, num_charges):
   random_matrix = BlockSparseTensor.random(
       [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
 
-  U, S, V = bt.svd(random_matrix, full_matrices=False)
+  U, S, V = bs.svd(random_matrix, full_matrices=False)
   svals = np.array(range(1, len(S.data) + 1)).astype(np.float64)
   S.data = svals[::-1]
-  val = U @ bt.diag(S) @ V
+  val = U @ bs.diag(S) @ V
   trunc = 8
   mask = np.sqrt(np.cumsum(np.square(svals))) >= trunc
   _, S2, _, _ = decompositions.svd_decomposition(
@@ -130,9 +128,9 @@ def test_max_singular_values_larger_than_bond_dimension(dtype, num_charges):
   flows = [True] * R
   random_matrix = BlockSparseTensor.random(
       [Index(charges[n], flows[n]) for n in range(R)], dtype=dtype)
-  U, S, V = bt.svd(random_matrix, full_matrices=False)
+  U, S, V = bs.svd(random_matrix, full_matrices=False)
   S.data = np.array(range(len(S.data)))
-  val = U @ bt.diag(S) @ V
+  val = U @ bs.diag(S) @ V
   _, S2, _, _ = decompositions.svd_decomposition(
       bt, val, 1, max_singular_values=40)
   assert S2.shape == S.shape
@@ -155,7 +153,7 @@ def test_rq_decomposition(dtype, R, R1, num_charges):
                                dtype=dtype)
 
   r, q = decompositions.rq_decomposition(bt, A, R1)
-  res = bt.tensordot(r, q, 1)
+  res = bs.tensordot(r, q, 1)
   r_dense, q_dense = np_decompositions.rq_decomposition(np, A.todense(), R1)
   res2 = np.tensordot(r_dense, q_dense, 1)
   np.testing.assert_almost_equal(res.todense(), res2)
@@ -172,7 +170,7 @@ def test_qr_decomposition(dtype, R, R1):
                                dtype=dtype)
 
   q, r = decompositions.qr_decomposition(bt, A, R1)
-  res = bt.tensordot(q, r, 1)
+  res = bs.tensordot(q, r, 1)
   q_dense, r_dense = np_decompositions.qr_decomposition(np, A.todense(), R1)
   res2 = np.tensordot(q_dense, r_dense, 1)
   np.testing.assert_almost_equal(res.todense(), res2)
