@@ -16,13 +16,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import functools
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays
-import scipy as sp
-import copy
-import time
 # pylint: disable=line-too-long
 from typing import List, Union, Any, Tuple, Optional
 Tensor = Any
