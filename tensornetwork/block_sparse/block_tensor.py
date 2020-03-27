@@ -2194,6 +2194,9 @@ def pinv(matrix: BlockSparseTensor,
   Returns:
     BlockSparseTensor: The pseudo inverse of `matrix`.
   """
+  if matrix.ndim != 2:
+    raise ValueError("`pinv` can only be taken for matrices, "
+                     "found tensor.ndim={}".format(matrix.ndim))
 
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows
