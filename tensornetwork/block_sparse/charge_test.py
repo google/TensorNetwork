@@ -444,7 +444,7 @@ def test_eq_1():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1], [0]])
-  inds = np.nonzero(c3 == c)[0]
+  inds = np.nonzero(c == c3)[0]
   np.testing.assert_allclose(inds, [1, 4])
   for i in inds:
     np.array_equal(c[i].charges, c3)
@@ -456,7 +456,7 @@ def test_eq_2():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6, 2], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1, 1], [0, 2]])
-  inds = np.nonzero(c3 == c)
+  inds = np.nonzero(c == c3)
 
   np.testing.assert_allclose(inds[0][inds[1] == 0], [1, 4])
   np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
