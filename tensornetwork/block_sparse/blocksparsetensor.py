@@ -22,7 +22,7 @@ from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_bl
 from tensornetwork.block_sparse.charge import fuse_charges, BaseCharge, intersect
 import copy
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Type, Optional, Dict, Iterable, Sequence, Text
+from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
 
