@@ -18,7 +18,7 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.charge import BaseCharge, fuse_charges
 import copy
-from typing import List, Union, Any, Optional, Tuple, Text
+from typing import List, Union
 
 
 class Index:
