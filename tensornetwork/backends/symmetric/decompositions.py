@@ -14,7 +14,9 @@
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import _find_transposed_diagonal_sparse_blocks, BlockSparseTensor, ChargeArray, get_real_dtype, SIZE_T
+from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, get_real_dtype, SIZE_T
+# pylint: disable=line-too-long
+from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
 from tensornetwork.block_sparse.index import Index
 import numpy as np
 import warnings
@@ -57,18 +59,16 @@ def svd_decomposition(
     singvals.append(out[1])
     v_blocks.append(out[2])
 
-  orig_num_singvals = np.sum([len(s) for s in singvals])
+  orig_num_singvals = np.int64(np.sum([len(s) for s in singvals]))
   discarded_singvals = np.zeros(0, dtype=get_real_dtype(tensor.dtype))
   if (max_singular_values is not None) and (max_singular_values >=
                                             orig_num_singvals):
     max_singular_values = None
 
   if (max_truncation_error is not None) or (max_singular_values is not None):
-    if len(singvals) > 0:
-      max_D = np.max([len(s) for s in singvals])
-    else:
-      max_D = 0
-    #fill with zeros
+    max_D = np.max([len(s) for s in singvals]) if len(singvals) > 0 else 0
+
+    #extend singvals of all blocks into a matrix by padding each block with 0
     if len(singvals) > 0:
       extended_singvals = np.stack([
           np.append(s, np.zeros(max_D - len(s), dtype=s.dtype))
@@ -79,6 +79,7 @@ def svd_decomposition(
       extended_singvals = np.empty((0, 0), dtype=get_real_dtype(tensor.dtype))
 
     extended_flat_singvals = np.ravel(extended_singvals)
+    #sort singular values
     inds = np.argsort(extended_flat_singvals, kind='stable')
     discarded_inds = np.zeros(0, dtype=SIZE_T)
     if inds.shape[0] > 0:
@@ -86,7 +87,7 @@ def svd_decomposition(
     else:
       maxind = 0
     if max_truncation_error is not None:
-      if relative:
+      if relative and (len(singvals) > 0):
         max_truncation_error = max_truncation_error * np.max(
             [s[0] for s in singvals])
 
