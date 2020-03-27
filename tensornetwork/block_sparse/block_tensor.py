@@ -1556,16 +1556,25 @@ def tensordot(tensor1: BlockSparseTensor,
   Returns:
       BlockSparseTensor: The result of the tensor contraction.
   """
-
+  #process scalar input for `axes`
   if isinstance(axes, (np.integer, int)):
     axes = [
         np.arange(tensor1.ndim - axes, tensor1.ndim, dtype=np.int16),
         np.arange(0, axes, dtype=np.int16)
     ]
   elif isinstance(axes[0], (np.integer, int)):
+    print(axes, axes[0])
+    if len(axes) > 1:
+      raise ValueError("invalid input `axes = {}` to tensordot".format(axes))
     axes = [np.array(axes, dtype=np.int16), np.array(axes, dtype=np.int16)]
   axes1 = axes[0]
   axes2 = axes[1]
+
+  if len(axes1) != len(axes2):
+    raise ValueError(
+        "`axes1 = {}` and `axes2 = {}` have to be of same length. ".format(
+            axes1, axes2))
+
   if not np.all(np.unique(axes1) == np.sort(axes1)):
     raise ValueError(
         "Some values in axes[0] = {} appear more than once!".format(axes1))
@@ -1586,15 +1595,6 @@ def tensordot(tensor1: BlockSparseTensor,
         "rank of `tensor2` is smaller than `max(axes2) = {}`".format(
             max(axes1)))
 
-  #inner product
-  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
-    return np.dot(
-        tensor1.transpose(axes1, shuffle=True).data,
-        tensor2.transpose(axes2, shuffle=True).data)
-  #outer product
-  if (len(axes1) == 0) and (len(axes2) == 0):
-    return outerproduct(tensor1, tensor2)
-
   contr_flows_1 = []
   contr_flows_2 = []
   contr_charges_1 = []
@@ -1608,14 +1608,30 @@ def tensordot(tensor1: BlockSparseTensor,
 
   if len(contr_charges_2) != len(contr_charges_1):
     raise ValueError(
-        "axes1 and axes2 have incompatible elementary"
-        " shapes {} and {}".format([e.dim for e in contr_charges_1],
+        "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
+        " shapes {} and {}".format(axes1, axes2,
+                                   [e.dim for e in contr_charges_1],
                                    [e.dim for e in contr_charges_2]))
   if not np.all(
       np.asarray(contr_flows_1) == np.logical_not(np.asarray(contr_flows_2))):
 
-    raise ValueError("axes1 and axes2 have incompatible elementary"
-                     " flows {} and {}".format(contr_flows_1, contr_flows_2))
+    raise ValueError(
+        "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
+        " flows {} and {}".format(axes1, axes2, contr_flows_1, contr_flows_2))
+
+  #inner product
+  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
+    t1 = tensor1.transpose(axes1).transpose_data()
+    t2 = tensor2.transpose(axes2).transpose_data()
+    if (t1.data.size == 0) and (t2.data.size == 0):
+      return np.empty(0, dtype=np.result_type(t1.dtype, t2.dtype))
+    elif (t1.data.size == 0) or (t2.data.size == 0):
+      raise ValueError(
+          "tensor1 and tensor2 have incompatible number of elements")
+    return np.dot(t1.data, t2.data)
+  #outer product
+  if (len(axes1) == 0) and (len(axes2) == 0):
+    return outerproduct(tensor1, tensor2)
 
   free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
   free_axes2 = sorted(set(np.arange(tensor2.ndim)) - set(axes2))
@@ -1672,6 +1688,7 @@ def tensordot(tensor1: BlockSparseTensor,
                                                       len(left_charges))
   num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
   #Note that empty is not a viable choice here.
+
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
 
@@ -2150,10 +2167,7 @@ def trace(tensor: BlockSparseTensor,
       identity = eye(
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
-      print(out.data)
-      print(identity.data)
       out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
-      print(out.data)
       a0ar = np.asarray(a0)
 
       mask_min = a0ar > np.min([i, j])
