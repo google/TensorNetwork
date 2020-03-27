@@ -1585,6 +1585,7 @@ def tensordot(tensor1: BlockSparseTensor,
   if len(axes1) == 0:
     return outerproduct(tensor1, tensor2)
 
+  #more checks
   if max(axes1) >= len(tensor1.shape):
     raise ValueError(
         "rank of `tensor1` is smaller than `max(axes1) = {}.`".format(
@@ -1619,7 +1620,7 @@ def tensordot(tensor1: BlockSparseTensor,
         "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
         " flows {} and {}".format(axes1, axes2, contr_flows_1, contr_flows_2))
 
-  #checks finished, move on to the actual calculation
+  #checks finished
 
   #special case inner product
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
