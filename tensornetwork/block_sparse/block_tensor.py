@@ -1546,7 +1546,7 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(tensor1: BlockSparseTensor,
               tensor2: BlockSparseTensor,
               axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
-             ) -> BlockSparseTensor:
+             ) -> Union[BlockSparseTensor, np.ndarray]:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -1588,11 +1588,9 @@ def tensordot(tensor1: BlockSparseTensor,
 
   #inner product
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
-    data = np.dot(
+    return np.dot(
         tensor1.transpose(axes1, shuffle=True).data,
         tensor2.transpose(axes2, shuffle=True).data)
-    return BlockSparseTensor(
-        data=data, charges=[], flows=[], order=[], check_consistency=False)
   #outer product
   if (len(axes1) == 0) and (len(axes2) == 0):
     return outerproduct(tensor1, tensor2)
