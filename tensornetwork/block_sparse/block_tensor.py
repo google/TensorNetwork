@@ -1619,20 +1619,21 @@ def tensordot(tensor1: BlockSparseTensor,
         "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
         " flows {} and {}".format(axes1, axes2, contr_flows_1, contr_flows_2))
 
-  #inner product
+  #checks finished, move on to the actual calculation
+
+  #special case inner product
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
     t1 = tensor1.transpose(axes1).transpose_data()
     t2 = tensor2.transpose(axes2).transpose_data()
-    if (t1.data.size == 0) and (t2.data.size == 0):
-      return np.empty(0, dtype=np.result_type(t1.dtype, t2.dtype))
-    elif (t1.data.size == 0) or (t2.data.size == 0):
-      raise ValueError(
-          "tensor1 and tensor2 have incompatible number of elements")
+    #NOTE (mganahl): for t1.data=[] and t2.data=[] this returns 0.0,
+    #is consistent with numpy behaviour.
     return np.dot(t1.data, t2.data)
-  #outer product
+
+  #special case outer product
   if (len(axes1) == 0) and (len(axes2) == 0):
     return outerproduct(tensor1, tensor2)
 
+  #in all other cases we perform a regular tensordot
   free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
   free_axes2 = sorted(set(np.arange(tensor2.ndim)) - set(axes2))
 
@@ -1653,6 +1654,7 @@ def tensordot(tensor1: BlockSparseTensor,
   right_flows = []
   left_order = []
   right_order = []
+
   s = 0
   for n in free_axes1:
     left_charges.extend([tensor1._charges[o] for o in tensor1._order[n]])
@@ -1687,8 +1689,8 @@ def tensordot(tensor1: BlockSparseTensor,
   sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
                                                       len(left_charges))
   num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
-  #Note that empty is not a viable choice here.
 
+  #Note that empty is not a viable choice here.
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
 
@@ -1699,11 +1701,11 @@ def tensordot(tensor1: BlockSparseTensor,
     n1 = label_to_common_1[n]
     n2 = label_to_common_2[n]
     nf = label_to_common_final[n]
-
     data[sparse_blocks[nf].ravel()] = np.ravel(
         np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
                   tensor2.data[tr_sparse_blocks_2[n2].reshape(
                       shapes_2[:, n2])]))
+
   res = BlockSparseTensor(
       data=data,
       charges=charges,
