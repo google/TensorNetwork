@@ -1546,7 +1546,7 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(tensor1: BlockSparseTensor,
               tensor2: BlockSparseTensor,
               axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
-             ) -> Union[BlockSparseTensor, np.ndarray]:
+             ) -> Union[BlockSparseTensor, np.number]:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
