@@ -1546,7 +1546,7 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(tensor1: BlockSparseTensor,
               tensor2: BlockSparseTensor,
               axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
-             ) -> BlockSparseTensor:
+             ) -> Union[BlockSparseTensor, np.number]:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -1556,16 +1556,34 @@ def tensordot(tensor1: BlockSparseTensor,
   Returns:
       BlockSparseTensor: The result of the tensor contraction.
   """
-
+  #process scalar input for `axes`
   if isinstance(axes, (np.integer, int)):
     axes = [
         np.arange(tensor1.ndim - axes, tensor1.ndim, dtype=np.int16),
         np.arange(0, axes, dtype=np.int16)
     ]
   elif isinstance(axes[0], (np.integer, int)):
+    if len(axes) > 1:
+      raise ValueError("invalid input `axes = {}` to tensordot".format(axes))
     axes = [np.array(axes, dtype=np.int16), np.array(axes, dtype=np.int16)]
   axes1 = axes[0]
   axes2 = axes[1]
+
+  if len(axes1) != len(axes2):
+    raise ValueError(
+        "`axes1 = {}` and `axes2 = {}` have to be of same length. ".format(
+            axes1, axes2))
+
+  if len(axes1) > len(tensor1.shape):
+    raise ValueError(
+        "`axes1 = {}` is incompatible with `tensor1.shape = {}. ".format(
+            axes1, tensor1.shape))
+
+  if len(axes2) > len(tensor2.shape):
+    raise ValueError(
+        "`axes2 = {}` is incompatible with `tensor2.shape = {}. ".format(
+            axes2, tensor2.shape))
+
   if not np.all(np.unique(axes1) == np.sort(axes1)):
     raise ValueError(
         "Some values in axes[0] = {} appear more than once!".format(axes1))
@@ -1573,17 +1591,11 @@ def tensordot(tensor1: BlockSparseTensor,
     raise ValueError(
         "Some values in axes[1] = {} appear more than once!".format(axes2))
 
+  #special case outer product
   if len(axes1) == 0:
     return outerproduct(tensor1, tensor2)
 
-  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
-    isort = np.argsort(axes1)
-    data = np.dot(tensor1.data,
-                  tensor2.transpose(np.asarray(axes2)[isort]).data)
-    return BlockSparseTensor(
-        data=data, charges=[], flows=[], order=[],
-        check_consistency=False)  #Index(identity_charges, flow=False)])
-
+  #more checks
   if max(axes1) >= len(tensor1.shape):
     raise ValueError(
         "rank of `tensor1` is smaller than `max(axes1) = {}.`".format(
@@ -1607,15 +1619,28 @@ def tensordot(tensor1: BlockSparseTensor,
 
   if len(contr_charges_2) != len(contr_charges_1):
     raise ValueError(
-        "axes1 and axes2 have incompatible elementary"
-        " shapes {} and {}".format([e.dim for e in contr_charges_1],
+        "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
+        " shapes {} and {}".format(axes1, axes2,
+                                   [e.dim for e in contr_charges_1],
                                    [e.dim for e in contr_charges_2]))
   if not np.all(
       np.asarray(contr_flows_1) == np.logical_not(np.asarray(contr_flows_2))):
 
-    raise ValueError("axes1 and axes2 have incompatible elementary"
-                     " flows {} and {}".format(contr_flows_1, contr_flows_2))
+    raise ValueError(
+        "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
+        " flows {} and {}".format(axes1, axes2, contr_flows_1, contr_flows_2))
 
+  #checks finished
+
+  #special case inner product
+  if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
+    t1 = tensor1.transpose(axes1).transpose_data()
+    t2 = tensor2.transpose(axes2).transpose_data()
+    #NOTE (mganahl): for t1.data=[] and t2.data=[] this returns 0.0,
+    #is consistent with numpy behaviour.
+    return np.dot(t1.data, t2.data)
+
+  #in all other cases we perform a regular tensordot
   free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
   free_axes2 = sorted(set(np.arange(tensor2.ndim)) - set(axes2))
 
@@ -1636,6 +1661,7 @@ def tensordot(tensor1: BlockSparseTensor,
   right_flows = []
   left_order = []
   right_order = []
+
   s = 0
   for n in free_axes1:
     left_charges.extend([tensor1._charges[o] for o in tensor1._order[n]])
@@ -1666,9 +1692,11 @@ def tensordot(tensor1: BlockSparseTensor,
   #Note: `cs` may contain charges that are not present in `common_charges`
   charges = left_charges + right_charges
   flows = left_flows + right_flows
+
   sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
                                                       len(left_charges))
   num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
+
   #Note that empty is not a viable choice here.
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
@@ -1680,11 +1708,11 @@ def tensordot(tensor1: BlockSparseTensor,
     n1 = label_to_common_1[n]
     n2 = label_to_common_2[n]
     nf = label_to_common_final[n]
-
     data[sparse_blocks[nf].ravel()] = np.ravel(
         np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
                   tensor2.data[tr_sparse_blocks_2[n2].reshape(
                       shapes_2[:, n2])]))
+
   res = BlockSparseTensor(
       data=data,
       charges=charges,
@@ -2148,7 +2176,6 @@ def trace(tensor: BlockSparseTensor,
       identity = eye(
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
-
       out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
       a0ar = np.asarray(a0)
 
@@ -2178,6 +2205,9 @@ def pinv(matrix: BlockSparseTensor,
   Returns:
     BlockSparseTensor: The pseudo inverse of `matrix`.
   """
+  if matrix.ndim != 2:
+    raise ValueError("`pinv` can only be taken for matrices, "
+                     "found tensor.ndim={}".format(matrix.ndim))
 
   flat_charges = matrix._charges
   flat_flows = matrix.flat_flows

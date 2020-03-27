@@ -1110,7 +1110,14 @@ def test_tensordot_raises():
   is2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(R2)]
   A = BlockSparseTensor.random(is1, dtype=dtype)
   B = BlockSparseTensor.random(is2, dtype=dtype)
-
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1, 2, 3], [1, 2]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0, 1], [0, 1, 2, 3]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, ([0], [1, 2]))
+  with pytest.raises(ValueError):
+    tensordot(A, B, [0, [1, 2]])
   with pytest.raises(ValueError):
     tensordot(A, B, ([0, 0], [1, 2]))
   with pytest.raises(ValueError):
@@ -1169,6 +1176,31 @@ def test_tensordot_inner(R1, R2, dtype, num_charges):
                                                 DsA, Dscomm, DsB)
   res = tensordot(A, B, (indsA, indsB))
   dense_res = np.tensordot(A.todense(), B.todense(), (indsA, indsB))
+  np.testing.assert_allclose(dense_res, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R1, R2", [(2, 2), (3, 3), (4, 4), (1, 1)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_tensordot_inner_transpose(R1, R2, dtype, num_charges):
+  np.random.seed(10)
+  DsA = np.random.randint(3, 5, R1)
+  Dscomm = np.random.randint(3, 5, 0)
+  DsB = np.random.randint(3, 5, R2)
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0, dtype, num_charges,
+                                                DsA, Dscomm, DsB)
+  orderA = np.arange(R1)
+  orderB = np.arange(R2)
+  np.random.shuffle(orderA)
+  np.random.shuffle(orderB)
+  A_ = A.transpose(orderA)
+  B_ = B.transpose(orderB)
+  _, indposA = np.unique(orderA, return_index=True)
+  _, indposB = np.unique(orderB, return_index=True)
+  indsA_ = indposA[indsA]
+  indsB_ = indposB[indsB]
+  res = tensordot(A_, B_, (indsA_, indsB_))
+  dense_res = np.tensordot(A_.todense(), B_.todense(), (indsA_, indsB_))
   np.testing.assert_allclose(dense_res, res.todense())
 
 
@@ -1327,6 +1359,28 @@ def test_qr_prod(dtype, Ds, R1, mode, num_charges):
     assert charge_equal(A_._charges[n], A._charges[n])
 
 
+def test_qr_raises():
+  np.random.seed(10)
+  dtype = np.float64
+  num_charges = 1
+  Ds = [20, 21]
+  R1 = 1
+  R = len(Ds)
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  d1 = np.prod(Ds[:R1])
+  d2 = np.prod(Ds[R1:])
+  A = A.reshape([d1, d2])
+  with pytest.raises(ValueError):
+    qr(A, mode='fake_mode')
+
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [0]])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
@@ -1350,6 +1404,23 @@ def test_eigh_prod(dtype, Ds, num_charges):
   np.testing.assert_allclose(B.data, B_.data)
   for n in range(len(B._charges)):
     assert charge_equal(B_._charges[n], B._charges[n])
+
+
+def test_eigh_raises():
+  np.random.seed(10)
+  num_charges = 1
+  D = 20
+  R = 3
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [False] * R
+  inds = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.random(inds)
+  with pytest.raises(NotImplementedError):
+    eigh(A)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -1382,6 +1453,20 @@ def test_inv(dtype, num_charges):
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
 
 
+def test_inv_raises():
+  num_charges = 1
+  np.random.seed(10)
+  R = 3
+  D = 10
+  charge = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  A = BlockSparseTensor.random([Index(charge, False) for n in range(R)],
+                               (-0.5, 0.5))
+  with pytest.raises(ValueError):
+    inv(A)
+
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("Ds", [[20], [9, 10], [6, 7, 8], [0]])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
@@ -1403,6 +1488,23 @@ def test_eig_prod(dtype, Ds, num_charges):
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
   np.testing.assert_allclose(A.data, A_.data)
+
+
+def test_eig_raises():
+  np.random.seed(10)
+  num_charges = 1
+  D = 20
+  R = 3
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = [False] * R
+  inds = [Index(charges[n], flows[n]) for n in range(R)]
+  A = BlockSparseTensor.random(inds)
+  with pytest.raises(NotImplementedError):
+    eig(A)
 
 
 #Note the case num_charges=4 is most likely testing  empty tensors
@@ -1444,9 +1546,9 @@ def test_eye(dtype, num_charges, D):
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_trace_matrix(dtype, num_charges):
+@pytest.mark.parametrize('D', [0, 100])
+def test_trace_matrix(dtype, num_charges, D):
   np.random.seed(10)
-  D = 20
   R = 2
   charge = BaseCharge(
       np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
@@ -1456,19 +1558,19 @@ def test_trace_matrix(dtype, num_charges):
                                     dtype=dtype)
   res = trace(matrix)
   res_dense = np.trace(matrix.todense())
-  np.testing.assert_allclose(res.todense(), res_dense)
+  np.testing.assert_allclose(res, res_dense)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_trace_tensor(dtype, num_charges):
+@pytest.mark.parametrize('D1, D2', [(10, 12), (0, 10)])
+def test_trace_tensor(dtype, num_charges, D1, D2):
   np.random.seed(10)
-  D = 20
   charge1 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D1), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D2), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [Index(charge1, False), Index(charge2, False), Index(charge1, True)]
   tensor = BlockSparseTensor.random(indices, dtype=dtype)
@@ -1490,7 +1592,7 @@ def test_trace_raises(num_charges):
     trace(A1)
 
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D + 1), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [
       Index(charge1, False),
@@ -1534,6 +1636,20 @@ def test_pinv(dtype, num_charges):
   for n, block in enumerate(blocks):
     t = np.reshape(right_eye.data[block], shapes[:, n])
     assert np.linalg.norm(t - np.eye(t.shape[0], t.shape[1])) < 1E-12
+
+
+def test_pinv_raises():
+  num_charges = 1
+  np.random.seed(10)
+  R = 3
+  D = 10
+  charge = BaseCharge(
+      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  A = BlockSparseTensor.random([Index(charge, False) for n in range(R)],
+                               (-0.5, 0.5))
+  with pytest.raises(ValueError):
+    pinv(A)
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
