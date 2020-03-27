@@ -1174,6 +1174,31 @@ def test_tensordot_inner(R1, R2, dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R1, R2", [(2, 2), (3, 3), (4, 4), (1, 1)])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_tensordot_inner_transpose(R1, R2, dtype, num_charges):
+  np.random.seed(10)
+  DsA = np.random.randint(3, 5, R1)
+  Dscomm = np.random.randint(3, 5, 0)
+  DsB = np.random.randint(3, 5, R2)
+  A, B, indsA, indsB = get_contractable_tensors(R1, R2, 0, dtype, num_charges,
+                                                DsA, Dscomm, DsB)
+  orderA = np.arange(R1)
+  orderB = np.arange(R2)
+  np.random.shuffle(orderA)
+  np.random.shuffle(orderB)
+  A_ = A.transpose(orderA)
+  B_ = B.transpose(orderB)
+  _, indposA = np.unique(orderA, return_index=True)
+  _, indposB = np.unique(orderB, return_index=True)
+  indsA_ = indposA[indsA]
+  indsB_ = indposB[indsB]
+  res = tensordot(A_, B_, (indsA_, indsB_))
+  dense_res = np.tensordot(A_.todense(), B_.todense(), (indsA_, indsB_))
+  np.testing.assert_allclose(dense_res, res.todense())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (2, 1), (1, 2), (1, 1)])
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_tensordot_outer(R1, R2, dtype, num_charges):
