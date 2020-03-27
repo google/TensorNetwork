@@ -5,9 +5,9 @@ import itertools
 from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
 from tensornetwork.block_sparse.index import Index
 from tensornetwork import ncon
+
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.block_tensor import _find_best_partition, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks
-from tensornetwork.block_sparse.block_tensor import *
+from tensornetwork.block_sparse.block_tensor import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks, ChargeArray, BlockSparseTensor, norm, diag, reshape, transpose, conj, outerproduct, tensordot, svd, qr, eigh, eig, inv, sqrt, trace, eye
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
