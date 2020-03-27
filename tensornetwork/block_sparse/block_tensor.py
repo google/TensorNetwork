@@ -1563,7 +1563,6 @@ def tensordot(tensor1: BlockSparseTensor,
         np.arange(0, axes, dtype=np.int16)
     ]
   elif isinstance(axes[0], (np.integer, int)):
-    print(axes, axes[0])
     if len(axes) > 1:
       raise ValueError("invalid input `axes = {}` to tensordot".format(axes))
     axes = [np.array(axes, dtype=np.int16), np.array(axes, dtype=np.int16)]
