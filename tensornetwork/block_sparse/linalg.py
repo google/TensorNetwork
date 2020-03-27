@@ -19,11 +19,12 @@ import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import tensordot
 from tensornetwork.block_sparse.charge import intersect
+# pylint: disable=line-too-long
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Type, Optional, Sequence, Text
+from typing import List, Union, Any, Tuple, Type, Optional, Text
 Tensor = Any
 
 
