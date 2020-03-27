@@ -1469,9 +1469,9 @@ def test_eye(dtype, num_charges, D):
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_trace_matrix(dtype, num_charges):
+@pytest.mark.parametrize('D', [0, 100])
+def test_trace_matrix(dtype, num_charges, D):
   np.random.seed(10)
-  D = 20
   R = 2
   charge = BaseCharge(
       np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
@@ -1486,14 +1486,14 @@ def test_trace_matrix(dtype, num_charges):
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_trace_tensor(dtype, num_charges):
+@pytest.mark.parametrize('D1, D2', [(10, 12), (0, 10)])
+def test_trace_tensor(dtype, num_charges, D1, D2):
   np.random.seed(10)
-  D = 20
   charge1 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D1), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D2), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [Index(charge1, False), Index(charge2, False), Index(charge1, True)]
   tensor = BlockSparseTensor.random(indices, dtype=dtype)
@@ -1515,7 +1515,7 @@ def test_trace_raises(num_charges):
     trace(A1)
 
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (num_charges, D + 1), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [
       Index(charge1, False),
