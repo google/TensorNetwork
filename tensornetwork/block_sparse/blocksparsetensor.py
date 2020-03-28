@@ -766,7 +766,7 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(tensor1: BlockSparseTensor,
               tensor2: BlockSparseTensor,
               axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
-             ) -> Union[BlockSparseTensor, np.number]:
+             ) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -858,7 +858,20 @@ def tensordot(tensor1: BlockSparseTensor,
     t2 = tensor2.transpose(axes2).transpose_data()
     #NOTE (mganahl): for t1.data=[] and t2.data=[] this returns 0.0,
     #is consistent with numpy behaviour.
-    return np.dot(t1.data, t2.data)
+    data = np.dot(t1.data, t2.data)
+    charge = tensor1._charges[0]
+    final_charge = charge.__new__(type(charge))
+
+    final_charge.__init__(
+        np.empty((charge.num_symmetries, 0), dtype=np.int16),
+        charge_labels=np.empty(0, dtype=np.int16),
+        charge_types=charge.charge_types)
+    return BlockSparseTensor(
+        data=data,
+        charges=[final_charge],
+        flows=[False],
+        order=[[0]],
+        check_consistency=False)
 
   #in all other cases we perform a regular tensordot
   free_axes1 = sorted(set(np.arange(tensor1.ndim)) - set(axes1))
