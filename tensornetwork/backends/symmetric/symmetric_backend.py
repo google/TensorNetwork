@@ -26,6 +26,8 @@ import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
 
+#TODO (mganahl): implement sparse solvers
+
 
 class SymmetricBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
