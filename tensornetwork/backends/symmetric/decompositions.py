@@ -170,9 +170,6 @@ def svd_decomposition(
   flows_v = [False] + [matrix._flows[o] for o in matrix._order[1]]
   order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
 
-  #indices_u = [Index(new_left_charge, True), matrix.indices[0]]
-  #indices_v = [Index(new_right_charge, False), matrix.indices[1]]
-
   #We fill in data into the transposed U
   U = BlockSparseTensor(
       all_ublocks,
