@@ -467,7 +467,7 @@ def test_trace_matrix(dtype, num_charges, D):
                                     dtype=dtype)
   res = trace(matrix)
   res_dense = np.trace(matrix.todense())
-  np.testing.assert_allclose(res, res_dense)
+  np.testing.assert_allclose(res.data, res_dense)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
