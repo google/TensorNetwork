@@ -4,7 +4,7 @@ import pytest
 from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
 
 
-def est_BaseCharge_charges():
+def test_BaseCharge_charges():
   D = 100
   B = 6
   np.random.seed(10)

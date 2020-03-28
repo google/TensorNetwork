@@ -16,16 +16,17 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.block_tensor import BlockSparseTensor
+from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 # Note: this import has to stay here or some test will fail
 # Some functions in block_tensor use isinstance(tensor,bt.ChargeArray)
-# which, weirdly enough, gives the wrong result if block_tensor is imported
+# which, weirdly enough, gives the wrong result if blocksparsetensor is imported
 # within SymmetricBackend
 #TODO: figure out what is going on here!
-import tensornetwork.block_sparse.block_tensor as bt
+import tensornetwork.block_sparse as bs
 import numpy
-import scipy
 Tensor = Any
+
+#TODO (mganahl): implement sparse solvers
 
 
 class SymmetricBackend(base_backend.BaseBackend):
@@ -33,17 +34,17 @@ class SymmetricBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(SymmetricBackend, self).__init__()
-    self.bt = bt
+    self.bs = bs
     self.name = "symmetric"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
-    return self.bt.tensordot(a, b, axes)
+    return self.bs.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.bt.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
+    return self.bs.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
 
   def transpose(self, tensor, perm):
-    return self.bt.transpose(tensor, perm)
+    return self.bs.transpose(tensor, perm)
 
   def svd_decomposition(self,
                         tensor: Tensor,
@@ -52,7 +53,7 @@ class SymmetricBackend(base_backend.BaseBackend):
                         max_truncation_error: Optional[float] = None,
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.bt, tensor, split_axis,
+    return decompositions.svd_decomposition(self.bs, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error, relative)
 
@@ -61,14 +62,14 @@ class SymmetricBackend(base_backend.BaseBackend):
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.bt, tensor, split_axis)
+    return decompositions.qr_decomposition(self.bs, tensor, split_axis)
 
   def rq_decomposition(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.bt, tensor, split_axis)
+    return decompositions.rq_decomposition(self.bs, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
@@ -86,10 +87,10 @@ class SymmetricBackend(base_backend.BaseBackend):
     return numpy.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
-    return self.bt.sqrt(tensor)
+    return self.bs.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    return self.bt.diag(tensor)
+    return self.bs.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if not isinstance(tensor, BlockSparseTensor):
@@ -100,16 +101,16 @@ class SymmetricBackend(base_backend.BaseBackend):
 
   def trace(self, tensor: Tensor) -> Tensor:
     # Default np.trace uses first two axes.
-    return self.bt.trace(tensor)
+    return self.bs.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.bt.tensordot(tensor1, tensor2, 0)
+    return self.bs.tensordot(tensor1, tensor2, 0)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
     raise NotImplementedError("`einsum` currently not implemented")
 
   def norm(self, tensor: Tensor) -> Tensor:
-    return self.bt.norm(tensor)
+    return self.bs.norm(tensor)
 
   def eye(self,
           N: Index,
@@ -117,17 +118,17 @@ class SymmetricBackend(base_backend.BaseBackend):
           M: Optional[Index] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
 
-    return self.bt.eye(N, M, dtype=dtype)
+    return self.bs.eye(N, M, dtype=dtype)
 
   def ones(self, shape: List[Index],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
-    return self.bt.ones(shape, dtype=dtype)
+    return self.bs.ones(shape, dtype=dtype)
 
   def zeros(self, shape: List[Index],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
-    return self.bt.zeros(shape, dtype=dtype)
+    return self.bs.zeros(shape, dtype=dtype)
 
   def randn(self,
             shape: List[Index],
@@ -136,7 +137,7 @@ class SymmetricBackend(base_backend.BaseBackend):
 
     if seed:
       numpy.random.seed(seed)
-    return self.bt.randn(shape, dtype)
+    return self.bs.randn(shape, dtype)
 
   def random_uniform(self,
                      shape: List[Index],
@@ -147,13 +148,13 @@ class SymmetricBackend(base_backend.BaseBackend):
     if seed:
       numpy.random.seed(seed)
     dtype = dtype if dtype is not None else numpy.float64
-    return self.bt.random(shape, boundaries, dtype)
+    return self.bs.random(shape, boundaries, dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return self.bt.conj(tensor)
+    return self.bs.conj(tensor)
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
-    return self.bt.eigh(matrix)
+    return self.bs.eigh(matrix)
 
   def eigs(self,
            A: Callable,
@@ -194,4 +195,4 @@ class SymmetricBackend(base_backend.BaseBackend):
     if len(matrix.shape) > 2:
       raise ValueError("input to symmetric backend method `inv` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
-    return self.bt.inv(matrix)
+    return self.bs.inv(matrix)
