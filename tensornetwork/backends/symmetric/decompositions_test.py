@@ -38,7 +38,7 @@ def test_svd_decompositions(dtype, R, R1, num_charges):
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
 
-  u, s, v, _ = decompositions.svd_decomposition(bt, A, R1)
+  u, s, v, _ = decompositions.svd_decomposition(bs, A, R1)
   u_dense, s_dense, v_dense, _ = np_decompositions.svd_decomposition(
       np, A.todense(), R1)
   res1 = bs.tensordot(bs.tensordot(u, bs.diag(s), 1), v, 1)
@@ -60,7 +60,7 @@ def test_singular_values(dtype, R, R1, num_charges):
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
-  _, s, _, _ = decompositions.svd_decomposition(bt, A, R1)
+  _, s, _, _ = decompositions.svd_decomposition(bs, A, R1)
   _, s_dense, _, _ = np_decompositions.svd_decomposition(np, A.todense(), R1)
   np.testing.assert_almost_equal(
       np.sort(s.todense()), np.sort(s_dense[s_dense > 1E-13]))
@@ -82,7 +82,7 @@ def test_max_singular_values(dtype, R, R1, num_charges):
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
   _, s, _, _ = decompositions.svd_decomposition(
-      bt, A, R1, max_singular_values=max_singular_values)
+      bs, A, R1, max_singular_values=max_singular_values)
   assert len(s.data) <= max_singular_values
 
 
@@ -109,7 +109,7 @@ def test_max_truncation_error(dtype, num_charges):
   trunc = 8
   mask = np.sqrt(np.cumsum(np.square(svals))) >= trunc
   _, S2, _, _ = decompositions.svd_decomposition(
-      bt, val, 1, max_truncation_error=trunc)
+      bs, val, 1, max_truncation_error=trunc)
   np.testing.assert_allclose(S2.data, svals[mask][::-1])
 
 
@@ -132,7 +132,7 @@ def test_max_singular_values_larger_than_bond_dimension(dtype, num_charges):
   S.data = np.array(range(len(S.data)))
   val = U @ bs.diag(S) @ V
   _, S2, _, _ = decompositions.svd_decomposition(
-      bt, val, 1, max_singular_values=40)
+      bs, val, 1, max_singular_values=40)
   assert S2.shape == S.shape
 
 
@@ -152,7 +152,7 @@ def test_rq_decomposition(dtype, R, R1, num_charges):
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
 
-  r, q = decompositions.rq_decomposition(bt, A, R1)
+  r, q = decompositions.rq_decomposition(bs, A, R1)
   res = bs.tensordot(r, q, 1)
   r_dense, q_dense = np_decompositions.rq_decomposition(np, A.todense(), R1)
   res2 = np.tensordot(r_dense, q_dense, 1)
@@ -169,7 +169,7 @@ def test_qr_decomposition(dtype, R, R1):
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
 
-  q, r = decompositions.qr_decomposition(bt, A, R1)
+  q, r = decompositions.qr_decomposition(bs, A, R1)
   res = bs.tensordot(q, r, 1)
   q_dense, r_dense = np_decompositions.qr_decomposition(np, A.todense(), R1)
   res2 = np.tensordot(q_dense, r_dense, 1)
