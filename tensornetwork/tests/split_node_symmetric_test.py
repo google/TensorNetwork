@@ -17,7 +17,7 @@ import pytest
 import numpy as np
 from tensornetwork.block_sparse import BlockSparseTensor, Index
 from tensornetwork.block_sparse.charge import charge_equal, BaseCharge, U1Charge
-from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
 
@@ -46,7 +46,7 @@ def get_zeros(shape, num_charges, dtype=np.float64):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
 def test_split_node(dtype, num_charges):
   np.random.seed(111)
   a = tn.Node(
@@ -72,7 +72,7 @@ def test_split_node(dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
 def test_split_node_mixed_order(dtype, num_charges):
   np.random.seed(111)
   a = tn.Node(
@@ -103,7 +103,7 @@ def test_split_node_mixed_order(dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
 def test_svd_consistency(dtype, num_charges):
   np.random.seed(111)
   original_tensor = get_random((20, 20), num_charges, dtype)

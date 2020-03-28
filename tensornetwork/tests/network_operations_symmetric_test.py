@@ -17,7 +17,7 @@ import pytest
 import numpy as np
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
 from tensornetwork.block_sparse.charge import charge_equal
-from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
 

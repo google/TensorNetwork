@@ -28,7 +28,7 @@ jax_dtypes = [
     jax.numpy.complex128, jax.numpy.int32
 ]
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
-from tensornetwork.block_sparse.block_tensor import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
 
