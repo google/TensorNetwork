@@ -1,5 +1,3 @@
-"""Tests for graphmode_tensornetwork."""
-import tensorflow as tf
 import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
