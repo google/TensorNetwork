@@ -18,20 +18,20 @@ from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
+from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends import base_backend
-
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
     "jax": jax_backend.JaxBackend,
     "shell": shell_backend.ShellBackend,
-    "pytorch": pytorch_backend.PyTorchBackend
+    "pytorch": pytorch_backend.PyTorchBackend,
+    "symmetric": symmetric_backend.SymmetricBackend
 }
 
 
 def get_backend(
-    backend: Union[Text, base_backend.BaseBackend]
-    ) -> base_backend.BaseBackend:
+    backend: Union[Text, base_backend.BaseBackend]) -> base_backend.BaseBackend:
   if isinstance(backend, base_backend.BaseBackend):
     return backend
   if backend not in _BACKENDS:
