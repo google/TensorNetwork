@@ -10,7 +10,6 @@ from tensornetwork.ncon_interface import ncon, ncon_network
 from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
-from typing import Text, Optional, Type, Union
 from tensornetwork.utils import load_nodes, save_nodes
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
