@@ -115,9 +115,12 @@ def svd_decomposition(
       warnings.warn("svd_decomposition truncated to 0 dimensions. "
                     "Adjusting to `max_singular_values = 1`")
       inds = np.asarray([maxind])
-    #pylint: disable=no-member
-    keep = np.divmod(inds, extended_singvals.shape[1])
 
+    if extended_singvals.shape[1] > 0:
+      #pylint: disable=no-member
+      keep = np.divmod(inds, extended_singvals.shape[1])
+    else:
+      keep = (np.zeros(1, dtype=SIZE_T), np.zeros(1, dtype=SIZE_T))
     newsingvals = [
         extended_singvals[keep[0][keep[1] == n], keep[1][keep[1] == n]][::-1]
         for n in range(extended_singvals.shape[1])
@@ -169,9 +172,6 @@ def svd_decomposition(
               ] + [matrix._charges[o] for o in matrix._order[1]]
   flows_v = [False] + [matrix._flows[o] for o in matrix._order[1]]
   order_v = [[0]] + [list(np.arange(1, len(matrix._order[1]) + 1))]
-
-  #indices_u = [Index(new_left_charge, True), matrix.indices[0]]
-  #indices_v = [Index(new_right_charge, False), matrix.indices[1]]
 
   #We fill in data into the transposed U
   U = BlockSparseTensor(
