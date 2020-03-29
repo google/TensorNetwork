@@ -13,15 +13,10 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import base_bpackend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
-# Note: this import has to stay here or some test will fail
-# Some functions in block_tensor use isinstance(tensor,bt.ChargeArray)
-# which, weirdly enough, gives the wrong result if blocksparsetensor is imported
-# within SymmetricBackend
-#TODO: figure out what is going on here!
 import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
