@@ -13,7 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_bpackend
+from tensornetwork.backends import base_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
