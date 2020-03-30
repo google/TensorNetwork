@@ -27,24 +27,19 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
-from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index
+from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
 
-def get_random(shape, dtype=np.float64):
-  R = len(shape)
-  charges = [U1Charge(np.random.randint(-5, 5, shape[n])) for n in range(R)]
-  flows = list(np.full(R, fill_value=False, dtype=np.bool))
-  indices = [Index(charges[n], flows[n]) for n in range(R)]
-  return BlockSparseTensor.random(indices=indices, dtype=dtype)
-
-
-def get_random_symmetric(shape, flows, seed=10, dtype=np.float64):
+def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):
   assert np.all(np.asarray(shape) == shape[0])
   np.random.seed(seed)
   R = len(shape)
-  charge = U1Charge(np.random.randint(-5, 5, shape[0]))
+  charge = BaseCharge(
+      np.random.randint(-5, 5, (num_charges, shape[0])),
+      charge_types=[U1Charge] * num_charges)
+
   indices = [Index(charge, flows[n]) for n in range(R)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)
 
@@ -73,15 +68,22 @@ def get_ones(shape, dtype=np.float64):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_network_copy_reordered(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_network_copy_reordered(dtype, num_charges):
   a = tn.Node(
-      get_random_symmetric((30, 30, 30), [False, False, False], dtype=dtype),
+      get_random_symmetric((30, 30, 30), [False, False, False],
+                           num_charges,
+                           dtype=dtype),
       backend='symmetric')
   b = tn.Node(
-      get_random_symmetric((30, 30, 30), [False, True, False], dtype=dtype),
+      get_random_symmetric((30, 30, 30), [False, True, False],
+                           num_charges,
+                           dtype=dtype),
       backend='symmetric')
   c = tn.Node(
-      get_random_symmetric((30, 30, 30), [True, False, True], dtype=dtype),
+      get_random_symmetric((30, 30, 30), [True, False, True],
+                           num_charges,
+                           dtype=dtype),
       backend='symmetric')
 
   a[0] ^ b[1]
@@ -100,12 +102,13 @@ def test_network_copy_reordered(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_small_matmul(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_small_matmul(dtype, num_charges):
   a = tn.Node(
-      get_random_symmetric((100, 100), [True, True], dtype=dtype),
+      get_random_symmetric((100, 100), [True, True], num_charges, dtype=dtype),
       backend='symmetric')
   b = tn.Node(
-      get_random_symmetric((100, 100), [False, True], dtype=dtype),
+      get_random_symmetric((100, 100), [False, True], num_charges, dtype=dtype),
       backend='symmetric')
 
   edge = tn.connect(a[0], b[0], "edge")
@@ -116,9 +119,11 @@ def test_small_matmul(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_double_trace(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_double_trace(dtype, num_charges):
   a = tn.Node(
       get_random_symmetric((20, 20, 20, 20), [True, False, True, False],
+                           num_charges,
                            dtype=dtype),
       backend='symmetric')
   edge1 = tn.connect(a[0], a[1], "edge1")
@@ -137,12 +142,18 @@ def test_double_trace(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_real_physics(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_real_physics(dtype, num_charges):
   # Calcuate the expected value in numpy
   t1 = get_random_symmetric((20, 20, 20, 20), [False, False, False, False],
+                            num_charges,
                             dtype=dtype)
-  t2 = get_random_symmetric((20, 20, 20), [True, False, True], dtype=dtype)
-  t3 = get_random_symmetric((20, 20, 20), [True, True, False], dtype=dtype)
+  t2 = get_random_symmetric((20, 20, 20), [True, False, True],
+                            num_charges,
+                            dtype=dtype)
+  t3 = get_random_symmetric((20, 20, 20), [True, True, False],
+                            num_charges,
+                            dtype=dtype)
 
   t1_dense = t1.todense()
   t2_dense = t2.todense()
@@ -176,12 +187,15 @@ def test_real_physics(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_node2_contract_trace(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_node2_contract_trace(dtype, num_charges):
   a = tn.Node(
-      get_random_symmetric((20, 20, 20), [False, True, False], dtype=dtype),
+      get_random_symmetric((20, 20, 20), [False, True, False],
+                           num_charges,
+                           dtype=dtype),
       backend='symmetric')
   b = tn.Node(
-      get_random_symmetric((20, 20), [True, False], dtype=dtype),
+      get_random_symmetric((20, 20), [True, False], num_charges, dtype=dtype),
       backend='symmetric')
 
   tn.connect(b[0], a[2])
@@ -191,10 +205,15 @@ def test_node2_contract_trace(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_flatten_consistent_result(dtype):
-  a_val = get_random_symmetric((10, 10, 10, 10), [False] * 4, dtype=dtype)
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_flatten_consistent_result(dtype, num_charges):
+  a_val = get_random_symmetric((10, 10, 10, 10), [False] * 4,
+                               num_charges,
+                               dtype=dtype)
 
-  b_val = get_random_symmetric((10, 10, 10, 10), [True] * 4, dtype=dtype)
+  b_val = get_random_symmetric((10, 10, 10, 10), [True] * 4,
+                               num_charges,
+                               dtype=dtype)
 
   # Create non flattened example to compare against.
   a_noflat = tn.Node(a_val, backend='symmetric')
@@ -226,9 +245,11 @@ def test_flatten_consistent_result(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_flatten_trace_consistent_result(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_flatten_trace_consistent_result(dtype, num_charges):
   a_val = get_random_symmetric((5, 5, 5, 5, 5, 5),
                                [False, False, True, True, True, False],
+                               num_charges,
                                dtype=dtype)
   a_noflat = tn.Node(a_val, backend='symmetric')
   e1 = tn.connect(a_noflat[0], a_noflat[4])
@@ -249,9 +270,11 @@ def test_flatten_trace_consistent_result(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_flatten_trace_consistent_tensor(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_flatten_trace_consistent_tensor(dtype, num_charges):
   a_val = get_random_symmetric((5, 5, 5, 5, 5),
                                [False, False, True, True, True],
+                               num_charges,
                                dtype=dtype)
   a = tn.Node(a_val, backend='symmetric')
   e1 = tn.connect(a[0], a[4])
@@ -265,8 +288,11 @@ def test_flatten_trace_consistent_tensor(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_contract_between_trace_edges(dtype):
-  a_val = get_random_symmetric((50, 50), [False, True], dtype=dtype)
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_contract_between_trace_edges(dtype, num_charges):
+  a_val = get_random_symmetric((50, 50), [False, True],
+                               num_charges,
+                               dtype=dtype)
   final_val = np.trace(a_val.todense())
   a = tn.Node(a_val, backend='symmetric')
   tn.connect(a[0], a[1])
@@ -276,12 +302,13 @@ def test_contract_between_trace_edges(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_at_operator(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_at_operator(dtype, num_charges):
   a = tn.Node(
-      get_random_symmetric((50, 50), [False, True], dtype=dtype),
+      get_random_symmetric((50, 50), [False, True], num_charges, dtype=dtype),
       backend='symmetric')
   b = tn.Node(
-      get_random_symmetric((50, 50), [False, True], dtype=dtype),
+      get_random_symmetric((50, 50), [False, True], num_charges, dtype=dtype),
       backend='symmetric')
   tn.connect(a[1], b[0])
   c = a @ b
