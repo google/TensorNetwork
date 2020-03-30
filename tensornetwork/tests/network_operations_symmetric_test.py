@@ -21,7 +21,7 @@ from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
 
 
-def get_random(shape, dtype=np.float64):
+def get_random(shape, num_charges, dtype=np.float64):
   R = len(shape)
   charges = [U1Charge(np.random.randint(-5, 5, shape[n])) for n in range(R)]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
@@ -52,8 +52,10 @@ def get_ones(shape, dtype=np.float64):
   return BlockSparseTensor.ones(indices=indices, dtype=dtype)
 
 
-def test_split_node_full_svd_names():
-  a = tn.Node(get_random((10, 10)), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_full_svd_names(num_charges):
+  a = tn.Node(
+      get_random((10, 10), num_charges=num_charges), backend='symmetric')
   e1 = a[0]
   e2 = a[1]
   left, s, right, _, = tn.split_node_full_svd(
@@ -72,8 +74,10 @@ def test_split_node_full_svd_names():
   assert right.edges[0].name == 'right_edge'
 
 
-def test_split_node_rq_names():
-  a = tn.Node(get_random((2, 3, 4, 5, 6)), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_rq_names(num_charges):
+  a = tn.Node(
+      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
 
   left_edges = []
   for i in range(3):
@@ -94,8 +98,10 @@ def test_split_node_rq_names():
   assert right.edges[0].name == 'edge'
 
 
-def test_split_node_qr_names():
-  a = tn.Node(get_random((2, 3, 4, 5, 6)), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_qr_names(num_charges):
+  a = tn.Node(
+      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
@@ -115,8 +121,10 @@ def test_split_node_qr_names():
   assert right.edges[0].name == 'edge'
 
 
-def test_split_node_names():
-  a = tn.Node(get_random((2, 3, 4, 5, 6)), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_names(num_charges):
+  a = tn.Node(
+      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
@@ -164,8 +172,11 @@ def test_split_node_rq_unitarity(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_split_node_rq(dtype):
-  a = tn.Node(get_random((6, 7, 8, 9, 10), dtype=dtype), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_rq(dtype, num_charges):
+  a = tn.Node(
+      get_random((6, 7, 8, 9, 10), num_charges, dtype=dtype),
+      backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
@@ -210,8 +221,11 @@ def test_split_node_qr_unitarity(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_split_node_qr(dtype):
-  a = tn.Node(get_random((6, 7, 8, 9, 10), dtype=dtype), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_split_node_qr(dtype, num_charges):
+  a = tn.Node(
+      get_random((6, 7, 8, 9, 10), num_charges=num_charges, dtype=dtype),
+      backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
@@ -229,8 +243,11 @@ def test_split_node_qr(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_conj(dtype):
-  a = tn.Node(get_random((6, 7, 8, 9, 10), dtype=dtype), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_conj(dtype, num_charges):
+  a = tn.Node(
+      get_random((6, 7, 8, 9, 10), num_charges=num_charges, dtype=dtype),
+      backend='symmetric')
   abar = tn.conj(a)
   np.testing.assert_allclose(abar.tensor.data, a.backend.conj(a.tensor.data))
   assert np.all([
@@ -240,8 +257,11 @@ def test_conj(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_transpose(dtype):
-  a = tn.Node(get_random((6, 7, 8, 9, 10), dtype=dtype), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_transpose(dtype, num_charges):
+  a = tn.Node(
+      get_random((6, 7, 8, 9, 10), num_charges=num_charges, dtype=dtype),
+      backend='symmetric')
   order = [a[n] for n in reversed(range(5))]
   transpa = tn.transpose(a, [4, 3, 2, 1, 0])
   a.reorder_edges(order)
@@ -258,14 +278,20 @@ def test_switch_backend():
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_contract_trace_edges(dtype):
-  a = tn.Node(get_random((3, 3, 3), dtype=dtype), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_contract_trace_edges(dtype, num_charges):
+  a = tn.Node(
+      get_random((3, 3, 3), num_charges=num_charges, dtype=dtype),
+      backend='symmetric')
   with pytest.raises(ValueError):
     tn.contract_trace_edges(a)
 
 
-def test_switch_backend_raises_error():
-  a = tn.Node(get_random((3, 3, 3), dtype=np.float64), backend='symmetric')
+@pytest.mark.parametrize("num_charges", [1, 2, 3, 4])
+def test_switch_backend_raises_error(num_charges):
+  a = tn.Node(
+      get_random((3, 3, 3), num_charges=num_charges, dtype=np.float64),
+      backend='symmetric')
   with pytest.raises(NotImplementedError):
     tn.switch_backend({a}, 'numpy')
 
