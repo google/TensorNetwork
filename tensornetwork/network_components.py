@@ -191,11 +191,6 @@ class BaseNode(ABC):
 
   @property
   @abstractmethod
-  def sparse_shape(self) -> Any:
-    raise NotImplementedError("`sparse_shape` not implemented in `BaseNode`")
-
-  @property
-  @abstractmethod
   def tensor(self) -> Tensor:
     return
 
@@ -681,10 +676,6 @@ class Node(BaseNode):
     return self.backend.shape_tuple(self._tensor)
 
   @property
-  def sparse_shape(self) -> Any:
-    return self.backend.sparse_shape(self._tensor)
-
-  @property
   def tensor(self) -> Tensor:
     return self._tensor
 
@@ -818,10 +809,6 @@ class CopyNode(BaseNode):
   @property
   def shape(self) -> Tuple[Optional[int], ...]:
     return (self.dimension,) * self.rank
-
-  @property
-  def sparse_shape(self) -> Tuple[Optional[int], ...]:
-    return self.shape
 
   @property
   def tensor(self) -> Tensor:
