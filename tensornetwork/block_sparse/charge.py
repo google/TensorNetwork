@@ -25,9 +25,6 @@ from typing import List, Optional, Type, Any, Union
 #TODO (mganahl): clean up implementation of identity charges
 #TODO (mganahl): for rank-3 tensors with small bond dimensions, finding
 #                blocks brute force is much faster. Implement this.
-#the dtype used for storing labels to unique charges
-#if using more than 3 symmetries,  this should be set
-# top np.int32
 
 
 class BaseCharge:
