@@ -70,24 +70,24 @@ class BaseCharge:
           .format(len(charge_types), charges.shape[0]))
 
     if charges.shape[0] <= 3:
-      _label_dtype = np.int16
+      label_dtype = np.int16
     else:
-      _label_dtype = np.int32
+      label_dtype = np.int32
     self.charge_types = charge_types
     if charge_labels is None:
       if charges.shape[1] > 0:
         self.unique_charges, self.charge_labels = np.unique(
             charges.astype(charge_dtype), return_inverse=True, axis=1)
-        self.charge_labels = self.charge_labels.astype(_label_dtype)
+        self.charge_labels = self.charge_labels.astype(label_dtype)
       else:
         self.unique_charges = np.empty((charges.shape[0], 0),
                                        dtype=charge_dtype)
-        self.charge_labels = np.empty(0, dtype=_label_dtype)
+        self.charge_labels = np.empty(0, dtype=label_dtype)
     else:
-      self.charge_labels = np.asarray(charge_labels, dtype=_label_dtype)
+      self.charge_labels = np.asarray(charge_labels, dtype=label_dtype)
 
       self.unique_charges = charges.astype(charge_dtype)
-      self.charge_labels = charge_labels.astype(_label_dtype)
+      self.charge_labels = charge_labels.astype(label_dtype)
 
   @staticmethod
   def fuse(charge1, charge2):
