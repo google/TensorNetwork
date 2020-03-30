@@ -28,7 +28,6 @@ from typing import List, Optional, Type, Any, Union
 #the dtype used for storing labels to unique charges
 #if using more than 3 symmetries,  this should be set
 # top np.int32
-LABEL_SIZE_T = np.int16
 
 
 class BaseCharge:
@@ -63,7 +62,8 @@ class BaseCharge:
   def __init__(self,
                charges: np.ndarray,
                charge_labels: Optional[np.ndarray] = None,
-               charge_types: Optional[List[Type["BaseCharge"]]] = None) -> None:
+               charge_types: Optional[List[Type["BaseCharge"]]] = None,
+               charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
     if charges.ndim == 1:
       charges = charges[None, :]
 
@@ -72,20 +72,25 @@ class BaseCharge:
           "`len(charge_types) = {}` does not match `charges.shape[0]={}`"
           .format(len(charge_types), charges.shape[0]))
 
+    if charges.shape[0] <= 3:
+      _label_dtype = np.int16
+    else:
+      _label_dtype = np.int32
     self.charge_types = charge_types
     if charge_labels is None:
       if charges.shape[1] > 0:
         self.unique_charges, self.charge_labels = np.unique(
-            charges.astype(np.int16), return_inverse=True, axis=1)
-        self.charge_labels = self.charge_labels.astype(LABEL_SIZE_T)
+            charges.astype(charge_dtype), return_inverse=True, axis=1)
+        self.charge_labels = self.charge_labels.astype(_label_dtype)
       else:
-        self.unique_charges = np.empty((charges.shape[0], 0), dtype=np.int16)
-        self.charge_labels = np.empty(0, dtype=LABEL_SIZE_T)
+        self.unique_charges = np.empty((charges.shape[0], 0),
+                                       dtype=charge_dtype)
+        self.charge_labels = np.empty(0, dtype=_label_dtype)
     else:
-      self.charge_labels = np.asarray(charge_labels, dtype=LABEL_SIZE_T)
+      self.charge_labels = np.asarray(charge_labels, dtype=_label_dtype)
 
-      self.unique_charges = charges.astype(np.int16)
-      self.charge_labels = charge_labels.astype(LABEL_SIZE_T)
+      self.unique_charges = charges.astype(charge_dtype)
+      self.charge_labels = charge_labels.astype(_label_dtype)
 
   @staticmethod
   def fuse(charge1, charge2):
@@ -153,7 +158,8 @@ class BaseCharge:
   @property
   def degeneracies(self):
     exp1 = self.charge_labels[:, None]
-    exp2 = np.arange(self.unique_charges.shape[1], dtype=LABEL_SIZE_T)[None, :]
+    exp2 = np.arange(
+        self.unique_charges.shape[1], dtype=self.label_dtype)[None, :]
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
@@ -198,8 +204,8 @@ class BaseCharge:
     """
     unique_charges = np.asarray(
         [ct.identity_charge() for ct in self.charge_types],
-        dtype=np.int16)[:, None]
-    charge_labels = np.zeros(1, dtype=LABEL_SIZE_T)
+        dtype=self.dtype)[:, None]
+    charge_labels = np.zeros(1, dtype=self.label_dtype)
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
     return obj
@@ -221,19 +227,19 @@ class BaseCharge:
         other.charge_labels) == 0):
       obj = self.__new__(type(self))
       obj.__init__(
-          np.empty((self.num_symmetries, 0), dtype=np.int16),
-          np.empty(0, dtype=LABEL_SIZE_T), self.charge_types)
+          np.empty((self.num_symmetries, 0), dtype=self.dtype),
+          np.empty(0, dtype=self.label_dtype), self.charge_types)
       return obj
     unique_charges, charge_labels = np.unique(
         comb_charges, return_inverse=True, axis=1)
-    charge_labels = charge_labels.reshape(
-        self.unique_charges.shape[1],
-        other.unique_charges.shape[1]).astype(LABEL_SIZE_T)
+    charge_labels = charge_labels.reshape(self.unique_charges.shape[1],
+                                          other.unique_charges.shape[1]).astype(
+                                              self.label_dtype)
     # find new labels using broadcasting
     left_labels = self.charge_labels[:, None] + np.zeros([1, len(other)],
-                                                         dtype=LABEL_SIZE_T)
-    right_labels = other.charge_labels[None, :] + np.zeros([len(self), 1],
-                                                           dtype=LABEL_SIZE_T)
+                                                         dtype=self.label_dtype)
+    right_labels = other.charge_labels[None, :] + np.zeros(
+        [len(self), 1], dtype=self.label_dtype)
     charge_labels = charge_labels[np.ravel(left_labels), np.ravel(right_labels)]
 
     obj = self.__new__(type(self))
@@ -314,14 +320,14 @@ class BaseCharge:
     if return_indices:
       obj.__init__(
           charges=out[0],
-          charge_labels=np.arange(len(out[0]), dtype=LABEL_SIZE_T),
+          charge_labels=np.arange(len(out[0]), dtype=self.label_dtype),
           charge_types=self.charge_types,
       )
       return obj, out[1], out[2]
 
     obj.__init__(
         charges=out,
-        charge_labels=np.arange(len(out), dtype=LABEL_SIZE_T),
+        charge_labels=np.arange(len(out), dtype=self.label_dtype),
         charge_types=self.charge_types,
     )
 
@@ -370,7 +376,8 @@ class BaseCharge:
       unique_charges = self.unique_charges[:, tmp]
     obj.__init__(
         charges=unique_charges,
-        charge_labels=np.arange(unique_charges.shape[1], dtype=LABEL_SIZE_T),
+        charge_labels=np.arange(
+            unique_charges.shape[1], dtype=self.label_dtype),
         charge_types=self.charge_types)
     out = [obj]
     if return_index or return_inverse or return_counts:
@@ -399,23 +406,24 @@ class BaseCharge:
         of target values.
     """
     if isinstance(target_charges, (np.integer, int)):
-      target_charges = np.asarray([target_charges], dtype=np.int16)
+      target_charges = np.asarray([target_charges], dtype=self.dtype)
     if target_charges.ndim == 1:
       target_charges = target_charges[None, :]
-    target_charges = np.asarray(target_charges, dtype=np.int16)
+    target_charges = np.asarray(target_charges, dtype=self.dtype)
     # find intersection of index charges and target charges
     reduced_charges, label_to_unique, _ = intersect(
         self.unique_charges, target_charges, axis=1, return_indices=True)
     num_unique = len(label_to_unique)
 
     # construct the map to the reduced charges
-    map_to_reduced = np.full(self.dim, fill_value=-1, dtype=LABEL_SIZE_T)
-    map_to_reduced[label_to_unique] = np.arange(num_unique, dtype=LABEL_SIZE_T)
+    map_to_reduced = np.full(self.dim, fill_value=-1, dtype=self.label_dtype)
+    map_to_reduced[label_to_unique] = np.arange(
+        num_unique, dtype=self.label_dtype)
 
     # construct the map to the reduced charges
     reduced_ind_labels = map_to_reduced[self.charge_labels]
     reduced_locs = reduced_ind_labels >= 0
-    new_ind_labels = reduced_ind_labels[reduced_locs].astype(LABEL_SIZE_T)
+    new_ind_labels = reduced_ind_labels[reduced_locs].astype(self.label_dtype)
     obj = self.__new__(type(self))
     obj.__init__(reduced_charges, new_ind_labels, self.charge_types)
 
@@ -495,8 +503,13 @@ class U1Charge(BaseCharge):
   def __init__(self,
                charges: np.ndarray,
                charge_labels: Optional[np.ndarray] = None,
-               charge_types: Optional[List[Type["BaseCharge"]]] = None) -> None:
-    super().__init__(charges, charge_labels, charge_types=[type(self)])
+               charge_types: Optional[List[Type["BaseCharge"]]] = None,
+               charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+    super().__init__(
+        charges,
+        charge_labels,
+        charge_types=[type(self)],
+        charge_dtype=charge_dtype)
 
   @staticmethod
   def fuse(charge1, charge2) -> np.ndarray:
