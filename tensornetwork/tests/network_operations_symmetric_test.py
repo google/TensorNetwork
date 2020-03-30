@@ -34,27 +34,13 @@ def get_random(shape, num_charges, dtype=np.float64):
   return BlockSparseTensor.random(indices=indices, dtype=dtype)
 
 
-def get_square_matrix(shape, dtype=np.float64):
-  charge = U1Charge(np.random.randint(-5, 5, shape))
+def get_square_matrix(shape, num_charges, dtype=np.float64):
+  charge = BaseCharge(
+      np.random.randint(-5, 5, (num_charges, shape)),
+      charge_types=[U1Charge] * num_charges)
   flows = [True, False]
   indices = [Index(charge, flows[n]) for n in range(2)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)
-
-
-def get_zeros(shape, dtype=np.float64):
-  R = len(shape)
-  charges = [U1Charge(np.random.randint(-5, 5, shape[n])) for n in range(R)]
-  flows = list(np.full(R, fill_value=False, dtype=np.bool))
-  indices = [Index(charges[n], flows[n]) for n in range(R)]
-  return BlockSparseTensor.zeros(indices=indices, dtype=dtype)
-
-
-def get_ones(shape, dtype=np.float64):
-  R = len(shape)
-  charges = [U1Charge(np.random.randint(-5, 5, shape[n])) for n in range(R)]
-  flows = list(np.full(R, fill_value=False, dtype=np.bool))
-  indices = [Index(charges[n], flows[n]) for n in range(R)]
-  return BlockSparseTensor.ones(indices=indices, dtype=dtype)
 
 
 @pytest.mark.parametrize("num_charges", [1, 2, 3])
@@ -154,9 +140,11 @@ def test_split_node_names(num_charges):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_split_node_rq_unitarity(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_split_node_rq_unitarity(dtype, num_charges):
   np.random.seed(10)
-  a = tn.Node(get_square_matrix(50, dtype=dtype), backend='symmetric')
+  a = tn.Node(
+      get_square_matrix(50, num_charges, dtype=dtype), backend='symmetric')
   r, q = tn.split_node_rq(a, [a[0]], [a[1]])
   r[1] | q[0]
   qbar = tn.conj(q)
@@ -205,9 +193,11 @@ def test_split_node_rq(dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_split_node_qr_unitarity(dtype):
+@pytest.mark.parametrize("num_charges", [1, 2, 3])
+def test_split_node_qr_unitarity(dtype, num_charges):
   np.random.seed(10)
-  a = tn.Node(get_square_matrix(50, dtype=dtype), backend='symmetric')
+  a = tn.Node(
+      get_square_matrix(50, num_charges, dtype=dtype), backend='symmetric')
   q, r = tn.split_node_qr(a, [a[0]], [a[1]])
   r[0] | q[1]
   qbar = tn.conj(q)
