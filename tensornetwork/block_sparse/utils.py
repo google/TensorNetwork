@@ -107,7 +107,8 @@ def compute_sparse_lookup(
   _, label_to_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
 
-  tmp = np.full(len(unique_charges), fill_value=-1, dtype=np.int16)
+  tmp = np.full(
+      len(unique_charges), fill_value=-1, dtype=charges[0].label_dtype)
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
@@ -295,8 +296,8 @@ def reduce_charges(charges: List[BaseCharge],
       right_ind.charge_labels) == 0):
     obj = charges[0].__new__(type(charges[0]))
     obj.__init__(
-        np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
-        np.empty(0, dtype=np.int16), charges[0].charge_types)
+        np.empty((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
+        np.empty(0, dtype=charges[0].label_dtype), charges[0].charge_types)
     if return_locations:
       return obj, np.empty(0, dtype=SIZE_T)
     return obj
@@ -308,7 +309,7 @@ def reduce_charges(charges: List[BaseCharge],
   # intersect combined qnums and target_charges
   reduced_qnums, label_to_unique, _ = intersect(
       unique_comb_qnums, target_charges, axis=1, return_indices=True)
-  map_to_kept = -np.ones(num_unique, dtype=np.int16)
+  map_to_kept = -np.ones(num_unique, dtype=charges[0].label_dtype)
   map_to_kept[label_to_unique] = np.arange(len(label_to_unique))
   #new_comb_labels is a matrix of shape (left_ind.num_unique, right_ind.num_unique)
   #each row new_comb_labels[n,:] contains integers values. Positions where values > 0
@@ -384,14 +385,14 @@ def _find_diagonal_sparse_blocks(
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = np.zeros([num_syms, 1], dtype=np.int16)
+    block_qnums = np.zeros([num_syms, 1], dtype=charges[0].dtype)
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
       block_dims = np.flipud(block_dims)
 
     obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(block_qnums, np.arange(0, dtype=np.int16),
+    obj.__init__(block_qnums, np.arange(0, dtype=charges[0].label_dtype),
                  charges[0].charge_types)
 
     return block_maps, obj, block_dims
@@ -410,8 +411,8 @@ def _find_diagonal_sparse_blocks(
   if num_blocks == 0:
     obj = charges[0].__new__(type(charges[0]))
     obj.__init__(
-        np.zeros((charges[0].num_symmetries, 0), dtype=np.int16),
-        np.arange(0, dtype=np.int16), charges[0].charge_types)
+        np.zeros((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
+        np.arange(0, dtype=charges[0].label_dtype), charges[0].charge_types)
 
     return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
@@ -443,7 +444,8 @@ def _find_diagonal_sparse_blocks(
                np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
   ]
   obj = charges[0].__new__(type(charges[0]))
-  obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+  obj.__init__(block_qnums,
+               np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
                charges[0].charge_types)
 
   return block_maps, obj, block_dims
@@ -506,8 +508,8 @@ def _find_transposed_diagonal_sparse_blocks(
     # special case: trivial number of non-zero elements
     obj = charges[0].__new__(type(charges[0]))
     obj.__init__(
-        np.empty((charges[0].num_symmetries, 0), dtype=np.int16),
-        np.arange(0, dtype=np.int16), charges[0].charge_types)
+        np.empty((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
+        np.arange(0, dtype=charges[0].label_dtype), charges[0].charge_types)
 
     return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
@@ -516,8 +518,9 @@ def _find_transposed_diagonal_sparse_blocks(
                               np.logical_not(flows[orig_partition:]))
 
   inv_row_map = -np.ones(
-      orig_unique_row_qnums.unique_charges.shape[1], dtype=np.int16)
-  inv_row_map[row_map] = np.arange(len(row_map), dtype=np.int16)
+      orig_unique_row_qnums.unique_charges.shape[1],
+      dtype=charges[0].label_dtype)
+  inv_row_map[row_map] = np.arange(len(row_map), dtype=charges[0].label_dtype)
 
   all_degens = np.append(orig_col_degen[col_map],
                          0)[inv_row_map[orig_row_ind.charge_labels]]
@@ -562,7 +565,8 @@ def _find_transposed_diagonal_sparse_blocks(
     block_maps = [(all_cumul_degens[orig_row_posR] +
                    dense_to_sparse[orig_col_posR]).ravel()]
     obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+    obj.__init__(block_qnums,
+                 np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
 
   elif tr_partition == len(charges):
@@ -593,7 +597,8 @@ def _find_transposed_diagonal_sparse_blocks(
     block_maps = [(all_cumul_degens[orig_row_posL] +
                    dense_to_sparse[orig_col_posL]).ravel()]
     obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+    obj.__init__(block_qnums,
+                 np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
   else:
 
@@ -637,7 +642,8 @@ def _find_transposed_diagonal_sparse_blocks(
           all_cumul_degens[np.add.outer(orig_row_posL, orig_row_posR)] +
           dense_to_sparse[np.add.outer(orig_col_posL, orig_col_posR)]).ravel()
     obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(block_qnums, np.arange(block_qnums.shape[1], dtype=np.int16),
+    obj.__init__(block_qnums,
+                 np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
 
   return block_maps, obj, block_dims
