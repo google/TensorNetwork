@@ -856,8 +856,6 @@ def tensordot(tensor1: BlockSparseTensor,
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
     t1 = tensor1.transpose(axes1).transpose_data()
     t2 = tensor2.transpose(axes2).transpose_data()
-    #NOTE (mganahl): for t1.data=[] and t2.data=[] this returns 0.0,
-    #is consistent with numpy behaviour.
     data = np.dot(t1.data, t2.data)
     charge = tensor1._charges[0]
     final_charge = charge.__new__(type(charge))
