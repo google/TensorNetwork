@@ -43,10 +43,6 @@ class TestNode(BaseNode):
     return super().shape
 
   @property
-  def sparse_shape(self):
-    return super().sparse_shape
-
-  @property
   def tensor(self):
     return super().tensor
 
