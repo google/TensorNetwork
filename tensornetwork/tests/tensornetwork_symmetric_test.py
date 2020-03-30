@@ -27,6 +27,7 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
+#pylint: disable=line-too-long
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.backends.base_backend import BaseBackend
