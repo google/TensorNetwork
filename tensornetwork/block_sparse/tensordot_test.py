@@ -61,12 +61,25 @@ def get_contractable_tensors(R1, R2, cont, dtype, num_charges, DsA, Dscomm,
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_legs', [1, 2, 3, 4])
-def test_outerproduct(dtype, num_legs):
+@pytest.mark.parametrize('num_charges', [1, 2])
+def test_outerproduct(dtype, num_legs, num_charges):
   np.random.seed(10)
   Ds1 = np.arange(2, 2 + num_legs)
   Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
-  is1 = [Index(U1Charge.random(-5, 5, Ds1[n]), False) for n in range(num_legs)]
-  is2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(num_legs)]
+  is1 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds1[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
+  is2 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds2[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
   a = BlockSparseTensor.random(is1, dtype=dtype)
   b = BlockSparseTensor.random(is2, dtype=dtype)
   abdense = ncon([a.todense(), b.todense()], [
@@ -74,6 +87,78 @@ def test_outerproduct(dtype, num_legs):
       -num_legs - np.arange(1, num_legs + 1, dtype=np.int16)
   ])
   ab = outerproduct(a, b)
+  np.testing.assert_allclose(ab.todense(), abdense)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize('num_legs', [2, 3])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_outerproduct_transpose(dtype, num_legs, num_charges):
+  np.random.seed(10)
+  Ds1 = np.arange(2, 2 + num_legs)
+  Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
+  is1 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds1[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
+  is2 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds2[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
+  o1 = np.arange(num_legs)
+  o2 = np.arange(num_legs)
+  np.random.shuffle(o1)
+  np.random.shuffle(o2)
+  a = BlockSparseTensor.random(is1, dtype=dtype).transpose(o1)
+  b = BlockSparseTensor.random(is2, dtype=dtype).transpose(o2)
+
+  abdense = ncon([a.todense(), b.todense()], [
+      -np.arange(1, num_legs + 1, dtype=np.int16),
+      -num_legs - np.arange(1, num_legs + 1, dtype=np.int16)
+  ])
+  ab = outerproduct(a, b)
+  np.testing.assert_allclose(ab.todense(), abdense)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize('num_legs', [2, 3])
+@pytest.mark.parametrize('num_charges', [1, 2])
+def test_outerproduct_transpose_reshape(dtype, num_legs, num_charges):
+  np.random.seed(10)
+  Ds1 = np.arange(2, 2 + num_legs)
+  Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
+  is1 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds1[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
+  is2 = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds2[n])),
+              charge_types=[U1Charge] * num_charges), False)
+      for n in range(num_legs)
+  ]
+  o1 = np.arange(num_legs)
+  o2 = np.arange(num_legs)
+  np.random.shuffle(o1)
+  np.random.shuffle(o2)
+  a = BlockSparseTensor.random(is1, dtype=dtype).transpose(o1)
+  b = BlockSparseTensor.random(is2, dtype=dtype).transpose(o2)
+  a = a.reshape([np.prod(a.shape)])
+  b = b.reshape([np.prod(b.shape)])
+
+  abdense = ncon([a.todense(), b.todense()], [[-1], [-2]])
+  ab = outerproduct(a, b)
+  assert ab.ndim == 2
   np.testing.assert_allclose(ab.todense(), abdense)
 
 
