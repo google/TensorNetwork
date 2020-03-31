@@ -292,7 +292,6 @@ class BaseCharge:
           assume_unique=assume_unique,
           axis=1,
           return_indices=return_indices)
-
     else:
       if other.ndim == 1:
         other = other[None, :]
@@ -306,28 +305,45 @@ class BaseCharge:
     if return_indices:
       obj.__init__(
           charges=out[0],
-          charge_labels=np.arange(len(out[0]), dtype=np.int16),
+          charge_labels=np.arange(out[0].shape[1], dtype=np.int16),
           charge_types=self.charge_types,
       )
       return obj, out[1], out[2]
 
     obj.__init__(
         charges=out,
-        charge_labels=np.arange(len(out), dtype=np.int16),
+        charge_labels=np.arange(out.shape[1], dtype=np.int16),
         charge_types=self.charge_types,
     )
 
     return obj
 
+  def sort_unique_charges(self):
+    """
+    Sort the `unique_charges` of BaseCharge` according to standard order 
+    used by numpy.
+    """
+    unique_charges, inverse = np.unique(
+        self.unique_charges, return_inverse=True, axis=1)
+    charge_labels = inverse[self.charge_labels]
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=unique_charges,
+        charge_labels=charge_labels,
+        charge_types=self.charge_types)
+    return obj
+
   def unique(self,
-             return_index=False,
-             return_inverse=False,
-             return_counts=False) -> Any:
+             return_index: Optional[bool] = False,
+             return_inverse: Optional[bool] = False,
+             return_counts: Optional[bool] = False,
+             sort: Optional[bool] = True) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
     does the same but instead of a np.ndarray, it returns the unique
     elements in a `BaseCharge` object.
+
     Args:
       return_index: If `True`, also return the indices of `self.charges` (along the specified axis,
         if provided, or in the flattened array) that result in the unique array.
@@ -344,6 +360,12 @@ class BaseCharge:
       np.ndarray: The number of times each of the unique values comes up in the
         original array. Only provided if `return_counts` is True.      
     """
+
+    if sort:
+      #make sure that unique_charges are sorted
+      tmp_charge = self.sort_unique_charges()
+    else:
+      tmp_charge = self
     obj = self.__new__(type(self))
     tmp = np.unique(
         self.charge_labels,
@@ -351,7 +373,7 @@ class BaseCharge:
         return_inverse=return_inverse,
         return_counts=return_counts)
     if return_index or return_inverse or return_counts:
-      if tmp[0].ndim == 0:
+      if tmp[0].ndim == 0:  #only a single entry
         index = np.asarray([tmp[0]])
         unique_charges = self.unique_charges[:, index]
       else:
