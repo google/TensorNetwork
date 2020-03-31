@@ -71,6 +71,23 @@ def test_compute_sparse_lookup():
   np.testing.assert_allclose(labels, expected_labels_to_unique)
 
 
+@pytest.mark.parametrize('flow', [True, False])
+def test_compute_sparse_lookup_non_ordered(flow):
+  np_flow = np.int(-(np.int(flow) - 0.5) * 2)
+  charge_labels = np.array([0, 0, 1, 5, 5, 0, 2, 3, 2, 3, 4, 0, 3, 3, 1, 5])
+  unique_charges = np.array([-1, 0, 1, -5, 7, 2])
+  np_targets = np.array([-1, 0, 2])
+  charges = [U1Charge(unique_charges, charge_labels=charge_labels)]
+  inds = np.nonzero(
+      np.isin((np_flow * unique_charges)[charge_labels], np_targets))[0]
+  targets = U1Charge(np_targets)
+  lookup, unique, labels = compute_sparse_lookup(charges, [flow], targets)
+  np.testing.assert_allclose(labels, np.sort(labels))
+  np.testing.assert_allclose(
+      np.squeeze(unique.charges[:, lookup]),
+      (np_flow * unique_charges)[charge_labels][inds])
+
+
 def test_find_best_partition():
   with pytest.raises(ValueError):
     _find_best_partition([5])
