@@ -104,7 +104,7 @@ def compute_sparse_lookup(
 
   fused_charges = fuse_charges(charges, flows)
   unique_charges, inverse = fused_charges.unique(return_inverse=True)
-  c, label_to_unique, _ = unique_charges.intersect(
+  _, label_to_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
   tmp = np.full(len(unique_charges), fill_value=-1, dtype=np.int16)
   tmp[label_to_unique] = label_to_unique
