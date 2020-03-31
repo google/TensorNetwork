@@ -318,10 +318,12 @@ class BaseCharge:
 
     return obj
 
-  def sort_unique_charges(self):
+  def sort_unique_charges(self) -> BaseCharge:
     """
     Sort the `unique_charges` of BaseCharge` according to standard order 
     used by numpy.
+    Returns:
+      BaseCharge
     """
     unique_charges, inverse = np.unique(
         self.unique_charges, return_inverse=True, axis=1)
