@@ -368,26 +368,26 @@ class BaseCharge:
       tmp_charge = self.sort_unique_charges()
     else:
       tmp_charge = self
-    obj = self.__new__(type(self))
+    obj = tmp_charge.__new__(type(tmp_charge))
     tmp = np.unique(
-        self.charge_labels,
+        tmp_charge.charge_labels,
         return_index=return_index,
         return_inverse=return_inverse,
         return_counts=return_counts)
     if return_index or return_inverse or return_counts:
       if tmp[0].ndim == 0:  #only a single entry
         index = np.asarray([tmp[0]])
-        unique_charges = self.unique_charges[:, index]
+        unique_charges = tmp_charge.unique_charges[:, index]
       else:
-        unique_charges = self.unique_charges[:, tmp[0]]
+        unique_charges = tmp_charge.unique_charges[:, tmp[0]]
     else:
       if tmp.ndim == 0:
         tmp = np.asarray([tmp])
-      unique_charges = self.unique_charges[:, tmp]
+      unique_charges = tmp_charge.unique_charges[:, tmp]
     obj.__init__(
         charges=unique_charges,
         charge_labels=np.arange(unique_charges.shape[1], dtype=np.int16),
-        charge_types=self.charge_types)
+        charge_types=tmp_charge.charge_types)
     out = [obj]
     if return_index or return_inverse or return_counts:
       for n in range(1, len(tmp)):
