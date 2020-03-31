@@ -351,6 +351,8 @@ class BaseCharge:
         axis, if provided) that can be used to reconstruct `self.charges`.
       return_counts: If `True`, also return the number of times each unique item appears
         in `self.charges`.
+      sort: If `True`, the returned `BaseCharge` object has sorted `unique_charges`.
+        If `False`, `unique_`charges` are in general not sorted.
     Returns:
       BaseCharge: The sorted unique values.
       np.ndarray: The indices of the first occurrences of the unique values in the
