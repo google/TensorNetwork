@@ -28,17 +28,19 @@ def test_norm(dtype):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 @pytest.mark.parametrize('Ds', [[200, 100], [100, 200]])
-def test_get_diag(dtype, num_charges, Ds):
+@pytest.mark.parametrize('flow', [False])
+def test_get_diag(dtype, num_charges, Ds, flow):
   np.random.seed(10)
   indices = [
       Index(
           BaseCharge(
               np.random.randint(-2, 3, (num_charges, Ds[n])),
-              charge_types=[U1Charge] * num_charges), False) for n in range(2)
+              charge_types=[U1Charge] * num_charges), flow) for n in range(2)
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
-  inds = np.nonzero(fused == np.zeros((1, 1), dtype=np.int16))[0]
+  inds = np.nonzero(
+      fused == np.random.randint(-1, 1, (num_charges, 1), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
   unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
@@ -50,7 +52,8 @@ def test_get_diag(dtype, num_charges, Ds):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+  np.testing.assert_allclose(unique,
+                             (diagonal.flat_charges[0] * flow).unique_charges)
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
@@ -73,13 +76,14 @@ def test_get_empty_diag(dtype, num_charges, Ds):
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_create_diag(dtype, num_charges):
+@pytest.mark.parametrize('flow', [False])
+def test_create_diag(dtype, num_charges, flow):
   np.random.seed(10)
   D = 200
   index = Index(
       BaseCharge(
           np.random.randint(-2, 3, (num_charges, D)),
-          charge_types=[U1Charge] * num_charges), False)
+          charge_types=[U1Charge] * num_charges), flow)
 
   arr = ChargeArray.random([index], dtype=dtype)
   diagarr = diag(arr)
