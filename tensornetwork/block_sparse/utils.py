@@ -103,7 +103,8 @@ def compute_sparse_lookup(
   """
 
   fused_charges = fuse_charges(charges, flows)
-  unique_charges, inverse = fused_charges.unique(return_inverse=True)
+  unique_charges, inverse = fused_charges.unique(
+      return_inverse=True, sort=False)
   _, label_to_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
   tmp = np.full(len(unique_charges), fill_value=-1, dtype=np.int16)
@@ -165,18 +166,20 @@ def compute_fused_charge_degeneracies(
     np.ndarray: The degeneracies of each unqiue fused charge.
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique(return_counts=True)
+    return (charges[0] * flows[0]).unique(return_counts=True, sort=False)
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
   accumulated_charges, accumulated_degeneracies = (
-      charges[0] * flows[0]).unique(return_counts=True)
+      charges[0] * flows[0]).unique(
+          return_counts=True, sort=False)
   for n in range(1, len(charges)):
-    leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
+    leg_charges, leg_degeneracies = charges[n].unique(
+        return_counts=True, sort=False)
     fused_charges = accumulated_charges + leg_charges * flows[n]
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    accumulated_charges = fused_charges.unique()
+    accumulated_charges = fused_charges.unique(sort=False)
     accumulated_degeneracies = np.empty(len(accumulated_charges), dtype=SIZE_T)
 
     accumulated_degeneracies = np.array([
@@ -204,13 +207,13 @@ def compute_unique_fused_charges(charges: List[BaseCharge],
 
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique()
+    return (charges[0] * flows[0]).unique(sort=False)
 
-  accumulated_charges = (charges[0] * flows[0]).unique()
+  accumulated_charges = (charges[0] * flows[0]).unique(sort=False)
   for n in range(1, len(charges)):
-    leg_charges = charges[n].unique()
+    leg_charges = charges[n].unique(sort=False)
     fused_charges = accumulated_charges + leg_charges * flows[n]
-    accumulated_charges = fused_charges.unique()
+    accumulated_charges = fused_charges.unique(sort=False)
   return accumulated_charges
 
 
