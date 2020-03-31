@@ -225,6 +225,13 @@ def test_BaseCharge_intersect():
   np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
 
 
+def test_BaseCharge_intersect_2():
+  c1 = U1Charge(np.array([1, 0, -1]), charge_labels=np.array([2, 0, 1]))
+  c2 = U1Charge(np.array([-1, 0, 1]))
+  res = c1.intersect(c2)
+  np.testing.assert_allclose(res.charges, [[-1, 0, 1]])
+
+
 def test_BaseCharge_intersect_return_indices():
   q1 = np.array([[0, 1, 2, 0, 6], [2, 3, 4, -1, 4]])
   q2 = np.array([[-2, 0, 6], [3, 2, 4]])
