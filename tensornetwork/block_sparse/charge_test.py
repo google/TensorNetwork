@@ -471,6 +471,16 @@ def test_eq_2():
     np.array_equal(c[i].charges, c3[:, j])
 
 
+def test_eq__raises():
+  np.random.seed(10)
+  num_charges = 2
+  charge = BaseCharge(
+      np.random.randint(-2, 3, (num_charges, 30)),
+      charge_types=[U1Charge] * num_charges)
+  with pytest.raises(ValueError):
+    _ = charge == np.random.randint(-1, 1, (num_charges + 1, 2), dtype=np.int16)
+
+
 def test_iter():
   np.random.seed(10)
   arr1 = np.array([-2, -1, 0, 1, -1, 3, 4, 5, 1], dtype=np.int16)
