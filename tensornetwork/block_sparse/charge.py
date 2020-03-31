@@ -336,10 +336,10 @@ class BaseCharge:
     return obj
 
   def unique(self,
-             return_index: Optional[bool] = False,
-             return_inverse: Optional[bool] = False,
-             return_counts: Optional[bool] = False,
-             sort: Optional[bool] = True) -> Any:
+             return_index: bool = False,
+             return_inverse: bool = False,
+             return_counts: bool = False,
+             sort: bool = True) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
