@@ -318,7 +318,7 @@ class BaseCharge:
 
     return obj
 
-  def sort_unique_charges(self) -> BaseCharge:
+  def sort_unique_charges(self) -> "BaseCharge":
     """
     Sort the `unique_charges` of BaseCharge` according to standard order 
     used by numpy.
