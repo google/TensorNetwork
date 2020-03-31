@@ -99,20 +99,19 @@ def compute_sparse_lookup(
       `len(unique_charges)`. The position of values `n` in `lookup` are positions
        with charge values `unique_charges[n]`.
     unique_charges: The unique charges of fusion of `charges`
-    label_to_unique: The  integer labels of the unique charges.
+    label_to_unique: The integer labels of the unique charges.
   """
 
   fused_charges = fuse_charges(charges, flows)
   unique_charges, inverse = fused_charges.unique(return_inverse=True)
   _, label_to_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
-
   tmp = np.full(len(unique_charges), fill_value=-1, dtype=np.int16)
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
 
-  return lookup, unique_charges, label_to_unique
+  return lookup, unique_charges, np.sort(label_to_unique)
 
 
 def _get_strides(dims: Union[List[int], np.ndarray]) -> np.ndarray:
