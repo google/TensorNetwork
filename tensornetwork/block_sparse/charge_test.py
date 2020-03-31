@@ -63,6 +63,16 @@ def test_BaseCharge_unique():
   assert np.all(actual[3] == expected[3])
 
 
+def test_BaseCharge_unique_sort():
+  np.random.seed(10)
+  unique = np.array([1, 0, -1])
+  labels = np.random.randint(0, 3, 100)
+  Q = U1Charge(charges=unique, charge_labels=labels)
+  actual = Q.unique(
+      return_index=True, return_inverse=True, return_counts=True, sort=False)
+  np.testing.assert_allclose(actual[0].unique_charges, [[1, 0, -1]])
+
+
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
