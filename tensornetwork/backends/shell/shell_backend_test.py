@@ -284,7 +284,7 @@ def test_broadcast_right_multiplication():
   tensor1 = backend.randn((2, 4, 3))
   tensor2 = backend.randn((3,))
   out = backend.broadcast_right_multiplication(tensor1, tensor2)
-  assert out.shape == [2, 4, 3]
+  np.testing.assert_allclose(out.shape, [2, 4, 3])
 
 
 def test_broadcast_right_multiplication_raises():
