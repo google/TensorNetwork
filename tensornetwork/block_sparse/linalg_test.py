@@ -38,7 +38,7 @@ def test_get_diag(dtype, num_charges, Ds):
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
-  inds = np.nonzero(fused == np.zeros((1, 1), dtype=np.int16))[0]
+  inds = np.nonzero(fused == np.zeros((num_charges, 1), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
   unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
