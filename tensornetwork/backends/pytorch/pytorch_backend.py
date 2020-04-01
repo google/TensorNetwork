@@ -313,3 +313,12 @@ class PyTorchBackend(base_backend.BaseBackend):
           .format(tensor2.shape))
 
     return tensor1 * tensor2
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(tensor1.shape))
+
+    t1_broadcast_shape = self.shape_concat(
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
+    return tensor2 * self.reshape(tensor1, t1_broadcast_shape)

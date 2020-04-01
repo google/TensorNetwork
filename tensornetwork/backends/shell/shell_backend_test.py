@@ -293,3 +293,19 @@ def test_broadcast_right_multiplication_raises():
   tensor2 = backend.randn((3, 3))
   with pytest.raises(ValueError):
     backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+def test_broadcast_left_multiplication():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3,))
+  tensor2 = backend.randn((3, 4, 2))
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [3, 4, 2])
+
+
+def test_broadcast_left_multiplication_raises():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3, 3))
+  tensor2 = backend.randn((3, 4, 2))
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)

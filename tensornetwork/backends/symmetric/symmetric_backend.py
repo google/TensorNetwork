@@ -196,9 +196,11 @@ class SymmetricBackend(base_backend.BaseBackend):
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
-    shape1 = tensor1.shape
-    tmp = self.reshape(tensor1,
-                       (numpy.prod(shape1[:tensor1.ndim - 1]), shape1[-1]))
-    #NOTE (mganahl): we use mulitplication by diagonal matrix here
-    return self.reshape(
-        self.tensordot(tmp, self.diag(tensor2), ([1], [0])), shape1)
+    return self.tensordot(tensor1, self.diag(tensor2),
+                          ([len(tensor1.shape) - 1], [0]))
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(tensor1.shape))
+    return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))

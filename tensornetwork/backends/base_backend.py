@@ -475,7 +475,9 @@ class BaseBackend:
   def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
     """
     Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
-    `tensor1` * tensor2`.
+    `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
+    one-dimensional tensor. The broadcasting is applied to the last index of 
+    `tensor1`.
     Args:
       tensor1: A tensor.
       tensor2: A tensor.
@@ -484,4 +486,20 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `broadcast_right_multiplication`."
+        .format(self.name))
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    """
+    Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
+    one-dimensional tensor. The broadcasting is applied to the first index of 
+    `tensor2`.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor: The result of multiplying `tensor1` onto `tensor2`.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `broadcast_left_multiplication`."
         .format(self.name))
