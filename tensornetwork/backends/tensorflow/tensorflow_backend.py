@@ -53,10 +53,13 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         max_truncation_error: Optional[float] = None,
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error,
-                                            relative=relative)
+    return decompositions.svd_decomposition(
+        self.tf,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
@@ -144,13 +147,19 @@ class TensorFlowBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.tf.float64
     if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
       return self.tf.complex(
-          self.tf.random.uniform(shape=shape, minval=boundaries[0],
-                                 maxval=boundaries[1], dtype=dtype.real_dtype),
-          self.tf.random.uniform(shape=shape, minval=boundaries[0],
-                                 maxval=boundaries[1], dtype=dtype.real_dtype))
+          self.tf.random.uniform(
+              shape=shape,
+              minval=boundaries[0],
+              maxval=boundaries[1],
+              dtype=dtype.real_dtype),
+          self.tf.random.uniform(
+              shape=shape,
+              minval=boundaries[0],
+              maxval=boundaries[1],
+              dtype=dtype.real_dtype))
     self.tf.random.set_seed(10)
-    a = self.tf.random.uniform(shape=shape, minval=boundaries[0],
-                               maxval=boundaries[1], dtype=dtype)
+    a = self.tf.random.uniform(
+        shape=shape, minval=boundaries[0], maxval=boundaries[1], dtype=dtype)
     return a
 
   def conj(self, tensor: Tensor) -> Tensor:
@@ -171,16 +180,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
@@ -207,3 +216,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
           "input to tensorflow backend method `inv` has shape {}. Only matrices are supported."
           .format(self.tf.shape(matrix)))
     return self.tf.linalg.inv(matrix)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(self.tf.shape(tensor2)) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
+          .format(tensor2.shape))
+
+    return tensor1 * tensor2

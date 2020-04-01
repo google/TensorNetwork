@@ -44,10 +44,13 @@ class NumPyBackend(base_backend.BaseBackend):
                         max_truncation_error: Optional[float] = None,
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.np, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error,
-                                            relative=relative)
+    return decompositions.svd_decomposition(
+        self.np,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(
       self,
@@ -145,12 +148,12 @@ class NumPyBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.np.float64
     if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
         (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
-      return self.np.random.uniform(boundaries[0], boundaries[1], shape).astype(
-          dtype) + 1j * self.np.random.uniform(boundaries[0],
-                                               boundaries[1],
-                                               shape).astype(dtype)
-    return self.np.random.uniform(boundaries[0],
-                                  boundaries[1], shape).astype(dtype)
+      return self.np.random.uniform(
+          boundaries[0], boundaries[1],
+          shape).astype(dtype) + 1j * self.np.random.uniform(
+              boundaries[0], boundaries[1], shape).astype(dtype)
+    return self.np.random.uniform(boundaries[0], boundaries[1],
+                                  shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
@@ -244,16 +247,16 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. If no `initial_state` is provided
@@ -396,3 +399,9 @@ class NumPyBackend(base_backend.BaseBackend):
       raise ValueError("input to numpy backend method `inv` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
     return self.np.linalg.inv(matrix)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor2`,"
+                       " found `tensor2.shape = {}`".format(tensor2.shape))
+    return tensor1 * tensor2

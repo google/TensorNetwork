@@ -698,3 +698,44 @@ def test_matrix_inv_raises(dtype, num_charges):
   H = get_tensor(3, num_charges, dtype)
   with pytest.raises(ValueError):
     backend.inv(H)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_broadcast_right_multiplication(dtype, num_charges):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  Ds = [10, 30, 24]
+  R = len(Ds)
+  indices = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              charge_types=[U1Charge] * num_charges), False) for n in range(R)
+  ]
+  tensor1 = backend.randn(indices, dtype=dtype)
+  tensor2 = ChargeArray.random(
+      indices=[indices[-1].copy().flip_flow()], dtype=dtype)
+  t1dense = tensor1.todense()
+  t2dense = tensor2.todense()
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  dense = t1dense * t2dense
+  np.testing.assert_allclose(out.todense(), dense)
+
+
+def test_broadcast_right_multiplication_raises():
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  num_charges = 1
+  Ds = [10, 30, 24]
+  R = len(Ds)
+  indices = [
+      Index(
+          BaseCharge(
+              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              charge_types=[U1Charge] * num_charges), False) for n in range(R)
+  ]
+  tensor1 = backend.randn(indices)
+  tensor2 = ChargeArray.random(indices=indices)
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
