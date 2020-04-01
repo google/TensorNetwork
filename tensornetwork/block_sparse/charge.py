@@ -322,10 +322,28 @@ class BaseCharge:
 
     return obj
 
+  def sort_unique_charges(self) -> "BaseCharge":
+    """
+    Sort the `unique_charges` of BaseCharge` according to standard order 
+    used by numpy.
+    Returns:
+      BaseCharge
+    """
+    unique_charges, inverse = np.unique(
+        self.unique_charges, return_inverse=True, axis=1)
+    charge_labels = inverse[self.charge_labels]
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=unique_charges,
+        charge_labels=charge_labels,
+        charge_types=self.charge_types)
+    return obj
+
   def unique(self,
-             return_index=False,
-             return_inverse=False,
-             return_counts=False) -> Any:
+             return_index: bool = False,
+             return_inverse: bool = False,
+             return_counts: bool = False,
+             sort: bool = True) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See np.unique for a more detailed explanation. This function
@@ -339,6 +357,8 @@ class BaseCharge:
         axis, if provided) that can be used to reconstruct `self.charges`.
       return_counts: If `True`, also return the number of times each unique item appears
         in `self.charges`.
+      sort: If `True`, the returned `BaseCharge` object has sorted `unique_charges`.
+        If `False`, `unique_`charges` are in general not sorted.
     Returns:
       BaseCharge: The sorted unique values.
       np.ndarray: The indices of the first occurrences of the unique values in the
@@ -348,26 +368,32 @@ class BaseCharge:
       np.ndarray: The number of times each of the unique values comes up in the
         original array. Only provided if `return_counts` is True.      
     """
-    obj = self.__new__(type(self))
+
+    if sort:
+      #make sure that unique_charges are sorted
+      tmp_charge = self.sort_unique_charges()
+    else:
+      tmp_charge = self
+    obj = tmp_charge.__new__(type(tmp_charge))
     tmp = np.unique(
-        self.charge_labels,
+        tmp_charge.charge_labels,
         return_index=return_index,
         return_inverse=return_inverse,
         return_counts=return_counts)
     if return_index or return_inverse or return_counts:
       if tmp[0].ndim == 0:  #only a single entry
         index = np.asarray([tmp[0]])
-        unique_charges = self.unique_charges[:, index]
+        unique_charges = tmp_charge.unique_charges[:, index]
       else:
-        unique_charges = self.unique_charges[:, tmp[0]]
+        unique_charges = tmp_charge.unique_charges[:, tmp[0]]
     else:
       if tmp.ndim == 0:
         tmp = np.asarray([tmp])
-      unique_charges = self.unique_charges[:, tmp]
+      unique_charges = tmp_charge.unique_charges[:, tmp]
     obj.__init__(
         charges=unique_charges,
         charge_labels=np.arange(unique_charges.shape[1], dtype=np.int16),
-        charge_types=self.charge_types)
+        charge_types=tmp_charge.charge_types)
     out = [obj]
     if return_index or return_inverse or return_counts:
       for n in range(1, len(tmp)):
