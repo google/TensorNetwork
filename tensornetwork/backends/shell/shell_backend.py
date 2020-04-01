@@ -332,3 +332,15 @@ class ShellBackend(base_backend.BaseBackend):
       shape2 = tuple([1] * (len(tensor1.shape) - len(shape2))) + shape2
     shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor1.shape, shape2)])
     return ShellTensor(shape)
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor1`, found `tensor1.shape = {}`"
+          .format(tensor1.shape))
+
+    shape1 = tuple(tensor1.shape)
+    if len(shape1) < len(tensor2.shape):
+      shape1 = shape1 + tuple([1] * (len(tensor2.shape) - len(shape1)))
+    shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor2.shape, shape1)])
+    return ShellTensor(shape)

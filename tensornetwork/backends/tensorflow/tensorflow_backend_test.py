@@ -374,3 +374,21 @@ def test_broadcast_right_multiplication_raises():
   tensor2 = backend.randn((3, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError):
     backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_broadcast_left_multiplication(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((3,), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 4, 2), dtype=dtype, seed=10)
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.reshape(tensor1, (3, 1, 1)) * tensor2)
+
+
+def test_broadcast_left_multiplication_raises():
+  dtype = tf.float64
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
