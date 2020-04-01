@@ -28,9 +28,10 @@ def test_norm(dtype):
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 @pytest.mark.parametrize('Ds', [[200, 100], [100, 200]])
-@pytest.mark.parametrize('flow', [False])
+@pytest.mark.parametrize('flow', [False, True])
 def test_get_diag(dtype, num_charges, Ds, flow):
   np.random.seed(10)
+  np_flow = -np.int((np.int(flow) - 0.5) * 2)
   indices = [
       Index(
           BaseCharge(
@@ -39,11 +40,11 @@ def test_get_diag(dtype, num_charges, Ds, flow):
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
-  inds = np.nonzero(
-      fused == np.random.randint(-1, 1, (num_charges, 1), dtype=np.int16))[0]
+  inds = np.nonzero(fused == np.zeros((num_charges, 1), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique = np.unique(indices[0]._charges[0].charges[:, left], axis=1)
+  unique = np.unique(
+      np_flow * (indices[0]._charges[0].charges[:, left]), axis=1)
   diagonal = diag(arr)
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
       arr.flat_charges, arr.flat_flows, 1)
@@ -52,8 +53,7 @@ def test_get_diag(dtype, num_charges, Ds, flow):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique,
-                             (diagonal.flat_charges[0] * flow).unique_charges)
+  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
@@ -76,7 +76,7 @@ def test_get_empty_diag(dtype, num_charges, Ds):
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-@pytest.mark.parametrize('flow', [False])
+@pytest.mark.parametrize('flow', [False, True])
 def test_create_diag(dtype, num_charges, flow):
   np.random.seed(10)
   D = 200
@@ -93,12 +93,13 @@ def test_create_diag(dtype, num_charges, flow):
 
   sparse_blocks, charges, block_shapes = _find_diagonal_sparse_blocks(
       diagarr.flat_charges, diagarr.flat_flows, 1)
-  #in range(index._charges[0].unique_charges.shape[1]):
+
   for n, block in enumerate(sparse_blocks):
     shape = block_shapes[:, n]
     block_diag = np.diag(np.reshape(diagarr.data[block], shape))
     np.testing.assert_allclose(
-        arr.data[np.squeeze(index._charges[0] == charges[n])], block_diag)
+        arr.data[np.squeeze((index._charges[0] * flow) == charges[n])],
+        block_diag)
 
 
 def test_diag_raises():
