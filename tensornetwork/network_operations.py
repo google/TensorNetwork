@@ -293,26 +293,8 @@ def split_node(
       max_truncation_err,
       relative=relative)
   sqrt_s = backend.sqrt(s)
-  if backend.name != 'symmetric':
-    u_s = u * sqrt_s
-    # We have to do this since we are doing element-wise multiplication against
-    # the first axis of vh. If we don't, it's possible one of the other axes of
-    # vh will be the same size as sqrt_s and would multiply across that axis
-    # instead, which is bad.
-    sqrt_s_broadcast_shape = backend.shape_concat(
-        [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
-    vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
-  else:
-    u_shape = u.shape
-    vh_shape = vh.shape
-    utmp = backend.reshape(u,
-                           (np.prod(u_shape[:len(u_shape) - 1]), u_shape[-1]))
-
-    vhtmp = backend.reshape(vh,
-                            (vh_shape[0], np.prod(vh_shape[1:len(vh_shape)])))
-    #NOTE (mganahl): we use mulitplication by diagonal matrix here
-    u_s = backend.reshape(utmp @ backend.diag(sqrt_s), u_shape)
-    vh_s = backend.reshape(backend.diag(sqrt_s) @ vhtmp, vh_shape)
+  u_s = backend.broadcast_right_multiplication(u, sqrt_s)
+  vh_s = backend.broadcast_left_multiplication(sqrt_s, vh)
 
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
