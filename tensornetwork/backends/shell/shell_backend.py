@@ -242,26 +242,28 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor((A.shape[0],)) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor((A.shape[0],)) for _ in range(numeig)
+      ]
 
     if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
 
     raise ValueError(
         '`A` has no attribut shape and no `initial_state` is given.')
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
 
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
@@ -281,12 +283,14 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor(A.shape[0]) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(A.shape[0]) for _ in range(numeig)
+      ]
 
     if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
 
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
@@ -295,7 +299,8 @@ class ShellBackend(base_backend.BaseBackend):
     raise NotImplementedError("Shell tensor has not implemented addition( + )")
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    raise NotImplementedError("Shell tensor has not implemented subtraction( - )")
+    raise NotImplementedError(
+        "Shell tensor has not implemented subtraction( - )")
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     a = np.ones(tensor1.shape)
@@ -315,3 +320,27 @@ class ShellBackend(base_backend.BaseBackend):
           "input to shell backend method `inv` has shape {}. Only matrices are supported."
           .format(matrix.shape))
     return ShellTensor(matrix.shape)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
+          .format(tensor2.shape))
+
+    shape2 = tuple(tensor2.shape)
+    if len(shape2) < len(tensor1.shape):
+      shape2 = tuple([1] * (len(tensor1.shape) - len(shape2))) + shape2
+    shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor1.shape, shape2)])
+    return ShellTensor(shape)
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor1`, found `tensor1.shape = {}`"
+          .format(tensor1.shape))
+
+    shape1 = tuple(tensor1.shape)
+    if len(shape1) < len(tensor2.shape):
+      shape1 = shape1 + tuple([1] * (len(tensor2.shape) - len(shape1)))
+    shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor2.shape, shape1)])
+    return ShellTensor(shape)

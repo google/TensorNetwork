@@ -354,16 +354,16 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`. 
@@ -444,8 +444,8 @@ class BaseBackend:
       Returns:
         Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented divide.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented divide.".format(
+        self.name))
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
@@ -471,3 +471,35 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    """
+    Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
+    `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
+    one-dimensional tensor. The broadcasting is applied to the last index of 
+    `tensor1`.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor: The result of multiplying `tensor1` onto `tensor2`.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `broadcast_right_multiplication`."
+        .format(self.name))
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    """
+    Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
+    one-dimensional tensor. The broadcasting is applied to the first index of 
+    `tensor2`.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor: The result of multiplying `tensor1` onto `tensor2`.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `broadcast_left_multiplication`."
+        .format(self.name))

@@ -52,10 +52,13 @@ class PyTorchBackend(base_backend.BaseBackend):
                         max_truncation_error: Optional[float] = None,
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.torch, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error,
-                                            relative=relative)
+    return decompositions.svd_decomposition(
+        self.torch,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(
       self,
@@ -158,16 +161,16 @@ class PyTorchBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -302,3 +305,20 @@ class PyTorchBackend(base_backend.BaseBackend):
           "input to pytorch backend method `inv` has shape {}. Only matrices are supported."
           .format(matrix.shape))
     return matrix.inverse()
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
+          .format(tensor2.shape))
+
+    return tensor1 * tensor2
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(tensor1.shape))
+
+    t1_broadcast_shape = self.shape_concat(
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
+    return tensor2 * self.reshape(tensor1, t1_broadcast_shape)

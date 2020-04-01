@@ -248,7 +248,8 @@ def test_conj():
 
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(1, 1, 2),
-    pytest.param(2.*np.ones(()), 1.*np.ones((1, 2, 3)), 3.*np.ones((1, 2, 3))),
+    pytest.param(2. * np.ones(()), 1. * np.ones((1, 2, 3)), 3. * np.ones(
+        (1, 2, 3))),
 ])
 def test_addition(a, b, expected):
   backend = tensorflow_backend.TensorFlowBackend()
@@ -290,7 +291,8 @@ def test_multiply(a, b, expected):
 
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(2., 2., 1.),
-    pytest.param(np.ones(()), 2.*np.ones((1, 2, 3)), 0.5*np.ones((1, 2, 3))),
+    pytest.param(
+        np.ones(()), 2. * np.ones((1, 2, 3)), 0.5 * np.ones((1, 2, 3))),
 ])
 def test_divide(a, b, expected):
   backend = tensorflow_backend.TensorFlowBackend()
@@ -343,6 +345,7 @@ def test_matrix_inv_raises(dtype):
   with pytest.raises(ValueError):
     backend.inv(matrix)
 
+
 def test_eigs_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
@@ -353,3 +356,39 @@ def test_eigsh_lanczos_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
     backend.eigsh_lanczos(np.ones((2, 2)))
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_broadcast_right_multiplication(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3,), dtype=dtype, seed=10)
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, tensor1 * tensor2)
+
+
+def test_broadcast_right_multiplication_raises():
+  dtype = tf.float64
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
+def test_broadcast_left_multiplication(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((3,), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 4, 2), dtype=dtype, seed=10)
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.reshape(tensor1, (3, 1, 1)) * tensor2)
+
+
+def test_broadcast_left_multiplication_raises():
+  dtype = tf.float64
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor1 = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
