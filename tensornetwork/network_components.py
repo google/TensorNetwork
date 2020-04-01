@@ -28,6 +28,7 @@ from tensornetwork.backend_contextmanager import get_default_backend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
+
 # This is required because of the circular dependency between
 # network_components.py and network.py types.
 
@@ -422,7 +423,6 @@ class BaseNode(ABC):
         raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
 
-
   @property
   def signature(self) -> Optional[int]:
     if self.is_disabled:
@@ -578,9 +578,9 @@ class Node(BaseNode):
       raise AttributeError("Please provide a valid tensor for this Node.")
     if isinstance(other, Node):
       if not self.backend.name == other.backend.name:
-        raise TypeError("Operands backend must match.\noperand 1 backend: {}\
-                         \noperand 2 backend: {}".format(self.backend.name,
-                                                         other.backend.name))
+        raise TypeError("Operands backend must match.\noperand 1 backend: {}"
+                        "\noperand 2 backend: {}".format(
+                            self.backend.name, other.backend.name))
       if not hasattr(other, '_tensor'):
         raise AttributeError("Please provide a valid tensor for this Node.")
     else:
@@ -595,10 +595,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -607,10 +608,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -619,10 +621,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -631,10 +634,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -643,10 +647,11 @@ class Node(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "Node":
-    new_node = Node(self.tensor,
-                    name=self.name, 
-                    axis_names=self.axis_names, 
-                    backend=self.backend)
+    new_node = Node(
+        self.tensor,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend)
     if conjugate:
       new_node.set_tensor(self.backend.conj(self.tensor))
     visited_edges = set()
@@ -655,10 +660,8 @@ class Node(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -781,12 +784,13 @@ class CopyNode(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "CopyNode":
-    new_node = CopyNode(self.rank,
-                        self.dimension,
-                        name=self.name, 
-                        axis_names=self.axis_names, 
-                        backend=self.backend,
-                        dtype=self.dtype)
+    new_node = CopyNode(
+        self.rank,
+        self.dimension,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend,
+        dtype=self.dtype)
     new_node.set_tensor(self.get_tensor())
     visited_edges = set()
     for i, edge in enumerate(self.edges):
@@ -794,10 +798,8 @@ class CopyNode(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -1340,8 +1342,8 @@ def _flatten_trace_edges(edges: List[Edge],
       [backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
   unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
-  new_shape = backend.shape_concat(
-      [unaffected_shape, [new_dim, new_dim]], axis=-1)
+  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]],
+                                   axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -2017,8 +2019,7 @@ def contract_between(
         axes1, axes2 = axes2, axes1
 
     new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
-    new_node = Node(
-        tensor=new_tensor, name=name, backend=backend)
+    new_node = Node(tensor=new_tensor, name=name, backend=backend)
     # node1 and node2 get new edges in _remove_edges
     _remove_edges(shared_edges, node1, node2, new_node)
 
