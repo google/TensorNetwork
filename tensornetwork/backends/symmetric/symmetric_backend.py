@@ -191,3 +191,14 @@ class SymmetricBackend(base_backend.BaseBackend):
       raise ValueError("input to symmetric backend method `inv` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
     return self.bs.inv(matrix)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if tensor2.ndim != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor2`,"
+                       " found `tensor2.shape = {}`".format(tensor2.shape))
+    shape1 = tensor1.shape
+    tmp = self.reshape(tensor1,
+                       (numpy.prod(shape1[:tensor1.ndim - 1]), shape1[-1]))
+    #NOTE (mganahl): we use mulitplication by diagonal matrix here
+    return self.reshape(
+        self.tensordot(tmp, self.diag(tensor2), ([1], [0])), shape1)

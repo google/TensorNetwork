@@ -241,8 +241,8 @@ def test_random_uniform_boundaries(dtype):
   backend = jax_backend.JaxBackend()
   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-  assert((a >= 0).all() and (a <= 1).all() and
-         (b >= lb).all() and (b <= ub).all())
+  assert ((a >= 0).all() and (a <= 1).all() and (b >= lb).all() and
+          (b <= ub).all())
 
 
 def test_random_uniform_behavior():
@@ -296,3 +296,20 @@ def test_index_update(dtype):
   np_tensor = np.array(tensor)
   np_tensor[np_tensor > 0.1] = 0.0
   np.testing.assert_allclose(out, np_tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_broadcast_right_multiplication(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3,), dtype=dtype, seed=10)
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.array(tensor1) * np.array(tensor2))
+
+
+def test_broadcast_right_multiplication_raises():
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3))
+  tensor2 = backend.randn((3, 3))
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
