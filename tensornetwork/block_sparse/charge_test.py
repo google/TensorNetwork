@@ -63,6 +63,16 @@ def test_BaseCharge_unique():
   assert np.all(actual[3] == expected[3])
 
 
+def test_BaseCharge_unique_sort():
+  np.random.seed(10)
+  unique = np.array([1, 0, -1])
+  labels = np.random.randint(0, 3, 100)
+  Q = U1Charge(charges=unique, charge_labels=labels)
+  actual = Q.unique(
+      return_index=True, return_inverse=True, return_counts=True, sort=False)
+  np.testing.assert_allclose(actual[0].unique_charges, [[1, 0, -1]])
+
+
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
@@ -223,6 +233,13 @@ def test_BaseCharge_intersect():
   Q2 = BaseCharge(charges=q2)
   res = Q1.intersect(Q2)
   np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]))
+
+
+def test_BaseCharge_intersect_2():
+  c1 = U1Charge(np.array([1, 0, -1]), charge_labels=np.array([2, 0, 1]))
+  c2 = U1Charge(np.array([-1, 0, 1]))
+  res = c1.intersect(c2)
+  np.testing.assert_allclose(res.charges, [[-1, 0, 1]])
 
 
 def test_BaseCharge_intersect_return_indices():
@@ -462,6 +479,16 @@ def test_eq_2():
   np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
   for i, j in zip(inds[0], inds[1]):
     np.array_equal(c[i].charges, c3[:, j])
+
+
+def test_eq__raises():
+  np.random.seed(10)
+  num_charges = 2
+  charge = BaseCharge(
+      np.random.randint(-2, 3, (num_charges, 30)),
+      charge_types=[U1Charge] * num_charges)
+  with pytest.raises(ValueError):
+    _ = charge == np.random.randint(-1, 1, (num_charges + 1, 2), dtype=np.int16)
 
 
 def test_iter():
