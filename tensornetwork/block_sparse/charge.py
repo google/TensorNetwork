@@ -173,6 +173,10 @@ class BaseCharge:
         target_charges = target_charges[None, :]
       if target_charges.shape[1] == 0:
         raise ValueError('input to __eq__ cannot be an empty np.ndarray')
+      if target_charges.shape[0] != self.num_symmetries:
+        raise ValueError(
+            'shape of `target_charges = {}` is incompatible with `self.num_symmetries = {}'
+            .format(target_charges.shape, self.num_symmetries))
       targets = np.unique(target_charges, axis=1)
     #pylint: disable=no-member
     inds = np.nonzero(
