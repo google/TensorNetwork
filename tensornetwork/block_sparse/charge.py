@@ -556,6 +556,42 @@ class U1Charge(BaseCharge):
     return cls(charges=charges)
 
 
+class Z2Charge(BaseCharge):
+
+  def __init__(self,
+               charges: np.ndarray,
+               charge_labels: Optional[np.ndarray] = None,
+               charge_types: Optional[List[Type["BaseCharge"]]] = None,
+               charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+    unique = np.unique(np.ravel(charges))
+    if not np.all(np.isin(unique, [0, 1])):
+      raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
+    super().__init__(
+        charges,
+        charge_labels,
+        charge_types=[type(self)],
+        charge_dtype=charge_dtype)
+
+  @staticmethod
+  def fuse(charge1, charge2) -> np.ndarray:
+    #pylint: disable=no-member
+    return np.bitwise_xor.outer(charge1, charge2).ravel()
+
+  @staticmethod
+  def dual_charges(charges) -> np.ndarray:
+    return charges
+
+  @staticmethod
+  def identity_charge() -> np.ndarray:
+    return np.int16(0)
+
+  #pylint: disable=arguments-differ
+  @classmethod
+  def random(cls, dimension: int) -> BaseCharge:
+    charges = np.random.randint(0, 2, dimension, dtype=np.int16)
+    return cls(charges=charges)
+
+
 def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
                          charge_types: List[Type[BaseCharge]]) -> np.ndarray:
   """
