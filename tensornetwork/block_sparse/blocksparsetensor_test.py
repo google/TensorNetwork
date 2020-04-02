@@ -29,6 +29,7 @@ def get_charge(chargetype, num_charges, D):
           np.random.randint(0, 2, (n2, D)), charge_types=[Z2Charge] * n2)
 
     return c
+  return None
 
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])

@@ -140,7 +140,6 @@ def test_fuse_degeneracies():
                                                 (Z2Charge, 0, 1)])
 def test_Charge_charges(chargetype, B0, B1):
   D = 100
-  B = 6
   np.random.seed(10)
   charges = np.random.randint(B0, B1 + 1, D).astype(np.int16)
   q1 = chargetype(charges)
@@ -151,7 +150,6 @@ def test_Charge_charges(chargetype, B0, B1):
                                                      (Z2Charge, 0, 1, 1)])
 def test_Charge_dual(chargetype, B0, B1, sign):
   D = 100
-  B = 6
   np.random.seed(10)
   charges = np.random.randint(B0, B1 + 1, D).astype(np.int16)
 
@@ -160,8 +158,6 @@ def test_Charge_dual(chargetype, B0, B1, sign):
 
 
 def test_Z2Charge_raises():
-  D = 100
-  B = 6
   np.random.seed(10)
   charges = np.array([-1, 0, 1, 2])
   with pytest.raises(ValueError):
@@ -270,7 +266,6 @@ def test_BaseCharge_intersect_return_indices():
                                                 (Z2Charge, 0, 1)])
 def test_Charge_matmul(chargetype, B0, B1):
   D = 1000
-  B = 5
   np.random.seed(10)
   C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
   C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
@@ -304,7 +299,6 @@ def test_BaseCharge_matmul_raises():
                                                           (Z2Charge, 0, 1, 0)])
 def test_Charge_identity(chargetype, B0, B1, identity):
   D = 100
-  B = 5
   np.random.seed(10)
   C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
   C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
@@ -324,7 +318,6 @@ def test_Charge_identity(chargetype, B0, B1, identity):
                                                       (Z2Charge, 0, 1, 1)])
 def test_Charge_mul(chargetype, B0, B1, sign):
   D = 100
-  B = 5
   np.random.seed(10)
   C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
   C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
