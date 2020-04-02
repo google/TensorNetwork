@@ -104,7 +104,7 @@ class BaseCharge:
         "`identity_charge` has to be implemented in derived classes")
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: int):
+  def random(dimension: int, cls, minval: int, maxval: int):
     raise NotImplementedError(
         "`random` has to be implemented in derived classes")
 
@@ -551,7 +551,7 @@ class U1Charge(BaseCharge):
     return np.int16(0)
 
   @classmethod
-  def random(cls, minval: int, maxval: int, dimension: int) -> BaseCharge:
+  def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
     charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
     return cls(charges=charges)
 
@@ -585,9 +585,12 @@ class Z2Charge(BaseCharge):
   def identity_charge() -> np.ndarray:
     return np.int16(0)
 
-  #pylint: disable=arguments-differ
   @classmethod
-  def random(cls, dimension: int) -> BaseCharge:
+  def random(cls, dimension: int, minval: int = 0,
+             maxval: int = 1) -> BaseCharge:
+    if minval != 0 or maxval != 1:
+      raise ValueError("Z2 charges can only take values 0 or 1")
+
     charges = np.random.randint(0, 2, dimension, dtype=np.int16)
     return cls(charges=charges)
 

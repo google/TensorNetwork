@@ -133,7 +133,10 @@ def test_ChargeArray_reshape(dtype, Ds, chargetype):
 
 def test_ChargeArray_reshape_raises():
   Ds = [8, 9, 10, 11]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
   arr = ChargeArray.random(indices)
   with pytest.raises(ValueError):
     arr.reshape([64, 65])
@@ -143,7 +146,10 @@ def test_ChargeArray_reshape_raises():
     arr2.reshape([9, 8, 10, 11])
 
   Ds = [8, 9, 0, 11]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
   arr3 = ChargeArray.random(indices)
   with pytest.raises(ValueError):
     arr3.reshape([72, 0])
@@ -167,7 +173,10 @@ def test_ChargeArray_transpose(chargetype):
 def test_ChargeArray_transpose_raises():
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
   arr = ChargeArray.random(indices)
   order = [2, 1, 0]
   with pytest.raises(ValueError):
@@ -253,7 +262,9 @@ def test_BlockSparseTensor_init():
   D = 10
   rank = 4
   flows = np.random.choice([True, False], size=rank, replace=True)
-  charges = [U1Charge.random(-5, 5, D) for _ in range(rank)]
+  charges = [
+      U1Charge.random(dimension=D, minval=-5, maxval=5) for _ in range(rank)
+  ]
   fused = fuse_charges(charges, flows)
   data = np.random.uniform(
       0, 1, size=len(np.nonzero(fused == np.zeros((1, 1)))[0]))
@@ -417,8 +428,14 @@ def test_add_sub_raises(op):
   Ds1 = [3, 4, 5, 6]
   Ds2 = [4, 5, 6, 7]
 
-  indices1 = [Index(U1Charge.random(-5, 5, Ds1[n]), False) for n in range(4)]
-  indices2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(4)]
+  indices1 = [
+      Index(U1Charge.random(dimension=Ds1[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
+  indices2 = [
+      Index(U1Charge.random(dimension=Ds2[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
   a = BlockSparseTensor.randn(indices1)
   b = BlockSparseTensor.randn(indices2)
   with pytest.raises(TypeError):
@@ -428,8 +445,14 @@ def test_add_sub_raises(op):
 
   Ds3 = [3, 3, 3, 3]
   Ds4 = [9, 9]
-  indices3 = [Index(U1Charge.random(-5, 5, Ds3[n]), False) for n in range(4)]
-  indices4 = [Index(U1Charge.random(-5, 5, Ds4[n]), False) for n in range(2)]
+  indices3 = [
+      Index(U1Charge.random(dimension=Ds3[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
+  indices4 = [
+      Index(U1Charge.random(dimension=Ds4[n], minval=-5, maxval=5), False)
+      for n in range(2)
+  ]
   c = BlockSparseTensor.randn(indices3).reshape([9, 9])
   d = BlockSparseTensor.randn(indices4)
   with pytest.raises(ValueError):
@@ -437,8 +460,14 @@ def test_add_sub_raises(op):
 
   Ds5 = [200, 200]
   Ds6 = [200, 200]
-  indices5 = [Index(U1Charge.random(-5, 5, Ds5[n]), False) for n in range(2)]
-  indices6 = [Index(U1Charge.random(-5, 5, Ds6[n]), False) for n in range(2)]
+  indices5 = [
+      Index(U1Charge.random(dimension=Ds5[n], minval=-5, maxval=5), False)
+      for n in range(2)
+  ]
+  indices6 = [
+      Index(U1Charge.random(dimension=Ds6[n], minval=-5, maxval=5), False)
+      for n in range(2)
+  ]
   e = BlockSparseTensor.randn(indices5)
   f = BlockSparseTensor.randn(indices6)
   with pytest.raises(ValueError):
@@ -460,7 +489,10 @@ def test_mul(dtype, num_charges, chargetype):
 
 def test_mul_raises():
   np.random.seed(10)
-  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=10, minval=-5, maxval=5), False)
+      for _ in range(4)
+  ]
   a = BlockSparseTensor.randn(indices)
   with pytest.raises(TypeError):
     [1, 2] * a
@@ -475,7 +507,10 @@ def test_rmul(dtype, num_charges, chargetype):
       Index(get_charge(chargetype, num_charges, 20), False) for _ in range(4)
   ]
 
-  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=10, minval=-5, maxval=5), False)
+      for _ in range(4)
+  ]
   a = BlockSparseTensor.randn(indices, dtype=dtype)
   b = a * 5
   np.testing.assert_allclose(b.data, a.data * 5)
@@ -483,7 +518,10 @@ def test_rmul(dtype, num_charges, chargetype):
 
 def test_rmul_raises():
   np.random.seed(10)
-  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=10, minval=-5, maxval=5), False)
+      for _ in range(4)
+  ]
   a = BlockSparseTensor.randn(indices)
   with pytest.raises(TypeError):
     _ = a * np.array([1, 2])
@@ -504,7 +542,10 @@ def test_truediv(dtype, num_charges, chargetype):
 
 def test_truediv_raises():
   np.random.seed(10)
-  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=10, minval=-5, maxval=5), False)
+      for _ in range(4)
+  ]
   a = BlockSparseTensor.randn(indices)
   with pytest.raises(TypeError):
     _ = a / np.array([1, 2])
