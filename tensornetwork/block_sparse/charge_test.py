@@ -447,7 +447,7 @@ def test_isin_raises():
       return np.int16(0)
 
     @classmethod
-    def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
+    def random(cls, dimension: int, minval: int, maxval: int) -> np.ndarray:
       charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
       return cls(charges=charges)
 
