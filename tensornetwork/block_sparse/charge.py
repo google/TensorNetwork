@@ -104,7 +104,7 @@ class BaseCharge:
         "`identity_charge` has to be implemented in derived classes")
 
   @classmethod
-  def random(dimension: int, cls, minval: int, maxval: int):
+  def random(cls, dimension: int, minval: int, maxval: int):
     raise NotImplementedError(
         "`random` has to be implemented in derived classes")
 
