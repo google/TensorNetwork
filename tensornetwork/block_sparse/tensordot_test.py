@@ -213,8 +213,14 @@ def test_tensordot_raises():
   np.random.seed(10)
   Ds1 = np.arange(2, 2 + R1)
   Ds2 = np.arange(2 + R1, 2 + R1 + R2)
-  is1 = [Index(U1Charge.random(-5, 5, Ds1[n]), False) for n in range(R1)]
-  is2 = [Index(U1Charge.random(-5, 5, Ds2[n]), False) for n in range(R2)]
+  is1 = [
+      Index(U1Charge.random(dimension=Ds1[n], minval=-5, maxval=5), False)
+      for n in range(R1)
+  ]
+  is2 = [
+      Index(U1Charge.random(dimension=Ds2[n], minval=-5, maxval=5), False)
+      for n in range(R2)
+  ]
   A = BlockSparseTensor.random(is1, dtype=dtype)
   B = BlockSparseTensor.random(is2, dtype=dtype)
   with pytest.raises(ValueError):

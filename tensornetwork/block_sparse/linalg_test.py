@@ -19,7 +19,10 @@ def test_norm(dtype):
   Ds = np.asarray([8, 9, 10, 11])
   rank = Ds.shape[0]
   flows = np.random.choice([True, False], size=rank, replace=True)
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   dense_norm = np.linalg.norm(arr.todense())
   np.testing.assert_allclose(norm(arr), dense_norm)
@@ -124,7 +127,10 @@ def test_diag_raises():
 def test_tn_reshape(dtype):
   np.random.seed(10)
   Ds = [8, 9, 10, 11]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), False) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), False)
+      for n in range(4)
+  ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   arr2 = reshape(arr, [72, 110])
   for n in range(2):
@@ -148,7 +154,10 @@ def test_tn_transpose():
   np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
   arr = BlockSparseTensor.random(indices)
   order = [2, 1, 0, 3]
   arr2 = transpose(arr, order)
@@ -161,7 +170,10 @@ def test_tn_transpose_reshape():
   np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
-  indices = [Index(U1Charge.random(-5, 5, Ds[n]), flows[n]) for n in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
   arr = BlockSparseTensor.random(indices)
   arr2 = transpose(arr, [2, 0, 1, 3])
   arr3 = reshape(arr2, [80, 99])
@@ -183,7 +195,10 @@ def test_tn_transpose_reshape():
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_tn_conj(dtype):
   np.random.seed(10)
-  indices = [Index(U1Charge.random(-5, 5, 10), False) for _ in range(4)]
+  indices = [
+      Index(U1Charge.random(dimension=10, minval=-5, maxval=5), False)
+      for _ in range(4)
+  ]
   a = BlockSparseTensor.randn(indices, dtype=dtype)
   b = conj(a)
   np.testing.assert_allclose(b.data, np.conj(a.data))
