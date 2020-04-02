@@ -25,12 +25,16 @@ def test_flatten():
 
 
 def test_flat_meta_data():
-  i1 = Index([U1Charge.random(-2, 2, 20),
-              U1Charge.random(-2, 2, 20)],
+  i1 = Index([
+      U1Charge.random(dimension=20, minval=-2, maxval=2),
+      U1Charge.random(dimension=20, minval=-2, maxval=2)
+  ],
              flow=[True, False])
 
-  i2 = Index([U1Charge.random(-2, 2, 20),
-              U1Charge.random(-2, 2, 20)],
+  i2 = Index([
+      U1Charge.random(dimension=20, minval=-2, maxval=2),
+      U1Charge.random(dimension=20, minval=-2, maxval=2)
+  ],
              flow=[False, True])
   expected_charges = [
       i1._charges[0], i1._charges[1], i2._charges[0], i2._charges[1]
