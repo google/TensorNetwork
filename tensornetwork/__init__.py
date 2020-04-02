@@ -17,4 +17,4 @@ from tensornetwork.backend_contextmanager import DefaultBackend, set_default_bac
 from tensornetwork import block_sparse
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge

@@ -164,7 +164,9 @@ def test_rq_decomposition(dtype, R, R1, num_charges):
 def test_qr_decomposition(dtype, R, R1):
   np.random.seed(10)
   D = 30
-  charges = [U1Charge.random(-5, 5, D) for n in range(R)]
+  charges = [
+      U1Charge.random(dimension=D, minval=-5, maxval=5) for n in range(R)
+  ]
   flows = [True] * R
   A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
                                dtype=dtype)
