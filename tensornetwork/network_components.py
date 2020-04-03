@@ -1646,10 +1646,9 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
     ValueError: If the slice is incompatible with the edge dimension.
     ValueError: If the edge is connecting nodes with different backends.
   """
-  if length < 0:
-    raise ValueError("Length of slice must be non-negative.")
-  elif ((start_index + length > edge.dimension) or
-      (start_index < 0 and start_index + length > 0)):
+  if length <= 0:
+    raise ValueError("Length of slice must be positive.")
+  if ((start_index + length > edge.dimension) or (-length < start_index < 0)):
     raise ValueError("Length {} slice beginning at {} is invalid for edge of "
                      "dimension {}".format(length, start_index, edge.dimension))
 
@@ -1659,7 +1658,7 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
   backend = backends[0]
 
   # Handles all three types of edges
-  for node, axis in zip(edge.get_nodes(), [edge.axis1,  edge.axis2]):
+  for node, axis in zip(edge.get_nodes(), [edge.axis1, edge.axis2]):
     if node is not None:
       tensor = node.get_tensor()
       start_indices = [0] * node.get_rank()
@@ -1668,7 +1667,7 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
       slice_sizes = list(node.shape)
       slice_sizes[axis] = length
       slice_sizes = tuple(slice_sizes)
-      new_tensor = node.backend.slice(tensor, start_indices, slice_sizes)
+      new_tensor = backend.slice(tensor, start_indices, slice_sizes)
       node.set_tensor(new_tensor)
 
   return edge

@@ -1613,13 +1613,13 @@ def test_slice_edge_trace_edge(backend):
 
 def test_slice_edge_dangling_edge(backend):
   node = Node(np.arange(9).reshape(3, 3), backend=backend)
-  edge = Edge(node1=node, axis1=0)
+  edge = node[0]
   new_edge = tn.slice_edge(edge, start_index=1, length=2)
 
   assert new_edge.node1 == node
-  assert new_edge.node2 == None
+  assert new_edge.node2 is None
   assert new_edge.axis1 == 0
-  assert new_edge.axis2 == None
+  assert new_edge.axis2 is None
   assert new_edge.dimension == 2
 
   expected_tensor = np.array([[3, 4, 5], [6, 7, 8]])

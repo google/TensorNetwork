@@ -60,6 +60,20 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented transpose.".format(self.name))
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    """Obtains a slice of a tensor based on start_indices and slice_sizes.
+
+    Args:
+      tensor: A tensor.
+      start_indices: Tuple of integers denoting start indices of slice.
+      slice_sizes: Tuple of integers denoting size of slice along each axis.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented slice.".format(self.name))
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
@@ -70,12 +84,12 @@ class BaseBackend:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
-    left (row) index resulting from combining the axes 
+    left (row) index resulting from combining the axes
     `tensor.shape[:split_axis]` and an effective right (column) index resulting
     from combining the axes `tensor.shape[split_axis:]`.
 
-    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
-    then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` 
+    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+    then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh`
     would have shape (6, 4, 5).
 
     If `max_singular_values` is set to an integer, the SVD is truncated to keep
@@ -105,7 +119,7 @@ class BaseBackend:
         matrix.
       max_singular_values: The number of singular values to keep, or `None` to
         keep them all.
-      max_truncation_error: The maximum allowed truncation error or `None` to 
+      max_truncation_error: The maximum allowed truncation error or `None` to
         not do any truncation.
       relative: Multiply `max_truncation_err` with the largest singular value.
 
@@ -203,7 +217,7 @@ class BaseBackend:
         self.name))
 
   def norm(self, tensor: Tensor) -> Tensor:
-    """Calculate the L2-norm of the elements of `tensor`    
+    """Calculate the L2-norm of the elements of `tensor`
     """
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
@@ -211,8 +225,8 @@ class BaseBackend:
   def eye(self, N: int, dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int 
-       (numpy, torch, tensorflow) or a `ShapeType` object 
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
       Args:
@@ -226,8 +240,8 @@ class BaseBackend:
 
   def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return an ones-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int 
-       (numpy, torch, tensorflow) or a `ShapeType` object 
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
@@ -240,8 +254,8 @@ class BaseBackend:
 
   def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
     """Return a zeros-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int 
-       (numpy, torch, tensorflow) or a `ShapeType` object 
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
@@ -257,8 +271,8 @@ class BaseBackend:
             dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int 
-       (numpy, torch, tensorflow) or a `ShapeType` object 
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
@@ -275,8 +289,8 @@ class BaseBackend:
                      dtype: Optional[Type[np.number]] = None,
                      seed: Optional[int] = None) -> Tensor:
     """Return a random uniform matrix of dimension `dim`.
-       Depending on specific backends, `dim` has to be either an int 
-       (numpy, torch, tensorflow) or a `ShapeType` object 
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
        (for block-sparse backends). Block-sparse
        behavior is currently not supported
        Args:
@@ -291,7 +305,7 @@ class BaseBackend:
                                "random_uniform.").format(self.name))
 
   def conj(self, tensor: Tensor) -> Tensor:
-    """ 
+    """
     Return the complex conjugate of `tensor`
     Args:
       tensor: A tensor.
@@ -324,15 +338,15 @@ class BaseBackend:
            dtype: Optional[Type] = None) -> List[Tensor]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a 
+    of a linear operator `A`. `A` can be either a
     linear operator type object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute 
+    If no `initial_state` is provided then `A` has to have an attribute
     `shape` so that a suitable initial state can be randomly generated.
 
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -366,9 +380,9 @@ class BaseBackend:
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of `A`. 
+    of `A`.
     Args:
-      A: A (sparse) implementation of a linear operator. 
+      A: A (sparse) implementation of a linear operator.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
@@ -379,13 +393,13 @@ class BaseBackend:
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag`
         iterations to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
@@ -454,7 +468,7 @@ class BaseBackend:
     Args:
       tensor: A `Tensor` object.
       mask: A boolean mask.
-      assignee: A scalar `Tensor`. The values to assigned to `tensor` 
+      assignee: A scalar `Tensor`. The values to assigned to `tensor`
         at positions where `mask` is `True`.
 
     """
@@ -476,7 +490,7 @@ class BaseBackend:
     """
     Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
     `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
-    one-dimensional tensor. The broadcasting is applied to the last index of 
+    one-dimensional tensor. The broadcasting is applied to the last index of
     `tensor1`.
     Args:
       tensor1: A tensor.
@@ -492,7 +506,7 @@ class BaseBackend:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
     `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
-    one-dimensional tensor. The broadcasting is applied to the first index of 
+    one-dimensional tensor. The broadcasting is applied to the first index of
     `tensor2`.
     Args:
       tensor1: A tensor.
