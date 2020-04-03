@@ -191,7 +191,7 @@ class BaseNode(ABC):
 
   @property
   def sparse_shape(self) -> Any:
-    return self.backend.sparse_shape(self._tensor)
+    return self.backend.sparse_shape(self.tensor)
 
   @property
   @abstractmethod
