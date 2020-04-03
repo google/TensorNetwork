@@ -26,5 +26,5 @@ def test_sparse_shape(num_charges):
   indices = [Index(charges[n], flows[n]) for n in range(R)]
   a = BlockSparseTensor.random(indices=indices, dtype=dtype)
   node = tn.Node(a, backend='symmetric')
-  for s1, s2 in zip(a.sparse_shape, indices):
+  for s1, s2 in zip(node.sparse_shape, indices):
     assert s1 == s2
