@@ -1611,5 +1611,5 @@ def test_remove_edges_trace_raises_value_error(single_node_edge):
 
 
 def test_sparse_shape(backend):
-  node = Node(tensor=np.random.randint(3, 4, 5), backend=backend)
+  node = Node(tensor=np.random.rand(3, 4, 5), backend=backend)
   np.testing.assert_allclose(node.sparse_shape, (3, 4, 5))
