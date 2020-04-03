@@ -6,7 +6,9 @@ from unittest.mock import patch
 from collections import namedtuple
 import h5py
 import re
+
 import tensornetwork as tn
+#pylint: disable=line-too-long
 from tensornetwork.block_sparse import BlockSparseTensor, Index, BaseCharge, U1Charge
 
 
