@@ -1614,12 +1614,12 @@ def test_tensor_from_edge_order(backend):
   node = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   order = [2, 0, 1]
   transp_tensor = node.tensor_from_edge_order([node[o] for o in order])
-  np.testing.assert_allcose(transp_tensor.shape, [4, 2, 3])
+  np.testing.assert_allclose(transp_tensor.shape, [4, 2, 3])
 
 
 def test_tensor_from_edge_order_raises(backend):
   node = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   node2 = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   order = [2, 0, 1]
-  transp_tensor = node.tensor_from_edge_order([node[1], node2[1], node[2]])
-  np.testing.assert_allcose(transp_tensor.shape, [4, 2, 3])
+  with pytest.raises(ValueError):
+    transp_tensor = node.tensor_from_edge_order([node[1], node2[1], node[2]])
