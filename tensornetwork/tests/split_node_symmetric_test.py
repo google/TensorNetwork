@@ -89,15 +89,16 @@ def test_split_node_mixed_order(dtype, num_charges):
   tn.check_correct({left, right})
   actual = left @ right
   np.testing.assert_allclose(actual.tensor.shape, (2, 4, 6, 3, 5))
-  np.testing.assert_allclose(a.tensor.shape, (2, 4, 6, 3, 5))
+  np.testing.assert_allclose(a.tensor.shape, (2, 3, 4, 5, 6))
 
   np.testing.assert_allclose(left.tensor.data, 0)
   np.testing.assert_allclose(right.tensor.data, 0)
   np.testing.assert_allclose(left.tensor.shape[0:3], (2, 4, 6))
   np.testing.assert_allclose(right.tensor.shape[1:], (3, 5))
-
+  new_order = [0, 2, 4, 1, 3]
   assert np.all([
-      charge_equal(a.tensor.charges[n][0], actual.tensor.charges[n][0])
+      charge_equal(a.tensor.charges[new_order[n]][0],
+                   actual.tensor.charges[n][0])
       for n in range(len(a.tensor._charges))
   ])
 
