@@ -7,4 +7,4 @@ from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, Char
 #pylint: disable=line-too-long
 from tensornetwork.block_sparse.linalg import svd, qr, diag, sqrt, trace, inv, pinv, eye, zeros, ones, randn, eigh, eig, conj, reshape, transpose, random, norm
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import U1Charge, BaseCharge
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge
