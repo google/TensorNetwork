@@ -1640,6 +1640,55 @@ def split_edge(edge: Edge,
   return new_edges
 
 
+def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
+  """Slices an edge and the connected tensors beginning at `start_index` for
+  length `length`, along the axis determined by `edge`.
+
+  This method modifies the tensors stored in the two nodes connected by `edge`
+  to corresponding tensor slices (along the axis determined by `edge`) and
+  returns an updated edge connecting the two nodes along the same axis as
+  the original `edge`.
+
+  Args:
+    edge: The edge to slice.
+    start_index: Integer specifying the beginning of the slice.
+    length: Integer specifying the length of the slice.
+
+  Returns:
+    The updated edge after slicing.
+
+  Raises:
+    ValueError: If the length of the slice is negative.
+    ValueError: If the slice is incompatible with the edge dimension.
+    ValueError: If the edge is connecting nodes with different backends.
+  """
+  if length <= 0:
+    raise ValueError("Length of slice must be positive.")
+  if ((start_index + length > edge.dimension) or (-length < start_index < 0)):
+    raise ValueError("Length {} slice beginning at {} is invalid for edge of "
+                     "dimension {}".format(length, start_index, edge.dimension))
+
+  backends = [node.backend for node in edge.get_nodes() if node is not None]
+  if not all([b.name == backends[0].name for b in backends]):
+    raise ValueError("Not all backends are the same.")
+  backend = backends[0]
+
+  # Handles all three types of edges
+  for node, axis in zip(edge.get_nodes(), [edge.axis1, edge.axis2]):
+    if node is not None:
+      tensor = node.get_tensor()
+      start_indices = [0] * node.get_rank()
+      start_indices[axis] = start_index
+      start_indices = tuple(start_indices)
+      slice_sizes = list(node.shape)
+      slice_sizes[axis] = length
+      slice_sizes = tuple(slice_sizes)
+      new_tensor = backend.slice(tensor, start_indices, slice_sizes)
+      node.set_tensor(new_tensor)
+
+  return edge
+
+
 def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   """Collapse a trace edge. `edge` is disabled before returning.
 

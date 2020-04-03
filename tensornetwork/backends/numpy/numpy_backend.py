@@ -37,6 +37,17 @@ class NumPyBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    obj = tuple(slice(start, start + size) for start, size
+                in zip(start_indices, slice_sizes))
+    return tensor[obj]
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
@@ -175,17 +186,17 @@ class NumPyBackend(base_backend.BaseBackend):
            dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a 
+    of a linear operator `A`. `A` can be either a
     scipy.sparse.linalg.LinearOperator object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute 
+    If no `initial_state` is provided then `A` has to have an attribute
     `shape` so that a suitable initial state can be randomly generated.
-    This is a wrapper for scipy.sparse.linalg.eigs which only supports 
+    This is a wrapper for scipy.sparse.linalg.eigs which only supports
     a subset of the arguments of scipy.sparse.linalg.eigs.
 
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -269,7 +280,7 @@ class NumPyBackend(base_backend.BaseBackend):
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -279,13 +290,13 @@ class NumPyBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
         to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
