@@ -652,5 +652,5 @@ def test_broadcast_left_multiplication_raises():
 def test_sparse_shape():
   dtype = np.float64
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
