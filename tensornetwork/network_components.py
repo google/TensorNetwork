@@ -292,6 +292,18 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
+  def tensor_from_edge_order(self, perm: List["Edge"]) -> "BaseNode":
+    order = []
+    for edge in perm:
+      if edge.node1 is self:
+        order.append(edge.axis1)
+      elif edge.node2 is self:
+        order.append(edge.axis2)
+      else:
+        raise ValueError("edge {} is not connected to node {}".format(
+            edge.name, self.name))
+    return self.backend.transpose(self.tensor, order)
+
   def get_axis_number(self, axis: Union[Text, int]) -> int:
     """Get the axis number for a given axis name or value."""
     if isinstance(axis, int):
