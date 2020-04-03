@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges
+from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge
 
 
 def test_BaseCharge_charges():
@@ -136,24 +136,32 @@ def test_fuse_degeneracies():
   np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
 
 
-def test_U1Charge_charges():
+@pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
+                                                (Z2Charge, 0, 1)])
+def test_Charge_charges(chargetype, B0, B1):
   D = 100
-  B = 6
   np.random.seed(10)
-  charges = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-
-  q1 = U1Charge(charges)
+  charges = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  q1 = chargetype(charges)
   assert np.all(q1.charges == charges)
 
 
-def test_U1Charge_dual():
+@pytest.mark.parametrize('chargetype, B0, B1,sign', [(U1Charge, -5, 5, -1),
+                                                     (Z2Charge, 0, 1, 1)])
+def test_Charge_dual(chargetype, B0, B1, sign):
   D = 100
-  B = 6
   np.random.seed(10)
-  charges = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  charges = np.random.randint(B0, B1 + 1, D).astype(np.int16)
 
-  q1 = U1Charge(charges)
-  assert np.all(q1.dual(True).charges == -charges)
+  q1 = chargetype(charges)
+  assert np.all(q1.dual(True).charges == sign * charges)
+
+
+def test_Z2Charge_raises():
+  np.random.seed(10)
+  charges = np.array([-1, 0, 1, 2])
+  with pytest.raises(ValueError):
+    Z2Charge(charges)
 
 
 def get_charges(B0, B1, D, num_charges):
@@ -254,27 +262,28 @@ def test_BaseCharge_intersect_return_indices():
   np.testing.assert_allclose(i2, [1, 2])
 
 
-def test_U1Charge_matmul():
+@pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
+                                                (Z2Charge, 0, 1)])
+def test_Charge_matmul(chargetype, B0, B1):
   D = 1000
-  B = 5
   np.random.seed(10)
-  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C3 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
 
-  q1 = U1Charge(C1)
-  q2 = U1Charge(C2)
-  q3 = U1Charge(C3)
+  q1 = chargetype(C1)
+  q2 = chargetype(C2)
+  q3 = chargetype(C3)
 
   Q = q1 @ q2 @ q3
   Q_ = BaseCharge(
       np.stack([C1, C2, C3], axis=0),
       charge_labels=None,
-      charge_types=[U1Charge, U1Charge, U1Charge])
+      charge_types=[chargetype] * 3)
   assert np.all(Q.charges == Q_.charges)
 
 
-def test_U1Charge_matmul_raises():
+def test_BaseCharge_matmul_raises():
   B = 5
   np.random.seed(10)
   C1 = np.random.randint(-B // 2, B // 2 + 1, 10).astype(np.int16)
@@ -286,35 +295,37 @@ def test_U1Charge_matmul_raises():
     q1 @ q2
 
 
-def test_U1Charge_identity():
+@pytest.mark.parametrize('chargetype, B0, B1, identity', [(U1Charge, -5, 5, 0),
+                                                          (Z2Charge, 0, 1, 0)])
+def test_Charge_identity(chargetype, B0, B1, identity):
   D = 100
-  B = 5
   np.random.seed(10)
-  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C3 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
+  C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C3 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
 
-  q1 = U1Charge(C1)
-  q2 = U1Charge(C2)
-  q3 = U1Charge(C3)
+  q1 = chargetype(C1)
+  q2 = chargetype(C2)
+  q3 = chargetype(C3)
 
   Q = q1 @ q2 @ q3
   eye = Q.identity_charges
-  np.testing.assert_allclose(eye.unique_charges, 0)
+  np.testing.assert_allclose(eye.unique_charges, identity)
   assert eye.num_symmetries == 3
 
 
-def test_U1Charge_mul():
+@pytest.mark.parametrize('chargetype, B0, B1, sign', [(U1Charge, -5, 5, -1),
+                                                      (Z2Charge, 0, 1, 1)])
+def test_Charge_mul(chargetype, B0, B1, sign):
   D = 100
-  B = 5
   np.random.seed(10)
-  C1 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  C2 = np.random.randint(-B // 2, B // 2 + 1, D).astype(np.int16)
-  q1 = U1Charge(C1)
-  q2 = U1Charge(C2)
+  C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  q1 = chargetype(C1)
+  q2 = chargetype(C2)
   q = q1 @ q2
   res = q * True
-  np.testing.assert_allclose(res.charges, (-1) * np.stack([C1, C2]))
+  np.testing.assert_allclose(res.charges, sign * np.stack([C1, C2]))
 
 
 def test_fuse_charges():
@@ -436,7 +447,7 @@ def test_isin_raises():
       return np.int16(0)
 
     @classmethod
-    def random(cls, minval: int, maxval: int, dimension: int) -> np.ndarray:
+    def random(cls, dimension: int, minval: int, maxval: int) -> np.ndarray:
       charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
       return cls(charges=charges)
 
