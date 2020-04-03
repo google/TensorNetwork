@@ -52,7 +52,7 @@ def test_split_node_full_svd_names(backend):
 
 def test_split_node_relative_tolerance(backend):
   absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
-  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend) 
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
   max_truncation_err = 0.2
 
   _, _, trunc_sv_absolute, = tn.split_node(
@@ -73,7 +73,7 @@ def test_split_node_relative_tolerance(backend):
 
 def test_split_node_full_svd_relative_tolerance(backend):
   absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
-  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend) 
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
   max_truncation_err = 0.2
 
   _, _, _, trunc_sv_absolute, = tn.split_node_full_svd(
@@ -371,6 +371,7 @@ def test_reduced_density_nondangling(backend):
   with pytest.raises(ValueError, match=err_msg):
     tn.reduced_density([a[0], b[1], c[1]])
 
+
 def test_reduced_density_contraction(backend):
   if backend == "pytorch":
     pytest.skip("pytorch doesn't support complex numbers")
@@ -475,3 +476,27 @@ def test_switch_backend_raises_error(backend):
   a.backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     tn.switch_backend({a}, backend)
+
+
+def test_split_node_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_full_svd_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_full_svd(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_rq_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_rq(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_qr_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_qr(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))

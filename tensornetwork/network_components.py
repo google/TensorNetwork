@@ -296,6 +296,18 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
+  def tensor_from_edge_order(self, perm: List["Edge"]) -> "BaseNode":
+    order = []
+    for edge in perm:
+      if edge.node1 is self:
+        order.append(edge.axis1)
+      elif edge.node2 is self:
+        order.append(edge.axis2)
+      else:
+        raise ValueError("edge {} is not connected to node {}".format(
+            edge.name, self.name))
+    return self.backend.transpose(self.tensor, order)
+
   def get_axis_number(self, axis: Union[Text, int]) -> int:
     """Get the axis number for a given axis name or value."""
     if isinstance(axis, int):
@@ -335,9 +347,9 @@ class BaseNode(ABC):
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
-  def get_all_dangling(self) -> Set["Edge"]:
+  def get_all_dangling(self) -> List["Edge"]:
     """Return the set of dangling edges connected to this node."""
-    return {edge for edge in self.edges if edge.is_dangling()}
+    return [edge for edge in self.edges if edge.is_dangling()]
 
   def set_name(self, name) -> None:
     if not isinstance(name, str):
@@ -1315,11 +1327,11 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_all_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_dangling(nodes: Iterable[BaseNode]) -> List[Edge]:
   """Return the set of all dangling edges."""
-  edges = set()
+  edges = []
   for node in nodes:
-    edges |= node.get_all_dangling()
+    edges += node.get_all_dangling()
   return edges
 
 
