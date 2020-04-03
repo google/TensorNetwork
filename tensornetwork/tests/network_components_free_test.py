@@ -1620,6 +1620,5 @@ def test_tensor_from_edge_order(backend):
 def test_tensor_from_edge_order_raises(backend):
   node = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   node2 = tn.Node(np.random.rand(2, 3, 4), backend=backend)
-  order = [2, 0, 1]
   with pytest.raises(ValueError):
-    transp_tensor = node.tensor_from_edge_order([node[1], node2[1], node[2]])
+    node.tensor_from_edge_order([node[1], node2[1], node[2]])
