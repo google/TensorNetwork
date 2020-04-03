@@ -284,6 +284,14 @@ def split_node(
     right_axis_names = None
 
   backend = node.backend
+  #store original edge order
+  orig_axes = []
+  for edge in left_edges + right_edges:
+    if edge.node1 is node:
+      orig_axes.append(edge.axis1)
+    else:
+      orig_axes.append(edge.axis2)
+
   node.reorder_edges(left_edges + right_edges)
 
   u, s, vh, trun_vals = backend.svd_decomposition(
@@ -309,6 +317,12 @@ def split_node(
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
+  #rerstore the original edge order of node
+  orig_edge_order = [None] * node.get_rank()
+  for n, o in enumerate(orig_axes):
+    orig_edge_order[o] = node.edges[n]
+  node.reorder_edges(orig_edge_order)
+
   return left_node, right_node, trun_vals
 
 
@@ -369,6 +383,14 @@ def split_node_qr(
     right_axis_names = None
 
   backend = node.backend
+  #store original edge order
+  orig_axes = []
+  for edge in left_edges + right_edges:
+    if edge.node1 is node:
+      orig_axes.append(edge.axis1)
+    else:
+      orig_axes.append(edge.axis2)
+
   node.reorder_edges(left_edges + right_edges)
   q, r = backend.qr_decomposition(node.tensor, len(left_edges))
   left_node = Node(
@@ -384,6 +406,12 @@ def split_node_qr(
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
+  #rerstore the original edge order of node
+  orig_edge_order = [None] * node.get_rank()
+  for n, o in enumerate(orig_axes):
+    orig_edge_order[o] = node.edges[n]
+  node.reorder_edges(orig_edge_order)
+
   return left_node, right_node
 
 
@@ -444,6 +472,13 @@ def split_node_rq(
     left_axis_names = None
     right_axis_names = None
   backend = node.backend
+  orig_axes = []
+  for edge in left_edges + right_edges:
+    if edge.node1 is node:
+      orig_axes.append(edge.axis1)
+    else:
+      orig_axes.append(edge.axis2)
+
   node.reorder_edges(left_edges + right_edges)
   r, q = backend.rq_decomposition(node.tensor, len(left_edges))
   left_node = Node(
@@ -459,6 +494,12 @@ def split_node_rq(
     edge.update_axis(i + len(left_edges), node, i + 1, right_node)
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
+  #rerstore the original edge order of node
+  orig_edge_order = [None] * node.get_rank()
+  for n, o in enumerate(orig_axes):
+    orig_edge_order[o] = node.edges[n]
+  node.reorder_edges(orig_edge_order)
+
   return left_node, right_node
 
 
@@ -561,6 +602,13 @@ def split_node_full_svd(
 
   backend = node.backend
 
+  orig_axes = []
+  for edge in left_edges + right_edges:
+    if edge.node1 is node:
+      orig_axes.append(edge.axis1)
+    else:
+      orig_axes.append(edge.axis2)
+
   node.reorder_edges(left_edges + right_edges)
   u, s, vh, trun_vals = backend.svd_decomposition(
       node.tensor,
@@ -591,6 +639,10 @@ def split_node_full_svd(
   connect(
       singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
   node.fresh_edges(node.axis_names)
+  orig_edge_order = [None] * node.get_rank()
+  for n, o in enumerate(orig_axes):
+    orig_edge_order[o] = node.edges[n]
+  node.reorder_edges(orig_edge_order)
   return left_node, singular_values_node, right_node, trun_vals
 
 
