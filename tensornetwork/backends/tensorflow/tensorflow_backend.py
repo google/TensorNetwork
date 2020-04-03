@@ -78,6 +78,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
 
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return self.shape_tuple(tensor)
+
   def shape_prod(self, values: Tensor) -> Tensor:
     return self.tf.reduce_prod(values)
 
