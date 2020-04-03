@@ -46,6 +46,15 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.tf.transpose(tensor, perm)
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.tf.slice(tensor, start_indices, slice_sizes)
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,

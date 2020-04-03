@@ -1586,6 +1586,64 @@ def test_split_edge_different_backend_raises_value_error(single_node_edge):
     tn.split_edge(edge, (2, 1))
 
 
+def test_slice_edge_different_backend_raises_value_error(single_node_edge):
+  if single_node_edge.node.backend.name == "numpy":
+    pytest.skip("numpy comparing to all the others")
+  node1 = single_node_edge.node
+  node2 = tn.Node(np.random.rand(2, 2, 2), backend="numpy")
+  edge = tn.connect(node1[1], node2[1])
+  with pytest.raises(ValueError, match="Not all backends are the same."):
+    tn.slice_edge(edge, 0, 1)
+
+
+def test_slice_edge_trace_edge(backend):
+  node = Node(np.arange(9).reshape(3, 3), backend=backend)
+  edge = tn.connect(node[0], node[1])
+  new_edge = tn.slice_edge(edge, start_index=1, length=2)
+
+  assert new_edge.node1 == node
+  assert new_edge.node2 == node
+  assert new_edge.axis1 == 0
+  assert new_edge.axis2 == 1
+  assert new_edge.dimension == 2
+
+  expected_tensor = np.array([[4, 5], [7, 8]])
+  np.testing.assert_allclose(expected_tensor, node.get_tensor())
+
+
+def test_slice_edge_dangling_edge(backend):
+  node = Node(np.arange(9).reshape(3, 3), backend=backend)
+  edge = Edge(node1=node, axis1=0)
+  new_edge = tn.slice_edge(edge, start_index=1, length=2)
+
+  assert new_edge.node1 == node
+  assert new_edge.node2 == None
+  assert new_edge.axis1 == 0
+  assert new_edge.axis2 == None
+  assert new_edge.dimension == 2
+
+  expected_tensor = np.array([[3, 4, 5], [6, 7, 8]])
+  np.testing.assert_allclose(expected_tensor, node.get_tensor())
+
+
+def test_slice_edge_standard_edge(backend):
+  node_1 = Node(np.arange(9).reshape(3, 3), backend=backend)
+  node_2 = Node(np.arange(12).reshape(3, 4), backend=backend)
+  edge = tn.connect(node_1[1], node_2[0])
+  new_edge = tn.slice_edge(edge, start_index=1, length=2)
+
+  assert new_edge.node1 == node_1
+  assert new_edge.node2 == node_2
+  assert new_edge.axis1 == 1
+  assert new_edge.axis2 == 0
+  assert new_edge.dimension == 2
+
+  expected_tensor_1 = np.array([[1, 2], [4, 5], [7, 8]])
+  expected_tensor_2 = np.array([[4, 5, 6, 7], [8, 9, 10, 11]])
+  np.testing.assert_allclose(expected_tensor_1, node_1.get_tensor())
+  np.testing.assert_allclose(expected_tensor_2, node_2.get_tensor())
+
+
 def test_remove_trace_edge_dangling_edge_raises_value_error(single_node_edge):
   node = single_node_edge.node
   edge = node[0]
