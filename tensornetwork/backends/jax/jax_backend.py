@@ -41,6 +41,15 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.jax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
+
   def randn(self,
             shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None,

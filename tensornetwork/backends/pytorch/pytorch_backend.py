@@ -45,6 +45,17 @@ class PyTorchBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    obj = tuple(slice(start, start + size) for start, size
+                in zip(start_indices, slice_sizes))
+    return tensor[obj]
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
@@ -189,13 +200,13 @@ class PyTorchBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag`
         iterations to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)

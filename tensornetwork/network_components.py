@@ -296,6 +296,18 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
+  def tensor_from_edge_order(self, perm: List["Edge"]) -> "BaseNode":
+    order = []
+    for edge in perm:
+      if edge.node1 is self:
+        order.append(edge.axis1)
+      elif edge.node2 is self:
+        order.append(edge.axis2)
+      else:
+        raise ValueError("edge {} is not connected to node {}".format(
+            edge.name, self.name))
+    return self.backend.transpose(self.tensor, order)
+
   def get_axis_number(self, axis: Union[Text, int]) -> int:
     """Get the axis number for a given axis name or value."""
     if isinstance(axis, int):
@@ -335,9 +347,9 @@ class BaseNode(ABC):
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
-  def get_all_dangling(self) -> Set["Edge"]:
+  def get_all_dangling(self) -> List["Edge"]:
     """Return the set of dangling edges connected to this node."""
-    return {edge for edge in self.edges if edge.is_dangling()}
+    return [edge for edge in self.edges if edge.is_dangling()]
 
   def set_name(self, name) -> None:
     if not isinstance(name, str):
@@ -1315,11 +1327,11 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_all_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_dangling(nodes: Iterable[BaseNode]) -> List[Edge]:
   """Return the set of all dangling edges."""
-  edges = set()
+  edges = []
   for node in nodes:
-    edges |= node.get_all_dangling()
+    edges += node.get_all_dangling()
   return edges
 
 
@@ -1626,6 +1638,55 @@ def split_edge(edge: Edge,
         connect(new_dangling_edges[idx], new_dangling_edges[len(shape) + idx],
                 new_edge_names[idx] if new_edge_names is not None else None))
   return new_edges
+
+
+def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
+  """Slices an edge and the connected tensors beginning at `start_index` for
+  length `length`, along the axis determined by `edge`.
+
+  This method modifies the tensors stored in the two nodes connected by `edge`
+  to corresponding tensor slices (along the axis determined by `edge`) and
+  returns an updated edge connecting the two nodes along the same axis as
+  the original `edge`.
+
+  Args:
+    edge: The edge to slice.
+    start_index: Integer specifying the beginning of the slice.
+    length: Integer specifying the length of the slice.
+
+  Returns:
+    The updated edge after slicing.
+
+  Raises:
+    ValueError: If the length of the slice is negative.
+    ValueError: If the slice is incompatible with the edge dimension.
+    ValueError: If the edge is connecting nodes with different backends.
+  """
+  if length <= 0:
+    raise ValueError("Length of slice must be positive.")
+  if ((start_index + length > edge.dimension) or (-length < start_index < 0)):
+    raise ValueError("Length {} slice beginning at {} is invalid for edge of "
+                     "dimension {}".format(length, start_index, edge.dimension))
+
+  backends = [node.backend for node in edge.get_nodes() if node is not None]
+  if not all([b.name == backends[0].name for b in backends]):
+    raise ValueError("Not all backends are the same.")
+  backend = backends[0]
+
+  # Handles all three types of edges
+  for node, axis in zip(edge.get_nodes(), [edge.axis1, edge.axis2]):
+    if node is not None:
+      tensor = node.get_tensor()
+      start_indices = [0] * node.get_rank()
+      start_indices[axis] = start_index
+      start_indices = tuple(start_indices)
+      slice_sizes = list(node.shape)
+      slice_sizes[axis] = length
+      slice_sizes = tuple(slice_sizes)
+      new_tensor = backend.slice(tensor, start_indices, slice_sizes)
+      node.set_tensor(new_tensor)
+
+  return edge
 
 
 def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
