@@ -284,18 +284,10 @@ def split_node(
     right_axis_names = None
 
   backend = node.backend
-  #store original edge order
-  orig_axes = []
-  for edge in left_edges + right_edges:
-    if edge.node1 is node:
-      orig_axes.append(edge.axis1)
-    else:
-      orig_axes.append(edge.axis2)
-
-  node.reorder_edges(left_edges + right_edges)
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
   u, s, vh, trun_vals = backend.svd_decomposition(
-      node.tensor,
+      transp_tensor,
       len(left_edges),
       max_singular_values,
       max_truncation_err,
@@ -306,23 +298,27 @@ def split_node(
 
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       vh_s, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
-  #rerstore the original edge order of node
-  orig_edge_order = [None] * node.get_rank()
-  for n, o in enumerate(orig_axes):
-    orig_edge_order[o] = node.edges[n]
-  node.reorder_edges(orig_edge_order)
-
   return left_node, right_node, trun_vals
 
 
@@ -383,34 +379,32 @@ def split_node_qr(
     right_axis_names = None
 
   backend = node.backend
-  #store original edge order
-  orig_axes = []
-  for edge in left_edges + right_edges:
-    if edge.node1 is node:
-      orig_axes.append(edge.axis1)
-    else:
-      orig_axes.append(edge.axis2)
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  node.reorder_edges(left_edges + right_edges)
-  q, r = backend.qr_decomposition(node.tensor, len(left_edges))
+  q, r = backend.qr_decomposition(transp_tensor, len(left_edges))
   left_node = Node(
       q, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       r, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
-  #rerstore the original edge order of node
-  orig_edge_order = [None] * node.get_rank()
-  for n, o in enumerate(orig_axes):
-    orig_edge_order[o] = node.edges[n]
-  node.reorder_edges(orig_edge_order)
 
   return left_node, right_node
 
@@ -472,34 +466,33 @@ def split_node_rq(
     left_axis_names = None
     right_axis_names = None
   backend = node.backend
-  orig_axes = []
-  for edge in left_edges + right_edges:
-    if edge.node1 is node:
-      orig_axes.append(edge.axis1)
-    else:
-      orig_axes.append(edge.axis2)
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  node.reorder_edges(left_edges + right_edges)
-  r, q = backend.rq_decomposition(node.tensor, len(left_edges))
+  r, q = backend.rq_decomposition(transp_tensor, len(left_edges))
   left_node = Node(
       r, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       q, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
+
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
-  #rerstore the original edge order of node
-  orig_edge_order = [None] * node.get_rank()
-  for n, o in enumerate(orig_axes):
-    orig_edge_order[o] = node.edges[n]
-  node.reorder_edges(orig_edge_order)
-
   return left_node, right_node
 
 
@@ -601,17 +594,10 @@ def split_node_full_svd(
     right_axis_names = None
 
   backend = node.backend
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  orig_axes = []
-  for edge in left_edges + right_edges:
-    if edge.node1 is node:
-      orig_axes.append(edge.axis1)
-    else:
-      orig_axes.append(edge.axis2)
-
-  node.reorder_edges(left_edges + right_edges)
   u, s, vh, trun_vals = backend.svd_decomposition(
-      node.tensor,
+      transp_tensor,
       len(left_edges),
       max_singular_values,
       max_truncation_err,
@@ -627,22 +613,25 @@ def split_node_full_svd(
   right_node = Node(
       vh, name=right_name, axis_names=right_axis_names, backend=backend)
 
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
   connect(
       left_node.edges[-1], singular_values_node.edges[0], name=left_edge_name)
   connect(
       singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
   node.fresh_edges(node.axis_names)
-  orig_edge_order = [None] * node.get_rank()
-  for n, o in enumerate(orig_axes):
-    orig_edge_order[o] = node.edges[n]
-  node.reorder_edges(orig_edge_order)
   return left_node, singular_values_node, right_node, trun_vals
 
 
