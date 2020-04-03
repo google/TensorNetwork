@@ -1668,6 +1668,11 @@ def test_remove_edges_trace_raises_value_error(single_node_edge):
     _remove_edges(edge, node, node, node)  # pytype: disable=wrong-arg-types
 
 
+def test_sparse_shape(backend):
+  node = Node(tensor=np.random.rand(3, 4, 5), backend=backend)
+  np.testing.assert_allclose(node.sparse_shape, (3, 4, 5))
+
+
 def test_tensor_from_edge_order(backend):
   node = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   order = [2, 0, 1]

@@ -343,3 +343,10 @@ def test_broadcast_left_multiplication_raises():
   tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError):
     backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  dtype = np.float64
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)

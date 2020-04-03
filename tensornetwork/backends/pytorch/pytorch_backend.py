@@ -94,6 +94,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
 
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return self.shape_tuple(tensor)
+
   def shape_prod(self, values: Tensor) -> int:
     return np.prod(np.array(values))
 

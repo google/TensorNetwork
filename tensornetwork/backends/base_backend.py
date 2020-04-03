@@ -181,6 +181,10 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
+  def sparse_shape(self, tensor: Tensor) -> Any:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
+
   def shape_prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
