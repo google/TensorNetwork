@@ -57,10 +57,11 @@ class BaseCharge:
       raise StopIteration
 
   def __init__(self,
-               charges: np.ndarray,
+               charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+    charges = np.array(charges)
     if charges.ndim == 1:
       charges = charges[None, :]
 
@@ -528,7 +529,7 @@ class BaseCharge:
 class U1Charge(BaseCharge):
 
   def __init__(self,
-               charges: np.ndarray,
+               charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
@@ -559,7 +560,7 @@ class U1Charge(BaseCharge):
 class Z2Charge(BaseCharge):
 
   def __init__(self,
-               charges: np.ndarray,
+               charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
