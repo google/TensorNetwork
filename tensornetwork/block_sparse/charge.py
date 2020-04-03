@@ -18,7 +18,7 @@ from __future__ import print_function
 import numpy as np
 
 # pylint: disable=line-too-long
-from typing import List, Optional, Type, Any, Union
+from typing import List, Optional, Type, Any, Union, Callable
 
 #TODO (mganahl): switch from column to row order for unique labels
 #TODO (mganahl): implement more efficient unique function
@@ -594,6 +594,52 @@ class Z2Charge(BaseCharge):
 
     charges = np.random.randint(0, 2, dimension, dtype=np.int16)
     return cls(charges=charges)
+
+
+def ZNCharge(n: int) -> Callable:
+  if n < 2:
+    raise ValueError(f"n must be > 2, found {n}")
+
+  class ModularCharge(BaseCharge):
+    def __init__(self,
+                 charges: Union[List, np.ndarray],
+                 charge_labels: Optional[np.ndarray] = None,
+                 charge_types: Optional[List[Type["BaseCharge"]]] = None,
+                 charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+      unique = np.unique(np.ravel(charges))
+      if not np.all(np.isin(unique, list(range(n)))):
+        raise ValueError(
+          f"Z{n} charges can only be in range({n}), found: {unique}")
+      super().__init__(
+          charges,
+          charge_labels,
+          charge_types=[type(self)],
+          charge_dtype=charge_dtype)
+
+    @staticmethod
+    def fuse(charge1, charge2) -> np.ndarray:
+      #pylint: disable=no-member
+      return np.outer(charge1, charge2).ravel() % n
+
+    @staticmethod
+    def dual_charges(charges) -> np.ndarray:
+      return charges
+
+    @staticmethod
+    def identity_charge() -> np.ndarray:
+      return np.int16(0)
+
+    @classmethod
+    def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
+      if maxval >= n:
+        raise ValueError(f"maxval must be less than n={n}, got {maxval}")
+      if minval < 0: 
+        raise ValueError(f"minval must be greater than 0, found {minval}")
+      # No need for the mod due to the checks above.
+      charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
+      return cls(charges=charges)
+
+  return ModularCharge
 
 
 def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,

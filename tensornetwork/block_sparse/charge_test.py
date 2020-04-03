@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge
+from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge, ZNCharge
 
 
 def test_BaseCharge_charges():
@@ -137,7 +137,9 @@ def test_fuse_degeneracies():
 
 
 @pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
-                                                (Z2Charge, 0, 1)])
+                                                (Z2Charge, 0, 1),
+                                                (ZNCharge(3), 0, 2),
+                                                (ZNCharge(6), 0, 5)])
 def test_Charge_charges(chargetype, B0, B1):
   D = 100
   np.random.seed(10)
@@ -147,7 +149,9 @@ def test_Charge_charges(chargetype, B0, B1):
 
 
 @pytest.mark.parametrize('chargetype, B0, B1,sign', [(U1Charge, -5, 5, -1),
-                                                     (Z2Charge, 0, 1, 1)])
+                                                     (Z2Charge, 0, 1, 1),
+                                                     (ZNCharge(3), 0, 2, 1),
+                                                     (ZNCharge(4), 0, 3, 1)])
 def test_Charge_dual(chargetype, B0, B1, sign):
   D = 100
   np.random.seed(10)
@@ -263,7 +267,8 @@ def test_BaseCharge_intersect_return_indices():
 
 
 @pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
-                                                (Z2Charge, 0, 1)])
+                                                (Z2Charge, 0, 1),
+                                                (ZNCharge(3), 0, 2)])
 def test_Charge_matmul(chargetype, B0, B1):
   D = 1000
   np.random.seed(10)
@@ -296,7 +301,9 @@ def test_BaseCharge_matmul_raises():
 
 
 @pytest.mark.parametrize('chargetype, B0, B1, identity', [(U1Charge, -5, 5, 0),
-                                                          (Z2Charge, 0, 1, 0)])
+                                                          (Z2Charge, 0, 1, 0),
+                                                          (ZNCharge(5), 0, 4, 0),
+                                                          (ZNCharge(7), 0, 6, 0)])
 def test_Charge_identity(chargetype, B0, B1, identity):
   D = 100
   np.random.seed(10)
@@ -315,7 +322,9 @@ def test_Charge_identity(chargetype, B0, B1, identity):
 
 
 @pytest.mark.parametrize('chargetype, B0, B1, sign', [(U1Charge, -5, 5, -1),
-                                                      (Z2Charge, 0, 1, 1)])
+                                                      (Z2Charge, 0, 1, 1),
+                                                      (ZNCharge(9), 0, 8, 1),
+                                                      (ZNCharge(11), 0, 10, 1)])
 def test_Charge_mul(chargetype, B0, B1, sign):
   D = 100
   np.random.seed(10)
@@ -544,3 +553,10 @@ def test_eq_raises():
     c1 == c2
   with pytest.raises(ValueError):
     c1 == npc
+
+def test_zncharge_raises():
+  with pytest.raises(ValueError, match="n must be > 2, found 0"):
+    ZNCharge(0)
+  with pytest.raises(
+      ValueError, match="Z7 charges can only be in"):
+    ZNCharge(7)([0, 4, 9])
