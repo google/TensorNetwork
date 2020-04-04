@@ -598,7 +598,7 @@ class Z2Charge(BaseCharge):
 
 def ZNCharge(n: int) -> Callable:
   if n < 2:
-    raise ValueError(f"n must be > 2, found {n}")
+    raise ValueError(f"n must be >= 2, found {n}")
 
   class ModularCharge(BaseCharge):
     def __init__(self,
@@ -609,7 +609,7 @@ def ZNCharge(n: int) -> Callable:
       unique = np.unique(np.ravel(charges))
       if not np.all(np.isin(unique, list(range(n)))):
         raise ValueError(
-            f"Z{n} charges can only be in range({n}), found: {unique}")
+            f"Z{n} charges must be in range({n}), found: {unique}")
       super().__init__(
           charges,
           charge_labels,
@@ -623,20 +623,24 @@ def ZNCharge(n: int) -> Callable:
 
     @staticmethod
     def dual_charges(charges) -> np.ndarray:
-      return charges
+      return (n - charges) % n
 
     @staticmethod
     def identity_charge() -> np.ndarray:
       return np.int16(0)
 
     @classmethod
-    def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
+    def random(cls, 
+               dimension: int, 
+               minval: int = 0, 
+               maxval: int = n) -> BaseCharge:
       if maxval >= n:
         raise ValueError(f"maxval must be less than n={n}, got {maxval}")
       if minval < 0: 
         raise ValueError(f"minval must be greater than 0, found {minval}")
       # No need for the mod due to the checks above.
-      charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
+      charges = np.random.randint(
+          minval, maxval + 1, dimension, dtype=np.int16)
       return cls(charges=charges)
 
   return ModularCharge

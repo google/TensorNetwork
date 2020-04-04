@@ -149,9 +149,7 @@ def test_Charge_charges(chargetype, B0, B1):
 
 
 @pytest.mark.parametrize('chargetype, B0, B1,sign', [(U1Charge, -5, 5, -1),
-                                                     (Z2Charge, 0, 1, 1),
-                                                     (ZNCharge(3), 0, 2, 1),
-                                                     (ZNCharge(4), 0, 3, 1)])
+                                                     (Z2Charge, 0, 1, 1)])
 def test_Charge_dual(chargetype, B0, B1, sign):
   D = 100
   np.random.seed(10)
@@ -159,6 +157,16 @@ def test_Charge_dual(chargetype, B0, B1, sign):
 
   q1 = chargetype(charges)
   assert np.all(q1.dual(True).charges == sign * charges)
+
+
+@pytest.mark.parametrize('n', list(range(2, 12)))
+def test_Charge_dual_zncharges(n):
+  chargetype = ZNCharge(n)
+  D = 100
+  np.random.seed(10)
+  charges = np.random.randint(0, n, D).astype(np.int16)
+  q1 = chargetype(charges)
+  assert np.all(q1.dual(True).charges == (n - charges) % n)
 
 
 def test_Z2Charge_raises():
@@ -320,11 +328,18 @@ def test_Charge_identity(chargetype, B0, B1, identity):
   np.testing.assert_allclose(eye.unique_charges, identity)
   assert eye.num_symmetries == 3
 
+@pytest.mark.parametrize("n", list(range(2, 20)))
+def test_zncharge_dual_invariant(n):
+  D = 100
+  np.random.seed(10)
+  charges = np.random.randint(0, n, D).astype(np.int16)
+  a = ZNCharge(n)(charges)
+  b = a.dual(True)
+  np.testing.assert_allclose((b.charges + a.charges) % n, np.zeros((1,D)))
+
 
 @pytest.mark.parametrize('chargetype, B0, B1, sign', [(U1Charge, -5, 5, -1),
-                                                      (Z2Charge, 0, 1, 1),
-                                                      (ZNCharge(9), 0, 8, 1),
-                                                      (ZNCharge(11), 0, 10, 1)])
+                                                      (Z2Charge, 0, 1, 1)])
 def test_Charge_mul(chargetype, B0, B1, sign):
   D = 100
   np.random.seed(10)
@@ -336,6 +351,19 @@ def test_Charge_mul(chargetype, B0, B1, sign):
   res = q * True
   np.testing.assert_allclose(res.charges, sign * np.stack([C1, C2]))
 
+
+@pytest.mark.parametrize('n', list(range(2, 12)))
+def test_Charge_mul_zncharge(n):
+  chargetype = ZNCharge(n)
+  D = 100
+  np.random.seed(10)
+  C1 = np.random.randint(0, n, D).astype(np.int16)
+  C2 = np.random.randint(0, n, D).astype(np.int16)
+  q1 = chargetype(C1)
+  q2 = chargetype(C2)
+  q = q1 @ q2
+  res = q * True
+  np.testing.assert_allclose(res.charges, (n - np.stack([C1, C2])) % n)
 
 def test_fuse_charges():
   num_charges = 5
@@ -554,9 +582,15 @@ def test_eq_raises():
   with pytest.raises(ValueError):
     c1 == npc
 
+
 def test_zncharge_raises():
-  with pytest.raises(ValueError, match="n must be > 2, found 0"):
+  with pytest.raises(ValueError, match="n must be >= 2, found 0"):
     ZNCharge(0)
   with pytest.raises(
-      ValueError, match="Z7 charges can only be in"):
+      ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
+
+
+def test_zncharge_fuse():
+  # TODO(chaseriley): Learn how to do this.
+  pass
