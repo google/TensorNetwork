@@ -609,7 +609,7 @@ def ZNCharge(n: int) -> Callable:
       unique = np.unique(np.ravel(charges))
       if not np.all(np.isin(unique, list(range(n)))):
         raise ValueError(
-          f"Z{n} charges can only be in range({n}), found: {unique}")
+            f"Z{n} charges can only be in range({n}), found: {unique}")
       super().__init__(
           charges,
           charge_labels,
