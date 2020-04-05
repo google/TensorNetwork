@@ -335,7 +335,7 @@ def test_zncharge_dual_invariant(n):
   charges = np.random.randint(0, n, D).astype(np.int16)
   a = ZNCharge(n)(charges)
   b = a.dual(True)
-  np.testing.assert_allclose((b.charges + a.charges) % n, np.zeros((1,D)))
+  np.testing.assert_allclose((b.charges + a.charges) % n, np.zeros((1, D)))
 
 
 @pytest.mark.parametrize('chargetype, B0, B1, sign', [(U1Charge, -5, 5, -1),
