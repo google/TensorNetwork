@@ -589,8 +589,3 @@ def test_zncharge_raises():
   with pytest.raises(
       ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
-
-
-def test_zncharge_fuse():
-  # TODO(chaseriley): Learn how to do this.
-  pass
