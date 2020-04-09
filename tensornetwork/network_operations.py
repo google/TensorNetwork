@@ -163,6 +163,26 @@ def copy(nodes: Iterable[BaseNode],
   return node_dict, edge_dict
 
 
+def replicate_nodes(nodes: Iterable[BaseNode],
+                    conjugate: bool = False) -> List[BaseNode]:
+  """Copy the given nodes and their edges.
+
+  If nodes A and B are connected but only A is passed in to be
+  copied, the edge between them will become a dangling edge.
+
+  Args:
+    nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
+    conjugate: Boolean. Whether to conjugate all of the nodes
+        (useful for calculating norms and reduced density
+        matrices).
+
+  Returns:
+    A list containing the copies of the nodes.
+  """
+  new_nodes, _ = copy(nodes, conjugate=conjugate)
+  return [new_nodes[node] for node in nodes]
+
+
 def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   """Remove a node from the network.
 
@@ -193,6 +213,7 @@ def split_node(
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
     max_truncation_err: Optional[float] = None,
+    relative: Optional[bool] = False,
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
@@ -214,6 +235,8 @@ def split_node(
   values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
   `norm(truncated_singular_values) <= max_truncation_err`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If only `max_singular_values` is set, the number of singular values kept
   will be `min(max_singular_values, number_of_singular_values)`, so that
@@ -229,7 +252,8 @@ def split_node(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
-    left_name: The name of the new left node. If `None`, a name will be
+    relative: Multiply `max_truncation_err` with the largest singular value.
+    left_name: The name of the new left node. If `None`, a name will be 
       generated automatically.
     right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
@@ -270,31 +294,39 @@ def split_node(
     right_axis_names = None
 
   backend = node.backend
-  node.reorder_edges(left_edges + right_edges)
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      transp_tensor,
+      len(left_edges),
+      max_singular_values,
+      max_truncation_err,
+      relative=relative)
   sqrt_s = backend.sqrt(s)
-  u_s = u * sqrt_s
-  # We have to do this since we are doing element-wise multiplication against
-  # the first axis of vh. If we don't, it's possible one of the other axes of
-  # vh will be the same size as sqrt_s and would multiply across that axis
-  # instead, which is bad.
-  sqrt_s_broadcast_shape = backend.shape_concat(
-      [backend.shape_tensor(sqrt_s), [1] * (len(vh.shape) - 1)], axis=-1)
-  vh_s = vh * backend.reshape(sqrt_s, sqrt_s_broadcast_shape)
+  u_s = backend.broadcast_right_multiplication(u, sqrt_s)
+  vh_s = backend.broadcast_left_multiplication(sqrt_s, vh)
+
   left_node = Node(
       u_s, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       vh_s, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
   node.fresh_edges(node.axis_names)
   return left_node, right_node, trun_vals
@@ -358,20 +390,33 @@ def split_node_qr(
     right_axis_names = None
 
   backend = node.backend
-  node.reorder_edges(left_edges + right_edges)
-  q, r = backend.qr_decomposition(node.tensor, len(left_edges))
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
+
+  q, r = backend.qr_decomposition(transp_tensor, len(left_edges))
   left_node = Node(
       q, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       r, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
+
   return left_node, right_node
 
 
@@ -435,20 +480,33 @@ def split_node_rq(
     left_axis_names = None
     right_axis_names = None
   backend = node.backend
-  node.reorder_edges(left_edges + right_edges)
-  r, q = backend.rq_decomposition(node.tensor, len(left_edges))
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
+
+  r, q = backend.rq_decomposition(transp_tensor, len(left_edges))
   left_node = Node(
       r, name=left_name, axis_names=left_axis_names, backend=backend)
+
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
   right_node = Node(
       q, name=right_name, axis_names=right_axis_names, backend=backend)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
+
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
+
   connect(left_node.edges[-1], right_node.edges[0], name=edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, right_node
 
 
@@ -458,6 +516,7 @@ def split_node_full_svd(
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
     max_truncation_err: Optional[float] = None,
+    relative: Optional[bool] = False,
     left_name: Optional[Text] = None,
     middle_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
@@ -481,6 +540,8 @@ def split_node_full_svd(
   values. If only `max_truncation_err` is set, as many singular values will
   be truncated as possible while maintaining:
   `norm(truncated_singular_values) <= max_truncation_err`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If only `max_singular_values` is set, the number of singular values kept
   will be `min(max_singular_values, number_of_singular_values)`, so that
@@ -496,7 +557,8 @@ def split_node_full_svd(
     right_edges: The edges you want connected to the new right node.
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
-    left_name: The name of the new left node. If `None`, a name will be
+    relative: Multiply `max_truncation_err` with the largest singular value.
+    left_name: The name of the new left node. If None, a name will be 
       generated automatically.
     middle_name: The name of the new center node. If `None`, a name will be
       generated automatically.
@@ -547,11 +609,14 @@ def split_node_full_svd(
     right_axis_names = None
 
   backend = node.backend
+  transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  node.reorder_edges(left_edges + right_edges)
-  u, s, vh, trun_vals = backend.svd_decomposition(node.tensor, len(left_edges),
-                                                  max_singular_values,
-                                                  max_truncation_err)
+  u, s, vh, trun_vals = backend.svd_decomposition(
+      transp_tensor,
+      len(left_edges),
+      max_singular_values,
+      max_truncation_err,
+      relative=relative)
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
@@ -563,17 +628,25 @@ def split_node_full_svd(
   right_node = Node(
       vh, name=right_name, axis_names=right_axis_names, backend=backend)
 
+  left_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
+  ]
   for i, edge in enumerate(left_edges):
     left_node.add_edge(edge, i)
-    edge.update_axis(i, node, i, left_node)
+    edge.update_axis(left_axes_order[i], node, i, left_node)
+
+  right_axes_order = [
+      edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
+  ]
   for i, edge in enumerate(right_edges):
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
-    edge.update_axis(i + len(left_edges), node, i + 1, right_node)
+    edge.update_axis(right_axes_order[i], node, i + 1, right_node)
   connect(
       left_node.edges[-1], singular_values_node.edges[0], name=left_edge_name)
   connect(
       singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
+  node.fresh_edges(node.axis_names)
   return left_node, singular_values_node, right_node, trun_vals
 
 
@@ -786,6 +859,11 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
   Returns:
     None
   """
+  if new_backend == 'symmetric':
+    if np.all([n.backend.name == 'symmetric' for n in nodes]):
+      return
+    raise ValueError("switching to `symmetric` backend not possible")
+
   backend = backend_factory.get_backend(new_backend)
   for node in nodes:
     if node.backend.name != "numpy":

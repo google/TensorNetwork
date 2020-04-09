@@ -19,13 +19,13 @@ import numpy as np
 Tensor = Any
 
 
-def svd_decomposition(
-    torch: Any,
-    tensor: Tensor,
-    split_axis: int,
-    max_singular_values: Optional[int] = None,
-    max_truncation_error: Optional[float] = None
-) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+def svd_decomposition(torch: Any,
+                      tensor: Tensor,
+                      split_axis: int,
+                      max_singular_values: Optional[int] = None,
+                      max_truncation_error: Optional[float] = None,
+                      relative: Optional[bool] = False
+                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective
@@ -43,6 +43,8 @@ def svd_decomposition(
   If `max_truncation_error > 0`, as many singular values will be truncated as
   possible, so that the truncation error (the norm of discarded singular
   values) is at most `max_truncation_error`.
+  If `relative` is set `True` then `max_truncation_err` is understood
+  relative to the largest singular value.
 
   If both `max_singular_values` snd `max_truncation_error` are specified, the
   number of retained singular values will be
@@ -65,6 +67,7 @@ def svd_decomposition(
       keep them all.
     max_truncation_error: The maximum allowed truncation error or `None` to not
       do any truncation.
+    relative: Multiply `max_truncation_err` with the largest singular value.
 
   Returns:
     u: Left tensor factor.
@@ -86,10 +89,16 @@ def svd_decomposition(
     # Cumulative norms of singular values in ascending order
     s_sorted, _ = torch.sort(s**2)
     trunc_errs = torch.sqrt(torch.cumsum(s_sorted, 0))
+    # If relative is true, rescale max_truncation error with the largest
+    # singular value to yield the absolute maximal truncation error.
+    if relative:
+      abs_max_truncation_error = max_truncation_error * s[0]
+    else:
+      abs_max_truncation_error = max_truncation_error
     # We must keep at least this many singular values to ensure the
-    # truncation error is <= max_truncation_error.
+    # truncation error is <= abs_max_truncation_error.
     num_sing_vals_err = torch.nonzero(
-        trunc_errs > max_truncation_error).nelement()
+        trunc_errs > abs_max_truncation_error).nelement()
   else:
     num_sing_vals_err = max_singular_values
 

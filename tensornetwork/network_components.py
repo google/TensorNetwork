@@ -28,6 +28,7 @@ from tensornetwork.backend_contextmanager import get_default_backend
 
 string_type = h5py.special_dtype(vlen=str)
 Tensor = Any
+
 # This is required because of the circular dependency between
 # network_components.py and network.py types.
 
@@ -188,6 +189,10 @@ class BaseNode(ABC):
     return self._shape
 
   @property
+  def sparse_shape(self) -> Any:
+    return self.backend.sparse_shape(self.tensor)
+
+  @property
   @abstractmethod
   def tensor(self) -> Tensor:
     return
@@ -289,6 +294,18 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
+  def tensor_from_edge_order(self, perm: List["Edge"]) -> "BaseNode":
+    order = []
+    for edge in perm:
+      if edge.node1 is self:
+        order.append(edge.axis1)
+      elif edge.node2 is self:
+        order.append(edge.axis2)
+      else:
+        raise ValueError("edge {} is not connected to node {}".format(
+            edge.name, self.name))
+    return self.backend.transpose(self.tensor, order)
+
   def get_axis_number(self, axis: Union[Text, int]) -> int:
     """Get the axis number for a given axis name or value."""
     if isinstance(axis, int):
@@ -328,9 +345,9 @@ class BaseNode(ABC):
     """Return the set of nondangling edges connected to this node."""
     return {edge for edge in self.edges if not edge.is_dangling()}
 
-  def get_all_dangling(self) -> Set["Edge"]:
+  def get_all_dangling(self) -> List["Edge"]:
     """Return the set of dangling edges connected to this node."""
-    return {edge for edge in self.edges if edge.is_dangling()}
+    return [edge for edge in self.edges if edge.is_dangling()]
 
   def set_name(self, name) -> None:
     if not isinstance(name, str):
@@ -419,7 +436,6 @@ class BaseNode(ABC):
       if not isinstance(axis_name, str):
         raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
-
 
   @property
   def signature(self) -> Optional[int]:
@@ -574,9 +590,9 @@ class Node(BaseNode):
       raise AttributeError("Please provide a valid tensor for this Node.")
     if isinstance(other, Node):
       if not self.backend.name == other.backend.name:
-        raise TypeError("Operands backend must match.\noperand 1 backend: {}\
-                         \noperand 2 backend: {}".format(self.backend.name,
-                                                         other.backend.name))
+        raise TypeError("Operands backend must match.\noperand 1 backend: {}"
+                        "\noperand 2 backend: {}".format(
+                            self.backend.name, other.backend.name))
       if not hasattr(other, '_tensor'):
         raise AttributeError("Please provide a valid tensor for this Node.")
     else:
@@ -591,10 +607,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -603,10 +620,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -615,10 +633,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
     other = self.op_protection(other)
@@ -627,10 +646,11 @@ class Node(BaseNode):
       axis_names = self.axis_names
     else:
       axis_names = other.axis_names
-    return Node(tensor=new_tensor,
-                name=self.name,
-                axis_names=axis_names,
-                backend=self.backend.name)
+    return Node(
+        tensor=new_tensor,
+        name=self.name,
+        axis_names=axis_names,
+        backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -639,10 +659,11 @@ class Node(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "Node":
-    new_node = Node(self.tensor,
-                    name=self.name, 
-                    axis_names=self.axis_names, 
-                    backend=self.backend)
+    new_node = Node(
+        self.tensor,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend)
     if conjugate:
       new_node.set_tensor(self.backend.conj(self.tensor))
     visited_edges = set()
@@ -651,10 +672,8 @@ class Node(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -777,12 +796,13 @@ class CopyNode(BaseNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "CopyNode":
-    new_node = CopyNode(self.rank,
-                        self.dimension,
-                        name=self.name, 
-                        axis_names=self.axis_names, 
-                        backend=self.backend,
-                        dtype=self.dtype)
+    new_node = CopyNode(
+        self.rank,
+        self.dimension,
+        name=self.name,
+        axis_names=self.axis_names,
+        backend=self.backend,
+        dtype=self.dtype)
     new_node.set_tensor(self.get_tensor())
     visited_edges = set()
     for i, edge in enumerate(self.edges):
@@ -790,10 +810,8 @@ class CopyNode(BaseNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(new_node, i, 
-                        name=edge.name,
-                        node2=new_node, 
-                        axis2=edge.axis2)
+        new_edge = Edge(
+            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -1303,11 +1321,11 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_all_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_dangling(nodes: Iterable[BaseNode]) -> List[Edge]:
   """Return the set of all dangling edges."""
-  edges = set()
+  edges = []
   for node in nodes:
-    edges |= node.get_all_dangling()
+    edges += node.get_all_dangling()
   return edges
 
 
@@ -1334,8 +1352,8 @@ def _flatten_trace_edges(edges: List[Edge],
       [backend.shape_tensor(node.tensor)[e.axis1] for e in edges])
   node.reorder_axes(perm)
   unaffected_shape = backend.shape_tensor(node.tensor)[:len(perm_front)]
-  new_shape = backend.shape_concat(
-      [unaffected_shape, [new_dim, new_dim]], axis=-1)
+  new_shape = backend.shape_concat([unaffected_shape, [new_dim, new_dim]],
+                                   axis=-1)
   node.tensor = backend.reshape(node.tensor, new_shape)
   edge1 = Edge(node1=node, axis1=len(perm_front), name="TraceFront")
   edge2 = Edge(node1=node, axis1=len(perm_front) + 1, name="TraceBack")
@@ -1614,6 +1632,55 @@ def split_edge(edge: Edge,
         connect(new_dangling_edges[idx], new_dangling_edges[len(shape) + idx],
                 new_edge_names[idx] if new_edge_names is not None else None))
   return new_edges
+
+
+def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
+  """Slices an edge and the connected tensors beginning at `start_index` for
+  length `length`, along the axis determined by `edge`.
+
+  This method modifies the tensors stored in the two nodes connected by `edge`
+  to corresponding tensor slices (along the axis determined by `edge`) and
+  returns an updated edge connecting the two nodes along the same axis as
+  the original `edge`.
+
+  Args:
+    edge: The edge to slice.
+    start_index: Integer specifying the beginning of the slice.
+    length: Integer specifying the length of the slice.
+
+  Returns:
+    The updated edge after slicing.
+
+  Raises:
+    ValueError: If the length of the slice is negative.
+    ValueError: If the slice is incompatible with the edge dimension.
+    ValueError: If the edge is connecting nodes with different backends.
+  """
+  if length <= 0:
+    raise ValueError("Length of slice must be positive.")
+  if ((start_index + length > edge.dimension) or (-length < start_index < 0)):
+    raise ValueError("Length {} slice beginning at {} is invalid for edge of "
+                     "dimension {}".format(length, start_index, edge.dimension))
+
+  backends = [node.backend for node in edge.get_nodes() if node is not None]
+  if not all([b.name == backends[0].name for b in backends]):
+    raise ValueError("Not all backends are the same.")
+  backend = backends[0]
+
+  # Handles all three types of edges
+  for node, axis in zip(edge.get_nodes(), [edge.axis1, edge.axis2]):
+    if node is not None:
+      tensor = node.get_tensor()
+      start_indices = [0] * node.get_rank()
+      start_indices[axis] = start_index
+      start_indices = tuple(start_indices)
+      slice_sizes = list(node.shape)
+      slice_sizes[axis] = length
+      slice_sizes = tuple(slice_sizes)
+      new_tensor = backend.slice(tensor, start_indices, slice_sizes)
+      node.set_tensor(new_tensor)
+
+  return edge
 
 
 def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:

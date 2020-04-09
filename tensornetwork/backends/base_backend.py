@@ -61,13 +61,27 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented transpose.".format(self.name))
 
-  def svd_decomposition(
-      self,
-      tensor: Tensor,
-      split_axis: int,
-      max_singular_values: Optional[int] = None,
-      max_truncation_error: Optional[float] = None
-  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    """Obtains a slice of a tensor based on start_indices and slice_sizes.
+
+    Args:
+      tensor: A tensor.
+      start_indices: Tuple of integers denoting start indices of slice.
+      slice_sizes: Tuple of integers denoting size of slice along each axis.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented slice.".format(self.name))
+
+  def svd_decomposition(self,
+                        tensor: Tensor,
+                        split_axis: int,
+                        max_singular_values: Optional[int] = None,
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
@@ -85,6 +99,8 @@ class BaseBackend:
     If `max_truncation_error > 0`, as many singular values will be truncated as
     possible, so that the truncation error (the norm of discarded singular
     values) is at most `max_truncation_error`.
+    If `relative` is set `True` then `max_truncation_err` is understood
+    relative to the largest singular value.
 
     If both `max_singular_values` and `max_truncation_error` are specified, the
     number of retained singular values will be
@@ -106,6 +122,7 @@ class BaseBackend:
         keep them all.
       max_truncation_error: The maximum allowed truncation error or `None` to
         not do any truncation.
+      relative: Multiply `max_truncation_err` with the largest singular value.
 
     Returns:
       u: Left tensor factor.
@@ -163,6 +180,10 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented shape_tuple.".format(self.name))
 
+  def sparse_shape(self, tensor: Tensor) -> Any:
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
+
   def shape_prod(self, values: Tensor) -> Tensor:
     """Take the product of all of the elements in values"""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
@@ -199,7 +220,8 @@ class BaseBackend:
         self.name))
 
   def norm(self, tensor: Tensor) -> Tensor:
-    """Calculate the L2-norm of the elements of `tensor`"""
+    """Calculate the L2-norm of the elements of `tensor`
+    """
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
@@ -207,31 +229,29 @@ class BaseBackend:
           N: int,
           dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
-    """Return an identity matrix of dimension `dim` Depending on specific
-    backends, `dim` has to be either an int (numpy, torch, tensorflow) or a
-    `ShapeType` object (for block-sparse backends).
-
-    Block-sparse
-     behavior is currently not supported
-    Args:
-      N (int): The dimension of the returned matrix.
-      M (int): The dimension of the returned matrix.
-      dtype: The dtype of the returned matrix.
+    """Return an identity matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+      Args:
+        N (int): The dimension of the returned matrix.
+        dtype: The dtype of the returned matrix.
+        M (int): The dimension of the returned matrix.
     """
     #TODO: implement `ShapeType` objects
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
 
   def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
-    """Return an ones-matrix of dimension `dim` Depending on specific backends,
-    `dim` has to be either an int (numpy, torch, tensorflow) or a `ShapeType`
-    object (for block-sparse backends).
-
-    Block-sparse
-    behavior is currently not supported
-    Args:
-      shape (int): The dimension of the returned matrix.
-      dtype: The dtype of the returned matrix.
+    """Return an ones-matrix of dimension `dim`
+       Depending on specific backends, `dim` has to be either an int
+       (numpy, torch, tensorflow) or a `ShapeType` object
+       (for block-sparse backends). Block-sparse
+       behavior is currently not supported
+       Args:
+         shape (int): The dimension of the returned matrix.
+         dtype: The dtype of the returned matrix.
     """
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
@@ -291,7 +311,7 @@ class BaseBackend:
                                "random_uniform.").format(self.name))
 
   def conj(self, tensor: Tensor) -> Tensor:
-    """ 
+    """
     Return the complex conjugate of `tensor`
     Args:
       tensor: A tensor.
@@ -365,9 +385,9 @@ class BaseBackend:
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of `A`. 
+    of `A`.
     Args:
-      A: A (sparse) implementation of a linear operator. 
+      A: A (sparse) implementation of a linear operator.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
@@ -378,13 +398,13 @@ class BaseBackend:
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag`
         iterations to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
@@ -443,8 +463,8 @@ class BaseBackend:
       Returns:
         Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented divide.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented divide.".format(
+        self.name))
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
@@ -469,3 +489,35 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    """
+    Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
+    `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
+    one-dimensional tensor. The broadcasting is applied to the last index of
+    `tensor1`.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor: The result of multiplying `tensor1` onto `tensor2`.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `broadcast_right_multiplication`."
+        .format(self.name))
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    """
+    Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
+    one-dimensional tensor. The broadcasting is applied to the first index of
+    `tensor2`.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor: The result of multiplying `tensor1` onto `tensor2`.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `broadcast_left_multiplication`."
+        .format(self.name))

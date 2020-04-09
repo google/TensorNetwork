@@ -77,7 +77,7 @@ c = tn.contract_parallel(edge)
 You can split a node by doing a singular value decomposition. 
 ```python
 # This will return two nodes and a tensor of the truncation error.
-# The two nodes are the unitary matricies multiplied by the square root of the
+# The two nodes are the unitary matrices multiplied by the square root of the
 # singular values.
 # The `left_edges` are the edges that will end up on the `u_s` node, and `right_edges`
 # will be on the `vh_s` node.

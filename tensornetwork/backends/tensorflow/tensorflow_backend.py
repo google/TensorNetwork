@@ -46,16 +46,29 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.tf.transpose(tensor, perm)
 
-  def svd_decomposition(
-      self,
-      tensor: Tensor,
-      split_axis: int,
-      max_singular_values: Optional[int] = None,
-      max_truncation_error: Optional[float] = None
-  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.tf, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.tf.slice(tensor, start_indices, slice_sizes)
+
+  def svd_decomposition(self,
+                        tensor: Tensor,
+                        split_axis: int,
+                        max_singular_values: Optional[int] = None,
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
+                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    return decompositions.svd_decomposition(
+        self.tf,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
@@ -73,6 +86,9 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
+
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> Tensor:
     return self.tf.reduce_prod(values)
@@ -208,7 +224,26 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def inv(self, matrix: Tensor) -> Tensor:
     if len(self.tf.shape(matrix)) > 2:
-      raise ValueError(
-          "input to tensorflow backend method `inv` has shape {}. Only matrices are supported."
-          .format(self.tf.shape(matrix)))
+      raise ValueError("input to tensorflow backend method `inv` has shape {}. "
+                       "Only matrices are supported.".format(
+                           self.tf.shape(matrix)))
     return self.tf.linalg.inv(matrix)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(self.tf.shape(tensor2)) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor2`, "
+                       "found `tensor2.shape = {}`".format(
+                           self.tf.shape(tensor2)))
+
+    return tensor1 * tensor2
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(self.tf.shape(tensor1)) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(
+                           self.tf.shape(tensor1)))
+
+    t1_broadcast_shape = self.shape_concat(
+        [self.shape_tensor(tensor1), [1] * (len(self.tf.shape(tensor2)) - 1)],
+        axis=-1)
+    return tensor2 * self.reshape(tensor1, t1_broadcast_shape)

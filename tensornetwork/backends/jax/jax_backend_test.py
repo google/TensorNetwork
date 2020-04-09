@@ -44,6 +44,18 @@ def test_shape_concat():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_slice():
+  backend = jax_backend.JaxBackend()
+  a = backend.convert_to_tensor(np.array(
+      [[1., 2., 3.],
+       [4., 5., 6.],
+       [7., 8., 9.]]
+      ))
+  actual = backend.slice(a, (1, 1), (2, 2))
+  expected = np.array([[5., 6.], [8., 9.]])
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_shape_tensor():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
@@ -121,6 +133,7 @@ def test_einsum():
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.skip(reason="TODO(chaseriley): Add type checking.")
 def test_convert_bad_test():
   backend = jax_backend.JaxBackend()
   with pytest.raises(TypeError):
@@ -295,3 +308,45 @@ def test_index_update(dtype):
   np_tensor = np.array(tensor)
   np_tensor[np_tensor > 0.1] = 0.0
   np.testing.assert_allclose(out, np_tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_broadcast_right_multiplication(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3,), dtype=dtype, seed=10)
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.array(tensor1) * np.array(tensor2))
+
+
+def test_broadcast_right_multiplication_raises():
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3))
+  tensor2 = backend.randn((3, 3))
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_broadcast_left_multiplication(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((3,), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 4, 2), dtype=dtype, seed=10)
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.reshape(tensor1, (3, 1, 1)) * tensor2)
+
+
+def test_broadcast_left_multiplication_raises():
+  dtype = np.float64
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  dtype = np.float64
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)

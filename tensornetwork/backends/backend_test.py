@@ -172,6 +172,12 @@ def test_base_backend_transpose_not_implemented():
     backend.transpose(np.ones((2, 2)), [0, 1])
 
 
+def test_base_backend_slice_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.slice(np.ones((2, 2)), (0, 1), (1, 1))
+
+
 def test_base_backend_svd_decompositon_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):

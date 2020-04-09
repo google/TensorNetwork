@@ -36,11 +36,19 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.jax.jit(lambda x: x)(tensor)
-    return result
+    return self.np.asarray(tensor)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
+
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.jax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
   def randn(self,
             shape: Tuple[int, ...],
