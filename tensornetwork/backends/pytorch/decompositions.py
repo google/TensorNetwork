@@ -128,12 +128,12 @@ def qr_decomposition(
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
-  The QR decomposition is performed by treating the tensor as a matrix, 
-  with an effective left (row) index resulting from combining the axes 
-  `tensor.shape[:split_axis]` and an effective right (column) index 
+  The QR decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the axes
+  `tensor.shape[:split_axis]` and an effective right (column) index
   resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
   then `q` would have shape (2, 3, 6), and `r` would have shape (6, 4, 5).
 
   The output consists of two tensors `Q, R` such that:
@@ -172,12 +172,12 @@ def rq_decomposition(
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
-  The RQ decomposition is performed by treating the tensor as a matrix, 
-  with an effective left (row) index resulting from combining the axes 
-  `tensor.shape[:split_axis]` and an effective right (column) index 
+  The RQ decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the axes
+  `tensor.shape[:split_axis]` and an effective right (column) index
   resulting from combining the axes `tensor.shape[split_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, 
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
   then `r` would have shape (2, 3, 6), and `q` would have shape (6, 4, 5).
 
   The output consists of two tensors `R, Q` such that:

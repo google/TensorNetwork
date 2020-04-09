@@ -1,15 +1,10 @@
 Nodes
 ------------------
 
-.. toctree::
-    :maxdepth: 2
+.. autosummary::
+     :toctree: stubs
 
-.. autoclass:: tensornetwork.Node
-    :members:
-
-.. autoclass:: tensornetwork.CopyNode
-    :members:
-
-.. autoclass:: tensornetwork.BaseNode
-    :members:
+     tensornetwork.Node
+     tensornetwork.CopyNode
+     tensornetwork.BaseNode
 

@@ -1,10 +1,8 @@
 Edges
 ------------------
 
-.. autoclass:: tensornetwork.Edge
-    :members:
+.. autosummary::
+     :toctree: stubs
 
+     tensornetwork.Edge
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:

@@ -122,7 +122,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, N: int, dtype: Optional[Any] = None,
+  def eye(self,
+          N: int,
+          dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     if not M:
@@ -133,7 +135,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.zeros(shape, dtype=dtype)

@@ -26,10 +26,8 @@ Tensor = Any
 
 
 class BaseMPS:
-  """
-  The base class for MPS. All MPS should be derived from BaseMPS
-  `BaseMPS` is an infinite matrix product state with a 
-  finite unitcell.
+  """The base class for MPS. All MPS should be derived from BaseMPS `BaseMPS`
+  is an infinite matrix product state with a finite unitcell.
 
   Important attributes:
 
@@ -49,11 +47,9 @@ class BaseMPS:
   to ensure that `Node`s (i.e. the mps tensors) can be consistently
   stacked without gauge jumps.
 
-  The orthogonality center can be be shifted using the 
-  `BaseMPS.position` method, which uses uses QR and RQ methods to shift 
+  The orthogonality center can be be shifted using the
+  `BaseMPS.position` method, which uses uses QR and RQ methods to shift
   `center_position`.
-
-  
   """
 
   def __init__(self,
@@ -61,15 +57,15 @@ class BaseMPS:
                center_position: Optional[int] = 0,
                connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
                backend: Optional[Union[Text, BaseBackend]] = None) -> None:
-    """
-    Initialize a BaseMPS.
+    """Initialize a BaseMPS.
+
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
       connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
         `connector_matrix`.
-      backend: The name of the backend that should be used to perform 
+      backend: The name of the backend that should be used to perform
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
@@ -94,8 +90,7 @@ class BaseMPS:
     return len(self.nodes)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
-    """
-    Shift `FiniteMPS.center_position` to `site`.
+    """Shift `FiniteMPS.center_position` to `site`.
 
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
@@ -185,22 +180,17 @@ class BaseMPS:
 
   @property
   def bond_dimensions(self) -> List:
-    """
-    A list of bond dimensions of `BaseMPS`
-    """
+    """A list of bond dimensions of `BaseMPS`"""
     return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
 
   @property
   def physical_dimensions(self) -> List:
-    """
-    A list of physical Hilbert-space dimensions of `BaseMPS`
-    """
+    """A list of physical Hilbert-space dimensions of `BaseMPS`"""
 
     return [node.shape[1] for node in self.nodes]
 
   def switch_backend(self, new_backend: Text) -> None:
-    """
-    Change the backend of all the nodes in the MPS.
+    """Change the backend of all the nodes in the MPS.
 
     Args:
       new_backend (str): The new backend.
@@ -215,15 +205,14 @@ class BaseMPS:
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
                               matrix: Union[BaseNode, Tensor]) -> BaseNode:
-    """
-    Compute the action of the MPS transfer-operator at site `site`.
+    """Compute the action of the MPS transfer-operator at site `site`.
 
     Args:
       site: a site of the MPS
-      direction: 
-        * if `1, 'l'` or `'left'`: compute the left-action 
+      direction:
+        * if `1, 'l'` or `'left'`: compute the left-action
           of the MPS transfer-operator at `site` on the input `matrix`.
-        * if `-1, 'r'` or `'right'`: compute the right-action 
+        * if `-1, 'r'` or `'right'`: compute the right-action
           of the MPS transfer-operator at `site` on the input `matrix`
       matrix: A rank-2 tensor or matrix.
     Returns:
@@ -246,8 +235,7 @@ class BaseMPS:
 
   def measure_local_operator(self, ops: List[Union[BaseNode, Tensor]],
                              sites: Sequence[int]) -> List:
-    """
-    Measure the expectation value of local operators `ops` site `sites`.
+    """Measure the expectation value of local operators `ops` site `sites`.
 
     Args:
       ops: A list Tensors of rank 2; the local operators to be measured.
@@ -445,10 +433,9 @@ class BaseMPS:
                           site2: int,
                           max_singular_values: Optional[int] = None,
                           max_truncation_err: Optional[float] = None) -> Tensor:
-    """
-    Apply a two-site gate to an MPS. This routine will in general 
-    destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using `FiniteMPS.position`.
+    """Apply a two-site gate to an MPS. This routine will in general destroy
+    any canonical form of the state. If a canonical form is needed, the user
+    can restore it using `FiniteMPS.position`.
 
     Args:
       gate: A two-body gate.
@@ -458,7 +445,7 @@ class BaseMPS:
       max_truncation_err: The maximum allowed truncation error.
 
     Returns:
-      `Tensor`: A scalar tensor containing the truncated weight of the 
+      `Tensor`: A scalar tensor containing the truncated weight of the
         truncation.
     """
     if len(gate.shape) != 4:
@@ -513,15 +500,13 @@ class BaseMPS:
 
   def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
                           site: int) -> None:
-    """
-    Apply a one-site gate to an MPS. This routine will in general 
-    destroy any canonical form of the state. If a canonical form is needed, 
-    the user can restore it using `FiniteMPS.position`
+    """Apply a one-site gate to an MPS. This routine will in general destroy
+    any canonical form of the state. If a canonical form is needed, the user
+    can restore it using `FiniteMPS.position`
 
     Args:
       gate: a one-body gate
       site: the site where the gate should be applied
-      
     """
     if len(gate.shape) != 2:
       raise ValueError('rank of gate is {} but has to be 2'.format(
@@ -537,8 +522,7 @@ class BaseMPS:
         name=self.nodes[site].name).reorder_edges(edge_order)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
-    """
-    Check orthonormality of tensor at site `site`.
+    """Check orthonormality of tensor at site `site`.
 
     Args:
       which: * if `'l'` or `'left'`: check left orthogonality
@@ -567,8 +551,8 @@ class BaseMPS:
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
   def check_canonical(self) -> Tensor:
-    """
-    Check whether the MPS is in the expected canonical form.
+    """Check whether the MPS is in the expected canonical form.
+
     Returns:
       The L2 norm of the vector of local deviations.
     """
@@ -584,10 +568,10 @@ class BaseMPS:
     return self.backend.sqrt(sum(deviations))
 
   def get_node(self, site: int) -> BaseNode:
-    """
-    Returns the `Node` object at `site`.
+    """Returns the `Node` object at `site`.
+
     If `site==len(self) - 1` `BaseMPS.connector_matrix`
-    is absorbed fromt the right-hand side into the returned 
+    is absorbed fromt the right-hand side into the returned
     `Node` object.
 
     Args:

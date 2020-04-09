@@ -29,10 +29,13 @@ Tensor = Any
 
 def norm(node: BaseNode) -> Tensor:
   """The L2 norm of `node`
+
   Args:
     node: A `BaseNode`. 
+
   Returns:
-    The L2 norm 
+    The L2 norm.
+
   Raises:
     AttributeError: If `node` has no `backend` attribute.
   """
@@ -45,14 +48,16 @@ def norm(node: BaseNode) -> Tensor:
 def conj(node: BaseNode,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate `node`.
+  """Conjugate a `node`.
 
   Args:
-    node: A `BaseNode`. 
+    node: A `BaseNode`.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
+
   Returns:
     A new node. The complex conjugate of `node`.
+
   Raises:
     AttributeError: If `node` has no `backend` attribute.
   """
@@ -75,15 +80,18 @@ def transpose(node: BaseNode,
               name: Optional[Text] = None,
               axis_names: Optional[List[Text]] = None) -> BaseNode:
   """Transpose `node`
+
   Args:
-    node: A `BaseNode`. 
-    permutation: A list of int or str. The permutation of the axis
+    node: A `BaseNode`.
+    permutation: A list of int or str. The permutation of the axis.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
+
   Returns:
     A new node. The transpose of `node`.
+
   Raises:
-    AttributeError: If `node` has no `backend` attribute, or if 
+    AttributeError: If `node` has no `backend` attribute, or if
       `node` has no tensor.
     ValueError: If either `permutation` is not the same as expected or
       if you try to permute with a trace edge.
@@ -106,20 +114,21 @@ def copy(nodes: Iterable[BaseNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
   """Copy the given nodes and their edges.
 
-  This will return a dictionary linking original nodes/edges 
-  to their copies. If nodes A and B are connected but only A is passed in to be
+  This will return a tuple linking original nodes/edges to their copies.
+  If nodes A and B are connected but only A is passed in to be
   copied, the edge between them will become a dangling edge.
 
   Args:
-    nodes: An `Iterable` (Usually a `List` or `Set`) of `Nodes`.
+    nodes: An Iterable (Usually a `list` or `set`) of `nodes`.
     conjugate: Boolean. Whether to conjugate all of the nodes
-        (useful for calculating norms and reduced density
-        matrices).
+      (useful for calculating norms and reduced density matrices).
 
   Returns:
     A tuple containing:
-      node_dict: A dictionary mapping the nodes to their copies.
-      edge_dict: A dictionary mapping the edges to their copies.
+      node_dict:
+        A dictionary mapping the nodes to their copies.
+      edge_dict:
+        A dictionary mapping the edges to their copies.
   """
   node_dict = {}
   for node in nodes:
@@ -182,10 +191,10 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
 
   Returns:
     A tuple of:
-      disconnected_edges_by_name: A Dictionary mapping `node`'s axis names to
-        the newly broken edges.
-      disconnected_edges_by_axis: A Dictionary mapping `node`'s axis numbers
-        to the newly broken edges.
+      disconnected_edges_by_name:
+        A Dictionary mapping `node`'s axis names to the newly broken edges.
+      disconnected_edges_by_axis:
+        A Dictionary mapping `node`'s axis numbers to the newly broken edges.
   """
   disconnected_edges_by_name = {}
   disconnected_edges_by_axis = {}
@@ -209,14 +218,15 @@ def split_node(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode, Tensor]:
-  """Split a `Node` using Singular Value Decomposition.
+  """Split a `node` using Singular Value Decomposition.
 
-  Let M be the matrix created by flattening left_edges and right_edges into
-  2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of 
-  :math:`M`. This will split the network into 2 nodes. The left node's 
-  tensor will be :math:`U \\sqrt{S}` and the right node's tensor will be 
-  :math:`\\sqrt{S} V^*` where :math:`V^*` is
-  the adjoint of :math:`V`.
+  Let :math:`M` be the matrix created by flattening `left_edges` and 
+  `right_edges` into 2 axes. 
+  Let :math:`U S V^* = M` be the SVD of :math:`M`. 
+  This will split the network into 2 nodes. 
+  The left node's tensor will be :math:`U \\sqrt{S}` 
+  and the right node's tensor will be
+  :math:`\\sqrt{S} V^*` where :math:`V^*` is the adjoint of :math:`V`.
 
   The singular value decomposition is truncated if `max_singular_values` or
   `max_truncation_err` is not `None`.
@@ -245,21 +255,21 @@ def split_node(
     relative: Multiply `max_truncation_err` with the largest singular value.
     left_name: The name of the new left node. If `None`, a name will be 
       generated automatically.
-    right_name: The name of the new right node. If `None`, a name will be 
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
-    edge_name: The name of the new `Edge` connecting the new left and 
-      right node. If `None`, a name will be generated automatically. 
+    edge_name: The name of the new `Edge` connecting the new left and
+      right node. If `None`, a name will be generated automatically.
       The new axis will get the same name as the edge.
 
   Returns:
     A tuple containing:
-      left_node: 
+      left_node:
         A new node created that connects to all of the `left_edges`.
         Its underlying tensor is :math:`U \\sqrt{S}`
-      right_node: 
+      right_node:
         A new node created that connects to all of the `right_edges`.
         Its underlying tensor is :math:`\\sqrt{S} V^*`
-      truncated_singular_values: 
+      truncated_singular_values:
         The vector of truncated singular values.
   Raises:
     AttributeError: If `node` has no backend attribute
@@ -330,23 +340,24 @@ def split_node_qr(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode]:
-  """Split a `Node` using QR decomposition
+  """Split a `node` using QR decomposition.
 
-  Let M be the matrix created by flattening left_edges and right_edges into
-  2 axes. Let :math:`QR = M` be the QR Decomposition of
-  :math:`M`. This will split the network into 2 nodes. The left node's
-  tensor will be :math:`Q` (an orthonormal matrix) and the right node's 
-  tensor will be :math:`R` (an upper triangular matrix)
+  Let :math:`M` be the matrix created by 
+  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`QR = M` be the QR Decomposition of :math:`M`.
+  This will split the network into 2 nodes.
+  The `left node`'s tensor will be :math:`Q` (an orthonormal matrix)
+  and the `right node`'s tensor will be :math:`R` (an upper triangular matrix)
 
   Args:
     node: The node you want to split.
     left_edges: The edges you want connected to the new left node.
     right_edges: The edges you want connected to the new right node.
-    left_name: The name of the new left node. If `None`, a name will be 
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If `None`, a name will be 
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
-    edge_name: The name of the new `Edge` connecting the new left and right 
+    edge_name: The name of the new `Edge` connecting the new left and right
       node. If `None`, a name will be generated automatically.
 
   Returns:
@@ -417,23 +428,26 @@ def split_node_rq(
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
 ) -> Tuple[BaseNode, BaseNode]:
-  """Split a `Node` using RQ (reversed QR) decomposition
+  """Split a `node` using RQ (reversed QR) decomposition.
 
-  Let M be the matrix created by flattening left_edges and right_edges into
-  2 axes. Let :math:`QR = M^*` be the QR Decomposition of
-  :math:`M^*`. This will split the network into 2 nodes. The left node's
-  tensor will be :math:`R^*` (a lower triangular matrix) and the right 
-  node's tensor will be :math:`Q^*` (an orthonormal matrix)
+  Let :math:`M` be the matrix created by 
+  flattening `left_edges` and `right_edges` into 2 axes. 
+
+  Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`. 
+  This will split the network into 2 nodes. 
+
+  The left node's tensor will be :math:`R^*` (a lower triangular matrix) 
+  and the right node's tensor will be :math:`Q^*` (an orthonormal matrix)
 
   Args:
     node: The node you want to split.
     left_edges: The edges you want connected to the new left node.
     right_edges: The edges you want connected to the new right node.
-    left_name: The name of the new left node. If `None`, a name will be 
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If `None`, a name will be 
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
-    edge_name: The name of the new `Edge` connecting the new left and 
+    edge_name: The name of the new `Edge` connecting the new left and
       right node. If `None`, a name will be generated automatically.
 
   Returns:
@@ -444,9 +458,9 @@ def split_node_rq(
       right_node:
         A new node that connects to all of the `right_edges`.
         Its underlying tensor is :math:`Q^*`
+
   Raises:
     AttributeError: If `node` has no backend attribute
-
   """
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
@@ -511,9 +525,9 @@ def split_node_full_svd(
 ) -> Tuple[BaseNode, BaseNode, BaseNode, Tensor]:
   """Split a node by doing a full singular value decomposition.
 
-  Let M be the matrix created by flattening left_edges and right_edges into
-  2 axes. Let :math:`U S V^* = M` be the Singular Value Decomposition of
-  :math:`M`.
+  Let :math:`M` be the matrix created by 
+  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`U S V^* = M` be the Singular Value Decomposition of :math:`M`.
 
   The left most node will be :math:`U` tensor of the SVD, the middle node is
   the diagonal matrix of the singular values, ordered largest to smallest,
@@ -546,15 +560,15 @@ def split_node_full_svd(
     relative: Multiply `max_truncation_err` with the largest singular value.
     left_name: The name of the new left node. If None, a name will be 
       generated automatically.
-    middle_name: The name of the new center node. If None, a name will be 
+    middle_name: The name of the new center node. If `None`, a name will be
       generated automatically.
-    right_name: The name of the new right node. If None, a name will be 
+    right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
     left_edge_name: The name of the new left `Edge` connecting
-      the new left node (`U`) and the new central node (`S`).
+      the new left node (:math:`U`) and the new central node (:math:`S`).
       If `None`, a name will be generated automatically.
     right_edge_name: The name of the new right `Edge` connecting
-      the new central node (`S`) and the new right node (`V*`).
+      the new central node (:math:`S`) and the new right node (:math:`V*`).
       If `None`, a name will be generated automatically.
 
   Returns:
@@ -570,6 +584,7 @@ def split_node_full_svd(
         Its underlying tensor is :math:`V^*`
       truncated_singular_values:
         The vector of truncated singular values.
+
   Raises:
     AttributeError: If `node` has no backend attribute
   """
@@ -652,10 +667,12 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
   return seen_nodes
 
 
-def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
-             ) -> Set[BaseNode]:
-  """
-  Computes all nodes reachable from `node` or `edge.node1` by connected edges.
+def reachable(
+    inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
+) -> Set[BaseNode]:
+  """Computes all nodes reachable from `node` or `edge.node1` by connected
+  edges.
+
   Args:
     inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
   Returns:
@@ -676,17 +693,18 @@ def reachable(inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
 
 def check_correct(nodes: Iterable[BaseNode],
                   check_connections: Optional[bool] = True) -> None:
-  """
-  Check if the network defined by `nodes` fulfills necessary
-  consistency relations.
+  """Check if the network defined by `nodes` fulfills necessary consistency
+  relations.
 
   Args:
     nodes: A list of `BaseNode` objects.
     check_connections: Check if the network is connected.
+
   Returns:
-    None
+    `None`
+
   Raises:
-    ValueError: If the network defined by `nodes` is not 
+    ValueError: If the network defined by `nodes` is not
       correctly structured.
   """
   for node in nodes:
@@ -713,12 +731,14 @@ def check_correct(nodes: Iterable[BaseNode],
 
 
 def check_connected(nodes: Iterable[BaseNode]) -> None:
-  """
-  Check if all nodes in `nodes` are connected.
+  """Check if all nodes in `nodes` are connected.
+
   Args:
-    nodes: A list of nodes.
+    nodes: A list of `nodes`.
+    
   Returns:
-    None:
+    `None`
+
   Raises:
     ValueError: If not all nodes in `nodes` are connected.
   """
@@ -753,12 +773,12 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   A "relatively dangling" edge is an edge that is either actually dangling
   or is connected to another node that is outside of the given collection
   of `nodes`.
-  
+
   Args:
     nodes: A set of nodes.
 
   Returns:
-    The set of "relatively dangling edges.
+    The set of "relatively dangling" edges.
   """
   output = set()
   for edge in get_all_edges(nodes):
@@ -768,15 +788,16 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
 
 
 def contract_trace_edges(node: BaseNode) -> BaseNode:
-  """
-  contract all trace edges of `node`.
+  """contract all trace edges of `node`.
+
   Args:
-    node: A `BaseNode` object
+    node: A `BaseNode` object.
+
   Returns:
-    A new `BaseNode` obtained from contracting all 
-    trace edges.
+    A new `BaseNode` obtained from contracting all trace edges.
+
   Raises:
-    ValueError: If `node` has no trace edges
+    ValueError: If `node` has no trace edges.
   """
   for edge in node.edges:
     if edge.is_trace():
@@ -785,8 +806,7 @@ def contract_trace_edges(node: BaseNode) -> BaseNode:
 
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
-  """
-  Constructs the tensor network for a reduced density matrix, given a pure state.
+  """Constructs the tensor network for a reduced density matrix, if it is pure.
 
   The tensor network connected to `traced_out_edges` is assumed to be a pure
   quantum state (a state vector). This modifies the network so that it
@@ -800,7 +820,8 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   new non-dangling edges connecting the state with its conjugate.
 
   Args:
-    traced_out_edges: A list of dangling edges
+    traced_out_edges: A list of dangling edges.
+
   Returns:
     A tuple containing:
       node_dict: A dictionary mapping the nodes in the original network to
@@ -827,12 +848,16 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
 def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
   """Change the backend of the nodes.
 
-  This will convert all node's tensors to the new backend's Tensor type.
+  This will convert all `node`'s tensors to the `new_backend`'s Tensor type.
+
   Args:
     nodes: iterable of nodes
     new_backend (str): The new backend.
-    dtype (datatype): The dtype of the backend. If None, a defautl dtype according
-                       to config.py will be chosen.
+    dtype (datatype): The dtype of the backend. If `None`,
+      a defautl dtype according to config.py will be chosen.
+
+  Returns:
+    None
   """
   if new_backend == 'symmetric':
     if np.all([n.backend.name == 'symmetric' for n in nodes]):

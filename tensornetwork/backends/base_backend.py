@@ -41,6 +41,7 @@ class BaseBackend:
   # be a tensor.
   def reshape(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
     """Reshape tensor to the given shape.
+
     Args:
       tensor: A tensor.
     Returns:
@@ -138,8 +139,7 @@ class BaseBackend:
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    """Computes the QR decomposition of a tensor.
-    """
+    """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
         "Backend '{}' has not implemented qr_decomposition.".format(self.name))
 
@@ -148,8 +148,7 @@ class BaseBackend:
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    """Computes the RQ (reversed QR) decomposition of a tensor.
-    """
+    """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
         "Backend '{}' has not implemented rq_decomposition.".format(self.name))
 
@@ -226,7 +225,9 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self, N: int, dtype: Type[np.number],
+  def eye(self,
+          N: int,
+          dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
@@ -235,8 +236,8 @@ class BaseBackend:
        behavior is currently not supported
       Args:
         N (int): The dimension of the returned matrix.
-        M (int): The dimension of the returned matrix.
         dtype: The dtype of the returned matrix.
+        M (int): The dimension of the returned matrix.
     """
     #TODO: implement `ShapeType` objects
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
@@ -251,21 +252,20 @@ class BaseBackend:
        Args:
          shape (int): The dimension of the returned matrix.
          dtype: The dtype of the returned matrix.
-
     """
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
 
   def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
-    """Return a zeros-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int
-       (numpy, torch, tensorflow) or a `ShapeType` object
-       (for block-sparse backends). Block-sparse
-       behavior is currently not supported
-       Args:
-         shape (int): The dimension of the returned matrix.
-         dtype: The dtype of the returned matrix.
+    """Return a zeros-matrix of dimension `dim` Depending on specific backends,
+    `dim` has to be either an int (numpy, torch, tensorflow) or a `ShapeType`
+    object (for block-sparse backends).
 
+    Block-sparse
+    behavior is currently not supported
+    Args:
+      shape (int): The dimension of the returned matrix.
+      dtype: The dtype of the returned matrix.
     """
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
@@ -274,15 +274,16 @@ class BaseBackend:
             shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
-    """Return a random-normal-matrix of dimension `dim`
-       Depending on specific backends, `dim` has to be either an int
-       (numpy, torch, tensorflow) or a `ShapeType` object
-       (for block-sparse backends). Block-sparse
-       behavior is currently not supported
-       Args:
-         shape (int): The dimension of the returned matrix.
-         dtype: The dtype of the returned matrix.
-         seed:  The seed for the random number generator
+    """Return a random-normal-matrix of dimension `dim` Depending on specific
+    backends, `dim` has to be either an int (numpy, torch, tensorflow) or a
+    `ShapeType` object (for block-sparse backends).
+
+    Block-sparse
+    behavior is currently not supported
+    Args:
+      shape (int): The dimension of the returned matrix.
+      dtype: The dtype of the returned matrix.
+      seed:  The seed for the random number generator
     """
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
@@ -293,17 +294,18 @@ class BaseBackend:
                      dtype: Optional[Type[np.number]] = None,
                      seed: Optional[int] = None) -> Tensor:
     """Return a random uniform matrix of dimension `dim`.
-       Depending on specific backends, `dim` has to be either an int
-       (numpy, torch, tensorflow) or a `ShapeType` object
-       (for block-sparse backends). Block-sparse
-       behavior is currently not supported
-       Args:
-         shape (int): The dimension of the returned matrix.
-         boundaries (tuple): The boundaries of the uniform distribution.
-         dtype: The dtype of the returned matrix.
-         seed:  The seed for the random number generator
-       Returns:
-         Tensor : random uniform initialized tensor.
+
+    Depending on specific backends, `dim` has to be either an int
+    (numpy, torch, tensorflow) or a `ShapeType` object
+    (for block-sparse backends). Block-sparse
+    behavior is currently not supported
+    Args:
+      shape (int): The dimension of the returned matrix.
+      boundaries (tuple): The boundaries of the uniform distribution.
+      dtype: The dtype of the returned matrix.
+      seed:  The seed for the random number generator
+    Returns:
+      Tensor : random uniform initialized tensor.
     """
     raise NotImplementedError(("Backend '{}' has not implemented "
                                "random_uniform.").format(self.name))
@@ -320,8 +322,8 @@ class BaseBackend:
         self.name))
 
   def eigh(self, matrix: Tensor):
-    """
-    Compute eigenvectors and eigenvalues of a hermitian matrix.
+    """Compute eigenvectors and eigenvalues of a hermitian matrix.
+
     Args:
       matrix: A symetric matrix.
     Returns:
@@ -340,12 +342,11 @@ class BaseBackend:
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None,
            dtype: Optional[Type] = None) -> List[Tensor]:
-    """
-    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a
-    linear operator type object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute
-    `shape` so that a suitable initial state can be randomly generated.
+    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs of a
+    linear operator `A`. `A` can be either a linear operator type object or a
+    regular callable. If no `initial_state` is provided then `A` has to have an
+    attribute `shape` so that a suitable initial state can be randomly
+    generated.
 
     Args:
       A: A (sparse) implementation of a linear operator
@@ -440,14 +441,14 @@ class BaseBackend:
         "Backend '{}' has not implemented subtraction.".format(self.name))
 
   def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    """
-      Return the default multiplication of `tensor`.
-      A backend can override such implementation.
-      Args:
-        tensor1: A tensor.
-        tensor2: A tensor.
-      Returns:
-        Tensor
+    """Return the default multiplication of `tensor`.
+
+    A backend can override such implementation.
+    Args:
+      tensor1: A tensor.
+      tensor2: A tensor.
+    Returns:
+      Tensor
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented multiply.".format(self.name))
@@ -467,21 +468,20 @@ class BaseBackend:
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
-    """
-    Update `tensor` at elements defined by `mask` with value `assignee`.
+    """Update `tensor` at elements defined by `mask` with value `assignee`.
+
     Args:
       tensor: A `Tensor` object.
       mask: A boolean mask.
       assignee: A scalar `Tensor`. The values to assigned to `tensor`
         at positions where `mask` is `True`.
-
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `index_update`.".format(self.name))
 
   def inv(self, matrix: Tensor) -> Tensor:
-    """
-    Compute the matrix inverse of `matrix`.
+    """Compute the matrix inverse of `matrix`.
+
     Args:
       matrix: A matrix.
     Returns:

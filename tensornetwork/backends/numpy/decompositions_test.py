@@ -74,7 +74,6 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(s.shape, (6,))
     self.assertEqual(vh.shape, (6, 6))
 
-
   def test_max_truncation_error(self):
     random_matrix = np.random.rand(10, 10)
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)

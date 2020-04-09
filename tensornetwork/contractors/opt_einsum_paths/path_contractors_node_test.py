@@ -142,8 +142,7 @@ def test_ignore_edge_order(backend, path_algorithm):
   e0 = b[3]
   e1 = b[4]
 
-  final_node = path_algorithm({a, b},
-                              ignore_edge_order=True)
+  final_node = path_algorithm({a, b}, ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
 
@@ -159,11 +158,10 @@ def test_ignore_edge_order_with_order(backend, path_algorithm):
   e0 = b[3]
   e1 = b[4]
 
-  final_node = path_algorithm({a, b},
-                              [e1, e0],
-                              ignore_edge_order=True)
+  final_node = path_algorithm({a, b}, [e1, e0], ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
+
 
 def test_disconnected_network(backend, path_algorithm):
   a = Node(np.eye(2), backend=backend)

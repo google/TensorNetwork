@@ -37,6 +37,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
 
+
   def slice(self,
             tensor: Tensor,
             start_indices: Tuple[int, ...],
@@ -121,18 +122,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[numpy.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.zeros(shape, dtype=dtype)

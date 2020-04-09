@@ -1,22 +1,25 @@
-.. TensorNetwork documentation master file, created by
-   sphinx-quickstart on Thu Jun  6 14:53:19 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to TensorNetwork's documentation!
+TensorNetwork reference documentation
 =========================================
 
 .. toctree::
-   :maxdepth: 4
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Tutorials
 
    tutorial
+   basic_api_tutorial
+   tensor_nets_in_neural_nets
+
+.. toctree::
+   :maxdepth: 4
+   :caption: API Reference
+
    tensornetwork
-   contractors
-   nodes
-   edges
-   ncon
-   mps
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Developer Documentation
+
+   contributing
    
 Indices and tables
 ==================

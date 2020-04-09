@@ -34,8 +34,7 @@ Tensor = Any
 
 
 class BaseNode(ABC):
-  """
-  Base class for nodes. Should be subclassed.
+  """Base class for nodes. Should be subclassed.
 
   A Node represents a concrete tensor in a tensor network. The number of edges
   for a node represents the rank of that tensor.
@@ -56,8 +55,8 @@ class BaseNode(ABC):
                axis_names: Optional[List[Text]] = None,
                backend: Optional[BaseBackend] = None,
                shape: Optional[Tuple[int]] = None) -> None:
-    """Create a node. Should be subclassed before usage
-    and a limited number of abstract methods and properties implemented.
+    """Create a node. Should be subclassed before usage and a limited number of
+    abstract methods and properties implemented.
 
     Args:
       name: Name of the node. Used primarily for debugging.
@@ -224,7 +223,6 @@ class BaseNode(ABC):
       ValueError: If either the list of edges is not the same as expected or
         if you try to reorder with a trace edge.
       AttributeError: If the Node has no tensor.
-
     """
     if not hasattr(self, '_tensor'):
       raise AttributeError("Please provide a valid tensor for this Node.")
@@ -376,8 +374,8 @@ class BaseNode(ABC):
   def __getitem__(self, key: Union[int, Text]) -> "Edge":
     pass
 
-  def __getitem__(self,
-                  key: Union[int, Text, slice]) -> Union["Edge", List["Edge"]]:
+  def __getitem__(self, key: Union[int, Text,
+                                   slice]) -> Union["Edge", List["Edge"]]:
     if isinstance(key, slice):
       return self.edges[key]
     return self.get_edge(key)
@@ -476,8 +474,8 @@ class BaseNode(ABC):
   @classmethod
   def _load_node_data(cls,
                       node_data: h5py.Group) -> Tuple[Any, Any, Any, Any, Any]:
-    """Common method to enable loading nodes based on hdf5 data.
-       Only a common functionality to load node properties is implemented.
+    """Common method to enable loading nodes based on hdf5 data. Only a common
+    functionality to load node properties is implemented.
 
     Args:
       node_data: h5py group that contains the serialized node data
@@ -494,9 +492,8 @@ class BaseNode(ABC):
 
   @abstractmethod
   def _save_node(self, node_group: h5py.Group) -> None:
-    """Abstract method to enable saving nodes to hdf5.
-       Only serializing common properties is implemented. Should be
-       overwritten by subclasses.
+    """Abstract method to enable saving nodes to hdf5. Only serializing common
+    properties is implemented. Should be overwritten by subclasses.
 
     Args:
       node_group: h5py group where data is saved
@@ -534,9 +531,8 @@ class BaseNode(ABC):
 
 
 class Node(BaseNode):
-  """
-  A Node represents a concrete tensor in a tensor network.
-  The number of edges for a node represents the rank of that tensor.
+  """A Node represents a concrete tensor in a tensor network. The number of
+  edges for a node represents the rank of that tensor.
 
   For example:
 
@@ -746,8 +742,8 @@ class CopyNode(BaseNode):
                axis_names: Optional[List[Text]] = None,
                backend: Optional[Text] = None,
                dtype: Type[np.number] = np.float64) -> None:
-    """
-    Initialize a CopyNode:
+    """Initialize a CopyNode:
+
     Args:
       rank: The rank of the tensor.
       dimension: The dimension of each leg.
@@ -945,8 +941,8 @@ class CopyNode(BaseNode):
 class Edge:
   """Each edge represents a vector space common to the tensors it connects and
   over which a contraction may be performed. In numpy terms, each edge
-  represents a `tensordot` operation over the given axes.
-  There are 3 main types of edges:
+  represents a `tensordot` operation over the given axes. There are 3 main
+  types of edges:
 
   Standard Edge:
     A standard edge is like any other edge you would find in a normal
@@ -1248,8 +1244,8 @@ class Edge:
   def disconnect(self,
                  edge1_name: Optional[Text] = None,
                  edge2_name: Optional[Text] = None) -> Tuple["Edge", "Edge"]:
-    """
-    Break an existing non-dangling edge.
+    """Break an existing non-dangling edge.
+
     This updates both Edge.node1 and Edge.node2 by removing the
     connecting edge from `Edge.node1.edges` and `Edge.node2.edges`
     and adding new dangling edges instead
@@ -1277,9 +1273,7 @@ class Edge:
     return new_edge1, new_edge2
 
   def __or__(self, other: "Edge") -> Tuple["Edge", "Edge"]:
-    """
-    Break apart two edges if they are connected
-    """
+    """Break apart two edges if they are connected."""
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
     return self.disconnect()
@@ -1740,11 +1734,10 @@ def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
 
 def _remove_edges(edges: Set[Edge], node1: BaseNode, node2: BaseNode,
                   new_node: BaseNode) -> None:
-  """
-
-  Takes a set of `edges` shared between `node1` and `node2` to be contracted
+  """Takes a set of `edges` shared between `node1` and `node2` to be contracted
   over, and moves all other uncontracted edges from `node1` and `node2` to
   `new_node`.
+
   The nodes that currently share the edges in `edges` must be supplied as
   `node1` and `node2`. The ordering of `node1` and `node2` must match the
   axis ordering of `new_node` (as determined by the contraction procedure).
@@ -1932,14 +1925,14 @@ def contract_copy_node(copy_node: CopyNode,
 def contract_parallel(edge: Edge) -> BaseNode:
   """Contract all edges parallel to this edge.
 
-    This method calls `contract_between` with the nodes connected by the edge.
+  This method calls `contract_between` with the nodes connected by the edge.
 
-    Args:
-      edge: The edge to contract.
+  Args:
+    edge: The edge to contract.
 
-    Returns:
-      The new node created after contraction.
-    """
+  Returns:
+    The new node created after contraction.
+  """
   if edge.is_dangling():
     raise ValueError("Attempted to contract dangling edge: '{}'".format(edge))
   return contract_between(edge.node1, edge.node2)
@@ -1977,11 +1970,12 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
 def disconnect(edge,
                edge1_name: Optional[Text] = None,
                edge2_name: Optional[Text] = None) -> Tuple[Edge, Edge]:
-  """
-  Break an existing non-dangling edge.
-  This updates both Edge.node1 and Edge.node2 by removing the
-  connecting edge from `Edge.node1.edges` and `Edge.node2.edges`
-  and adding new dangling edges instead
+  """Break an existing non-dangling edge.
+
+  This updates both Edge.node1 and Edge.node2 by removing the connecting
+  edge from `Edge.node1.edges` and `Edge.node2.edges` and adding new
+  dangling edges instead
+
   """
   return edge.disconnect(edge1_name, edge2_name)
 
@@ -1997,8 +1991,8 @@ def contract_between(
   """Contract all of the edges between the two given nodes.
 
   If `output_edge_order` is not set, the output axes will be ordered as:
-  [...free axes of `node1`..., ...free axes of `node2`...]. Within the axes
-  of each node, the input order is preserved.
+  `[...free axes of node1..., ...free axes of node2...]`. Within the axes
+  of each `node`, the input order is preserved.
 
   Args:
     node1: The first node.
@@ -2013,6 +2007,7 @@ def contract_between(
       ordering of Edges.
     axis_names: An optional list of names for the axis of the new node in order
       of the output axes.
+
   Returns:
     The new node created.
 
@@ -2133,8 +2128,8 @@ def outer_product(node1: BaseNode,
 
   This causes the nodes to combine their edges and axes, so the shapes are
   combined. For example, if `a` had a shape (2, 3) and `b` had a shape
-  (4, 5, 6), then the node `net.outer_product(a, b) will have shape
-  (2, 3, 4, 5, 6). All edges of `node1` and `node2` are passed on to
+  :math`(4, 5, 6)`, then the node `net.outer_product(a, b)` will have shape
+  :math:`(2, 3, 4, 5, 6)`. All edges of `node1` and `node2` are passed on to
   the new node, and `node1` and `node2` get a new set of dangling edges.
 
   Args:
@@ -2143,9 +2138,11 @@ def outer_product(node1: BaseNode,
     node2: The second node. The axes on this node will be on the right side of
       the new node.
     name: Optional name to give the new node created.
-    axis_names: An optional list of names for the axis of the new node
+    axis_names: An optional list of names for the axis of the new node.
+
   Returns:
-    A new node. Its shape will be node1.shape + node2.shape
+    A new node. Its shape will be `node1.shape + node2.shape`.
+
   Raises:
     TypeError: If `node1` and `node2` have wrong types.
   """
@@ -2187,23 +2184,25 @@ class NodeCollection:
   """Context manager for easy collection of a set or list of nodes.
 
   The following examples are equivalent:
-  ```python
-  # 1. Using a NodeCollection context:
-  nodes_set = set()
-  with NodeCollection(nodes_set):
+
+  .. code-block:: python
+
+    # 1. Using a NodeCollection context:
+    nodes_set = set()
+    with NodeCollection(nodes_set):
+      a = tn.Node(...)
+      b = tn.Node(...)
+    # 2. Explicitly adding each node to the set:
+    nodes_set = set()
     a = tn.Node(...)
+    nodes_set.add(a)
     b = tn.Node(...)
-  # 2. Explicitly adding each node to the set:
-  nodes_set = set()
-  a = tn.Node(...)
-  nodes_set.add(a)
-  b = tn.Node(...)
-  nodes_set.add(b)
-  ```
+    nodes_set.add(b)
+
   """
 
   def __init__(self, container: Union[Set[BaseNode], List[BaseNode]]):
-    """Initialize the NodeCollection context manager
+    """Initialize the NodeCollection context manager.
 
     Args:
       container: The container to hold the created nodes, can be a list or a

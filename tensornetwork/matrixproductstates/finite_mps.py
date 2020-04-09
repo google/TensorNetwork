@@ -28,8 +28,8 @@ Tensor = Any
 
 
 class FiniteMPS(BaseMPS):
-  """
-  An MPS class for finite systems.
+  """An MPS class for finite systems.
+
 
   MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
   attribute.
@@ -56,8 +56,8 @@ class FiniteMPS(BaseMPS):
                center_position: Optional[int] = 0,
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
-    """
-    Initialize a `FiniteMPS`.
+    """Initialize a `FiniteMPS`.
+
     Args:
       tensors: A list of `Tensor` or `BaseNode` objects.
       center_position: The initial position of the center site.
@@ -90,9 +90,8 @@ class FiniteMPS(BaseMPS):
              D: List[int],
              dtype: Type[np.number],
              backend: Optional[Text] = None):
-    """
-    Initialize a random `FiniteMPS`. The resulting state
-    is normalized. Its center-position is at 0.
+    """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
+    center-position is at 0.
 
     Args:
       d: A list of physical dimensions.
@@ -116,8 +115,8 @@ class FiniteMPS(BaseMPS):
 
   # pylint: disable=arguments-differ
   def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
-    """
-    Bring the MPS into canonical form according to `FiniteMPS.center_position`.
+    """Bring the MPS into canonical form according to
+    `FiniteMPS.center_position`.
 
     Assuming nothing about the content of the current tensors, brings the
     tensors into canonical form with a center site at
@@ -134,8 +133,8 @@ class FiniteMPS(BaseMPS):
     return self.position(pos, normalize=normalize)
 
   def check_canonical(self) -> Tensor:
-    """
-    Check whether the MPS is in the expected canonical form.
+    """Check whether the MPS is in the expected canonical form.
+
     Returns:
       The L2 norm of the vector of local deviations.
     """
@@ -151,18 +150,15 @@ class FiniteMPS(BaseMPS):
     return self.backend.sqrt(sum(deviations))
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
-    """
-    Compute left reduced density matrices for site `sites`.
-    This returns a dict `left_envs` mapping sites (int) to Tensors.
-    `left_envs[site]` is the left-reduced density matrix to the left of
-    site `site`.
+    """Compute left reduced density matrices for site `sites`. This returns a
+    dict `left_envs` mapping sites (int) to Tensors. `left_envs[site]` is the
+    left-reduced density matrix to the left of site `site`.
 
     Args:
       sites (list of int): A list of sites of the MPS.
     Returns:
       `dict` mapping `int` to `Tensor`: The left-reduced density matrices
         at each  site in `sites`.
-
     """
     if not sites:
       return {}
@@ -221,11 +217,9 @@ class FiniteMPS(BaseMPS):
     return left_envs
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
-    """
-    Compute right reduced density matrices for site `sites.
-    This returns a dict `right_envs` mapping sites (int) to Tensors.
-    `right_envs[site]` is the right-reduced density matrix to the right of
-    site `site`.
+    """Compute right reduced density matrices for site `sites. This returns a
+    dict `right_envs` mapping sites (int) to Tensors. `right_envs[site]` is the
+    right-reduced density matrix to the right of site `site`.
 
     Args:
       sites (list of int): A list of sites of the MPS.
