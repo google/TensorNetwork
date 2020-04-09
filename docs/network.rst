@@ -1,4 +1,4 @@
-Tensor Network
+Common Functions
 ------------------
 
 .. autofunction:: tensornetwork.norm
@@ -10,6 +10,8 @@ Tensor Network
 .. autofunction:: tensornetwork.split_node_qr
 .. autofunction:: tensornetwork.split_node_rq
 .. autofunction:: tensornetwork.split_node_full_svd
+.. autofunction:: tensornetwork.split_edge
+.. autofunction:: tensornetwork.slice_edge
 .. autofunction:: tensornetwork.reachable
 .. autofunction:: tensornetwork.check_connected
 .. autofunction:: tensornetwork.check_correct
