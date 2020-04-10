@@ -527,7 +527,7 @@ class BaseCharge:
 
 
 class U1Charge(BaseCharge):
-
+"""Charge Class for the U1 symmetry group."""
   def __init__(self,
                charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
@@ -558,7 +558,7 @@ class U1Charge(BaseCharge):
 
 
 class Z2Charge(BaseCharge):
-
+"""Charge Class for the Z2 symmetry group."""
   def __init__(self,
                charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
@@ -597,6 +597,13 @@ class Z2Charge(BaseCharge):
 
 
 def ZNCharge(n: int) -> Callable:
+"""Contstructor for charge classes of the ZN symmetry groups.
+
+Args:
+  n: The module of the symmetry group.
+Returns:
+  A charge class of your given ZN symmetry group.
+"""
   if n < 2:
     raise ValueError(f"n must be >= 2, found {n}")
 
