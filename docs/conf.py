@@ -53,7 +53,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'logo_only': True,
 }
-html_logo = '_static/tensornetwork_logo_450px.png'
+html_logo = '_static/tensornetwork_logo.jpg'
 master_doc = 'index'
 default_role = 'py:obj'
 autodoc_default_flags = ['members']
