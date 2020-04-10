@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import tensornetwork as tn
-import tensornetwork.network
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -26,11 +25,6 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
-
-
-def test_network_raises_error():
-  with pytest.raises(DeprecationWarning):
-    tensornetwork.network.TensorNetwork()
 
 
 def test_tnwork_copy_conj(backend):
