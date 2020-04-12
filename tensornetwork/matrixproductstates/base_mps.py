@@ -273,15 +273,14 @@ class BaseMPS:
     """
     Compute the correlator 
     :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
-    between `site1` and all sites `s` in `sites2`. if `s==site1`, 
-    `op2[s]` will be applied first
+    between `site1` and all sites `s` in `sites2`. If `s == site1`, 
+    `op2[s]` will be applied first.
 
     Args:
-      op1: Tensor of rank 2; the local operator at `site1`
-      op2: List of tensors of rank 2; the local operators 
-        at `sites2`.
+      op1: Tensor of rank 2; the local operator at `site1`.
+      op2: Tensor of rank 2; the local operator at `sites2`.
       site1: The site where `op1`  acts
-      sites2: Sites where operators `op2` act.
+      sites2: Sites where operator `op2` acts.
     Returns:
       List: Correlator :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
         for `s` :math:`\\in` `sites2`.
