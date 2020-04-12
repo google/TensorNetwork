@@ -160,11 +160,11 @@ class FiniteMPS(BaseMPS):
       `dict` mapping `int` to `Tensor`: The left-reduced density matrices
         at each  site in `sites`.
     """
-    if not sites:
+    sites = np.array(sites)  #enable logical indexing
+    if len(sites) == 0:
       return {}
 
-    n2 = max(sites)
-    sites = np.array(sites)  #enable logical indexing
+    n2 = np.max(sites)
 
     #check if all elements of `sites` are within allowed range
     if not np.all(sites <= len(self)):
@@ -227,11 +227,11 @@ class FiniteMPS(BaseMPS):
       `dict` mapping `int` to `Tensor`: The right-reduced density matrices
         at each  site in `sites`.
     """
-    if not sites:
+    sites = np.array(sites)
+    if len(sites) == 0:
       return {}
 
-    n1 = min(sites)
-    sites = np.array(sites)
+    n1 = np.min(sites)
     #check if all elements of `sites` are within allowed range
     if not np.all(np.array(sites) < len(self)):
       raise ValueError('all elements of `sites` have to be < N = {}'.format(

@@ -297,26 +297,25 @@ class BaseMPS:
 
     # we break the computation into two parts:
     # first we get all correlators <op2(site2) op1(site1)> with site2 < site1
-    # then all correlators <op1(site1) op2(site2)> with site1 >= site1
+    # then all correlators <op1(site1) op2(site2)> with site2 >= site1
 
     # get all sites smaller than site1
-    left_sites = sorted(sites2[sites2 < site1])
+    left_sites = np.sort(sites2[sites2 < site1])
     # get all sites larger than site1
-    right_sites = sorted(sites2[sites2 > site1])
+    right_sites = np.sort(sites2[sites2 > site1])
 
     # compute all neccessary right reduced
     # density matrices in one go. This is
     # more efficient than calling right_envs
     # for each site individually
-    if right_sites:
-      right_sites_mod = list({n % N for n in right_sites})
-      rs = self.right_envs([site1] + right_sites_mod)
+    rs = self.right_envs(
+        np.append(site1, np.mod(right_sites, N)).astype(np.int64))
+    ls = self.left_envs(
+        np.append(np.mod(left_sites, N), site1).astype(np.int64))
+
     c = []
-    if left_sites:
+    if len(left_sites) > 0:
 
-      left_sites_mod = list({n % N for n in left_sites})
-
-      ls = self.left_envs(left_sites_mod + [site1])
       A = Node(self.nodes[site1], backend=self.backend)
       O1 = Node(op1, backend=self.backend)
       conj_A = conj(A)
@@ -382,8 +381,7 @@ class BaseMPS:
       c.append(res.tensor)
 
     # compute <op1(site1) op2(site2)> for site1 < site2
-    right_sites = sorted(sites2[sites2 > site1])
-    if right_sites:
+    if len(right_sites) > 0:
       A = Node(self.nodes[site1], backend=self.backend)
       conj_A = conj(A)
       L = ls[site1]
@@ -407,7 +405,6 @@ class BaseMPS:
       # |  op1(site1)    op2(site2)|
       # |   |             |        |
       #  ---A--........-- A*-------
-
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
           R = rs[n % N]
