@@ -6,8 +6,6 @@ TensorNetwork reference documentation
    :caption: Tutorials
 
    tutorial
-   basic_api_tutorial
-   tensor_nets_in_neural_nets
 
 .. toctree::
    :maxdepth: 4

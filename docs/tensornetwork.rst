@@ -4,7 +4,7 @@ TensorNetwork
 ==================
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 3
 
   contractors
   nodes
@@ -12,3 +12,4 @@ TensorNetwork
   ncon
   mps
   network
+  block_sparse
