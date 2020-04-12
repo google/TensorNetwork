@@ -233,10 +233,10 @@ class FiniteMPS(BaseMPS):
 
     n1 = np.min(sites)
     #check if all elements of `sites` are within allowed range
-    if not np.all(np.array(sites) < len(self)):
+    if not np.all(sites < len(self)):
       raise ValueError('all elements of `sites` have to be < N = {}'.format(
           len(self)))
-    if not np.all(np.array(sites) >= -1):
+    if not np.all(sites >= -1):
       raise ValueError('all elements of `sites` have to be >= -1')
 
     # right-reduced density matrices to the right of `center_position`
