@@ -87,7 +87,7 @@ class BaseNode(ABC):
       ]
     elif shape is not None:
       self._edges = [
-          Edge(node1=self, axis1=i, name="Dangling_{}".format(i))
+          Edge(node1=self, axis1=i, name="__unnamed_edge__")
           for i, _ in enumerate(shape)
       ]
     else:
