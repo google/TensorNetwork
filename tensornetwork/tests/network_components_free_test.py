@@ -108,7 +108,6 @@ def test_node_initialize_numpy():
   assert len(node.edges) == 3
   assert isinstance(node.edges[0], Edge)
   assert node.axis_names == ["a", "b", "c"]
-  assert node.signature == -1
 
 
 def test_node_initialize_tensorflow():
@@ -124,18 +123,11 @@ def test_node_initialize_tensorflow():
   assert len(node.edges) == 3
   assert isinstance(node.edges[0], Edge)
   assert node.axis_names == ["a", "b", "c"]
-  assert node.signature == -1
 
 
 def test_node_get_rank(single_node_edge):
   node = single_node_edge.node
   assert node.get_rank() == 3
-
-
-def test_node_set_signature(single_node_edge):
-  node = single_node_edge.node
-  node.set_signature(2)
-  assert node.signature == 2
 
 
 def test_node_add_axis_names_raises_error_duplicate_names(single_node_edge):
@@ -729,7 +721,7 @@ def test_node_save_structure(tmp_path, single_node_edge):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {
-        "tensor", "signature", 'backend', 'name', 'edges', 'shape',
+        "tensor", 'backend', 'name', 'edges', 'shape',
         'axis_names', "type"
     }
 
@@ -740,7 +732,6 @@ def test_node_save_data(tmp_path, single_node_edge):
     node_group = node_file.create_group('test_node')
     node._save_node(node_group)
     np.testing.assert_allclose(node_file['test_node/tensor'][()], node.tensor)
-    assert node_file['test_node/signature'][()] == node.signature
     assert node_file['test_node/backend'][()] == node.backend.name
     assert node_file['test_node/type'][()] == type(node).__name__
     assert node_file['test_node/name'][()] == node.name
@@ -755,7 +746,6 @@ def test_node_load(tmp_path, single_node_edge):
   with h5py.File(tmp_path / 'node', 'w') as node_file:
     node_group = node_file.create_group('node_data')
     node_group.create_dataset('tensor', data=node._tensor)
-    node_group.create_dataset('signature', data=node.signature)
     node_group.create_dataset('backend', data=node.backend.name)
     node_group.create_dataset('name', data=node.name)
     node_group.create_dataset('shape', data=node.shape)
@@ -770,7 +760,6 @@ def test_node_load(tmp_path, single_node_edge):
 
     loaded_node = Node._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
-    assert loaded_node.signature == node.signature
     assert loaded_node.backend.name == node.backend.name
     assert set(loaded_node.axis_names) == set(node.axis_names)
     assert (set(edge.name for edge in loaded_node.edges) == set(
@@ -833,7 +822,7 @@ def test_copy_node_save_structure(tmp_path, backend):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {
-        "signature", 'name', 'edges', 'backend', 'shape', 'axis_names',
+        'name', 'edges', 'backend', 'shape', 'axis_names',
         'copy_node_dtype', "type"
     }
 
@@ -848,7 +837,6 @@ def test_copy_node_save_data(tmp_path, backend):
   with h5py.File(tmp_path / 'nodes', 'w') as node_file:
     node_group = node_file.create_group('copier')
     node._save_node(node_group)
-    assert node_file['copier/signature'][()] == node.signature
     assert node_file['copier/backend'][()] == node.backend.name
     assert node_file['copier/type'][()] == type(node).__name__
     assert node_file['copier/name'][()] == node.name
@@ -869,7 +857,6 @@ def test_copy_node_load(tmp_path, backend):
       backend=backend)
   with h5py.File(tmp_path / 'node', 'w') as node_file:
     node_group = node_file.create_group('node_data')
-    node_group.create_dataset('signature', data=node.signature)
     node_group.create_dataset('backend', data=node.backend.name)
     node_group.create_dataset(
         'copy_node_dtype', data=np.dtype(node.copy_node_dtype).name)
@@ -886,7 +873,6 @@ def test_copy_node_load(tmp_path, backend):
 
     loaded_node = CopyNode._load_node(node_data=node_file["node_data/"])
     assert loaded_node.name == node.name
-    assert loaded_node.signature == node.signature
     assert set(loaded_node.axis_names) == set(node.axis_names)
     assert (set(edge.name for edge in loaded_node.edges) == set(
         edge.name for edge in node.edges))
@@ -905,7 +891,6 @@ def test_edge_initialize_dangling(single_node_edge):
   assert edge.node2 is None
   assert edge.axis2 is None
   assert edge.is_dangling() is True
-  assert edge.signature == -1
 
 
 def test_edge_initialize_nondangling(double_node_edge):
@@ -918,7 +903,6 @@ def test_edge_initialize_nondangling(double_node_edge):
   assert edge.node2 == node2
   assert edge.axis2 == 1
   assert edge.is_dangling() is False
-  assert edge.signature == -1
 
 
 def test_edge_initialize_raises_error_faulty_arguments(double_node_edge):
@@ -928,18 +912,6 @@ def test_edge_initialize_raises_error_faulty_arguments(double_node_edge):
     Edge(name="edge", node1=node1, node2=node2, axis1=0)
   with pytest.raises(ValueError):
     Edge(name="edge", node1=node1, axis1=0, axis2=0)
-
-
-def test_edge_set_signature(double_node_edge):
-  edge = double_node_edge.edge12
-  edge.set_signature(2)
-  assert edge.signature == 2
-
-
-def test_edge_set_signature_raises_error_dangling(single_node_edge):
-  edge = single_node_edge.edge
-  with pytest.raises(ValueError):
-    edge.set_signature(2)
 
 
 def test_edge_get_nodes_single(single_node_edge):
@@ -1058,12 +1030,6 @@ def test_edge_magic_lt_raise_error_type(single_node_edge):
     assert edge < 0
 
 
-def test_edge_magic_lt(double_node_edge):
-  edge1 = double_node_edge.edge1
-  edge2 = double_node_edge.edge12
-  assert (edge1 < edge2) == (edge1.signature < edge2.signature)
-
-
 def test_edge_magic_str(single_node_edge):
   edge = single_node_edge.edge
   assert str(edge) == edge.name
@@ -1075,7 +1041,7 @@ def test_edge_node_save_structure(tmp_path, double_node_edge):
     edge_group = edge_file.create_group('edge')
     edge12._save_edge(edge_group)
     assert set(list(edge_group.keys())) == {
-        "axis1", "node1", "axis2", "node2", "name", "signature"
+        "axis1", "node1", "axis2", "node2", "name"
     }
 
 
@@ -1084,7 +1050,6 @@ def test_edge_node_save_data(tmp_path, double_node_edge):
   with h5py.File(tmp_path / 'edges', 'w') as edge_file:
     edge_group = edge_file.create_group('edge')
     edge._save_edge(edge_group)
-    assert edge_file['edge/signature'][()] == edge.signature
     assert edge_file['edge/name'][()] == edge.name
     assert edge_file['edge/node1'][()] == edge.node1.name
     assert edge_file['edge/node2'][()] == edge.node2.name
@@ -1097,7 +1062,6 @@ def test_edge_load(backend, tmp_path, double_node_edge):
 
   with h5py.File(tmp_path / 'edge', 'w') as edge_file:
     edge_group = edge_file.create_group('edge_data')
-    edge_group.create_dataset('signature', data=edge.signature)
     edge_group.create_dataset('name', data=edge.name)
     edge_group.create_dataset('node1', data=edge.node1.name)
     edge_group.create_dataset('node2', data=edge.node2.name)
@@ -1120,7 +1084,6 @@ def test_edge_load(backend, tmp_path, double_node_edge):
         node2.name: node2
     })
     assert loaded_edge.name == edge.name
-    assert loaded_edge.signature == edge.signature
     assert loaded_edge.node1.name == edge.node1.name
     assert loaded_edge.node2.name == edge.node2.name
     assert loaded_edge.axis1 == edge.axis1
@@ -1443,20 +1406,6 @@ def test_node_get_item(single_node_edge):
   assert edge in node[0:2]
 
 
-def test_node_signature_getter_disabled_throws_error(single_node_edge):
-  node = single_node_edge.node
-  node.is_disabled = True
-  with pytest.raises(ValueError):
-    node.signature
-
-
-def test_node_signature_setter_disabled_throws_error(single_node_edge):
-  node = single_node_edge.node
-  node.is_disabled = True
-  with pytest.raises(ValueError):
-    node.signature = "signature"
-
-
 def test_node_disabled_disabled_throws_error(single_node_edge):
   node = single_node_edge.node
   node.is_disabled = True
@@ -1505,20 +1454,6 @@ def test_edge_name_setter_throws_type_error(single_node_edge, name):
   edge = Edge(node1=single_node_edge.node, axis1=0)
   with pytest.raises(TypeError):
     edge.name = name
-
-
-def test_edge_signature_getter_disabled_throws_error(single_node_edge):
-  edge = Edge(node1=single_node_edge.node, axis1=0)
-  edge.is_disabled = True
-  with pytest.raises(ValueError):
-    edge.signature
-
-
-def test_edge_signature_setter_disabled_throws_error(single_node_edge):
-  edge = Edge(node1=single_node_edge.node, axis1=0)
-  edge.is_disabled = True
-  with pytest.raises(ValueError):
-    edge.signature = "signature"
 
 
 def test_edge_node1_throws_value_error(single_node_edge):
