@@ -100,7 +100,7 @@ class Index:
     Returns:
       Index
     """
-    self.flow = np.logical_not(self.flow)
+    self.flow = list(np.logical_not(self.flow))
     return self
 
   def __mul__(self, index: "Index") -> "Index":
