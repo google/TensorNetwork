@@ -97,8 +97,6 @@ class BaseNode(ABC):
     else:
       self._axis_names = [str(i) for i in range(len(shape))]
 
-    self._signature = -1
-
     collection = ops.get_current_collection()
     if collection is not None:
       collection.add(self)
@@ -121,13 +119,6 @@ class BaseNode(ABC):
   def dtype(self):
     #any derived instance of BaseNode always has to have a tensor
     return self.tensor.dtype
-
-  def set_signature(self, signature: int) -> None:
-    """Set the signature for the node.
-
-    Signatures are numbers that uniquely identify a node.
-    """
-    self.signature = signature
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
     """Add axis names to a Node.
@@ -437,22 +428,6 @@ class BaseNode(ABC):
         raise TypeError("axis_names should be str type")
     self._axis_names = axis_names
 
-  @property
-  def signature(self) -> Optional[int]:
-    if self.is_disabled:
-      raise ValueError('Node {} has been disabled. '
-                       'Accessing its signature is no longer possible'.format(
-                           self.name))
-    return self._signature
-
-  @signature.setter
-  def signature(self, signature: int) -> None:
-    if self.is_disabled:
-      raise ValueError('Node {} has been disabled. '
-                       'Assigning a signature is no longer possible'.format(
-                           self.name))
-    self._signature = signature
-
   def disable(self) -> None:
     if self.is_disabled:
       raise ValueError('Node {} is already disabled'.format(self.name))
@@ -481,14 +456,13 @@ class BaseNode(ABC):
       node_data: h5py group that contains the serialized node data
 
     Returns:
-      the node's name, signature, shape, axis_names
+      the node's name, shape, axis_names
     """
     name = node_data['name'][()]
-    signature = node_data['signature'][()]
     backend = node_data['backend'][()]
     shape = node_data['shape'][()]
     axis_names = node_data['axis_names'][()]
-    return name, signature, shape, axis_names, backend
+    return name, shape, axis_names, backend
 
   @abstractmethod
   def _save_node(self, node_group: h5py.Group) -> None:
@@ -499,7 +473,6 @@ class BaseNode(ABC):
       node_group: h5py group where data is saved
     """
     node_group.create_dataset('type', data=type(self).__name__)
-    node_group.create_dataset('signature', data=self.signature)
     node_group.create_dataset('backend', data=self.backend.name)
     node_group.create_dataset('name', data=self.name)
     node_group.create_dataset('shape', data=self.shape)
@@ -714,7 +687,7 @@ class Node(BaseNode):
     Returns:
       The loaded node.
     """
-    name, signature, _, axis_names, backend = cls._load_node_data(node_data)
+    name, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
     # pylint: disable=unnecessary-comprehension
     node = Node(
@@ -722,7 +695,6 @@ class Node(BaseNode):
         name=name,
         axis_names=[ax for ax in axis_names],
         backend=backend)
-    node.set_signature(signature)
     return node
 
   def __repr__(self) -> Text:
@@ -923,7 +895,7 @@ class CopyNode(BaseNode):
     Returns:
       The loaded node.
     """
-    name, signature, shape, axis_names, backend = cls._load_node_data(node_data)
+    name, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
     # pylint: disable=unnecessary-comprehension
     node = CopyNode(
@@ -934,7 +906,6 @@ class CopyNode(BaseNode):
         backend=backend,
         dtype=copy_node_dtype)
 
-    node.set_signature(signature)
     return node
 
 
@@ -1000,7 +971,6 @@ class Edge:
     self.node2 = node2
     self._axis2 = axis2
     self._is_dangling = node2 is None
-    self._signature = -1
 
   # contraction methods now explicitly disable Edges by setting
   # node1, node2 to None. This makes use of weakref for node1 and node2
@@ -1059,26 +1029,6 @@ class Edge:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
     self._axis2 = axis2
-
-  @property
-  def signature(self) -> Optional[int]:
-    if self.is_disabled:
-      raise ValueError(
-          'Edge has been disabled, accessing signature is no longer possible')
-    return self._signature
-
-  @signature.setter
-  def signature(self, signature: int) -> None:
-    if self.is_disabled:
-      raise ValueError(
-          'Edge has been disabled, setting node1 is no longer possible')
-    self._signature = signature
-
-  def set_signature(self, signature: int) -> None:
-    if self.is_dangling():
-      raise ValueError(
-          "Do not set a signature for dangling edge '{}'.".format(self))
-    self.signature = signature
 
   def get_nodes(self) -> List[Optional[BaseNode]]:
     """Get the nodes of the edge."""
@@ -1189,7 +1139,6 @@ class Edge:
     if self.node2 is not None:
       edge_group.create_dataset('node2', data=self.node2.name)
       edge_group.create_dataset('axis2', data=self.axis2)
-    edge_group.create_dataset('signature', data=self.signature)
     edge_group.create_dataset('name', data=self.name)
 
   @classmethod
@@ -1211,23 +1160,15 @@ class Edge:
     else:
       node2 = None
       axis2 = None
-    signature = edge_data["signature"][()]
     name = edge_data["name"][()]
     edge = cls(node1=node1, axis1=axis1, node2=node2, axis2=axis2, name=name)
     node1.add_edge(edge, axis1)
     if node2 is not None:
       node2.add_edge(edge, axis2)
-    if not edge.is_dangling():
-      edge.set_signature(signature)
     return edge
 
   def __xor__(self, other: "Edge") -> "Edge":
     return connect(self, other, self.name)
-
-  def __lt__(self, other) -> bool:
-    if not isinstance(other, Edge):
-      raise TypeError("Cannot compare 'Edge' with type {}".format(type(Edge)))
-    return self.signature < other.signature
 
   def __str__(self) -> Optional[Text]:
     if self.name:
@@ -1437,7 +1378,6 @@ def flatten_edges(edges: List[Edge],
     node.tensor = new_tensor
     # This Edge is required for the connect call later.
     edge = Edge(node1=node, axis1=len(perm_front), name=new_edge_name)
-    # Do not set the signature of 'edge' since it is dangling.
     node.edges = node.edges[:len(perm_front)] + [edge]
     new_dangling_edges.append(edge)
     # TODO: Allow renaming of the new axis.
