@@ -243,6 +243,8 @@ def test_tensordot_raises():
     tensordot(A, B, ([0, 1], [0, 1]))
   with pytest.raises(ValueError):
     tensordot(A, A, ([0, 1], [0, 1]))
+  with pytest.raises(ValueError):
+    tensordot(A, A.conj(), ([0, 1], [1, 0]))
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
