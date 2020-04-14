@@ -531,17 +531,6 @@ class BaseCharge:
 class U1Charge(BaseCharge):
   """Charge Class for the U1 symmetry group."""
 
-  def __init__(self,
-               charges: Union[List, np.ndarray],
-               charge_labels: Optional[np.ndarray] = None,
-               charge_types: Optional[List[Type["BaseCharge"]]] = None,
-               charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
-    super().__init__(
-        charges,
-        charge_labels,
-        charge_types=[type(self)],
-        charge_dtype=charge_dtype)
-
   @staticmethod
   def fuse(charge1, charge2) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
@@ -568,6 +557,7 @@ class Z2Charge(BaseCharge):
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+    #do some checks before calling the base class constructor
     unique = np.unique(np.ravel(charges))
     if not np.all(np.isin(unique, [0, 1])):
       raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
