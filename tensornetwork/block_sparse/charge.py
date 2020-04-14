@@ -75,7 +75,7 @@ class BaseCharge:
     else:
       label_dtype = np.int32
     if charge_types is None:
-      charge_types = [type(self)]
+      charge_types = [type(self)] * charges.shape[0]
     self.charge_types = charge_types
     if charge_labels is None:
       if charges.shape[1] > 0:
@@ -137,7 +137,8 @@ class BaseCharge:
     obj.__init__(
         charges=self.unique_charges.copy(),
         charge_labels=self.charge_labels.copy(),
-        charge_types=self.charge_types)
+        charge_types=self.charge_types,
+        charge_dtype=self.dtype)
     return obj
 
   @property
