@@ -74,6 +74,8 @@ class BaseCharge:
       label_dtype = np.int16
     else:
       label_dtype = np.int32
+    if charge_types is None:
+      charge_types = [type(self)]
     self.charge_types = charge_types
     if charge_labels is None:
       if charges.shape[1] > 0:
@@ -528,6 +530,7 @@ class BaseCharge:
 
 class U1Charge(BaseCharge):
   """Charge Class for the U1 symmetry group."""
+
   def __init__(self,
                charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
@@ -559,6 +562,7 @@ class U1Charge(BaseCharge):
 
 class Z2Charge(BaseCharge):
   """Charge Class for the Z2 symmetry group."""
+
   def __init__(self,
                charges: Union[List, np.ndarray],
                charge_labels: Optional[np.ndarray] = None,
@@ -608,6 +612,7 @@ def ZNCharge(n: int) -> Callable:
     raise ValueError(f"n must be >= 2, found {n}")
 
   class ModularCharge(BaseCharge):
+
     def __init__(self,
                  charges: Union[List, np.ndarray],
                  charge_labels: Optional[np.ndarray] = None,
@@ -615,8 +620,7 @@ def ZNCharge(n: int) -> Callable:
                  charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
       unique = np.unique(np.ravel(charges))
       if not np.all(np.isin(unique, list(range(n)))):
-        raise ValueError(
-            f"Z{n} charges must be in range({n}), found: {unique}")
+        raise ValueError(f"Z{n} charges must be in range({n}), found: {unique}")
       super().__init__(
           charges,
           charge_labels,
@@ -637,17 +641,14 @@ def ZNCharge(n: int) -> Callable:
       return np.int16(0)
 
     @classmethod
-    def random(cls, 
-               dimension: int, 
-               minval: int = 0, 
+    def random(cls, dimension: int, minval: int = 0,
                maxval: int = n) -> BaseCharge:
       if maxval >= n:
         raise ValueError(f"maxval must be less than n={n}, got {maxval}")
-      if minval < 0: 
+      if minval < 0:
         raise ValueError(f"minval must be greater than 0, found {minval}")
       # No need for the mod due to the checks above.
-      charges = np.random.randint(
-          minval, maxval + 1, dimension, dtype=np.int16)
+      charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
       return cls(charges=charges)
 
   return ModularCharge
