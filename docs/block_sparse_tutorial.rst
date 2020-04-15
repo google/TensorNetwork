@@ -27,15 +27,17 @@ within the TensorNetwork library. Currently, block sparsity support is
 restricted to Abelian groups.
 
 If you are in a hurry, here are the most important points of our
-block-sparse tensor implementation: 1. support for all abelian
-symmetries (implementation of new abelian symmetries is very easy) 2.
-everything is numpy behind the scenes 3. we use a so called **element
-wise encoding** to store non-zero tensor elements. This is different
-from other libraries like e.g. ITensor, where non-zero elements are
-stored in contiguos blocks in memory. 4. we have added a new
-`symmetric` backend to the library that should be used for symmetric
-tensor networks 5. we do currently not support jax, tensorflow or
-pytorch for block-sparse tensor networks
+block-sparse tensor implementation:
+
+1. support for all abelian symmetries (implementation of new abelian symmetries is very easy)
+2. everything is numpy behind the scenes
+3. we use a so called **element wise encoding** to store non-zero tensor elements. This is different
+   from other libraries like e.g. ITensor, where non-zero elements are stored in a block-by-block
+   fashion in contiguos memory locations.
+4. we have added a new
+   `symmetric` backend to the library that should be used for symmetric
+   tensor networks 5. we do currently not support jax, tensorflow or
+   pytorch for block-sparse tensor networks
 
 Symmetric tensors
 ------------------
