@@ -40,17 +40,17 @@ class Index:
       raise TypeError("flows have to be boolean. Found flow = {}".format(flow))
     self.flow = flow
 
-  def __len__(self):
+  def __len__(self) -> int:
     return self.dim
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return str(self.dim)
 
   @property
-  def dim(self):
+  def dim(self) -> int:
     return np.prod([i.dim for i in self._charges])
 
-  def __eq__(self, other):
+  def __eq__(self, other) -> bool:
     if len(other._charges) != len(self._charges):
       return False
     for n in range(len(self._charges)):
@@ -113,7 +113,7 @@ class Index:
     return fuse_index_pair(self, index)
 
   @property
-  def charges(self):
+  def charges(self) -> BaseCharge:
     """
     Return the fused charges of the index. Note that
     flows are merged into the charges.
