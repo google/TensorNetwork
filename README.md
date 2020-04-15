@@ -24,6 +24,8 @@ More information can be found in our TensorNetwork papers:
 
 - [TensorNetwork on TensorFlow: A Spin Chain Application Using Tree Tensor Networks](https://arxiv.org/abs/1905.01331)
 
+- [TensorNetwork on TensorFlow: Entanglement Renormalization for quantum critical lattice models](https://arxiv.org/abs/1906.12030)
+
 - [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
 
 
@@ -141,7 +143,9 @@ print(n.tensor)
 ```
 
 ## Different backend support.
-Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends. 
+Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends.
+We also support tensors with Abelian symmetries via a `symmetric` backend. See the [reference
+documentation](https://tensornetwork.readthedocs.io/en/latest/block_sparse_tutorial.html) for more details.
 
 To change the default global backend, you can do:
 ```python
