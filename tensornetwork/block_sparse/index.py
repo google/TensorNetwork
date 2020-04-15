@@ -64,7 +64,7 @@ class Index:
       return False
     return True
 
-  def copy(self):
+  def copy(self) -> "Index":
     """
     Returns:
       Index: A deep copy of `Index`. Note that all children of
@@ -94,7 +94,7 @@ class Index:
     """
     return list(self.flow)
 
-  def flip_flow(self):
+  def flip_flow(self) -> "Index":
     """
     Flip the flow if `Index` in place.
     Returns:
