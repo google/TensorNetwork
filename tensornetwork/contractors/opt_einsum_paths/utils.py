@@ -38,13 +38,12 @@ def _get_path_nodes(
   Returns:
     The optimal contraction path as returned by `opt_einsum`.
   """
-  sorted_nodes = sorted(nodes, key=lambda n: n.signature)
-
-  input_sets = [set(node.edges) for node in sorted_nodes]
+  nodes = list(nodes)
+  input_sets = [set(node.edges) for node in nodes]
   output_set = get_subgraph_dangling(nodes)
   size_dict = {edge: edge.dimension for edge in get_all_edges(nodes)}
 
-  return algorithm(input_sets, output_set, size_dict), sorted_nodes
+  return algorithm(input_sets, output_set, size_dict), nodes
 
 
 def get_path(

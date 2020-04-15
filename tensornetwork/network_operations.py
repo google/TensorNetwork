@@ -155,7 +155,6 @@ def copy(nodes: Iterable[BaseNode],
 
     # both nodes should be copied
     new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2], axis2)
-    new_edge.set_signature(edge.signature)
     node_dict[node2].add_edge(new_edge, axis2)
     node_dict[node1].add_edge(new_edge, axis1)
     edge_dict[edge] = new_edge

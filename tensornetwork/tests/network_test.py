@@ -434,9 +434,8 @@ def test_get_parallel_edge(backend):
   edges = set()
   for i in {0, 1, 3}:
     edges.add(tn.connect(a[i], b[i]))
-  # sort by edge signature
-  e = sorted(list(edges))[0]
-  assert tn.get_parallel_edges(e) == edges
+  for e in edges:
+    assert set(tn.get_parallel_edges(e)) == edges
 
 
 def test_flatten_edges_between(backend):

@@ -45,7 +45,7 @@ def to_graphviz(nodes: Iterable[BaseNode],
       label = node.name
     else:
       label = ""
-    graph.node(str(node.signature), label=label)
+    graph.node(str(id(node)), label=label)
   seen_edges = set()
   for node in nodes:
     for i, edge in enumerate(node.edges):
@@ -60,16 +60,16 @@ def to_graphviz(nodes: Iterable[BaseNode],
         # We need to create an invisible node for the dangling edge
         # to connect to.
         graph.node(
-            "{}_{}".format(node.signature, i),
+            "{}_{}".format(id(node), i),
             label="",
             _attributes={"style": "invis"})
         graph.edge(
-            "{}_{}".format(node.signature, i),
-            str(node.signature),
+            "{}_{}".format(id(node), i),
+            str(id(node)),
             label=edge_label)
       else:
         graph.edge(
-            str(edge.node1.signature),
-            str(edge.node2.signature),
+            str(id(edge.node1)),
+            str(id(edge.node2)),
             label=edge_label)
   return graph

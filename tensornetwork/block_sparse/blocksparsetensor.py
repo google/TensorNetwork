@@ -19,7 +19,7 @@ import numpy as np
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition
-from tensornetwork.block_sparse.charge import fuse_charges, BaseCharge, intersect
+from tensornetwork.block_sparse.charge import fuse_charges, BaseCharge, intersect, charge_equal
 import copy
 # pylint: disable=line-too-long
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
@@ -849,6 +849,17 @@ def tensordot(tensor1: BlockSparseTensor,
     raise ValueError(
         "`axes1 = {}` and `axes2 = {}` have incompatible elementary"
         " flows {} and {}".format(axes1, axes2, contr_flows_1, contr_flows_2))
+  charge_check = [
+      charge_equal(c1, c2) for c1, c2 in zip(contr_charges_1, contr_charges_2)
+  ]
+  if not np.all(charge_check):
+    inds = np.nonzero(np.logical_not(charge_check))[0]
+    raise ValueError(
+        "`axes = {}` of tensor1 and `axes = {}` of tensor2 have incompatible charges"
+        " {} and {}".format(
+            np.array(axes1)[inds],
+            np.array(axes2)[inds], [contr_charges_1[i] for i in inds],
+            [contr_charges_2[i] for i in inds]))
 
   #checks finished
 
