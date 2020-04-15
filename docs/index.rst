@@ -6,7 +6,8 @@ TensorNetwork reference documentation
    :caption: Tutorials
 
    tutorial
-
+   block_sparse_tutorial
+   
 .. toctree::
    :maxdepth: 4
    :caption: API Reference
