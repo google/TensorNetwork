@@ -55,7 +55,6 @@ currently not supported). The following figure shows a symmetric tensor
 :math:`T_{ij}` of order 2 (i.e. a matrix):
 
 .. figure:: blocktensor.png
-   :alt: image.png
 
 There is quite a bit of information in this picture, and we will cover
 it bit by bit. The matrix is represented by the blue rectangle, and its
