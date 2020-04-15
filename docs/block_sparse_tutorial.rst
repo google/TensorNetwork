@@ -50,7 +50,7 @@ the scope of this turorial. If you're interested to dive deeper into
 this you'll find some references at the end of the notebook. Instead,
 we'll give here a minimal introduction to abelian symmetries in tensor
 networks, just enough to get you started. We will also only focus on
-Abelian symmetries (non-Abelian symmetries are more complicated, and
+Abelian symmetries (non-Abelian symmetries are more complicated and
 currently not supported). The following figure shows a symmetric tensor
 :math:`T_{ij}` of order 2 (i.e. a matrix):
 
@@ -133,8 +133,6 @@ tensor with the above shown charges:
 
 .. code:: ipython3
 
-    %load_ext autoreload
-    %autoreload 2
     import tensornetwork as tn
     from tensornetwork import BaseCharge, U1Charge, Index, BlockSparseTensor
     import numpy as np
