@@ -149,7 +149,7 @@ documentation](https://tensornetwork.readthedocs.io/en/latest/block_sparse_tutor
 
 To change the default global backend, you can do:
 ```python
-tn.set_default_backend("jax") # tensorflow, pytorch, numpy
+tn.set_default_backend("jax") # tensorflow, pytorch, numpy, symmetric
 ```
 Or, if you only want to change the backend for a single `Node`, you can do:
 ```python
