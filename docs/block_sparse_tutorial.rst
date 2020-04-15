@@ -27,15 +27,20 @@ within the TensorNetwork library. Currently, block sparsity support is
 restricted to Abelian groups.
 
 If you are in a hurry, here are the most important points of our
-block-sparse tensor implementation: 1. support for all abelian
-symmetries (implementation of new abelian symmetries is very easy) 2.
-everything is numpy behind the scenes 3. we use a so called **element
-wise encoding** to store non-zero tensor elements. This is different
-from other libraries like e.g. ITensor, where non-zero elements are
-stored in contiguos blocks in memory. 4. we have added a new
-`symmetric` backend to the library that should be used for symmetric
-tensor networks 5. we do currently not support jax, tensorflow or
-pytorch for block-sparse tensor networks
+block-sparse tensor implementation:
+
+1. support for all abelian symmetries (implementation of new abelian symmetries is very easy)
+2. everything is numpy behind the scenes
+3. we use a so called **element-wise encoding** strategy to store non-zero tensor elements. This is different
+   from other libraries like e.g. ITensor, where non-zero elements are stored in a block-by-block
+   fashion in contiguos memory locations (block-wise encoding).
+   For tensor networks with high-order tensors (e.g. PEPS or MERA) and many simultaneous symmetries,
+   element-wise encoding typically is substantially more efficient than block-wise encoding.
+4. we have added a new
+   `symmetric` backend to the library that should be used for symmetric
+   tensor networks
+5. we do currently not support jax, tensorflow or
+   pytorch for block-sparse tensor networks
 
 Symmetric tensors
 ------------------
@@ -45,7 +50,7 @@ the scope of this turorial. If you're interested to dive deeper into
 this you'll find some references at the end of the notebook. Instead,
 we'll give here a minimal introduction to abelian symmetries in tensor
 networks, just enough to get you started. We will also only focus on
-Abelian symmetries (non-Abelian symmetries are more complicated, and
+Abelian symmetries (non-Abelian symmetries are more complicated and
 currently not supported). The following figure shows a symmetric tensor
 :math:`T_{ij}` of order 2 (i.e. a matrix):
 
@@ -128,8 +133,6 @@ tensor with the above shown charges:
 
 .. code:: ipython3
 
-    %load_ext autoreload
-    %autoreload 2
     import tensornetwork as tn
     from tensornetwork import BaseCharge, U1Charge, Index, BlockSparseTensor
     import numpy as np
@@ -277,7 +280,7 @@ Transposing tensors also works as expected:
     shape of b2 (21, 20, 19)
 
 
-transpose and reshape can be composed arbitrarily:
+`transpose` and `reshape` can be composed arbitrarily:
 
 .. code:: ipython3
 
@@ -289,6 +292,8 @@ transpose and reshape can be composed arbitrarily:
 
     shape of b3: (21, 19, 20)
 
+`transpose` and `reshape` both act only an a tensor's meta-data and are thus essentially
+free operations (i.e. no computational cost).
 
 To contract two tensors, their flow and charge information has to match.
 A leg with an outflowing arrow can only be contracted with a leg with an
@@ -445,27 +450,33 @@ the legs of the new tensor will be identical to the flows of the
 original tensor on the respective legs.
 
 .. code:: ipython3
-
-    C1 = BlockSparseTensor.random([A1.sparse_shape[0], A1.sparse_shape[1]])
-    print('shape of C1: ', C1.shape)
+	  
+    D0,D1,D2,D3=100,101,102,103
+    i0 = Index(U1Charge.random(D0,-5,5), flow=False)
+    i1 = Index(U1Charge.random(D1,-5,5), flow=False)
+    i2 = Index(U1Charge.random(D2,-5,5), flow=False)
+    i3 = Index(U1Charge.random(D3,-5,5), flow=False)
+    A = BlockSparseTensor.random([i0,i1,i2,i3])
+    B = BlockSparseTensor.random([A.sparse_shape[0], A.sparse_shape[1]])
+    print('shape of B: ', B.shape)
 
 
 .. parsed-literal::
 
-    shape of C1:  (1000, 100)
+    shape of B:  (100, 101)
 
 
 `Index` objects can also be multiplied, which allows to do the following:
 
 .. code:: ipython3
 
-    D1 = BlockSparseTensor.random([A1.sparse_shape[1]*A1.sparse_shape[2], A1.sparse_shape[0]])
-    print('shape of D1: ', D1.shape)
+    C = BlockSparseTensor.random([A.sparse_shape[1]*A.sparse_shape[2], A.sparse_shape[0]])
+    print('shape of C: ', C.shape)
 
 
 .. parsed-literal::
 
-    shape of D1:  (100100, 1000)
+    shape of C:  (10302, 100)
 
 
 You can flip flows of an `Index` in place using `Index.flip_flow()`.
@@ -473,17 +484,16 @@ To obtain a copy of the index with flipped flow, use
 `Index.copy().flip_flow()`:
 
 .. code:: ipython3
-
-    sparse_shape = A1.sparse_shape
-    print('flows before flipping: ',[i.flow for i in sparse_shape])
-    flipped = [i.flip_flow() for i in sparse_shape]
-    print('flows after flipping: ',[i.flow for i in flipped])
-
+	  
+    sparse_shape = A.sparse_shape
+    print('flows of indices of A:', [i.flow for i in sparse_shape])
+    flipped = [i.copy().flip_flow() for i in sparse_shape]
+    print('flows of copied indices of A:', [i.flow for i in flipped])	  
 
 .. parsed-literal::
-
-    flows before flipping: [[False], [False], [False]]
-    flows after flipping: [[True], [True], [True]]
+   
+    flows of indices of A: [[False], [False], [False], [False]]
+    flows of copied indices of A: [[True], [True], [True], [True]]
 
 
 The `symmetric` backend in TensorNetwork
@@ -500,18 +510,26 @@ used to construct symmetric tensor networks.
     i1 = Index(U1Charge.random(100,-3,3), flow=False)
     i2 = Index(U1Charge.random(1001,-3,3), flow=False)
     A1 = BlockSparseTensor.random([i0,i1,i2])
-    A2=tn.block_sparse.tensordot(A1,A1.conj(),([0,1],[0,1])) #tensordot-style contraction
-    A3 = tn.ncon([A1, A1.conj()],[[1,2,-1],[1,2,-2]]) #ncon style contraction on tensors
+    
+    #tensordot-style contraction
+    A2=tn.block_sparse.tensordot(A1,A1.conj(),([0,1],[0,1])) 
+
+    #ncon style contraction on tensors
+    A3 = tn.ncon([A1, A1.conj()],[[1,2,-1],[1,2,-2]])
+
+    #ncon style contraction on nodes
     node = tn.Node(A1)
-    node2 = tn.ncon([node, tn.conj(node)],[[1,2,-1],[1,2,-2]]) #ncon style contraction on nodes
-    print('shape(node2): ',node2.shape)
+    node2 = tn.ncon([node, tn.conj(node)],[[1,2,-1],[1,2,-2]])
+
+    
+    print('shape of node2: ',node2.shape)
     print('||A3 - A2||: ', np.linalg.norm((A3 - A2).todense())) #should be close to 0
     print('||node2.tensor - A2||: ', np.linalg.norm((node2.tensor - A2).todense())) #should be close to 0
 
 
 .. parsed-literal::
 
-    shape(node2):  (1001, 1001)
+    shape of node2:  (1001, 1001)
     ||A3 - A2||:  0.0
     ||node2.tensor - A2||:  0.0
 
