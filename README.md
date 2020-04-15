@@ -144,7 +144,7 @@ print(n.tensor)
 
 ## Different backend support.
 Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends.
-We also support tensors with Abelian symmetries via a `symmetric` backend. See the [reference
+We also support tensors with Abelian symmetries via a `symmetric` backend, see the [reference
 documentation](https://tensornetwork.readthedocs.io/en/latest/block_sparse_tutorial.html) for more details.
 
 To change the default global backend, you can do:
