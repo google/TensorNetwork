@@ -248,11 +248,8 @@ raise a `ValueError`:
 
     ValueError                                Traceback (most recent call last)
 
-    <ipython-input-6-f5293f5b61f8> in <module>
-    ----> 1 a5 = a1.reshape((19,2,10,21))
-    
-
-    ~/workspace/git_repos/TensorNetwork/tensornetwork/block_sparse/blocksparsetensor.py in reshape(self, shape)
+    --> 1 a5 = a1.reshape((19,2,10,21))
+    tensornetwork/block_sparse/blocksparsetensor.py in reshape(self, shape)
         257       raise ValueError("The shape {} is incompatible with the "
         258                        "elementary shape {} of the tensor.".format(
     --> 259                            tuple(new_shape), tuple(flat_dims)))
@@ -417,11 +414,10 @@ A `ValueError` will be raised if the meta-data is not matching
 
     ValueError                                Traceback (most recent call last)
 
-    <ipython-input-14-957e47df69e5> in <module>
-    ----> 1 B3 = B2 + B1.transpose((0,2,1)) #raises an error
+    --> 1 B3 = B2 + B1.transpose((0,2,1)) #raises an error
     
 
-    ~/workspace/git_repos/TensorNetwork/tensornetwork/block_sparse/blocksparsetensor.py in __add__(self, other)
+    tensornetwork/block_sparse/blocksparsetensor.py in __add__(self, other)
         596 
         597   def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     --> 598     self._sub_add_protection(other)
@@ -429,7 +425,7 @@ A `ValueError` will be raised if the meta-data is not matching
         600     _, index_other = np.unique(other.flat_order, return_index=True)
 
 
-    ~/workspace/git_repos/TensorNetwork/tensornetwork/block_sparse/blocksparsetensor.py in _sub_add_protection(self, other)
+    tensornetwork/block_sparse/blocksparsetensor.py in _sub_add_protection(self, other)
         570       raise ValueError(
         571           "cannot add or subtract tensors with shapes {} and {}".format(
     --> 572               self.shape, other.shape))
