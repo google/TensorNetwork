@@ -130,13 +130,13 @@ initialization), we need to define the charge and flow information and
 pass it to the constructor of `BlockSparseTensor`. Let's initialize a
 tensor with the above shown charges:
 
-.. code:: python3
+.. code-block:: python3
 
     import tensornetwork as tn
     from tensornetwork import BaseCharge, U1Charge, Index, BlockSparseTensor
     import numpy as np
 
-.. code:: python3
+.. code-block:: python3
 
     c_i = U1Charge([1,1,3,2,2]) #charges on leg i
     c_j = U1Charge([1,2,2,1])   #charges on leg j
@@ -164,7 +164,7 @@ The non-zero elements are stored in the attribute
 `BlockSparseTensor.data`. We can check that there are indeed only 8
 non-zero elements
 
-.. code:: python3
+.. code-block:: python3
 
     print(tensor.data)
 
@@ -181,7 +181,7 @@ the zero elements) using `todense()`, which reveals the
 "block-structure" of the tensor. Be careful though when exporting large
 tensors, because this can consume a lot of memory.
 
-.. code:: python3
+.. code-block:: python3
 
     print(tensor.todense())
 
@@ -202,7 +202,7 @@ tensors, because this can consume a lot of memory.
 
 `BlockSparseTensor` can be reshaped just like numpy arrays.
 
-.. code:: python3
+.. code-block:: python3
 
     i0 = Index(U1Charge.random(19,-3,3), flow=False)
     i1 = Index(U1Charge.random(20,-3,3), flow=False)
@@ -235,7 +235,7 @@ dense `numpy.ndarray`, it is no longer possible for
 to split up `i1` into two seperate legs. If you try anyway, we'll
 raise a `ValueError`:
 
-.. code:: python3
+.. code-block:: python3
 
     a5 = a1.reshape((19,2,10,21))
 
@@ -265,7 +265,7 @@ raise a `ValueError`:
 
 Transposing tensors also works as expected:
 
-.. code:: python3
+.. code-block:: python3
 
     b1 = a1.transpose((0,2,1))
     print('shape of b1', b1.shape)
@@ -281,7 +281,7 @@ Transposing tensors also works as expected:
 
 `transpose` and `reshape` can be composed arbitrarily:
 
-.. code:: python3
+.. code-block:: python3
 
     b3 = a1.reshape([19*20,21]).transpose([1,0]).reshape([21,19,20])
     print('shape of b3:', b3.shape)
@@ -301,7 +301,7 @@ conjugate of tensor `A`. Complex conjugation of a
 `BlockSparseTensor` flips the arrows (i.e. reverses the flows) on each
 leg.
 
-.. code:: python3
+.. code-block:: python3
 
     import time
     D0,D1,D2,D3=100,101,102,103
@@ -327,7 +327,7 @@ We can compare the runtime of the sparse contraction with the dense one.
 On a 2018 macbook pro the sparse contraction is more than 20 times
 faster than dense contraction:
 
-.. code:: python3
+.. code-block:: python3
 
     Adense = np.random.rand(D0,D1,D2,D3)
     t1=time.time()
@@ -345,7 +345,7 @@ Some matrix factorizations are also supported. We currently support
 on our github page and we'll try to implement it! Here is an example of
 an sv decomposition:
 
-.. code:: python3
+.. code-block:: python3
 
     A2 = A2.reshape([D2*D3, D2*D3])	  
     U,S,V = tn.block_sparse.svd(A2) #S is a 1d `ChargeArray` object, not a `BlockSparseTensor`.
@@ -366,7 +366,7 @@ explicitly stated otherwise).
 
 Here are the other available matrix factorizations:
 
-.. code:: python3
+.. code-block:: python3
 
     eta, U = tn.block_sparse.eig(A2) #eta is a 1d `ChargeArray` object, not a `BlockSparseTensor`.
     check = A2 - U @tn.block_sparse.diag(eta) @ tn.block_sparse.inv(U) 
@@ -395,7 +395,7 @@ Here are the other available matrix factorizations:
 As you probably noticed, `BlockSparseTensor` can be added and
 subtracted, given that their meta-data is matching:
 
-.. code:: python3
+.. code-block:: python3
 
     i0 = Index(U1Charge.random(10,-3,3), flow=False)
     i1 = Index(U1Charge.random(11,-3,3), flow=False)
@@ -405,7 +405,7 @@ subtracted, given that their meta-data is matching:
 
 A `ValueError` will be raised if the meta-data is not matching
 
-.. code:: python3
+.. code-block:: python3
 
     B3 = B2 + B1.transpose((0,2,1)) #raises an error
 
@@ -448,7 +448,7 @@ used to initialize a new `BlockSparseTensor`. Note that the flows of
 the legs of the new tensor will be identical to the flows of the
 original tensor on the respective legs.
 
-.. code:: python3
+.. code-block:: python3
 	  
     D0,D1,D2,D3=100,101,102,103
     i0 = Index(U1Charge.random(D0,-5,5), flow=False)
@@ -467,7 +467,7 @@ original tensor on the respective legs.
 
 `Index` objects can also be multiplied, which allows to do the following:
 
-.. code:: python3
+.. code-block:: python3
 
     C = BlockSparseTensor.random([A.sparse_shape[1]*A.sparse_shape[2], A.sparse_shape[0]])
     print('shape of C: ', C.shape)
@@ -482,7 +482,7 @@ You can flip flows of an `Index` in place using `Index.flip_flow()`.
 To obtain a copy of the index with flipped flow, use
 `Index.copy().flip_flow()`:
 
-.. code:: python3
+.. code-block:: python3
 	  
     sparse_shape = A.sparse_shape
     print('flows of indices of A:', [i.flow for i in sparse_shape])
@@ -501,7 +501,7 @@ The `symmetric` backend in TensorNetwork
 We have added a `symmetric` backend to TensorNetworks which can be
 used to construct symmetric tensor networks.
 
-.. code:: python3
+.. code-block:: python3
 
     tn.set_default_backend('symmetric')
     
@@ -535,7 +535,7 @@ used to construct symmetric tensor networks.
 
 The usual TensorNetwork API is also available:
 
-.. code:: python3
+.. code-block:: python3
 
     n1 = tn.Node(A1)
     n2 = tn.Node(A1.conj())
@@ -553,7 +553,7 @@ The usual TensorNetwork API is also available:
 For example, splitting nodes is carried out in the exact same way as for
 dense (non-symmetric) tensors.
 
-.. code:: python3
+.. code-block:: python3
 
     #split node into two nodes
     U1, U2,_ = tn.split_node(n1,[n1[0], n1[1]], [n1[2]])
@@ -565,7 +565,7 @@ dense (non-symmetric) tensors.
     7.057099298396375e-12
 
 
-.. code:: python3
+.. code-block:: python3
 
     #split node using svd
     U1, S,U2,_ = tn.split_node_full_svd(n1,[n1[0], n1[1]], [n1[2]])
@@ -601,7 +601,7 @@ be sure to maintain the same function signature (including default
 values) as in `BaseCharge`. `super().__init__(...)` should always be
 called as shown below.
 
-.. code:: python3
+.. code-block:: python3
 
     class Z3Charge(BaseCharge):
         """
@@ -664,7 +664,7 @@ called as shown below.
 
 That's it, we're ready to use the symmetry.
 
-.. code:: python3
+.. code-block:: python3
 
     tn.set_default_backend('symmetric')
     i0 = Index(Z3Charge.random(100,-1,1), True)
