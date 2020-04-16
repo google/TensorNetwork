@@ -436,7 +436,7 @@ A `ValueError` will be raised if the meta-data is not matching
     ValueError: cannot add or subtract tensors with shapes (10, 11, 12) and (10, 12, 11)
 
 
-doing things like `B1 += 1` is currently not supported since this
+Doing things like `B1 += 1` is currently not supported since this
 would violate the charge conservation.
 
 `BlockSparseTensor.sparse_shape` returns a `list[Index]` that can be
