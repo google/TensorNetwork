@@ -1,6 +1,7 @@
 """Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
+import scipy as sp
 import pytest
 from tensornetwork.backends.numpy import numpy_backend
 from unittest.mock import Mock
@@ -666,3 +667,40 @@ def test_sparse_shape():
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "sin"), (np.complex128, "sin"),
+                          (np.float64, "cos"), (np.complex128, "cos"),
+                          (np.float64, "exp"), (np.complex128, "exp"),
+                          (np.float64, "log"), (np.complex128, "log")])
+def test_elementwise_ops(dtype, method):
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn((4, 3, 2), dtype=dtype, seed=10)
+  if method == "log":
+    tensor = np.abs(tensor)
+  tensor1 = getattr(backend, method)(tensor)
+  tensor2 = getattr(np, method)(tensor)
+  np.testing.assert_almost_equal(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "expm"), (np.complex128, "expm")])
+def test_matrix_ops(dtype, method):
+  backend = numpy_backend.NumPyBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  matrix1 = getattr(backend, method)(matrix)
+  matrix2 = getattr(sp.linalg, method)(matrix)
+  np.testing.assert_almost_equal(matrix1, matrix2)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "expm"), (np.complex128, "expm")])
+def test_matrix_ops_raises(dtype, method):
+  backend = numpy_backend.NumPyBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    getattr(backend, method)(matrix)
+  matrix = backend.randn((4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    getattr(backend, method)(matrix)

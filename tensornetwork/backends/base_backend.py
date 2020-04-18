@@ -416,7 +416,7 @@ class BaseBackend:
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default multiplication of `tensor`.
+      Return the default addition of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.
@@ -429,7 +429,7 @@ class BaseBackend:
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default multiplication of `tensor`.
+      Return the default substraction of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.
@@ -520,4 +520,64 @@ class BaseBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `broadcast_left_multiplication`."
+        .format(self.name))
+
+  def sin(self, tensor: Tensor):
+    """
+    Return sin of `tensor`.
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sin`."
+        .format(self.name))
+
+  def cos(self, tensor: Tensor):
+    """
+    Return cos of `tensor`.
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `cos`."
+        .format(self.name))
+
+  def exp(self, tensor: Tensor):
+    """
+    Return elementwise exp of `tensor`.
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `exp`."
+        .format(self.name))
+
+  def log(self, tensor: Tensor):
+    """
+    Return elementwise natural logarithm of `tensor`.
+    Args:
+      tensor: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `log`."
+        .format(self.name))
+
+  def expm(self, matrix: Tensor):
+    """
+    Return expm log of `matrix`, matrix exponential.
+    Args:
+      matrix: A tensor.
+    Returns:
+      Tensor
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `expm`."
         .format(self.name))

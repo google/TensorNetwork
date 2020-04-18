@@ -247,3 +247,25 @@ class TensorFlowBackend(base_backend.BaseBackend):
         [self.shape_tensor(tensor1), [1] * (len(self.tf.shape(tensor2)) - 1)],
         axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
+
+  def sin(self, tensor: Tensor):
+    return self.tf.math.sin(tensor)
+
+  def cos(self, tensor: Tensor):
+    return self.tf.math.cos(tensor)
+
+  def exp(self, tensor: Tensor):
+    return self.tf.math.exp(tensor)
+
+  def log(self, tensor: Tensor):
+    return self.tf.math.log(tensor)
+
+  def expm(self, matrix: Tensor):
+    if len(matrix.shape) != 2:
+      raise ValueError("input to tensorflow backend method `expm` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    if matrix.shape[0] != matrix.shape[1]:
+      raise ValueError("input to tensorflow backend method `expm` only supports"
+                       "N*N matrix, {x}*{y} matrix is given"
+                       .format(x=matrix.shape[0], y=matrix.shape[1]))
+    return self.tf.linalg.expm(matrix)

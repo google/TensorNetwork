@@ -411,3 +411,41 @@ def test_sparse_shape():
   backend = tensorflow_backend.TensorFlowBackend()
   tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(tf.float64, "sin"), (tf.complex128, "sin"),
+                          (tf.float64, "cos"), (tf.complex128, "cos"),
+                          (tf.float64, "exp"), (tf.complex128, "exp"),
+                          (tf.float64, "log"), (tf.complex128, "log")])
+def test_elementwise_ops(dtype, method):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn((4, 2, 1), dtype=dtype, seed=10)
+  if method == "log":
+    tensor = tf.math.abs(tensor)
+  tensor1 = getattr(backend, method)(tensor)
+  tensor2 = getattr(tf.math, method)(tensor)
+  print(tensor1, tensor2)
+  np.testing.assert_almost_equal(tensor1.numpy(), tensor2.numpy())
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(tf.float64, "expm"), (tf.complex128, "expm")])
+def test_matrix_ops(dtype, method):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  matrix1 = getattr(backend, method)(matrix)
+  matrix2 = getattr(tf.linalg, method)(matrix)
+  np.testing.assert_almost_equal(matrix1.numpy(), matrix2.numpy())
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(tf.float64, "expm"), (tf.complex128, "expm")])
+def test_matrix_ops_raises(dtype, method):
+  backend = tensorflow_backend.TensorFlowBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    getattr(backend, method)(matrix)
+  matrix = backend.randn((4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    getattr(backend, method)(matrix)
