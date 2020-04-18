@@ -27,6 +27,7 @@ class NumPyBackend(base_backend.BaseBackend):
     super(NumPyBackend, self).__init__()
     self.np = numpy
     self.sp = scipy
+    # pylint: disable=import-outside-toplevel
     from scipy import linalg
     self.sp.linalg = linalg
     self.name = "numpy"
