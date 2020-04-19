@@ -699,8 +699,8 @@ def test_matrix_ops(dtype, method):
 def test_matrix_ops_raises(dtype, method):
   backend = numpy_backend.NumPyBackend()
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match=r".*Only matrices.*"):
     getattr(backend, method)(matrix)
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)

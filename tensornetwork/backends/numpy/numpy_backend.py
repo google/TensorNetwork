@@ -17,6 +17,7 @@ from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
 import scipy
+from scipy import linalg
 Tensor = Any
 
 
@@ -27,8 +28,6 @@ class NumPyBackend(base_backend.BaseBackend):
     super(NumPyBackend, self).__init__()
     self.np = numpy
     self.sp = scipy
-    # pylint: disable=import-outside-toplevel
-    from scipy import linalg
     self.sp.linalg = linalg
     self.name = "numpy"
 
