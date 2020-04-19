@@ -17,6 +17,7 @@ from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
 import scipy
+from scipy import linalg
 Tensor = Any
 
 
@@ -26,6 +27,8 @@ class NumPyBackend(base_backend.BaseBackend):
   def __init__(self):
     super(NumPyBackend, self).__init__()
     self.np = numpy
+    self.sp = scipy
+    self.sp.linalg = linalg
     self.name = "numpy"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
@@ -433,3 +436,25 @@ class NumPyBackend(base_backend.BaseBackend):
     t1_broadcast_shape = self.shape_concat(
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
+
+  def sin(self, tensor: Tensor):
+    return self.np.sin(tensor)
+
+  def cos(self, tensor: Tensor):
+    return self.np.cos(tensor)
+
+  def exp(self, tensor: Tensor):
+    return self.np.exp(tensor)
+
+  def log(self, tensor: Tensor):
+    return self.np.log(tensor)
+
+  def expm(self, matrix: Tensor):
+    if len(matrix.shape) != 2:
+      raise ValueError("input to numpy backend method `expm` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    if matrix.shape[0] != matrix.shape[1]:
+      raise ValueError("input to numpy backend method `expm` only supports"
+                       " N*N matrix, {x}*{y} matrix is given"
+                       .format(x=matrix.shape[0], y=matrix.shape[1]))
+    return self.sp.linalg.expm(matrix)

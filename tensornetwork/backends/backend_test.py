@@ -350,3 +350,33 @@ def test_base_backend_inv_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.inv(np.ones((2, 2)))
+
+
+def test_base_backend_sin_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sin(np.ones((2, 2)))
+
+
+def test_base_backend_cos_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.cos(np.ones((2, 2)))
+
+
+def test_base_backend_exp_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.exp(np.ones((2, 2)))
+
+
+def test_base_backend_log_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.log(np.ones((2, 2)))
+
+
+def test_base_backend_expm_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.expm(np.ones((2, 2)))

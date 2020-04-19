@@ -32,6 +32,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
                         "backend or install Jax.")
     self.jax = jax
     self.np = self.jax.numpy
+    self.sp = self.jax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
