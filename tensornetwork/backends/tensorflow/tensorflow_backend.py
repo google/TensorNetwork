@@ -223,14 +223,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.tf.where(mask, assignee, tensor)
 
   def inv(self, matrix: Tensor) -> Tensor:
-    if len(self.tf.shape(matrix)) > 2:
+    if len(matrix.shape) > 2:
       raise ValueError("input to tensorflow backend method `inv` has shape {}. "
                        "Only matrices are supported.".format(
                            self.tf.shape(matrix)))
     return self.tf.linalg.inv(matrix)
 
   def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
-    if len(self.tf.shape(tensor2)) != 1:
+    if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
                        "found `tensor2.shape = {}`".format(
                            self.tf.shape(tensor2)))
@@ -238,13 +238,13 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return tensor1 * tensor2
 
   def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
-    if len(self.tf.shape(tensor1)) != 1:
+    if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(
                            self.tf.shape(tensor1)))
 
     t1_broadcast_shape = self.shape_concat(
-        [self.shape_tensor(tensor1), [1] * (len(self.tf.shape(tensor2)) - 1)],
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)],
         axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
