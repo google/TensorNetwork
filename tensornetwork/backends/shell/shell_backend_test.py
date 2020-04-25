@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for tensornetwork.backends.shell.shell_backend"""
+"""Tests for tensornetwork.backends.shell.shell_backend."""
 
 import numpy as np
 import pytest
@@ -62,16 +62,16 @@ def test_svd_decomposition_with_max_values():
     assert x.shape == y.shape
 
 
-def test_concat():
+def test_shape_concat():
   args = {
       "values": [np.ones([3, 2, 5]),
                  np.zeros([3, 2, 5]),
                  np.ones([3, 3, 5])]
   }
   args["axis"] = 1
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
   args["axis"] = -2
-  assertBackendsAgree("concat", args)
+  assertBackendsAgree("shape_concat", args)
 
 
 def test_concat_shape():
@@ -80,10 +80,10 @@ def test_concat_shape():
   assert result == (5, 2, 3, 4, 6)
 
 
-def test_shape():
+def test_shape_tensor():
   tensor = np.ones([3, 5, 2])
-  np_result = numpy_backend.NumPyBackend().shape(tensor)
-  sh_result = shell_backend.ShellBackend().shape(tensor)
+  np_result = numpy_backend.NumPyBackend().shape_tensor(tensor)
+  sh_result = shell_backend.ShellBackend().shape_tensor(tensor)
   assert np_result == sh_result
 
 
@@ -94,8 +94,8 @@ def test_shape_tuple():
   assert np_result == sh_result
 
 
-def test_prod():
-  result = shell_backend.ShellBackend().prod(np.ones([3, 5, 2]))
+def test_shape_prod():
+  result = shell_backend.ShellBackend().shape_prod(np.ones([3, 5, 2]))
   assert result == 30
 
 
@@ -157,6 +157,11 @@ def test_randn():
   assertBackendsAgree("randn", args)
 
 
+def test_random_uniform():
+  args = {"shape": (10, 4)}
+  assertBackendsAgree("random_uniform", args)
+
+
 def test_eigsh_lanczos_1():
   backend = shell_backend.ShellBackend()
   D = 16
@@ -192,15 +197,121 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(AttributeError):
     backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, ncv=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
 
 
-@pytest.mark.parametrize("a, b",
-                         [pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
-                          pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
-                         ])
+@pytest.mark.parametrize("a, b", [
+    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3))),
+    pytest.param(2. * np.ones(()), np.ones((1, 2, 3))),
+])
 def test_multiply(a, b):
   args = {"tensor1": a, "tensor2": b}
   assertBackendsAgree("multiply", args)
+
+
+def test_eigh():
+  matrix = np.ones([3, 3])
+  vals, vecs = shell_backend.ShellBackend().eigh(matrix)
+  assert vals.shape == (3,)
+  assert vecs.shape == (3, 3)
+
+
+def test_eigs():
+  backend = shell_backend.ShellBackend()
+  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2), numeig=2)
+  assert len(eta) == 2
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = MV((2, 2))
+  eta, v = backend.eigs(mv, numeig=2)
+  assert len(eta) == 2
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
+
+
+def test_eigs_raises():
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  backend = shell_backend.ShellBackend()
+  mv = MV((2, 2))
+  with pytest.raises(ValueError):
+    backend.eigs(mv, initial_state=np.random.rand(3))
+  with pytest.raises(AttributeError):
+    backend.eigs(lambda x: x)
+
+
+def index_update():
+  backend = shell_backend.ShellBackend()
+  tensor_1 = np.ones([2, 3, 4])
+  tensor_2 = backend.index_update(tensor_1, tensor_1 > 0.1, 0)
+  assert tensor_1.shape == tensor_2.shape
+
+
+def test_matrix_inv():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4), seed=10)
+  inverse = backend.inv(matrix)
+  assert inverse.shape == matrix.shape
+
+
+def test_matrix_inv_raises():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(ValueError):
+    backend.inv(matrix)
+
+
+def test_broadcast_right_multiplication():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((2, 4, 3))
+  tensor2 = backend.randn((3,))
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [2, 4, 3])
+
+
+def test_broadcast_right_multiplication_raises():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((2, 4, 3))
+  tensor2 = backend.randn((3, 3))
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+def test_broadcast_left_multiplication():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3,))
+  tensor2 = backend.randn((3, 4, 2))
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [3, 4, 2])
+
+
+def test_broadcast_left_multiplication_raises():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3, 3))
+  tensor2 = backend.randn((3, 4, 2))
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  backend = shell_backend.ShellBackend()
+  tensor = backend.randn((2, 3, 4), seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)

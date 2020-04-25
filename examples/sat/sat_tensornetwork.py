@@ -43,8 +43,7 @@ from typing import List, Tuple, Set
 import tensornetwork as tn
 
 
-def sat_tn(clauses: List[Tuple[int, int, int]]
-          ) -> List[tn.Edge]:
+def sat_tn(clauses: List[Tuple[int, int, int]]) -> List[tn.Edge]:
   """Create a 3SAT TensorNetwork of the given 3SAT clauses.
 
     After full contraction, this network will be a tensor of size (2, 2, ..., 2)
@@ -99,8 +98,7 @@ def sat_tn(clauses: List[Tuple[int, int, int]]
   return var_edges
 
 
-def sat_count_tn(
-    clauses: List[Tuple[int, int, int]]) -> Set[tn.BaseNode]:
+def sat_count_tn(clauses: List[Tuple[int, int, int]]) -> Set[tn.BaseNode]:
   """Create a 3SAT Count TensorNetwork.
 
   After full contraction, the final node will be the count of all possible

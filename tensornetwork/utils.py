@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import h5py
-from tensornetwork.network import TensorNetwork
 from tensornetwork.component_factory import get_component
 from tensornetwork.network_components import Edge, BaseNode
 from tensornetwork.network_operations import reachable, get_all_edges
@@ -23,8 +22,8 @@ string_type = h5py.special_dtype(vlen=str)
 
 
 def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
-  """
-  Save an iterable of nodes into hdf5 format.
+  """Save an iterable of nodes into hdf5 format.
+
   Args:
     nodes: An iterable of connected nodes. All nodes have to connect within
       `nodes`.
@@ -85,8 +84,7 @@ def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
 
 
 def load_nodes(path: str) -> List[BaseNode]:
-  """
-  Load a set of nodes from disk.
+  """Load a set of nodes from disk.
 
   Args:
     path: path to file where network is saved.
@@ -110,7 +108,7 @@ def load_nodes(path: str) -> List[BaseNode]:
     for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
       node_type = get_component(node_data['type'][()])
-      nodes_list.append(node_type._load_node(net=None, node_data=node_data))
+      nodes_list.append(node_type._load_node(node_data=node_data))
     nodes_dict = {node.name: node for node in nodes_list}
     for edge in edges:
       edge_data = net_file["edges/" + edge]
@@ -122,27 +120,3 @@ def load_nodes(path: str) -> List[BaseNode]:
     node.set_name(node_names[node.name])
 
   return nodes_list
-
-
-def load(path: str):
-  """Load a tensor network from disk.
-
-  Args:
-    path: path to file where network is saved.
-  """
-  with h5py.File(path, 'r') as net_file:
-    net = TensorNetwork(backend=net_file["backend"][()])
-    node_names = list(net_file["nodes"].keys())
-    edge_names = list(net_file["edges"].keys())
-
-    for node_name in node_names:
-      node_data = net_file["nodes/" + node_name]
-      node_type = get_component(node_data['type'][()])
-      node_type._load_node(net, node_data)
-
-    nodes_dict = {node.name: node for node in net.nodes_set}
-
-    for edge in edge_names:
-      edge_data = net_file["edges/" + edge]
-      Edge._load_edge(edge_data, nodes_dict)
-  return net

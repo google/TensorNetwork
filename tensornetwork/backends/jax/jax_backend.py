@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable, List
+from typing import Any, Optional, Tuple, Callable, List, Text, Type
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
 
@@ -32,19 +32,24 @@ class JaxBackend(numpy_backend.NumPyBackend):
                         "backend or install Jax.")
     self.jax = jax
     self.np = self.jax.numpy
+    self.sp = self.jax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.jax.jit(lambda x: x)(tensor)
-    if self.dtype is not None and result.dtype != self.dtype:
-      raise TypeError(
-          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
-              self.name, result.dtype, self.dtype))
-    return result
+    return self.np.asarray(tensor)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
+
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.jax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
   def randn(self,
             shape: Tuple[int, ...],
@@ -54,8 +59,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
       seed = np.random.randint(0, 2**63)
     key = self.jax.random.PRNGKey(seed)
 
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else np.dtype(np.float64)
+    dtype = dtype if dtype is not None else np.dtype(np.float64)
 
     def cmplx_randn(complex_dtype, real_dtype):
       real_dtype = np.dtype(real_dtype)
@@ -70,18 +74,72 @@ class JaxBackend(numpy_backend.NumPyBackend):
           if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
       return real_part + unit * complex_part
 
-    if dtype is np.dtype(self.np.complex128):
+    if np.dtype(dtype) is np.dtype(self.np.complex128):
       return cmplx_randn(dtype, self.np.float64)
-    if dtype is np.dtype(self.np.complex64):
+    if np.dtype(dtype) is np.dtype(self.np.complex64):
       return cmplx_randn(dtype, self.np.float32)
 
     return self.jax.random.normal(key, shape).astype(dtype)
+
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[np.dtype] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    if not seed:
+      seed = np.random.randint(0, 2**63)
+    key = self.jax.random.PRNGKey(seed)
+
+    dtype = dtype if dtype is not None else np.dtype(np.float64)
+
+    def cmplx_random_uniform(complex_dtype, real_dtype):
+      real_dtype = np.dtype(real_dtype)
+      complex_dtype = np.dtype(complex_dtype)
+
+      key_2 = self.jax.random.PRNGKey(seed + 1)
+
+      real_part = self.jax.random.uniform(
+          key,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
+      complex_part = self.jax.random.uniform(
+          key_2,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
+      unit = (
+          np.complex64(1j)
+          if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
+      return real_part + unit * complex_part
+
+    if np.dtype(dtype) is np.dtype(self.np.complex128):
+      return cmplx_random_uniform(dtype, self.np.float64)
+    if np.dtype(dtype) is np.dtype(self.np.complex64):
+      return cmplx_random_uniform(dtype, self.np.float32)
+
+    return self.jax.random.uniform(
+        key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
 
   def eigsh_lanczos(
       self,
       A: Callable,
       initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
+      num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
@@ -89,3 +147,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    return self.jax.ops.index_update(tensor, mask, assignee)

@@ -107,8 +107,8 @@ def binary_mera_energy(hamiltonian, state, isometry, disentangler):
 
     # FIXME: Check that this is giving us a good path!
     out.append(
-      contractors.branch(
-        tensornetwork.reachable(rho), nbranch=2).get_tensor())
+        contractors.branch(tensornetwork.reachable(rho),
+                           nbranch=2).get_tensor())
 
   return 0.5 * sum(out)
 
@@ -126,7 +126,6 @@ Returns:
   The descended state (spatially averaged).
 """
 
-
 ascend = jax.jit(jax.grad(binary_mera_energy, argnums=1, holomorphic=True))
 """Ascending super-operator.
 
@@ -139,7 +138,6 @@ Args:
 Returns:
   The ascended operator (spatially averaged).
 """
-
 
 # NOTE: Not a holomorphic function, but a real-valued loss function.
 env_iso = jax.jit(jax.grad(binary_mera_energy, argnums=2, holomorphic=True))
@@ -159,7 +157,6 @@ Args:
 Returns:
   The environment tensor of the isometry, including all contributions.
 """
-
 
 # NOTE: Not a holomorphic function, but a real-valued loss function.
 env_dis = jax.jit(jax.grad(binary_mera_energy, argnums=3, holomorphic=True))
@@ -202,11 +199,9 @@ def update_iso(hamiltonian, state, isometry, disentangler):
   output_edges = [nenv["l"], nenv["r"], nenv["t"]]
 
   nu, _, nv, _ = tensornetwork.split_node_full_svd(
-    nenv,
-    [nenv["l"], nenv["r"]],
-    [nenv["t"]],
-    left_edge_name="s1",
-    right_edge_name="s2")
+      nenv, [nenv["l"], nenv["r"]], [nenv["t"]],
+      left_edge_name="s1",
+      right_edge_name="s2")
   nu["s1"].disconnect()
   nv["s2"].disconnect()
   tensornetwork.connect(nu["s1"], nv["s2"])
@@ -233,15 +228,13 @@ def update_dis(hamiltonian, state, isometry, disentangler):
   env = env_dis(hamiltonian, state, isometry, disentangler)
 
   nenv = tensornetwork.Node(
-    env, axis_names=["bl", "br", "tl", "tr"], backend="jax")
+      env, axis_names=["bl", "br", "tl", "tr"], backend="jax")
   output_edges = [nenv["bl"], nenv["br"], nenv["tl"], nenv["tr"]]
 
   nu, _, nv, _ = tensornetwork.split_node_full_svd(
-    nenv,
-    [nenv["bl"], nenv["br"]],
-    [nenv["tl"], nenv["tr"]],
-    left_edge_name="s1",
-    right_edge_name="s2")
+      nenv, [nenv["bl"], nenv["br"]], [nenv["tl"], nenv["tr"]],
+      left_edge_name="s1",
+      right_edge_name="s2")
   nu["s1"].disconnect()
   nv["s2"].disconnect()
   tensornetwork.connect(nu["s1"], nv["s2"])
@@ -252,7 +245,7 @@ def update_dis(hamiltonian, state, isometry, disentangler):
 
 def shift_ham(hamiltonian, shift=None):
   """Applies a shift to a hamiltonian.
-  
+
   Args:
     hamiltonian: The hamiltonian tensor (rank 6).
     shift: The amount by which to shift. If `None`, shifts so that the local
@@ -265,7 +258,7 @@ def shift_ham(hamiltonian, shift=None):
   if shift is None:
     shift = np.amax(np.linalg.eigh(hmat)[0])
   hmat -= shift * np.eye(2**3)
-  return np.reshape(hmat, [2]*6)
+  return np.reshape(hmat, [2] * 6)
 
 
 def optimize_linear(hamiltonian, state, isometry, disentangler, num_itr):
@@ -304,22 +297,23 @@ def optimize_linear(hamiltonian, state, isometry, disentangler, num_itr):
 def ham_ising():
   """Dimension 2 "Ising" Hamiltonian.
 
-  This version from Evenbly & White, Phys. Rev. Lett. 116, 140403 (2016).
+  This version from Evenbly & White, Phys. Rev. Lett. 116, 140403
+  (2016).
   """
   E = np.array([[1, 0], [0, 1]])
   X = np.array([[0, 1], [1, 0]])
   Z = np.array([[1, 0], [0, -1]])
   hmat = np.kron(X, np.kron(Z, X))
   hmat -= 0.5 * (np.kron(np.kron(X, X), E) + np.kron(E, np.kron(X, X)))
-  return np.reshape(hmat, [2]*6)
+  return np.reshape(hmat, [2] * 6)
 
 
 if __name__ == '__main__':
   # Starting from a very simple initial MERA, optimize for the critical Ising
   # model.
   h = ham_ising()
-  s = np.reshape(np.eye(2**3), [2]*6) / 2**3
-  dis = np.reshape(np.eye(2**2), [2]*4)
-  iso = dis[:,:,:,0]
+  s = np.reshape(np.eye(2**3), [2] * 6) / 2**3
+  dis = np.reshape(np.eye(2**2), [2] * 4)
+  iso = dis[:, :, :, 0]
 
   s, iso, dis = optimize_linear(h, s, iso, dis, 100)

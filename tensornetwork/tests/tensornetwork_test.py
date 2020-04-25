@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import tensornetwork as tn
+from tensornetwork.backend_contextmanager import _default_backend_stack
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -65,6 +66,61 @@ def test_add_copy_node_from_node_object(backend):
   e = a[0] ^ b[0]
   c = tn.contract(e)
   np.testing.assert_allclose(c.tensor, a.tensor)
+
+
+def test_copy_node_method(backend):
+  a = tn.Node(np.ones([3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
+def test_copy_copynode_method(backend):
+  a = tn.CopyNode(3, 3, 'mynode', axis_names=['a', 'b', 'c'], backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  assert a.rank == b.rank
+  assert a.backend == b.backend
+  assert a.dtype == b.dtype
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  np.testing.assert_allclose(a.tensor, b.tensor)
+
+
+def test_copy_method_with_trace_edges(backend):
+  a = tn.Node(np.ones([3, 3, 3, 3, 3]), name='mynode', 
+              axis_names=['a', 'b', 'c', 'd', 'e'], 
+              backend=backend)
+  a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
+  a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
+  a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
+  a.add_edge(tn.Edge(a, 3, name='named_edge4'), 3)
+  a.add_edge(tn.Edge(a, 4, name='named_edge5'), 4)
+  a[0] ^ a[3]
+  a[1] ^ a[4]
+  b = a.copy()
+  assert a.name == b.name
+  assert a.shape == b.shape
+  assert a.axis_names == b.axis_names
+  for i in range(len(a.edges)):
+    assert a[i].name == b[i].name
+  assert b[0] is b[3]
+  assert b[1] is b[4]
+  np.testing.assert_allclose(a.tensor, b.tensor)
 
 
 def test_default_names_add_node_object(backend):
@@ -313,8 +369,7 @@ def test_complicated_edge_reordering(backend):
 
 def test_edge_reorder_axis_names(backend):
   a = tn.Node(
-      np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], 
-      backend=backend)
+      np.zeros((2, 3, 4, 5)), axis_names=["a", "b", "c", "d"], backend=backend)
   edge_a = a["a"]
   edge_b = a["b"]
   edge_c = a["c"]
@@ -326,8 +381,7 @@ def test_edge_reorder_axis_names(backend):
 
 def test_add_axis_names(backend):
   a = tn.Node(
-      np.eye(2), name="A", axis_names=["ignore1", "ignore2"], 
-      backend=backend)
+      np.eye(2), name="A", axis_names=["ignore1", "ignore2"], backend=backend)
   a.add_axis_names(["a", "b"])
   assert a.axis_names == ["a", "b"]
 
@@ -343,6 +397,21 @@ def test_reorder_axes(backend):
   a.reorder_axes([2, 0, 1])
   tn.check_correct({a, b, c})
   assert a.shape == (4, 2, 3)
+
+
+def test_reorder_axes_raises_error_no_tensor(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  del a._tensor
+  with pytest.raises(AttributeError) as e:
+    a.reorder_axes([2, 0, 1])
+  assert "Please provide a valid tensor for this Node." in str(e.value)
+
+
+def test_reorder_axes_raises_error_bad_permutation(backend):
+  a = tn.Node(np.zeros((2, 3, 4)), backend=backend)
+  with pytest.raises(ValueError) as e:
+    a.reorder_axes([2, 0])
+  assert "A full permutation was not passed." in str(e.value)
 
 
 def test_flatten_consistent_result(backend):
@@ -441,8 +510,7 @@ def test_contract_between_output_order(backend):
     d = tn.contract_between(
         a, b, name="New Node", output_edge_order=[a[2], b[2], c[0]])
   tn.check_correct({a, b, c}, check_connections=False)
-  d = tn.contract_between(
-      a, b, name="New Node", output_edge_order=[b[2], a[2]])
+  d = tn.contract_between(a, b, name="New Node", output_edge_order=[b[2], a[2]])
   tn.check_correct({c, d}, check_connections=False)
   a_flat = np.reshape(np.transpose(a_val, (2, 1, 0, 3)), (4, 30))
   b_flat = np.reshape(np.transpose(b_val, (2, 0, 3, 1)), (4, 30))
@@ -507,9 +575,13 @@ def test_set_node2(backend):
 
 def test_set_default(backend):
   tn.set_default_backend(backend)
-  assert tn.config.default_backend == backend
+  assert _default_backend_stack.default_backend == backend
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
+
+def test_bad_backend_name():
+  with pytest.raises(ValueError, match="Backend 'BAD_NAME' was not found."):
+    tn.set_default_backend("BAD_NAME")
 
 def test_copy_tensor(backend):
   a = tn.Node(np.array([1, 2, 3], dtype=np.float64), backend=backend)
@@ -582,7 +654,8 @@ def test_bad_backend():
 
 def test_remove_node(backend):
   a = tn.Node(
-      np.ones((2, 2, 2)), axis_names=["test", "names", "ignore"], 
+      np.ones((2, 2, 2)),
+      axis_names=["test", "names", "ignore"],
       backend=backend)
   b = tn.Node(np.ones((2, 2)), backend=backend)
   c = tn.Node(np.ones((2, 2)), backend=backend)
@@ -638,3 +711,29 @@ def test_remove_after_flatten(backend):
   tn.connect(a[1], b[1])
   tn.flatten_all_edges({a, b})
   tn.remove_node(a)
+
+
+def test_custom_backend():
+  # pylint: disable=abstract-method
+  class StringBackend(tn.BaseBackend):
+
+    def __init__(self):
+      super().__init__()
+      self.name = "string_backend"
+
+    def tensordot(self, a, b, axes):
+      return a + b
+
+    def convert_to_tensor(self, tensor):
+      return tensor
+
+    def shape_tuple(self, tensor):
+      return (1,)
+
+  backend = StringBackend()
+  assert isinstance(backend, tn.BaseBackend)
+  a = tn.Node("Hello ", backend=backend)
+  b = tn.Node("world!", backend=backend)
+  a[0] ^ b[0]
+  c = a @ b
+  assert c.tensor == "Hello world!"
