@@ -42,9 +42,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
@@ -151,3 +149,6 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     return self.jax.ops.index_update(tensor, mask, assignee)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return self.jax.jit(fun, **kwargs)

@@ -204,3 +204,6 @@ class SymmetricBackend(base_backend.BaseBackend):
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
     return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun

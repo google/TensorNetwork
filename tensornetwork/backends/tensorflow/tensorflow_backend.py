@@ -46,9 +46,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.tf.transpose(tensor, perm)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
@@ -229,7 +227,8 @@ class TensorFlowBackend(base_backend.BaseBackend):
                            self.tf.shape(matrix)))
     return self.tf.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
                        "found `tensor2.shape = {}`".format(
@@ -237,35 +236,38 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(
                            self.tf.shape(tensor1)))
 
     t1_broadcast_shape = self.shape_concat(
-        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)],
-        axis=-1)
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     return self.tf.math.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     return self.tf.math.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     return self.tf.math.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     return self.tf.math.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to tensorflow backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
     if matrix.shape[0] != matrix.shape[1]:
       raise ValueError("input to tensorflow backend method `expm` only supports"
-                       "N*N matrix, {x}*{y} matrix is given"
-                       .format(x=matrix.shape[0], y=matrix.shape[1]))
+                       "N*N matrix, {x}*{y} matrix is given".format(
+                           x=matrix.shape[0], y=matrix.shape[1]))
     return self.tf.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return self.tf.function(fun, **kwargs)
