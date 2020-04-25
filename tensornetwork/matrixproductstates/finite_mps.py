@@ -52,7 +52,7 @@ class FiniteMPS(BaseMPS):
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
+               tensors: List[Tensor],
                center_position: Optional[int] = 0,
                canonicalize: Optional[bool] = True,
                backend: Optional[Text] = None) -> None:
@@ -129,7 +129,7 @@ class FiniteMPS(BaseMPS):
     """
     pos = self.center_position
     self.position(0, normalize=False)
-    self.position(len(self.nodes) - 1, normalize=False)
+    self.position(len(self.tensors) - 1, normalize=False)
     return self.position(pos, normalize=normalize)
 
   def check_canonical(self) -> Tensor:
@@ -139,7 +139,7 @@ class FiniteMPS(BaseMPS):
       The L2 norm of the vector of local deviations.
     """
     deviations = []
-    for site in range(len(self.nodes)):
+    for site in range(len(self.tensors)):
       if site < self.center_position:
         deviation = self.check_orthonormality('l', site)
       elif site > self.center_position:
@@ -179,7 +179,7 @@ class FiniteMPS(BaseMPS):
     left_envs = {}
     for site in left_sites:
       left_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[0], dtype=self.dtype),
+          self.backend.eye(N=self.tensors[site].shape[0], dtype=self.dtype),
           backend=self.backend)
 
     # left reduced density matrices at sites > center_position
@@ -188,8 +188,8 @@ class FiniteMPS(BaseMPS):
       nodes = {}
       conj_nodes = {}
       for site in range(self.center_position, n2):
-        nodes[site] = Node(self.nodes[site], backend=self.backend)
-        conj_nodes[site] = conj(self.nodes[site])
+        nodes[site] = Node(self.tensors[site], backend=self.backend)
+        conj_nodes[site] = conj(nodes[site])
 
       nodes[self.center_position][0] ^ conj_nodes[self.center_position][0]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
@@ -214,7 +214,7 @@ class FiniteMPS(BaseMPS):
         if site + 1 in sites:
           left_env.reorder_edges([edges[site], conj_edges[site]])
           left_envs[site + 1] = left_env
-    return left_envs
+    return {k: v.tensor for k, v in left_envs.items()}
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     """Compute right reduced density matrices for site `sites. This returns a
@@ -245,7 +245,7 @@ class FiniteMPS(BaseMPS):
     right_envs = {}
     for site in right_sites:
       right_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[2], dtype=self.dtype),
+          self.backend.eye(N=self.tensors[site].shape[2], dtype=self.dtype),
           backend=self.backend)
 
     # right reduced density matrices at sites < center_position
@@ -254,8 +254,8 @@ class FiniteMPS(BaseMPS):
       nodes = {}
       conj_nodes = {}
       for site in reversed(range(n1 + 1, self.center_position + 1)):
-        nodes[site] = Node(self.nodes[site], backend=self.backend)
-        conj_nodes[site] = conj(self.nodes[site])
+        nodes[site] = Node(self.tensors[site], backend=self.backend)
+        conj_nodes[site] = conj(nodes[site])
 
       nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
       nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
@@ -280,8 +280,7 @@ class FiniteMPS(BaseMPS):
         if site - 1 in sites:
           right_env.reorder_edges([edges[site], conj_edges[site]])
           right_envs[site - 1] = right_env
-
-    return right_envs
+    return {k: v.tensor for k, v in right_envs.items()}
 
   def save(self, path: str):
     raise NotImplementedError()
