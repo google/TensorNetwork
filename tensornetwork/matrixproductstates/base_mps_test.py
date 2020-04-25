@@ -114,11 +114,12 @@ def test_apply_one_site_gate(backend_dtype_values):
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
-  tensor = mps.nodes[5].tensor
+  tensor = mps.tensors[5]
   gate = get_random_np((2, 2), dtype)
+
   mps.apply_one_site_gate(gate, 5)
   actual = np.transpose(np.tensordot(tensor, gate, ([1], [1])), (0, 2, 1))
-  np.testing.assert_allclose(mps.nodes[5].tensor, actual)
+  np.testing.assert_allclose(mps.tensors[5], actual)
 
 
 def test_apply_two_site_gate(backend_dtype_values):
@@ -131,24 +132,17 @@ def test_apply_two_site_gate(backend_dtype_values):
   ] + [get_random_np((D, d, 1), dtype)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2, 2, 2), dtype)
-  tensor1 = mps.nodes[5].tensor
-  tensor2 = mps.nodes[6].tensor
+  tensor1 = mps.tensors[5]
+  tensor2 = mps.tensors[6]
 
   mps.apply_two_site_gate(gate, 5, 6)
   tmp = np.tensordot(tensor1, tensor2, ([2], [0]))
   actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
-  mps.nodes[5][2] ^ mps.nodes[6][0]
-  order = [mps.nodes[5][0], mps.nodes[5][1], mps.nodes[6][1], mps.nodes[6][2]]
-  res = tn.contract_between(mps.nodes[5], mps.nodes[6])
+  node1 = tn.Node(mps.tensors[5], backend=backend)
+  node2 = tn.Node(mps.tensors[6], backend=backend)
+
+  node1[2] ^ node2[0]
+  order = [node1[0], node1[1], node2[1], node2[2]]
+  res = tn.contract_between(node1, node2)
   res.reorder_edges(order)
   np.testing.assert_allclose(res.tensor, actual)
-
-
-def test_mps_switch_backend(backend):
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), np.float64)] + [
-      get_random_np((D, d, D), np.float64) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), np.float64)]
-  mps = BaseMPS(tensors, center_position=0, backend="numpy")
-  mps.switch_backend(backend)
-  assert mps.backend.name == backend
