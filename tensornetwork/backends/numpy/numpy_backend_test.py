@@ -46,11 +46,8 @@ def test_shape_concat():
 
 def test_slice():
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
@@ -343,7 +340,12 @@ def test_eigsh_lanczos_reorthogonalize(dtype):
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
-      mv, reorthogonalize=True, ndiag=1, tol=10**(-12), delta=10**(-12))
+      mv,
+      numeig=2,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=10**(-12),
+      delta=10**(-12))
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -669,11 +671,14 @@ def test_sparse_shape():
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "sin"), (np.complex128, "sin"),
-                          (np.float64, "cos"), (np.complex128, "cos"),
-                          (np.float64, "exp"), (np.complex128, "exp"),
-                          (np.float64, "log"), (np.complex128, "log")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "sin"),
+                                          (np.complex128, "sin"),
+                                          (np.float64, "cos"),
+                                          (np.complex128, "cos"),
+                                          (np.float64, "exp"),
+                                          (np.complex128, "exp"),
+                                          (np.float64, "log"),
+                                          (np.complex128, "log")])
 def test_elementwise_ops(dtype, method):
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn((4, 3, 2), dtype=dtype, seed=10)
@@ -684,8 +689,8 @@ def test_elementwise_ops(dtype, method):
   np.testing.assert_almost_equal(tensor1, tensor2)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "expm"), (np.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "expm"),
+                                          (np.complex128, "expm")])
 def test_matrix_ops(dtype, method):
   backend = numpy_backend.NumPyBackend()
   matrix = backend.randn((4, 4), dtype=dtype, seed=10)
@@ -694,8 +699,8 @@ def test_matrix_ops(dtype, method):
   np.testing.assert_almost_equal(matrix1, matrix2)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "expm"), (np.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "expm"),
+                                          (np.complex128, "expm")])
 def test_matrix_ops_raises(dtype, method):
   backend = numpy_backend.NumPyBackend()
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
