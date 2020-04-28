@@ -50,6 +50,7 @@ class ChargeArray:
   * _order: A list of list, storing information on how tensor legs are transposed.
   """
 
+  #pylint: disable=unused-argument
   def __init__(self,
                data: np.ndarray,
                charges: List[BaseCharge],

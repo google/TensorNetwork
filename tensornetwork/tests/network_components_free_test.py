@@ -46,6 +46,7 @@ class TestNode(BaseNode):
   def tensor(self):
     return super().tensor
 
+  #pylint: disable=no-member
   @tensor.setter
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
@@ -721,8 +722,7 @@ def test_node_save_structure(tmp_path, single_node_edge):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {
-        "tensor", 'backend', 'name', 'edges', 'shape',
-        'axis_names', "type"
+        "tensor", 'backend', 'name', 'edges', 'shape', 'axis_names', "type"
     }
 
 
@@ -822,8 +822,8 @@ def test_copy_node_save_structure(tmp_path, backend):
     node._save_node(node_group)
     assert set(list(node_file.keys())) == {"test_node"}
     assert set(list(node_file['test_node'])) == {
-        'name', 'edges', 'backend', 'shape', 'axis_names',
-        'copy_node_dtype', "type"
+        'name', 'edges', 'backend', 'shape', 'axis_names', 'copy_node_dtype',
+        "type"
     }
 
 
@@ -1040,9 +1040,8 @@ def test_edge_node_save_structure(tmp_path, double_node_edge):
   with h5py.File(tmp_path / 'edges', 'w') as edge_file:
     edge_group = edge_file.create_group('edge')
     edge12._save_edge(edge_group)
-    assert set(list(edge_group.keys())) == {
-        "axis1", "node1", "axis2", "node2", "name"
-    }
+    assert set(list(
+        edge_group.keys())) == {"axis1", "node1", "axis2", "node2", "name"}
 
 
 def test_edge_node_save_data(tmp_path, double_node_edge):
