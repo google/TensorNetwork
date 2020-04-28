@@ -343,7 +343,7 @@ class NumPyBackend(base_backend.BaseBackend):
     eigvalsold = []
     for it in range(num_krylov_vecs):
       #normalize the current vector:
-      norm_vector_n = self.np.linalg.norm(vector_n)
+      norm_vector_n = self.norm(vector_n)
       if abs(norm_vector_n) < delta:
         break
       norms_vector_n.append(norm_vector_n)
@@ -351,7 +351,8 @@ class NumPyBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= self.np.dot(self.np.ravel(self.np.conj(v)), vector_n) * v
+          vector_n -= self.np.dot(
+              self.np.ravel(self.np.conj(v)), self.np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n)
       diag_elements.append(
