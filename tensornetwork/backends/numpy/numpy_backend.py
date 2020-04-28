@@ -40,16 +40,14 @@ class NumPyBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
 
-
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
                        "identical.")
-    obj = tuple(slice(start, start + size) for start, size
-                in zip(start_indices, slice_sizes))
+    obj = tuple(
+        slice(start, start + size)
+        for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
   def svd_decomposition(self,
@@ -125,22 +123,18 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.np.linalg.norm(tensor)
 
-  def eye(self,
-          N,
-          dtype: Optional[numpy.dtype] = None,
+  def eye(self, N, dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
-  def ones(self,
-           shape: Tuple[int, ...],
+  def ones(self, shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.ones(shape, dtype=dtype)
 
-  def zeros(self,
-            shape: Tuple[int, ...],
+  def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.np.float64
     return self.np.zeros(shape, dtype=dtype)
@@ -349,7 +343,7 @@ class NumPyBackend(base_backend.BaseBackend):
     eigvalsold = []
     for it in range(num_krylov_vecs):
       #normalize the current vector:
-      norm_vector_n = self.np.linalg.norm(vector_n)
+      norm_vector_n = self.norm(vector_n)
       if abs(norm_vector_n) < delta:
         break
       norms_vector_n.append(norm_vector_n)
@@ -357,7 +351,8 @@ class NumPyBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= self.np.dot(self.np.ravel(self.np.conj(v)), vector_n) * v
+          vector_n -= self.np.dot(
+              self.np.ravel(self.np.conj(v)), self.np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n)
       diag_elements.append(
@@ -455,6 +450,9 @@ class NumPyBackend(base_backend.BaseBackend):
                        " Only matrices are supported.".format(matrix.shape))
     if matrix.shape[0] != matrix.shape[1]:
       raise ValueError("input to numpy backend method `expm` only supports"
-                       " N*N matrix, {x}*{y} matrix is given"
-                       .format(x=matrix.shape[0], y=matrix.shape[1]))
+                       " N*N matrix, {x}*{y} matrix is given".format(
+                           x=matrix.shape[0], y=matrix.shape[1]))
     return self.sp.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
