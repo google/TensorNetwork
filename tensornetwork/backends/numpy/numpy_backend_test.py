@@ -322,7 +322,8 @@ def test_eigsh_lanczos_2(dtype):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigsh_lanczos_reorthogonalize(dtype):
+@pytest.mark.parametrize("numeig", [1, 2, 3, 4])
+def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   backend = numpy_backend.NumPyBackend()
   D = 24
   np.random.seed(10)
@@ -341,18 +342,21 @@ def test_eigsh_lanczos_reorthogonalize(dtype):
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
       mv,
-      numeig=2,
+      numeig=numeig,
       reorthogonalize=True,
       ndiag=1,
       tol=10**(-12),
       delta=10**(-12))
   eta2, U2 = np.linalg.eigh(H)
-  v2 = U2[:, 0]
-  v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
-  v1 = v1 / sum(v1)
-  np.testing.assert_allclose(eta1[0], min(eta2))
-  np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
+
+  np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
+  for n in range(numeig):
+    v2 = U2[:, n]
+    v2 /= np.sum(v2)  #fix phases
+    v1 = np.reshape(U1[n], (D))
+    v1 /= np.sum(v1)
+
+    np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
 
 
 def test_eigsh_lanczos_raises():
