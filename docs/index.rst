@@ -6,16 +6,23 @@ TensorNetwork reference documentation
    :caption: Tutorials
 
    tutorial
+   quantum_circuit
    block_sparse_tutorial
    
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
    :caption: API Reference
 
-   tensornetwork
+   contractors
+   nodes
+   edges
+   ncon
+   mps
+   network
+   block_sparse
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Developer Documentation
 
    contributing
