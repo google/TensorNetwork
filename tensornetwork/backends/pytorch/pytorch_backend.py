@@ -177,6 +177,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -189,6 +190,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     of a `LinearOperator` `A`.
     Args:
       A: A (sparse) implementation of a linear operator
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
@@ -258,7 +261,7 @@ class PyTorchBackend(base_backend.BaseBackend):
         for v in krylov_vecs:
           vector_n -= (v.view(-1).dot(vector_n.view(-1))) * v
       krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
+      A_vector_n = A(*args, vector_n)
       diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):

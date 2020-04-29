@@ -266,6 +266,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -281,6 +282,8 @@ class NumPyBackend(base_backend.BaseBackend):
 
     Args:
       A: A (sparse) implementation of a linear operator
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn`
         method
@@ -354,7 +357,7 @@ class NumPyBackend(base_backend.BaseBackend):
           vector_n -= self.np.dot(
               self.np.ravel(self.np.conj(v)), self.np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
+      A_vector_n = A(*args, vector_n)
       diag_elements.append(
           self.np.dot(
               self.np.ravel(self.np.conj(vector_n)), self.np.ravel(A_vector_n)))
@@ -391,7 +394,7 @@ class NumPyBackend(base_backend.BaseBackend):
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
-    return eigvals[0:numeig], eigenvectors
+    return eigvals[0:numeig], eigenvectors, krylov_vecs
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
