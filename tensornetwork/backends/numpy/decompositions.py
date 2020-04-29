@@ -24,6 +24,7 @@ def svd_decomposition(
     split_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
+    relative: Optional[bool] = False
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
@@ -41,10 +42,16 @@ def svd_decomposition(
   if max_truncation_error is not None:
     # Cumulative norms of singular values in ascending order.
     trunc_errs = np.sqrt(np.cumsum(np.square(s[::-1])))
+    # If relative is true, rescale max_truncation error with the largest
+    # singular value to yield the absolute maximal truncation error.
+    if relative:
+      abs_max_truncation_error = max_truncation_error * s[0]
+    else:
+      abs_max_truncation_error = max_truncation_error
     # We must keep at least this many singular values to ensure the
-    # truncation error is <= max_truncation_error.
+    # truncation error is <= abs_max_truncation_error.
     num_sing_vals_err = np.count_nonzero(
-        (trunc_errs > max_truncation_error).astype(np.int32))
+        (trunc_errs > abs_max_truncation_error).astype(np.int32))
   else:
     num_sing_vals_err = max_singular_values
 

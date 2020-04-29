@@ -26,14 +26,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for tensornetwork.backends.tensorflow.tensordot2"""
-
+"""Tests for tensornetwork.backends.tensorflow.tensordot2."""
 
 import numpy as np
 import tensorflow as tf
 from tensornetwork.backends.tensorflow import tensordot2
 import pytest
-
 
 _MAXDIM = 5
 

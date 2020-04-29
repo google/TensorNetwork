@@ -45,15 +45,31 @@ class PyTorchBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
 
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    obj = tuple(slice(start, start + size) for start, size
+                in zip(start_indices, slice_sizes))
+    return tensor[obj]
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.torch, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error)
+    return decompositions.svd_decomposition(
+        self.torch,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(
       self,
@@ -77,6 +93,9 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
+
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> int:
     return np.prod(np.array(values))
@@ -103,7 +122,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return self.torch.norm(tensor)
 
-  def eye(self, N: int, dtype: Optional[Any] = None,
+  def eye(self,
+          N: int,
+          dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     if not M:
@@ -114,7 +135,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
     dtype = dtype if dtype is not None else self.torch.float64
     return self.torch.zeros(shape, dtype=dtype)
@@ -156,16 +178,16 @@ class PyTorchBackend(base_backend.BaseBackend):
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(self,
-                    A: Callable,
-                    initial_state: Optional[Tensor] = None,
-                    num_krylov_vecs: Optional[int] = 200,
-                    numeig: Optional[int] = 1,
-                    tol: Optional[float] = 1E-8,
-                    delta: Optional[float] = 1E-8,
-                    ndiag: Optional[int] = 20,
-                    reorthogonalize: Optional[bool] = False
-                   ) -> Tuple[List, List]:
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      initial_state: Optional[Tensor] = None,
+      num_krylov_vecs: Optional[int] = 200,
+      numeig: Optional[int] = 1,
+      tol: Optional[float] = 1E-8,
+      delta: Optional[float] = 1E-8,
+      ndiag: Optional[int] = 20,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -181,13 +203,13 @@ class PyTorchBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If a Krylov vector :math: `x_n` has an L2 norm 
-        :math:`\\lVert x_n\\rVert < delta`, the iteration 
-        is stopped. It means that an (approximate) invariant subspace has 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
         been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` 
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag`
         iterations to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
@@ -249,7 +271,7 @@ class PyTorchBackend(base_backend.BaseBackend):
             self.torch.tensor(diag_elements)) + self.torch.diag(
                 self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
                     self.torch.tensor(norms_vector_n[1:]), -1)
-        eigvals, u = A_tridiag.symeig()
+        eigvals, u = A_tridiag.symeig(eigenvectors=True)
         if not first:
           if self.torch.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
             break
@@ -266,7 +288,7 @@ class PyTorchBackend(base_backend.BaseBackend):
         self.torch.tensor(diag_elements)) + self.torch.diag(
             self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
                 self.torch.tensor(norms_vector_n[1:]), -1)
-    eigvals, u = A_tridiag.symeig()
+    eigvals, u = A_tridiag.symeig(eigenvectors=True)
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.shape, initial_state.dtype)
@@ -300,3 +322,20 @@ class PyTorchBackend(base_backend.BaseBackend):
           "input to pytorch backend method `inv` has shape {}. Only matrices are supported."
           .format(matrix.shape))
     return matrix.inverse()
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
+          .format(tensor2.shape))
+
+    return tensor1 * tensor2
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(tensor1.shape))
+
+    t1_broadcast_shape = self.shape_concat(
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
+    return tensor2 * self.reshape(tensor1, t1_broadcast_shape)

@@ -63,10 +63,8 @@ def base(nodes: Iterable[BaseNode],
                          "has to be provided.")
 
     if set(output_edge_order) != get_subgraph_dangling(nodes):
-      raise ValueError(
-          "output edges are not equal to the remaining "
-          "non-contracted edges of the final node."
-      )
+      raise ValueError("output edges are not equal to the remaining "
+                       "non-contracted edges of the final node.")
 
   for edge in edges:
     if not edge.is_disabled:  #if its disabled we already contracted it
@@ -95,11 +93,10 @@ def base(nodes: Iterable[BaseNode],
   return final_node
 
 
-def optimal(
-    nodes: Iterable[BaseNode],
-    output_edge_order: Optional[Sequence[Edge]] = None,
-    memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False) -> BaseNode:
+def optimal(nodes: Iterable[BaseNode],
+            output_edge_order: Optional[Sequence[Edge]] = None,
+            memory_limit: Optional[int] = None,
+            ignore_edge_order: bool = False) -> BaseNode:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -134,16 +131,18 @@ def branch(nodes: Iterable[BaseNode],
   This method uses the DFS approach of `optimal` while sorting potential
   contractions based on a heuristic cost, in order to reduce time spent
   in exploring paths which are unlikely to be optimal.
-  For more details:
+  More details on `branching path`_.
+
+  .. _branching path:
     https://optimized-einsum.readthedocs.io/en/latest/branching_path.html
 
   Args:
     nodes: an iterable of Nodes
     output_edge_order: An optional list of edges.
       Edges of the final node in `nodes_set`
-       are reordered into `output_edge_order`;
-       if final node has more than one edge,
-       `output_edge_order` must be provided.
+      are reordered into `output_edge_order`;
+      if final node has more than one edge,
+      `output_edge_order` must be provided.
     memory_limit: Maximum number of elements in an array during contractions.
     nbranch: Number of best contractions to explore.
       If None it explores all inner products starting with those that
@@ -158,18 +157,18 @@ def branch(nodes: Iterable[BaseNode],
   return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
-def greedy(
-    nodes: Iterable[BaseNode],
-    output_edge_order: Optional[Sequence[Edge]] = None,
-    memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False) -> BaseNode:
+def greedy(nodes: Iterable[BaseNode],
+           output_edge_order: Optional[Sequence[Edge]] = None,
+           memory_limit: Optional[int] = None,
+           ignore_edge_order: bool = False) -> BaseNode:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
   contraction paths in large networks. First contracts pairs of tensors
   by finding the pair with the lowest cost at each step. Then it performs
-  the outer products.
-  For more details:
+  the outer products. More details on `greedy path`_.
+
+  ..  _greedy path:
     https://optimized-einsum.readthedocs.io/en/latest/greedy_path.html
 
   Args:
@@ -190,11 +189,10 @@ def greedy(
 
 
 # pylint: disable=too-many-return-statements
-def auto(
-    nodes: Iterable[BaseNode],
-    output_edge_order: Optional[Sequence[Edge]] = None,
-    memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False) -> BaseNode:
+def auto(nodes: Iterable[BaseNode],
+         output_edge_order: Optional[Sequence[Edge]] = None,
+         memory_limit: Optional[int] = None,
+         ignore_edge_order: bool = False) -> BaseNode:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -223,9 +221,10 @@ def auto(
         output_edge_order = list(
             (get_all_edges(_nodes) - get_all_nondangling(_nodes)))
         if len(output_edge_order) > 1:
-          raise ValueError("The final node after contraction has more than "
-                           "one dangling edge. In this case `output_edge_order` "
-                           "has to be provided.")
+          raise ValueError(
+              "The final node after contraction has more than "
+              "one dangling edge. In this case `output_edge_order` "
+              "has to be provided.")
 
     edges = get_all_nondangling(_nodes)
     if edges:
@@ -240,24 +239,35 @@ def auto(
   if n < 5:
     return optimal(nodes, output_edge_order, memory_limit, ignore_edge_order)
   if n < 7:
-    return branch(nodes, output_edge_order, memory_limit, ignore_edge_order)
+    return branch(nodes,
+                  output_edge_order=output_edge_order,
+                  memory_limit=memory_limit,
+                  ignore_edge_order=ignore_edge_order)
   if n < 9:
-    return branch(nodes, output_edge_order, memory_limit, nbranch=2, ignore_edge_order=ignore_edge_order)
+    return branch(nodes,
+                  output_edge_order=output_edge_order,
+                  memory_limit=memory_limit,
+                  nbranch=2,
+                  ignore_edge_order=ignore_edge_order)
   if n < 15:
-    return branch(nodes, output_edge_order, nbranch=1, ignore_edge_order=ignore_edge_order)
+    return branch(nodes,
+                  output_edge_order=output_edge_order,
+                  nbranch=1,
+                  ignore_edge_order=ignore_edge_order)
   return greedy(nodes, output_edge_order, memory_limit, ignore_edge_order)
 
 
-def custom(
-    nodes: Iterable[BaseNode],
-    optimizer: Any,
-    output_edge_order: Sequence[Edge] = None,
-    memory_limit: Optional[int] = None,
-    ignore_edge_order: bool = False) -> BaseNode:
+def custom(nodes: Iterable[BaseNode],
+           optimizer: Any,
+           output_edge_order: Sequence[Edge] = None,
+           memory_limit: Optional[int] = None,
+           ignore_edge_order: bool = False) -> BaseNode:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.
-  For more details:
+  See `custom paths`_.
+
+  .. _custom paths:
     https://optimized-einsum.readthedocs.io/en/latest/custom_paths.html
 
   Args:

@@ -32,15 +32,24 @@ class JaxBackend(numpy_backend.NumPyBackend):
                         "backend or install Jax.")
     self.jax = jax
     self.np = self.jax.numpy
+    self.sp = self.jax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.jax.jit(lambda x: x)(tensor)
-    return result
+    return self.np.asarray(tensor)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
+
+  def slice(self,
+            tensor: Tensor,
+            start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    return self.jax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
   def randn(self,
             shape: Tuple[int, ...],
@@ -89,12 +98,18 @@ class JaxBackend(numpy_backend.NumPyBackend):
 
       key_2 = self.jax.random.PRNGKey(seed + 1)
 
-      real_part = self.jax.random.uniform(key, shape, dtype=real_dtype,
-                                          minval=boundaries[0],
-                                          maxval=boundaries[1])
-      complex_part = self.jax.random.uniform(key_2, shape, dtype=real_dtype,
-                                             minval=boundaries[0],
-                                             maxval=boundaries[1])
+      real_part = self.jax.random.uniform(
+          key,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
+      complex_part = self.jax.random.uniform(
+          key_2,
+          shape,
+          dtype=real_dtype,
+          minval=boundaries[0],
+          maxval=boundaries[1])
       unit = (
           np.complex64(1j)
           if complex_dtype == np.dtype(np.complex64) else np.complex128(1j))
@@ -105,8 +120,8 @@ class JaxBackend(numpy_backend.NumPyBackend):
     if np.dtype(dtype) is np.dtype(self.np.complex64):
       return cmplx_random_uniform(dtype, self.np.float32)
 
-    return self.jax.random.uniform(key, shape, minval=boundaries[0],
-                                   maxval=boundaries[1]).astype(dtype)
+    return self.jax.random.uniform(
+        key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
   def eigs(self,
            A: Callable,

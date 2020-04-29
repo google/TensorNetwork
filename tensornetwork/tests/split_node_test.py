@@ -195,8 +195,7 @@ def test_split_node_rq_unitarity_complex(backend):
   if backend == "jax":
     pytest.skip("Complex QR crashes jax")
 
-  a = tn.Node(
-      np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   _, q = tn.split_node_rq(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
   n2 = tn.conj(q)
@@ -233,8 +232,7 @@ def test_split_node_qr_unitarity_complex(backend):
   if backend == "jax":
     pytest.skip("Complex QR crashes jax")
 
-  a = tn.Node(
-      np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   q, _ = tn.split_node_qr(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
   n2 = tn.conj(q)

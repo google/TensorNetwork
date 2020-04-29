@@ -19,11 +19,7 @@ import numpy as np
 Tensor = Any
 
 
-def tensordot(tf, 
-              a,
-              b,
-              axes,
-              name: Optional[Text] = None) -> Tensor:
+def tensordot(tf, a, b, axes, name: Optional[Text] = None) -> Tensor:
   r"""Tensor contraction of a and b along specified axes.
   Tensordot (also known as tensor contraction) sums the product of elements
   from `a` and `b` over the indices specified by `a_axes` and `b_axes`.
@@ -66,6 +62,7 @@ def tensordot(tf,
   def _tensordot_should_flip(contraction_axes: List[int],
                              free_axes: List[int]) -> bool:
     """Helper method to determine axis ordering.
+
     We minimize the average distance the indices would have to move under the
     transposition.
     Args:
@@ -82,17 +79,19 @@ def tensordot(tf,
 
   def _tranpose_if_necessary(tensor: Tensor, perm: List[int]) -> Tensor:
     """Like transpose(), but avoids creating a new tensor if possible.
-    Although the graph optimizer should kill trivial transposes, it is best not
-    to add them in the first place!
+
+    Although the graph optimizer should kill trivial transposes, it is
+    best not to add them in the first place!
     """
     if perm == list(range(len(perm))):
       return tensor
     return tf.transpose(tensor, perm)
 
-  def _reshape_if_necessary(tensor: Tensor,
-                            new_shape: List[int]) -> Tensor:
+  def _reshape_if_necessary(tensor: Tensor, new_shape: List[int]) -> Tensor:
     """Like reshape(), but avoids creating a new tensor if possible.
-    Assumes shapes are both fully specified."""
+
+    Assumes shapes are both fully specified.
+    """
     cur_shape = tensor.get_shape().as_list()
     if (len(new_shape) == len(cur_shape) and
         all(d0 == d1 for d0, d1 in zip(cur_shape, new_shape))):
@@ -100,9 +99,12 @@ def tensordot(tf,
     return tf.reshape(tensor, new_shape)
 
   def _tensordot_reshape(
-      a: Tensor, axes: Union[Sequence[int], Tensor], is_right_term=False
+      a: Tensor,
+      axes: Union[Sequence[int], Tensor],
+      is_right_term=False
   ) -> Tuple[Tensor, Union[List[int], Tensor], Optional[List[int]], bool]:
     """Helper method to perform transpose and reshape for contraction op.
+
     This method is helpful in reducing `math_ops.tensordot` to `math_ops.matmul`
     using `array_ops.transpose` and `array_ops.reshape`. The method takes a
     tensor and performs the correct transpose and reshape operation for a given
@@ -119,7 +121,7 @@ def tensordot(tf,
       `matmul`, `free_dims` is either a list of integers or an `int32`
       `Tensor`, depending on whether the shape of a is fully specified, and
       free_dims_static is either a list of integers and None values, or None,
-      representing the inferred static shape of the free dimensions. 
+      representing the inferred static shape of the free dimensions.
       `transpose_needed` indicates whether `reshaped_a` must be transposed,
       or not, when calling `matmul`.
     """
@@ -184,8 +186,7 @@ def tensordot(tf,
     transpose_needed = (not flipped) if is_right_term else flipped
     return reshaped_a, free_dims, free_dims_static, transpose_needed
 
-  def _tensordot_axes(a: Tensor, axes
-                     ) -> Tuple[Any, Any]:
+  def _tensordot_axes(a: Tensor, axes) -> Tuple[Any, Any]:
     """Generates two sets of contraction axes for the two tensor arguments."""
     a_shape = a.get_shape()
     if isinstance(axes, tf.compat.integral_types):

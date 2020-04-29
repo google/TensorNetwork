@@ -2,6 +2,7 @@
 """Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
+import scipy as sp
 import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
@@ -41,6 +42,18 @@ def test_shape_concat():
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
   expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_slice():
+  backend = jax_backend.JaxBackend()
+  a = backend.convert_to_tensor(np.array(
+      [[1., 2., 3.],
+       [4., 5., 6.],
+       [7., 8., 9.]]
+      ))
+  actual = backend.slice(a, (1, 1), (2, 2))
+  expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
 
 
@@ -121,6 +134,7 @@ def test_einsum():
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.skip(reason="TODO(chaseriley): Add type checking.")
 def test_convert_bad_test():
   backend = jax_backend.JaxBackend()
   with pytest.raises(TypeError):
@@ -240,8 +254,8 @@ def test_random_uniform_boundaries(dtype):
   backend = jax_backend.JaxBackend()
   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-  assert((a >= 0).all() and (a <= 1).all() and
-         (b >= lb).all() and (b <= ub).all())
+  assert ((a >= 0).all() and (a <= 1).all() and (b >= lb).all() and
+          (b <= ub).all())
 
 
 def test_random_uniform_behavior():
@@ -295,3 +309,82 @@ def test_index_update(dtype):
   np_tensor = np.array(tensor)
   np_tensor[np_tensor > 0.1] = 0.0
   np.testing.assert_allclose(out, np_tensor)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_broadcast_right_multiplication(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3,), dtype=dtype, seed=10)
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.array(tensor1) * np.array(tensor2))
+
+
+def test_broadcast_right_multiplication_raises():
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((2, 3))
+  tensor2 = backend.randn((3, 3))
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_broadcast_left_multiplication(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((3,), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 4, 2), dtype=dtype, seed=10)
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.reshape(tensor1, (3, 1, 1)) * tensor2)
+
+
+def test_broadcast_left_multiplication_raises():
+  dtype = np.float64
+  backend = jax_backend.JaxBackend()
+  tensor1 = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  dtype = np.float64
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "sin"), (np.complex128, "sin"),
+                          (np.float64, "cos"), (np.complex128, "cos"),
+                          (np.float64, "exp"), (np.complex128, "exp"),
+                          (np.float64, "log"), (np.complex128, "log")])
+def test_elementwise_ops(dtype, method):
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((4, 3, 2), dtype=dtype, seed=10)
+  if method == "log":
+    tensor = np.abs(tensor)
+  tensor1 = getattr(backend, method)(tensor)
+  tensor2 = getattr(np, method)(tensor)
+  np.testing.assert_almost_equal(tensor1, tensor2)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "expm"), (np.complex128, "expm")])
+def test_matrix_ops(dtype, method):
+  backend = jax_backend.JaxBackend()
+  matrix = backend.randn((4, 4), dtype=dtype, seed=10)
+  matrix1 = getattr(backend, method)(matrix)
+  matrix2 = getattr(sp.linalg, method)(matrix)
+  np.testing.assert_almost_equal(matrix1, matrix2)
+
+
+@pytest.mark.parametrize("dtype,method",
+                         [(np.float64, "expm"), (np.complex128, "expm")])
+def test_matrix_ops_raises(dtype, method):
+  backend = jax_backend.JaxBackend()
+  matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
+  with pytest.raises(ValueError, match=r".*Only matrices.*"):
+    getattr(backend, method)(matrix)
+  matrix = backend.randn((4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
+    getattr(backend, method)(matrix)

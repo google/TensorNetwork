@@ -157,7 +157,7 @@ def test_base_backend_name():
 def test_base_backend_tensordot_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.tensordot(np.ones((2, 2)), np.ones((2, 2)), axes=[0, 0])
+    backend.tensordot(np.ones((2, 2)), np.ones((2, 2)), axes=[[0], [0]])
 
 
 def test_base_backend_reshape_not_implemented():
@@ -170,6 +170,12 @@ def test_base_backend_transpose_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.transpose(np.ones((2, 2)), [0, 1])
+
+
+def test_base_backend_slice_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.slice(np.ones((2, 2)), (0, 1), (1, 1))
 
 
 def test_base_backend_svd_decompositon_not_implemented():
@@ -344,3 +350,33 @@ def test_base_backend_inv_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.inv(np.ones((2, 2)))
+
+
+def test_base_backend_sin_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sin(np.ones((2, 2)))
+
+
+def test_base_backend_cos_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.cos(np.ones((2, 2)))
+
+
+def test_base_backend_exp_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.exp(np.ones((2, 2)))
+
+
+def test_base_backend_log_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.log(np.ones((2, 2)))
+
+
+def test_base_backend_expm_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.expm(np.ones((2, 2)))
