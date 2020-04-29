@@ -137,9 +137,9 @@ class JaxBackend(numpy_backend.NumPyBackend):
           [krylov_vecs, U, state_vector])
       vector /= self.jax.numpy.linalg.norm(vector)
       return self.jax.numpy.array(eigvals[0:neig]), [
-          vector[n, :] / self.jax.numpy.linalg.norm(
-              self.jax.numpy.ravel(vector[n, :])) for n in range(neig)
-      ], krylov_vecs
+          self.jax.numpy.reshape(vector[n, :], init.shape) /
+          self.jax.numpy.linalg.norm(vector[n, :]) for n in range(neig)
+      ]
 
     return jax_lanczos
 
