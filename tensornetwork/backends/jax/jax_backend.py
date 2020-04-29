@@ -282,6 +282,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
           type(initial_state)))
 
     if not hasattr(self, '_jaxlan'):
+      #avoid retracing
       self._jaxlan = self._generate_jitted_eigsh_lanczos()
 
     return self._jaxlan(A, args, initial_state, num_krylov_vecs, numeig, delta,
