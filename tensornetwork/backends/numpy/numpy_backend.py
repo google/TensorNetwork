@@ -394,7 +394,7 @@ class NumPyBackend(base_backend.BaseBackend):
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
-    return eigvals[0:numeig], eigenvectors, krylov_vecs
+    return eigvals[0:numeig], eigenvectors
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
