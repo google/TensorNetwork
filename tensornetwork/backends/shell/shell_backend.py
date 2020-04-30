@@ -249,10 +249,11 @@ class ShellBackend(base_backend.BaseBackend):
           ShellTensor((A.shape[0],)) for _ in range(numeig)
       ]
 
-    if initial_state is not None:
+    else:
       return [ShellTensor(tuple()) for _ in range(numeig)], [
           ShellTensor(initial_state.shape) for _ in range(numeig)
       ]
+
 
   def eigsh_lanczos(
       self,
