@@ -304,9 +304,9 @@ def test_eigs_initial_state_shape():
     def __call__(self, x):
       return x
 
-  mv = MV((2, 2))
+  mv = MV(((2,), (2,)))
   eta, v = backend.eigs(mv, backend.randn((2,)))
-  assert len(eta) == 2
+  assert len(eta) == 1
   for n in range(len(eta)):
     assert v[n].shape == (2,)
 
