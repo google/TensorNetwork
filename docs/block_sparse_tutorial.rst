@@ -54,7 +54,7 @@ Abelian symmetries (non-Abelian symmetries are more complicated and
 currently not supported). The following figure shows a symmetric tensor
 :math:`T_{ij}` of order 2 (i.e. a matrix):
 
-.. figure:: blocktensor.png
+.. figure:: _static/blocktensor.png
 
 There is quite a bit of information in this picture, and we will cover
 it bit by bit. The matrix is represented by the blue rectangle, and its

@@ -27,24 +27,26 @@ class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
+    # pylint: disable=global-variable-undefined
+    global tf
     super(TensorFlowBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
-      import tensorflow as tf
+      import tensorflow
     except ImportError:
       raise ImportError("Tensorflow not installed, please switch to a "
                         "different backend or install Tensorflow.")
-    self.tf = tf
+    tf = tensorflow
     self.name = "tensorflow"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
-    return tensordot2.tensordot(self.tf, a, b, axes)
+    return tensordot2.tensordot(tf, a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.tf.reshape(tensor, shape)
+    return tf.reshape(tensor, shape)
 
   def transpose(self, tensor, perm):
-    return self.tf.transpose(tensor, perm)
+    return tf.transpose(tensor, perm)
 
   def slice(self,
             tensor: Tensor,
@@ -53,7 +55,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
                        "identical.")
-    return self.tf.slice(tensor, start_indices, slice_sizes)
+    return tf.slice(tensor, start_indices, slice_sizes)
 
   def svd_decomposition(self,
                         tensor: Tensor,
@@ -63,7 +65,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
-        self.tf,
+        tf,
         tensor,
         split_axis,
         max_singular_values,
@@ -72,17 +74,17 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def qr_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.tf, tensor, split_axis)
+    return decompositions.qr_decomposition(tf, tensor, split_axis)
 
   def rq_decomposition(self, tensor: Tensor,
                        split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.tf, tensor, split_axis)
+    return decompositions.rq_decomposition(tf, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
-    return self.tf.concat(values, axis)
+    return tf.concat(values, axis)
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
-    return self.tf.shape(tensor)
+    return tf.shape(tensor)
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape.as_list())
@@ -91,62 +93,62 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> Tensor:
-    return self.tf.reduce_prod(values)
+    return tf.reduce_prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
-    return self.tf.sqrt(tensor)
+    return tf.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    return self.tf.linalg.diag(tensor)
+    return tf.linalg.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.tf.convert_to_tensor(tensor)
+    result = tf.convert_to_tensor(tensor)
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
-    return self.tf.linalg.trace(tensor)
+    return tf.linalg.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return tensordot2.tensordot(self.tf, tensor1, tensor2, 0)
+    return tensordot2.tensordot(tf, tensor1, tensor2, 0)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return self.tf.einsum(expression, *tensors)
+    return tf.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
-    return self.tf.linalg.norm(tensor)
+    return tf.linalg.norm(tensor)
 
   def eye(self,
           N: int,
           dtype: Optional[Type[np.number]] = None,
           M: Optional[int] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.tf.float64
-    return self.tf.eye(num_rows=N, num_columns=M, dtype=dtype)
+    dtype = dtype if dtype is not None else tf.float64
+    return tf.eye(num_rows=N, num_columns=M, dtype=dtype)
 
   def ones(self,
            shape: Tuple[int, ...],
            dtype: Optional[Type[np.number]] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.tf.float64
-    return self.tf.ones(shape=shape, dtype=dtype)
+    dtype = dtype if dtype is not None else tf.float64
+    return tf.ones(shape=shape, dtype=dtype)
 
   def zeros(self,
             shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.tf.float64
-    return self.tf.zeros(shape, dtype=dtype)
+    dtype = dtype if dtype is not None else tf.float64
+    return tf.zeros(shape, dtype=dtype)
 
   def randn(self,
             shape: Tuple[int, ...],
             dtype: Optional[Type[np.number]] = None,
             seed: Optional[int] = None) -> Tensor:
     if seed:
-      self.tf.random.set_seed(seed)
+      tf.random.set_seed(seed)
 
-    dtype = dtype if dtype is not None else self.tf.float64
-    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
-      return self.tf.complex(
-          self.tf.random.normal(shape=shape, dtype=dtype.real_dtype),
-          self.tf.random.normal(shape=shape, dtype=dtype.real_dtype))
-    return self.tf.random.normal(shape=shape, dtype=dtype)
+    dtype = dtype if dtype is not None else tf.float64
+    if (dtype is tf.complex128) or (dtype is tf.complex64):
+      return tf.complex(
+          tf.random.normal(shape=shape, dtype=dtype.real_dtype),
+          tf.random.normal(shape=shape, dtype=dtype.real_dtype))
+    return tf.random.normal(shape=shape, dtype=dtype)
 
   def random_uniform(self,
                      shape: Tuple[int, ...],
@@ -154,31 +156,31 @@ class TensorFlowBackend(base_backend.BaseBackend):
                      dtype: Optional[Type[np.number]] = None,
                      seed: Optional[int] = None) -> Tensor:
     if seed:
-      self.tf.random.set_seed(seed)
+      tf.random.set_seed(seed)
 
-    dtype = dtype if dtype is not None else self.tf.float64
-    if (dtype is self.tf.complex128) or (dtype is self.tf.complex64):
-      return self.tf.complex(
-          self.tf.random.uniform(
+    dtype = dtype if dtype is not None else tf.float64
+    if (dtype is tf.complex128) or (dtype is tf.complex64):
+      return tf.complex(
+          tf.random.uniform(
               shape=shape,
               minval=boundaries[0],
               maxval=boundaries[1],
               dtype=dtype.real_dtype),
-          self.tf.random.uniform(
+          tf.random.uniform(
               shape=shape,
               minval=boundaries[0],
               maxval=boundaries[1],
               dtype=dtype.real_dtype))
-    self.tf.random.set_seed(10)
-    a = self.tf.random.uniform(
+    tf.random.set_seed(10)
+    a = tf.random.uniform(
         shape=shape, minval=boundaries[0], maxval=boundaries[1], dtype=dtype)
     return a
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return self.tf.math.conj(tensor)
+    return tf.math.conj(tensor)
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
-    return self.tf.linalg.eigh(matrix)
+    return tf.linalg.eigh(matrix)
 
   def eigs(self,
            A: Callable,
@@ -220,20 +222,20 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     #returns a copy (unfortunately)
-    return self.tf.where(mask, assignee, tensor)
+    return tf.where(mask, assignee, tensor)
 
   def inv(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) > 2:
       raise ValueError("input to tensorflow backend method `inv` has shape {}. "
                        "Only matrices are supported.".format(
-                           self.tf.shape(matrix)))
-    return self.tf.linalg.inv(matrix)
+                           tf.shape(matrix)))
+    return tf.linalg.inv(matrix)
 
   def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
                        "found `tensor2.shape = {}`".format(
-                           self.tf.shape(tensor2)))
+                           tf.shape(tensor2)))
 
     return tensor1 * tensor2
 
@@ -241,7 +243,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(
-                           self.tf.shape(tensor1)))
+                           tf.shape(tensor1)))
 
     t1_broadcast_shape = self.shape_concat(
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)],
@@ -249,16 +251,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
   def sin(self, tensor: Tensor):
-    return self.tf.math.sin(tensor)
+    return tf.math.sin(tensor)
 
   def cos(self, tensor: Tensor):
-    return self.tf.math.cos(tensor)
+    return tf.math.cos(tensor)
 
   def exp(self, tensor: Tensor):
-    return self.tf.math.exp(tensor)
+    return tf.math.exp(tensor)
 
   def log(self, tensor: Tensor):
-    return self.tf.math.log(tensor)
+    return tf.math.log(tensor)
 
   def expm(self, matrix: Tensor):
     if len(matrix.shape) != 2:
@@ -268,4 +270,4 @@ class TensorFlowBackend(base_backend.BaseBackend):
       raise ValueError("input to tensorflow backend method `expm` only supports"
                        "N*N matrix, {x}*{y} matrix is given"
                        .format(x=matrix.shape[0], y=matrix.shape[1]))
-    return self.tf.linalg.expm(matrix)
+    return tf.linalg.expm(matrix)
