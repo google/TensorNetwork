@@ -249,8 +249,7 @@ class ShellBackend(base_backend.BaseBackend):
           ShellTensor((A.shape[0],)) for _ in range(numeig)
       ]
 
-    else:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
+    return [ShellTensor(tuple()) for _ in range(numeig)], [
           ShellTensor(initial_state.shape) for _ in range(numeig)
       ]
 
@@ -288,8 +287,7 @@ class ShellBackend(base_backend.BaseBackend):
           ShellTensor(A.shape[0]) for _ in range(numeig)
       ]
 
-    else:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
+    return [ShellTensor(tuple()) for _ in range(numeig)], [
           ShellTensor(initial_state.shape) for _ in range(numeig)
       ]
 
