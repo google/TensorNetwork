@@ -27,6 +27,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
+    # pylint: disable=global-variable-undefined
     global tf
     super(TensorFlowBackend, self).__init__()
     try:

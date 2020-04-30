@@ -27,6 +27,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(PyTorchBackend, self).__init__()
+    # pylint: disable=global-variable-undefined
     global torchlib
     try:
       #pylint: disable=import-outside-toplevel
