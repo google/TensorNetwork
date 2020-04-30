@@ -280,9 +280,7 @@ def test_eigsh_lanczos_1():
 
 
 def test_eigsh_small_number_krylov_vectors():
-  dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
-  D = 24
   init = backend.convert_to_tensor(np.array([1, 1], dtype=np.float64))
   H = backend.convert_to_tensor(np.array([[1, 2], [3, 4]], dtype=np.float64))
 
