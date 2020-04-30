@@ -309,7 +309,8 @@ def test_eigs_raises():
     backend.eigs(mv, initial_state=np.random.rand(3))
   with pytest.raises(AttributeError):
     backend.eigs(lambda x: x)
-
+  with pytest.raises(ValueError):
+    backend.eigs(np.random.rand(2, 2), initial_state=np.random.rand(3))
 
 def index_update():
   backend = shell_backend.ShellBackend()
