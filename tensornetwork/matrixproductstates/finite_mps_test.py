@@ -92,7 +92,8 @@ def test_local_measurement_finite_mps(backend_dtype_values):
   np.testing.assert_allclose(result_2, np.ones(N) * 0.5)
 
 
-def test_correlation_measurement_finite_mps(backend_dtype_values):
+@pytest.mark.parametrize("N1", [0, 5, 9])
+def test_correlation_measurement_finite_mps(backend_dtype_values, N1):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
@@ -113,12 +114,10 @@ def test_correlation_measurement_finite_mps(backend_dtype_values):
   mps_2.position(0)
 
   sz = np.diag([0.5, -0.5]).astype(dtype)
-  result_1 = np.array(
-      mps_1.measure_two_body_correlator(sz, sz, N // 2, range(N)))
-  result_2 = np.array(
-      mps_2.measure_two_body_correlator(sz, sz, N // 2, range(N)))
+  result_1 = np.array(mps_1.measure_two_body_correlator(sz, sz, N1, range(N)))
+  result_2 = np.array(mps_2.measure_two_body_correlator(sz, sz, N1, range(N)))
   actual = np.zeros(N)
-  actual[N // 2] = 0.25
+  actual[N1] = 0.25
   np.testing.assert_almost_equal(result_1, actual)
   np.testing.assert_allclose(result_2, np.ones(N) * 0.25)
 

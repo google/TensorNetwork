@@ -15,6 +15,7 @@
 import numpy as np
 import pytest
 from tensornetwork import Node
+from tensornetwork.contractors import auto
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
 
 
@@ -141,8 +142,7 @@ def test_ignore_edge_order(backend, path_algorithm):
   e0 = b[3]
   e1 = b[4]
 
-  final_node = path_algorithm({a, b},
-                              ignore_edge_order=True)
+  final_node = path_algorithm({a, b}, ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
 
@@ -158,11 +158,10 @@ def test_ignore_edge_order_with_order(backend, path_algorithm):
   e0 = b[3]
   e1 = b[4]
 
-  final_node = path_algorithm({a, b},
-                              [e1, e0],
-                              ignore_edge_order=True)
+  final_node = path_algorithm({a, b}, [e1, e0], ignore_edge_order=True)
 
   assert set(final_node.edges) == {e0, e1}
+
 
 def test_disconnected_network(backend, path_algorithm):
   a = Node(np.eye(2), backend=backend)
@@ -178,6 +177,22 @@ def test_disconnected_network(backend, path_algorithm):
   g[0] ^ f[1]
   final_edges = [a[0], b[1], c[1], d[0], e[1], g[1]]
   result = path_algorithm(
-      {a, b, c, d, e, f, g}, 
+      {a, b, c, d, e, f, g},
       final_edges)
   assert result.edges == final_edges
+
+def test_passes_ignore_edge_order_from_auto(backend):
+  a = Node(np.eye(2), backend=backend)
+  b = Node(np.eye(2), backend=backend)
+  c = Node(np.eye(2), backend=backend)
+  d = Node(np.eye(2), backend=backend)
+  e = Node(np.eye(2), backend=backend)
+  # pylint: disable=pointless-statement
+  a[1] ^ b[0]
+  c[0] ^ d[1]
+  c[1] ^ e[0]
+  nodes = [a, b, c, d, e]
+  try:
+    auto(nodes, ignore_edge_order=True)
+  except ValueError:
+    pytest.fail("auto should pass ignore_edge_order when n >= 5 && n < 7")

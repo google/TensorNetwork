@@ -299,8 +299,10 @@ def test_node_contraction(backend):
 
 def test_backend_network(backend):
   a = np.random.randn(2, 2, 2)
-  nodes, _, out_edges = ncon_interface.ncon_network(
-      [a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)], backend=backend)
+  nodes, _, out_edges = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2),
+                                                                (1, 2, 3),
+                                                                (3, -2, -3)],
+                                                    backend=backend)
   res = greedy(nodes, out_edges).tensor
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))

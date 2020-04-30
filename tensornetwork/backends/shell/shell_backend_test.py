@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for tensornetwork.backends.shell.shell_backend"""
+"""Tests for tensornetwork.backends.shell.shell_backend."""
 
 import numpy as np
 import pytest
@@ -277,3 +277,41 @@ def test_matrix_inv_raises():
   matrix = backend.randn((4, 4, 4), seed=10)
   with pytest.raises(ValueError):
     backend.inv(matrix)
+
+
+def test_broadcast_right_multiplication():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((2, 4, 3))
+  tensor2 = backend.randn((3,))
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [2, 4, 3])
+
+
+def test_broadcast_right_multiplication_raises():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((2, 4, 3))
+  tensor2 = backend.randn((3, 3))
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+def test_broadcast_left_multiplication():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3,))
+  tensor2 = backend.randn((3, 4, 2))
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [3, 4, 2])
+
+
+def test_broadcast_left_multiplication_raises():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3, 3))
+  tensor2 = backend.randn((3, 4, 2))
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  backend = shell_backend.ShellBackend()
+  tensor = backend.randn((2, 3, 4), seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)

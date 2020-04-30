@@ -18,6 +18,18 @@ import numpy as np
 from tensornetwork.backends.base_backend import BaseBackend
 
 
+def test_replicate_nodes(backend):
+  a = tn.Node(np.random.rand(10, 10), backend=backend)
+  b = tn.Node(np.random.rand(10, 10), backend=backend)
+  c = tn.Node(np.random.rand(10, 10), backend=backend)
+  tn.connect(a[1], b[0])
+  tn.connect(b[1], c[0])
+  [a_copy, b_copy] = tn.replicate_nodes([a, b])
+  assert b_copy in tn.reachable([a_copy])
+  assert not set([a_copy, b_copy]).issubset(tn.reachable([c]))
+  assert len(b_copy.get_all_dangling()) == 1
+
+
 def test_split_node_full_svd_names(backend):
   a = tn.Node(np.random.rand(10, 10), backend=backend)
   e1 = a[0]
@@ -36,6 +48,48 @@ def test_split_node_full_svd_names(backend):
   assert s[0].name == 'left_edge'
   assert s[1].name == 'right_edge'
   assert right.edges[0].name == 'right_edge'
+
+
+def test_split_node_relative_tolerance(backend):
+  absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  max_truncation_err = 0.2
+
+  _, _, trunc_sv_absolute, = tn.split_node(
+      node=absolute,
+      left_edges=[absolute[0]],
+      right_edges=[absolute[1]],
+      max_truncation_err=max_truncation_err,
+      relative=False)
+  _, _, trunc_sv_relative, = tn.split_node(
+      node=relative,
+      left_edges=[relative[0]],
+      right_edges=[relative[1]],
+      max_truncation_err=max_truncation_err,
+      relative=True)
+  np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+  np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
+
+
+def test_split_node_full_svd_relative_tolerance(backend):
+  absolute = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  relative = tn.Node(np.diag([2.0, 1.0, 0.2, 0.1]), backend=backend)
+  max_truncation_err = 0.2
+
+  _, _, _, trunc_sv_absolute, = tn.split_node_full_svd(
+      node=absolute,
+      left_edges=[absolute[0]],
+      right_edges=[absolute[1]],
+      max_truncation_err=max_truncation_err,
+      relative=False)
+  _, _, _, trunc_sv_relative, = tn.split_node_full_svd(
+      node=relative,
+      left_edges=[relative[0]],
+      right_edges=[relative[1]],
+      max_truncation_err=max_truncation_err,
+      relative=True)
+  np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+  np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
 
 
 def test_split_node_rq_names(backend):
@@ -317,6 +371,7 @@ def test_reduced_density_nondangling(backend):
   with pytest.raises(ValueError, match=err_msg):
     tn.reduced_density([a[0], b[1], c[1]])
 
+
 def test_reduced_density_contraction(backend):
   if backend == "pytorch":
     pytest.skip("pytorch doesn't support complex numbers")
@@ -421,3 +476,27 @@ def test_switch_backend_raises_error(backend):
   a.backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     tn.switch_backend({a}, backend)
+
+
+def test_split_node_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_full_svd_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_full_svd(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_rq_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_rq(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+
+def test_split_node_qr_orig_shape(backend):
+  n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
+  tn.split_node_qr(n1, [n1[0], n1[2]], [n1[1]])
+  np.testing.assert_allclose(n1.shape, (3, 4, 5))

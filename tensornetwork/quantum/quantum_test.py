@@ -120,8 +120,8 @@ def test_identity(backend):
   E = qu.identity((2, 2), backend=backend)
   np.testing.assert_allclose((E @ psi).eval(), psi.eval())
 
-  np.testing.assert_allclose(
-      (psi.adjoint() @ E @ psi).eval(), psi.norm().eval())
+  np.testing.assert_allclose((psi.adjoint() @ E @ psi).eval(),
+                             psi.norm().eval())
 
   op = qu.QuOperator.from_tensor(tensor, [0], [1], backend=backend)
   op_I = op.tensor_product(E)
@@ -169,6 +169,7 @@ def test_mul(backend):
 
   with pytest.raises(ValueError):
     _ = (op * mat)
+
 
 def test_expectations(backend):
   if backend == 'pytorch':

@@ -3,6 +3,7 @@ import numpy as np
 from tensornetwork.backends.pytorch import pytorch_backend
 import torch
 import pytest
+from unittest.mock import Mock
 
 torch_dtypes = [torch.float32, torch.float64, torch.int32]
 torch_eye_dtypes = [torch.float32, torch.float64, torch.int32, torch.int64]
@@ -40,6 +41,18 @@ def test_shape_concat():
   b = backend.convert_to_tensor(np.ones((1, 2, 1)))
   expected = backend.shape_concat((a, b), axis=1)
   actual = np.array([[[2.0], [2.0], [2.0], [1.0], [1.0]]])
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_slice():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.convert_to_tensor(np.array(
+      [[1., 2., 3.],
+       [4., 5., 6.],
+       [7., 8., 9.]]
+      ))
+  actual = backend.slice(a, (1, 1), (2, 2))
+  expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
 
 
@@ -213,8 +226,8 @@ def test_random_uniform_boundaries(dtype):
   backend = pytorch_backend.PyTorchBackend()
   a = backend.random_uniform((4, 4), seed=10, dtype=dtype)
   b = backend.random_uniform((4, 4), (lb, ub), seed=10, dtype=dtype)
-  assert(torch.ge(a, 0).byte().all() and torch.le(a, 1).byte().all() and
-         torch.ge(b, lb).byte().all() and torch.le(b, ub).byte().all())
+  assert (torch.ge(a, 0).byte().all() and torch.le(a, 1).byte().all() and
+          torch.ge(b, lb).byte().all() and torch.le(b, ub).byte().all())
 
 
 def test_random_uniform_behavior():
@@ -237,7 +250,7 @@ def test_conj():
 def test_eigsh_lanczos_1():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
-  D = 16
+  D = 24
   init = backend.randn((D,), dtype=dtype)
   tmp = backend.randn((D, D), dtype=dtype)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
@@ -246,7 +259,35 @@ def test_eigsh_lanczos_1():
     return H.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, init)
-  eta2, U2 = H.symeig()
+  eta2, U2 = H.symeig(eigenvectors=True)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_lanczos_reorthogonalize():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  D = 16
+  init = backend.randn((D,), dtype=dtype)
+  tmp = backend.randn((D, D), dtype=dtype)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  class LinearOperator:
+
+    def __init__(self, shape, dtype):
+      self.shape = shape
+      self.dtype = dtype
+
+    def __call__(self, x):
+      return H.mv(x)
+
+  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
   v1 = np.reshape(U1[0], (D))
@@ -272,14 +313,15 @@ def test_eigsh_lanczos_2():
       return H.mv(x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv)
-  eta2, U2 = H.symeig()
+  eta1, U1 = backend.eigsh_lanczos(
+      mv, reorthogonalize=True, ndiag=1, tol=10**(-12), delta=10**(-12))
+  eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
   v1 = np.reshape(U1[0], (D))
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(eta1[0], min(eta2))
-  np.testing.assert_allclose(v1, v2)
+  np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
 
 
 def test_eigsh_lanczos_raises():
@@ -294,7 +336,8 @@ def test_eigsh_lanczos_raises():
 
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(1, 1, 2),
-    pytest.param(np.ones((1, 2, 3)), np.ones((1, 2, 3)), 2.*np.ones((1, 2, 3))),
+    pytest.param(
+        np.ones((1, 2, 3)), np.ones((1, 2, 3)), 2. * np.ones((1, 2, 3))),
 ])
 def test_addition(a, b, expected):
   backend = pytorch_backend.PyTorchBackend()
@@ -336,7 +379,8 @@ def test_multiply(a, b, expected):
 
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(2., 2., 1.),
-    pytest.param(np.ones(()), 2.*np.ones((1, 2, 3)), 0.5*np.ones((1, 2, 3))),
+    pytest.param(
+        np.ones(()), 2. * np.ones((1, 2, 3)), 0.5 * np.ones((1, 2, 3))),
 ])
 def test_divide(a, b, expected):
   backend = pytorch_backend.PyTorchBackend()
@@ -388,3 +432,69 @@ def test_matrix_inv_raises(dtype):
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
   with pytest.raises(ValueError):
     backend.inv(matrix)
+
+
+def test_eigs_not_implemented():
+  backend = pytorch_backend.PyTorchBackend()
+  with pytest.raises(NotImplementedError):
+    backend.eigs(np.ones((2, 2)))
+
+
+def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
+  backend = pytorch_backend.PyTorchBackend()
+  A = backend.randn((4, 4), dtype=torch.float64)
+  init = backend.randn((3,), dtype=torch.float64)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(A, initial_state=init)
+
+
+def test_eigsh_lanczos_raises_error_for_untyped_A():
+  backend = pytorch_backend.PyTorchBackend()
+  A = Mock(spec=[])
+  A.shape = Mock(return_value=(2, 2))
+  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
+            "Please provide a valid `initial_state` with a `dtype` attribute"
+  with pytest.raises(AttributeError, match=err_msg):
+    backend.eigsh_lanczos(A)
+
+
+def test_broadcast_right_multiplication():
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.randn((2, 4, 3), dtype=torch.float64, seed=10)
+  tensor2 = backend.randn((3,), dtype=torch.float64, seed=10)
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, tensor1 * tensor2)
+
+
+def test_broadcast_right_multiplication_raises():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_right_multiplication(tensor1, tensor2)
+
+
+def test_broadcast_left_multiplication():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.randn((3,), dtype=dtype, seed=10)
+  tensor2 = backend.randn((3, 4, 2), dtype=dtype, seed=10)
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out, np.reshape(tensor1, (3, 1, 1)) * tensor2)
+
+
+def test_broadcast_left_multiplication_raises():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  tensor1 = backend.randn((3, 3), dtype=dtype, seed=10)
+  tensor2 = backend.randn((2, 4, 3), dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    backend.broadcast_left_multiplication(tensor1, tensor2)
+
+
+def test_sparse_shape():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
+  np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)

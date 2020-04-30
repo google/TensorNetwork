@@ -1,9 +1,12 @@
 Contractors
 ------------------
 
+.. autosummary::
+     :toctree: stubs
 
-.. autofunction:: tensornetwork.contractors.greedy
-.. autofunction:: tensornetwork.contractors.branch
-.. autofunction:: tensornetwork.contractors.optimal
-.. autofunction:: tensornetwork.contractors.auto
-.. autofunction:: tensornetwork.contractors.custom
+     tensornetwork.contractors.greedy
+     tensornetwork.contractors.bucket
+     tensornetwork.contractors.branch
+     tensornetwork.contractors.optimal
+     tensornetwork.contractors.auto
+     tensornetwork.contractors.custom
