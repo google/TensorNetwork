@@ -9,6 +9,7 @@ TensorNetwork reference documentation
    copy_contract
    quantum_circuit
    block_sparse_tutorial
+   node_spliting
    
 .. toctree::
    :maxdepth: 1
