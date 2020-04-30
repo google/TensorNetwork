@@ -6,6 +6,7 @@ TensorNetwork reference documentation
    :caption: Tutorials
 
    tutorial
+   copy_contract
    quantum_circuit
    block_sparse_tutorial
    
