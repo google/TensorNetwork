@@ -33,7 +33,7 @@ When contracting a network with more than one dangling leg, you must specify the
 
 If you do not care about the final output order (for instance, if you are only doing a partial network contraction and the intermidiate order doesn't matter), then you can set `ignore_output_order=False` and you won't need to supply an `output_edge_order`.
 
-Contracting subgraph.
+Contracting subgraph
 ---------------------
 There are many instances when you want to contract only a subset of your network. Perhaps you know good intermidiate states, but not how to get there efficiently. You can still very easily get a good contraction order by using the subnetwork contraction feature of the `contractors`.
 
@@ -47,6 +47,36 @@ There are many instances when you want to contract only a subset of your network
 
 
 .. figure:: _static/subgraph_contract.png
+
+Reusing networks
+------------------
+When building tensor networks, it's very common to want to use a single tensornetwork for many purposes. For example, a user may want to use an MPS to calculate an inner product with some product state as well as its partition function. `Nodes` within `tensornetwork` are mutable, so to presever the original MPS connectivity, you'd need to copy the nodes before contraction.
+
+ .. code-block:: python3
+
+  # Calcualte the inner product of two MPS/Product state networks.
+  def inner_product(x: List[tn.Node], y: List[tn.Node]) -> tn.Node:
+    for a, b in zip(x, y)
+      # Assume all of the dangling edges are mapped to the name "dangling"
+      tn.connect(a["dangling"], b["dangling"])
+   return tn.contractors.greedy(x + y)
+
+   # Build your original MPS
+   mps_nodes = build_your_mps(...)
+
+   # Calculate the inner product with a product_state
+   product_state_nodes = build_your_product_state(...)
+   mps_copy = tn.replicate_nodes(mps_nodes)
+   result1 = inner_product(mps_copy, product_state_nodes)
+
+   # Calculate the partition function.
+  mps_copy = tn.replicate_nodes(mps_nodes)
+  mps_conj_copy = tn.replicate_nodes(mps_nodes, conjugate=True)
+  result2 = inner_product(mps_copy, mps_conj_copy)
+
+If you need more advance access to your copied network, `tn.copy` will return two dictionaries mapping your original nodes and edges to the newly copied versions.
+
+
 
 Copying subnetwork
 ------------------
