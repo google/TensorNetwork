@@ -288,13 +288,10 @@ class ShellBackend(base_backend.BaseBackend):
           ShellTensor(A.shape[0]) for _ in range(numeig)
       ]
 
-    if initial_state is not None:
+    else:
       return [ShellTensor(tuple()) for _ in range(numeig)], [
           ShellTensor(initial_state.shape) for _ in range(numeig)
       ]
-
-    raise ValueError(
-        '`A` has no attribut shape adn no `initial_state` is given.')
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")
