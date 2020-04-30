@@ -54,7 +54,7 @@ class ChargeArray:
   def __init__(self,
                data: np.ndarray,
                charges: List[BaseCharge],
-               flows: List[bool],
+               flows: Union[np.ndarray, List[bool]],
                order: Optional[List[List[int]]] = None,
                check_consistency: Optional[bool] = False) -> None:
     """
@@ -163,7 +163,7 @@ class ChargeArray:
     return list(self._flows)
 
   @property
-  def flat_order(self) -> List:
+  def flat_order(self) -> np.ndarray:
     """
     The flattened `ChargeArray._oder`.
     """
@@ -191,10 +191,8 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def reshape(
-      self,
-      shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
-  ) -> "ChargeArray":
+  def reshape(self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...],
+                                 List[int], Tuple[int, ...]]) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `ChargeArray.reshape` works the same as the dense 
@@ -329,10 +327,10 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose(self,
-                order: Optional[Union[List[int], np.ndarray]] = np.asarray(
-                    [1, 0]),
-                shuffle: Optional[bool] = False) -> "ChargeArray":
+  def transpose(
+      self,
+      order: Union[Tuple[int, ...], List[int], np.ndarray] = np.asarray([1, 0]),
+      shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
     no data-reshuffling is done.
@@ -418,7 +416,7 @@ class BlockSparseTensor(ChargeArray):
   def __init__(self,
                data: np.ndarray,
                charges: List[BaseCharge],
-               flows: List[bool],
+               flows: Union[np.ndarray, List[bool]],
                order: Optional[List[Union[List, np.ndarray]]] = None,
                check_consistency: Optional[bool] = False) -> None:
     """
@@ -646,9 +644,10 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   # pylint: disable=arguments-differ
-  def transpose_data(self,
-                     flat_order: Optional[Union[List, np.ndarray]] = None,
-                     inplace: Optional[bool] = False) -> Any:
+  def transpose_data(
+      self,
+      flat_order: Optional[Union[Tuple, List, np.ndarray]] = None,
+      inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
     of the elements in `BlockSparseTensor.data` corresponds to the 
