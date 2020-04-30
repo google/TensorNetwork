@@ -16,7 +16,7 @@
 
 import numpy as np
 import pytest
-from tensornetwork.backends.shell import shell_backend, ShellTensor
+from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.numpy import numpy_backend
 
 
@@ -27,7 +27,7 @@ def assertBackendsAgree(f, args):
 
 
 def test_shell_tensor_reshape():
-  shell_tensor = ShellTensor((2, 1), np.float64)
+  shell_tensor = shell_backend.ShellTensor((2, 1), np.float64)
   shell_tensor = shell_tensor.reshape((1, 2))
   assert shell_tensor.shape == (1, 2)
 
@@ -70,6 +70,14 @@ def test_svd_decomposition_with_max_values():
       tensor, 3, max_singular_values=5)
   sh_res = shell_backend.ShellBackend().svd_decomposition(
       tensor, 3, max_singular_values=5)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
+
+
+def test_qr_decomposition():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().qr_decomposition(tensor, 3)
+  sh_res = shell_backend.ShellBackend().qr_decomposition(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
