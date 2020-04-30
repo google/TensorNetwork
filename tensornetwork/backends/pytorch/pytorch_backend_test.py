@@ -56,6 +56,17 @@ def test_slice():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_slice_raises_error():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.convert_to_tensor(np.array(
+      [[1., 2., 3.],
+       [4., 5., 6.],
+       [7., 8., 9.]]
+      ))
+  with pytest.raises(ValueError):
+    backend.slice(a, (1, 1), (2, 2, 2))
+
+
 def test_shape_tensor():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(np.ones([2, 3, 4]))
@@ -266,6 +277,18 @@ def test_eigsh_lanczos_1():
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_small_number_krylov_vectors():
+  backend = pytorch_backend.PyTorchBackend()
+  init = backend.convert_to_tensor(np.array([1, 1], dtype=np.float64))
+  H = backend.convert_to_tensor(np.array([[1, 2], [3, 4]], dtype=np.float64))
+
+  def mv(x):
+    return H.mv(x)
+
+  eta1, _ = backend.eigsh_lanczos(mv, init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta1[0], 5)
 
 
 def test_eigsh_lanczos_reorthogonalize():

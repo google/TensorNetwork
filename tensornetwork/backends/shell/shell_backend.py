@@ -93,7 +93,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -103,7 +103,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -246,16 +246,11 @@ class ShellBackend(base_backend.BaseBackend):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
       return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)
-      ]
+          ShellTensor((A.shape[0],)) for _ in range(numeig)]
 
-    if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
+    return [ShellTensor(tuple()) for _ in range(numeig)], [
+        ShellTensor(initial_state.shape) for _ in range(numeig)]
 
-    raise ValueError(
-        '`A` has no attribut shape and no `initial_state` is given.')
 
   def eigsh_lanczos(
       self,
@@ -287,16 +282,10 @@ class ShellBackend(base_backend.BaseBackend):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
       return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)
-      ]
+          ShellTensor(A.shape[0]) for _ in range(numeig)]
 
-    if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
-
-    raise ValueError(
-        '`A` has no attribut shape adn no `initial_state` is given.')
+    return [ShellTensor(tuple()) for _ in range(numeig)], [
+        ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")

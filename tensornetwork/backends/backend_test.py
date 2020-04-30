@@ -383,3 +383,21 @@ def test_base_backend_expm_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.expm(np.ones((2, 2)))
+
+
+def test_base_backend_sparse_shape_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sparse_shape(np.ones((2, 2)))
+
+
+def test_base_backend_broadcast_right_multiplication_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.broadcast_right_multiplication(np.ones((2, 2)), np.ones((2, 2)))
+
+
+def test_base_backend_broadcast_left_multiplication_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.broadcast_left_multiplication(np.ones((2, 2)), np.ones((2, 2)))
