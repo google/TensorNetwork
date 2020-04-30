@@ -40,9 +40,9 @@ There are many instances when you want to contract only a subset of your network
  .. code-block:: python3
 
   # Say all of these nodes are connected somehow.
-  a, b, c, d, e, f, g = build_your_network(...)
+  a, b, c, d, e, f = build_your_network(...)
   tmp1  = tn.contractors.optimal([a, b, c], ignore_edge_order=True)
-  tmp2 = tn.contractors.optimal([x, y, z], ignore_edge_order=True)
+  tmp2 = tn.contractors.optimal([d, e, f], ignore_edge_order=True)
   result = tmp1 @ tmp2
 
 
@@ -59,17 +59,17 @@ When building tensor networks, it's very common to want to use a single tensorne
     for a, b in zip(x, y)
       # Assume all of the dangling edges are mapped to the name "dangling"
       tn.connect(a["dangling"], b["dangling"])
-   return tn.contractors.greedy(x + y)
+    return tn.contractors.greedy(x + y)
 
-   # Build your original MPS
-   mps_nodes = build_your_mps(...)
+  # Build your original MPS
+  mps_nodes = build_your_mps(...)
 
-   # Calculate the inner product with a product_state
-   product_state_nodes = build_your_product_state(...)
-   mps_copy = tn.replicate_nodes(mps_nodes)
-   result1 = inner_product(mps_copy, product_state_nodes)
+  # Calculate the inner product with a product_state
+  product_state_nodes = build_your_product_state(...)
+  mps_copy = tn.replicate_nodes(mps_nodes)
+  result1 = inner_product(mps_copy, product_state_nodes)
 
-   # Calculate the partition function.
+  # Calculate the partition function.
   mps_copy = tn.replicate_nodes(mps_nodes)
   mps_conj_copy = tn.replicate_nodes(mps_nodes, conjugate=True)
   result2 = inner_product(mps_copy, mps_conj_copy)
