@@ -93,7 +93,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -103,7 +103,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
