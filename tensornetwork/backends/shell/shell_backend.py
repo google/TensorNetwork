@@ -254,9 +254,6 @@ class ShellBackend(base_backend.BaseBackend):
           ShellTensor(initial_state.shape) for _ in range(numeig)
       ]
 
-    raise ValueError(
-        '`A` has no attribute shape and no `initial_state` is given.')
-
   def eigsh_lanczos(
       self,
       A: Callable,
