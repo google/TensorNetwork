@@ -81,3 +81,19 @@ def test_max_truncation_error():
   np.testing.assert_array_almost_equal(s, np.arange(9, 2, -1), decimal=5)
   assert vh.shape == (7, 10)
   np.testing.assert_array_almost_equal(trun, np.arange(2, -1, -1))
+
+
+def test_max_truncation_error_relative():
+  absolute = np.diag([2.0, 1.0, 0.2, 0.1])
+  relative = np.diag([2.0, 1.0, 0.2, 0.1])
+  max_truncation_err = 0.2
+  _, _, _, trunc_sv_absolute = decompositions.svd_decomposition(
+      torch, torch.Tensor(absolute), 1,
+      max_truncation_error=max_truncation_err,
+      relative=False)
+  _, _, _, trunc_sv_relative = decompositions.svd_decomposition(
+      torch, torch.Tensor(relative), 1,
+      max_truncation_error=max_truncation_err,
+      relative=True)
+  np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
+  np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])

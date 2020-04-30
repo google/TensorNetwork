@@ -5,9 +5,7 @@ import numpy as np
 import tensornetwork as tn
 
 
-def add_fft(
-    inputs: List[tn.Edge],
-) -> List[tn.Edge]:
+def add_fft(inputs: List[tn.Edge],) -> List[tn.Edge]:
   """Creates output node axes corresponding to the Fourier transform of inputs.
 
   Uses Cooley-Tukey's FFT algorithm. All axes are expected to have length 2. The

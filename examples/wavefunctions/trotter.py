@@ -19,17 +19,17 @@ import tensorflow as tf
 def trotter_prepare_gates(H, step_size, num_sites, euclidean):
   """Prepare gates using 1st-order trotter decomposition.
 
-    Currently only implemented for nearest-neighbor Hamiltonians.
+  Currently only implemented for nearest-neighbor Hamiltonians.
 
-    Args:
-      H: List of Hamiltonian terms. Should be length num_sites-1.
-      step_size: The trotter step size (a scalar).
-      num_sites: The total number of sites in the system (an integer).
-      euclidean: Whether the evolution is euclidean, or not (boolean).
-    Returns:
-      layers: A list of layers, with each layer a list of gates, one for each
-        site, or `None` if no gate is applied to that site in the layer.
-    """
+  Args:
+    H: List of Hamiltonian terms. Should be length num_sites-1.
+    step_size: The trotter step size (a scalar).
+    num_sites: The total number of sites in the system (an integer).
+    euclidean: Whether the evolution is euclidean, or not (boolean).
+  Returns:
+    layers: A list of layers, with each layer a list of gates, one for each
+      site, or `None` if no gate is applied to that site in the layer.
+  """
   if not len(H) == num_sites - 1:
     raise ValueError("Number of H terms must match number of sites - 1.")
 

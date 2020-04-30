@@ -15,7 +15,8 @@
 import functools
 import operator
 from tensornetwork.backends import base_backend
-from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable
+#pylint: disable=line-too-long
+from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
 
 
@@ -36,10 +37,9 @@ Tensor = ShellTensor
 class ShellBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[Type[np.number]] = None):
+  def __init__(self):
     super(ShellBackend, self).__init__()
     self.name = "shell"
-    self._dtype = dtype
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -66,7 +66,8 @@ class ShellBackend(base_backend.BaseBackend):
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
@@ -107,7 +108,7 @@ class ShellBackend(base_backend.BaseBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
+  def shape_concat(self, values: Sequence[Tensor], axis: int) -> Tensor:
     shape = values[0].shape
     if axis < 0:
       axis += len(shape)
@@ -119,20 +120,23 @@ class ShellBackend(base_backend.BaseBackend):
     tuple_values = (tuple(v) for v in values)
     return functools.reduce(operator.concat, tuple_values)
 
-  def shape(self, tensor: Tensor) -> Tuple:
+  def shape_tensor(self, tensor: Tensor) -> Tuple:
     return tensor.shape
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> int:
+  def sparse_shape(self, tensor):
+    return self.shape_tuple(tensor)
+
+  def shape_prod(self, values: Tensor) -> int:
     # This is different from the BaseBackend prod!
     # prod calculates the product of tensor elements and cannot implemented
     # for shell tensors
     # This returns the product of sizes instead
-    return self.shape_prod(values.shape)
+    return self.shape_product(values.shape)
 
-  def shape_prod(self, shape: Sequence[int]) -> int:
+  def shape_product(self, shape: Sequence[int]) -> int:
     return functools.reduce(operator.mul, shape)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -207,22 +211,65 @@ class ShellBackend(base_backend.BaseBackend):
             seed: Optional[int] = None) -> Tensor:
     return ShellTensor(shape)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[Type[np.number]] = None,
+                     seed: Optional[int] = None) -> Tensor:
+    return ShellTensor(shape)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor
+
+  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
+    shape = matrix.shape
+    return ShellTensor((shape[0],)), ShellTensor(shape)
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 1,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type] = None) -> Tuple[List, List]:
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor((A.shape[0],)) for _ in range(numeig)
+      ]
+
+    if initial_state is not None:
+      return [ShellTensor(tuple()) for _ in range(numeig)], [
+          ShellTensor(initial_state.shape) for _ in range(numeig)
+      ]
+
+    raise ValueError(
+        '`A` has no attribut shape and no `initial_state` is given.')
 
   def eigsh_lanczos(
       self,
       A: Callable,
       initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
+      num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
 
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
@@ -250,3 +297,53 @@ class ShellBackend(base_backend.BaseBackend):
 
     raise ValueError(
         '`A` has no attribut shape adn no `initial_state` is given.')
+
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented addition( + )")
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError(
+        "Shell tensor has not implemented subtraction( - )")
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    a = np.ones(tensor1.shape)
+    b = np.ones(tensor2.shape)
+    return ShellTensor((a * b).shape)
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    raise NotImplementedError("Shell tensor has not implemented add( / )")
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    return ShellTensor(tensor.shape)
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError(
+          "input to shell backend method `inv` has shape {}. Only matrices are supported."
+          .format(matrix.shape))
+    return ShellTensor(matrix.shape)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
+          .format(tensor2.shape))
+
+    shape2 = tuple(tensor2.shape)
+    if len(shape2) < len(tensor1.shape):
+      shape2 = tuple([1] * (len(tensor1.shape) - len(shape2))) + shape2
+    shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor1.shape, shape2)])
+    return ShellTensor(shape)
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError(
+          "only order-1 tensors are allowed for `tensor1`, found `tensor1.shape = {}`"
+          .format(tensor1.shape))
+
+    shape1 = tuple(tensor1.shape)
+    if len(shape1) < len(tensor2.shape):
+      shape1 = shape1 + tuple([1] * (len(tensor2.shape) - len(shape1)))
+    shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor2.shape, shape1)])
+    return ShellTensor(shape)

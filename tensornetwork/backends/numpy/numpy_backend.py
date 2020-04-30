@@ -11,23 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import Optional, Any, Sequence, Tuple, Callable, List
+#pyling: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy
 import scipy
+from scipy import linalg
 Tensor = Any
 
 
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self, dtype: Optional[numpy.dtype] = None):
+  def __init__(self):
     super(NumPyBackend, self).__init__()
     self.np = numpy
+    self.sp = scipy
+    self.sp.linalg = linalg
     self.name = "numpy"
-    self._dtype = self.np.dtype(dtype) if dtype is not None else None
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     return self.np.tensordot(a, b, axes)
@@ -38,14 +40,30 @@ class NumPyBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.np.transpose(tensor, perm)
 
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
+            slice_sizes: Tuple[int, ...]) -> Tensor:
+    if len(start_indices) != len(slice_sizes):
+      raise ValueError("Lengths of start_indices and slice_sizes must be"
+                       "identical.")
+    obj = tuple(
+        slice(start, start + size)
+        for start, size in zip(start_indices, slice_sizes))
+    return tensor[obj]
+
   def svd_decomposition(self,
                         tensor: Tensor,
                         split_axis: int,
                         max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None
+                        max_truncation_error: Optional[float] = None,
+                        relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
-        self.np, tensor, split_axis, max_singular_values, max_truncation_error)
+        self.np,
+        tensor,
+        split_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
 
   def qr_decomposition(
       self,
@@ -61,16 +79,19 @@ class NumPyBackend(base_backend.BaseBackend):
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq_decomposition(self.np, tensor, split_axis)
 
-  def concat(self, values: Tensor, axis: int) -> Tensor:
+  def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return self.np.concatenate(values, axis)
 
-  def shape(self, tensor: Tensor) -> Tensor:
+  def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tensor.shape
 
-  def prod(self, values: Tensor) -> Tensor:
+  def sparse_shape(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
+    return self.shape_tuple(tensor)
+
+  def shape_prod(self, values: Tensor) -> Tensor:
     return self.np.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
@@ -87,10 +108,6 @@ class NumPyBackend(base_backend.BaseBackend):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = self.np.asarray(tensor)
-    if self.dtype is not None and self.np.dtype(result.dtype) != self.dtype:
-      raise TypeError(
-          "Backend '{}' cannot convert tensor of dtype {} to dtype {}".format(
-              self.name, result.dtype, numpy.dtype(self.dtype)))
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
@@ -108,23 +125,18 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def eye(self, N, dtype: Optional[numpy.dtype] = None,
           M: Optional[int] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
+    dtype = dtype if dtype is not None else self.np.float64
 
     return self.np.eye(N, M=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
-
+    dtype = dtype if dtype is not None else self.np.float64
     return self.np.ones(shape, dtype=dtype)
 
   def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
-    if not dtype:
-      dtype = self.dtype if self.dtype is not None else self.np.float64
-
+    dtype = dtype if dtype is not None else self.np.float64
     return self.np.zeros(shape, dtype=dtype)
 
   def randn(self,
@@ -134,26 +146,128 @@ class NumPyBackend(base_backend.BaseBackend):
 
     if seed:
       self.np.random.seed(seed)
-
-    if not dtype:
-      dtype = (
-          self.dtype
-          if self.dtype is not None else self.np.dtype(self.np.float64))
-
-    if ((dtype is self.np.dtype(self.np.complex128)) or
-        (dtype is self.np.dtype(self.np.complex64))):
+    dtype = dtype if dtype is not None else self.np.float64
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
       return self.np.random.randn(*shape).astype(
           dtype) + 1j * self.np.random.randn(*shape).astype(dtype)
     return self.np.random.randn(*shape).astype(dtype)
 
+  def random_uniform(self,
+                     shape: Tuple[int, ...],
+                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                     dtype: Optional[numpy.dtype] = None,
+                     seed: Optional[int] = None) -> Tensor:
+
+    if seed:
+      self.np.random.seed(seed)
+    dtype = dtype if dtype is not None else self.np.float64
+    if ((self.np.dtype(dtype) is self.np.dtype(self.np.complex128)) or
+        (self.np.dtype(dtype) is self.np.dtype(self.np.complex64))):
+      return self.np.random.uniform(
+          boundaries[0], boundaries[1],
+          shape).astype(dtype) + 1j * self.np.random.uniform(
+              boundaries[0], boundaries[1], shape).astype(dtype)
+    return self.np.random.uniform(boundaries[0], boundaries[1],
+                                  shape).astype(dtype)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return self.np.conj(tensor)
+
+  def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
+    return self.np.linalg.eigh(matrix)
+
+  def eigs(self,
+           A: Callable,
+           initial_state: Optional[Tensor] = None,
+           num_krylov_vecs: Optional[int] = 200,
+           numeig: Optional[int] = 6,
+           tol: Optional[float] = 1E-8,
+           which: Optional[Text] = 'LR',
+           maxiter: Optional[int] = None,
+           dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` can be either a
+    scipy.sparse.linalg.LinearOperator object or a regular callable.
+    If no `initial_state` is provided then `A` has to have an attribute
+    `shape` so that a suitable initial state can be randomly generated.
+    This is a wrapper for scipy.sparse.linalg.eigs which only supports
+    a subset of the arguments of scipy.sparse.linalg.eigs.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn`
+        method.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+      maxiter: The maximum number of iterations.
+      dtype: An optional numpy-dtype. If provided, the
+        return type will be cast to `dtype`.
+    Returns:
+       `np.ndarray`: An array of `numeig` lowest eigenvalues
+       `np.ndarray`: An array of `numeig` lowest eigenvectors
+    """
+    if which == 'SI':
+      raise ValueError('which = SI is currently not supported.')
+    if which == 'LI':
+      raise ValueError('which = LI is currently not supported.')
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
+
+    if not isinstance(initial_state, self.np.ndarray):
+      raise TypeError("Expected a `np.array`. Got {}".format(
+          type(initial_state)))
+    #initial_state is an np.ndarray of rank 1, so we can
+    #savely deduce the shape from it
+    lop = scipy.sparse.linalg.LinearOperator(
+        dtype=initial_state.dtype,
+        shape=(initial_state.shape[0], initial_state.shape[0]),
+        matvec=A)
+    eta, U = scipy.sparse.linalg.eigs(
+        A=lop,
+        k=numeig,
+        which=which,
+        v0=initial_state,
+        ncv=num_krylov_vecs,
+        tol=tol,
+        maxiter=maxiter)
+    if dtype:
+      eta = eta.astype(dtype)
+      U = U.astype(dtype)
+    return list(eta), [U[:, n] for n in range(numeig)]
 
   def eigsh_lanczos(
       self,
       A: Callable,
       initial_state: Optional[Tensor] = None,
-      ncv: Optional[int] = 200,
+      num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
@@ -161,13 +275,16 @@ class NumPyBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a `LinearOperator` `A`.
+    of a linear operator `A`. If no `initial_state` is provided
+    then `A` has to have an attribute `shape` so that a suitable initial
+    state can be randomly generated.
+
     Args:
       A: A (sparse) implementation of a linear operator
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn` 
+        a random initial `Tensor` is created using the `numpy.random.randn`
         method
-      ncv: The number of iterations (number of krylov vectors).
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalus. Uses
@@ -175,20 +292,21 @@ class NumPyBackend(base_backend.BaseBackend):
         as stopping criterion between two diagonalization steps of the
         tridiagonal operator.
       delta: Stopping criterion for Lanczos iteration.
-        If two successive Krylov vectors `x_m` and `x_n`
-        have an overlap abs(<x_m|x_n>) < delta, the iteration is stopped.
-        It means that an (approximate) invariant subspace has been found.
-      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations 
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
+        been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
         to check convergence.
-      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by 
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
-    if ncv < numeig:
-      raise ValueError('`ncv` >= `numeig` required!')
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
@@ -204,7 +322,13 @@ class NumPyBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      initial_state = self.randn(A.shape[1])
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
     if not isinstance(initial_state, self.np.ndarray):
       raise TypeError("Expected a `np.array`. Got {}".format(
           type(initial_state)))
@@ -217,9 +341,9 @@ class NumPyBackend(base_backend.BaseBackend):
     krylov_vecs = []
     first = True
     eigvalsold = []
-    for it in range(ncv):
+    for it in range(num_krylov_vecs):
       #normalize the current vector:
-      norm_vector_n = self.np.linalg.norm(vector_n)
+      norm_vector_n = self.norm(vector_n)
       if abs(norm_vector_n) < delta:
         break
       norms_vector_n.append(norm_vector_n)
@@ -227,7 +351,8 @@ class NumPyBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= self.np.dot(self.np.ravel(self.np.conj(v)), vector_n) * v
+          vector_n -= self.np.dot(
+              self.np.ravel(self.np.conj(v)), self.np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n)
       diag_elements.append(
@@ -262,8 +387,69 @@ class NumPyBackend(base_backend.BaseBackend):
       eigvals = self.np.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape)
+      state = self.zeros(initial_state.shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.np.linalg.norm(state))
     return eigvals[0:numeig], eigenvectors
+
+  def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 + tensor2
+
+  def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 - tensor2
+
+  def multiply(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 * tensor2
+
+  def divide(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    return tensor1 / tensor2
+
+  def index_update(self, tensor: Tensor, mask: Tensor,
+                   assignee: Tensor) -> Tensor:
+    t = self.np.copy(tensor)
+    t[mask] = assignee
+    return t
+
+  def inv(self, matrix: Tensor) -> Tensor:
+    if len(matrix.shape) > 2:
+      raise ValueError("input to numpy backend method `inv` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    return self.np.linalg.inv(matrix)
+
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor2.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor2`,"
+                       " found `tensor2.shape = {}`".format(tensor2.shape))
+    return tensor1 * tensor2
+
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+    if len(tensor1.shape) != 1:
+      raise ValueError("only order-1 tensors are allowed for `tensor1`,"
+                       " found `tensor1.shape = {}`".format(tensor1.shape))
+
+    t1_broadcast_shape = self.shape_concat(
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
+    return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
+
+  def sin(self, tensor: Tensor):
+    return self.np.sin(tensor)
+
+  def cos(self, tensor: Tensor):
+    return self.np.cos(tensor)
+
+  def exp(self, tensor: Tensor):
+    return self.np.exp(tensor)
+
+  def log(self, tensor: Tensor):
+    return self.np.log(tensor)
+
+  def expm(self, matrix: Tensor):
+    if len(matrix.shape) != 2:
+      raise ValueError("input to numpy backend method `expm` has shape {}."
+                       " Only matrices are supported.".format(matrix.shape))
+    if matrix.shape[0] != matrix.shape[1]:
+      raise ValueError("input to numpy backend method `expm` only supports"
+                       " N*N matrix, {x}*{y} matrix is given".format(
+                           x=matrix.shape[0], y=matrix.shape[1]))
+    return self.sp.linalg.expm(matrix)

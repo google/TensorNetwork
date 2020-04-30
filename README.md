@@ -1,4 +1,5 @@
-# TensorNetwork
+<img src="https://user-images.githubusercontent.com/8702042/67589472-5a1d0e80-f70d-11e9-8812-64647814ae96.png" width="60%" height="60%">
+
 [![Build Status](https://travis-ci.org/google/TensorNetwork.svg?branch=master)](https://travis-ci.org/google/TensorNetwork)
 
 
@@ -23,6 +24,8 @@ More information can be found in our TensorNetwork papers:
 
 - [TensorNetwork on TensorFlow: A Spin Chain Application Using Tree Tensor Networks](https://arxiv.org/abs/1905.01331)
 
+- [TensorNetwork on TensorFlow: Entanglement Renormalization for quantum critical lattice models](https://arxiv.org/abs/1906.12030)
+
 - [TensorNetwork for Machine Learning](https://arxiv.org/abs/1906.06329)
 
 
@@ -36,7 +39,11 @@ pip3 install tensornetwork
 For details about the TensorNetwork API, see the [reference documentation.](https://tensornetwork.readthedocs.io)
 
 
-We also have a basic [tutorial colab](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu) for a more "hands-on" example.
+## Tutorials
+
+[Basic API tutorial](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu)
+
+[Tensor Networks inside Neural Networks using Keras](https://colab.research.google.com/drive/1JUh84N5sbfQYk6HWowWCGl0IZ1idQi6z)
 ## Basic Example
 
 Here, we build a simple 2 node contraction.
@@ -72,7 +79,7 @@ c = tn.contract_parallel(edge)
 You can split a node by doing a singular value decomposition. 
 ```python
 # This will return two nodes and a tensor of the truncation error.
-# The two nodes are the unitary matricies multiplied by the square root of the
+# The two nodes are the unitary matrices multiplied by the square root of the
 # singular values.
 # The `left_edges` are the edges that will end up on the `u_s` node, and `right_edges`
 # will be on the `vh_s` node.
@@ -136,11 +143,13 @@ print(n.tensor)
 ```
 
 ## Different backend support.
-Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends. 
+Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends.
+We also support tensors with Abelian symmetries via a `symmetric` backend, see the [reference
+documentation](https://tensornetwork.readthedocs.io/en/latest/block_sparse_tutorial.html) for more details.
 
 To change the default global backend, you can do:
 ```python
-tn.set_default_backend("jax") # tensorflow, pytorch, numpy
+tn.set_default_backend("jax") # tensorflow, pytorch, numpy, symmetric
 ```
 Or, if you only want to change the backend for a single `Node`, you can do:
 ```python
