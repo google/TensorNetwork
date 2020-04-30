@@ -320,7 +320,7 @@ def test_eigsh_small_number_krylov_vectors():
 
     def __init__(self, shape, dtype):
       self.shape = shape
-      self.dtype = np.float64
+      self.dtype = dtype
 
     def __call__(self, x):
       return np.dot(H, x)
