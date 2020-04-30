@@ -415,3 +415,10 @@ def test_addition():
   matrix = backend.randn((4, 4, 4), seed=10)
   with pytest.raises(NotImplementedError):
     backend.addition(matrix, matrix)
+
+
+def test_subtraction():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.subtraction(matrix, matrix)
