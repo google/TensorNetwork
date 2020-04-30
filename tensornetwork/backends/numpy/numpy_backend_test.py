@@ -592,16 +592,6 @@ def test_eigs_raises_error_for_incompatible_shapes():
     backend.eigs(A, initial_state=init)
 
 
-def test_eigs_raises_error_for_unshaped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  print(hasattr(A, "shape"))
-  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
-
-
 def test_eigs_raises_error_for_untyped_A():
   backend = numpy_backend.NumPyBackend()
   A = Mock(spec=[])
@@ -671,38 +661,12 @@ def test_eigs_init(dtype, which):
   np.testing.assert_allclose(v1, v2)
 
 
-@pytest.mark.parametrize("which", ['SI', 'LI'])
-def test_eigs_raises_error_for_unsupported_which(which):
-  backend = numpy_backend.NumPyBackend()
-  A = backend.randn((4, 4), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigs(A=A, which=which)
-
-
-def test_eigs_raises_error_for_incompatible_shapes():
-  backend = numpy_backend.NumPyBackend()
-  A = backend.randn((4, 4), dtype=np.float64)
-  init = backend.randn((3,), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigs(A, initial_state=init)
-
-
 def test_eigs_raises_error_for_unshaped_A():
   backend = numpy_backend.NumPyBackend()
   A = Mock(spec=[])
   print(hasattr(A, "shape"))
   err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
             "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
-
-
-def test_eigs_raises_error_for_untyped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
   with pytest.raises(AttributeError, match=err_msg):
     backend.eigs(A)
 
