@@ -585,6 +585,36 @@ def test_eigs_no_init(dtype, which):
   np.testing.assert_allclose(v1, v2)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs_init(dtype, which):
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+  init = backend.randn((D, ), dtype=dtype)
+
+  class LinearOperator:
+
+    def __init__(self, shape, dtype):
+      self.shape = shape
+      self.dtype = dtype
+
+    def __call__(self, x):
+      return np.dot(H, x)
+
+  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
+  eta1, U1 = backend.eigs(mv, initial_state=init, numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(H)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)
+
+
 @pytest.mark.parametrize("which", ['SI', 'LI'])
 def test_eigs_raises_error_for_unsupported_which(which):
   backend = numpy_backend.NumPyBackend()
