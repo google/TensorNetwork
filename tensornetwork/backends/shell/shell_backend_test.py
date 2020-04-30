@@ -53,6 +53,10 @@ def test_svd_decomposition():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().svd_decomposition(tensor, 3)
   sh_res = shell_backend.ShellBackend().svd_decomposition(tensor, 3)
+  print(sh_res[0].shape)
+  print(sh_res[1].shape)
+  print(np_res[0].shape)
+  print(np_res[1].shape)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
@@ -78,6 +82,14 @@ def test_qr_decomposition():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().qr_decomposition(tensor, 3)
   sh_res = shell_backend.ShellBackend().qr_decomposition(tensor, 3)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
+
+
+def test_rq_decomposition():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().rq_decomposition(tensor, 3)
+  sh_res = shell_backend.ShellBackend().rq_decomposition(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
