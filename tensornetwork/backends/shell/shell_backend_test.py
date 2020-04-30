@@ -164,6 +164,13 @@ def test_einsum():
   assert np_result.shape == sh_result.shape
 
 
+def test_einsum_raises_error():
+  expression = "ab,bc->ad"
+  tensor1, tensor2 = np.ones([5, 3]), np.ones([3, 6])
+  with pytest.raises(ValueError):
+    shell_backend.ShellBackend().einsum(expression, tensor1, tensor2)
+
+
 def test_norm():
   args = {"tensor": np.ones([3, 5])}
   assertBackendsAgree("norm", args)
