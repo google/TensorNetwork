@@ -408,3 +408,10 @@ def test_sparse_shape():
   backend = shell_backend.ShellBackend()
   tensor = backend.randn((2, 3, 4), seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+def test_addition():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.addition(matrix, matrix)
