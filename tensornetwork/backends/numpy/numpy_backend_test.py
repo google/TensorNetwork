@@ -310,7 +310,7 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
 def test_eigsh_small_number_krylov_vectors():
   backend = numpy_backend.NumPyBackend()
-  D=2
+  D = 2
   init = np.array([1, 1], dtype=np.float64)
   H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
