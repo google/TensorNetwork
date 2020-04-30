@@ -181,6 +181,11 @@ def test_eye():
   assertBackendsAgree("eye", args)
 
 
+def test_eye_without_M():
+  args = {"N": 10}
+  assertBackendsAgree("eye", args)
+
+
 def test_zeros():
   args = {"shape": (10, 4)}
   assertBackendsAgree("zeros", args)
