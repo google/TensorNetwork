@@ -191,6 +191,11 @@ def test_zeros():
   assertBackendsAgree("zeros", args)
 
 
+def test_conj():
+  args = {"tensor": np.ones([3, 5])}
+  assertBackendsAgree("conj", args)
+
+
 def test_ones():
   args = {"shape": (10, 4)}
   assertBackendsAgree("ones", args)
