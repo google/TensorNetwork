@@ -380,3 +380,9 @@ def test_base_backend_expm_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.expm(np.ones((2, 2)))
+
+
+def test_base_backend_sparse_shape_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sparse_shape(np.ones((2, 2)))
