@@ -27,20 +27,22 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def __init__(self):
     super(PyTorchBackend, self).__init__()
+    # pylint: disable=global-variable-undefined
+    global torchlib
     try:
       #pylint: disable=import-outside-toplevel
       import torch
     except ImportError:
       raise ImportError("PyTorch not installed, please switch to a different "
                         "backend or install PyTorch.")
-    self.torch = torch
+    torchlib = torch
     self.name = "pytorch"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
-    return self.torch.tensordot(a, b, dims=axes)
+    return torchlib.tensordot(a, b, dims=axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
-    return self.torch.reshape(tensor, tuple(np.array(shape).astype(int)))
+    return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
@@ -64,7 +66,7 @@ class PyTorchBackend(base_backend.BaseBackend):
                         relative: Optional[bool] = False
                        ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
-        self.torch,
+        torchlib,
         tensor,
         split_axis,
         max_singular_values,
@@ -76,20 +78,20 @@ class PyTorchBackend(base_backend.BaseBackend):
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.torch, tensor, split_axis)
+    return decompositions.qr_decomposition(torchlib, tensor, split_axis)
 
   def rq_decomposition(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.torch, tensor, split_axis)
+    return decompositions.rq_decomposition(torchlib, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
-    return self.torch.tensor(list(tensor.shape))
+    return torchlib.tensor(list(tensor.shape))
 
   def shape_tuple(self, tensor: Tensor) -> Tuple[Optional[int], ...]:
     return tuple(tensor.shape)
@@ -101,54 +103,54 @@ class PyTorchBackend(base_backend.BaseBackend):
     return np.prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
-    return self.torch.sqrt(tensor)
+    return torchlib.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    return self.torch.diag(tensor)
+    return torchlib.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    result = self.torch.as_tensor(tensor)
+    result = torchlib.as_tensor(tensor)
     return result
 
   def trace(self, tensor: Tensor) -> Tensor:
-    return self.torch.einsum('...jj', tensor)
+    return torchlib.einsum('...jj', tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return self.torch.tensordot(tensor1, tensor2, dims=0)
+    return torchlib.tensordot(tensor1, tensor2, dims=0)
 
   def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return self.torch.einsum(expression, *tensors)
+    return torchlib.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
-    return self.torch.norm(tensor)
+    return torchlib.norm(tensor)
 
   def eye(self,
           N: int,
           dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.torch.float64
+    dtype = dtype if dtype is not None else torchlib.float64
     if not M:
       M = N  #torch crashes if one passes M = None with dtype!=None
-    return self.torch.eye(n=N, m=M, dtype=dtype)
+    return torchlib.eye(n=N, m=M, dtype=dtype)
 
   def ones(self, shape: Tuple[int, ...], dtype: Optional[Any] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.torch.float64
-    return self.torch.ones(shape, dtype=dtype)
+    dtype = dtype if dtype is not None else torchlib.float64
+    return torchlib.ones(shape, dtype=dtype)
 
   def zeros(self,
             shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
-    dtype = dtype if dtype is not None else self.torch.float64
-    return self.torch.zeros(shape, dtype=dtype)
+    dtype = dtype if dtype is not None else torchlib.float64
+    return torchlib.zeros(shape, dtype=dtype)
 
   def randn(self,
             shape: Tuple[int, ...],
             dtype: Optional[Any] = None,
             seed: Optional[int] = None) -> Tensor:
     if seed:
-      self.torch.manual_seed(seed)
-    dtype = dtype if dtype is not None else self.torch.float64
-    return self.torch.randn(shape, dtype=dtype)
+      torchlib.manual_seed(seed)
+    dtype = dtype if dtype is not None else torchlib.float64
+    return torchlib.randn(shape, dtype=dtype)
 
   def random_uniform(self,
                      shape: Tuple[int, ...],
@@ -156,9 +158,9 @@ class PyTorchBackend(base_backend.BaseBackend):
                      dtype: Optional[Any] = None,
                      seed: Optional[int] = None) -> Tensor:
     if seed:
-      self.torch.manual_seed(seed)
-    dtype = dtype if dtype is not None else self.torch.float64
-    return self.torch.empty(shape, dtype=dtype).uniform_(*boundaries)
+      torchlib.manual_seed(seed)
+    dtype = dtype if dtype is not None else torchlib.float64
+    return torchlib.empty(shape, dtype=dtype).uniform_(*boundaries)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return tensor  #pytorch does not support complex dtypes
@@ -252,7 +254,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     eigvalsold = []
     for it in range(num_krylov_vecs):
       #normalize the current vector:
-      norm_vector_n = self.torch.norm(vector_n)
+      norm_vector_n = torchlib.norm(vector_n)
       if abs(norm_vector_n) < delta:
         break
       norms_vector_n.append(norm_vector_n)
@@ -267,13 +269,13 @@ class PyTorchBackend(base_backend.BaseBackend):
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
-        A_tridiag = self.torch.diag(
-            self.torch.tensor(diag_elements)) + self.torch.diag(
-                self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
-                    self.torch.tensor(norms_vector_n[1:]), -1)
+        A_tridiag = torchlib.diag(
+            torchlib.tensor(diag_elements)) + torchlib.diag(
+                torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
+                    torchlib.tensor(norms_vector_n[1:]), -1)
         eigvals, u = A_tridiag.symeig(eigenvectors=True)
         if not first:
-          if self.torch.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
+          if torchlib.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
             break
         first = False
         eigvalsold = eigvals[0:numeig]
@@ -284,17 +286,17 @@ class PyTorchBackend(base_backend.BaseBackend):
         A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
       vector_n = A_vector_n
 
-    A_tridiag = self.torch.diag(
-        self.torch.tensor(diag_elements)) + self.torch.diag(
-            self.torch.tensor(norms_vector_n[1:]), 1) + self.torch.diag(
-                self.torch.tensor(norms_vector_n[1:]), -1)
+    A_tridiag = torchlib.diag(
+        torchlib.tensor(diag_elements)) + torchlib.diag(
+            torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
+                torchlib.tensor(norms_vector_n[1:]), -1)
     eigvals, u = A_tridiag.symeig(eigenvectors=True)
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
-      eigenvectors.append(state / self.torch.norm(state))
+      eigenvectors.append(state / torchlib.norm(state))
     return eigvals[0:numeig], eigenvectors
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
@@ -312,7 +314,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:
     #make a copy
-    t = self.torch.as_tensor(tensor).clone()
+    t = torchlib.as_tensor(tensor).clone()
     t[mask] = assignee
     return t
 
