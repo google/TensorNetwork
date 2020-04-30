@@ -272,8 +272,7 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(backend.randn((2, 2)),
-                          initial_state=backend.randn((3,)),
-                          numeig=2, reorthogonalize=False)
+                          initial_state=backend.randn((3,)))
 
 
 @pytest.mark.parametrize("a, b", [
