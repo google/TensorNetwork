@@ -310,11 +310,9 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
 def test_eigsh_small_number_krylov_vectors():
   backend = numpy_backend.NumPyBackend()
-  D = 16
-  np.random.seed(10)
-  init = backend.randn((D,), dtype=np.float64, seed=10)
-  tmp = backend.randn((D, D), dtype=np.float64, seed=10)
-  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+  D=2
+  init = np.array([1, 1], dtype=np.float64)
+  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
   class LinearOperator:
 
@@ -326,9 +324,8 @@ def test_eigsh_small_number_krylov_vectors():
       return np.dot(H, x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=np.float64)
-  eta1, U1 = backend.eigsh_lanczos(mv, init, num_krylov_vecs=5)
-  eta2, U2 = np.linalg.eigh(H)
-  np.testing.assert_allclose(eta1[0], min(eta2), rtol=1)
+  eta1, _ = backend.eigsh_lanczos(mv, init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta1[0], 5)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
