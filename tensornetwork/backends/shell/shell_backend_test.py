@@ -16,7 +16,7 @@
 
 import numpy as np
 import pytest
-from tensornetwork.backends.shell import shell_backend
+from tensornetwork.backends.shell import shell_backend, ShellTensor
 from tensornetwork.backends.numpy import numpy_backend
 
 
@@ -25,6 +25,11 @@ def assertBackendsAgree(f, args):
   sh_result = getattr(shell_backend.ShellBackend(), f)(**args)
   assert np_result.shape == sh_result.shape
 
+
+def test_shell_tensor_reshape():
+  shell_tensor = ShellTensor((2, 1), np.float64)
+  shell_tensor = shell_tensor.reshape((1, 2))
+  assert shell_tensor.shape == (1, 2)
 
 def test_tensordot():
   args = {}
