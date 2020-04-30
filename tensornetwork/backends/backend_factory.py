@@ -29,6 +29,9 @@ _BACKENDS = {
     "symmetric": symmetric_backend.SymmetricBackend
 }
 
+#we instantiate each backend only once and store it here
+_INSTANTIATED_BACKENDS = dict()
+
 
 def get_backend(
     backend: Union[Text, base_backend.BaseBackend]) -> base_backend.BaseBackend:
@@ -36,4 +39,9 @@ def get_backend(
     return backend
   if backend not in _BACKENDS:
     raise ValueError("Backend '{}' does not exist".format(backend))
-  return _BACKENDS[backend]()
+
+  if backend in _INSTANTIATED_BACKENDS:
+    return _INSTANTIATED_BACKENDS[backend]
+
+  _INSTANTIATED_BACKENDS[backend] = _BACKENDS[backend]()
+  return _INSTANTIATED_BACKENDS[backend]
