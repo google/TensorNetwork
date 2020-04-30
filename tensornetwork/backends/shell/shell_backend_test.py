@@ -241,6 +241,27 @@ def test_eigsh_lanczos_2():
     assert ev.shape == tuple()
 
 
+def test_eigsh_lanczos_init_shape():
+  backend = shell_backend.ShellBackend()
+  D = 16
+  init = backend.randn((D,))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = LinearOperator(shape=((D,), (D,)))
+  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, initial_state=init,
+                                           reorthogonalize=True)
+  for n, ev in enumerate(eigvals):
+    assert eigvecs[n].shape == (D,)
+    assert ev.shape == tuple()
+
+
 def test_eigsh_lanczos_raises():
   backend = shell_backend.ShellBackend()
   with pytest.raises(AttributeError):
