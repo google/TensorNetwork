@@ -255,7 +255,7 @@ class ShellBackend(base_backend.BaseBackend):
       ]
 
     raise ValueError(
-        '`A` has no attribut shape and no `initial_state` is given.')
+        '`A` has no attribute shape and no `initial_state` is given.')
 
   def eigsh_lanczos(
       self,
