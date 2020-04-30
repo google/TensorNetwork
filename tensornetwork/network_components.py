@@ -308,7 +308,7 @@ class BaseNode(ABC):
           axis, self))
 
   def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
-    """Get the dimension on the given axis.
+    """Get the dimension of the given axis.
 
     Args:
       axis: The axis of the underlying tensor.
