@@ -280,6 +280,35 @@ def test_conj():
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_valid_init_operator_with_shape(dtype):
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  class LinearOperator:
+
+    def __init__(self, shape, dtype):
+      self.shape = shape
+      self.dtype = dtype
+
+    def __call__(self, x):
+      return np.dot(H, x)
+
+  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
+  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_lanczos_1(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
