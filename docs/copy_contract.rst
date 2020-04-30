@@ -41,8 +41,8 @@ There are many instances when you want to contract only a subset of your network
 
   # Say all of these nodes are connected somehow.
   a, b, c, d, e, f, g = build_your_network(...)
-  tmp1  = tn.contractors.optimal([a, b, c], ignore_output_order=True)
-  tmp2 = tn.contractors.optimal([x, y, z], ignore_output_order=True)
+  tmp1  = tn.contractors.optimal([a, b, c], ignore_edge_order=True)
+  tmp2 = tn.contractors.optimal([x, y, z], ignore_edge_order=True)
   result = tmp1 @ tmp2
 
 
