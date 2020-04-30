@@ -326,13 +326,9 @@ def test_eigsh_small_number_krylov_vectors():
       return np.dot(H, x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=np.float64)
-  eta1, U1 = backend.eigsh_lanczos(mv, init, num_krylov_vecs=50)
+  eta1, U1 = backend.eigsh_lanczos(mv, init, num_krylov_vecs=5)
   eta2, U2 = np.linalg.eigh(H)
-  v2 = U2[:, 0]
-  v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
-  v1 = v1 / sum(v1)
-  np.testing.assert_allclose(eta1[0], min(eta2), rtol=0.1)
+  np.testing.assert_allclose(eta1[0], min(eta2), rtol=1)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -592,6 +588,16 @@ def test_eigs_raises_error_for_incompatible_shapes():
     backend.eigs(A, initial_state=init)
 
 
+def test_eigs_raises_error_for_unshaped_A():
+  backend = numpy_backend.NumPyBackend()
+  A = Mock(spec=[])
+  print(hasattr(A, "shape"))
+  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
+            "Please provide a valid `initial_state`"
+  with pytest.raises(AttributeError, match=err_msg):
+    backend.eigs(A)
+
+
 def test_eigs_raises_error_for_untyped_A():
   backend = numpy_backend.NumPyBackend()
   A = Mock(spec=[])
@@ -659,16 +665,6 @@ def test_eigs_init(dtype, which):
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)
-
-
-def test_eigs_raises_error_for_unshaped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  print(hasattr(A, "shape"))
-  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
 
 
 def test_eigs_raises_error_for_bad_initial_state():
