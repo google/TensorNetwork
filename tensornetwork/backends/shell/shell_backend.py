@@ -347,3 +347,9 @@ class ShellBackend(base_backend.BaseBackend):
       shape1 = shape1 + tuple([1] * (len(tensor2.shape) - len(shape1)))
     shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor2.shape, shape1)])
     return ShellTensor(shape)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
+
+  def make_passable_to_jit(self, fun):
+    return fun

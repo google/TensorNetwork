@@ -19,7 +19,7 @@ import numpy as np
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract, contract_between, BaseNode
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj, switch_backend
+from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.backends.base_backend import BaseBackend

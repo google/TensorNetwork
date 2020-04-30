@@ -592,3 +592,17 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
+
+  def make_passable_to_jit(self, fun):
+    """
+    Make `fun` passable to jit-wrapped functions.
+    This function has an effect only if `jax` is used as
+    backend, where it returns `jax.tree_util.Partial(fun)`.
+    Args:
+      fun: Callable
+    Returns:
+      Callable: `fun` wrapped in `jax.tree_util.Partial`, or just `fun`
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `make_passable_to_jit`.".format(
+            self.name))

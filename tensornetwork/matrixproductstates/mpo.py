@@ -17,9 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import Node, BaseNode
+from tensornetwork.backends import backend_factory
+from tensornetwork.backend_contextmanager import get_default_backend
 from typing import List, Union, Text, Optional, Any, Type
-import copy
 Tensor = Any
 
 
@@ -30,40 +30,43 @@ class BaseMPO:
   Base class for MPOs.
   """
 
-  def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
+  def __init__(self, tensors: List[Tensor],
                backend: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       backend: The name of the backend that should be used to perform 
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
+    if backend is None:
+      backend = get_default_backend()
+
+    self.backend = backend_factory.get_backend(backend)
+
     # we're no longer connecting MPS nodes because it's barely needed
-    self.nodes = [
-        Node(tensors[n], backend=backend, name='node{}'.format(n))
-        for n in range(len(tensors))
-    ]
+    self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
 
   def __iter__(self):
-    return iter(self.nodes)
+    return iter(self.tensors)
 
   def __len__(self):
-    return len(self.nodes)
+    return len(self.tensors)
 
   @property
   def dtype(self):
-    if not all([self.nodes[0].dtype == node.dtype for node in self.nodes]):
+    if not all(
+        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
       raise ValueError('not all dtype in FiniteMPS.nodes are the same')
-    return self.nodes[0].dtype
+    return self.tensors[0].dtype
 
   @property
   def bond_dimensions(self):
     """Returns a vector of all bond dimensions.
         The vector will have length `N+1`, where `N == num_sites`."""
-    return [self.nodes[0].shape[0]] + [node.shape[1] for node in self.nodes]
+    return [self.tensors[0].shape[0]
+           ] + [tensor.shape[1] for tensor in self.tensors]
 
 
 class InfiniteMPO(BaseMPO):
@@ -73,7 +76,7 @@ class InfiniteMPO(BaseMPO):
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
+               tensors: List[Tensor],
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
 
@@ -83,9 +86,9 @@ class InfiniteMPO(BaseMPO):
     self.name = name
 
   def roll(self, num_sites):
-    nodes = [self.nodes[n] for n in range(num_sites, len(self.nodes))
-            ] + [self.nodes[n] for n in range(num_sites)]
-    self.nodes = nodes
+    tensors = [self.tensors[n] for n in range(num_sites, len(self.tensors))
+              ] + [self.tensors[n] for n in range(num_sites)]
+    self.tensors = tensors
 
 
 class FiniteMPO(BaseMPO):
@@ -95,7 +98,7 @@ class FiniteMPO(BaseMPO):
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
+               tensors: List[Tensor],
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
     super().__init__(tensors=tensors, backend=backend)

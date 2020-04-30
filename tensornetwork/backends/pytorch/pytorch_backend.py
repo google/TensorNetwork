@@ -259,7 +259,8 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * v
+          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * self.torch.reshape(
+              v, vector_n.shape)
       krylov_vecs.append(vector_n)
       A_vector_n = A(*args, vector_n)
       diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
@@ -340,4 +341,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
+
+  def make_passable_to_jit(self, fun):
     return fun
