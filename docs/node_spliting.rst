@@ -10,8 +10,7 @@ SVD and other decompositions like QR are used to "split a node". That is, it tak
 
 .. code-block:: python3
 
-  u_prime, vh_prime, _ = tn.split_node(a, left_edges=[a[0]], right_edges=[m[1]])
-
+  u_prime, vh_prime, _ = tn.split_node(m, left_edges=[m[0]], right_edges=[m[1]])
 
 Split node works by taking the SVD of the matrix :math:`M` and then spliting the :math:`S` node
 via a single square root operation. The two :math:`\sqrt{S}` nodes are then merged into :math:`U` and :math:`V*` respectively. The final two nodes are returned. The last axis of `u` and the first axis of `v` are connected together.
