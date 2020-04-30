@@ -14,20 +14,20 @@
 """NCON interface to TensorNetwork."""
 
 import warnings
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
-from tensornetwork import network
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network_components
-from tensornetwork import config
+from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 Tensor = Any
 
 
-def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
-         network_structure: Sequence[Sequence],
-         con_order: Optional[Sequence] = None,
-         out_order: Optional[Sequence] = None,
-         backend: Optional[Text] = None
-        ) -> Union[network_components.BaseNode, Tensor]:
+def ncon(
+    tensors: Sequence[Union[network_components.BaseNode, Tensor]],
+    network_structure: Sequence[Sequence],
+    con_order: Optional[Sequence] = None,
+    out_order: Optional[Sequence] = None,
+    backend: Optional[Text] = None
+) -> Union[network_components.BaseNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
 
@@ -39,47 +39,50 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
     Otherwise (`con_order == None or out_order == None`), the edge labels 
     must be nonzero integers and edges will be contracted in ascending order.
     Negative integers denote the (dangling) indices of the output tensor,
-    which will be in descending order, e.g. [-1,-2,-3,...].
+    which will be in descending order, e.g. `[-1,-2,-3,...]`.
 
     For example, matrix multiplication:
 
-    ```python
-    A = np.array([[1.0, 2.0], [3.0, 4.0]])
-    B = np.array([[1.0, 1.0], [0.0, 1.0]])
-    ncon([A,B], [(-1, 1), (1, -2)])
-    ```
+    .. code-block:: python
+
+      A = np.array([[1.0, 2.0], [3.0, 4.0]])
+      B = np.array([[1.0, 1.0], [0.0, 1.0]])
+      ncon([A,B], [(-1, 1), (1, -2)])
 
     Matrix trace:
 
-    ```python
-    A = np.array([[1.0, 2.0], [3.0, 4.0]])
-    ncon([A], [(1, 1)]) # 5.0
-    ```
+    .. code-block:: python
 
-    Note: The reason `0` is not allowed as an edge label without manually
-    specifying the contraction order is to maintain compatibility with the
-    [original NCON implementation](https://arxiv.org/abs/1402.0939). However,
-    the use of `0` in `con_order` to denote outer products is not (currently) 
-    supported in this implementation.
+      A = np.array([[1.0, 2.0], [3.0, 4.0]])
+      ncon([A], [(1, 1)]) # 5.0
+
+    Note: 
+      The reason `0` is not allowed as an edge label without manually
+      specifying the contraction order is to maintain compatibility with the
+      `original NCON implementation`_. However, the use of `0` in `con_order` 
+      to denote outer products is not (currently) 
+      supported in this implementation.
+    
+    .. _original NCON implementation:
+      https://arxiv.org/abs/1402.0939
 
     Args:
-      tensors: List of `Tensor`s or `BaseNode`s.
-      network_structure: List of lists specifying the tensor network
-        structure.
+      tensors: List of `Tensors` or `BaseNodes`.
+      network_structure: List of lists specifying the tensor network structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
-      backend: String specifying the backend to use. Defaults to 
-        `tensornetwork.config.default_backend`.
+      backend: String specifying the backend to use. Defaults to
+        `tensornetwork.backend_contextmanager.get_default_backend`.
 
     Returns:
-      The result of the contraction. The result if returned in a `Node` 
-        if all elements of `tensors` are `BaseNode` objects, else
-        it is returned as a `Tensor` object.
+      The result of the contraction. The result is returned as a `Node`
+      if all elements of `tensors` are `BaseNode` objects, else
+      it is returned as a `Tensor` object.
     """
   if backend and (backend not in backend_factory._BACKENDS):
     raise ValueError("Backend '{}' does not exist".format(backend))
   if backend is None:
-    backend = config.default_backend
+    backend = get_default_backend()
 
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
@@ -100,6 +103,8 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
       con_order=con_order,
       out_order=out_order,
       backend=backend)
+
+  nodes = set(nodes)  # we don't need the ordering here
 
   # Reverse the list so we can pop from the end: O(1).
   con_edges = con_edges[::-1]
@@ -124,38 +129,24 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
           "Suboptimal ordering detected. Edges {} are not adjacent in the "
           "contraction order to edges {}, connecting nodes {}. Deviating from "
           "the specified ordering!".format(
-              list(map(str, leftovers)), list(
-                  map(str, adjacent_parallel_edges)),
+              list(map(str, leftovers)),
+              list(map(str, adjacent_parallel_edges)),
               list(map(str, nodes_to_contract))))
       con_edges = [e for e in con_edges if e not in edges_to_contract]
 
-    if set(nodes_to_contract) == set(nodes):
-      # If this already produces the final output, order the edges
+    if set(nodes_to_contract) == nodes:
+      # This contraction produces the final output, so order the edges
       # here to avoid transposes in some cases.
-
-      #protect nodes_to_contract agains
-      #garbage collector
-      node1 = nodes_to_contract[0]
-      node2 = nodes_to_contract[1]
-      nodes.remove(node1)
-      if node2 is not node1:
-        nodes.remove(node2)
-      nodes.append(
-          network_components.contract_between(
-              *nodes_to_contract,
-              name="con({},{})".format(*nodes_to_contract),
-              output_edge_order=out_edges))
+      contraction_output_order = out_edges
     else:
-      #protect nodes_to_contract agains
-      #garbage collector
-      node1 = nodes_to_contract[0]
-      node2 = nodes_to_contract[1]
-      nodes.remove(node1)
-      if node2 is not node1:
-        nodes.remove(node2)
-      nodes.append(
-          network_components.contract_between(
-              *nodes_to_contract, name="con({},{})".format(*nodes_to_contract)))
+      contraction_output_order = None
+
+    nodes = nodes - set(nodes_to_contract)
+    nodes.add(
+        network_components.contract_between(
+            *nodes_to_contract,
+            name="con({},{})".format(*nodes_to_contract),
+            output_edge_order=contraction_output_order))
 
   # TODO: More efficient ordering of products based on out_edges
   res_node = network_components.outer_product_final_nodes(nodes, out_edges)
@@ -164,13 +155,14 @@ def ncon(tensors: Sequence[Union[network_components.BaseNode, Tensor]],
   return res_node.tensor
 
 
-def ncon_network(tensors: Sequence[Tensor],
-                 network_structure: Sequence[Sequence],
-                 con_order: Optional[Sequence] = None,
-                 out_order: Optional[Sequence] = None,
-                 backend: Optional[Text] = None
-                ) -> Tuple[List[network_components.BaseNode], List[
-                    network_components.Edge], List[network_components.Edge]]:
+def ncon_network(
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence],
+    con_order: Optional[Sequence] = None,
+    out_order: Optional[Sequence] = None,
+    backend: Optional[Text] = None
+) -> Tuple[List[network_components.BaseNode], List[network_components.Edge],
+           List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
 
     The network is provided as a list of lists, one for each
@@ -181,7 +173,7 @@ def ncon_network(tensors: Sequence[Tensor],
     Otherwise (`con_order == None or out_order == None`), the edge labels 
     must be integers and edges will be contracted in ascending order.
     Negative integers denote the (dangling) indices of the output tensor,
-    which will be in descending order, e.g. [-1,-2,-3,...].
+    which will be in descending order, e.g. `[-1,-2,-3,...]`.
 
     This is used internally by `ncon()`.
 
@@ -194,8 +186,7 @@ def ncon_network(tensors: Sequence[Tensor],
         TensorNetwork backend.
 
     Returns:
-      nodes: List of constructed nodes in the same order as given in 
-        `tensors`.
+      nodes: List of constructed nodes in the same order as given in `tensors`.
       con_edges: List of internal `Edge` objects in contraction order.
       out_edges: List of dangling `Edge` objects in output order.
   """
@@ -257,9 +248,9 @@ def ncon_network(tensors: Sequence[Tensor],
 
 def _build_network(
     tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
-    backend: Text) -> Tuple[
-        List[network_components.BaseNode], 
-        Dict[Any, network_components.Edge]]:
+    backend: Text
+) -> Tuple[List[network_components.BaseNode], Dict[Any,
+                                                   network_components.Edge]]:
   nodes = []
   edges = {}
   for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):

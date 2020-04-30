@@ -46,7 +46,7 @@ def test_ascend(random_tensors):
 
 def test_energy(wavelet_tensors):
   h, iso, dis = wavelet_tensors
-  s = np.reshape(np.eye(2**3) / 2**3, [2]*6)
+  s = np.reshape(np.eye(2**3) / 2**3, [2] * 6)
   for _ in range(20):
     s = simple_mera.descend(h, s, iso, dis)
   en = np.trace(np.reshape(s, [2**3, -1]) @ np.reshape(h, [2**3, -1]))
@@ -57,7 +57,7 @@ def test_energy(wavelet_tensors):
 
 def test_opt(wavelet_tensors):
   h, iso, dis = wavelet_tensors
-  s = np.reshape(np.eye(2**3) / 2**3, [2]*6)
+  s = np.reshape(np.eye(2**3) / 2**3, [2] * 6)
   for _ in range(20):
     s = simple_mera.descend(h, s, iso, dis)
   s, iso, dis = simple_mera.optimize_linear(h, s, iso, dis, 100)
@@ -82,7 +82,7 @@ def random_tensors(request):
   a = jax.random.normal(key, shape=[D**2] * 2)
   u, _, vh = np.linalg.svd(a)
   dis = np.reshape(u, [D] * 4)
-  iso = np.reshape(vh, [D] * 4)[:,:,:,0]
+  iso = np.reshape(vh, [D] * 4)[:, :, :, 0]
 
   return (h, s, iso, dis)
 
@@ -90,6 +90,7 @@ def random_tensors(request):
 @pytest.fixture
 def wavelet_tensors(request):
   """Returns the Hamiltonian and MERA tensors for the D=2 wavelet MERA.
+
   From Evenbly & White, Phys. Rev. Lett. 116, 140403 (2016).
   """
   D = 2
@@ -100,20 +101,17 @@ def wavelet_tensors(request):
   Y = np.array([[0, -1j], [1j, 0]])
   Z = np.array([[1, 0], [0, -1]])
 
-  wmat_un = np.real(
-    (np.sqrt(3) + np.sqrt(2))/4 * np.kron(E, E) +
-    (np.sqrt(3) - np.sqrt(2))/4 * np.kron(Z, Z) +
-    1.j*(1 + np.sqrt(2))/4 * np.kron(X, Y) +
-    1.j*(1 - np.sqrt(2))/4 * np.kron(Y, X))
+  wmat_un = np.real((np.sqrt(3) + np.sqrt(2)) / 4 * np.kron(E, E) +
+                    (np.sqrt(3) - np.sqrt(2)) / 4 * np.kron(Z, Z) + 1.j *
+                    (1 + np.sqrt(2)) / 4 * np.kron(X, Y) + 1.j *
+                    (1 - np.sqrt(2)) / 4 * np.kron(Y, X))
 
-  umat = np.real(
-    (np.sqrt(3) + 2)/4 * np.kron(E, E) +
-    (np.sqrt(3) - 2)/4 * np.kron(Z, Z) +
-    1.j/4 * np.kron(X, Y) +
-    1.j/4 * np.kron(Y, X))
+  umat = np.real((np.sqrt(3) + 2) / 4 * np.kron(E, E) +
+                 (np.sqrt(3) - 2) / 4 * np.kron(Z, Z) +
+                 1.j / 4 * np.kron(X, Y) + 1.j / 4 * np.kron(Y, X))
 
-  w = np.reshape(wmat_un, (D,D,D,D))[:,0,:,:]
-  u = np.reshape(umat, (D,D,D,D))
+  w = np.reshape(wmat_un, (D, D, D, D))[:, 0, :, :]
+  u = np.reshape(umat, (D, D, D, D))
 
   w = np.transpose(w, [1, 2, 0])
   u = np.transpose(u, [2, 3, 0, 1])

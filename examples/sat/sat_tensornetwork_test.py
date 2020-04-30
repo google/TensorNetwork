@@ -23,6 +23,7 @@ def test_sanity_check():
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 7
 
+
 def test_dual_clauses():
   nodes = sat_tensornetwork.sat_count_tn([
       (1, 2, 3),
@@ -30,6 +31,7 @@ def test_dual_clauses():
   ])
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 6
+
 
 def test_many_clauses():
   nodes = sat_tensornetwork.sat_count_tn([
@@ -45,6 +47,7 @@ def test_many_clauses():
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 0
 
+
 def test_four_variables():
   nodes = sat_tensornetwork.sat_count_tn([
       (1, 2, 3),
@@ -52,6 +55,7 @@ def test_four_variables():
   ])
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 13
+
 
 def test_four_variables_four_clauses():
   nodes = sat_tensornetwork.sat_count_tn([
@@ -63,12 +67,14 @@ def test_four_variables_four_clauses():
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 9
 
+
 def test_single_variable():
   nodes = sat_tensornetwork.sat_count_tn([
       (1, 1, 1),
   ])
   count = tensornetwork.contractors.greedy(nodes).tensor
   assert count == 1
+
 
 def test_solutions():
   edge_order = sat_tensornetwork.sat_tn([
