@@ -293,6 +293,24 @@ def test_eigs():
     assert v[n].shape == (2,)
 
 
+def test_eigs_initial_state_shape():
+  backend = shell_backend.ShellBackend()
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = MV((2, 2))
+  eta, v = backend.eigs(mv, backend.randn((3,)))
+  assert len(eta) == 2
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
+
+
 def test_eigs_raises():
 
   class MV:
