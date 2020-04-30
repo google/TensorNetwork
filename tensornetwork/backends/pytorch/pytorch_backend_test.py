@@ -279,6 +279,27 @@ def test_eigsh_lanczos_1():
   np.testing.assert_allclose(v1, v2)
 
 
+def test_eigsh_small_number_krylov_vectors():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  D = 24
+  init = backend.randn((D,), dtype=dtype)
+  tmp = backend.randn((D, D), dtype=dtype)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x):
+    return H.mv(x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, init, num_krylov_vecs=2)
+  eta2, U2 = H.symeig(eigenvectors=True)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
 def test_eigsh_lanczos_reorthogonalize():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
