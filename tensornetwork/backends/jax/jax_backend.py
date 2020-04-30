@@ -15,6 +15,7 @@
 from typing import Any, Optional, Tuple, Callable, List, Text, Type
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
+from tensornetwork.backends.jax import jitted_functions
 from functools import partial
 
 Tensor = Any
@@ -36,112 +37,6 @@ class JaxBackend(numpy_backend.NumPyBackend):
     self.sp = self.jax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
-
-  def _generate_jitted_eigsh_lanczos(self):
-    """
-    Helper function to generate jitted lanczos function used in eigsh_lanczos.
-    """
-
-    @partial(self.jax.jit, static_argnums=(3, 4, 5, 6))
-    def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho):
-
-      def body_reortho(i, vals):
-        vector, krylov_vectors = vals
-        v = krylov_vectors[i, :]
-        vector -= self.jax.numpy.dot(
-            self.jax.numpy.conj(v),
-            self.jax.numpy.ravel(vector)) * self.jax.numpy.reshape(
-                v, vector.shape)
-        return [vector, krylov_vectors]
-
-      def body_lanczos(vals):
-        current_vector, krylov_vectors, vector_norms, diagonal_elements, matvec, args, _, threshold, i, maxiteration = vals
-        #current_vector = krylov_vectors[i,:]
-        norm = self.jax.numpy.linalg.norm(self.jax.numpy.ravel(current_vector))
-        normalized_vector = current_vector / norm
-        normalized_vector, krylov_vectors = self.jax.lax.cond(
-            reortho, True, lambda x: self.jax.lax.fori_loop(
-                0, i, body_reortho, [normalized_vector, krylov_vectors]),
-            False, lambda x: [normalized_vector, krylov_vectors])
-        Av = matvec(*args, normalized_vector)
-
-        diag_element = self.jax.numpy.dot(
-            self.jax.numpy.conj(self.jax.numpy.ravel(normalized_vector)),
-            self.jax.numpy.ravel(Av))
-
-        res = self.jax.numpy.reshape(
-            self.jax.numpy.ravel(Av) -
-            self.jax.numpy.ravel(normalized_vector) * diag_element -
-            krylov_vectors[i - 1] * norm, Av.shape)
-        krylov_vectors = self.jax.ops.index_update(
-            krylov_vectors, self.jax.ops.index[i, :],
-            self.jax.numpy.ravel(normalized_vector))
-
-        vector_norms = self.jax.ops.index_update(
-            vector_norms, self.jax.ops.index[i - 1], norm)
-        diagonal_elements = self.jax.ops.index_update(
-            diagonal_elements, self.jax.ops.index[i - 1], diag_element)
-
-        return [
-            res, krylov_vectors, vector_norms, diagonal_elements, matvec, args,
-            norm, threshold, i + 1, maxiteration
-        ]
-
-      def cond_fun(vals):
-        _, _, _, _, _, _, norm, threshold, iteration, maxiteration = vals
-
-        def check_thresh(check_vals):
-          val, thresh = check_vals
-          return self.jax.lax.cond(val < thresh, False, lambda x: x,
-                                   True, lambda x: x)
-
-        return self.jax.lax.cond(iteration <= maxiteration, [norm, threshold],
-                                 check_thresh, False, lambda x: x)
-
-      numel = self.jax.numpy.prod(init.shape)
-      krylov_vecs = self.jax.numpy.zeros((ncv + 1, numel))
-
-      norms = self.jax.numpy.zeros(ncv)
-      diag_elems = self.jax.numpy.zeros(ncv)
-
-      norm = self.jax.numpy.linalg.norm(init)
-      norms = self.jax.ops.index_update(norms, self.jax.ops.index[0], 1.0)
-
-      initvals = [
-          init, krylov_vecs, norms, diag_elems, matvec, arguments, 1.0,
-          landelta, 1, ncv
-      ]
-
-      final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = self.jax.lax.while_loop(
-          cond_fun, body_lanczos, initvals)
-      krylov_vecs = self.jax.ops.index_update(krylov_vecs,
-                                              self.jax.ops.index[it, :],
-                                              self.jax.numpy.ravel(final_state))
-      A_tridiag = self.jax.numpy.diag(diags) + self.jax.numpy.diag(
-          norms[1:], 1) + self.jax.numpy.diag(
-              self.jax.numpy.conj(norms[1:]), -1)
-      eigvals, U = self.jax.numpy.linalg.eigh(A_tridiag)
-      eigvals = eigvals.astype(A_tridiag.dtype)
-
-      def body_vector(i, vals):
-        krv, unitary, states = vals
-        dim = unitary.shape[1]
-        n, m = self.jax.numpy.divmod(i, dim)
-        states = self.jax.ops.index_add(states, self.jax.ops.index[n],
-                                        krv[m + 1, :] * unitary[m, n])
-        return [krv, unitary, states]
-
-      state_vector = self.jax.numpy.zeros([neig, numel])
-      _, _, vector = self.jax.lax.fori_loop(
-          0, neig * (krylov_vecs.shape[0] - 1), body_vector,
-          [krylov_vecs, U, state_vector])
-      vector /= self.jax.numpy.linalg.norm(vector)
-      return self.jax.numpy.array(eigvals[0:neig]), [
-          self.jax.numpy.reshape(vector[n, :], init.shape) /
-          self.jax.numpy.linalg.norm(vector[n, :]) for n in range(neig)
-      ]
-
-    return jax_lanczos
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     return self.np.asarray(tensor)
@@ -283,7 +178,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
 
     if not hasattr(self, '_jaxlan'):
       #avoid retracing
-      self._jaxlan = self._generate_jitted_eigsh_lanczos()
+      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(self.jax)
 
     return self._jaxlan(A, args, initial_state, num_krylov_vecs, numeig, delta,
                         reorthogonalize)
