@@ -422,3 +422,10 @@ def test_subtraction():
   matrix = backend.randn((4, 4, 4), seed=10)
   with pytest.raises(NotImplementedError):
     backend.subtraction(matrix, matrix)
+
+
+def test_divide():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.divide(matrix, matrix)
