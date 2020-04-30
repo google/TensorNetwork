@@ -380,14 +380,6 @@ def test_broadcast_right_multiplication():
   np.testing.assert_allclose(out.shape, [2, 4, 3])
 
 
-def test_broadcast_right_multiplication_reverse_order():
-  backend = shell_backend.ShellBackend()
-  tensor1 = backend.randn((3,))
-  tensor2 = backend.randn((2, 4, 3))
-  out = backend.broadcast_right_multiplication(tensor1, tensor2)
-  np.testing.assert_allclose(out.shape, [2, 4, 3])
-
-
 def test_broadcast_right_multiplication_raises():
   backend = shell_backend.ShellBackend()
   tensor1 = backend.randn((2, 4, 3))
