@@ -266,7 +266,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
       raise ValueError("input to tensorflow backend method `expm` only supports"
                        "N*N matrix, {x}*{y} matrix is given".format(
                            x=matrix.shape[0], y=matrix.shape[1]))
-    return self.tf.linalg.expm(matrix)
+    return tf.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return tf.function(fun, **kwargs)
