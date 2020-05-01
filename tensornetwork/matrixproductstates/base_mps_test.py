@@ -337,7 +337,7 @@ def test_measure_two_body_correlator_value_error(backend):
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
     mps.measure_two_body_correlator(
-        op1=operator, op2=operator, site1=-1, sites2=2)
+        op1=operator, op2=operator, site1=-1, sites2=[2])
 
 
 def test_get_node(backend):
@@ -388,8 +388,6 @@ def test_check_normality_raises_value_error(backend):
   tensor = np.ones((2, 3, 2), dtype=np.float64)
   tensors = [tensor]
   mps = BaseMPS(tensors, backend=backend)
-  with pytest.raises(ValueError):
-    mps.check_orthonormality(which=0, site=0)
   with pytest.raises(ValueError):
     mps.check_orthonormality(which="keft", site=0)
 
