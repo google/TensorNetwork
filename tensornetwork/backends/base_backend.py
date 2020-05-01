@@ -73,13 +73,14 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
@@ -223,7 +224,9 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self, N: int, dtype: Type[np.number],
+  def eye(self,
+          N: int,
+          dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
@@ -374,6 +377,8 @@ class BaseBackend:
       A: Callable,
       args: List,
       initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
@@ -385,10 +390,15 @@ class BaseBackend:
     of `A`.
     Args:
       A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
       arsg: A list of arguments to `A`.  `A` will be called as
         `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.

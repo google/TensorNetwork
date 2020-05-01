@@ -1,5 +1,3 @@
-# pytype: skip-file
-"""Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
 import scipy as sp
@@ -47,11 +45,8 @@ def test_shape_concat():
 
 def test_slice():
   backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
@@ -59,11 +54,8 @@ def test_slice():
 
 def test_slice_raises_error():
   backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   with pytest.raises(ValueError):
     backend.slice(a, (1, 1), (2, 2, 2))
 
@@ -305,11 +297,130 @@ def test_base_backend_eigs_not_implemented():
     backend.eigs(tensor)
 
 
-def test_base_backend_eigsh_lanczos_not_implemented():
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_valid_init_operator_with_shape(dtype):
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn((4, 2, 3), dtype=np.float64)
-  with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(tensor)
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def matvec(H, x):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(matvec, [H], init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_small_number_krylov_vectors():
+  backend = jax_backend.JaxBackend()
+  init = np.array([1, 1], dtype=np.float64)
+  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+
+  def matvec(H, x):
+    return jax.numpy.dot(H, x)
+
+  eta1, _ = backend.eigsh_lanczos(matvec, [H], init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta1[0], 5)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_1(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(H, x):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_2(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(H, x):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("numeig", [1, 2, 3, 4])
+def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
+  backend = jax_backend.JaxBackend()
+  D = 24
+  np.random.seed(10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def matvec(H, x):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(
+      matvec, [H],
+      shape=(D,),
+      dtype=dtype,
+      numeig=numeig,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=10**(-12),
+      delta=10**(-12))
+  eta2, U2 = np.linalg.eigh(H)
+
+  np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
+  for n in range(numeig):
+    v2 = U2[:, n]
+    v2 /= np.sum(v2)  #fix phases
+    v1 = np.reshape(U1[n], (D))
+    v1 /= np.sum(v1)
+
+    np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
+
+
+def test_eigsh_lanczos_raises():
+  backend = jax_backend.JaxBackend()
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [])
+  with pytest.raises(TypeError):
+    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -364,11 +475,14 @@ def test_sparse_shape():
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "sin"), (np.complex128, "sin"),
-                          (np.float64, "cos"), (np.complex128, "cos"),
-                          (np.float64, "exp"), (np.complex128, "exp"),
-                          (np.float64, "log"), (np.complex128, "log")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "sin"),
+                                          (np.complex128, "sin"),
+                                          (np.float64, "cos"),
+                                          (np.complex128, "cos"),
+                                          (np.float64, "exp"),
+                                          (np.complex128, "exp"),
+                                          (np.float64, "log"),
+                                          (np.complex128, "log")])
 def test_elementwise_ops(dtype, method):
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((4, 3, 2), dtype=dtype, seed=10)
@@ -379,8 +493,8 @@ def test_elementwise_ops(dtype, method):
   np.testing.assert_almost_equal(tensor1, tensor2)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "expm"), (np.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "expm"),
+                                          (np.complex128, "expm")])
 def test_matrix_ops(dtype, method):
   backend = jax_backend.JaxBackend()
   matrix = backend.randn((4, 4), dtype=dtype, seed=10)
@@ -389,8 +503,8 @@ def test_matrix_ops(dtype, method):
   np.testing.assert_almost_equal(matrix1, matrix2)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(np.float64, "expm"), (np.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(np.float64, "expm"),
+                                          (np.complex128, "expm")])
 def test_matrix_ops_raises(dtype, method):
   backend = jax_backend.JaxBackend()
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)

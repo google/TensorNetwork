@@ -1,4 +1,3 @@
-# pytype: skip-file
 # Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +30,7 @@ def test_shell_tensor_reshape():
   shell_tensor = shell_tensor.reshape((1, 2))
   assert shell_tensor.shape == (1, 2)
 
+
 def test_tensordot():
   args = {}
   args["a"] = np.ones([3, 5, 2])
@@ -60,8 +60,8 @@ def test_svd_decomposition():
 def test_svd_decomposition_raises_error():
   tensor = np.ones([2, 3, 4, 5, 6])
   with pytest.raises(NotImplementedError):
-    shell_backend.ShellBackend().svd_decomposition(tensor, 3,
-                                                   max_truncation_error=.1)
+    shell_backend.ShellBackend().svd_decomposition(
+        tensor, 3, max_truncation_error=.1)
 
 
 def test_svd_decomposition_with_max_values():
@@ -212,30 +212,21 @@ def test_eigsh_lanczos_1():
   D = 16
   init = backend.randn((D,))
   eigvals, eigvecs = backend.eigsh_lanczos(
-      lambda x: x, init, numeig=3, reorthogonalize=True)
+      lambda x: x, [], init, numeig=3, reorthogonalize=True)
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
     assert ev.shape == tuple()
 
 
-def test_eigsh_lanczos_2():
+def test_eigsh_lanczos_shape():
   backend = shell_backend.ShellBackend()
   D = 16
 
-  class LinearOperator:
+  def mv(x):
+    return x
 
-    def __init__(self, shape):
-      self.shape = shape
-
-    def __call__(self, x):
-      return x
-
-  mv = LinearOperator(shape=((D,), (D,)))
-  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, reorthogonalize=True)
-  for n, ev in enumerate(eigvals):
-    assert eigvecs[n].shape == (D,)
-    assert ev.shape == tuple()
-
+  eigvals, eigvecs = backend.eigsh_lanczos(
+      mv, [], shape=(D,), dtype=np.float64, numeig=3, reorthogonalize=True)
 
 def test_eigsh_lanczos_init_shape():
   backend = shell_backend.ShellBackend()
@@ -251,8 +242,8 @@ def test_eigsh_lanczos_init_shape():
       return x
 
   mv = LinearOperator(shape=((D,), (D,)))
-  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, initial_state=init,
-                                           reorthogonalize=True)
+  eigvals, eigvecs = backend.eigsh_lanczos(
+      mv, numeig=3, initial_state=init, reorthogonalize=True)
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
     assert ev.shape == tuple()
@@ -260,15 +251,18 @@ def test_eigsh_lanczos_init_shape():
 
 def test_eigsh_lanczos_raises():
   backend = shell_backend.ShellBackend()
-  with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(backend.randn((2, 2)),
-                          initial_state=backend.randn((3,)))
+    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [])
+  with pytest.raises(TypeError):
+    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b", [
@@ -345,6 +339,7 @@ def test_eigs_raises():
     backend.eigs(lambda x: x)
   with pytest.raises(ValueError):
     backend.eigs(np.random.rand(2, 2), initial_state=np.random.rand(3))
+
 
 def index_update():
   backend = shell_backend.ShellBackend()

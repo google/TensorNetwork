@@ -22,6 +22,8 @@ from tensornetwork.backends.tensorflow import tensordot2
 import numpy as np
 Tensor = Any
 
+#pylint: disable=abstract-method
+
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
@@ -55,13 +57,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "identical.")
     return tf.slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         tf,
         tensor,
@@ -179,31 +182,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return tf.linalg.eigh(matrix)
-
-  def eigs(self,
-           A: Callable,
-           initial_state: Optional[Tensor] = None,
-           num_krylov_vecs: Optional[int] = 200,
-           numeig: Optional[int] = 1,
-           tol: Optional[float] = 1E-8,
-           which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
-    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
-        self.name))
-
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-    raise NotImplementedError(
-        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2

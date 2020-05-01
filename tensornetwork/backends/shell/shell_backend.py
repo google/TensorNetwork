@@ -31,7 +31,7 @@ class ShellTensor:
     return self
 
 
-Tensor = ShellTensor
+Tensor = Any
 
 
 class ShellBackend(base_backend.BaseBackend):
@@ -62,13 +62,14 @@ class ShellBackend(base_backend.BaseBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
@@ -245,24 +246,25 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor((A.shape[0],)) for _ in range(numeig)]
 
-    return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
-
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple] = None,
+      dtype: Optional[Type[np.number]] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
@@ -270,22 +272,18 @@ class ShellBackend(base_backend.BaseBackend):
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
-
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
-
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)]
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(shape) for _ in range(numeig)]
+    if not isinstance(initial_state, ShellTensor):
+      raise TypeError("Expected a `ShellTensor`. Got {}".format(
+          type(initial_state)))
 
-    return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")

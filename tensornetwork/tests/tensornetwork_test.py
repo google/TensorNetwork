@@ -69,9 +69,11 @@ def test_add_copy_node_from_node_object(backend):
 
 
 def test_copy_node_method(backend):
-  a = tn.Node(np.ones([3, 3, 3]), name='mynode', 
-              axis_names=['a', 'b', 'c'], 
-              backend=backend)
+  a = tn.Node(
+      np.ones([3, 3, 3]),
+      name='mynode',
+      axis_names=['a', 'b', 'c'],
+      backend=backend)
   a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
   a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
   a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
@@ -102,9 +104,11 @@ def test_copy_copynode_method(backend):
 
 
 def test_copy_method_with_trace_edges(backend):
-  a = tn.Node(np.ones([3, 3, 3, 3, 3]), name='mynode', 
-              axis_names=['a', 'b', 'c', 'd', 'e'], 
-              backend=backend)
+  a = tn.Node(
+      np.ones([3, 3, 3, 3, 3]),
+      name='mynode',
+      axis_names=['a', 'b', 'c', 'd', 'e'],
+      backend=backend)
   a.add_edge(tn.Edge(a, 0, name='named_edge1'), 0)
   a.add_edge(tn.Edge(a, 1, name='named_edge2'), 1)
   a.add_edge(tn.Edge(a, 2, name='named_edge3'), 2)
@@ -579,9 +583,11 @@ def test_set_default(backend):
   a = tn.Node(np.eye(2))
   assert a.backend.name == backend
 
+
 def test_bad_backend_name():
   with pytest.raises(ValueError, match="Backend 'BAD_NAME' was not found."):
     tn.set_default_backend("BAD_NAME")
+
 
 def test_copy_tensor(backend):
   a = tn.Node(np.array([1, 2, 3], dtype=np.float64), backend=backend)

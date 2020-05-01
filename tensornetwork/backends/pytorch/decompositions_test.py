@@ -88,11 +88,15 @@ def test_max_truncation_error_relative():
   relative = np.diag([2.0, 1.0, 0.2, 0.1])
   max_truncation_err = 0.2
   _, _, _, trunc_sv_absolute = decompositions.svd_decomposition(
-      torch, torch.Tensor(absolute), 1,
+      torch,
+      torch.Tensor(absolute),
+      1,
       max_truncation_error=max_truncation_err,
       relative=False)
   _, _, _, trunc_sv_relative = decompositions.svd_decomposition(
-      torch, torch.Tensor(relative), 1,
+      torch,
+      torch.Tensor(relative),
+      1,
       max_truncation_error=max_truncation_err,
       relative=True)
   np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
