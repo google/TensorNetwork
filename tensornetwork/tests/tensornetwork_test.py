@@ -740,7 +740,7 @@ def test_custom_backend():
   assert c.tensor == "Hello world!"
 
 def _make_node(x):
-  return tn.Node(np.eye(x))
+  return tn.Node(np.eye(x), backend="numpy")
 
 def test_multiprocessing():
   with Pool(3) as p:
