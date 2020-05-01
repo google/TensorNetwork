@@ -46,11 +46,8 @@ def test_shape_concat():
 
 def test_slice():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
@@ -58,11 +55,8 @@ def test_slice():
 
 def test_slice_raises_error():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   with pytest.raises(ValueError):
     backend.slice(a, (1, 1), (2, 2, 2))
 
