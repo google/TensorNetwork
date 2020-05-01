@@ -3,6 +3,7 @@ import numpy as np
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense # type: ignore
+from tensorflow.keras.callbacks import Callback
 from tensornetwork.tn_keras.dense import DenseDecomp
 
 
@@ -10,8 +11,8 @@ from tensornetwork.tn_keras.dense import DenseDecomp
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
-  data = np.random.randint(100, size=(1000, request.param))
-  labels = np.random.randint(2, size=(1000, 1))
+  data = np.random.randint(10, size=(1000, request.param))
+  labels = np.concatenate((np.ones((500, 1)), np.zeros((500, 1))), axis=0)
   return data, labels
 
 
@@ -27,20 +28,44 @@ def test_train(dummy_data):
                   use_bias=True,
                   activation='relu',
                   input_dim=data.shape[1]))
-  model.add(DenseDecomp(256, decomp_size=128, activation='relu'))
-  model.add(Dense(1, activation='sigmoid'))
+  model.add(DenseDecomp(256, decomp_size=64, activation='relu'))
+  model.add(DenseDecomp(1, decomp_size=64, activation='sigmoid'))
   model.compile(optimizer='adam',
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
 
   # Train the model for 10 epochs
-  print('fitting on data', data.shape)
   history = model.fit(data, labels, epochs=10, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
   assert history.history['accuracy'][0] < history.history['accuracy'][-1]
 
+def test_weights_change(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, labels = dummy_data
+
+  model = Sequential()
+  model.add(
+      DenseDecomp(512,
+                  decomp_size=128,
+                  use_bias=True,
+                  activation='relu',
+                  input_dim=data.shape[1]))
+  model.add(DenseDecomp(1, decomp_size=64, use_bias=True, activation='sigmoid'))
+  model.compile(optimizer='adam',
+                loss='binary_crossentropy',
+                metrics=['accuracy'])
+
+  before = model.get_weights()
+
+  model.fit(data, labels, epochs=5, batch_size=32)
+
+  after = model.get_weights()
+  # Make sure every layer's weights changed
+  for i, _ in enumerate(before):
+    assert (after[i] != before[i]).any()
 
 def test_output_shape(dummy_data):
   # Disable the redefined-outer-name violation in this function
