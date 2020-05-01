@@ -22,6 +22,8 @@ from tensornetwork.backends.tensorflow import tensordot2
 import numpy as np
 Tensor = Any
 
+#pylint: disable=abstract-method
+
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
