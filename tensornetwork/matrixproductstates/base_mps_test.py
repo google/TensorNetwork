@@ -343,4 +343,4 @@ def test_measure_two_body_correlator_value_error(backend):
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
     mps.measure_two_body_correlator(op1=operator, op2=operator,
-                                    site1=-1, site2=2)
+                                    site1=-1, sites2=2)
