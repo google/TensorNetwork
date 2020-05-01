@@ -322,16 +322,16 @@ class JaxBackend(base_backend.BaseBackend):
           type(initial_state)))
     if hasattr(self, '_A'):
       if self._A is not A:
-        #pylint: disable=attribute-defined-outside-init
+        # pylint: disable=attribute-defined-outside-init
         self._Apartial = libjax.tree_util.Partial(A)
-        #pylint: disable=attribute-defined-outside-init
+        # pylint: disable=attribute-defined-outside-init
         self._A = A
     else:
-      #pylint: disable=attribute-defined-outside-init
+      # pylint: disable=attribute-defined-outside-init
       self._Apartial = libjax.tree_util.Partial(A)
-      #pylint: disable=attribute-defined-outside-init
+      # pylint: disable=attribute-defined-outside-init
       self._A = A
-      #pylint: disable=attribute-defined-outside-init
+      # pylint: disable=attribute-defined-outside-init
       self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
     return self._jaxlan(self._Apartial, args, initial_state, num_krylov_vecs,
                         numeig, delta, reorthogonalize)
@@ -403,7 +403,7 @@ class JaxBackend(base_backend.BaseBackend):
     return jsp.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
-    return self.jax.jit(fun, **kwargs)
+    return libjax.jit(fun, **kwargs)
 
   def make_passable_to_jit(self, fun):
-    return self.jax.tree_util.Partial(fun)
+    return libjax.tree_util.Partial(fun)
