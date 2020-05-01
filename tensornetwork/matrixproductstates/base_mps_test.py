@@ -329,3 +329,18 @@ def test_measure_local_operator_value_error(backend):
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
     mps.measure_local_operator(ops=2*[operator], sites=[1, 2, 3])
+
+
+def test_measure_two_body_correlator_value_error(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]],
+                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+
+  tensors = 6*[backend.convert_to_tensor(tensor)]
+  operator = backend.convert_to_tensor(np.array([[1, -1], [-1, 1]],
+                                                dtype=np.float64))
+  mps = BaseMPS(tensors, backend=backend)
+  with pytest.raises(ValueError):
+    mps.measure_two_body_correlator(op1=operator, op2=operator,
+                                    site1=-1, site2=2)
