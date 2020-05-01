@@ -239,7 +239,39 @@ class JaxBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. 
+    of a linear operator `A`. `A` is a function implementing the matrix-vector
+    product. 
+    WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
+    at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
+    if the python `id` of `A` changes, even if the formal definition of `A` stays
+    the same. 
+    Example: the following will jit once at the beginning, and then never again:
+
+    ```python
+    import jax
+    import numpy as np
+    def A(H,x):
+      return jax.np.dot(H,x)
+    for n in range(100):
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh_lanczos(A, [H],x) #jitting is triggerd only at `n=0`
+    ```
+
+    The following code triggers jitting at every iteration, which 
+    results in considerably reduced performance
+
+    ```python
+    import jax
+    import numpy as np
+    for n in range(100):
+      def A(H,x):
+        return jax.np.dot(H,x)
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh_lanczos(A, [H],x) #jitting is triggerd at every step `n`
+    ```
+    
     Args:
       A: A (sparse) implementation of a linear operator.
          Call signature of `A` is `res = A(*args, vector)`, where `vector`
