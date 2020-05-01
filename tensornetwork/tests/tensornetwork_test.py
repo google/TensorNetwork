@@ -19,7 +19,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 import jax
-from multiprocessing import Pool
+import pickle
 
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
@@ -739,17 +739,6 @@ def test_custom_backend():
   c = a @ b
   assert c.tensor == "Hello world!"
 
-def _make_node(x):
-  return tn.Node(np.eye(x), backend="numpy")
-
-def test_multiprocessing():
-  with Pool(3) as p:
-    result = p.map(_make_node, [2, 2, 2])
-  for x in result:
-    assert isinstance(x, tn.Node)
-    np.testing.assert_allclose(x.tensor, np.eye(2))
-  a = result[0]
-  b = result[1]
-  a[0] ^ b[0]
-  c = a @ b
-  np.testing.assert_allclose(c.tensor, np.eye(2))
+def test_pickle():
+  result = pickle.dumps(tn.Node(np.eye(2)))
+  reconstruction = pickle.loads(result)
