@@ -465,3 +465,17 @@ def test_apply_two_site_wrong_site1_site2_raises_error(backend):
     mps.apply_two_site_gate(gate=gate, site1=2, site2=2)
   with pytest.raises(ValueError):
     mps.apply_two_site_gate(gate=gate, site1=2, site2=4)
+
+
+def test_apply_two_site_max_singular_value_not_center_raises_error(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=3, site2=4, max_singular_values=1)
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=3, site2=4, max_truncation_err=.1)
