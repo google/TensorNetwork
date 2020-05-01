@@ -214,3 +214,13 @@ def test_position_no_shift_no_normalization(backend):
   mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
   Z = mps.position(int(N/2), normalize=False)
   np.testing.assert_allclose(Z, 5.656854)
+
+
+def test_different_backends_raises_error():
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))]
+  mps1 = BaseMPS(tensors, backend='numpy')
+  mps2 = BaseMPS(tensors, backend='tensorflow')
+  mps1.nodes = mps1.nodes + mps2.nodes
+  with pytest.raises(ValueError):
+    mps1.backend
