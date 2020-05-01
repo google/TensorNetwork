@@ -1,4 +1,3 @@
-"""Tests for graphmode_tensornetwork."""
 import numpy as np
 from tensornetwork.backends.pytorch import pytorch_backend
 import torch
