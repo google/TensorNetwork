@@ -227,6 +227,7 @@ def test_eigsh_lanczos_shape():
 
   eigvals, eigvecs = backend.eigsh_lanczos(
       mv, [], shape=(D,), dtype=np.float64, numeig=3, reorthogonalize=True)
+
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
     assert ev.shape == tuple()

@@ -281,7 +281,6 @@ class ShellBackend(base_backend.BaseBackend):
     if not isinstance(initial_state, ShellTensor):
       raise TypeError("Expected a `ShellTensor`. Got {}".format(
           type(initial_state)))
-
     return [ShellTensor(tuple()) for _ in range(numeig)
            ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 

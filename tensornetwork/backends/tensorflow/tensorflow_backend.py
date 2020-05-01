@@ -57,13 +57,14 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "identical.")
     return tf.slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         tf,
         tensor,

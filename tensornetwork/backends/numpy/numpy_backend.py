@@ -46,13 +46,14 @@ class NumPyBackend(base_backend.BaseBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         np,
         tensor,
@@ -118,18 +119,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[np.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[np.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
 
     return np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.zeros(shape, dtype=dtype)

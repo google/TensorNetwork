@@ -61,8 +61,8 @@ def svd_decomposition(
 
   orig_num_singvals = np.int64(np.sum([len(s) for s in singvals]))
   discarded_singvals = np.zeros(0, dtype=get_real_dtype(tensor.dtype))
-  if (max_singular_values is not None) and (max_singular_values >=
-                                            orig_num_singvals):
+  if (max_singular_values
+      is not None) and (max_singular_values >= orig_num_singvals):
     max_singular_values = None
 
   if (max_truncation_error is not None) or (max_singular_values is not None):

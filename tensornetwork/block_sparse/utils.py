@@ -172,9 +172,10 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (
-      charges[0] * flows[0]).unique(
-          return_counts=True, sort=False)
+  accumulated_charges, accumulated_degeneracies = (charges[0] *
+                                                   flows[0]).unique(
+                                                       return_counts=True,
+                                                       sort=False)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(
         return_counts=True, sort=False)
@@ -194,8 +195,8 @@ def compute_fused_charge_degeneracies(
 
 
 def compute_unique_fused_charges(
-    charges: List[BaseCharge],
-    flows: Union[np.ndarray, List[bool]]) -> BaseCharge:
+    charges: List[BaseCharge], flows: Union[np.ndarray,
+                                            List[bool]]) -> BaseCharge:
   """
   For a list of charges, compute all possible fused charges resulting
   from fusing `charges`.
@@ -429,14 +430,14 @@ def _find_diagonal_sparse_blocks(
   # calculate mappings for the position in datavector of each block
   if num_blocks < 15:
     # faster method for small number of blocks
-    row_locs = np.concatenate(
-        [(row_ind.charge_labels == n) for n in range(num_blocks)]).reshape(
-            num_blocks, row_ind.dim)
+    row_locs = np.concatenate([
+        (row_ind.charge_labels == n) for n in range(num_blocks)
+    ]).reshape(num_blocks, row_ind.dim)
   else:
     # faster method for large number of blocks
     row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)
-    row_locs[row_ind
-             .charge_labels, np.arange(row_ind.dim)] = np.ones(
+    row_locs[row_ind.charge_labels,
+             np.arange(row_ind.dim)] = np.ones(
                  row_ind.dim, dtype=bool)
 
   block_dims = np.array(

@@ -1,5 +1,4 @@
 [style]
-# TensorNetwork uses the chromium style
+# TensorNetwork uses the yapf style
 based_on_style = yapf
-
 

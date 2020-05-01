@@ -73,13 +73,14 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
@@ -223,7 +224,9 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self, N: int, dtype: Type[np.number],
+  def eye(self,
+          N: int,
+          dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int

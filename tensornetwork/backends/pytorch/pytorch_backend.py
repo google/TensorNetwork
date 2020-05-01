@@ -59,13 +59,14 @@ class PyTorchBackend(base_backend.BaseBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         torchlib,
         tensor,

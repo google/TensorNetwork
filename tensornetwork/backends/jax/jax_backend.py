@@ -63,13 +63,14 @@ class JaxBackend(base_backend.BaseBackend):
                        "identical.")
     return libjax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         jnp,
         tensor,
@@ -132,17 +133,21 @@ class JaxBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return jnp.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[np.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[np.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else jnp.float64
     return jnp.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else jnp.float64
     return jnp.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else jnp.float64
     return jnp.zeros(shape, dtype=dtype)
