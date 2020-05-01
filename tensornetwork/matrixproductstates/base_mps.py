@@ -230,6 +230,9 @@ class BaseMPS:
       mat[0] ^ node[2]
       mat[1] ^ conj_node[2]
       edge_order = [node[0], conj_node[0]]
+    else:
+      raise ValueError("direction must be one of {1, 'l', 'left', "
+                       "'-1', 'r', 'right'}")
     result = mat @ node @ conj_node
     return result.reorder_edges(edge_order)
 
