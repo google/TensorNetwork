@@ -18,6 +18,7 @@ def _generate_jitted_eigsh_lanczos(jax):
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
+      #pylint: disable=line-too-long
       current_vector, krylov_vectors, vector_norms, diagonal_elements, matvec, args, _, threshold, i, maxiteration = vals
       #current_vector = krylov_vectors[i,:]
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
@@ -64,7 +65,6 @@ def _generate_jitted_eigsh_lanczos(jax):
     norms = jax.numpy.zeros(ncv, dtype=init.dtype)
     diag_elems = jax.numpy.zeros(ncv, dtype=init.dtype)
 
-    norm = jax.numpy.linalg.norm(init)
     norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
 
     norms_dtype = jax.numpy.real(jax.numpy.empty(
@@ -73,7 +73,7 @@ def _generate_jitted_eigsh_lanczos(jax):
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
         norms_dtype.type(1.0), landelta, 1, ncv
     ]
-
+    #pylint: disable=line-too-long
     final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = jax.lax.while_loop(
         cond_fun, body_lanczos, initvals)
     krylov_vecs = jax.ops.index_update(krylov_vecs, jax.ops.index[it, :],
