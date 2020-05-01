@@ -61,9 +61,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented transpose.".format(self.name))
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     """Obtains a slice of a tensor based on start_indices and slice_sizes.
 
@@ -72,16 +70,17 @@ class BaseBackend:
       start_indices: Tuple of integers denoting start indices of slice.
       slice_sizes: Tuple of integers denoting size of slice along each axis.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented slice.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented slice.".format(
+        self.name))
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """Computes the singular value decomposition (SVD) of a tensor.
 
     The SVD is performed by treating the tensor as a matrix, with an effective
@@ -530,9 +529,8 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `sin`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `sin`.".format(
+        self.name))
 
   def cos(self, tensor: Tensor):
     """
@@ -542,9 +540,8 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `cos`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `cos`.".format(
+        self.name))
 
   def exp(self, tensor: Tensor):
     """
@@ -554,9 +551,8 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `exp`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `exp`.".format(
+        self.name))
 
   def log(self, tensor: Tensor):
     """
@@ -566,9 +562,8 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `log`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `log`.".format(
+        self.name))
 
   def expm(self, matrix: Tensor):
     """
@@ -578,6 +573,5 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `expm`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `expm`.".format(
+        self.name))

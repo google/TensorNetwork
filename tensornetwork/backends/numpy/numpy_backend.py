@@ -46,13 +46,14 @@ class NumPyBackend(base_backend.BaseBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         np,
         tensor,
@@ -99,8 +100,7 @@ class NumPyBackend(base_backend.BaseBackend):
     return np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, np.ndarray) and
-        not np.isscalar(tensor)):
+    if (not isinstance(tensor, np.ndarray) and not np.isscalar(tensor)):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = np.asarray(tensor)
@@ -119,18 +119,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[np.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[np.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
 
     return np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.zeros(shape, dtype=dtype)
@@ -161,11 +165,10 @@ class NumPyBackend(base_backend.BaseBackend):
     if ((np.dtype(dtype) is np.dtype(np.complex128)) or
         (np.dtype(dtype) is np.dtype(np.complex64))):
       return np.random.uniform(
-          boundaries[0], boundaries[1],
-          shape).astype(dtype) + 1j * np.random.uniform(
+          boundaries[0],
+          boundaries[1], shape).astype(dtype) + 1j * np.random.uniform(
               boundaries[0], boundaries[1], shape).astype(dtype)
-    return np.random.uniform(
-        boundaries[0], boundaries[1], shape).astype(dtype)
+    return np.random.uniform(boundaries[0], boundaries[1], shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return np.conj(tensor)
@@ -347,19 +350,16 @@ class NumPyBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= np.dot(
-              np.ravel(np.conj(v)), np.ravel(vector_n)) * v
+          vector_n -= np.dot(np.ravel(np.conj(v)), np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n)
       diag_elements.append(
-          np.dot(
-              np.ravel(np.conj(vector_n)), np.ravel(A_vector_n)))
+          np.dot(np.ravel(np.conj(vector_n)), np.ravel(A_vector_n)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
         A_tridiag = np.diag(diag_elements) + np.diag(
-            norms_vector_n[1:], 1) + np.diag(
-                np.conj(norms_vector_n[1:]), -1)
+            norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
         eigvals, u = np.linalg.eigh(A_tridiag)
         if not first:
           if np.linalg.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
@@ -374,8 +374,7 @@ class NumPyBackend(base_backend.BaseBackend):
       vector_n = A_vector_n
 
     A_tridiag = np.diag(diag_elements) + np.diag(
-        norms_vector_n[1:], 1) + np.diag(
-            np.conj(norms_vector_n[1:]), -1)
+        norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
     eigvals, u = np.linalg.eigh(A_tridiag)
     eigenvectors = []
     if np.iscomplexobj(A_tridiag):
