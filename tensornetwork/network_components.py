@@ -308,7 +308,7 @@ class BaseNode(ABC):
           axis, self))
 
   def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
-    """Get the dimension on the given axis.
+    """Get the dimension of the given axis.
 
     Args:
       axis: The axis of the underlying tensor.
@@ -1885,7 +1885,7 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
                        "This edge points to nodes: '{}' and '{}'".format(
                            edge, edge.node1, edge.node2))
   if edge1 is edge2:
-    raise ValueError("Cannot connect and edge '{}' to itself.".format(edge1))
+    raise ValueError("Cannot connect edge '{}' to itself.".format(edge1))
 
   if edge1.dimension != edge2.dimension:
     raise ValueError("Cannot connect edges of unequal dimension. "

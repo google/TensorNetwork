@@ -20,7 +20,6 @@ Common Functions
 .. autofunction:: tensornetwork.get_subgraph_dangling
 .. autofunction:: tensornetwork.reduced_density
 .. autofunction:: tensornetwork.switch_backend
-.. autofunction:: tensornetwork.remove_node
 .. autofunction:: tensornetwork.contract_trace_edges
 .. autofunction:: tensornetwork.contract
 .. autofunction:: tensornetwork.contract_copy_node
