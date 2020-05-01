@@ -378,3 +378,13 @@ def test_get_node_raises_error(backend):
         mps.get_node(site=-1)
     with pytest.raises(IndexError):
         mps.get_node(site=3)
+
+
+def test_check_canonical(backend):
+    backend = backend_factory.get_backend(backend)
+    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                       [[-1., 1., -1.], [-1., 1., -1.]],
+                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+    tensors = 6 * [backend.convert_to_tensor(tensor)]
+    mps = BaseMPS(tensors, backend=backend, center_position=2)
+    np.testing.assert_allclose(mps.check_canonical(), 71.714713)
