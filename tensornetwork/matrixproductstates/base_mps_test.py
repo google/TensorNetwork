@@ -19,6 +19,7 @@ import pytest
 import numpy as np
 import tensornetwork as tn
 from tensornetwork.backends import backend_factory
+from tensornetwork.network_components import Node
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 import tensorflow as tf
 
@@ -224,3 +225,12 @@ def test_different_backends_raises_error():
   mps1.nodes = mps1.nodes + mps2.nodes
   with pytest.raises(ValueError):
     mps1.backend
+
+
+def test_differentdtypes_raises_error():
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D), dtype=np.float64),
+             np.ones((D, d, D), dtype= np.complex64)]
+  mps = BaseMPS(tensors, backend='numpy')
+  with pytest.raises(ValueError):
+    mps.dtype
