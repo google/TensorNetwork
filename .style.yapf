@@ -1,4 +1,5 @@
 [style]
 # TensorNetwork uses the chromium style
-based_on_style = chromium
-SPLIT_BEFORE_NAMED_ASSIGNS: True
+based_on_style = yapf
+
+
