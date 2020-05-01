@@ -21,6 +21,8 @@ import numpy as np
 # we don't actually lose anything by doing this.
 Tensor = Any
 
+#pylint: disable=abstract-method
+
 
 class PyTorchBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
