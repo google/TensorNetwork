@@ -41,13 +41,14 @@ class SymmetricBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return self.bs.transpose(tensor, perm)
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(self.bs, tensor, split_axis,
                                             max_singular_values,
                                             max_truncation_error, relative)
@@ -115,12 +116,14 @@ class SymmetricBackend(base_backend.BaseBackend):
 
     return self.bs.eye(N, M, dtype=dtype)
 
-  def ones(self, shape: List[Index],
+  def ones(self,
+           shape: List[Index],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
     return self.bs.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: List[Index],
+  def zeros(self,
+            shape: List[Index],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
     return self.bs.zeros(shape, dtype=dtype)

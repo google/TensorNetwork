@@ -176,10 +176,9 @@ def test_disconnected_network(backend, path_algorithm):
   e[0] ^ f[0]
   g[0] ^ f[1]
   final_edges = [a[0], b[1], c[1], d[0], e[1], g[1]]
-  result = path_algorithm(
-      {a, b, c, d, e, f, g},
-      final_edges)
+  result = path_algorithm({a, b, c, d, e, f, g}, final_edges)
   assert result.edges == final_edges
+
 
 def test_passes_ignore_edge_order_from_auto(backend):
   a = Node(np.eye(2), backend=backend)
