@@ -164,23 +164,13 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return matrix.symeig(eigenvectors=True)
 
-  def eigs(self,
-           A: Callable,
-           initial_state: Optional[Tensor] = None,
-           num_krylov_vecs: Optional[int] = 200,
-           numeig: Optional[int] = 1,
-           tol: Optional[float] = 1E-8,
-           which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
-    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
-        self.name))
-
   def eigsh_lanczos(
       self,
       A: Callable,
       args: List,
       initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple] = None,
+      dtype: Optional[Type[np.number]] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
@@ -196,6 +186,9 @@ class PyTorchBackend(base_backend.BaseBackend):
         `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
@@ -220,29 +213,22 @@ class PyTorchBackend(base_backend.BaseBackend):
     #TODO: make this work for tensorflow in graph mode
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
-
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
 
-      if not hasattr(A, 'dtype'):
-        raise AttributeError(
-            "`A` has no  attribute `dtype`. Cannot initialize "
-            "lanczos. Please provide a valid `initial_state` with "
-            "a `dtype` attribute")
-      initial_state = self.randn(A.shape[1], A.dtype)
-    else:
-      initial_state = self.convert_to_tensor(initial_state)
+    if not isinstance(initial_state, torchlib.Tensor):
+      raise TypeError("Expected a `torch.Tensor`. Got {}".format(
+          type(initial_state)))
+
+    initial_state = self.convert_to_tensor(initial_state)
     vector_n = initial_state
     Z = self.norm(vector_n)
     vector_n /= Z
