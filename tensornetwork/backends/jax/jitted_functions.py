@@ -61,15 +61,17 @@ def _generate_jitted_eigsh_lanczos(jax):
 
     numel = jax.numpy.prod(init.shape)
     krylov_vecs = jax.numpy.zeros((ncv + 1, numel), dtype=init.dtype)
-
     norms = jax.numpy.zeros(ncv, dtype=init.dtype)
     diag_elems = jax.numpy.zeros(ncv, dtype=init.dtype)
 
     norm = jax.numpy.linalg.norm(init)
     norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
+
+    norms_dtype = jax.numpy.real(jax.numpy.empty(
+        0, dtype=init.dtype)).dtype  #what freaking a hack!
     initvals = [
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
-        init.dtype.type(1.0), landelta, 1, ncv
+        norms_dtype.type(1.0), landelta, 1, ncv
     ]
 
     final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = jax.lax.while_loop(
