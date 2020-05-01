@@ -582,7 +582,8 @@ def test_matmul(dtype, num_charges, chargetype):
   tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
   result = tensor1 @ tensor2
   assert result.dtype == dtype
-  dense_result = tensor1.todense() @ tensor2.todense()
+
+  dense_result = tensor1.todense() @ tensor2.todense()  #pytype: disable=unsupported-operands
   np.testing.assert_allclose(dense_result, result.todense())
 
 
