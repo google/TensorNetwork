@@ -26,7 +26,7 @@ class JaxBackend(base_backend.BaseBackend):
   def __init__(self, dtype: Optional[np.dtype] = None):
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
-    global jnp  # jnp.numpy module
+    global jnp  # jax.numpy module
     global jsp  # jax.scipy module
     super(JaxBackend, self).__init__()
     try:
