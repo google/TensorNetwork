@@ -277,10 +277,7 @@ class NumPyBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. If no `initial_state` is provided
-    then `A` has to have an attribute `shape` so that a suitable initial
-    state can be randomly generated.
-
+    of a linear operator `A`.
     Args:
       A: A (sparse) implementation of a linear operator.
          Call signature of `A` is `res = A(*args, vector)`, where `vector`

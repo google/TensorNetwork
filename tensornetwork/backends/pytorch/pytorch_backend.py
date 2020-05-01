@@ -126,7 +126,9 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return torchlib.norm(tensor)
 
-  def eye(self, N: int, dtype: Optional[Any] = None,
+  def eye(self,
+          N: int,
+          dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else torchlib.float64
     if not M:
@@ -137,7 +139,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else torchlib.float64
     return torchlib.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
     dtype = dtype if dtype is not None else torchlib.float64
     return torchlib.zeros(shape, dtype=dtype)
@@ -184,7 +187,9 @@ class PyTorchBackend(base_backend.BaseBackend):
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
     Args:
-      A: A (sparse) implementation of a linear operator
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
       arsg: A list of arguments to `A`.  `A` will be called as
         `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,

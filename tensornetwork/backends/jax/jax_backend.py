@@ -237,6 +237,41 @@ class JaxBackend(base_backend.BaseBackend):
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    """
+    Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. 
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+        `np.linalg.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
+        as stopping criterion between two diagonalization steps of the
+        tridiagonal operator.
+      delta: Stopping criterion for Lanczos iteration.
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
+        been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
+        to check convergence.
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
+        explicit orthogonalization (more costly than `reorthogonalize=False`)
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` lowest eigenvalues
+       eigvecs: A list of `numeig` lowest eigenvectors
+    """
 
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
@@ -254,15 +289,21 @@ class JaxBackend(base_backend.BaseBackend):
     if not isinstance(initial_state, jnp.ndarray):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
-
-    if not hasattr(self, '_jaxlan'):
-      #avoid retracing
+    if hasattr(self, '_A'):
+      if self._A is not A:
+        #pylint: disable=attribute-defined-outside-init
+        self._Apartial = libjax.tree_util.Partial(A)
+        #pylint: disable=attribute-defined-outside-init
+        self._A = A
+    else:
+      #pylint: disable=attribute-defined-outside-init
+      self._Apartial = libjax.tree_util.Partial(A)
+      #pylint: disable=attribute-defined-outside-init
+      self._A = A
       #pylint: disable=attribute-defined-outside-init
       self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
-
-    return self._jaxlan(
-        libjax.tree_util.Partial(A), args, initial_state, num_krylov_vecs,
-        numeig, delta, reorthogonalize)
+    return self._jaxlan(self._Apartial, args, initial_state, num_krylov_vecs,
+                        numeig, delta, reorthogonalize)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)
