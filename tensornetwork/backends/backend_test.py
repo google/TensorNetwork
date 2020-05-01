@@ -152,9 +152,6 @@ def test_basic_network_without_backends_raises_error():
     Node(np.ones((2, 2)), backend="pytorch")
 
 
-[]
-
-
 def test_base_backend_name():
   backend = BaseBackend()
   assert backend.name == "base backend"
