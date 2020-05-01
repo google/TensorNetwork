@@ -19,7 +19,6 @@ import pytest
 import numpy as np
 import tensornetwork as tn
 from tensornetwork.backends import backend_factory
-from tensornetwork.network_components import Node
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 import tensorflow as tf
 
@@ -253,3 +252,50 @@ def test_physical_dimensions(backend):
   tensors = [np.ones((1, 2, D)), np.ones((D, 3, D)), np.ones((D, 4, 1))]
   mps = BaseMPS(tensors, backend=backend)
   assert mps.physical_dimensions == [2, 3, 4]
+
+
+def test_apply_transfer_operator_left(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]],
+                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+
+  tensors = 6*[backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                           dtype=np.float64))
+  mps = BaseMPS(tensors, backend=backend)
+
+  expected = np.array([[74.,  58.,  38.],
+                       [78., 146., 102.],
+                       [38., 114.,  74.]])
+  actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
+  actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
+  actual = mps.apply_transfer_operator(site=3,
+                                       direction="left",
+                                       matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
+
+
+def test_apply_transfer_operator_right(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]],
+                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+
+  tensors = 6*[backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                           dtype=np.float64))
+  mps = BaseMPS(tensors, backend=backend)
+  expected = np.array([[80., -20., 128.],
+                       [-20.,  10., -60.],
+                       [144., -60., 360.]])
+  actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
+  actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
+  actual = mps.apply_transfer_operator(site=3,
+                                       direction="right",
+                                       matrix=mat).tensor
+  np.testing.assert_allclose(actual, expected)
