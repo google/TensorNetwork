@@ -227,10 +227,29 @@ def test_different_backends_raises_error():
     mps1.backend
 
 
-def test_differentdtypes_raises_error():
+def test_different_dtypes_raises_error():
   D, d, N = 4, 2, 6
   tensors = [np.ones((1, d, D), dtype=np.float64),
              np.ones((D, d, D), dtype= np.complex64)]
   mps = BaseMPS(tensors, backend='numpy')
   with pytest.raises(ValueError):
     mps.dtype
+
+
+def test_not_implemented():
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D)), np.ones((D, d, D))]
+  mps = BaseMPS(tensors, backend='numpy')
+  with pytest.raises(NotImplementedError):
+    mps.save('tmp')
+  with pytest.raises(NotImplementedError):
+    mps.right_envs([0])
+  with pytest.raises(NotImplementedError):
+    mps.left_envs([0])
+
+
+def test_physical_dimensions(backend):
+  D = 3
+  tensors = [np.ones((1, 2, D)), np.ones((D, 3, D)), np.ones((D, 4, 1))]
+  mps = BaseMPS(tensors, backend=backend)
+  assert mps.physical_dimensions == [2, 3, 4]
