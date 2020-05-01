@@ -544,6 +544,8 @@ class BaseMPS:
     elif which in ('r', 'right'):
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
+    else:
+      raise ValueError("which must be one of 'l', 'left', 'r', 'right'")
     result = n1 @ n2
     return self.backend.norm(
         abs(result.tensor - self.backend.eye(
