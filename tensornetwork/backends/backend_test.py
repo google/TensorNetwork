@@ -150,7 +150,10 @@ def test_basic_network_without_backends_raises_error():
     Node(np.ones((2, 2)), backend="tensorflow")
   with pytest.raises(ImportError):
     Node(np.ones((2, 2)), backend="pytorch")
+
+
 []
+
 
 def test_base_backend_name():
   backend = BaseBackend()
@@ -316,7 +319,7 @@ def test_base_backend_eigs_not_implemented():
 def test_base_backend_eigs_lanczos_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(np.ones((2, 2)))
+    backend.eigsh_lanczos(lambda x: x, [], np.ones((2)))
 
 
 def test_base_backend_addition_not_implemented():
