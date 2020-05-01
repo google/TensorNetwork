@@ -212,7 +212,7 @@ def test_position_no_shift_no_normalization(backend):
 
 
 def test_different_backends_raises_error():
-  D, d, N = 4, 2, 6
+  D, d = 4, 2
   tensors = [np.ones((1, d, D))]
   mps1 = BaseMPS(tensors, backend='numpy')
   mps2 = BaseMPS(tensors, backend='tensorflow')
@@ -222,7 +222,7 @@ def test_different_backends_raises_error():
 
 
 def test_different_dtypes_raises_error():
-  D, d, N = 4, 2, 6
+  D, d = 4, 2
   tensors = [
       np.ones((1, d, D), dtype=np.float64),
       np.ones((D, d, D), dtype=np.complex64)
@@ -233,7 +233,7 @@ def test_different_dtypes_raises_error():
 
 
 def test_not_implemented():
-  D, d, N = 4, 2, 6
+  D, d = 4, 2
   tensors = [np.ones((1, d, D)), np.ones((D, d, D))]
   mps = BaseMPS(tensors, backend='numpy')
   with pytest.raises(NotImplementedError):
@@ -394,7 +394,7 @@ def test_check_normality_raises_value_error(backend):
     mps.check_orthonormality(which="keft", site=0)
 
 
-def test_apply_two_site_gate(backend):
+def test_apply_two_site_gate_2(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
                      [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
@@ -488,7 +488,7 @@ def test_apply_two_site_max_singular_value_not_center_raises_error(backend):
     mps.apply_two_site_gate(gate=gate, site1=3, site2=4, max_truncation_err=.1)
 
 
-def test_apply_one_site_gate(backend):
+def test_apply_one_site_gate_2(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
                      [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
