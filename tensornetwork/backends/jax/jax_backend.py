@@ -21,8 +21,10 @@ from functools import partial
 
 Tensor = Any
 
-
 # pylint: disable=abstract-method
+# pylint: disable=attribute-defined-outside-init
+
+
 class JaxBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -243,8 +245,8 @@ class JaxBackend(base_backend.BaseBackend):
     product. 
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
     at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
-    if the python `id` of `A` changes, even if the formal definition of `A` stays
-    the same. 
+    if the python `id` of `A` changes, even if the formal definition of `A` 
+    stays the same. 
     Example: the following will jit once at the beginning, and then never again:
 
     ```python
@@ -321,17 +323,13 @@ class JaxBackend(base_backend.BaseBackend):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
     if hasattr(self, '_A'):
+      #pylint: disable=access-member-before-definition
       if self._A is not A:
-        # pylint: disable=attribute-defined-outside-init
         self._Apartial = libjax.tree_util.Partial(A)
-        # pylint: disable=attribute-defined-outside-init
         self._A = A
     else:
-      # pylint: disable=attribute-defined-outside-init
       self._Apartial = libjax.tree_util.Partial(A)
-      # pylint: disable=attribute-defined-outside-init
       self._A = A
-      # pylint: disable=attribute-defined-outside-init
       self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
     return self._jaxlan(self._Apartial, args, initial_state, num_krylov_vecs,
                         numeig, delta, reorthogonalize)
