@@ -167,11 +167,50 @@ def test_position_raises_error(backend):
 
 
 def test_position_no_normalization(backend):
-  D, d, N = 10, 2, 10
-  tensors = [np.random.randn(1, d, D)] + [
-      np.random.randn(D, d, D) for _ in range(N - 2)
-  ] + [np.random.randn(D, d, 1)]
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))] + [
+      np.ones((D, d, D)) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1))]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
-  mps.position(len(mps) - 1)
   Z = mps.position(len(mps) - 1, normalize=False)
-  np.testing.assert_allclose(Z, 1.0)
+  np.testing.assert_allclose(Z, 8192.0)
+
+
+def test_position_shift_left(backend):
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))] + [
+      np.ones((D, d, D)) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
+  Z = mps.position(0, normalize=True)
+  np.testing.assert_allclose(Z, 2.828427)
+
+
+def test_position_shift_right(backend):
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))] + [
+      np.ones((D, d, D)) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
+  Z = mps.position(N-1, normalize=True)
+  np.testing.assert_allclose(Z, 2.828427)
+
+
+def test_position_no_shift(backend):
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))] + [
+      np.ones((D, d, D)) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
+  Z = mps.position(int(N/2), normalize=True)
+  np.testing.assert_allclose(Z, 5.656854)
+
+
+def test_position_no_shift_no_normalization(backend):
+  D, d, N = 4, 2, 6
+  tensors = [np.ones((1, d, D))] + [
+      np.ones((D, d, D)) for _ in range(N - 2)
+  ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
+  Z = mps.position(int(N/2), normalize=False)
+  np.testing.assert_allclose(Z, 5.656854)
