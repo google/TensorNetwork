@@ -1,5 +1,3 @@
-# pytype: skip-file
-"""Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
 import scipy as sp
