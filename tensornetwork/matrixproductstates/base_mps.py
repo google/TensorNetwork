@@ -561,8 +561,6 @@ class BaseMPS:
         deviation = self.check_orthonormality('l', site)
       elif site > self.center_position:
         deviation = self.check_orthonormality('r', site)
-      else:
-        continue
       deviations.append(deviation**2)
     return self.backend.sqrt(sum(deviations))
 
