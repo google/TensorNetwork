@@ -753,5 +753,3 @@ def test_multiprocessing():
   a[0] ^ b[0]
   c = a @ b
   np.testing.assert_allclose(c.tensor, np.eye(2))
-
-
