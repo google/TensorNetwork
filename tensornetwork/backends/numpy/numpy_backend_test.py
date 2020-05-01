@@ -288,16 +288,9 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  class LinearOperator:
+  def mv(x):
+    return np.dot(H, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
@@ -314,16 +307,9 @@ def test_eigsh_small_number_krylov_vectors():
   init = np.array([1, 1], dtype=np.float64)
   H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
-  class LinearOperator:
+  def mv(x):
+    return np.dot(H, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=np.float64)
   eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
@@ -358,17 +344,10 @@ def test_eigsh_lanczos_2(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  class LinearOperator:
+  def mv(x):
+    return np.dot(H, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv, [])
+  eta1, U1 = backend.eigsh_lanczos(mv, [], shape=(D,), dtype=dtype)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -387,18 +366,13 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  class LinearOperator:
+  def mv(x):
+    return np.dot(H, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
       mv, [],
+      shape=(D,),
+      dtype=dtype,
       numeig=numeig,
       reorthogonalize=True,
       ndiag=1,
@@ -418,43 +392,18 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
 
 def test_eigsh_lanczos_raises():
   backend = numpy_backend.NumPyBackend()
-  with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x, [])
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
-
-
-def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
-  backend = numpy_backend.NumPyBackend()
-  A = backend.randn((4, 4), dtype=np.float64)
-  init = backend.randn((3,), dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(A, [], initial_state=init)
-
-
-def test_eigsh_lanczos_raises_error_for_untyped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigsh_lanczos(A, [])
-
-
-def test_eigsh_lanczos_raises_error_for_bad_initial_state():
-  backend = numpy_backend.NumPyBackend()
-  D = 16
-  init = [1] * D
-  M = backend.randn((D, D), dtype=np.float64)
-
-  def mv(x):
-    return np.dot(M, x)
-
+    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(lambda x: x, [])
   with pytest.raises(TypeError):
-    backend.eigsh_lanczos(mv, [], initial_state=init)
+    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b, expected", [
