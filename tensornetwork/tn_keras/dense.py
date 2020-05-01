@@ -86,10 +86,10 @@ class DenseDecomp(Layer):
         initializer=self.bias_initializer) if self.use_bias else None
     super(DenseDecomp, self).build(input_shape)
 
-  def call(self, inputs: np.ndarray) -> np.ndarray:
+  def call(self, inputs: tf.Tensor) -> tf.Tensor:
 
-    def f(x: np.ndarray, a_var: np.ndarray, b_var: np.ndarray, use_bias: bool,
-          bias_var: np.ndarray) -> np.ndarray:
+    def f(x: tf.Tensor, a_var: tf.Tensor, b_var: tf.Tensor, use_bias: bool,
+          bias_var: tf.Tensor) -> tf.Tensor:
       a = tn.Node(a_var, backend="tensorflow")
       b = tn.Node(b_var, backend="tensorflow")
       x_node = tn.Node(x, backend="tensorflow")

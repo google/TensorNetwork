@@ -2,8 +2,6 @@ import pytest
 import numpy as np
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense # type: ignore
-from tensorflow.keras.callbacks import Callback
 from tensornetwork.tn_keras.dense import DenseDecomp
 
 
