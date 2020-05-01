@@ -152,3 +152,26 @@ def test_mps_switch_backend(backend):
   mps = BaseMPS(tensors, center_position=0, backend="numpy")
   mps.switch_backend(backend)
   assert mps.backend.name == backend
+
+
+def test_position_raises_error(backend):
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
+  with pytest.raises(ValueError):
+    mps.position(-1)
+  with pytest.raises(ValueError):
+    mps.position(11)
+
+
+def test_position_no_normalization(backend):
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
+  mps.position(len(mps) - 1)
+  Z = mps.position(len(mps) - 1, normalize=False)
+  np.testing.assert_allclose(Z, 1.0)
