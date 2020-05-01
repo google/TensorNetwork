@@ -7,7 +7,7 @@ from tensornetwork.network_components import contract, contract_copy_node, contr
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, disconnect
 from tensornetwork.ncon_interface import ncon, ncon_network
-from tensornetwork.version import *
+from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork.utils import load_nodes, save_nodes
