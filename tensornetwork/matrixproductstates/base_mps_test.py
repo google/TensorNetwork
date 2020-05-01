@@ -168,9 +168,8 @@ def test_position_raises_error(backend):
 
 def test_position_no_normalization(backend):
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D))] + [
-      np.ones((D, d, D)) for _ in range(N - 2)
-  ] + [np.ones((D, d, 1))]
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
   Z = mps.position(len(mps) - 1, normalize=False)
   np.testing.assert_allclose(Z, 8192.0)
@@ -178,41 +177,37 @@ def test_position_no_normalization(backend):
 
 def test_position_shift_left(backend):
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D))] + [
-      np.ones((D, d, D)) for _ in range(N - 2)
-  ] + [np.ones((D, d, 1))]
-  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N / 2), backend=backend)
   Z = mps.position(0, normalize=True)
   np.testing.assert_allclose(Z, 2.828427)
 
 
 def test_position_shift_right(backend):
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D))] + [
-      np.ones((D, d, D)) for _ in range(N - 2)
-  ] + [np.ones((D, d, 1))]
-  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
-  Z = mps.position(N-1, normalize=True)
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N / 2), backend=backend)
+  Z = mps.position(N - 1, normalize=True)
   np.testing.assert_allclose(Z, 2.828427)
 
 
 def test_position_no_shift(backend):
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D))] + [
-      np.ones((D, d, D)) for _ in range(N - 2)
-  ] + [np.ones((D, d, 1))]
-  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
-  Z = mps.position(int(N/2), normalize=True)
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N / 2), backend=backend)
+  Z = mps.position(int(N / 2), normalize=True)
   np.testing.assert_allclose(Z, 5.656854)
 
 
 def test_position_no_shift_no_normalization(backend):
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D))] + [
-      np.ones((D, d, D)) for _ in range(N - 2)
-  ] + [np.ones((D, d, 1))]
-  mps = BaseMPS(tensors, center_position=int(N/2), backend=backend)
-  Z = mps.position(int(N/2), normalize=False)
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=int(N / 2), backend=backend)
+  Z = mps.position(int(N / 2), normalize=False)
   np.testing.assert_allclose(Z, 5.656854)
 
 
@@ -228,8 +223,10 @@ def test_different_backends_raises_error():
 
 def test_different_dtypes_raises_error():
   D, d, N = 4, 2, 6
-  tensors = [np.ones((1, d, D), dtype=np.float64),
-             np.ones((D, d, D), dtype= np.complex64)]
+  tensors = [
+      np.ones((1, d, D), dtype=np.float64),
+      np.ones((D, d, D), dtype=np.complex64)
+  ]
   mps = BaseMPS(tensors, backend='numpy')
   with pytest.raises(ValueError):
     mps.dtype
@@ -248,6 +245,7 @@ def test_not_implemented():
   with pytest.raises(NotImplementedError):
     mps.canonicalize()
 
+
 def test_physical_dimensions(backend):
   D = 3
   tensors = [np.ones((1, 2, D)), np.ones((D, 3, D)), np.ones((D, 4, 1))]
@@ -258,59 +256,54 @@ def test_physical_dimensions(backend):
 def test_apply_transfer_operator_left(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                     [[-1., 1., -1.], [-1., 1., -1.]],
-                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
 
-  tensors = 6*[backend.convert_to_tensor(tensor)]
-  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                                           dtype=np.float64))
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(
+      np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64))
   mps = BaseMPS(tensors, backend=backend)
 
-  expected = np.array([[74.,  58.,  38.],
-                       [78., 146., 102.],
-                       [38., 114.,  74.]])
+  expected = np.array([[74., 58., 38.], [78., 146., 102.], [38., 114., 74.]])
   actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
   actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3,
-                                       direction="left",
-                                       matrix=mat).tensor
+  actual = mps.apply_transfer_operator(
+      site=3, direction="left", matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
 
 
 def test_apply_transfer_operator_right(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                     [[-1., 1., -1.], [-1., 1., -1.]],
-                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
 
-  tensors = 6*[backend.convert_to_tensor(tensor)]
-  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                                           dtype=np.float64))
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(
+      np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64))
   mps = BaseMPS(tensors, backend=backend)
-  expected = np.array([[80., -20., 128.],
-                       [-20.,  10., -60.],
-                       [144., -60., 360.]])
+  expected = np.array([[80., -20., 128.], [-20., 10., -60.], [144., -60.,
+                                                              360.]])
   actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
   actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3,
-                                       direction="right",
-                                       matrix=mat).tensor
+  actual = mps.apply_transfer_operator(
+      site=3, direction="right", matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
 
 
 def test_apply_transfer_operator_invalid_direction_raises_error(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                     [[-1., 1., -1.], [-1., 1., -1.]],
-                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
 
-  tensors = 6*[backend.convert_to_tensor(tensor)]
-  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                                           dtype=np.float64))
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(
+      np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64))
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
     mps.apply_transfer_operator(site=3, direction=0, matrix=mat)
@@ -321,156 +314,154 @@ def test_apply_transfer_operator_invalid_direction_raises_error(backend):
 def test_measure_local_operator_value_error(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                     [[-1., 1., -1.], [-1., 1., -1.]],
-                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
 
-  tensors = 6*[backend.convert_to_tensor(tensor)]
-  operator = backend.convert_to_tensor(np.array([[1, -1], [-1, 1]],
-                                                dtype=np.float64))
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  operator = backend.convert_to_tensor(
+      np.array([[1, -1], [-1, 1]], dtype=np.float64))
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
-    mps.measure_local_operator(ops=2*[operator], sites=[1, 2, 3])
+    mps.measure_local_operator(ops=2 * [operator], sites=[1, 2, 3])
 
 
 def test_measure_two_body_correlator_value_error(backend):
   backend = backend_factory.get_backend(backend)
   tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                     [[-1., 1., -1.], [-1., 1., -1.]],
-                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
 
-  tensors = 6*[backend.convert_to_tensor(tensor)]
-  operator = backend.convert_to_tensor(np.array([[1, -1], [-1, 1]],
-                                                dtype=np.float64))
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  operator = backend.convert_to_tensor(
+      np.array([[1, -1], [-1, 1]], dtype=np.float64))
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
-    mps.measure_two_body_correlator(op1=operator, op2=operator,
-                                    site1=-1, sites2=2)
+    mps.measure_two_body_correlator(
+        op1=operator, op2=operator, site1=-1, sites2=2)
 
 
 def test_get_node(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
-    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
-    tensors = [tensor1, tensor2]
-    mps = BaseMPS(tensors, backend=backend)
-    np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-    np.testing.assert_allclose(mps.get_node(1).tensor, tensor2)
+  backend = backend_factory.get_backend(backend)
+  tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+  tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
+  tensors = [tensor1, tensor2]
+  mps = BaseMPS(tensors, backend=backend)
+  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
+  np.testing.assert_allclose(mps.get_node(1).tensor, tensor2)
 
 
 def test_get_node_connector_matrix(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
-    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
-    connector = backend.convert_to_tensor(np.ones((2, 2), dtype=np.float64))
-    tensors = [tensor1, tensor2]
-    mps = BaseMPS(tensors, backend=backend, connector_matrix=connector)
-    np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-    np.testing.assert_allclose(mps.get_node(1).tensor, 2*tensor2)
+  backend = backend_factory.get_backend(backend)
+  tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+  tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
+  connector = backend.convert_to_tensor(np.ones((2, 2), dtype=np.float64))
+  tensors = [tensor1, tensor2]
+  mps = BaseMPS(tensors, backend=backend, connector_matrix=connector)
+  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
+  np.testing.assert_allclose(mps.get_node(1).tensor, 2 * tensor2)
 
 
 def test_get_node_raises_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
-    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
-    tensors = [tensor1, tensor2]
-    mps = BaseMPS(tensors, backend=backend)
-    with pytest.raises(ValueError):
-        mps.get_node(site=-1)
-    with pytest.raises(IndexError):
-        mps.get_node(site=3)
+  backend = backend_factory.get_backend(backend)
+  tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+  tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
+  tensors = [tensor1, tensor2]
+  mps = BaseMPS(tensors, backend=backend)
+  with pytest.raises(ValueError):
+    mps.get_node(site=-1)
+  with pytest.raises(IndexError):
+    mps.get_node(site=3)
 
 
 def test_check_canonical(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    np.testing.assert_allclose(mps.check_canonical(), 71.714713)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  np.testing.assert_allclose(mps.check_canonical(), 71.714713)
 
 
 def test_check_normality_raises_value_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.ones((2, 3, 2), dtype=np.float64)
-    tensors = [tensor]
-    mps = BaseMPS(tensors, backend=backend)
-    with pytest.raises(ValueError):
-        mps.check_orthonormality(which=0, site=0)
-    with pytest.raises(ValueError):
-        mps.check_orthonormality(which="keft", site=0)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.ones((2, 3, 2), dtype=np.float64)
+  tensors = [tensor]
+  mps = BaseMPS(tensors, backend=backend)
+  with pytest.raises(ValueError):
+    mps.check_orthonormality(which=0, site=0)
+  with pytest.raises(ValueError):
+    mps.check_orthonormality(which="keft", site=0)
 
 
 def test_apply_two_site_gate(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    gate = backend.convert_to_tensor(np.array([[[[0., 1.], [0., 0.]],
-                                                [[1., 0.], [0., 0.]]],
-                                              [[[0., 0.], [0., 1.]],
-                                               [[0., 0.], [1., 0.]]]],
-                                              dtype=np.float64))
-    actual = mps.apply_two_site_gate(gate=gate, site1=1, site2=2,
-                                     max_singular_values=1)
-    np.testing.assert_allclose(actual[0], 9.133530)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate = backend.convert_to_tensor(
+      np.array([[[[0., 1.], [0., 0.]], [[1., 0.], [0., 0.]]],
+                [[[0., 0.], [0., 1.]], [[0., 0.], [1., 0.]]]],
+               dtype=np.float64))
+  actual = mps.apply_two_site_gate(
+      gate=gate, site1=1, site2=2, max_singular_values=1)
+  np.testing.assert_allclose(actual[0], 9.133530)
 
 
 def test_apply_two_site_wrong_gate_raises_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    gate1 = backend.convert_to_tensor(np.ones((2, 2, 2), dtype=np.float64))
-    gate2 = backend.convert_to_tensor(np.ones((2, 2, 2, 2, 2),
-                                              dtype=np.float64))
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate1, site1=1, site2=2)
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate2, site1=1, site2=2)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate1 = backend.convert_to_tensor(np.ones((2, 2, 2), dtype=np.float64))
+  gate2 = backend.convert_to_tensor(np.ones((2, 2, 2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate1, site1=1, site2=2)
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate2, site1=1, site2=2)
 
 
 def test_apply_two_site_wrong_site1_raises_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=-1, site2=2)
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=6, site2=2)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=-1, site2=2)
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=6, site2=2)
 
 
 def test_apply_two_site_wrong_site2_raises_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=0, site2=0)
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=0, site2=6)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=0, site2=0)
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=0, site2=6)
 
 
 def test_apply_two_site_wrong_site1_site2_raises_error(backend):
-    backend = backend_factory.get_backend(backend)
-    tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
-                       [[-1., 1., -1.], [-1., 1., -1.]],
-                       [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
-    tensors = 6 * [backend.convert_to_tensor(tensor)]
-    mps = BaseMPS(tensors, backend=backend, center_position=2)
-    gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=2, site2=2)
-    with pytest.raises(ValueError):
-        mps.apply_two_site_gate(gate=gate, site1=2, site2=4)
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate = backend.convert_to_tensor(np.ones((2, 2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=2, site2=2)
+  with pytest.raises(ValueError):
+    mps.apply_two_site_gate(gate=gate, site1=2, site2=4)
