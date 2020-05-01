@@ -315,3 +315,17 @@ def test_apply_transfer_operator_invalid_direction_raises_error(backend):
     mps.apply_transfer_operator(site=3, direction=0, matrix=mat)
   with pytest.raises(ValueError):
     mps.apply_transfer_operator(site=3, direction="keft", matrix=mat)
+
+
+def test_measure_local_operator_value_error(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]],
+                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+
+  tensors = 6*[backend.convert_to_tensor(tensor)]
+  operator = backend.convert_to_tensor(np.array([[1, -1], [-1, 1]],
+                                                dtype=np.float64))
+  mps = BaseMPS(tensors, backend=backend)
+  with pytest.raises(ValueError):
+    mps.measure_local_operator(ops=2*[operator], sites=[1, 2, 3])
