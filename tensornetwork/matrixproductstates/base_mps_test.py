@@ -245,7 +245,8 @@ def test_not_implemented():
     mps.right_envs([0])
   with pytest.raises(NotImplementedError):
     mps.left_envs([0])
-
+  with pytest.raises(NotImplementedError):
+    mps.canonicalize()
 
 def test_physical_dimensions(backend):
   D = 3
@@ -344,3 +345,36 @@ def test_measure_two_body_correlator_value_error(backend):
   with pytest.raises(ValueError):
     mps.measure_two_body_correlator(op1=operator, op2=operator,
                                     site1=-1, sites2=2)
+
+
+def test_get_node(backend):
+    backend = backend_factory.get_backend(backend)
+    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
+    tensors = [tensor1, tensor2]
+    mps = BaseMPS(tensors, backend=backend)
+    np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
+    np.testing.assert_allclose(mps.get_node(1).tensor, tensor2)
+
+
+def test_get_node_connector_matrix(backend):
+    backend = backend_factory.get_backend(backend)
+    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
+    connector = backend.convert_to_tensor(np.ones((2, 2), dtype=np.float64))
+    tensors = [tensor1, tensor2]
+    mps = BaseMPS(tensors, backend=backend, connector_matrix=connector)
+    np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
+    np.testing.assert_allclose(mps.get_node(1).tensor, 2*tensor2)
+
+
+def test_get_node_raises_error(backend):
+    backend = backend_factory.get_backend(backend)
+    tensor1 = np.ones((2, 3, 2), dtype=np.float64)
+    tensor2 = 2*np.ones((2, 3, 2), dtype=np.float64)
+    tensors = [tensor1, tensor2]
+    mps = BaseMPS(tensors, backend=backend)
+    with pytest.raises(ValueError):
+        mps.get_node(site=-1)
+    with pytest.raises(IndexError):
+        mps.get_node(site=3)
