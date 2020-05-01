@@ -26,6 +26,11 @@ def assertBackendsAgree(f, args):
   assert np_result.shape == sh_result.shape
 
 
+def test_shell_tensor_reshape():
+  shell_tensor = shell_backend.ShellTensor((2, 1), np.float64)
+  shell_tensor = shell_tensor.reshape((1, 2))
+  assert shell_tensor.shape == (1, 2)
+
 def test_tensordot():
   args = {}
   args["a"] = np.ones([3, 5, 2])
@@ -52,12 +57,35 @@ def test_svd_decomposition():
     assert x.shape == y.shape
 
 
+def test_svd_decomposition_raises_error():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  with pytest.raises(NotImplementedError):
+    shell_backend.ShellBackend().svd_decomposition(tensor, 3,
+                                                   max_truncation_error=.1)
+
+
 def test_svd_decomposition_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().svd_decomposition(
       tensor, 3, max_singular_values=5)
   sh_res = shell_backend.ShellBackend().svd_decomposition(
       tensor, 3, max_singular_values=5)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
+
+
+def test_qr_decomposition():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().qr_decomposition(tensor, 3)
+  sh_res = shell_backend.ShellBackend().qr_decomposition(tensor, 3)
+  for x, y in zip(np_res, sh_res):
+    assert x.shape == y.shape
+
+
+def test_rq_decomposition():
+  tensor = np.ones([2, 3, 4, 5, 6])
+  np_res = numpy_backend.NumPyBackend().rq_decomposition(tensor, 3)
+  sh_res = shell_backend.ShellBackend().rq_decomposition(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
@@ -132,6 +160,13 @@ def test_einsum():
   assert np_result.shape == sh_result.shape
 
 
+def test_einsum_raises_error():
+  expression = "ab,bc->ad"
+  tensor1, tensor2 = np.ones([5, 3]), np.ones([3, 6])
+  with pytest.raises(ValueError):
+    shell_backend.ShellBackend().einsum(expression, tensor1, tensor2)
+
+
 def test_norm():
   args = {"tensor": np.ones([3, 5])}
   assertBackendsAgree("norm", args)
@@ -142,9 +177,19 @@ def test_eye():
   assertBackendsAgree("eye", args)
 
 
+def test_eye_without_M():
+  args = {"N": 10}
+  assertBackendsAgree("eye", args)
+
+
 def test_zeros():
   args = {"shape": (10, 4)}
   assertBackendsAgree("zeros", args)
+
+
+def test_conj():
+  args = {"tensor": np.ones([3, 5])}
+  assertBackendsAgree("conj", args)
 
 
 def test_ones():
@@ -192,6 +237,27 @@ def test_eigsh_lanczos_2():
     assert ev.shape == tuple()
 
 
+def test_eigsh_lanczos_init_shape():
+  backend = shell_backend.ShellBackend()
+  D = 16
+  init = backend.randn((D,))
+
+  class LinearOperator:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = LinearOperator(shape=((D,), (D,)))
+  eigvals, eigvecs = backend.eigsh_lanczos(mv, numeig=3, initial_state=init,
+                                           reorthogonalize=True)
+  for n, ev in enumerate(eigvals):
+    assert eigvecs[n].shape == (D,)
+    assert ev.shape == tuple()
+
+
 def test_eigsh_lanczos_raises():
   backend = shell_backend.ShellBackend()
   with pytest.raises(AttributeError):
@@ -200,6 +266,9 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(backend.randn((2, 2)),
+                          initial_state=backend.randn((3,)))
 
 
 @pytest.mark.parametrize("a, b", [
@@ -240,6 +309,24 @@ def test_eigs():
     assert v[n].shape == (2,)
 
 
+def test_eigs_initial_state_shape():
+  backend = shell_backend.ShellBackend()
+
+  class MV:
+
+    def __init__(self, shape):
+      self.shape = shape
+
+    def __call__(self, x):
+      return x
+
+  mv = MV(((2,), (2,)))
+  eta, v = backend.eigs(mv, backend.randn((2,)))
+  assert len(eta) == 1
+  for n in range(len(eta)):
+    assert v[n].shape == (2,)
+
+
 def test_eigs_raises():
 
   class MV:
@@ -256,7 +343,8 @@ def test_eigs_raises():
     backend.eigs(mv, initial_state=np.random.rand(3))
   with pytest.raises(AttributeError):
     backend.eigs(lambda x: x)
-
+  with pytest.raises(ValueError):
+    backend.eigs(np.random.rand(2, 2), initial_state=np.random.rand(3))
 
 def index_update():
   backend = shell_backend.ShellBackend()
@@ -287,6 +375,14 @@ def test_broadcast_right_multiplication():
   np.testing.assert_allclose(out.shape, [2, 4, 3])
 
 
+def test_broadcast_right_multiplication_reverse_order():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3,))
+  tensor2 = backend.randn((3,))
+  out = backend.broadcast_right_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [3])
+
+
 def test_broadcast_right_multiplication_raises():
   backend = shell_backend.ShellBackend()
   tensor1 = backend.randn((2, 4, 3))
@@ -303,6 +399,14 @@ def test_broadcast_left_multiplication():
   np.testing.assert_allclose(out.shape, [3, 4, 2])
 
 
+def test_broadcast_left_multiplication_reverse_order():
+  backend = shell_backend.ShellBackend()
+  tensor1 = backend.randn((3,))
+  tensor2 = backend.randn((3,))
+  out = backend.broadcast_left_multiplication(tensor1, tensor2)
+  np.testing.assert_allclose(out.shape, [3])
+
+
 def test_broadcast_left_multiplication_raises():
   backend = shell_backend.ShellBackend()
   tensor1 = backend.randn((3, 3))
@@ -315,3 +419,32 @@ def test_sparse_shape():
   backend = shell_backend.ShellBackend()
   tensor = backend.randn((2, 3, 4), seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+def test_addition():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.addition(matrix, matrix)
+
+
+def test_subtraction():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.subtraction(matrix, matrix)
+
+
+def test_divide():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  with pytest.raises(NotImplementedError):
+    backend.divide(matrix, matrix)
+
+
+def test_index_update():
+  backend = shell_backend.ShellBackend()
+  matrix = backend.randn((4, 4, 4), seed=10)
+  actual = backend.index_update(matrix, matrix, matrix)
+  assert isinstance(actual, shell_backend.ShellTensor)
+  assert actual.shape == (4, 4, 4)
