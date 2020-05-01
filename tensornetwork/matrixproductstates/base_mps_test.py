@@ -299,3 +299,19 @@ def test_apply_transfer_operator_right(backend):
                                        direction="right",
                                        matrix=mat).tensor
   np.testing.assert_allclose(actual, expected)
+
+
+def test_apply_transfer_operator_invalid_direction_raises_error(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]],
+                     [[1., 2, 3], [3, 2, 1]]], dtype=np.float64)
+
+  tensors = 6*[backend.convert_to_tensor(tensor)]
+  mat = backend.convert_to_tensor(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                           dtype=np.float64))
+  mps = BaseMPS(tensors, backend=backend)
+  with pytest.raises(ValueError):
+    mps.apply_transfer_operator(site=3, direction=0, matrix=mat)
+  with pytest.raises(ValueError):
+    mps.apply_transfer_operator(site=3, direction="keft", matrix=mat)
