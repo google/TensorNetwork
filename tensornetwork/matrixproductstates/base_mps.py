@@ -110,7 +110,7 @@ class BaseMPS:
       return Z
 
     #shift center_position to the right using QR decomposition
-    if site > self.center_position:
+    elif site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
         Q, R = split_node_qr(
@@ -134,7 +134,7 @@ class BaseMPS:
       self.center_position = site
 
     #shift center_position to the left using RQ decomposition
-    elif site < self.center_position:
+    else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
         R, Q = split_node_rq(
