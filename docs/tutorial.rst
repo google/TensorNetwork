@@ -1,4 +1,4 @@
-TensorNetwork Quickstart
+Quickstart
 ========
 To get started, let's first install the TensorNetwork library.
 
@@ -117,7 +117,7 @@ The methods `contract_between` or `contract_parallel` will do this for you autom
   a = np.ones((1000, 1000))
   b = np.ones((1000, 1000))
 
-.. code-block:: 
+.. code-block:: python3
 
   >>> print("Running one_edge_at_a_time")
   >>> %timeit one_edge_at_a_time(a, b)
