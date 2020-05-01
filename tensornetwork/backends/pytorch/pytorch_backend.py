@@ -47,15 +47,14 @@ class PyTorchBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
                        "identical.")
-    obj = tuple(slice(start, start + size) for start, size
-                in zip(start_indices, slice_sizes))
+    obj = tuple(
+        slice(start, start + size)
+        for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
   def svd_decomposition(self,
@@ -124,9 +123,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return torchlib.norm(tensor)
 
-  def eye(self,
-          N: int,
-          dtype: Optional[Any] = None,
+  def eye(self, N: int, dtype: Optional[Any] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else torchlib.float64
     if not M:
@@ -137,8 +134,7 @@ class PyTorchBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else torchlib.float64
     return torchlib.ones(shape, dtype=dtype)
 
-  def zeros(self,
-            shape: Tuple[int, ...],
+  def zeros(self, shape: Tuple[int, ...],
             dtype: Optional[Any] = None) -> Tensor:
     dtype = dtype if dtype is not None else torchlib.float64
     return torchlib.zeros(shape, dtype=dtype)
@@ -183,6 +179,7 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -195,6 +192,8 @@ class PyTorchBackend(base_backend.BaseBackend):
     of a `LinearOperator` `A`.
     Args:
       A: A (sparse) implementation of a linear operator
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
@@ -262,9 +261,10 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * v
+          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * torchlib.reshape(
+              v, vector_n.shape)
       krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
+      A_vector_n = A(*args, vector_n)
       diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
@@ -286,10 +286,9 @@ class PyTorchBackend(base_backend.BaseBackend):
         A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
       vector_n = A_vector_n
 
-    A_tridiag = torchlib.diag(
-        torchlib.tensor(diag_elements)) + torchlib.diag(
-            torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
-                torchlib.tensor(norms_vector_n[1:]), -1)
+    A_tridiag = torchlib.diag(torchlib.tensor(diag_elements)) + torchlib.diag(
+        torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
+            torchlib.tensor(norms_vector_n[1:]), -1)
     eigvals, u = A_tridiag.symeig(eigenvectors=True)
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):

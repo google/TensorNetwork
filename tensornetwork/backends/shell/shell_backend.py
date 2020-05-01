@@ -246,15 +246,17 @@ class ShellBackend(base_backend.BaseBackend):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
       return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)]
+          ShellTensor((A.shape[0],)) for _ in range(numeig)
+      ]
 
     return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
-
+        ShellTensor(initial_state.shape) for _ in range(numeig)
+    ]
 
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -282,10 +284,12 @@ class ShellBackend(base_backend.BaseBackend):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
       return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)]
+          ShellTensor(A.shape[0]) for _ in range(numeig)
+      ]
 
     return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
+        ShellTensor(initial_state.shape) for _ in range(numeig)
+    ]
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")

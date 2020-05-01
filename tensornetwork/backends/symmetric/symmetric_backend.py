@@ -165,6 +165,7 @@ class SymmetricBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,

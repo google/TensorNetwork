@@ -15,6 +15,8 @@
 from typing import Any, Optional, Tuple, Callable, List, Text, Type
 from tensornetwork.backends.numpy import numpy_backend
 import numpy as np
+from tensornetwork.backends.jax import jitted_functions
+from functools import partial
 
 Tensor = Any
 
@@ -42,9 +44,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
@@ -138,6 +138,7 @@ class JaxBackend(numpy_backend.NumPyBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List[Tensor],
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -145,8 +146,42 @@ class JaxBackend(numpy_backend.NumPyBackend):
       delta: Optional[float] = 1E-8,
       ndiag: Optional[int] = 20,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-    raise NotImplementedError(
-        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
+
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
+    if numeig > 1 and not reorthogonalize:
+      raise ValueError(
+          "Got numeig = {} > 1 and `reorthogonalize = False`. "
+          "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
+
+    if (initial_state is not None) and hasattr(A, 'shape'):
+      if initial_state.shape != A.shape[1]:
+        raise ValueError(
+            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
+                A.shape[1], initial_state.shape))
+
+    if initial_state is None:
+      if not hasattr(A, 'shape'):
+        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
+                             "lanczos. Please provide a valid `initial_state`")
+      if not hasattr(A, 'dtype'):
+        raise AttributeError(
+            "`A` has no  attribute `dtype`. Cannot initialize "
+            "lanczos. Please provide a valid `initial_state` with "
+            "a `dtype` attribute")
+
+      initial_state = self.randn(A.shape[1], A.dtype)
+    if not isinstance(initial_state, self.np.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+
+    if not hasattr(self, '_jaxlan'):
+      #avoid retracing
+      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(self.jax)
+
+    return self._jaxlan(A, args, initial_state, num_krylov_vecs, numeig, delta,
+                        reorthogonalize)
 
   def index_update(self, tensor: Tensor, mask: Tensor,
                    assignee: Tensor) -> Tensor:

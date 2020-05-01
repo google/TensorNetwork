@@ -46,11 +46,8 @@ def test_shape_concat():
 
 def test_slice():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
@@ -58,11 +55,8 @@ def test_slice():
 
 def test_slice_raises_error():
   backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   with pytest.raises(ValueError):
     backend.slice(a, (1, 1), (2, 2, 2))
 
@@ -269,7 +263,7 @@ def test_eigsh_lanczos_1():
   def mv(x):
     return H.mv(x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -287,7 +281,7 @@ def test_eigsh_small_number_krylov_vectors():
   def mv(x):
     return H.mv(x)
 
-  eta1, _ = backend.eigsh_lanczos(mv, init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -309,7 +303,7 @@ def test_eigsh_lanczos_reorthogonalize():
       return H.mv(x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -337,7 +331,7 @@ def test_eigsh_lanczos_2():
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
-      mv, reorthogonalize=True, ndiag=1, tol=10**(-12), delta=10**(-12))
+      mv, [], reorthogonalize=True, ndiag=1, tol=10**(-12), delta=10**(-12))
   eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -350,11 +344,11 @@ def test_eigsh_lanczos_2():
 def test_eigsh_lanczos_raises():
   backend = pytorch_backend.PyTorchBackend()
   with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x)
+    backend.eigsh_lanczos(lambda x: x, [])
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
 
 
 @pytest.mark.parametrize("a, b, expected", [
@@ -468,7 +462,7 @@ def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
   A = backend.randn((4, 4), dtype=torch.float64)
   init = backend.randn((3,), dtype=torch.float64)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(A, initial_state=init)
+    backend.eigsh_lanczos(A, [], initial_state=init)
 
 
 def test_eigsh_lanczos_raises_error_for_untyped_A():
@@ -478,7 +472,7 @@ def test_eigsh_lanczos_raises_error_for_untyped_A():
   err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
             "Please provide a valid `initial_state` with a `dtype` attribute"
   with pytest.raises(AttributeError, match=err_msg):
-    backend.eigsh_lanczos(A)
+    backend.eigsh_lanczos(A, [])
 
 
 def test_broadcast_right_multiplication():

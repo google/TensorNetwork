@@ -298,7 +298,7 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
       return np.dot(H, x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -324,7 +324,7 @@ def test_eigsh_small_number_krylov_vectors():
       return np.dot(H, x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=np.float64)
-  eta1, _ = backend.eigsh_lanczos(mv, init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -340,7 +340,7 @@ def test_eigsh_lanczos_1(dtype):
   def mv(x):
     return np.dot(H, x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -368,7 +368,7 @@ def test_eigsh_lanczos_2(dtype):
       return np.dot(H, x)
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv)
+  eta1, U1 = backend.eigsh_lanczos(mv, [])
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -398,7 +398,7 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
 
   mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
-      mv,
+      mv, [],
       numeig=numeig,
       reorthogonalize=True,
       ndiag=1,
@@ -419,11 +419,11 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
 def test_eigsh_lanczos_raises():
   backend = numpy_backend.NumPyBackend()
   with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x)
+    backend.eigsh_lanczos(lambda x: x, [])
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
 
 
 def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
@@ -431,7 +431,7 @@ def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
   A = backend.randn((4, 4), dtype=np.float64)
   init = backend.randn((3,), dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(A, initial_state=init)
+    backend.eigsh_lanczos(A, [], initial_state=init)
 
 
 def test_eigsh_lanczos_raises_error_for_untyped_A():
@@ -441,7 +441,7 @@ def test_eigsh_lanczos_raises_error_for_untyped_A():
   err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
             "Please provide a valid `initial_state` with a `dtype` attribute"
   with pytest.raises(AttributeError, match=err_msg):
-    backend.eigsh_lanczos(A)
+    backend.eigsh_lanczos(A, [])
 
 
 def test_eigsh_lanczos_raises_error_for_bad_initial_state():
@@ -454,7 +454,7 @@ def test_eigsh_lanczos_raises_error_for_bad_initial_state():
     return np.dot(M, x)
 
   with pytest.raises(TypeError):
-    backend.eigsh_lanczos(mv, initial_state=init)
+    backend.eigsh_lanczos(mv, [], initial_state=init)
 
 
 @pytest.mark.parametrize("a, b, expected", [
@@ -580,7 +580,7 @@ def test_eigs_raises_error_for_unsupported_which(which):
 def test_eigs_raises_error_for_incompatible_shapes():
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
-  init = backend.randn((3, ), dtype=np.float64)
+  init = backend.randn((3,), dtype=np.float64)
   with pytest.raises(ValueError):
     backend.eigs(A, initial_state=init)
 
@@ -641,7 +641,7 @@ def test_eigs_init(dtype, which):
   D = 16
   np.random.seed(10)
   H = backend.randn((D, D), dtype=dtype, seed=10)
-  init = backend.randn((D, ), dtype=dtype)
+  init = backend.randn((D,), dtype=dtype)
 
   class LinearOperator:
 

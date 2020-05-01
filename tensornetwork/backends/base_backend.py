@@ -61,9 +61,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented transpose.".format(self.name))
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     """Obtains a slice of a tensor based on start_indices and slice_sizes.
 
@@ -72,8 +70,8 @@ class BaseBackend:
       start_indices: Tuple of integers denoting start indices of slice.
       slice_sizes: Tuple of integers denoting size of slice along each axis.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented slice.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented slice.".format(
+        self.name))
 
   def svd_decomposition(self,
                         tensor: Tensor,
@@ -225,9 +223,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self,
-          N: int,
-          dtype: Type[np.number],
+  def eye(self, N: int, dtype: Type[np.number],
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
@@ -376,6 +372,7 @@ class BaseBackend:
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -388,6 +385,8 @@ class BaseBackend:
     of `A`.
     Args:
       A: A (sparse) implementation of a linear operator.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       num_krylov_vecs: The number of iterations (number of krylov vectors).
@@ -490,7 +489,8 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
     `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
@@ -506,7 +506,8 @@ class BaseBackend:
         "Backend '{}' has not implemented `broadcast_right_multiplication`."
         .format(self.name))
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
     `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
@@ -522,7 +523,7 @@ class BaseBackend:
         "Backend '{}' has not implemented `broadcast_left_multiplication`."
         .format(self.name))
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     """
     Return sin of `tensor`.
     Args:
@@ -530,11 +531,10 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `sin`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `sin`.".format(
+        self.name))
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     """
     Return cos of `tensor`.
     Args:
@@ -542,11 +542,10 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `cos`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `cos`.".format(
+        self.name))
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     """
     Return elementwise exp of `tensor`.
     Args:
@@ -554,11 +553,10 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `exp`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `exp`.".format(
+        self.name))
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     """
     Return elementwise natural logarithm of `tensor`.
     Args:
@@ -566,11 +564,10 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `log`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `log`.".format(
+        self.name))
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     """
     Return expm log of `matrix`, matrix exponential.
     Args:
@@ -578,6 +575,5 @@ class BaseBackend:
     Returns:
       Tensor
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `expm`."
-        .format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `expm`.".format(
+        self.name))

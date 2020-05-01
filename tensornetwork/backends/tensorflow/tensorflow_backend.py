@@ -195,6 +195,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
+      args: List,
       initial_state: Optional[Tensor] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
@@ -228,14 +229,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "Only matrices are supported.".format(tf.shape(matrix)))
     return tf.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
                        "found `tensor2.shape = {}`".format(tf.shape(tensor2)))
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tf.shape(tensor1)))
@@ -256,7 +259,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def log(self, tensor: Tensor):
     return tf.math.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to tensorflow backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
