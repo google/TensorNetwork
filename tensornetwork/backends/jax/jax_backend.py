@@ -225,7 +225,7 @@ class JaxBackend(base_backend.BaseBackend):
       args: List[Tensor],
       initial_state: Optional[Tensor] = None,
       shape: Optional[Tuple] = None,
-      dtype: Optional[Tuple] = None,
+      dtype: Optional[Type[np.number]] = None,
       num_krylov_vecs: Optional[int] = 200,
       numeig: Optional[int] = 1,
       tol: Optional[float] = 1E-8,
@@ -252,6 +252,7 @@ class JaxBackend(base_backend.BaseBackend):
 
     if not hasattr(self, '_jaxlan'):
       #avoid retracing
+      #pylint: disable=attribute-defined-outside-init
       self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
 
     return self._jaxlan(
