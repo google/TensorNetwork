@@ -499,3 +499,18 @@ def test_apply_one_site_gate(backend):
   mps.apply_one_site_gate(gate=gate, site=1)
   expected = np.array([[ 1., -2.,  1.], [ 1.,  2.,  1.]])
   np.testing.assert_allclose(mps.nodes[1].tensor[0], expected)
+
+
+def test_apply_one_site_gate_wrong_gate_raises_error(backend):
+  backend = backend_factory.get_backend(backend)
+  tensor = np.array([[[1., 2., 1.], [1., -2., 1.]],
+                     [[-1., 1., -1.], [-1., 1., -1.]], [[1., 2, 3], [3, 2, 1]]],
+                    dtype=np.float64)
+  tensors = 6 * [backend.convert_to_tensor(tensor)]
+  mps = BaseMPS(tensors, backend=backend, center_position=2)
+  gate1= backend.convert_to_tensor(np.ones((2, 2, 2), dtype=np.float64))
+  gate2= backend.convert_to_tensor(np.ones((2, 2, 2), dtype=np.float64))
+  with pytest.raises(ValueError):
+   mps.apply_one_site_gate(gate=gate1, site=1)
+  with pytest.raises(ValueError):
+   mps.apply_one_site_gate(gate=gate2, site=1)
