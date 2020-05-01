@@ -48,9 +48,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tf.transpose(tensor, perm)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
@@ -227,27 +225,23 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def inv(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) > 2:
       raise ValueError("input to tensorflow backend method `inv` has shape {}. "
-                       "Only matrices are supported.".format(
-                           tf.shape(matrix)))
+                       "Only matrices are supported.".format(tf.shape(matrix)))
     return tf.linalg.inv(matrix)
 
   def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
-                       "found `tensor2.shape = {}`".format(
-                           tf.shape(tensor2)))
+                       "found `tensor2.shape = {}`".format(tf.shape(tensor2)))
 
     return tensor1 * tensor2
 
   def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
-                       " found `tensor1.shape = {}`".format(
-                           tf.shape(tensor1)))
+                       " found `tensor1.shape = {}`".format(tf.shape(tensor1)))
 
     t1_broadcast_shape = self.shape_concat(
-        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)],
-        axis=-1)
+        [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
   def sin(self, tensor: Tensor):
@@ -268,6 +262,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        " Only matrices are supported.".format(matrix.shape))
     if matrix.shape[0] != matrix.shape[1]:
       raise ValueError("input to tensorflow backend method `expm` only supports"
-                       "N*N matrix, {x}*{y} matrix is given"
-                       .format(x=matrix.shape[0], y=matrix.shape[1]))
+                       "N*N matrix, {x}*{y} matrix is given".format(
+                           x=matrix.shape[0], y=matrix.shape[1]))
     return tf.linalg.expm(matrix)
