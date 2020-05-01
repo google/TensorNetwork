@@ -738,13 +738,3 @@ def test_custom_backend():
   a[0] ^ b[0]
   c = a @ b
   assert c.tensor == "Hello world!"
-
-def test_pickle():
-  a = tn.Node(np.eye(2))
-  pickle_string = pickle.dumps(tn.Node(np.eye(2)))
-  reconstruction = pickle.loads(pickle_string)
-  np.testing.assert_allclose(reconstruction.tensor, np.eye(2))
-  a[0] ^ reconstruction[0]
-  result = a @ reconstruction
-  np.testing.assert_allclose(result.tensor, np.eye(2))
-
