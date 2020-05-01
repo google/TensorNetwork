@@ -401,3 +401,7 @@ def test_base_backend_broadcast_left_multiplication_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.broadcast_left_multiplication(np.ones((2, 2)), np.ones((2, 2)))
+def test_backend_instantiation(backend):
+  backend1 = backend_factory.get_backend(backend)
+  backend2 = backend_factory.get_backend(backend)
+  assert backend1 is backend2
