@@ -308,10 +308,9 @@ def test_BaseCharge_matmul_raises():
     q1 @ q2
 
 
-@pytest.mark.parametrize('chargetype, B0, B1, identity', [(U1Charge, -5, 5, 0),
-                                                          (Z2Charge, 0, 1, 0),
-                                                          (ZNCharge(5), 0, 4, 0),
-                                                          (ZNCharge(7), 0, 6, 0)])
+@pytest.mark.parametrize('chargetype, B0, B1, identity',
+                         [(U1Charge, -5, 5, 0), (Z2Charge, 0, 1, 0),
+                          (ZNCharge(5), 0, 4, 0), (ZNCharge(7), 0, 6, 0)])
 def test_Charge_identity(chargetype, B0, B1, identity):
   D = 100
   np.random.seed(10)
@@ -327,6 +326,7 @@ def test_Charge_identity(chargetype, B0, B1, identity):
   eye = Q.identity_charges
   np.testing.assert_allclose(eye.unique_charges, identity)
   assert eye.num_symmetries == 3
+
 
 @pytest.mark.parametrize("n", list(range(2, 20)))
 def test_zncharge_dual_invariant(n):
@@ -364,6 +364,7 @@ def test_Charge_mul_zncharge(n):
   q = q1 @ q2
   res = q * True
   np.testing.assert_allclose(res.charges, (n - np.stack([C1, C2])) % n)
+
 
 def test_fuse_charges():
   num_charges = 5
@@ -586,6 +587,5 @@ def test_eq_raises():
 def test_zncharge_raises():
   with pytest.raises(ValueError, match="n must be >= 2, found 0"):
     ZNCharge(0)
-  with pytest.raises(
-      ValueError, match="Z7 charges must be in"):
+  with pytest.raises(ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])

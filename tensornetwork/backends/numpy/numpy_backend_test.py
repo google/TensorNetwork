@@ -580,7 +580,7 @@ def test_eigs_raises_error_for_unsupported_which(which):
 def test_eigs_raises_error_for_incompatible_shapes():
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
-  init = backend.randn((3, ), dtype=np.float64)
+  init = backend.randn((3,), dtype=np.float64)
   with pytest.raises(ValueError):
     backend.eigs(A, initial_state=init)
 
@@ -641,7 +641,7 @@ def test_eigs_init(dtype, which):
   D = 16
   np.random.seed(10)
   H = backend.randn((D, D), dtype=dtype, seed=10)
-  init = backend.randn((D, ), dtype=dtype)
+  init = backend.randn((D,), dtype=dtype)
 
   class LinearOperator:
 

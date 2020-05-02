@@ -40,7 +40,7 @@ def test_contextmanager_nested():
 def test_contextmanager_wrong_item():
   a = tn.Node(np.ones((10,)))
   with pytest.raises(ValueError):
-    with tn.DefaultBackend(a): # pytype: disable=wrong-arg-types
+    with tn.DefaultBackend(a):  # pytype: disable=wrong-arg-types
       pass
 
 
@@ -54,6 +54,8 @@ def test_contextmanager_BaseBackend():
 
 def test_set_default_backend_value_error():
   tn.set_default_backend("pytorch")
-  with pytest.raises(ValueError, match="Item passed to set_default_backend "
-                                       "must be Text or BaseBackend"):
-    tn.set_default_backend(-1) # pytype: disable=wrong-arg-types
+  with pytest.raises(
+      ValueError,
+      match="Item passed to set_default_backend "
+      "must be Text or BaseBackend"):
+    tn.set_default_backend(-1)  # pytype: disable=wrong-arg-types

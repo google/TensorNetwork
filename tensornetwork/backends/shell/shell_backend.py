@@ -62,13 +62,14 @@ class ShellBackend(base_backend.BaseBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
@@ -245,12 +246,11 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor((A.shape[0],)) for _ in range(numeig)]
 
-    return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
-
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def eigsh_lanczos(
       self,
@@ -281,11 +281,11 @@ class ShellBackend(base_backend.BaseBackend):
       if not hasattr(A, 'shape'):
         raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
                              "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)]
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(A.shape[0]) for _ in range(numeig)]
 
-    return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)]
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")

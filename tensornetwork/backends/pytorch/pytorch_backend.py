@@ -47,24 +47,24 @@ class PyTorchBackend(base_backend.BaseBackend):
   def transpose(self, tensor, perm):
     return tensor.permute(perm)
 
-  def slice(self,
-            tensor: Tensor,
-            start_indices: Tuple[int, ...],
+  def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
             slice_sizes: Tuple[int, ...]) -> Tensor:
     if len(start_indices) != len(slice_sizes):
       raise ValueError("Lengths of start_indices and slice_sizes must be"
                        "identical.")
-    obj = tuple(slice(start, start + size) for start, size
-                in zip(start_indices, slice_sizes))
+    obj = tuple(
+        slice(start, start + size)
+        for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         torchlib,
         tensor,
@@ -286,10 +286,9 @@ class PyTorchBackend(base_backend.BaseBackend):
         A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
       vector_n = A_vector_n
 
-    A_tridiag = torchlib.diag(
-        torchlib.tensor(diag_elements)) + torchlib.diag(
-            torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
-                torchlib.tensor(norms_vector_n[1:]), -1)
+    A_tridiag = torchlib.diag(torchlib.tensor(diag_elements)) + torchlib.diag(
+        torchlib.tensor(norms_vector_n[1:]), 1) + torchlib.diag(
+            torchlib.tensor(norms_vector_n[1:]), -1)
     eigvals, u = A_tridiag.symeig(eigenvectors=True)
     eigenvectors = []
     for n2 in range(min(numeig, len(eigvals))):
