@@ -146,7 +146,6 @@ def test_left_envs_one_site(backend_dtype_values):
 
 
 def test_left_envs_one_site_center_position_to_right(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -160,7 +159,6 @@ def test_left_envs_one_site_center_position_to_right(backend_dtype_values):
 
 
 def test_left_envs_first_site(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -175,7 +173,6 @@ def test_left_envs_first_site(backend_dtype_values):
 
 
 def test_left_envs_last_site(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -273,7 +270,6 @@ def test_left_envs_all_sites_non_0_center_position(backend_dtype_values):
 
 
 def test_left_envs_empty_seq(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 1, 2, 10
@@ -288,7 +284,6 @@ def test_left_envs_empty_seq(backend_dtype_values):
 
 
 def test_left_envs_invalid_sites_raises_error(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 1, 2, 10
@@ -303,7 +298,6 @@ def test_left_envs_invalid_sites_raises_error(backend_dtype_values):
 
 
 def test_right_envs_one_site(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -333,7 +327,6 @@ def test_right_envs_one_site_center_position_to_right(backend_dtype_values):
 
 
 def test_right_envs_first_site(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -348,7 +341,6 @@ def test_right_envs_first_site(backend_dtype_values):
 
 
 def test_right_envs_last_site(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -363,7 +355,6 @@ def test_right_envs_last_site(backend_dtype_values):
 
 
 def test_right_envs_two_sites(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -378,7 +369,6 @@ def test_right_envs_two_sites(backend_dtype_values):
 
 
 def test_right_envs_two_non_consecutive_sites(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -410,7 +400,6 @@ def test_right_envs_two_non_consecutive_sites_2(backend_dtype_values):
 
 
 def test_right_envs_all_sites(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -425,7 +414,6 @@ def test_right_envs_all_sites(backend_dtype_values):
 
 
 def test_right_envs_all_sites_non_0_center_position(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
@@ -440,7 +428,6 @@ def test_right_envs_all_sites_non_0_center_position(backend_dtype_values):
 
 
 def test_right_envs_empty_seq(backend_dtype_values):
-  backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
 
   D, d, N = 1, 2, 10
