@@ -137,7 +137,7 @@ def test_left_envs_one_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[2])
   assert list(envs.keys()) == [2]
   expected = backend.convert_to_tensor(
@@ -153,7 +153,7 @@ def test_left_envs_one_site_center_position_to_right(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=4, backend=backend)
+  mps = FiniteMPS(tensors, center_position=4, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[2])
   assert list(envs.keys()) == [2]
   np.testing.assert_array_almost_equal(envs[2].tensor, np.eye(3))
@@ -167,7 +167,7 @@ def test_left_envs_first_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[0])
   assert list(envs.keys()) == [0]
   expected = 1.
@@ -182,7 +182,7 @@ def test_left_envs_last_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[5])
   assert list(envs.keys()) == [5]
   expected = 1.
@@ -197,7 +197,7 @@ def test_left_envs_two_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[2, 3])
   assert list(envs.keys()) == [2, 3]
   expected = backend.convert_to_tensor(
@@ -214,7 +214,7 @@ def test_left_envs_two_non_consecutive_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[1, 3])
   assert list(envs.keys()) == [1, 3]
   expected = backend.convert_to_tensor(
@@ -231,7 +231,7 @@ def test_left_envs_two_non_consecutive_sites_2(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=4, backend=backend)
+  mps = FiniteMPS(tensors, center_position=4, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[1, 3])
   assert list(envs.keys()) == [1, 3]
   np.testing.assert_array_almost_equal(envs[1].tensor, np.eye(2))
@@ -246,7 +246,7 @@ def test_left_envs_all_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[0, 1, 2, 3, 4, 5])
   assert list(envs.keys()) == [0, 1, 2, 3, 4, 5]
   expected = backend.convert_to_tensor(
@@ -263,7 +263,7 @@ def test_left_envs_all_sites_non_0_center_position(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=2, backend=backend)
+  mps = FiniteMPS(tensors, center_position=2, backend=backend_dtype_values[0])
   envs = mps.left_envs(sites=[0, 1, 2, 3, 4, 5])
   assert list(envs.keys()) == [0, 1, 2, 3, 4, 5]
   expected = backend.convert_to_tensor(
@@ -280,7 +280,7 @@ def test_left_envs_empty_seq(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
 
   assert mps.left_envs(()) == {}
   assert mps.left_envs([]) == {}
@@ -295,7 +295,7 @@ def test_left_envs_invalid_sites_raises_error(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   with pytest.raises(ValueError):
     mps.left_envs(sites=[0, N + 1])
   with pytest.raises(ValueError):
@@ -310,7 +310,7 @@ def test_right_envs_one_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[2])
   assert list(envs.keys()) == [2]
   np.testing.assert_array_almost_equal(envs[2].tensor, np.eye(3))
@@ -324,7 +324,7 @@ def test_right_envs_one_site_center_position_to_right(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=4, backend=backend)
+  mps = FiniteMPS(tensors, center_position=4, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[2])
   assert list(envs.keys()) == [2]
   expected = backend.convert_to_tensor(
@@ -340,7 +340,7 @@ def test_right_envs_first_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[-1])
   assert list(envs.keys()) == [-1]
   expected = 1.
@@ -355,7 +355,7 @@ def test_right_envs_last_site(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[4])
   assert list(envs.keys()) == [4]
   expected = 1.
@@ -370,7 +370,7 @@ def test_right_envs_two_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[2, 3])
   assert list(envs.keys()) == [2, 3]
   np.testing.assert_array_almost_equal(envs[2].tensor, np.eye(3))
@@ -385,7 +385,7 @@ def test_right_envs_two_non_consecutive_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[1, 3])
   assert list(envs.keys()) == [1, 3]
   np.testing.assert_array_almost_equal(envs[1].tensor, np.eye(3))
@@ -400,7 +400,7 @@ def test_right_envs_two_non_consecutive_sites_2(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=4, backend=backend)
+  mps = FiniteMPS(tensors, center_position=4, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[1, 3])
   assert set(envs.keys()) == {1, 3}
   expected = backend.convert_to_tensor(
@@ -417,7 +417,7 @@ def test_right_envs_all_sites(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[-1, 0, 1, 2, 3, 4])
   assert set(envs.keys()) == {-1, 0, 1, 2, 3, 4}
   np.testing.assert_array_almost_equal(envs[-1].tensor, 1.)
@@ -432,7 +432,7 @@ def test_right_envs_all_sites_non_0_center_position(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=2, backend=backend)
+  mps = FiniteMPS(tensors, center_position=2, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[-1, 0, 1, 2, 3, 4])
   assert set(envs.keys()) == {-1, 0, 1, 2, 3, 4}
   np.testing.assert_array_almost_equal(envs[-1].tensor, 1.)
@@ -447,7 +447,7 @@ def test_right_envs_empty_seq(backend_dtype_values):
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
       np.ones((D, d, D), dtype=dtype) for _ in range(N - 2)
   ] + [np.ones((D, d, 1), dtype=dtype)]
-  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  mps = FiniteMPS(tensors, center_position=0, backend=backend_dtype_values[0])
 
   assert mps.right_envs(()) == {}
   assert mps.right_envs([]) == {}
