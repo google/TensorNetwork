@@ -138,8 +138,9 @@ class BaseDMRG:
       pos = self.mps.center_position
       self.mps.position(n)
       for m in range(pos, n):
-        self.left_envs[m + 1] = self.add_left_layer(
-            self.left_envs[m], self.mps.tensors[m], self.mpo.tensors[m])
+        self.left_envs[m + 1] = self.add_left_layer(self.left_envs[m],
+                                                    self.mps.tensors[m],
+                                                    self.mpo.tensors[m])
 
     elif n < self.mps.center_position:
       pos = self.mps.center_position
@@ -170,8 +171,9 @@ class BaseDMRG:
     self.left_envs = {0: lb}
 
     for n in range(self.mps.center_position):
-      self.left_envs[n + 1] = self.add_left_layer(
-          self.left_envs[n], self.mps.tensors[n], self.mpo.tensors[n])
+      self.left_envs[n + 1] = self.add_left_layer(self.left_envs[n],
+                                                  self.mps.tensors[n],
+                                                  self.mpo.tensors[n])
 
   def compute_right_envs(self):
     """
@@ -180,8 +182,9 @@ class BaseDMRG:
     rb = self.right_envs[len(self.mps) - 1]
     self.right_envs = {len(self.mps) - 1: rb}
     for n in reversed(range(self.mps.center_position + 1, len(self.mps))):
-      self.right_envs[n - 1] = self.add_right_layer(
-          self.right_envs[n], self.mps.tensors[n], self.mpo.tensors[n])
+      self.right_envs[n - 1] = self.add_right_layer(self.right_envs[n],
+                                                    self.mps.tensors[n],
+                                                    self.mpo.tensors[n])
 
   def _optimize_1s_local(self,
                          sweep_dir,
@@ -250,9 +253,9 @@ class BaseDMRG:
 
     def print_msg(site):
       if verbose > 0:
-        stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
-                     % (iteration, num_sweeps, site, len(self.mps),
-                        np.real(energy), np.imag(energy)))
+        stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
+                     (iteration, num_sweeps, site, len(
+                         self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
       if verbose > 1:
         print("")
@@ -294,6 +297,71 @@ class BaseDMRG:
             ndiag=ndiag,
             verbose=verbose)
         print_msg(site=site)
+
+      if np.abs(final_energy - energy) < precision:
+        converged = True
+      final_energy = energy
+      iteration += 1
+      if iteration > num_sweeps:
+        if verbose > 0:
+          print()
+          print(
+              'dmrg did not converge to desired precision {0} after {1} iterations'
+              .format(precision, num_sweeps))
+        break
+    return final_energy
+
+  def run_one_site_timing(self,
+                          start,
+                          stop,
+                          num_sweeps=4,
+                          precision=1E-6,
+                          num_krylov_vecs=10,
+                          verbose=0,
+                          delta=1E-6,
+                          tol=1E-6,
+                          ndiag=10):
+    converged = False
+    final_energy = 1E100
+    iteration = 0
+    initial_site = start
+    self.mps.position(start)  #move center position to the left end
+    self.compute_left_envs()
+    self.compute_right_envs()
+
+    def print_msg(site):
+      if verbose > 0:
+        stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
+                     (iteration, num_sweeps, site, len(
+                         self.mps), np.real(energy), np.imag(energy)))
+        stdout.flush()
+      if verbose > 1:
+        print("")
+
+    while not converged:
+      for site in range(start, stop - 1):
+        #_optimize_1site_local shifts the center site internally
+        energy = self._optimize_1s_local(
+            sweep_dir='right',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag,
+            verbose=verbose)
+        print_msg(site=self.mps.center_position)
+
+      #prepare for right sweep: move center all the way to the right
+      self.position(stop)
+      for site in reversed(range(start + 1, stop)):
+        #_optimize_1site_local shifts the center site internally
+        energy = self._optimize_1s_local(
+            sweep_dir='left',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag,
+            verbose=verbose)
+        print_msg(site=self.mps.center_position)
 
       if np.abs(final_energy - energy) < precision:
         converged = True
