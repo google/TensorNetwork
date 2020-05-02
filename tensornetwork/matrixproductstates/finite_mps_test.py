@@ -159,3 +159,23 @@ def test_right_envs_empty_seq(backend_dtype_values):
   assert mps.right_envs(()) == {}
   assert mps.right_envs([]) == {}
   assert mps.right_envs(range(0)) == {}
+
+
+def test_random_mps(backend_dtype_values):
+  mps = FiniteMPS.random(d=[3, 4, 5], D=[2, 3],
+                         dtype=backend_dtype_values[1],
+                         backend=backend_dtype_values[0])
+  assert len(mps) == 3
+  assert mps.physical_dimensions == [3, 4, 5]
+  assert mps.bond_dimensions == [1, 2, 3, 1]
+
+
+def test_random_mps_invalid_dimensions_raises_error(backend_dtype_values):
+  with pytest.raises(ValueError):
+    FiniteMPS.random(d=[3, 4], D=[2, 3],
+                     dtype=backend_dtype_values[1],
+                     backend=backend_dtype_values[0])
+  with pytest.raises(ValueError):
+    FiniteMPS.random(d=[3, 4, 4, 2], D=[2, 3],
+                     dtype=backend_dtype_values[1],
+                     backend=backend_dtype_values[0])
