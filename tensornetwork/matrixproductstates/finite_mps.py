@@ -132,22 +132,6 @@ class FiniteMPS(BaseMPS):
     self.position(len(self.nodes) - 1, normalize=False)
     return self.position(pos, normalize=normalize)
 
-  def check_canonical(self) -> Tensor:
-    """Check whether the MPS is in the expected canonical form.
-
-    Returns:
-      The L2 norm of the vector of local deviations.
-    """
-    deviations = []
-    for site in range(len(self.nodes)):
-      if site < self.center_position:
-        deviation = self.check_orthonormality('l', site)
-      elif site > self.center_position:
-        deviation = self.check_orthonormality('r', site)
-      else:
-        continue
-      deviations.append(deviation**2)
-    return self.backend.sqrt(sum(deviations))
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
     """Compute left reduced density matrices for site `sites`. This returns a
