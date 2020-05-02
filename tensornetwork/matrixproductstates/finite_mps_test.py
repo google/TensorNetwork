@@ -297,9 +297,9 @@ def test_left_envs_invalid_sites_raises_error(backend_dtype_values):
   ] + [np.ones((D, d, 1), dtype=dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   with pytest.raises(ValueError):
-    mps.left_envs(sites=[0, N + 1]) == {}
+    mps.left_envs(sites=[0, N + 1])
   with pytest.raises(ValueError):
-    mps.left_envs(sites=[-1, N - 1]) == {}
+    mps.left_envs(sites=[-1, N - 1])
 
 
 def test_right_envs_one_site(backend_dtype_values):
@@ -464,9 +464,9 @@ def test_right_envs_invalid_sites_raises_error(backend_dtype_values):
   ] + [np.ones((D, d, 1), dtype=dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   with pytest.raises(ValueError):
-    mps.right_envs(sites=[-1, N]) == {}
+    mps.right_envs(sites=[-1, N])
   with pytest.raises(ValueError):
-    mps.right_envs(sites=[-2, N - 1]) == {}
+    mps.right_envs(sites=[-2, N - 1])
 
 
 def test_random_mps(backend_dtype_values):
