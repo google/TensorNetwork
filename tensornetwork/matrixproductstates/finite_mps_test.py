@@ -60,6 +60,7 @@ def test_finite_mps_init(backend, N, pos):
   mps = FiniteMPS(tensors, center_position=pos, backend=backend)
   assert mps.center_position == pos
 
+
 def test_canonical_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -139,7 +140,8 @@ def test_left_envs_one_site(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   envs = mps.left_envs(sites=[2])
   assert list(envs.keys()) == [2]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[2].tensor, expected)
 
 
@@ -198,7 +200,8 @@ def test_left_envs_two_sites(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   envs = mps.left_envs(sites=[2, 3])
   assert list(envs.keys()) == [2, 3]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[2].tensor, expected)
   np.testing.assert_array_almost_equal(envs[3].tensor, expected)
 
@@ -214,7 +217,8 @@ def test_left_envs_two_non_consecutive_sites(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   envs = mps.left_envs(sites=[1, 3])
   assert list(envs.keys()) == [1, 3]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[1].tensor, expected)
   np.testing.assert_array_almost_equal(envs[3].tensor, expected)
 
@@ -245,7 +249,8 @@ def test_left_envs_all_sites(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   envs = mps.left_envs(sites=[0, 1, 2, 3, 4, 5])
   assert list(envs.keys()) == [0, 1, 2, 3, 4, 5]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[0].tensor, 1.)
   np.testing.assert_array_almost_equal(envs[3].tensor, expected)
 
@@ -261,7 +266,8 @@ def test_left_envs_all_sites_non_0_center_position(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=2, backend=backend)
   envs = mps.left_envs(sites=[0, 1, 2, 3, 4, 5])
   assert list(envs.keys()) == [0, 1, 2, 3, 4, 5]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[0].tensor, 1.)
   np.testing.assert_array_almost_equal(envs[3].tensor, expected)
 
@@ -291,9 +297,9 @@ def test_left_envs_invalid_sites_raises_error(backend_dtype_values):
   ] + [np.ones((D, d, 1), dtype=dtype)]
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   with pytest.raises(ValueError):
-    mps.left_envs(sites=[0, N+1]) == {}
+    mps.left_envs(sites=[0, N + 1]) == {}
   with pytest.raises(ValueError):
-    mps.left_envs(sites=[-1, N-1]) == {}
+    mps.left_envs(sites=[-1, N - 1]) == {}
 
 
 def test_right_envs_one_site(backend_dtype_values):
@@ -321,13 +327,14 @@ def test_right_envs_one_site_center_position_to_right(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=4, backend=backend)
   envs = mps.right_envs(sites=[2])
   assert list(envs.keys()) == [2]
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[2].tensor, expected)
 
 
 def test_right_envs_first_site(backend_dtype_values):
   backend = backend_dtype_values[0]
-  dtype = backend_dtype_values[ 1]
+  dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
   tensors = [np.ones((1, d, D), dtype=dtype)] + [
@@ -338,7 +345,6 @@ def test_right_envs_first_site(backend_dtype_values):
   assert list(envs.keys()) == [-1]
   expected = 1.
   np.testing.assert_array_almost_equal(envs[-1].tensor, expected)
-
 
 
 def test_right_envs_last_site(backend_dtype_values):
@@ -397,7 +403,8 @@ def test_right_envs_two_non_consecutive_sites_2(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=4, backend=backend)
   envs = mps.right_envs(sites=[1, 3])
   assert set(envs.keys()) == {1, 3}
-  expected = backend.convert_to_tensor(np.array([[1,0,0],[0,0,0],[0,0,0]]))
+  expected = backend.convert_to_tensor(
+      np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
   np.testing.assert_array_almost_equal(envs[1].tensor, expected)
   np.testing.assert_array_almost_equal(envs[3].tensor, expected)
 
@@ -459,13 +466,15 @@ def test_right_envs_invalid_sites_raises_error(backend_dtype_values):
   with pytest.raises(ValueError):
     mps.right_envs(sites=[-1, N]) == {}
   with pytest.raises(ValueError):
-    mps.right_envs(sites=[-2, N-1]) == {}
+    mps.right_envs(sites=[-2, N - 1]) == {}
 
 
 def test_random_mps(backend_dtype_values):
-  mps = FiniteMPS.random(d=[3, 4, 5], D=[2, 3],
-                         dtype=backend_dtype_values[1],
-                         backend=backend_dtype_values[0])
+  mps = FiniteMPS.random(
+      d=[3, 4, 5],
+      D=[2, 3],
+      dtype=backend_dtype_values[1],
+      backend=backend_dtype_values[0])
   assert len(mps) == 3
   assert mps.physical_dimensions == [3, 4, 5]
   assert mps.bond_dimensions == [1, 2, 3, 1]
@@ -473,13 +482,17 @@ def test_random_mps(backend_dtype_values):
 
 def test_random_mps_invalid_dimensions_raises_error(backend_dtype_values):
   with pytest.raises(ValueError):
-    FiniteMPS.random(d=[3, 4], D=[2, 3],
-                     dtype=backend_dtype_values[1],
-                     backend=backend_dtype_values[0])
+    FiniteMPS.random(
+        d=[3, 4],
+        D=[2, 3],
+        dtype=backend_dtype_values[1],
+        backend=backend_dtype_values[0])
   with pytest.raises(ValueError):
-    FiniteMPS.random(d=[3, 4, 4, 2], D=[2, 3],
-                     dtype=backend_dtype_values[1],
-                     backend=backend_dtype_values[0])
+    FiniteMPS.random(
+        d=[3, 4, 4, 2],
+        D=[2, 3],
+        dtype=backend_dtype_values[1],
+        backend=backend_dtype_values[0])
 
 
 def test_save_not_implemented(backend_dtype_values):
