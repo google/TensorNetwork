@@ -45,7 +45,7 @@ def get_random_np(shape, dtype, seed=0):
 
 
 @pytest.mark.parametrize("N, pos", [(10, -1), (10, 10)])
-def test_finite_mps_init(backend, N, pos):
+def test_finite_mps_init_invalid_position_raises_value_error(backend, N, pos):
   D, d = 10, 2
   tensors = [np.random.randn(1, d, D)] + [
       np.random.randn(D, d, D) for _ in range(N - 2)
@@ -53,6 +53,15 @@ def test_finite_mps_init(backend, N, pos):
   with pytest.raises(ValueError):
     FiniteMPS(tensors, center_position=pos, backend=backend)
 
+
+@pytest.mark.parametrize("N, pos", [(10, 0), (10, 9), (10, 5)])
+def test_finite_mps_init(backend, N, pos):
+  D, d = 10, 2
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = FiniteMPS(tensors, center_position=pos, backend=backend)
+  assert mps.center_position == pos
 
 def test_canonical_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
