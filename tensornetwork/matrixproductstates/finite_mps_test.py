@@ -221,7 +221,6 @@ def test_left_envs_two_non_consecutive_sites(backend_dtype_values):
 
 
 def test_left_envs_two_non_consecutive_sites_2(backend_dtype_values):
-  backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
 
   D, d, N = 3, 2, 5
