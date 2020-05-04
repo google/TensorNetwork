@@ -25,7 +25,7 @@ from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.ncon_interface import ncon
 Tensor = Any
-#TODO: add jit
+#TODO (mganahl): add jit
 
 
 class InfiniteMPS(BaseMPS):
