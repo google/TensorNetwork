@@ -507,8 +507,9 @@ class BaseMPS:
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
     gate_node = Node(gate, backend=self.backend)
-    self.tensors[site] = ncon([gate, self.mps.tensors[site]],
-                              [[-2, 1], [-1, 1, -3]])
+    self.tensors[site] = ncon([gate, self.tensors[site]],
+                              [[-2, 1], [-1, 1, -3]],
+                              backend=self.backend.name)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
@@ -579,8 +580,7 @@ class BaseMPS:
           'index `site` has to be larger than 0 (found `site`={}).'.format(
               site))
     if (site == len(self) - 1) and (self.connector_matrix is not None):
-      return self.rcontract([self.tensors[site], self.connector_matrix],
-                            [[-1, -2, 1], [1, -3]])
+      return self.rcontract(self.tensors[site], self.connector_matrix)
 
     return self.tensors[site]
 
