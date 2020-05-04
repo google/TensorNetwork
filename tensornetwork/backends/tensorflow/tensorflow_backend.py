@@ -247,5 +247,4 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return tf.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
-    return tf.function(fun, **kwargs)
-
+    return tf.function(fun, *args, **kwargs)
