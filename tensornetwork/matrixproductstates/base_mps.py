@@ -34,20 +34,20 @@ class BaseMPS:
 
   Important attributes:
 
-    * `BaseMPS.nodes`: stores the tensors in a list of `Node` objects
-    * `BaseMPS.center_position`: the location of the orthogonality site
-    * `BaseMPS.connector_matrix`: a rank-2 `Tensor` stored in a `Node`.
-      `BaseMPS.connector_matrix` connects unit cells back to themselves.
+    * `BaseMPS.tensors`: A list of mps tensors.
+    * `BaseMPS.center_position`: The location of the orthogonality site
+    * `BaseMPS.connector_matrix`: A rank-2 `Tensor` stored in a `Node`.
+      `BaseMPS.connector_matrix` Connects unit cells back to themselves.
        To stack different unit cells, the `BaseMPS.connector_matrix` is
        absorbed into the rightmost (by convention) mps tensor prior
        to stacking.
 
-  To obtain a sequence of `Node` objects `[node_1,...,node_N]`
+  To obtain a sequence of `Tensor` objects `[tensor_1,...,tensor_N]`
   which can be arbitrarily stacked, i.e.
-  `stacked_nodes=[node_1,...,node_N, node_1, ..., node_N,...]`
-  use the `BaseMPS.get_node` function. This function automatically
-  absorbs `BaseNode.connector_matrix` into the correct `Node` object
-  to ensure that `Node`s (i.e. the mps tensors) can be consistently
+  `stacked_tensors=[tensor_1,...,tensor_N, tensor_1, ..., tensor_N,...]`
+  use the `BaseMPS.get_tensor` function. This function automatically
+  absorbs `BaseNode.connector_matrix` into the correct `Tensoor` object
+  to ensure that `Tensors`s (i.e. the mps tensors) can be consistently
   stacked without gauge jumps.
 
   The orthogonality center can be be shifted using the
@@ -63,9 +63,9 @@ class BaseMPS:
     """Initialize a BaseMPS.
 
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
-      connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
+      connector_matrix: A `Tensor` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
         `connector_matrix`.
       backend: The name of the backend that should be used to perform
@@ -222,7 +222,7 @@ class BaseMPS:
           of the MPS transfer-operator at `site` on the input `matrix`
       matrix: A rank-2 tensor or matrix.
     Returns:
-      `Node`: The result of applying the MPS transfer-operator to `matrix`
+      `Tensor`: The result of applying the MPS transfer-operator to `matrix`
     """
     if direction in (1, 'l', 'left'):
       return self.left_transfer_operator(self.tensors[site], matrix,
@@ -492,12 +492,10 @@ class BaseMPS:
     self.tensors[site2] = V.tensor
     return tw
 
-  def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
-                          site: int) -> None:
+  def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
     """Apply a one-site gate to an MPS. This routine will in general destroy
     any canonical form of the state. If a canonical form is needed, the user
     can restore it using `FiniteMPS.position`
-
     Args:
       gate: a one-body gate
       site: the site where the gate should be applied
@@ -509,11 +507,8 @@ class BaseMPS:
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
     gate_node = Node(gate, backend=self.backend)
-    node = self.nodes[site1]
-    gate_node[1] ^ node[1]
-    edge_order = [node[0], gate_node[0], node[2]]
-    node = contract_between(
-        gate_node, node, name=node.name).reorder_edges(edge_order)
+    self.tensors[site] = ncon([gate, self.mps.tensors[site]],
+                              [[-2, 1], [-1, 1, -3]])
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
@@ -563,17 +558,17 @@ class BaseMPS:
       deviations.append(deviation**2)
     return self.backend.sqrt(sum(deviations))
 
-  def get_tensor(self, site: int) -> BaseNode:
-    """Returns the `Node` object at `site`.
+  def get_tensor(self, site: int) -> Tensor:
+    """Returns the `Tensor` object at `site`.
 
     If `site==len(self) - 1` `BaseMPS.connector_matrix`
     is absorbed fromt the right-hand side into the returned
-    `Node` object.
+    `Tensor` object.
 
     Args:
       site: The site for which to return the `Node`.
     Returns:
-      `Node`: The node at `site`.
+      `Tensor`: The tensor at `site`.
     """
     if site >= len(self):
       raise IndexError(
