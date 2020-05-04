@@ -17,12 +17,11 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between
+from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
+from tensornetwork.network_operations import split_node_full_svd, conj
 from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
-from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
 Tensor = Any
