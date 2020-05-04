@@ -547,20 +547,19 @@ def test_jit():
   np.testing.assert_allclose(res1, res2)
 
 
-def test_jit_args_args():
+def test_jit_args():
   backend = jax_backend.JaxBackend()
 
   def fun(x, A, y):
     return jax.numpy.dot(x, jax.numpy.dot(A, y))
 
   fun_jit = backend.jit(fun, static_argnums=(0,))
-  fun_jit_3 = backend.jit(fun, (0,))
   x = jax.numpy.array(np.random.rand(4))
   y = jax.numpy.array(np.random.rand(4))
   A = jax.numpy.array(np.random.rand(4, 4))
 
   res1 = fun(x, A, y)
   res2 = fun_jit(x, A, y)
-  res3 = fun_jit_3(x, A, y)
+  res3 = fun_jit(x, y=y, A=A)
   np.testing.assert_allclose(res1, res2)
   np.testing.assert_allclose(res1, res3)

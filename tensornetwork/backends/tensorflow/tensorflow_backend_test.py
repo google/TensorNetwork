@@ -478,18 +478,12 @@ def test_jit_args():
           tf.TensorSpec(shape=(4, 4), dtype=tf.float64),
           tf.TensorSpec(shape=(4,), dtype=tf.float64)
       ])
-  fun_jit_2 = backend.jit(fun, [
-      tf.TensorSpec(shape=(4,), dtype=tf.float64),
-      tf.TensorSpec(shape=(4, 4), dtype=tf.float64),
-      tf.TensorSpec(shape=(4,), dtype=tf.float64)
-  ])
-
   x = tf.convert_to_tensor(np.random.rand(4))
   y = tf.convert_to_tensor(np.random.rand(4))
   A = tf.convert_to_tensor(np.random.rand(4, 4))
 
   res1 = fun(x, A, y)
   res2 = fun_jit(x, A, y)
-  res3 = fun_jit_2(x, A, y)
+  res3 = fun_jit(x, y=y, A=A)
   np.testing.assert_allclose(res1, res2)
   np.testing.assert_allclose(res1, res3)
