@@ -31,7 +31,7 @@ When contracting a network with more than one dangling leg, you must specify the
 
 .. figure:: _static/dangling_contract.png
 
-If you do not care about the final output order (for instance, if you are only doing a partial network contraction and the intermidiate order doesn't matter), then you can set `ignore_output_order=True` and you won't need to supply an `output_edge_order`.
+If you do not care about the final output order (for instance, if you are only doing a partial network contraction and the intermidiate order doesn't matter), then you can set `ignore_edge_order=True` and you won't need to supply an `output_edge_order`.
 
 Contracting subgraph
 ---------------------
