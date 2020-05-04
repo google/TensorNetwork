@@ -19,13 +19,13 @@ import numpy as np
 Tensor = Any
 
 
-def svd_decomposition(torch: Any,
-                      tensor: Tensor,
-                      split_axis: int,
-                      max_singular_values: Optional[int] = None,
-                      max_truncation_error: Optional[float] = None,
-                      relative: Optional[bool] = False
-                     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+def svd_decomposition(
+    torch: Any,
+    tensor: Tensor,
+    split_axis: int,
+    max_singular_values: Optional[int] = None,
+    max_truncation_error: Optional[float] = None,
+    relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective

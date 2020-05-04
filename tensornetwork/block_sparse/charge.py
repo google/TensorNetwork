@@ -173,8 +173,8 @@ class BaseCharge:
   def __len__(self):
     return len(self.charge_labels)
 
-  def __eq__(self,
-             target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
+  def __eq__(self, target_charges: Union[np.ndarray,
+                                         "BaseCharge"]) -> np.ndarray:
     #FIXME (mganahl): calling np.unique can cause significant overhead in some cases
     #fix code in block_tensor.py to work on np.ndarray instead
     if isinstance(target_charges, type(self)):
@@ -582,7 +582,9 @@ class Z2Charge(BaseCharge):
     return np.int16(0)
 
   @classmethod
-  def random(cls, dimension: int, minval: int = 0,
+  def random(cls,
+             dimension: int,
+             minval: int = 0,
              maxval: int = 1) -> BaseCharge:
     if minval != 0 or maxval != 1:
       raise ValueError("Z2 charges can only take values 0 or 1")
@@ -632,7 +634,9 @@ def ZNCharge(n: int) -> Callable:
       return np.int16(0)
 
     @classmethod
-    def random(cls, dimension: int, minval: int = 0,
+    def random(cls,
+               dimension: int,
+               minval: int = 0,
                maxval: int = n) -> BaseCharge:
       if maxval >= n:
         raise ValueError(f"maxval must be less than n={n}, got {maxval}")

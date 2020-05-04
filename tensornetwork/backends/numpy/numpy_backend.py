@@ -46,13 +46,14 @@ class NumPyBackend(base_backend.BaseBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     return decompositions.svd_decomposition(
         np,
         tensor,
@@ -99,8 +100,7 @@ class NumPyBackend(base_backend.BaseBackend):
     return np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, np.ndarray) and
-        not np.isscalar(tensor)):
+    if (not isinstance(tensor, np.ndarray) and not np.isscalar(tensor)):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = np.asarray(tensor)
@@ -119,18 +119,22 @@ class NumPyBackend(base_backend.BaseBackend):
   def norm(self, tensor: Tensor) -> Tensor:
     return np.linalg.norm(tensor)
 
-  def eye(self, N, dtype: Optional[np.dtype] = None,
+  def eye(self,
+          N,
+          dtype: Optional[np.dtype] = None,
           M: Optional[int] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
 
     return np.eye(N, M=M, dtype=dtype)
 
-  def ones(self, shape: Tuple[int, ...],
+  def ones(self,
+           shape: Tuple[int, ...],
            dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.ones(shape, dtype=dtype)
 
-  def zeros(self, shape: Tuple[int, ...],
+  def zeros(self,
+            shape: Tuple[int, ...],
             dtype: Optional[np.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else np.float64
     return np.zeros(shape, dtype=dtype)
@@ -161,11 +165,10 @@ class NumPyBackend(base_backend.BaseBackend):
     if ((np.dtype(dtype) is np.dtype(np.complex128)) or
         (np.dtype(dtype) is np.dtype(np.complex64))):
       return np.random.uniform(
-          boundaries[0], boundaries[1],
-          shape).astype(dtype) + 1j * np.random.uniform(
+          boundaries[0],
+          boundaries[1], shape).astype(dtype) + 1j * np.random.uniform(
               boundaries[0], boundaries[1], shape).astype(dtype)
-    return np.random.uniform(
-        boundaries[0], boundaries[1], shape).astype(dtype)
+    return np.random.uniform(boundaries[0], boundaries[1], shape).astype(dtype)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return np.conj(tensor)
@@ -259,27 +262,32 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: List,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. If no `initial_state` is provided
-    then `A` has to have an attribute `shape` so that a suitable initial
-    state can be randomly generated.
-
+    of a linear operator `A`.
     Args:
-      A: A (sparse) implementation of a linear operator
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn`
-        method
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
@@ -303,30 +311,19 @@ class NumPyBackend(base_backend.BaseBackend):
     """
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
-
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
-
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
-      if not hasattr(A, 'dtype'):
-        raise AttributeError(
-            "`A` has no  attribute `dtype`. Cannot initialize "
-            "lanczos. Please provide a valid `initial_state` with "
-            "a `dtype` attribute")
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
 
-      initial_state = self.randn(A.shape[1], A.dtype)
     if not isinstance(initial_state, np.ndarray):
-      raise TypeError("Expected a `np.array`. Got {}".format(
+      raise TypeError("Expected a `np.ndarray`. Got {}".format(
           type(initial_state)))
 
     vector_n = initial_state
@@ -347,19 +344,16 @@ class NumPyBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= np.dot(
-              np.ravel(np.conj(v)), np.ravel(vector_n)) * v
+          vector_n -= np.dot(np.ravel(np.conj(v)), np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
+      A_vector_n = A(*args, vector_n)
       diag_elements.append(
-          np.dot(
-              np.ravel(np.conj(vector_n)), np.ravel(A_vector_n)))
+          np.dot(np.ravel(np.conj(vector_n)), np.ravel(A_vector_n)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
         A_tridiag = np.diag(diag_elements) + np.diag(
-            norms_vector_n[1:], 1) + np.diag(
-                np.conj(norms_vector_n[1:]), -1)
+            norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
         eigvals, u = np.linalg.eigh(A_tridiag)
         if not first:
           if np.linalg.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
@@ -374,8 +368,7 @@ class NumPyBackend(base_backend.BaseBackend):
       vector_n = A_vector_n
 
     A_tridiag = np.diag(diag_elements) + np.diag(
-        norms_vector_n[1:], 1) + np.diag(
-            np.conj(norms_vector_n[1:]), -1)
+        norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
     eigvals, u = np.linalg.eigh(A_tridiag)
     eigenvectors = []
     if np.iscomplexobj(A_tridiag):
@@ -449,3 +442,7 @@ class NumPyBackend(base_backend.BaseBackend):
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
     return sp.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
+
