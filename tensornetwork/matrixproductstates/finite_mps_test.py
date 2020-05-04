@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import pytest
 import numpy as np
+import time
 from tensornetwork.backends import backend_factory
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 
@@ -492,3 +493,21 @@ def test_save_not_implemented(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   with pytest.raises(NotImplementedError):
     mps.save('tmp')
+
+
+@pytest.mark.parametrize("backend", ['jax', 'tensorflow'])
+def test_finite_mps_jit(backend):
+  D, d = 10, 2
+  N = 5
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = FiniteMPS(tensors, center_position=0, backend=backend)
+  t1 = time.time()
+  mps.position(N - 1)
+  t2 = time.time()
+  mps.position(0)
+  t3 = time.time()
+  mps.position(N - 1)
+  t4 = time.time()
+  assert (t2 - t1) > (t4 - t3)
