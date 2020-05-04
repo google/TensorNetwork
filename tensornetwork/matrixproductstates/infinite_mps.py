@@ -292,8 +292,6 @@ class InfiniteMPS(BaseMPS):
     # now do a sweep of QR decompositions to bring the mps tensors into
     # left canonical form (except the last one)
     self.position(len(self) - 1)
-    # TODO: lam is a diagonal matrix, but we're not making
-    # use of it the moment
     lam_norm = self.backend.norm(singvals)
     lam /= lam_norm
     self.center_position = len(self) - 1
