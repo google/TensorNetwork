@@ -45,7 +45,6 @@ def _generate_jitted_eigsh_lanczos(jax):
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
-      #pylint: disable=line-too-long
       current_vector, krylov_vectors, vector_norms = vals[0:3]
       diagonal_elements, matvec, args, _ = vals[3:7]
       threshold, i, maxiteration = vals[7:]
