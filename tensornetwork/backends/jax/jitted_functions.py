@@ -3,8 +3,35 @@ from functools import partial
 
 def _generate_jitted_eigsh_lanczos(jax):
   """
-    Helper function to generate jitted lanczos function used in eigsh_lanczos.
-    """
+  Helper function to generate jitted lanczos function used in JaxBackend.eigsh_lanczos.
+  The function `jax_lanczos` returned by this higher-order function has the following
+  call signature:
+  ```
+  eigenvalues, eigenvectors = jax_lanczos(matvec:Callable, 
+                                     arguments: List[Tensor],
+                                     init: Tensor, 
+                                     ncv: int,  
+                                     neig: int, 
+                                     landelta: float, 
+                                     reortho: bool)
+  ```
+  `matvec`: A callable implementing the matrix-vector product of a linear operator.
+  `arguments`: Arguments to `matvec` additional to an input vector. `matvec` will
+     be called as `matvec(*args, init)`.
+  `init`: An initial input state to `matvec`.
+  `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
+  `neig`: Number of eigenvalue-eigenvector pairs to be computed.
+  `landelta`: Convergence parameter: if the norm of the current Lanczos vector
+    falls below `landelta`, iteration is stopped.
+  `reortho`: If `True`, reorthogonalize all krylov vectors at each step. This should
+    be used if `neig>1`.
+  
+  Args:
+    jax: The `jax` module.
+  Returns:
+    Callable: A jitted function that does a lanczos iteration.
+  
+  """
 
   @partial(jax.jit, static_argnums=(3, 4, 5, 6))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho):
@@ -25,8 +52,8 @@ def _generate_jitted_eigsh_lanczos(jax):
       normalized_vector = current_vector / norm
       normalized_vector, krylov_vectors = jax.lax.cond(
           reortho, True, lambda x: jax.lax.fori_loop(
-              0, i, body_reortho, [normalized_vector, krylov_vectors]),
-          False, lambda x: [normalized_vector, krylov_vectors])
+              0, i, body_reortho, [normalized_vector, krylov_vectors]), False,
+          lambda x: [normalized_vector, krylov_vectors])
       Av = matvec(*args, normalized_vector)
 
       diag_element = jax.numpy.dot(
@@ -42,8 +69,9 @@ def _generate_jitted_eigsh_lanczos(jax):
 
       vector_norms = jax.ops.index_update(vector_norms, jax.ops.index[i - 1],
                                           norm)
-      diagonal_elements = jax.ops.index_update(
-          diagonal_elements, jax.ops.index[i - 1], diag_element)
+      diagonal_elements = jax.ops.index_update(diagonal_elements,
+                                               jax.ops.index[i - 1],
+                                               diag_element)
 
       return [
           res, krylov_vectors, vector_norms, diagonal_elements, matvec, args,
@@ -97,8 +125,8 @@ def _generate_jitted_eigsh_lanczos(jax):
                                      [krylov_vecs, U, state_vector])
     vector /= jax.numpy.linalg.norm(vector)
     return jax.numpy.array(eigvals[0:neig]), [
-        jax.numpy.reshape(vector[n, :], init.shape) / jax.numpy.linalg.norm(
-            vector[n, :]) for n in range(neig)
+        jax.numpy.reshape(vector[n, :], init.shape) /
+        jax.numpy.linalg.norm(vector[n, :]) for n in range(neig)
     ]
 
   return jax_lanczos
