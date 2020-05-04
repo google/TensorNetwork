@@ -323,7 +323,7 @@ class NumPyBackend(base_backend.BaseBackend):
       initial_state = self.randn(shape, dtype)
 
     if not isinstance(initial_state, np.ndarray):
-      raise TypeError("Expected a `np.array`. Got {}".format(
+      raise TypeError("Expected a `np.ndarray`. Got {}".format(
           type(initial_state)))
 
     vector_n = initial_state
