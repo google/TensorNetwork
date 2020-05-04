@@ -16,9 +16,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-from tensornetwork.network_components import BaseNode, Node
-# pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.matrixproductstates.mpo import BaseMPO
 from tensornetwork import ncon
