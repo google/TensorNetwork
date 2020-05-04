@@ -134,7 +134,7 @@ class BaseMPS:
       self.center_position = site
 
     #shift center_position to the left using RQ decomposition
-    elif site < self.center_position:
+    else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
         R, Q = split_node_rq(
@@ -230,6 +230,9 @@ class BaseMPS:
       mat[0] ^ node[2]
       mat[1] ^ conj_node[2]
       edge_order = [node[0], conj_node[0]]
+    else:
+      raise ValueError("direction must be one of {1, 'l', 'left', "
+                       "'-1', 'r', 'right'}")
     result = mat @ node @ conj_node
     return result.reorder_edges(edge_order)
 
@@ -538,7 +541,7 @@ class BaseMPS:
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
       n1[1] ^ n2[1]
-    elif which in ('r', 'right'):
+    else:
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
     result = n1 @ n2
