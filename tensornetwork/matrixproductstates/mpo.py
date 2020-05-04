@@ -80,7 +80,7 @@ class InfiniteMPO(BaseMPO):
                name: Optional[Text] = None) -> None:
 
     super().__init__(tensors=tensors, backend=backend)
-    if not (self.bond_dimensions[0] == self.bond_dimensions[-1]):
+    if (self.bond_dimensions[0] != self.bond_dimensions[-1]):
       raise ValueError('left and right MPO ancillary dimension have to match')
     self.name = name
 
@@ -101,7 +101,7 @@ class FiniteMPO(BaseMPO):
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
     super().__init__(tensors=tensors, backend=backend)
-    if not (self.bond_dimensions[0] == 1) and (self.bond_dimensions[-1] == 1):
+    if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
       raise ValueError('left and right MPO ancillary dimensions have to be 1')
     self.name = name
 
@@ -118,7 +118,7 @@ class FiniteXXZ(FiniteMPO):
                Bz: np.ndarray,
                dtype: Type[np.number],
                backend: Optional[Text] = None,
-               name: 'XXZ_MPO') -> None:
+               name: Text = 'XXZ_MPO') -> None:
     """
     Returns the MPO of the XXZ model.
     Args:
@@ -217,7 +217,7 @@ class FiniteTFI(FiniteMPO):
                Bz: np.ndarray,
                dtype: Type[np.number],
                backend: Optional[Text] = None,
-               name: 'TFI_MPO'):
+               name: Text = 'TFI_MPO'):
     """
     Returns the MPO of the finite TFI model.
     Args:
