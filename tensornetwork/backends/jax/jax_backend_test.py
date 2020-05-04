@@ -543,15 +543,6 @@ def test_jit():
   x = jax.numpy.array(np.random.rand(4))
   y = jax.numpy.array(np.random.rand(4))
   A = jax.numpy.array(np.random.rand(4, 4))
-
-  t1 = time.time()
-  res = fun_jit(x, A, y)
-  res.block_until_ready()
-  t2 = time.time()
-
-  res = fun_jit(x, A, y)
-  res.block_until_ready()
-  t3 = time.time()
-  dt2 = t3 - t2
-  dt1 = t2 - t1
-  assert dt2 < dt1
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  np.testing.assert_allclose(res1, res2)
