@@ -18,10 +18,9 @@ from __future__ import print_function
 import numpy as np
 import functools
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.ncon_interface import ncon
@@ -51,7 +50,7 @@ class InfiniteMPS(BaseMPS):
     Args:
       tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
-      connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
+      connector_matrix: A `Tensor` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
         `connector_matrix`.
       backend: The name of the backend that should be used to perform
@@ -97,7 +96,7 @@ class InfiniteMPS(BaseMPS):
     return cls(tensors=tensors, center_position=0, backend=backend)
 
   def unit_cell_transfer_operator(self, direction: Union[Text, int],
-                                  matrix: Union[BaseNode, Tensor]) -> BaseNode:
+                                  matrix: Tensor) -> Tensor:
     sites = range(len(self))
     if direction in (-1, 'r', 'right'):
       sites = reversed(sites)
@@ -108,8 +107,7 @@ class InfiniteMPS(BaseMPS):
 
   def transfer_matrix_eigs(self,
                            direction: Union[Text, int],
-                           initial_state: Optional[Union[BaseNode,
-                                                         Tensor]] = None,
+                           initial_state: Optional[Tensor] = None,
                            precision: Optional[float] = 1E-10,
                            num_krylov_vecs: Optional[int] = 30,
                            maxiter: Optional[int] = None) -> Tensor:
@@ -140,8 +138,6 @@ class InfiniteMPS(BaseMPS):
       initial_state = self.backend.randn((self.bond_dimensions[0]**2,),
                                          dtype=self.dtype)
     else:
-      if isinstance(initial_state, BaseNode):
-        initial_state = initial_state
       initial_state = self.backend.reshape(initial_state,
                                            (self.bond_dimensions[0]**2,))
 
@@ -174,9 +170,8 @@ class InfiniteMPS(BaseMPS):
 
   # pylint: disable=arguments-differ
   def canonicalize(self,
-                   left_initial_state: Optional[Union[BaseNode, Tensor]] = None,
-                   right_initial_state: Optional[Union[BaseNode,
-                                                       Tensor]] = None,
+                   left_initial_state: Optional[Tensor] = None,
+                   right_initial_state: Optional[Tensor] = None,
                    precision: Optional[float] = 1E-10,
                    truncation_threshold: Optional[float] = 1E-15,
                    D: Optional[int] = None,
@@ -282,11 +277,6 @@ class InfiniteMPS(BaseMPS):
         max_truncation_error=truncation_threshold,
         relative=True)
     lam = self.backend.diag(singvals)
-    # U, lam, V, _ = split_node_full_svd(
-    #     tmp_node, [tmp_node[0]], [tmp_node[1]],
-    #     max_singular_values=D,
-    #     max_truncation_err=truncation_threshold)
-    # absorb lam*V*invx into the left-most mps tensor
     self.tensors[0] = ncon([lam, V, inv_sqrtr, self.tensors[0]],
                            [[-1, 1], [1, 2], [2, 3], [3, -2, -3]],
                            backend=self.backend.name)
