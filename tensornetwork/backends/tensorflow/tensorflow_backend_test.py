@@ -471,13 +471,7 @@ def test_jit_args():
   def fun(x, A, y):
     return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
 
-  fun_jit = backend.jit(
-      fun,
-      input_signature=[
-          tf.TensorSpec(shape=(4,), dtype=tf.float64),
-          tf.TensorSpec(shape=(4, 4), dtype=tf.float64),
-          tf.TensorSpec(shape=(4,), dtype=tf.float64)
-      ])
+  fun_jit = backend.jit(fun)
   x = tf.convert_to_tensor(np.random.rand(4))
   y = tf.convert_to_tensor(np.random.rand(4))
   A = tf.convert_to_tensor(np.random.rand(4, 4))

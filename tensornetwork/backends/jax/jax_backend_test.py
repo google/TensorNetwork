@@ -553,7 +553,7 @@ def test_jit_args():
   def fun(x, A, y):
     return jax.numpy.dot(x, jax.numpy.dot(A, y))
 
-  fun_jit = backend.jit(fun, static_argnums=(0,))
+  fun_jit = backend.jit(fun)
   x = jax.numpy.array(np.random.rand(4))
   y = jax.numpy.array(np.random.rand(4))
   A = jax.numpy.array(np.random.rand(4, 4))
