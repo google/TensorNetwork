@@ -170,19 +170,18 @@ class PyTorchBackend(base_backend.BaseBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return matrix.symeig(eigenvectors=True)
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      args: List,
-      initial_state: Optional[Tensor] = None,
-      shape: Optional[Tuple] = None,
-      dtype: Optional[Type[np.number]] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: List,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
