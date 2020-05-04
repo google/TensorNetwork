@@ -4,8 +4,9 @@ import numpy as np
 
 def _generate_jitted_eigsh_lanczos(jax):
   """
-  Helper function to generate jitted lanczos function used in JaxBackend.eigsh_lanczos.
-  The function `jax_lanczos` returned by this higher-order function has the following
+  Helper function to generate jitted lanczos function used 
+  in JaxBackend.eigsh_lanczos. The function `jax_lanczos` 
+  returned by this higher-order function has the following
   call signature:
   ```
   eigenvalues, eigenvectors = jax_lanczos(matvec:Callable, 
@@ -16,16 +17,16 @@ def _generate_jitted_eigsh_lanczos(jax):
                                      landelta: float, 
                                      reortho: bool)
   ```
-  `matvec`: A callable implementing the matrix-vector product of a linear operator.
-  `arguments`: Arguments to `matvec` additional to an input vector. `matvec` will
-     be called as `matvec(*args, init)`.
+  `matvec`: A callable implementing the matrix-vector product of a 
+  linear operator. `arguments`: Arguments to `matvec` additional to 
+  an input vector. `matvec` will be called as `matvec(*args, init)`.
   `init`: An initial input state to `matvec`.
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
   `landelta`: Convergence parameter: if the norm of the current Lanczos vector
     falls below `landelta`, iteration is stopped.
-  `reortho`: If `True`, reorthogonalize all krylov vectors at each step. This should
-    be used if `neig>1`.
+  `reortho`: If `True`, reorthogonalize all krylov vectors at each step. 
+     This should be used if `neig>1`.
   
   Args:
     jax: The `jax` module.
@@ -39,16 +40,17 @@ def _generate_jitted_eigsh_lanczos(jax):
     """
     Jitted lanczos routine.
     Args:
-      matvec: A callable implementing the matrix-vector product of a linear operator.
-      arguments: Arguments to `matvec` additional to an input vector. `matvec` will
-        be called as `matvec(*args, init)`.
+      matvec: A callable implementing the matrix-vector product of a 
+        linear operator.
+      arguments: Arguments to `matvec` additional to an input vector. 
+        `matvec` will be called as `matvec(*args, init)`.
       init: An initial input state to `matvec`.
       ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
       neig: Number of eigenvalue-eigenvector pairs to be computed.
       landelta: Convergence parameter: if the norm of the current Lanczos vector
         falls below `landelta`, iteration is stopped.
-      reortho: If `True`, reorthogonalize all krylov vectors at each step. This should
-        be used if `neig>1`.
+      reortho: If `True`, reorthogonalize all krylov vectors at each step. 
+        This should be used if `neig>1`.
     Returns:
       list: Eigen values
       list: Eigen values

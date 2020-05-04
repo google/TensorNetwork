@@ -372,6 +372,7 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
+      num_krylov_vecs=D,
       reorthogonalize=True,
       ndiag=1,
       tol=10**(-12),

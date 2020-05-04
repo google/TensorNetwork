@@ -5,6 +5,7 @@ import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
 import jax.config as config
+# pylint: disable=no-member
 config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
