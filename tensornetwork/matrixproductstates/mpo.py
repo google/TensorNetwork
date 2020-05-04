@@ -30,22 +30,21 @@ class BaseMPO:
   Base class for MPOs.
   """
 
-  def __init__(self, tensors: List[Tensor],
+  def __init__(self,
+               tensors: List[Tensor],
                backend: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
     Args:
       tensors: A list of `Tensor` objects.
       backend: The name of the backend that should be used to perform 
-        contractions. Available backends are currently 'numpy', 'tensorflow',
-        'pytorch', 'jax'
+        contractions. 
     """
     if backend is None:
       backend = get_default_backend()
 
     self.backend = backend_factory.get_backend(backend)
 
-    # we're no longer connecting MPS nodes because it's barely needed
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
 
   def __iter__(self):
@@ -109,7 +108,8 @@ class FiniteMPO(BaseMPO):
 
 class FiniteXXZ(FiniteMPO):
   """
-  the famous Heisenberg Hamiltonian, the one we all know and love (almost as much as the TFI)!
+  The Heisenberg Hamiltonian,
+  which we all know and love (just slightly less than the transverse field Ising model).
   """
 
   def __init__(self,
@@ -200,8 +200,14 @@ class FiniteXXZ(FiniteMPO):
 
 class FiniteTFI(FiniteMPO):
   """
-  The good old transverse field Ising model
-  convention: sigma_z=diag([-1,1])
+  The famous transverse field Ising Hamiltonian. Everyone loves it
+  because it makes any method look great. It takes about the same time 
+  to solve it on an abacus as it takes on a NISQ device (the error bars on 
+  the latter are bigger though).
+  My abacus tells me that the ground state energy of 
+  the infinite system at criticality is -4/pi.
+
+  Convention: sigma_z=diag([-1,1])
   """
 
   def __init__(self,
