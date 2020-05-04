@@ -509,7 +509,6 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = Node(gate, backend=self.backend)
     self.tensors[site] = ncon([gate, self.tensors[site]],
                               [[-2, 1], [-1, 1, -3]],
                               backend=self.backend.name)
