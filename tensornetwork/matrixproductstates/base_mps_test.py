@@ -148,14 +148,14 @@ def test_apply_two_site_gate(backend_dtype_values):
   np.testing.assert_allclose(res.tensor, actual)
 
 
-def test_mps_switch_backend(backend):
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), np.float64)] + [
-      get_random_np((D, d, D), np.float64) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), np.float64)]
-  mps = BaseMPS(tensors, center_position=0, backend="numpy")
-  mps.switch_backend(backend)
-  assert mps.backend.name == backend
+# def test_mps_switch_backend(backend):
+#   D, d, N = 10, 2, 10
+#   tensors = [get_random_np((1, d, D), np.float64)] + [
+#       get_random_np((D, d, D), np.float64) for _ in range(N - 2)
+#   ] + [get_random_np((D, d, 1), np.float64)]
+#   mps = BaseMPS(tensors, center_position=0, backend="numpy")
+#   mps.switch_backend(backend)
+#   assert mps.backend.name == backend
 
 
 def test_position_raises_error(backend):
@@ -215,16 +215,6 @@ def test_position_no_shift_no_normalization(backend):
   np.testing.assert_allclose(Z, 5.656854)
 
 
-def test_different_backends_raises_error():
-  D, d = 4, 2
-  tensors = [np.ones((1, d, D))]
-  mps1 = BaseMPS(tensors, backend='numpy')
-  mps2 = BaseMPS(tensors, backend='tensorflow')
-  mps1.nodes = mps1.nodes + mps2.nodes
-  with pytest.raises(ValueError):
-    mps1.backend
-
-
 def test_different_dtypes_raises_error():
   D, d = 4, 2
   tensors = [
@@ -269,12 +259,11 @@ def test_apply_transfer_operator_left(backend):
   mps = BaseMPS(tensors, backend=backend)
 
   expected = np.array([[74., 58., 38.], [78., 146., 102.], [38., 114., 74.]])
-  actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(
-      site=3, direction="left", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="left", matrix=mat)
   np.testing.assert_allclose(actual, expected)
 
 
@@ -290,12 +279,11 @@ def test_apply_transfer_operator_right(backend):
   mps = BaseMPS(tensors, backend=backend)
   expected = np.array([[80., -20., 128.], [-20., 10., -60.], [144., -60.,
                                                               360.]])
-  actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(
-      site=3, direction="right", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="right", matrix=mat)
   np.testing.assert_allclose(actual, expected)
 
 
@@ -344,37 +332,37 @@ def test_measure_two_body_correlator_value_error(backend):
         op1=operator, op2=operator, site1=-1, sites2=[2])
 
 
-def test_get_node(backend):
+def test_get_tensor(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend)
-  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-  np.testing.assert_allclose(mps.get_node(1).tensor, tensor2)
+  np.testing.assert_allclose(mps.get_tensor(0), tensor1)
+  np.testing.assert_allclose(mps.get_tensor(1), tensor2)
 
 
-def test_get_node_connector_matrix(backend):
+def test_get_tensor_connector_matrix(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   connector = backend.convert_to_tensor(np.ones((2, 2), dtype=np.float64))
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend, connector_matrix=connector)
-  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-  np.testing.assert_allclose(mps.get_node(1).tensor, 2 * tensor2)
+  np.testing.assert_allclose(mps.get_tensor(0), tensor1)
+  np.testing.assert_allclose(mps.get_tensor(1), 2 * tensor2)
 
 
-def test_get_node_raises_error(backend):
+def test_get_tensor_raises_error(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
-    mps.get_node(site=-1)
+    mps.get_tensor(site=-1)
   with pytest.raises(IndexError):
-    mps.get_node(site=3)
+    mps.get_tensor(site=3)
 
 
 def test_check_canonical(backend):
@@ -411,12 +399,10 @@ def test_apply_two_site_gate_2(backend):
       gate=gate, site1=1, site2=2, max_singular_values=1)
   np.testing.assert_allclose(actual[0], 9.133530)
   expected = np.array([[5.817886], [9.039142]])
-  np.testing.assert_allclose(
-      np.abs(mps.nodes[1].tensor[0]), expected, rtol=1e-04)
+  np.testing.assert_allclose(np.abs(mps.tensors[1][0]), expected, rtol=1e-04)
   expected = np.array([[0.516264, 0.080136, 0.225841],
                        [0.225841, 0.59876, 0.516264]])
-  np.testing.assert_allclose(
-      np.abs(mps.nodes[2].tensor[0]), expected, rtol=1e-04)
+  np.testing.assert_allclose(np.abs(mps.tensors[2][0]), expected, rtol=1e-04)
 
 
 def test_apply_two_site_wrong_gate_raises_error(backend):
@@ -500,7 +486,7 @@ def test_apply_one_site_gate_2(backend):
   gate = backend.convert_to_tensor(np.array([[0, 1], [1, 0]], dtype=np.float64))
   mps.apply_one_site_gate(gate=gate, site=1)
   expected = np.array([[1., -2., 1.], [1., 2., 1.]])
-  np.testing.assert_allclose(mps.nodes[1].tensor[0], expected)
+  np.testing.assert_allclose(mps.tensors[1][0], expected)
 
 
 def test_apply_one_site_gate_wrong_gate_raises_error(backend):
