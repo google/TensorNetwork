@@ -18,7 +18,7 @@ from __future__ import print_function
 import numpy as np
 import functools
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.network_components import Node, contract, contract_between
 from tensornetwork.backends import backend_factory
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
