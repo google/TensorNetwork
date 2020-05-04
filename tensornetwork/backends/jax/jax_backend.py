@@ -400,6 +400,3 @@ class JaxBackend(base_backend.BaseBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return libjax.jit(fun, **kwargs)
-
-  def make_passable_to_jit(self, fun):
-    return libjax.tree_util.Partial(fun)

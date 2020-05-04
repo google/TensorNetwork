@@ -61,7 +61,7 @@ def test_TMeigs(dtype):
       d=[d] * N, D=[D] * (N + 1), dtype=dtype, backend='numpy')
   eta, l = imps.transfer_matrix_eigs('r')
   l2 = imps.unit_cell_transfer_operator('r', l)
-  np.testing.assert_allclose(eta * l.tensor, l2.tensor)
+  np.testing.assert_allclose(eta * l, l2)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -78,7 +78,7 @@ def test_unitcell_transfer_operator(dtype, direction):
 
   for site in sites:
     m = imps.apply_transfer_operator(site, direction, m)
-  np.testing.assert_allclose(m.tensor, res1.tensor)
+  np.testing.assert_allclose(m, res1)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
