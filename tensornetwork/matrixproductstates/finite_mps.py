@@ -31,8 +31,7 @@ class FiniteMPS(BaseMPS):
   """An MPS class for finite systems.
 
 
-  MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
-  attribute.
+  MPS tensors are stored as a list.
   `FiniteMPS` has a central site, also called orthogonality center.
   The position of this central site is stored in `FiniteMPS.center_position`,
   and it can be be shifted using the `FiniteMPS.position` method.
@@ -59,7 +58,7 @@ class FiniteMPS(BaseMPS):
     """Initialize a `FiniteMPS`.
 
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
       canonicalize: If `True` the mps is canonicalized at initialization.
       backend: The name of the backend that should be used to perform
