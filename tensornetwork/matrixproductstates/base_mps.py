@@ -165,7 +165,7 @@ class BaseMPS:
       self.center_position = site
 
     #shift center_position to the left using RQ decomposition
-    elif site < self.center_position:
+    else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
         R, Q = self.rq_decomposition(self.tensors[n])
@@ -538,7 +538,7 @@ class BaseMPS:
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
       n1[1] ^ n2[1]
-    elif which in ('r', 'right'):
+    else:
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
     result = n1 @ n2

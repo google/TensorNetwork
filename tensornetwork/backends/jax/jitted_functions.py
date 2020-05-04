@@ -1,13 +1,60 @@
 from functools import partial
+import numpy as np
 
 
 def _generate_jitted_eigsh_lanczos(jax):
   """
-    Helper function to generate jitted lanczos function used in eigsh_lanczos.
-    """
+  Helper function to generate jitted lanczos function used 
+  in JaxBackend.eigsh_lanczos. The function `jax_lanczos` 
+  returned by this higher-order function has the following
+  call signature:
+  ```
+  eigenvalues, eigenvectors = jax_lanczos(matvec:Callable, 
+                                     arguments: List[Tensor],
+                                     init: Tensor, 
+                                     ncv: int,  
+                                     neig: int, 
+                                     landelta: float, 
+                                     reortho: bool)
+  ```
+  `matvec`: A callable implementing the matrix-vector product of a 
+  linear operator. `arguments`: Arguments to `matvec` additional to 
+  an input vector. `matvec` will be called as `matvec(*args, init)`.
+  `init`: An initial input state to `matvec`.
+  `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
+  `neig`: Number of eigenvalue-eigenvector pairs to be computed.
+  `landelta`: Convergence parameter: if the norm of the current Lanczos vector
+    falls below `landelta`, iteration is stopped.
+  `reortho`: If `True`, reorthogonalize all krylov vectors at each step. 
+     This should be used if `neig>1`.
+  
+  Args:
+    jax: The `jax` module.
+  Returns:
+    Callable: A jitted function that does a lanczos iteration.
+  
+  """
 
   @partial(jax.jit, static_argnums=(3, 4, 5, 6))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho):
+    """
+    Jitted lanczos routine.
+    Args:
+      matvec: A callable implementing the matrix-vector product of a 
+        linear operator.
+      arguments: Arguments to `matvec` additional to an input vector. 
+        `matvec` will be called as `matvec(*args, init)`.
+      init: An initial input state to `matvec`.
+      ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
+      neig: Number of eigenvalue-eigenvector pairs to be computed.
+      landelta: Convergence parameter: if the norm of the current Lanczos vector
+        falls below `landelta`, iteration is stopped.
+      reortho: If `True`, reorthogonalize all krylov vectors at each step. 
+        This should be used if `neig>1`.
+    Returns:
+      list: Eigen values
+      list: Eigen values
+    """
 
     def body_reortho(i, vals):
       vector, krylov_vectors = vals
@@ -18,8 +65,9 @@ def _generate_jitted_eigsh_lanczos(jax):
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
-      #pylint: disable=line-too-long
-      current_vector, krylov_vectors, vector_norms, diagonal_elements, matvec, args, _, threshold, i, maxiteration = vals
+      current_vector, krylov_vectors, vector_norms = vals[0:3]
+      diagonal_elements, matvec, args, _ = vals[3:7]
+      threshold, i, maxiteration = vals[7:]
       #current_vector = krylov_vectors[i,:]
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
       normalized_vector = current_vector / norm
@@ -67,9 +115,7 @@ def _generate_jitted_eigsh_lanczos(jax):
     diag_elems = jax.numpy.zeros(ncv, dtype=init.dtype)
 
     norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
-
-    norms_dtype = jax.numpy.real(jax.numpy.empty(
-        0, dtype=init.dtype)).dtype  #what freaking a hack!
+    norms_dtype = np.real(init.dtype).dtype
     initvals = [
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
         norms_dtype.type(1.0), landelta, 1, ncv

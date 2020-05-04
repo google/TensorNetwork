@@ -4,7 +4,9 @@ import scipy as sp
 import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
-
+import jax.config as config
+# pylint: disable=no-member
+config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
@@ -391,10 +393,11 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
+      num_krylov_vecs=D,
       reorthogonalize=True,
       ndiag=1,
-      tol=10**(-12),
-      delta=10**(-12))
+      tol=1E-12,
+      delta=1E-12)
   eta2, U2 = np.linalg.eigh(H)
 
   np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
@@ -404,22 +407,36 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
     v1 = np.reshape(U1[n], (D))
     v1 /= np.sum(v1)
 
-    np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
+    np.testing.assert_allclose(v1, v2, rtol=1E-5, atol=1E-5)
 
 
 def test_eigsh_lanczos_raises():
   backend = jax_backend.JaxBackend()
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
     backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
+      "Use `reorthogonalize=True` for `numeig > 1`"):
     backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
     backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
     backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
     backend.eigsh_lanczos(lambda x: x, [])
-  with pytest.raises(TypeError):
+  with pytest.raises(
+      TypeError, match="Expected a `jax.array`. Got <class 'list'>"):
     backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
 
 

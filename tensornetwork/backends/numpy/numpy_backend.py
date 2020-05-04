@@ -262,19 +262,18 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      args: List,
-      initial_state: Optional[Tensor] = None,
-      shape: Optional[Tuple] = None,
-      dtype: Optional[Type[np.number]] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: List,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
@@ -324,7 +323,7 @@ class NumPyBackend(base_backend.BaseBackend):
       initial_state = self.randn(shape, dtype)
 
     if not isinstance(initial_state, np.ndarray):
-      raise TypeError("Expected a `np.array`. Got {}".format(
+      raise TypeError("Expected a `np.ndarray`. Got {}".format(
           type(initial_state)))
 
     vector_n = initial_state

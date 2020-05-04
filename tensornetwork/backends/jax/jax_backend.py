@@ -22,7 +22,8 @@ from functools import partial
 Tensor = Any
 
 # pylint: disable=abstract-method
-# pylint: disable=attribute-defined-outside-init
+
+_CACHED_MATVECS = {}
 
 
 class JaxBackend(base_backend.BaseBackend):
@@ -233,11 +234,11 @@ class JaxBackend(base_backend.BaseBackend):
       initial_state: Optional[Tensor] = None,
       shape: Optional[Tuple] = None,
       dtype: Optional[Type[np.number]] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
+      num_krylov_vecs: int = 20,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      delta: float = 1E-8,
+      ndiag: int = 10,
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
@@ -322,17 +323,14 @@ class JaxBackend(base_backend.BaseBackend):
     if not isinstance(initial_state, jnp.ndarray):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
-    if hasattr(self, '_A'):
-      #pylint: disable=access-member-before-definition
-      if self._A is not A:
-        self._Apartial = libjax.tree_util.Partial(A)
-        self._A = A
-    else:
-      self._Apartial = libjax.tree_util.Partial(A)
-      self._A = A
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
+    if not hasattr(self, '_jaxlan'):
+      # pylint: disable=attribute-defined-outside-init
       self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
-    return self._jaxlan(self._Apartial, args, initial_state, num_krylov_vecs,
-                        numeig, delta, reorthogonalize)
+
+    return self._jaxlan(_CACHED_MATVECS[A], args, initial_state,
+                        num_krylov_vecs, numeig, delta, reorthogonalize)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)
