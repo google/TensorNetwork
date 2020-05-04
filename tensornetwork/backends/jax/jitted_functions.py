@@ -36,6 +36,23 @@ def _generate_jitted_eigsh_lanczos(jax):
 
   @partial(jax.jit, static_argnums=(3, 4, 5, 6))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho):
+    """
+    Jitted lanczos routine.
+    Args:
+      matvec: A callable implementing the matrix-vector product of a linear operator.
+      arguments: Arguments to `matvec` additional to an input vector. `matvec` will
+        be called as `matvec(*args, init)`.
+      init: An initial input state to `matvec`.
+      ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
+      neig: Number of eigenvalue-eigenvector pairs to be computed.
+      landelta: Convergence parameter: if the norm of the current Lanczos vector
+        falls below `landelta`, iteration is stopped.
+      reortho: If `True`, reorthogonalize all krylov vectors at each step. This should
+        be used if `neig>1`.
+    Returns:
+      list: Eigen values
+      list: Eigen values
+    """
 
     def body_reortho(i, vals):
       vector, krylov_vectors = vals
