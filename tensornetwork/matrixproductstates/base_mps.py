@@ -17,7 +17,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.network_components import Node, contract, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
 from tensornetwork.backends import backend_factory
@@ -46,7 +46,7 @@ class BaseMPS:
   which can be arbitrarily stacked, i.e.
   `stacked_tensors=[tensor_1,...,tensor_N, tensor_1, ..., tensor_N,...]`
   use the `BaseMPS.get_tensor` function. This function automatically
-  absorbs `BaseNode.connector_matrix` into the correct `Tensoor` object
+  absorbs `BaseMPS.connector_matrix` into the correct `Tensoor` object
   to ensure that `Tensors`s (i.e. the mps tensors) can be consistently
   stacked without gauge jumps.
 
@@ -353,7 +353,9 @@ class BaseMPS:
           res = (((L @ A) @ O2) @ conj_A) @ R
           c.append(res.tensor)
         if n > n1:
-          R = self.apply_transfer_operator(n % N, 'right', R)
+          R = Node(
+              self.apply_transfer_operator(n % N, 'right', R.tensor),
+              backend=self.backend)
 
       c = list(reversed(c))
 
@@ -418,11 +420,13 @@ class BaseMPS:
           c.append(res.tensor)
 
         if n < n2:
-          L = self.apply_transfer_operator(n % N, 'left', L)
+          L = Node(
+              self.apply_transfer_operator(n % N, 'left', L.tensor),
+              backend=self.backend)
     return c
 
   def apply_two_site_gate(self,
-                          gate: Union[BaseNode, Tensor],
+                          gate: Tensor,
                           site1: int,
                           site2: int,
                           max_singular_values: Optional[int] = None,
