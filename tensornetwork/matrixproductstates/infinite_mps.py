@@ -31,8 +31,7 @@ Tensor = Any
 class InfiniteMPS(BaseMPS):
   """An MPS class for infinite systems.
 
-  MPS tensors are stored as a list of `Node` objects in the `InfiniteMPS.nodes`
-  attribute.
+  MPS tensors are stored as a list.
   `InfiniteMPS` has a central site, also called orthogonality center.
   The position of this central site is stored in `InfiniteMPS.center_position`,
   and it can be be shifted using the `InfiniteMPS.position` method.
@@ -43,14 +42,14 @@ class InfiniteMPS(BaseMPS):
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
+               tensors: List[Tensor],
                center_position: Optional[int] = 0,
-               connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
+               connector_matrix: Optional[Tensor] = None,
                backend: Optional[Text] = None) -> None:
     """Initialize a InfiniteMPS.
 
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
       connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
@@ -113,7 +112,7 @@ class InfiniteMPS(BaseMPS):
                                                          Tensor]] = None,
                            precision: Optional[float] = 1E-10,
                            num_krylov_vecs: Optional[int] = 30,
-                           maxiter: Optional[int] = None):
+                           maxiter: Optional[int] = None) -> Tensor:
     """Compute the dominant eigenvector of the MPS transfer matrix.
 
     Ars:
@@ -128,21 +127,21 @@ class InfiniteMPS(BaseMPS):
       maxiter: The maximum number of iterations.
     Returns:
       `float` or `complex`: The dominant eigenvalue.
-      Node: The dominant eigenvector.
+      Tensor: The dominant eigenvector.
     """
     D = self.bond_dimensions[0]
 
     def mv(vector):
       result = self.unit_cell_transfer_operator(
           direction, self.backend.reshape(vector, (D, D)))
-      return self.backend.reshape(result.tensor, (D * D,))
+      return self.backend.reshape(result, (D * D,))
 
     if not initial_state:
       initial_state = self.backend.randn((self.bond_dimensions[0]**2,),
                                          dtype=self.dtype)
     else:
       if isinstance(initial_state, BaseNode):
-        initial_state = initial_state.tensor
+        initial_state = initial_state
       initial_state = self.backend.reshape(initial_state,
                                            (self.bond_dimensions[0]**2,))
 
@@ -162,7 +161,7 @@ class InfiniteMPS(BaseMPS):
         dtype=self.dtype)
     result = self.backend.reshape(
         dens[0], (self.bond_dimensions[0], self.bond_dimensions[0]))
-    return eta[0], Node(result, backend=self.backend)
+    return eta[0], result
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
@@ -218,16 +217,14 @@ class InfiniteMPS(BaseMPS):
         num_krylov_vecs=num_krylov_vecs,
         maxiter=maxiter)
     sqrteta = self.backend.sqrt(eta)
-    self.nodes[0].tensor /= sqrteta
+    self.tensors[0] /= sqrteta
 
     # TODO: would be nice to do the algebra directly on the nodes here
-    l.tensor /= self.backend.trace(l.tensor)
-    l.tensor = (l.tensor +
-                self.backend.transpose(self.backend.conj(l.tensor),
-                                       (1, 0))) / 2.0
+    l /= self.backend.trace(l)
+    l = (l + self.backend.transpose(self.backend.conj(l), (1, 0))) / 2.0
 
     # eigvals_left and u_left are both `Tensor` objects
-    eigvals_left, u_left = self.backend.eigh(l.tensor)
+    eigvals_left, u_left = self.backend.eigh(l)
     eigvals_left /= self.backend.norm(eigvals_left)
     if pseudo_inverse_cutoff:
       mask = eigvals_left <= pseudo_inverse_cutoff
@@ -236,19 +233,15 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
 
-    sqrtl = Node(
-        ncon(
-            [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
-            [[-2, 1], [1, -1]],
-            backend=self.backend.name),
-        backend=self.backend)
-    inv_sqrtl = Node(
-        ncon([
-            self.backend.diag(self.backend.sqrt(inveigvals_left)),
-            self.backend.conj(u_left)
-        ], [[-2, 1], [-1, 1]],
-             backend=self.backend.name),
-        backend=self.backend)
+    sqrtl = ncon(
+        [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
+        [[-2, 1], [1, -1]],
+        backend=self.backend.name)
+    inv_sqrtl = ncon([
+        self.backend.diag(self.backend.sqrt(inveigvals_left)),
+        self.backend.conj(u_left)
+    ], [[-2, 1], [-1, 1]],
+                     backend=self.backend.name)
 
     eta, r = self.transfer_matrix_eigs(
         direction='right',
@@ -257,12 +250,10 @@ class InfiniteMPS(BaseMPS):
         num_krylov_vecs=num_krylov_vecs,
         maxiter=maxiter)
 
-    r.tensor /= self.backend.trace(r.tensor)
-    r.tensor = (r.tensor +
-                self.backend.transpose(self.backend.conj(r.tensor),
-                                       (1, 0))) / 2.0
+    r /= self.backend.trace(r)
+    r = (r + self.backend.transpose(self.backend.conj(r), (1, 0))) / 2.0
     # eigvals_left and u_left are both `Tensor` objects
-    eigvals_right, u_right = self.backend.eigh(r.tensor)
+    eigvals_right, u_right = self.backend.eigh(r)
     eigvals_right /= self.backend.norm(eigvals_right)
     if pseudo_inverse_cutoff:
       mask = eigvals_right <= pseudo_inverse_cutoff
@@ -271,47 +262,50 @@ class InfiniteMPS(BaseMPS):
     if pseudo_inverse_cutoff:
       inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
 
-    sqrtr = Node(
-        ncon([u_right,
-              self.backend.diag(self.backend.sqrt(eigvals_right))],
-             [[-1, 1], [1, -2]],
-             backend=self.backend.name),
-        backend=self.backend)
+    sqrtr = ncon(
+        [u_right, self.backend.diag(self.backend.sqrt(eigvals_right))],
+        [[-1, 1], [1, -2]],
+        backend=self.backend.name)
 
-    inv_sqrtr = Node(
-        ncon([
-            self.backend.diag(self.backend.sqrt(inveigvals_right)),
-            self.backend.conj(u_right)
-        ], [[-1, 1], [-2, 1]],
-             backend=self.backend.name),
-        backend=self.backend)
+    inv_sqrtr = ncon([
+        self.backend.diag(self.backend.sqrt(inveigvals_right)),
+        self.backend.conj(u_right)
+    ], [[-1, 1], [-2, 1]],
+                     backend=self.backend.name)
 
-    tmp = Node(
-        ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name),
-        backend=self.backend)
-    U, lam, V, _ = split_node_full_svd(
-        tmp, [tmp[0]], [tmp[1]],
+    tmp = ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name)
+    tmp_node = Node(tmp, backend=self.backend)
+    U, singvals, V, _ = self.backend.svd_decomposition(
+        tmp,
+        split_axis=1,
         max_singular_values=D,
-        max_truncation_err=truncation_threshold)
+        max_truncation_error=truncation_threshold,
+        relative=True)
+    lam = self.backend.diag(singvals)
+    # U, lam, V, _ = split_node_full_svd(
+    #     tmp_node, [tmp_node[0]], [tmp_node[1]],
+    #     max_singular_values=D,
+    #     max_truncation_err=truncation_threshold)
     # absorb lam*V*invx into the left-most mps tensor
-    self.nodes[0] = ncon([lam, V, inv_sqrtr, self.nodes[0]],
-                         [[-1, 1], [1, 2], [2, 3], [3, -2, -3]])
+    self.tensors[0] = ncon([lam, V, inv_sqrtr, self.tensors[0]],
+                           [[-1, 1], [1, 2], [2, 3], [3, -2, -3]],
+                           backend=self.backend.name)
 
     # absorb connector * inv_sqrtl * U * lam into the right-most tensor
     # Note that lam is absorbed here, which means that the state
     # is in the parallel decomposition
     # Note that we absorb connector_matrix here
-    self.nodes[-1] = ncon([self.get_node(len(self) - 1), inv_sqrtl, U, lam],
-                          [[-1, -2, 1], [1, 2], [2, 3], [3, -3]])
+    self.tensors[-1] = ncon([self.get_tensor(len(self) - 1), inv_sqrtl, U, lam],
+                            [[-1, -2, 1], [1, 2], [2, 3], [3, -3]],
+                            backend=self.backend.name)
     # now do a sweep of QR decompositions to bring the mps tensors into
     # left canonical form (except the last one)
     self.position(len(self) - 1)
     # TODO: lam is a diagonal matrix, but we're not making
     # use of it the moment
-    lam_norm = self.backend.norm(lam.tensor)
-    lam.tensor /= lam_norm
+    lam_norm = self.backend.norm(singvals)
+    lam /= lam_norm
     self.center_position = len(self) - 1
-    self.connector_matrix = Node(
-        self.backend.inv(lam.tensor), backend=self.backend)
+    self.connector_matrix = self.backend.inv(lam)
 
     return lam_norm
