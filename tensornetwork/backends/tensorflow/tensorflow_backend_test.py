@@ -1,5 +1,3 @@
-# pytype: skip-file
-"""Tests for graphmode_tensornetwork."""
 import numpy as np
 import tensorflow as tf
 import pytest
@@ -364,7 +362,7 @@ def test_eigs_not_implemented():
 def test_eigsh_lanczos_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(np.ones((2, 2)))
+    backend.eigsh_lanczos(lambda x: x, [])
 
 
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
