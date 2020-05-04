@@ -24,8 +24,7 @@ def svd_decomposition(
     split_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
-    relative: Optional[bool] = False
-) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.

@@ -104,9 +104,9 @@ class ChargeArray:
       ChargeArray
     """
     data, charges, flows, order = _data_initializer(
-        lambda size: np.random.uniform(boundaries[0], boundaries[
-            1], size), lambda charges, flows: np.prod([c.dim for c in charges]),
-        indices, dtype)
+        lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
+        lambda charges, flows: np.prod([c.dim for c in charges]), indices,
+        dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
@@ -191,8 +191,10 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def reshape(self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...],
-                                 List[int], Tuple[int, ...]]) -> "ChargeArray":
+  def reshape(
+      self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...], List[int],
+                         Tuple[int, ...]]
+  ) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `ChargeArray.reshape` works the same as the dense 
@@ -327,10 +329,10 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose(
-      self,
-      order: Union[Tuple[int, ...], List[int], np.ndarray] = np.asarray([1, 0]),
-      shuffle: Optional[bool] = False) -> "ChargeArray":
+  def transpose(self,
+                order: Union[Tuple[int, ...], List[int],
+                             np.ndarray] = np.asarray([1, 0]),
+                shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
     no data-reshuffling is done.
@@ -445,9 +447,10 @@ class BlockSparseTensor(ChargeArray):
     """
     Return a copy of the tensor.
     """
-    return BlockSparseTensor(
-        self.data.copy(), [c.copy() for c in self._charges], self._flows.copy(),
-        copy.deepcopy(self._order), False)
+    return BlockSparseTensor(self.data.copy(),
+                             [c.copy() for c in self._charges],
+                             self._flows.copy(), copy.deepcopy(self._order),
+                             False)
 
   def todense(self) -> np.ndarray:
     """
@@ -477,8 +480,9 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    data, charges, flows, order = _data_initializer(
-        np.random.randn, compute_num_nonzero, indices, dtype)
+    data, charges, flows, order = _data_initializer(np.random.randn,
+                                                    compute_num_nonzero,
+                                                    indices, dtype)
     return cls(
         data=data,
         charges=charges,
@@ -644,10 +648,10 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   # pylint: disable=arguments-differ
-  def transpose_data(
-      self,
-      flat_order: Optional[Union[Tuple, List, np.ndarray]] = None,
-      inplace: Optional[bool] = False) -> Any:
+  def transpose_data(self,
+                     flat_order: Optional[Union[Tuple, List,
+                                                np.ndarray]] = None,
+                     inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
     of the elements in `BlockSparseTensor.data` corresponds to the 
@@ -763,10 +767,11 @@ def outerproduct(tensor1: BlockSparseTensor,
       check_consistency=False)
 
 
-def tensordot(tensor1: BlockSparseTensor,
-              tensor2: BlockSparseTensor,
-              axes: Optional[Union[Sequence[Sequence[int]], int]] = 2
-             ) -> BlockSparseTensor:
+def tensordot(
+    tensor1: BlockSparseTensor,
+    tensor2: BlockSparseTensor,
+    axes: Optional[Union[Sequence[Sequence[int]],
+                         int]] = 2) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
@@ -952,8 +957,8 @@ def tensordot(tensor1: BlockSparseTensor,
     nf = label_to_common_final[n]
     data[sparse_blocks[nf].ravel()] = np.ravel(
         np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
-                  tensor2.data[tr_sparse_blocks_2[n2].reshape(
-                      shapes_2[:, n2])]))
+                  tensor2.data[tr_sparse_blocks_2[n2].reshape(shapes_2[:,
+                                                                       n2])]))
 
   res = BlockSparseTensor(
       data=data,

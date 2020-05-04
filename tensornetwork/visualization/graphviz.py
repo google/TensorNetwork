@@ -63,13 +63,7 @@ def to_graphviz(nodes: Iterable[BaseNode],
             "{}_{}".format(id(node), i),
             label="",
             _attributes={"style": "invis"})
-        graph.edge(
-            "{}_{}".format(id(node), i),
-            str(id(node)),
-            label=edge_label)
+        graph.edge("{}_{}".format(id(node), i), str(id(node)), label=edge_label)
       else:
-        graph.edge(
-            str(id(edge.node1)),
-            str(id(edge.node2)),
-            label=edge_label)
+        graph.edge(str(id(edge.node1)), str(id(edge.node2)), label=edge_label)
   return graph
