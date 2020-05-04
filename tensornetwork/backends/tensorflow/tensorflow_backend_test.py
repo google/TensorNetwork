@@ -473,10 +473,13 @@ def test_jit_args():
     return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
 
   fun_jit = backend.jit(fun, static_argnums=(0,))
+  fun_jit_2 = backend.jit(fun, (0,))
   x = tf.convert_to_tensor(np.random.rand(4))
   y = tf.convert_to_tensor(np.random.rand(4))
   A = tf.convert_to_tensor(np.random.rand(4, 4))
 
   res1 = fun(x, A, y)
   res2 = fun_jit(x, A, y)
+  res3 = fun_jit_3(x, A, y)
   np.testing.assert_allclose(res1, res2)
+  np.testing.assert_allclose(res1, res3)
