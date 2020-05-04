@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import pytest
-import time
 from tensornetwork.backends.tensorflow import tensorflow_backend
 
 tf_randn_dtypes = [tf.float32, tf.float16, tf.float64]
@@ -472,14 +471,25 @@ def test_jit_args():
   def fun(x, A, y):
     return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
 
-  fun_jit = backend.jit(fun, static_argnums=(0,))
-  fun_jit_2 = backend.jit(fun, (0,))
+  fun_jit = backend.jit(
+      fun,
+      input_signature=[
+          tf.TensorSpec(shape=(4,), dtype=tf.float64),
+          tf.TensorSpec(shape=(4, 4), dtype=tf.float64),
+          tf.TensorSpec(shape=(4,), dtype=tf.float64)
+      ])
+  fun_jit_2 = backend.jit(fun, [
+      tf.TensorSpec(shape=(4,), dtype=tf.float64),
+      tf.TensorSpec(shape=(4, 4), dtype=tf.float64),
+      tf.TensorSpec(shape=(4,), dtype=tf.float64)
+  ])
+
   x = tf.convert_to_tensor(np.random.rand(4))
   y = tf.convert_to_tensor(np.random.rand(4))
   A = tf.convert_to_tensor(np.random.rand(4, 4))
 
   res1 = fun(x, A, y)
   res2 = fun_jit(x, A, y)
-  res3 = fun_jit_3(x, A, y)
+  res3 = fun_jit_2(x, A, y)
   np.testing.assert_allclose(res1, res2)
   np.testing.assert_allclose(res1, res3)

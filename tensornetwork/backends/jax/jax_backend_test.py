@@ -5,7 +5,6 @@ import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
 import jax.config as config
-import time
 # pylint: disable=no-member
 config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
@@ -546,3 +545,22 @@ def test_jit():
   res1 = fun(x, A, y)
   res2 = fun_jit(x, A, y)
   np.testing.assert_allclose(res1, res2)
+
+
+def test_jit_args_args():
+  backend = jax_backend.JaxBackend()
+
+  def fun(x, A, y):
+    return jax.numpy.dot(x, jax.numpy.dot(A, y))
+
+  fun_jit = backend.jit(fun, static_argnums=(0,))
+  fun_jit_3 = backend.jit(fun, (0,))
+  x = jax.numpy.array(np.random.rand(4))
+  y = jax.numpy.array(np.random.rand(4))
+  A = jax.numpy.array(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  res3 = fun_jit_3(x, A, y)
+  np.testing.assert_allclose(res1, res2)
+  np.testing.assert_allclose(res1, res3)
