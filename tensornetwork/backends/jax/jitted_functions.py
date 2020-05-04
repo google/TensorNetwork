@@ -1,4 +1,5 @@
 from functools import partial
+import numpy as np
 
 
 def _generate_jitted_eigsh_lanczos(jax):
@@ -95,9 +96,7 @@ def _generate_jitted_eigsh_lanczos(jax):
     diag_elems = jax.numpy.zeros(ncv, dtype=init.dtype)
 
     norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
-
-    norms_dtype = jax.numpy.real(jax.numpy.empty(
-        0, dtype=init.dtype)).dtype  #what freaking a hack!
+    norms_dtype = np.real(init.dtype).dtype
     initvals = [
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
         norms_dtype.type(1.0), landelta, 1, ncv
