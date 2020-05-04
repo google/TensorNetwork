@@ -399,5 +399,4 @@ class JaxBackend(base_backend.BaseBackend):
     return jsp.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
-    return libjax.jit(fun, **kwargs)
-
+    return libjax.jit(fun, *args, **kwargs)
