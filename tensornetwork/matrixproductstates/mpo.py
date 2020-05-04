@@ -70,8 +70,8 @@ class BaseMPO:
 
 class InfiniteMPO(BaseMPO):
   """
-  Base class for implementation of infinite MPOs; the user should implement 
-  specific infinite MPOs by deriving from InfiniteMPO
+  Base class for implementation of infinite MPOs. Users should implement 
+  specific infinite MPOs by deriving from InfiniteMPO.
   """
 
   def __init__(self,
@@ -92,7 +92,7 @@ class InfiniteMPO(BaseMPO):
 
 class FiniteMPO(BaseMPO):
   """
-  Base class for implementation of finite MPOs; the user should implement 
+  Base class for implementation of finite MPOs. Users should implement 
   specific finite MPOs by deriving from FiniteMPO
   """
 
@@ -108,8 +108,8 @@ class FiniteMPO(BaseMPO):
 
 class FiniteXXZ(FiniteMPO):
   """
-  The Heisenberg Hamiltonian,
-  which we all know and love (just slightly less than the transverse field Ising model).
+  The Heisenberg Hamiltonian that we all know and love 
+  (not as much as the transverse field Ising model though).
   """
 
   def __init__(self,
@@ -117,17 +117,19 @@ class FiniteXXZ(FiniteMPO):
                Jxy: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Text] = None):
+               backend: Optional[Text] = None,
+               name: 'XXZ_MPO') -> None:
     """
-    returns the MPO of the XXZ model
+    Returns the MPO of the XXZ model.
     Args:
       Jz:  the Sz*Sz coupling strength between nearest neighbor lattice sites
       Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor lattice sites
       Bz:  magnetic field on each lattice site
       dtype: the dtype of the MPO
       backend: An optional backend.
+      name: A name for the MPO.
     Returns:
-        FiniteXXZ:   the mpo of the finite XXZ model
+      FiniteXXZ: The mpo of the finite XXZ model.
     """
     self.Jz = Jz
     self.Jxy = Jxy
@@ -195,16 +197,16 @@ class FiniteXXZ(FiniteMPO):
     temp[4, 0, 1, 1] = 0.5 * Bz[-1]
 
     mpo.append(temp)
-    super().__init__(tensors=mpo, backend=backend, name='XXZ_MPO')
+    super().__init__(tensors=mpo, backend=backend, name=name)
 
 
 class FiniteTFI(FiniteMPO):
   """
   The famous transverse field Ising Hamiltonian. Everyone loves it
-  because it makes any method look great. It takes about the same time 
+  because any method looks great on it. It takes about the same time 
   to solve it on an abacus as it takes on a NISQ device (the error bars on 
-  the latter are bigger though).
-  My abacus tells me that the ground state energy of 
+  the latter are big though).
+  My 4 months old daughter today derived that the ground state energy of 
   the infinite system at criticality is -4/pi.
 
   Convention: sigma_z=diag([-1,1])
@@ -214,7 +216,8 @@ class FiniteTFI(FiniteMPO):
                Jx: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Text] = None):
+               backend: Optional[Text] = None,
+               name: 'TFI_MPO'):
     """
     Returns the MPO of the finite TFI model.
     Args:
@@ -222,8 +225,9 @@ class FiniteTFI(FiniteMPO):
       Bz:  Magnetic field on each lattice site.
       dtype: The dtype of the MPO.
       backend: An optional backend.
+      name: A name for the MPO.
     Returns:
-      FiniteTFI: The mpo of the infinite TFI model
+      FiniteTFI: The mpo of the infinite TFI model.
     """
     self.Jx = Jx.astype(dtype)
     self.Bz = Bz.astype(dtype)
@@ -265,4 +269,4 @@ class FiniteTFI(FiniteMPO):
     #Bsigma_z
     temp[2, 0, :, :] = self.Bz[-1] * sigma_z
     mpo.append(temp)
-    super().__init__(tensors=mpo, backend=backend, name='TFI_MPO')
+    super().__init__(tensors=mpo, backend=backend, name=name)
