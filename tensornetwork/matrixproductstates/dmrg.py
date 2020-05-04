@@ -94,8 +94,7 @@ class BaseDMRG:
                   [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                   backend=self.backend.name)
 
-    self.single_site_matvec = self.backend.make_passable_to_jit(
-        self.backend.jit(_single_site_matvec))
+    self.single_site_matvec = _single_site_matvec
 
   def __len__(self):
     """
