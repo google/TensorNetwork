@@ -447,3 +447,37 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_jit():
+  backend = tensorflow_backend.TensorFlowBackend()
+
+  def fun(x, A, y):
+    return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
+
+  fun_jit = backend.jit(fun)
+  x = tf.convert_to_tensor(np.random.rand(4))
+  y = tf.convert_to_tensor(np.random.rand(4))
+  A = tf.convert_to_tensor(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  np.testing.assert_allclose(res1, res2)
+
+
+def test_jit_args():
+  backend = tensorflow_backend.TensorFlowBackend()
+
+  def fun(x, A, y):
+    return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
+
+  fun_jit = backend.jit(fun)
+  x = tf.convert_to_tensor(np.random.rand(4))
+  y = tf.convert_to_tensor(np.random.rand(4))
+  A = tf.convert_to_tensor(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  res3 = fun_jit(x, y=y, A=A)
+  np.testing.assert_allclose(res1, res2)
+  np.testing.assert_allclose(res1, res3)

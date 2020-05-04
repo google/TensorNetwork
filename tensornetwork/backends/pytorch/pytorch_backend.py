@@ -333,3 +333,6 @@ class PyTorchBackend(base_backend.BaseBackend):
     t1_broadcast_shape = self.shape_concat(
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun

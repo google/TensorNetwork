@@ -442,3 +442,6 @@ class NumPyBackend(base_backend.BaseBackend):
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
     return sp.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
