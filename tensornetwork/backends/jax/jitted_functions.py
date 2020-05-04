@@ -46,7 +46,9 @@ def _generate_jitted_eigsh_lanczos(jax):
 
     def body_lanczos(vals):
       #pylint: disable=line-too-long
-      current_vector, krylov_vectors, vector_norms, diagonal_elements, matvec, args, _, threshold, i, maxiteration = vals
+      current_vector, krylov_vectors, vector_norms = vals[0:3]
+      diagonal_elements, matvec, args, _ = vals[3:7]
+      threshold, i, maxiteration = vals[7:]
       #current_vector = krylov_vectors[i,:]
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
       normalized_vector = current_vector / norm
