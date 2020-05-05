@@ -11,9 +11,7 @@ from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
 from tensornetwork.utils import load_nodes, save_nodes
-#pylint: disable=cyclic-import
 from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
-#pylint: disable=cyclic-import
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.backend_contextmanager import DefaultBackend, set_default_backend
 from tensornetwork import block_sparse
