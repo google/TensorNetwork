@@ -186,7 +186,7 @@ def ncon_network(
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
-      backend: String or BaseBackend obbject specifying the backend to use. 
+      backend: String or BaseBackend object specifying the backend to use. 
         Defaults to the default TensorNetwork backend.
     Returns:
       nodes: List of constructed nodes in the same order as given in `tensors`.
