@@ -84,15 +84,15 @@ def ncon(
   if backend is None:
     backend = get_default_backend()
   if isinstance(backend, BaseBackend):
-    backend = backend
+    backend_obj = backend
   else:
-    backend = backend_factory.get_backend(backend)
+    backend_obj = backend_factory.get_backend(backend)
 
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
-  if not all([n.backend.name == backend.name for n in nodes]):
+  if not all([n.backend.name == backend_obj.name for n in nodes]):
     raise ValueError("Some nodes have backends different from '{}'".format(
-        backend.name))
+        backend_obj.name))
 
   _tensors = []
   for t in tensors:
@@ -106,7 +106,7 @@ def ncon(
       network_structure,
       con_order=con_order,
       out_order=out_order,
-      backend=backend)
+      backend=backend_obj)
 
   nodes = set(nodes)  # we don't need the ordering here
 
