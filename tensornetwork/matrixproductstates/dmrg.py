@@ -72,15 +72,16 @@ class BaseDMRG:
           'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
           .format(self.right_envs[0].dtype, self.dtype))
 
-    ######################################################################
-    ###############  DEFINE JITTED FUNCTIONS   ###########################
-    ######################################################################
     def _single_site_matvec(L, mpotensor, R, mpstensor):
       return ncon([L, mpstensor, mpotensor, R],
                   [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                   backend=self.backend.name)
 
-    self.single_site_matvec = _single_site_matvec
+    self.single_site_matvec = _single_site_matvec  #jitting happens inside eighs_lanczos
+
+    ######################################################################
+    ###############  DEFINE JITTED FUNCTIONS   ###########################
+    ######################################################################
 
     def _add_left_layer(L, mps_tensor, mpo_tensor):
       return ncon([L, mps_tensor, mpo_tensor,
@@ -108,7 +109,7 @@ class BaseDMRG:
   @property
   def dtype(self):
     """
-    return the dtype of BaseMPS
+    Return the dtype of BaseMPS.
     """
     if not self.mps.dtype == self.mpo.dtype:
       raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
@@ -117,12 +118,11 @@ class BaseDMRG:
 
   def position(self, site: int):
     """
-    Shifts the center position of mps to site `n`, and updates left and 
-    right environments accordingly. Left blocks at site > n are set 
-    to `None`, and right blocks at site < n are `None`. 
+    Shifts the center position of mps to site `site`, and updates left and 
+    right environments accordingly. Left blocks at sites > `site` are set 
+    to `None`, and right blocks at sites < `site` are `None`. 
     Args:
-      site: The bond to which the position should be shifted
-
+      site: The site to which the position of the center-site should be shifted.
     Returns: self
     """
     if site > len(self.mps):
@@ -163,7 +163,8 @@ class BaseDMRG:
 
   def compute_left_envs(self):
     """
-    Compute all left environment blocks up to self.mps.center_position.
+    Compute all left environment blocks up to 
+    (not including) self.mps.center_position.
     """
     lb = self.left_envs[0]
     self.left_envs = {0: lb}
@@ -175,7 +176,8 @@ class BaseDMRG:
 
   def compute_right_envs(self):
     """
-    Compute all right environment blocks up to self.mps.center_position.
+    Compute all right environment blocks up to 
+    (not including) self.mps.center_position.
     """
     rb = self.right_envs[len(self.mps) - 1]
     self.right_envs = {len(self.mps) - 1: rb}
@@ -189,8 +191,22 @@ class BaseDMRG:
                          num_krylov_vecs=10,
                          tol=1E-5,
                          delta=1E-6,
-                         ndiag=10,
-                         verbose=0):
+                         ndiag=10)
+    """
+    Single-site optimization at the current position of the center site.
+    Args:
+      sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
+        'right' or 'r' for a sweep from left to right.
+      num_krylov_vecs: Dimension of the Krylov space used in `eighs_lanczos`.
+      tol: The desired precision of the eigenvalues in `eigsh_lanczos'.
+      delta: Stopping criterion for Lanczos iteration.
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. 
+      ndiag: Inverse frequencey of tridiagonalizations in `eighs_lanczos`.
+    Returns:
+      float/complex: The local energy after optimization.
+    """
     site = self.mps.center_position
     initial = self.mps.tensors[self.mps.center_position]
     #note: some backends will jit functions
