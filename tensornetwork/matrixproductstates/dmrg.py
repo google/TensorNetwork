@@ -305,8 +305,8 @@ class BaseDMRG:
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
             delta=delta,
-            ndiag=ndiag,
-            verbose=verbose)
+            ndiag=ndiag)
+
         initial_site += 1
         print_msg(site=0)
 
@@ -317,8 +317,8 @@ class BaseDMRG:
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
             delta=delta,
-            ndiag=ndiag,
-            verbose=verbose)
+            ndiag=ndiag)
+
         print_msg(site=site)
 
       #prepare for right sweep: move center all the way to the right
@@ -330,8 +330,8 @@ class BaseDMRG:
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
             delta=delta,
-            ndiag=ndiag,
-            verbose=verbose)
+            ndiag=ndiag)
+
         print_msg(site=site)
 
       if np.abs(final_energy - energy) < precision:
