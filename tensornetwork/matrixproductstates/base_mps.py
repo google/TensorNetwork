@@ -85,7 +85,7 @@ class BaseMPS:
 
     # the dtype is deduced from the tensor object.
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
-    self.connector_matrix = connector_matrix if connector_matrix is not None else connector_matrix
+    self.connector_matrix = connector_matrix
     self.center_position = center_position
 
     ########################################################################
