@@ -1,4 +1,4 @@
-from tensornetwork.matrixproductstates import FiniteMPS
+from tensornetwork import FiniteMPS
 from tensornetwork.matrixproductstates import FiniteDMRG, BaseDMRG
 from tensornetwork.matrixproductstates.mpo import FiniteXXZ
 import pytest
