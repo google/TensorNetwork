@@ -72,6 +72,16 @@ class BaseDMRG:
           'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
           .format(self.right_envs[0].dtype, self.dtype))
 
+    ######################################################################
+    ###############  DEFINE JITTED FUNCTIONS   ###########################
+    ######################################################################
+    def _single_site_matvec(L, mpotensor, R, mpstensor):
+      return ncon([L, mpstensor, mpotensor, R],
+                  [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                  backend=self.backend.name)
+
+    self.single_site_matvec = _single_site_matvec
+
     def _add_left_layer(L, mps_tensor, mpo_tensor):
       return ncon([L, mps_tensor, mpo_tensor,
                    self.backend.conj(mps_tensor)],
@@ -89,12 +99,6 @@ class BaseDMRG:
     self.add_left_layer = self.backend.jit(_add_left_layer)
     self.add_right_layer = self.backend.jit(_add_right_layer)
 
-    def _single_site_matvec(L, mpotensor, R, mpstensor):
-      return ncon([L, mpstensor, mpotensor, R],
-                  [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
-                  backend=self.backend.name)
-
-    self.single_site_matvec = _single_site_matvec  #jitting happens inside eigsh_lanczos
     self.name = name
 
   @property
@@ -330,10 +334,8 @@ class BaseDMRG:
 
 class FiniteDMRG(BaseDMRG):
   """
-    DMRGUnitCellEngine
-    simulation container for density matrix renormalization group optimization
-
-    """
+  Class for simulating finite DMRG.
+  """
 
   def __init__(self, mps, mpo, name='FiniteDMRG'):
     lshape = (mpo.tensors[0].shape[0], mps.tensors[0].shape[0],
