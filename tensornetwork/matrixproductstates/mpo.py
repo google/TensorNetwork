@@ -19,9 +19,9 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.backends import backend_factory
 from tensornetwork.backend_contextmanager import get_default_backend
+from tensornetwork.backends.base_backend import BaseBackend
 from typing import List, Union, Text, Optional, Any, Type
 Tensor = Any
-n
 
 
 # TODO (mganahl): this class is very similar to BaseMPS. The two could probably
@@ -44,10 +44,16 @@ class BaseMPO:
     """
     if backend is None:
       backend = get_default_backend()
-
-    self.backend = backend_factory.get_backend(backend)
-
+    if isinstance(backend, BaseBackend):
+      self.backend = backend
+    else:
+      self.backend = backend_factory.get_backend(backend)
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
+    if len(self.tensors) > 0:
+      if not all(
+          [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+        raise TypeError('not all dtypes in BaseMPO.tensors are the same')
+
     self.name = name
 
   def __iter__(self):
@@ -60,7 +66,7 @@ class BaseMPO:
   def dtype(self):
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
-      raise ValueError('not all dtype in FiniteMPS.nodes are the same')
+      raise TypeError('not all dtypes in BaseMPO.tensors are the same')
     return self.tensors[0].dtype
 
   @property
