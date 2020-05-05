@@ -133,7 +133,7 @@ class BaseMPS:
     ########################################################################
     ########################################################################
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self.tensors)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
@@ -189,7 +189,7 @@ class BaseMPS:
     return Z
 
   @property
-  def dtype(self):
+  def dtype(self) -> Type[np.number]:
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
       raise TypeError('not all dtype in BaseMPS.tensors are the same')

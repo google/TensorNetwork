@@ -4,6 +4,7 @@ import tensorflow as tf
 import jax
 import torch
 from tensornetwork.backends import backend_factory
+#pylint: disable=line-too-long
 from tensornetwork.matrixproductstates.mpo import FiniteMPO, BaseMPO, InfiniteMPO
 
 
