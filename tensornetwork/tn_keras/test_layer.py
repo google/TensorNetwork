@@ -5,7 +5,7 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
-from tensorflow.keras.layers import Dense # type: ignore
+from tensorflow.keras.layers import Dense  # type: ignore
 
 
 @pytest.fixture(params=[256, 1024])
@@ -22,7 +22,7 @@ def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
   data, _ = dummy_data
-  print(request.param)
+
   if request.param == 'DenseMPO':
     model = Sequential()
     model.add(

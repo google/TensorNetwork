@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Layer # type: ignore
+from tensorflow.keras.layers import Layer  # type: ignore
 from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
@@ -45,6 +45,7 @@ class DenseMPO(Layer):
   Output shape:
     2D tensor with shape: `(batch_size, output_dim)`.
   """
+
   def __init__(self,
                output_dim: int,
                num_nodes: int,
@@ -56,6 +57,9 @@ class DenseMPO(Layer):
                **kwargs) -> None:
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+
+    assert num_nodes > 2, 'Need at least 2 nodes to create MPO'
+
     self.output_dim = output_dim
     self.num_nodes = num_nodes
     self.bond_dim = bond_dim
@@ -79,11 +83,13 @@ class DenseMPO(Layer):
       return round(root)**n_nodes == n
 
     # Ensure the MPO dimensions will work
-    assert is_perfect_root(input_shape[-1], self.num_nodes)
-    assert is_perfect_root(self.output_dim, self.num_nodes)
+    assert is_perfect_root(input_shape[-1],
+                           self.num_nodes), 'Input dimensions are incorrect'
+    assert is_perfect_root(self.output_dim,
+                           self.num_nodes), 'Output dimensions are incorrect'
 
-    self.in_leg_dim = int(input_shape[-1]**(1. / self.num_nodes))
-    self.out_leg_dim = int(self.output_dim**(1. / self.num_nodes))
+    self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
+    self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
 
     self.nodes.append(
         self.add_weight(name='end_node_first',
@@ -127,19 +133,11 @@ class DenseMPO(Layer):
         # Connect every node to input node
         x_node[i] ^ tn_nodes[i][0]
 
+      # Connect all core nodes
+      tn_nodes[0][1] ^ tn_nodes[1][1]
       for i, _ in enumerate(tn_nodes):
-        try:
-          tn_nodes[i][2] ^ tn_nodes[i + 1][2]
-        except: # pylint: disable=W0702
-          pass
-        try:
-          tn_nodes[i][1] ^ tn_nodes[i + 1][1]
-        except: # pylint: disable=W0702
-          pass
-        try:
+        if len(tn_nodes[i].shape) == 4:
           tn_nodes[i][2] ^ tn_nodes[i + 1][1]
-        except: # pylint: disable=W0702
-          pass
 
       # The TN should now look like this
       #   |     |    |
@@ -147,11 +145,12 @@ class DenseMPO(Layer):
       #    \   /    /
       #      x
 
-      remaining_legs = [tn_nodes[i][-1] for i in range(len(tn_nodes))]
-      # Contract TN using optimal contraction order
-      res = tn.contractors.optimal(tn_nodes + [x_node], remaining_legs)
+      # Contract TN using zipper algorithm
+      temp = x_node @ tn_nodes[0]
+      for i in range(1, len(tn_nodes)):
+        temp = temp @ tn_nodes[i]
 
-      result = tf.reshape(res.tensor, orig_shape)
+      result = tf.reshape(temp.tensor, orig_shape)
       if use_bias:
         result += bias_var
 
