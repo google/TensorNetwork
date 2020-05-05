@@ -22,6 +22,8 @@ from tensornetwork.backends.tensorflow import tensordot2
 import numpy as np
 Tensor = Any
 
+#pylint: disable=abstract-method
+
 
 class TensorFlowBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
@@ -181,31 +183,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return tf.linalg.eigh(matrix)
 
-  def eigs(self,
-           A: Callable,
-           initial_state: Optional[Tensor] = None,
-           num_krylov_vecs: Optional[int] = 200,
-           numeig: Optional[int] = 1,
-           tol: Optional[float] = 1E-8,
-           which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
-    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
-        self.name))
-
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-    raise NotImplementedError(
-        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
-
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
 
@@ -229,14 +206,16 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "Only matrices are supported.".format(tf.shape(matrix)))
     return tf.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`, "
                        "found `tensor2.shape = {}`".format(tf.shape(tensor2)))
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tf.shape(tensor1)))
@@ -257,7 +236,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def log(self, tensor: Tensor):
     return tf.math.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to tensorflow backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
@@ -266,3 +245,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "N*N matrix, {x}*{y} matrix is given".format(
                            x=matrix.shape[0], y=matrix.shape[1]))
     return tf.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return tf.function(fun, *args, **kwargs)

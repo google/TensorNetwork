@@ -51,6 +51,7 @@ def test_train(dummy_data, make_model):
   # pylint: disable=redefined-outer-name
   data, labels = dummy_data
   model = make_model
+
   model.compile(optimizer='adam',
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
@@ -95,6 +96,7 @@ def test_output_shape(dummy_data, make_model):
   expected_output_shape = model.compute_output_shape(input_shape)
 
   np.testing.assert_equal(expected_output_shape, actual_output_shape)
+
 
 
 def test_decomp_num_parameters(dummy_data):

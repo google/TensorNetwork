@@ -372,23 +372,32 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: List,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple[int, ...]] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`.
     Args:
       A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
@@ -489,7 +498,8 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
     `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
@@ -505,7 +515,8 @@ class BaseBackend:
         "Backend '{}' has not implemented `broadcast_right_multiplication`."
         .format(self.name))
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
     `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
@@ -521,7 +532,7 @@ class BaseBackend:
         "Backend '{}' has not implemented `broadcast_left_multiplication`."
         .format(self.name))
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     """
     Return sin of `tensor`.
     Args:
@@ -532,7 +543,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `sin`.".format(
         self.name))
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     """
     Return cos of `tensor`.
     Args:
@@ -543,7 +554,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `cos`.".format(
         self.name))
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     """
     Return elementwise exp of `tensor`.
     Args:
@@ -554,7 +565,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `exp`.".format(
         self.name))
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     """
     Return elementwise natural logarithm of `tensor`.
     Args:
@@ -565,7 +576,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `log`.".format(
         self.name))
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     """
     Return expm log of `matrix`, matrix exponential.
     Args:
@@ -574,4 +585,19 @@ class BaseBackend:
       Tensor
     """
     raise NotImplementedError("Backend '{}' has not implemented `expm`.".format(
+        self.name))
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    """
+    Return a jitted or graph-compiled version of `fun` \
+    for jax and tensorflow backends. For all other backends
+    returns `fun`.
+    Args:
+      fun: Callable
+      args: Arguments to `fun`.
+      kwargs: Keyword arguments to `fun`.  
+    Returns:
+      Callable: jitted/graph-compiled version of `fun`, or just `fun`.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
