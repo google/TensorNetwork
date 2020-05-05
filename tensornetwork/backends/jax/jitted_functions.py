@@ -68,7 +68,6 @@ def _generate_jitted_eigsh_lanczos(jax):
       current_vector, krylov_vectors, vector_norms = vals[0:3]
       diagonal_elements, matvec, args, _ = vals[3:7]
       threshold, i, maxiteration = vals[7:]
-      #current_vector = krylov_vectors[i,:]
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
       normalized_vector = current_vector / norm
       normalized_vector, krylov_vectors = jax.lax.cond(
