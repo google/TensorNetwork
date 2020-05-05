@@ -63,6 +63,14 @@ class BaseDMRG:
     self.right_envs = {
         len(mps) - 1: self.backend.convert_to_tensor(right_boundary)
     }
+    if self.left_envs[0].dtype != self.dtype:
+      raise TypeError(
+          'left_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
+          .format(self.left_envs[0].dtype.dtype, self.dtype))
+    if self.right_envs[len(mps) - 1].dtype != self.dtype:
+      raise TypeError(
+          'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
+          .format(self.right_envs[0].dtype, self.dtype))
 
     def _add_left_layer(L, mps_tensor, mpo_tensor):
       return ncon([L, mps_tensor, mpo_tensor,
