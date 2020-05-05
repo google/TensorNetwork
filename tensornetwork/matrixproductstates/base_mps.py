@@ -22,7 +22,7 @@ from tensornetwork.network_components import Node, contract_between
 from tensornetwork.network_operations import split_node_full_svd, conj
 from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
-from tensornetwork import ncon
+from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
