@@ -21,10 +21,11 @@ from tensornetwork.backends import backend_factory
 from tensornetwork.backend_contextmanager import get_default_backend
 from typing import List, Union, Text, Optional, Any, Type
 Tensor = Any
+n
 
 
-#TODO: this class is very similar to BaseMPS. The two could probably
-#      be merged.
+# TODO (mganahl): this class is very similar to BaseMPS. The two could probably
+# be merged.
 class BaseMPO:
   """
   Base class for MPOs.
@@ -32,7 +33,8 @@ class BaseMPO:
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Text] = None,
+               name: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
     Args:
@@ -46,6 +48,7 @@ class BaseMPO:
     self.backend = backend_factory.get_backend(backend)
 
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
+    self.name = name
 
   def __iter__(self):
     return iter(self.tensors)
@@ -79,10 +82,9 @@ class InfiniteMPO(BaseMPO):
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
 
-    super().__init__(tensors=tensors, backend=backend)
+    super().__init__(tensors=tensors, backend=backend, name=name)
     if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
-    self.name = name
 
   def roll(self, num_sites):
     tensors = [self.tensors[n] for n in range(num_sites, len(self.tensors))
@@ -100,10 +102,9 @@ class FiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
-    super().__init__(tensors=tensors, backend=backend)
+    super().__init__(tensors=tensors, backend=backend, name=name)
     if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
       raise ValueError('left and right MPO ancillary dimensions have to be 1')
-    self.name = name
 
 
 class FiniteXXZ(FiniteMPO):
