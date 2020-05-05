@@ -46,10 +46,8 @@ class BaseDMRG:
       TypeError: If mps and mpo have different backends.
       ValueError: If len(mps) != len(mpo).
      """
-    if not mps.backend.name == mpo.backend.name:
-      raise TypeError(
-          'mps.backend.name={} is different from mpo.backend.name={}.'.format(
-              mps.backend.name, mpo.backend.name))
+    if mps.backend is not mpo.backend:
+      raise TypeError('mps and mpo use different backends.')
 
     if not mps.dtype == mpo.dtype:
       raise TypeError('mps.dtype={} is different from mpo.dtype={}'.format(
@@ -92,6 +90,7 @@ class BaseDMRG:
                   backend=self.backend.name)
 
     self.single_site_matvec = _single_site_matvec  #jitting happens inside eigsh_lanczos
+    self.name = name
 
   @property
   def backend(self):
@@ -107,45 +106,45 @@ class BaseDMRG:
           self.mps.dtype, self.mpo.dtype))
     return self.mps.dtype
 
-  def position(self, n: int):
+  def position(self, site: int):
     """
-    Shifts the center position of mps to bond n, and updates left and 
+    Shifts the center position of mps to site `n`, and updates left and 
     right environments accordingly. Left blocks at site > n are set 
     to `None`, and right blocks at site < n are `None`. 
     Args:
-      n: The bond to which the position should be shifted
+      site: The bond to which the position should be shifted
 
-    returns: self
+    Returns: self
     """
-    if n > len(self.mps):
-      raise IndexError("n > len(mps)")
-    if n < 0:
-      raise IndexError("n < 0")
-    if n == self.mps.center_position:
+    if site > len(self.mps):
+      raise IndexError("site > len(mps)")
+    if site < 0:
+      raise IndexError("site < 0")
+    if site == self.mps.center_position:
       return
 
-    elif n > self.mps.center_position:
+    elif site > self.mps.center_position:
       pos = self.mps.center_position
-      self.mps.position(n)
-      for m in range(pos, n):
+      self.mps.position(site)
+      for m in range(pos, site):
         self.left_envs[m + 1] = self.add_left_layer(self.left_envs[m],
                                                     self.mps.tensors[m],
                                                     self.mpo.tensors[m])
 
-    elif n < self.mps.center_position:
+    elif site < self.mps.center_position:
       pos = self.mps.center_position
-      self.mps.position(n)
-      for m in reversed(range(n, pos)):
+      self.mps.position(site)
+      for m in reversed(range(site, pos)):
         self.right_envs[m] = self.add_right_layer(self.right_envs[m + 1],
                                                   self.mps.tensors[m + 1],
                                                   self.mpo.tensors[m + 1])
 
-    for m in range(n + 1, len(self.mps) + 1):
+    for m in range(site + 1, len(self.mps) + 1):
       try:
         del self.left_envs[m]
       except KeyError:
         pass
-    for m in range(-1, n):
+    for m in range(-1, site):
       try:
         del self.right_envs[m]
       except KeyError:
@@ -155,7 +154,7 @@ class BaseDMRG:
 
   def compute_left_envs(self):
     """
-    Compute all left environment blocks.
+    Compute all left environment blocks up to self.mps.center_position.
     """
     lb = self.left_envs[0]
     self.left_envs = {0: lb}
@@ -167,7 +166,7 @@ class BaseDMRG:
 
   def compute_right_envs(self):
     """
-    Compute all right environment blocks.
+    Compute all right environment blocks up to self.mps.center_position.
     """
     rb = self.right_envs[len(self.mps) - 1]
     self.right_envs = {len(self.mps) - 1: rb}
@@ -234,6 +233,28 @@ class BaseDMRG:
                    delta=1E-6,
                    tol=1E-6,
                    ndiag=10):
+    """
+    Run a single-site DMRG optimization of the MPS.
+    Args:
+      num_sweeps: Number of DMRG sweeps. A sweep optimizes all sites
+        starting at the left side, moving to the right side, and back
+        to the left side.
+      precision: The desired precision of the energy. If `precision` is
+        reached, optimization is terminated.
+      num_krylov_vecs: Krylov space dimension used in the iterative eigsh_lanczos
+        method.
+      verbose: Verbosity flag. Us`verbose=0` to suppress any output. Larger values
+        prpoduce increasingly more output.
+      delta: Convergence parameter of `eigsh_lanczos` to determine if an invariant
+        subspace has been found.
+      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in `eigsh_lanczos`
+        have converged within `tol`, `eighs_lanczos` is terminted.
+      ndiag: Inverse frequency at which eigenvalues of the tridiagonal Hamiltonian
+        produced by `eigsh_lanczos` are tested for convergence. `ndiag=10` tests
+        at every tenth step.
+    Returns:
+      float: The energy upon termination of `run_one_site`.
+    """
     converged = False
     final_energy = 1E100
     iteration = 0
