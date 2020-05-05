@@ -19,12 +19,13 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.backends import backend_factory
 from tensornetwork.backend_contextmanager import get_default_backend
+from tensornetwork.backends.base_backend import BaseBackend
 from typing import List, Union, Text, Optional, Any, Type
 Tensor = Any
 
 
-#TODO: this class is very similar to BaseMPS. The two could probably
-#      be merged.
+# TODO (mganahl): this class is very similar to BaseMPS. The two could probably
+# be merged.
 class BaseMPO:
   """
   Base class for MPOs.
@@ -32,7 +33,8 @@ class BaseMPO:
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Text] = None,
+               name: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
     Args:
@@ -42,10 +44,17 @@ class BaseMPO:
     """
     if backend is None:
       backend = get_default_backend()
-
-    self.backend = backend_factory.get_backend(backend)
-
+    if isinstance(backend, BaseBackend):
+      self.backend = backend
+    else:
+      self.backend = backend_factory.get_backend(backend)
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
+    if len(self.tensors) > 0:
+      if not all(
+          [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+        raise TypeError('not all dtypes in BaseMPO.tensors are the same')
+
+    self.name = name
 
   def __iter__(self):
     return iter(self.tensors)
@@ -57,7 +66,7 @@ class BaseMPO:
   def dtype(self):
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
-      raise ValueError('not all dtype in FiniteMPS.nodes are the same')
+      raise TypeError('not all dtypes in BaseMPO.tensors are the same')
     return self.tensors[0].dtype
 
   @property
@@ -79,10 +88,9 @@ class InfiniteMPO(BaseMPO):
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
 
-    super().__init__(tensors=tensors, backend=backend)
-    if (self.bond_dimensions[0] != self.bond_dimensions[-1]):
+    super().__init__(tensors=tensors, backend=backend, name=name)
+    if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
-    self.name = name
 
   def roll(self, num_sites):
     tensors = [self.tensors[n] for n in range(num_sites, len(self.tensors))
@@ -100,10 +108,9 @@ class FiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Text] = None,
                name: Optional[Text] = None) -> None:
-    super().__init__(tensors=tensors, backend=backend)
+    super().__init__(tensors=tensors, backend=backend, name=name)
     if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
       raise ValueError('left and right MPO ancillary dimensions have to be 1')
-    self.name = name
 
 
 class FiniteXXZ(FiniteMPO):
@@ -123,7 +130,8 @@ class FiniteXXZ(FiniteMPO):
     Returns the MPO of the XXZ model.
     Args:
       Jz:  the Sz*Sz coupling strength between nearest neighbor lattice sites
-      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor lattice sites
+      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor 
+        lattice sites
       Bz:  magnetic field on each lattice site
       dtype: the dtype of the MPO
       backend: An optional backend.
