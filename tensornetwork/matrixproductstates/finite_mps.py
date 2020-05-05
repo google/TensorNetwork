@@ -89,7 +89,7 @@ class FiniteMPS(BaseMPS):
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Union[BaseBackend, Text]] = None):
+             backend: Optional[Union[BaseBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
 
