@@ -23,13 +23,12 @@ from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 
-
 def ncon(
     tensors: Sequence[Union[network_components.BaseNode, Tensor]],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
-    backend: Optional[Union[Text, BaseBackend] = None
+    backend: Optional[Union[Text, BaseBackend]] = None
 ) -> Union[network_components.BaseNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
@@ -82,16 +81,18 @@ def ncon(
       if all elements of `tensors` are `BaseNode` objects, else
       it is returned as a `Tensor` object.
     """
-  if backend and (backend not in backend_factory._BACKENDS):
-    raise ValueError("Backend '{}' does not exist".format(backend))
   if backend is None:
     backend = get_default_backend()
+  if isinstance(backend, BaseBackend):
+    backend = backend
+  else:
+    backend = backend_factory.get_backend(backend)
 
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
-  if not all([n.backend.name == backend for n in nodes]):
-    raise ValueError(
-        "Some nodes have backends different from '{}'".format(backend))
+  if not all([n.backend.name == backend.name for n in nodes]):
+    raise ValueError("Some nodes have backends different from '{}'".format(
+        backend.name))
 
   _tensors = []
   for t in tensors:
@@ -163,7 +164,7 @@ def ncon_network(
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
-    backend: Optional[Union[Text, BaseBackend] = None
+    backend: Optional[Union[Text, BaseBackend]] = None
 ) -> Tuple[List[network_components.BaseNode], List[network_components.Edge],
            List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
@@ -185,9 +186,8 @@ def ncon_network(
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
-      backend: String specifying the backend to use. Defaults to the default
-        TensorNetwork backend.
-
+      backend: String or BaseBackend obbject specifying the backend to use. 
+        Defaults to the default TensorNetwork backend.
     Returns:
       nodes: List of constructed nodes in the same order as given in `tensors`.
       con_edges: List of internal `Edge` objects in contraction order.
@@ -250,8 +250,9 @@ def ncon_network(
 
 
 def _build_network(
-    tensors: Sequence[Tensor], network_structure: Sequence[Sequence],
-    backend: Text
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence],
+    backend: Optional[Union[BaseBackend, Text]] = None,
 ) -> Tuple[List[network_components.BaseNode], Dict[Any,
                                                    network_components.Edge]]:
   nodes = []
