@@ -50,12 +50,9 @@ class BaseDMRG:
       raise TypeError('mps and mpo use different backends.')
 
     if not mps.dtype == mpo.dtype:
-      raise TypeError('mps.dtype={} is different from mpo.dtype={}'.format(
+      raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
           mps.dtype, mpo.dtype))
 
-    if not mps.dtype == mpo.dtype:
-      raise TypeError('mps.dtype={} is different from mpo.dtype={}'.format(
-          mps.dtype, mpo.dtype))
     if len(mps) != len(mpo):
       raise ValueError('len(mps) = {} is different from len(mpo) = {}'.format(
           len(mps), len(mpo)))
