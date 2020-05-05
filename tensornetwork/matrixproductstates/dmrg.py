@@ -118,15 +118,15 @@ class BaseDMRG:
 
   def position(self, site: int):
     """
-    Shifts the center position of mps to site `site`, and updates left and 
+    Shifts the center position `site`, and updates left and 
     right environments accordingly. Left blocks at sites > `site` are set 
     to `None`, and right blocks at sites < `site` are `None`. 
     Args:
       site: The site to which the position of the center-site should be shifted.
     Returns: self
     """
-    if site > len(self.mps):
-      raise IndexError("site > len(mps)")
+    if site >= len(self.mps):
+      raise IndexError("site > length of mps")
     if site < 0:
       raise IndexError("site < 0")
     if site == self.mps.center_position:
@@ -163,8 +163,8 @@ class BaseDMRG:
 
   def compute_left_envs(self):
     """
-    Compute all left environment blocks up to 
-    (not including) self.mps.center_position.
+    Compute all left environment blocks of sites up to 
+    (including) self.mps.center_position.
     """
     lb = self.left_envs[0]
     self.left_envs = {0: lb}
@@ -176,8 +176,8 @@ class BaseDMRG:
 
   def compute_right_envs(self):
     """
-    Compute all right environment blocks up to 
-    (not including) self.mps.center_position.
+    Compute all right environment blocks of sites up to
+    (including) self.mps.center_position.
     """
     rb = self.right_envs[len(self.mps) - 1]
     self.right_envs = {len(self.mps) - 1: rb}
@@ -191,7 +191,7 @@ class BaseDMRG:
                          num_krylov_vecs=10,
                          tol=1E-5,
                          delta=1E-6,
-                         ndiag=10)
+                         ndiag=10):
     """
     Single-site optimization at the current position of the center site.
     Args:
