@@ -214,10 +214,15 @@ def test_different_dtypes_raises_error():
   with pytest.raises(TypeError):
     BaseMPS(tensors, backend='numpy')
 
-  mpo = BaseMPS([], backend='numpy')
-  mpo.tensors = tensors
+  _tensors = [
+      np.ones((1, d, D), dtype=np.float64),
+      np.ones((D, d, D), dtype=np.float64)
+  ]
+
+  mps = BaseMPS(_tensors, backend='numpy')
+  mps.tensors = tensors
   with pytest.raises(TypeError):
-    mpo.dtype
+    mps.dtype
 
 
 def test_not_implemented():
