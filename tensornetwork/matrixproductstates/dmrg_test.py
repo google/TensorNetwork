@@ -50,7 +50,7 @@ def test_BaseDMRG_init(backend_dtype_values):
   assert dmrg.backend.name == backend
 
 
-@pytest.mark.parametrize("N", [4, 6, 8])
+@pytest.mark.parametrize("N", [4, 6, 7])
 def test_finite_DMRG_init(backend_dtype_values, N):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -63,8 +63,8 @@ def test_finite_DMRG_init(backend_dtype_values, N):
       Bz=np.zeros(N),
       dtype=dtype,
       backend=backend)
-  D = 128
+  D = 32
   mps = FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
   dmrg = FiniteDMRG(mps, mpo)
-  energy = dmrg.run_one_site(num_sweeps=4)
+  energy = dmrg.run_one_site(num_sweeps=4, num_krylov_vecs=10)
   np.testing.assert_allclose(energy, eta[0])
