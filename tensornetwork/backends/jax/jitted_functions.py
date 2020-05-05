@@ -56,7 +56,7 @@ def _generate_jitted_eigsh_lanczos(jax):
       list: Eigen values
     """
 
-    def body_reortho(i, vals):
+    def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
       vector -= jax.numpy.dot(jax.numpy.conj(v),
@@ -72,9 +72,10 @@ def _generate_jitted_eigsh_lanczos(jax):
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
       normalized_vector = current_vector / norm
       normalized_vector, krylov_vectors = jax.lax.cond(
-          reortho, True, lambda x: jax.lax.fori_loop(
-              0, i, body_reortho, [normalized_vector, krylov_vectors]), False,
-          lambda x: [normalized_vector, krylov_vectors])
+          reortho, True,
+          lambda x: jax.lax.fori_loop(0, i, body_modified_gram_schmidt,
+                                      [normalized_vector, krylov_vectors]),
+          False, lambda x: [normalized_vector, krylov_vectors])
       Av = matvec(*args, normalized_vector)
 
       diag_element = jax.numpy.dot(
@@ -120,11 +121,11 @@ def _generate_jitted_eigsh_lanczos(jax):
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
         norms_dtype.type(1.0), landelta, 1, ncv
     ]
-    #pylint: disable=line-too-long
-    final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = jax.lax.while_loop(
-        cond_fun, body_lanczos, initvals)
+    output = jax.lax.while_loop(cond_fun, body_lanczos, initvals)
     krylov_vecs = jax.ops.index_update(krylov_vecs, jax.ops.index[it, :],
                                        jax.numpy.ravel(final_state))
+    final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = output
+
     A_tridiag = jax.numpy.diag(diags) + jax.numpy.diag(
         norms[1:], 1) + jax.numpy.diag(jax.numpy.conj(norms[1:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
