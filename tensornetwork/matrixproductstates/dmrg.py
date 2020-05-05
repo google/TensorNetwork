@@ -93,12 +93,6 @@ class BaseDMRG:
 
     self.single_site_matvec = _single_site_matvec  #jitting happens inside eigsh_lanczos
 
-  def __len__(self):
-    """
-    return the length of the mps/mpo
-    """
-    return len(self.mps)
-
   @property
   def backend(self):
     return self.mps.backend
@@ -306,3 +300,21 @@ class BaseDMRG:
               .format(precision, num_sweeps))
         break
     return final_energy
+
+
+class FiniteDMRG(BaseDMRG):
+  """
+    DMRGUnitCellEngine
+    simulation container for density matrix renormalization group optimization
+
+    """
+
+  def __init__(self, mps, mpo, name='FiniteDMRG'):
+    lshape = (mpo.tensors[0].shape[0], mps.tensors[0].shape[0],
+              mps.tensors[0].shape[0])
+    rshape = (mpo.tensors[-1].shape[1], mps.tensors[-1].shape[2],
+              mps.tensors[-1].shape[2])
+    lb = mps.backend.ones(lshape, dtype=mps.dtype)
+    rb = mps.backend.ones(rshape, dtype=mps.dtype)
+    super().__init__(
+        mps=mps, mpo=mpo, left_boundary=lb, right_boundary=rb, name=name)
