@@ -20,7 +20,7 @@ def test_finite_mpo_init(backend):
 def test_finite_mpo_raises(backend):
   tensors = [np.random.rand(2, 5, 2, 2), np.random.rand(5, 1, 2, 2)]
   with pytest.raises(ValueError):
-    mpo = FiniteMPO(tensors=tensors, backend=backend)
+    FiniteMPO(tensors=tensors, backend=backend)
   tensors = [np.random.rand(1, 5, 2, 2), np.random.rand(5, 2, 2, 2)]
   with pytest.raises(ValueError):
     FiniteMPO(tensors=tensors, backend=backend)

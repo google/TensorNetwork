@@ -80,7 +80,7 @@ class InfiniteMPO(BaseMPO):
                name: Optional[Text] = None) -> None:
 
     super().__init__(tensors=tensors, backend=backend)
-    if (self.bond_dimensions[0] != self.bond_dimensions[-1]):
+    if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
     self.name = name
 
@@ -123,7 +123,8 @@ class FiniteXXZ(FiniteMPO):
     Returns the MPO of the XXZ model.
     Args:
       Jz:  the Sz*Sz coupling strength between nearest neighbor lattice sites
-      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor lattice sites
+      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor 
+        lattice sites
       Bz:  magnetic field on each lattice site
       dtype: the dtype of the MPO
       backend: An optional backend.
