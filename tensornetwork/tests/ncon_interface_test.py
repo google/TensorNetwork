@@ -28,7 +28,7 @@ from tensornetwork.contractors import greedy
         get_backend('pytorch'), 'tensorflow',
         get_backend('tensorflow')
     ])
-def backend(request):
+def backends(request):
   return request.param
 
 
