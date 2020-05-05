@@ -24,6 +24,7 @@ from tensornetwork.backends import backend_factory
 from tensornetwork.network_operations import conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
+from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 
@@ -54,7 +55,7 @@ class FiniteMPS(BaseMPS):
                tensors: List[Tensor],
                center_position: Optional[int] = 0,
                canonicalize: Optional[bool] = True,
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Union[BaseBackend, Text]] = None) -> None:
     """Initialize a `FiniteMPS`.
 
     Args:
@@ -88,7 +89,7 @@ class FiniteMPS(BaseMPS):
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Text] = None):
+             backend: Optional[Union[BaseBackend, Text]] = None):
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
 

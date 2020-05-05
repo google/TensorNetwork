@@ -24,6 +24,7 @@ from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.ncon_interface import ncon
+from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 #TODO (mganahl): add jit
 
@@ -45,7 +46,7 @@ class InfiniteMPS(BaseMPS):
                tensors: List[Tensor],
                center_position: Optional[int] = 0,
                connector_matrix: Optional[Tensor] = None,
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Union[BaseBackend, Text]] = None) -> None:
     """Initialize a InfiniteMPS.
 
     Args:
@@ -70,7 +71,7 @@ class InfiniteMPS(BaseMPS):
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Text] = None):
+             backend: Optional[Union[BaseBackend, Text]] = None):
     """Initialize a random `InfiniteMPS`. The resulting state is normalized.
     Its center-position is at 0.
 
