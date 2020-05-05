@@ -115,8 +115,7 @@ class FiniteMPO(BaseMPO):
 
 class FiniteXXZ(FiniteMPO):
   """
-  The Heisenberg Hamiltonian that we all know and love 
-  (not as much as the transverse field Ising model though).
+  The Heisenberg Hamiltonian.
   """
 
   def __init__(self,
@@ -210,12 +209,8 @@ class FiniteXXZ(FiniteMPO):
 
 class FiniteTFI(FiniteMPO):
   """
-  The famous transverse field Ising Hamiltonian. Everyone loves it
-  because any method looks great on it. It takes about the same time 
-  to solve it on an abacus as it takes on a NISQ device (the error bars on 
-  the latter are big though).
-  My 4 months old daughter today derived that the ground state energy of 
-  the infinite system at criticality is -4/pi.
+  The famous transverse field Ising Hamiltonian. 
+  The ground state energy of the infinite system at criticality is -4/pi.
 
   Convention: sigma_z=diag([-1,1])
   """
