@@ -188,7 +188,7 @@ class BaseMPS:
   def dtype(self):
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
-      raise ValueError('not all dtype in FiniteMPS.tensors are the same')
+      raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
     return self.tensors[0].dtype
 
