@@ -24,6 +24,7 @@ from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
+from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 
@@ -58,7 +59,7 @@ class BaseMPS:
                tensors: List[Tensor],
                center_position: Optional[int] = 0,
                connector_matrix: Optional[Tensor] = None,
-               backend: Optional[Text] = None) -> None:
+               backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """Initialize a BaseMPS.
 
     Args:
@@ -77,11 +78,14 @@ class BaseMPS:
               center_position, len(tensors)))
     if backend is None:
       backend = get_default_backend()
+    if isinstance(backend, BaseBackend):
+      self.backend = backend
+    else:
+      self.backend = backend_factory.get_backend(backend)
 
-    self.backend = backend_factory.get_backend(backend)
     # the dtype is deduced from the tensor object.
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
-    self.connector_matrix = connector_matrix if connector_matrix is not None else connector_matrix
+    self.connector_matrix = connector_matrix
     self.center_position = center_position
 
     ########################################################################
