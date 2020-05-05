@@ -239,21 +239,24 @@ def auto(nodes: Iterable[BaseNode],
   if n < 5:
     return optimal(nodes, output_edge_order, memory_limit, ignore_edge_order)
   if n < 7:
-    return branch(nodes,
-                  output_edge_order=output_edge_order,
-                  memory_limit=memory_limit,
-                  ignore_edge_order=ignore_edge_order)
+    return branch(
+        nodes,
+        output_edge_order=output_edge_order,
+        memory_limit=memory_limit,
+        ignore_edge_order=ignore_edge_order)
   if n < 9:
-    return branch(nodes,
-                  output_edge_order=output_edge_order,
-                  memory_limit=memory_limit,
-                  nbranch=2,
-                  ignore_edge_order=ignore_edge_order)
+    return branch(
+        nodes,
+        output_edge_order=output_edge_order,
+        memory_limit=memory_limit,
+        nbranch=2,
+        ignore_edge_order=ignore_edge_order)
   if n < 15:
-    return branch(nodes,
-                  output_edge_order=output_edge_order,
-                  nbranch=1,
-                  ignore_edge_order=ignore_edge_order)
+    return branch(
+        nodes,
+        output_edge_order=output_edge_order,
+        nbranch=1,
+        ignore_edge_order=ignore_edge_order)
   return greedy(nodes, output_edge_order, memory_limit, ignore_edge_order)
 
 

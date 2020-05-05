@@ -1,5 +1,3 @@
-# pytype: skip-file
-"""Tests for graphmode_tensornetwork."""
 import numpy as np
 import tensorflow as tf
 import pytest
@@ -45,11 +43,8 @@ def test_shape_concat():
 
 def test_slice():
   backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array(
-      [[1., 2., 3.],
-       [4., 5., 6.],
-       [7., 8., 9.]]
-      ))
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
@@ -367,7 +362,7 @@ def test_eigs_not_implemented():
 def test_eigsh_lanczos_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(np.ones((2, 2)))
+    backend.eigsh_lanczos(lambda x: x, [])
 
 
 @pytest.mark.parametrize("dtype", [tf.float64, tf.complex128])
@@ -413,11 +408,14 @@ def test_sparse_shape():
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(tf.float64, "sin"), (tf.complex128, "sin"),
-                          (tf.float64, "cos"), (tf.complex128, "cos"),
-                          (tf.float64, "exp"), (tf.complex128, "exp"),
-                          (tf.float64, "log"), (tf.complex128, "log")])
+@pytest.mark.parametrize("dtype,method", [(tf.float64, "sin"),
+                                          (tf.complex128, "sin"),
+                                          (tf.float64, "cos"),
+                                          (tf.complex128, "cos"),
+                                          (tf.float64, "exp"),
+                                          (tf.complex128, "exp"),
+                                          (tf.float64, "log"),
+                                          (tf.complex128, "log")])
 def test_elementwise_ops(dtype, method):
   backend = tensorflow_backend.TensorFlowBackend()
   tensor = backend.randn((4, 2, 1), dtype=dtype, seed=10)
@@ -429,8 +427,8 @@ def test_elementwise_ops(dtype, method):
   np.testing.assert_almost_equal(tensor1.numpy(), tensor2.numpy())
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(tf.float64, "expm"), (tf.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(tf.float64, "expm"),
+                                          (tf.complex128, "expm")])
 def test_matrix_ops(dtype, method):
   backend = tensorflow_backend.TensorFlowBackend()
   matrix = backend.randn((4, 4), dtype=dtype, seed=10)
@@ -439,8 +437,8 @@ def test_matrix_ops(dtype, method):
   np.testing.assert_almost_equal(matrix1.numpy(), matrix2.numpy())
 
 
-@pytest.mark.parametrize("dtype,method",
-                         [(tf.float64, "expm"), (tf.complex128, "expm")])
+@pytest.mark.parametrize("dtype,method", [(tf.float64, "expm"),
+                                          (tf.complex128, "expm")])
 def test_matrix_ops_raises(dtype, method):
   backend = tensorflow_backend.TensorFlowBackend()
   matrix = backend.randn((4, 4, 4), dtype=dtype, seed=10)
@@ -449,3 +447,37 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_jit():
+  backend = tensorflow_backend.TensorFlowBackend()
+
+  def fun(x, A, y):
+    return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
+
+  fun_jit = backend.jit(fun)
+  x = tf.convert_to_tensor(np.random.rand(4))
+  y = tf.convert_to_tensor(np.random.rand(4))
+  A = tf.convert_to_tensor(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  np.testing.assert_allclose(res1, res2)
+
+
+def test_jit_args():
+  backend = tensorflow_backend.TensorFlowBackend()
+
+  def fun(x, A, y):
+    return tf.tensordot(x, tf.tensordot(A, y, ([1], [0])), ([0], [0]))
+
+  fun_jit = backend.jit(fun)
+  x = tf.convert_to_tensor(np.random.rand(4))
+  y = tf.convert_to_tensor(np.random.rand(4))
+  A = tf.convert_to_tensor(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  res3 = fun_jit(x, y=y, A=A)
+  np.testing.assert_allclose(res1, res2)
+  np.testing.assert_allclose(res1, res3)

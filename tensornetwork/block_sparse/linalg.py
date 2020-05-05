@@ -118,8 +118,8 @@ def diag(tensor: ChargeArray) -> Any:
 
 
 def reshape(
-    tensor: ChargeArray,
-    shape: Union[List[Index], Tuple[Index, ...], List[int], Tuple[int, ...]]
+    tensor: ChargeArray, shape: Union[List[Index], Tuple[Index, ...], List[int],
+                                      Tuple[int, ...]]
 ) -> ChargeArray:
   """
   Reshape `tensor` into `shape.
@@ -549,8 +549,9 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
       check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
 
-def sqrt(tensor: Union[BlockSparseTensor, ChargeArray]
-        ) -> Union[ChargeArray, BlockSparseTensor]:
+def sqrt(
+    tensor: Union[BlockSparseTensor, ChargeArray]
+) -> Union[ChargeArray, BlockSparseTensor]:
   obj = tensor.__new__(type(tensor))
   obj.__init__(
       np.sqrt(tensor.data),
