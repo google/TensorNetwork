@@ -33,7 +33,7 @@ class BaseMPO:
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Text] = None,
+               backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
@@ -59,18 +59,18 @@ class BaseMPO:
   def __iter__(self):
     return iter(self.tensors)
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self.tensors)
 
   @property
-  def dtype(self):
+  def dtype(self) -> Type[np.number]:
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
       raise TypeError('not all dtypes in BaseMPO.tensors are the same')
     return self.tensors[0].dtype
 
   @property
-  def bond_dimensions(self):
+  def bond_dimensions(self) -> List[int]:
     """Returns a vector of all bond dimensions.
         The vector will have length `N+1`, where `N == num_sites`."""
     return [self.tensors[0].shape[0]
@@ -85,14 +85,14 @@ class InfiniteMPO(BaseMPO):
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Text] = None,
+               backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
 
     super().__init__(tensors=tensors, backend=backend, name=name)
     if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
 
-  def roll(self, num_sites):
+  def roll(self, num_sites) -> None:
     tensors = [self.tensors[n] for n in range(num_sites, len(self.tensors))
               ] + [self.tensors[n] for n in range(num_sites)]
     self.tensors = tensors
@@ -106,7 +106,7 @@ class FiniteMPO(BaseMPO):
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Text] = None,
+               backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
     super().__init__(tensors=tensors, backend=backend, name=name)
     if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
@@ -124,7 +124,7 @@ class FiniteXXZ(FiniteMPO):
                Jxy: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Text] = None,
+               backend: Optional[Union[BaseBackend, Text]] = None,
                name: Text = 'XXZ_MPO') -> None:
     """
     Returns the MPO of the XXZ model.
@@ -224,8 +224,8 @@ class FiniteTFI(FiniteMPO):
                Jx: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Text] = None,
-               name: Text = 'TFI_MPO'):
+               backend: Optional[Union[BaseBackend, Text]] = None,
+               name: Text = 'TFI_MPO') -> None:
     """
     Returns the MPO of the finite TFI model.
     Args:
