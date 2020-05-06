@@ -18,3 +18,4 @@ from tensornetwork import block_sparse
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge, ZNCharge
+from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
