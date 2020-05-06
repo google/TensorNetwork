@@ -77,7 +77,8 @@ class BaseDMRG:
                   [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                   backend=self.backend.name)
 
-    self.single_site_matvec = _single_site_matvec  #jitting happens inside eighs_lanczos
+    #jitting happens inside eighs_lanczos
+    self.single_site_matvec = _single_site_matvec
 
     ######################################################################
     ###############  DEFINE JITTED FUNCTIONS   ###########################
@@ -130,9 +131,9 @@ class BaseDMRG:
     if site < 0:
       raise IndexError("site < 0")
     if site == self.mps.center_position:
-      return
+      return self
 
-    elif site > self.mps.center_position:
+    if site > self.mps.center_position:
       pos = self.mps.center_position
       self.mps.position(site)
       for m in range(pos, site):
@@ -208,7 +209,6 @@ class BaseDMRG:
       float/complex: The local energy after optimization.
     """
     site = self.mps.center_position
-    initial = self.mps.tensors[self.mps.center_position]
     #note: some backends will jit functions
     self.left_envs[site]
     self.right_envs[site]
@@ -266,17 +266,18 @@ class BaseDMRG:
         to the left side.
       precision: The desired precision of the energy. If `precision` is
         reached, optimization is terminated.
-      num_krylov_vecs: Krylov space dimension used in the iterative eigsh_lanczos
-        method.
-      verbose: Verbosity flag. Us`verbose=0` to suppress any output. Larger values
-        prpoduce increasingly more output.
-      delta: Convergence parameter of `eigsh_lanczos` to determine if an invariant
-        subspace has been found.
-      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in `eigsh_lanczos`
-        have converged within `tol`, `eighs_lanczos` is terminted.
-      ndiag: Inverse frequency at which eigenvalues of the tridiagonal Hamiltonian
-        produced by `eigsh_lanczos` are tested for convergence. `ndiag=10` tests
-        at every tenth step.
+      num_krylov_vecs: Krylov space dimension used in the iterative 
+        eigsh_lanczos method.
+      verbose: Verbosity flag. Us`verbose=0` to suppress any output. 
+        Larger values produce increasingly more output.
+      delta: Convergence parameter of `eigsh_lanczos` to determine if 
+        an invariant subspace has been found.
+      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in 
+        `eigsh_lanczos` have converged within `tol`, `eighs_lanczos` 
+        is terminted.
+      ndiag: Inverse frequency at which eigenvalues of the 
+        tridiagonal Hamiltonian produced by `eigsh_lanczos` are tested 
+        for convergence. `ndiag=10` tests at every tenth step.
     Returns:
       float: The energy upon termination of `run_one_site`.
     """
@@ -341,9 +342,8 @@ class BaseDMRG:
       if iteration > num_sweeps:
         if verbose > 0:
           print()
-          print(
-              'dmrg did not converge to desired precision {0} after {1} iterations'
-              .format(precision, num_sweeps))
+          print("dmrg did not converge to desired precision {0} "
+                "after {1} iterations".format(precision, num_sweeps))
         break
     return final_energy
 
