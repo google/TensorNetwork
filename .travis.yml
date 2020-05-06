@@ -1,5 +1,9 @@
 dist: xenial 
 language: python
+cache: pip
+cache:
+  directories:
+  - $HOME/.pytype
 python:
   - "3.6"
   - "3.7"
