@@ -17,7 +17,8 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
-from tensornetwork.matrixproductstates.mpo import BaseMPO
+from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
+from tensornetwork.matrixproductstates.mpo import BaseMPO, FiniteMPO
 from tensornetwork.ncon_interface import ncon
 from sys import stdout
 from typing import Any, Text, Union
