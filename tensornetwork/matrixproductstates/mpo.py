@@ -37,6 +37,7 @@ class BaseMPO:
       tensors: A list of `Tensor` objects.
       backend: The name of the backend that should be used to perform 
         contractions. 
+      name: A name for the MPO.
     """
     if backend is None:
       backend = get_default_backend()
@@ -83,7 +84,14 @@ class InfiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
-
+    """
+    Initialize an infinite MPO object
+    Args:
+      tensors: The mpo tensors.
+      backend: An optional backend. Defaults to the defaulf backend  
+        of TensorNetwork.
+      name: An optional name for the MPO.
+    """
     super().__init__(tensors=tensors, backend=backend, name=name)
     if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
@@ -104,6 +112,15 @@ class FiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
+    """
+    Initialize a finite MPO object
+    Args:
+      tensors: The mpo tensors.
+      backend: An optional backend. Defaults to the defaulf backend  
+        of TensorNetwork.
+      name: An optional name for the MPO.
+    """
+
     super().__init__(tensors=tensors, backend=backend, name=name)
     if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
       raise ValueError('left and right MPO ancillary dimensions have to be 1')
@@ -122,13 +139,13 @@ class FiniteXXZ(FiniteMPO):
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Text = 'XXZ_MPO') -> None:
     """
-    Returns the MPO of the XXZ model.
+    Returns the MPO of the finite XXZ model.
     Args:
-      Jz:  the Sz*Sz coupling strength between nearest neighbor lattice sites
-      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor 
+      Jz:  The Sz*Sz coupling strength between nearest neighbor lattice sites.
+      Jxy: The (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor.
         lattice sites
-      Bz:  magnetic field on each lattice site
-      dtype: the dtype of the MPO
+      Bz: Magnetic field on each lattice site.
+      dtype: The dtype of the MPO.
       backend: An optional backend.
       name: A name for the MPO.
     Returns:
