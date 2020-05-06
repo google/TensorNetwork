@@ -42,6 +42,7 @@ class BaseDMRG:
         (mpo[0].shape[0],mps[0].shape[0],mps[0].shape[0])
       rb: The right environment. `rb` has to have shape 
         (mpo[-1].shape[1],mps[-1].shape[1],mps[-1].shape[1])
+      name: An optional name for the simulation.
     Raises:
       TypeError: If mps and mpo have different backends.
       ValueError: If len(mps) != len(mpo).
@@ -124,7 +125,7 @@ class BaseDMRG:
     to `None`, and right blocks at sites < `site` are `None`. 
     Args:
       site: The site to which the position of the center-site should be shifted.
-    Returns: self
+    Returns: BaseDMRG
     """
     if site >= len(self.mps):
       raise IndexError("site > length of mps")
@@ -162,7 +163,7 @@ class BaseDMRG:
 
     return self
 
-  def compute_left_envs(self):
+  def compute_left_envs(self) -> None:
     """
     Compute all left environment blocks of sites up to 
     (including) self.mps.center_position.
@@ -175,7 +176,7 @@ class BaseDMRG:
                                                   self.mps.tensors[n],
                                                   self.mpo.tensors[n])
 
-  def compute_right_envs(self):
+  def compute_right_envs(self) -> None:
     """
     Compute all right environment blocks of sites up to
     (including) self.mps.center_position.
@@ -192,7 +193,7 @@ class BaseDMRG:
                          num_krylov_vecs=10,
                          tol=1E-5,
                          delta=1E-6,
-                         ndiag=10):
+                         ndiag=10) -> np.number:
     """
     Single-site optimization at the current position of the center site.
     Args:
@@ -257,7 +258,7 @@ class BaseDMRG:
                    verbose=0,
                    delta=1E-6,
                    tol=1E-6,
-                   ndiag=10):
+                   ndiag=10) -> np.number:
     """
     Run a single-site DMRG optimization of the MPS.
     Args:
@@ -353,7 +354,17 @@ class FiniteDMRG(BaseDMRG):
   Class for simulating finite DMRG.
   """
 
-  def __init__(self, mps, mpo, name='FiniteDMRG'):
+  def __init__(self,
+               mps: FiniteMPS,
+               mpo: FiniteMPO,
+               name: Text = 'FiniteDMRG') -> None:
+    """
+    Initialize a finite DRMG simulation.
+    Args:
+      mps: A FiniteMPS object.
+      mpo: A FiniteMPO object.
+      name: An optional name for the simulation.
+    """
     lshape = (mpo.tensors[0].shape[0], mps.tensors[0].shape[0],
               mps.tensors[0].shape[0])
     rshape = (mpo.tensors[-1].shape[1], mps.tensors[-1].shape[2],
