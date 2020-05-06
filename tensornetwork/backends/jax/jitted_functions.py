@@ -121,9 +121,9 @@ def _generate_jitted_eigsh_lanczos(jax):
         norms_dtype.type(1.0), landelta, 1, ncv
     ]
     output = jax.lax.while_loop(cond_fun, body_lanczos, initvals)
+    final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = output
     krylov_vecs = jax.ops.index_update(krylov_vecs, jax.ops.index[it, :],
                                        jax.numpy.ravel(final_state))
-    final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = output
 
     A_tridiag = jax.numpy.diag(diags) + jax.numpy.diag(
         norms[1:], 1) + jax.numpy.diag(jax.numpy.conj(norms[1:]), -1)
