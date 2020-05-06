@@ -139,7 +139,7 @@ def test_finite_DMRG_init(backend_dtype_values, N):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
   H = get_XXZ_Hamiltonian(N, 1, 1, 1)
-  eta, U = np.linalg.eigh(H)
+  eta, _ = np.linalg.eigh(H)
 
   mpo = FiniteXXZ(
       Jz=np.ones(N - 1),
