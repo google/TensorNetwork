@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """implementation of different Matrix Product Operators."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from tensornetwork.backends import backend_factory
 from tensornetwork.backend_contextmanager import get_default_backend
@@ -41,6 +37,7 @@ class BaseMPO:
       tensors: A list of `Tensor` objects.
       backend: The name of the backend that should be used to perform 
         contractions. 
+      name: A name for the MPO.
     """
     if backend is None:
       backend = get_default_backend()
@@ -87,7 +84,14 @@ class InfiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
-
+    """
+    Initialize an infinite MPO object
+    Args:
+      tensors: The mpo tensors.
+      backend: An optional backend. Defaults to the defaulf backend  
+        of TensorNetwork.
+      name: An optional name for the MPO.
+    """
     super().__init__(tensors=tensors, backend=backend, name=name)
     if self.bond_dimensions[0] != self.bond_dimensions[-1]:
       raise ValueError('left and right MPO ancillary dimension have to match')
@@ -108,6 +112,15 @@ class FiniteMPO(BaseMPO):
                tensors: List[Tensor],
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
+    """
+    Initialize a finite MPO object
+    Args:
+      tensors: The mpo tensors.
+      backend: An optional backend. Defaults to the defaulf backend  
+        of TensorNetwork.
+      name: An optional name for the MPO.
+    """
+
     super().__init__(tensors=tensors, backend=backend, name=name)
     if (self.bond_dimensions[0] != 1) or (self.bond_dimensions[-1] != 1):
       raise ValueError('left and right MPO ancillary dimensions have to be 1')
@@ -115,8 +128,7 @@ class FiniteMPO(BaseMPO):
 
 class FiniteXXZ(FiniteMPO):
   """
-  The Heisenberg Hamiltonian that we all know and love 
-  (not as much as the transverse field Ising model though).
+  The Heisenberg Hamiltonian.
   """
 
   def __init__(self,
@@ -127,13 +139,13 @@ class FiniteXXZ(FiniteMPO):
                backend: Optional[Union[BaseBackend, Text]] = None,
                name: Text = 'XXZ_MPO') -> None:
     """
-    Returns the MPO of the XXZ model.
+    Returns the MPO of the finite XXZ model.
     Args:
-      Jz:  the Sz*Sz coupling strength between nearest neighbor lattice sites
-      Jxy: the (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor 
+      Jz:  The Sz*Sz coupling strength between nearest neighbor lattice sites.
+      Jxy: The (Sx*Sx + Sy*Sy) coupling strength between nearest neighbor.
         lattice sites
-      Bz:  magnetic field on each lattice site
-      dtype: the dtype of the MPO
+      Bz: Magnetic field on each lattice site.
+      dtype: The dtype of the MPO.
       backend: An optional backend.
       name: A name for the MPO.
     Returns:
@@ -210,12 +222,8 @@ class FiniteXXZ(FiniteMPO):
 
 class FiniteTFI(FiniteMPO):
   """
-  The famous transverse field Ising Hamiltonian. Everyone loves it
-  because any method looks great on it. It takes about the same time 
-  to solve it on an abacus as it takes on a NISQ device (the error bars on 
-  the latter are big though).
-  My 4 months old daughter today derived that the ground state energy of 
-  the infinite system at criticality is -4/pi.
+  The famous transverse field Ising Hamiltonian. 
+  The ground state energy of the infinite system at criticality is -4/pi.
 
   Convention: sigma_z=diag([-1,1])
   """

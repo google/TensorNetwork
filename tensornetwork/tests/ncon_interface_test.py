@@ -15,7 +15,21 @@ import pytest
 import numpy as np
 from tensornetwork import BaseNode, Node
 from tensornetwork import ncon_interface
+from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
+
+
+@pytest.fixture(
+    name="backend",
+    params=[
+        'numpy',
+        get_backend('numpy'), 'jax',
+        get_backend('jax'), 'pytorch',
+        get_backend('pytorch'), 'tensorflow',
+        get_backend('tensorflow')
+    ])
+def backends(request):
+  return request.param
 
 
 def test_sanity_check(backend):
