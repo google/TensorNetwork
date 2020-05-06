@@ -15,6 +15,6 @@ install:
 # command to run tests
 script:
   - pylint ./tensornetwork/
-  - pytype ./tensornetwork/
+  - pytype ./tensornetwork -x **/*_test.py
   - pytest
   - python3 setup.py build
