@@ -3,7 +3,7 @@ language: python
 cache: pip
 cache:
   directories:
-  - $HOME/.pytype
+  - $HOME/build/google/TensorNetwork/.pytype
 python:
   - "3.6"
   - "3.7"
