@@ -1,9 +1,9 @@
 dist: xenial 
 language: python
-cache: pip
 cache:
   directories:
-  - $HOME/build/google/TensorNetwork/.pytype
+    - $HOME/build/google/TensorNetwork/.pytype
+    - $HOME/.cache/pip
 python:
   - "3.6"
   - "3.7"
