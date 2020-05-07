@@ -262,27 +262,32 @@ class NumPyBackend(base_backend.BaseBackend):
       U = U.astype(dtype)
     return list(eta), [U[:, n] for n in range(numeig)]
 
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: List,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. If no `initial_state` is provided
-    then `A` has to have an attribute `shape` so that a suitable initial
-    state can be randomly generated.
-
+    of a linear operator `A`.
     Args:
-      A: A (sparse) implementation of a linear operator
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(*args, initial_state)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
-        a random initial `Tensor` is created using the `numpy.random.randn`
-        method
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
@@ -306,30 +311,19 @@ class NumPyBackend(base_backend.BaseBackend):
     """
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
     if numeig > 1 and not reorthogonalize:
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
-
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
-
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
-      if not hasattr(A, 'dtype'):
-        raise AttributeError(
-            "`A` has no  attribute `dtype`. Cannot initialize "
-            "lanczos. Please provide a valid `initial_state` with "
-            "a `dtype` attribute")
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
 
-      initial_state = self.randn(A.shape[1], A.dtype)
     if not isinstance(initial_state, np.ndarray):
-      raise TypeError("Expected a `np.array`. Got {}".format(
+      raise TypeError("Expected a `np.ndarray`. Got {}".format(
           type(initial_state)))
 
     vector_n = initial_state
@@ -352,7 +346,7 @@ class NumPyBackend(base_backend.BaseBackend):
         for v in krylov_vecs:
           vector_n -= np.dot(np.ravel(np.conj(v)), np.ravel(vector_n)) * v
       krylov_vecs.append(vector_n)
-      A_vector_n = A(vector_n)
+      A_vector_n = A(*args, vector_n)
       diag_elements.append(
           np.dot(np.ravel(np.conj(vector_n)), np.ravel(A_vector_n)))
 
@@ -448,3 +442,6 @@ class NumPyBackend(base_backend.BaseBackend):
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
     return sp.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun

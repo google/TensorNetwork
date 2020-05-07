@@ -24,6 +24,7 @@ Tensor = Any
 #TODO (mganahl): implement sparse solvers
 
 
+#pylint: disable=abstract-method
 class SymmetricBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -154,29 +155,6 @@ class SymmetricBackend(base_backend.BaseBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return self.bs.eigh(matrix)
 
-  def eigs(self,
-           A: Callable,
-           initial_state: Optional[Tensor] = None,
-           num_krylov_vecs: Optional[int] = 200,
-           numeig: Optional[int] = 6,
-           tol: Optional[float] = 1E-8,
-           which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type[numpy.number]] = None) -> Tuple[List, List]:
-    raise NotImplementedError()
-
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-    raise NotImplementedError()
-
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
 
@@ -207,3 +185,6 @@ class SymmetricBackend(base_backend.BaseBackend):
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
     return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun
