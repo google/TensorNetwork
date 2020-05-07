@@ -19,10 +19,12 @@ class DenseDecomp(Layer):
   # as first layer in a sequential model:
   model = Sequential()
   model.add(
-    DenseDecomp(512, decomp_size=128, activation='relu', input_dim=1024))
+    DenseDecomp(512, decomp_size=128, activation='relu', input_shape=(1024,)))
   # now the model will take as input arrays of shape (*, 1024)
-  # and output arrays of shape (*, 512)
-  # after the first layer, you don't need to specify
+  # and output arrays of shape (*, 512).
+  # Note you can also specify input_dim=1024 instead of input_shape=(1024,),
+  # as is sometimes done in other Keras layers like Dense.
+  # After the first layer, you don't need to specify
   # the size of the input anymore:
   model.add(DenseDecomp(512, decomp_size=128, activation='relu'))
   ```
@@ -39,7 +41,7 @@ class DenseDecomp(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_dim)`.
+    2D tensor with shape: `(batch_size, input_shape[-1])`.
 
   Output shape:
     2D tensor with shape: `(batch_size, output_dim)`.

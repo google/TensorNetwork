@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 import math
 import os
+import shutil
 from tensorflow.keras import backend as K
-from tensorflow.keras.models import Sequential, load_model # type: ignore
+from tensorflow.keras.models import Sequential, load_model  # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
 from tensorflow.keras.layers import Dense  # type: ignore
@@ -99,7 +100,6 @@ def test_output_shape(dummy_data, make_model):
   np.testing.assert_equal(expected_output_shape, actual_output_shape)
 
 
-
 def test_decomp_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -186,18 +186,23 @@ def test_model_save(dummy_data, make_model):
   # Train the model for 5 epochs
   model.fit(data, labels, epochs=5, batch_size=32)
 
-  # Save model to a h5 file, then load from file
-  model.save('test_model.h5')
-  if 'mpo' in model.layers[0].name:
-    loaded_model = load_model('test_model.h5',
-                              custom_objects={'DenseMPO': DenseMPO})
-  elif 'decomp' in model.layers[0].name:
-    loaded_model = load_model('test_model.h5',
-                              custom_objects={'DenseDecomp': DenseDecomp})
+  for save_path in ['test_model', 'test_model.h5']:
+    # Save model to a SavedModel folder or h5 file, then load model
+    model.save(save_path)
+    if 'mpo' in model.layers[0].name:
+      loaded_model = load_model(save_path,
+                                custom_objects={'DenseMPO': DenseMPO})
+    elif 'decomp' in model.layers[0].name:
+      loaded_model = load_model(save_path,
+                                custom_objects={'DenseDecomp': DenseDecomp})
 
-  # Clean up h5 file
-  if os.path.exists('test_model.h5'):
-    os.remove('test_model.h5')
+    # Clean up SavedModel folder
+    if os.path.isdir(save_path):
+      shutil.rmtree(save_path)
 
-  # Compare model predictions and loaded_model predictions
-  np.testing.assert_equal(model.predict(data), loaded_model.predict(data))
+    # Clean up h5 file
+    if os.path.exists(save_path):
+      os.remove(save_path)
+
+    # Compare model predictions and loaded_model predictions
+    np.testing.assert_equal(model.predict(data), loaded_model.predict(data))
