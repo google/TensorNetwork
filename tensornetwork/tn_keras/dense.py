@@ -137,9 +137,8 @@ class DenseDecomp(Layer):
     Returns:
       Python dictionary containing the configuration of the layer.
     """
-    # Get base config
-    config = super(DenseDecomp, self).get_config()
-
+    config = {}
+    
     # Include the DenseDecomp-specific arguments
     decomp_args = ['output_dim', 'decomp_size', 'use_bias']
     for arg in decomp_args:
@@ -154,4 +153,6 @@ class DenseDecomp(Layer):
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 
-    return config
+    # Get base config
+    base_config = super(DenseDecomp, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))

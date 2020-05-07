@@ -182,8 +182,7 @@ class DenseMPO(Layer):
     Returns:
       Python dictionary containing the configuration of the layer.
     """
-    # Get base config
-    config = super(DenseMPO, self).get_config()
+    config = {}
 
     # Include the MPO-specific arguments
     mpo_args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
@@ -199,4 +198,6 @@ class DenseMPO(Layer):
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 
-    return config
+    # Get base config
+    base_config = super(DenseMPO, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))
