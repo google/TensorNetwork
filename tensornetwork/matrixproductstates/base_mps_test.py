@@ -211,8 +211,17 @@ def test_different_dtypes_raises_error():
       np.ones((1, d, D), dtype=np.float64),
       np.ones((D, d, D), dtype=np.complex64)
   ]
-  mps = BaseMPS(tensors, backend='numpy')
-  with pytest.raises(ValueError):
+  with pytest.raises(TypeError):
+    BaseMPS(tensors, backend='numpy')
+
+  _tensors = [
+      np.ones((1, d, D), dtype=np.float64),
+      np.ones((D, d, D), dtype=np.float64)
+  ]
+
+  mps = BaseMPS(_tensors, backend='numpy')
+  mps.tensors = tensors
+  with pytest.raises(TypeError):
     mps.dtype
 
 

@@ -85,6 +85,10 @@ class BaseMPS:
 
     # the dtype is deduced from the tensor object.
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
+    if not all(
+        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+      raise TypeError('not all dtypes in BaseMPS.tensors are the same')
+
     self.connector_matrix = connector_matrix
     self.center_position = center_position
 
@@ -129,7 +133,7 @@ class BaseMPS:
     ########################################################################
     ########################################################################
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self.tensors)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
@@ -185,10 +189,10 @@ class BaseMPS:
     return Z
 
   @property
-  def dtype(self):
+  def dtype(self) -> Type[np.number]:
     if not all(
         [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
-      raise ValueError('not all dtype in FiniteMPS.tensors are the same')
+      raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
     return self.tensors[0].dtype
 
