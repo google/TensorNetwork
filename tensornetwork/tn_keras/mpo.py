@@ -60,16 +60,16 @@ class DenseMPO(Layer):
 
     assert num_nodes > 2, 'Need at least 2 nodes to create MPO'
 
+    super(DenseMPO, self).__init__(**kwargs)
+
     self.output_dim = output_dim
     self.num_nodes = num_nodes
     self.bond_dim = bond_dim
     self.nodes = []
-
     self.use_bias = use_bias
     self.activation = activations.get(activation)
     self.kernel_initializer = initializers.get(kernel_initializer)
     self.bias_initializer = initializers.get(bias_initializer)
-    super(DenseMPO, self).__init__(**kwargs)
 
   def build(self, input_shape: List[int]) -> None:
     # Disable the attribute-defined-outside-init violations in this function
@@ -83,10 +83,15 @@ class DenseMPO(Layer):
       return round(root)**n_nodes == n
 
     # Ensure the MPO dimensions will work
-    assert is_perfect_root(input_shape[-1],
-                           self.num_nodes), 'Input dimensions are incorrect'
-    assert is_perfect_root(self.output_dim,
-                           self.num_nodes), 'Output dimensions are incorrect'
+    assert is_perfect_root(input_shape[-1], self.num_nodes), \
+      f'Input dim incorrect.\
+      {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
+    
+    assert is_perfect_root(self.output_dim, self.num_nodes), \
+      f'Output dim incorrect. \
+      {self.output_dim}**(1. / {self.num_nodes}) must be round.'
+
+    super(DenseMPO, self).build(input_shape)
 
     self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
@@ -116,7 +121,6 @@ class DenseMPO(Layer):
         shape=(self.output_dim,),
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
-    super(DenseMPO, self).build(input_shape)
 
   def call(self, inputs: tf.Tensor) -> tf.Tensor:
 
@@ -165,3 +169,31 @@ class DenseMPO(Layer):
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
     return (input_shape[0], self.output_dim)
+
+  def get_config(self) -> dict:
+    """Returns the config of the layer.
+
+    The same layer can be reinstantiated later
+    (without its trained weights) from this configuration.
+
+    Returns:
+      Python dictionary containing the configuration of the layer.
+    """
+    # Get base config
+    config = super(DenseMPO, self).get_config()
+
+    # Include the MPO-specific arguments
+    mpo_args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
+    for arg in mpo_args:
+      config[arg] = getattr(self, arg)
+
+    # Serialize the activation
+    config['activation'] = activations.serialize(getattr(self, 'activation'))
+
+    # Serialize the initializers
+    mpo_initializers = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in mpo_initializers:
+      config[initializer_arg] = initializers.serialize(
+          getattr(self, initializer_arg))
+
+    return config

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Layer # type: ignore
+from tensorflow.keras.layers import Layer  # type: ignore
 from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
@@ -55,6 +55,9 @@ class DenseDecomp(Layer):
                **kwargs) -> None:
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+
+    super(DenseDecomp, self).__init__(**kwargs)
+
     self.output_dim = output_dim
     self.decomp_size = decomp_size
 
@@ -62,7 +65,6 @@ class DenseDecomp(Layer):
     self.activation = activations.get(activation)
     self.kernel_initializer = initializers.get(kernel_initializer)
     self.bias_initializer = initializers.get(bias_initializer)
-    super(DenseDecomp, self).__init__(**kwargs)
 
   def build(self, input_shape: List[int]) -> None:
     # Disable the attribute-defined-outside-init violations in this function
@@ -70,6 +72,8 @@ class DenseDecomp(Layer):
     if input_shape[-1] is None:
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
+
+    super(DenseDecomp, self).build(input_shape)
 
     self.a_var = self.add_weight(name='a',
                                  shape=(input_shape[-1], self.decomp_size),
@@ -84,7 +88,6 @@ class DenseDecomp(Layer):
         shape=(self.output_dim,),
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
-    super(DenseDecomp, self).build(input_shape)
 
   def call(self, inputs: tf.Tensor) -> tf.Tensor:
 
@@ -122,3 +125,31 @@ class DenseDecomp(Layer):
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
     return (input_shape[0], self.output_dim)
+
+  def get_config(self) -> dict:
+    """Returns the config of the layer.
+
+    The same layer can be reinstantiated later
+    (without its trained weights) from this configuration.
+
+    Returns:
+      Python dictionary containing the configuration of the layer.
+    """
+    # Get base config
+    config = super(DenseDecomp, self).get_config()
+
+    # Include the DenseDecomp-specific arguments
+    decomp_args = ['output_dim', 'decomp_size', 'use_bias']
+    for arg in decomp_args:
+      config[arg] = getattr(self, arg)
+
+    # Serialize the activation
+    config['activation'] = activations.serialize(getattr(self, 'activation'))
+
+    # Serialize the initializers
+    decomp_initializers = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in decomp_initializers:
+      config[initializer_arg] = initializers.serialize(
+          getattr(self, initializer_arg))
+
+    return config

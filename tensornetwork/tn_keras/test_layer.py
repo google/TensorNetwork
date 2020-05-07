@@ -1,8 +1,9 @@
 import pytest
 import numpy as np
 import math
+import os
 from tensorflow.keras import backend as K
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
 from tensorflow.keras.layers import Dense  # type: ignore
@@ -146,3 +147,55 @@ def test_mpo_num_parameters(dummy_data):
       out_leg_dim) + output_dim
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_config(make_model):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  model = make_model
+
+  expected_num_parameters = model.layers[0].count_params()
+
+  # Serialize model and use config to create new layer
+  model_config = model.get_config()
+  layer_config = model_config['layers'][0]['config']
+  if 'mpo' in model.layers[0].name:
+    new_model = DenseMPO.from_config(layer_config)
+  elif 'decomp' in model.layers[0].name:
+    new_model = DenseDecomp.from_config(layer_config)
+
+  # Build the layer so we can count params below
+  new_model.build(layer_config['batch_input_shape'])
+
+  # Check that original layer had same num params as layer built from config
+  np.testing.assert_equal(expected_num_parameters, new_model.count_params())
+
+
+def test_model_save(dummy_data, make_model):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+
+  data, labels = dummy_data
+  model = make_model
+  model.compile(optimizer='adam',
+                loss='binary_crossentropy',
+                metrics=['accuracy'])
+
+  # Train the model for 5 epochs
+  model.fit(data, labels, epochs=5, batch_size=32)
+
+  # Save model to a h5 file, then load from file
+  model.save('test_model.h5')
+  if 'mpo' in model.layers[0].name:
+    loaded_model = load_model('test_model.h5',
+                              custom_objects={'DenseMPO': DenseMPO})
+  elif 'decomp' in model.layers[0].name:
+    loaded_model = load_model('test_model.h5',
+                              custom_objects={'DenseDecomp': DenseDecomp})
+
+  # Clean up h5 file
+  if os.path.exists('test_model.h5'):
+    os.remove('test_model.h5')
+
+  # Compare model predictions and loaded_model predictions
+  np.testing.assert_equal(model.predict(data), loaded_model.predict(data))
