@@ -67,11 +67,12 @@ class InfiniteMPS(BaseMPS):
         backend=backend)
 
   @classmethod
-  def random(cls,
-             d: List[int],
-             D: List[int],
-             dtype: Type[np.number],
-             backend: Optional[Union[BaseBackend, Text]] = None):
+  def random(
+      cls,
+      d: List[int],
+      D: List[int],
+      dtype: Type[np.number],
+      backend: Optional[Union[BaseBackend, Text]] = None) -> "InfiniteMPS":
     """Initialize a random `InfiniteMPS`. The resulting state is normalized.
     Its center-position is at 0.
 
@@ -179,7 +180,7 @@ class InfiniteMPS(BaseMPS):
                    D: Optional[int] = None,
                    num_krylov_vecs: Optional[int] = 50,
                    maxiter: Optional[int] = 1000,
-                   pseudo_inverse_cutoff: Optional[float] = None):
+                   pseudo_inverse_cutoff: Optional[float] = None) -> None:
     """Canonicalize an InfiniteMPS (i.e. bring it into Schmidt-canonical form).
 
     Args:

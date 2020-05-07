@@ -370,6 +370,7 @@ def split_node_qr(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -461,6 +462,7 @@ def split_node_rq(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -587,6 +589,7 @@ def split_node_full_svd(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
