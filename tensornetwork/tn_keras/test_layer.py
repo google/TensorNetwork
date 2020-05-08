@@ -33,7 +33,7 @@ def make_model(dummy_data, request):
                  bond_dim=8,
                  use_bias=True,
                  activation='relu',
-                 input_dim=data.shape[1]))
+                 input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
   else:
     model = Sequential()
@@ -42,7 +42,7 @@ def make_model(dummy_data, request):
                     decomp_size=128,
                     use_bias=True,
                     activation='relu',
-                    input_dim=data.shape[1]))
+                    input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
 
   return model
@@ -113,7 +113,7 @@ def test_decomp_num_parameters(dummy_data):
                   decomp_size=decomp_size,
                   use_bias=True,
                   activation='relu',
-                  input_dim=data.shape[1]))
+                  input_shape=(data.shape[1],)))
 
   # num_params = a_params + b_params + bias_params
   expected_num_parameters = (data.shape[1] * decomp_size) + (
@@ -126,7 +126,6 @@ def test_mpo_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
   data, _ = dummy_data
-  input_dim = data.shape[1]
   output_dim = data.shape[1]
   num_nodes = int(math.log(data.shape[1], 4))
   bond_dim = 8
@@ -138,9 +137,9 @@ def test_mpo_num_parameters(dummy_data):
                bond_dim=bond_dim,
                use_bias=True,
                activation='relu',
-               input_dim=input_dim))
+               input_shape=(data.shape[1],)))
 
-  in_leg_dim = int(input_dim**(1. / num_nodes))
+  in_leg_dim = int(data.shape[1]**(1. / num_nodes))
   out_leg_dim = int(output_dim**(1. / num_nodes))
 
   # num_params = num_edge_node_params + num_middle_node_params + bias_params
@@ -176,7 +175,6 @@ def test_config(make_model):
 def test_model_save(dummy_data, make_model):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
-
   data, labels = dummy_data
   model = make_model
   model.compile(optimizer='adam',
@@ -189,12 +187,7 @@ def test_model_save(dummy_data, make_model):
   for save_path in ['test_model', 'test_model.h5']:
     # Save model to a SavedModel folder or h5 file, then load model
     model.save(save_path)
-    if 'mpo' in model.layers[0].name:
-      loaded_model = load_model(save_path,
-                                custom_objects={'DenseMPO': DenseMPO})
-    elif 'decomp' in model.layers[0].name:
-      loaded_model = load_model(save_path,
-                                custom_objects={'DenseDecomp': DenseDecomp})
+    loaded_model = load_model(save_path)
 
     # Clean up SavedModel folder
     if os.path.isdir(save_path):

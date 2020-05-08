@@ -9,6 +9,7 @@ import numpy as np
 import math
 
 
+@tf.keras.utils.register_keras_serializable()  # type: ignore
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
@@ -22,8 +23,6 @@ class DenseMPO(Layer):
     input_shape=(1024,)))
   # now the model will take as input arrays of shape (*, 1024)
   # and output arrays of shape (*, 1024).
-  # Note you can also specify input_dim=1024 instead of input_shape=(1024,),
-  # as is sometimes done in other Keras layers like Dense.
   # After the first layer, you don't need to specify
   # the size of the input anymore:
   model.add(DenseMPO(1024, num_nodes=4, bond_dim=8, activation='relu'))
@@ -58,6 +57,9 @@ class DenseMPO(Layer):
                kernel_initializer: Optional[Text] = 'glorot_uniform',
                bias_initializer: Optional[Text] = 'zeros',
                **kwargs) -> None:
+
+    # Allow specification of input_dim instead of input_shape,
+    # for compatability with Keras layers that support this
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
@@ -89,7 +91,7 @@ class DenseMPO(Layer):
     assert is_perfect_root(input_shape[-1], self.num_nodes), \
       f'Input dim incorrect.\
       {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
-    
+
     assert is_perfect_root(self.output_dim, self.num_nodes), \
       f'Output dim incorrect. \
       {self.output_dim}**(1. / {self.num_nodes}) must be round.'
