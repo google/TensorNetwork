@@ -128,7 +128,7 @@ class DenseMPO(Layer):
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor) -> tf.Tensor:
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
 
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, in_leg_dim: int,
