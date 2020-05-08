@@ -10,7 +10,7 @@ import math
 
 
 @tf.keras.utils.register_keras_serializable( # type: ignore
-    package='tensornetwork')
+    package='tensornetwork', name='dense_mpo')
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
