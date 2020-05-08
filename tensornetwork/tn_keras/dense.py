@@ -7,7 +7,8 @@ import tensornetwork as tn
 import numpy as np
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+@tf.keras.utils.register_keras_serializable( # type: ignore
+    package='tensornetwork')
 class DenseDecomp(Layer):
   """TN layer comparable to Dense that carries out matrix multiplication
   with 2 significantly smaller weight matrices instead of 1 large one.
@@ -79,23 +80,22 @@ class DenseDecomp(Layer):
 
     super(DenseDecomp, self).build(input_shape)
 
-    self.a_var = self.add_weight(
-        name='a',
-        shape=(input_shape[-1], self.decomp_size),
-        trainable=True,
-        initializer=self.kernel_initializer)
-    self.b_var = self.add_weight(
-        name='b',
-        shape=(self.decomp_size, self.output_dim),
-        trainable=True,
-        initializer=self.kernel_initializer)
+    self.a_var = self.add_weight(name='a',
+                                 shape=(input_shape[-1], self.decomp_size),
+                                 trainable=True,
+                                 initializer=self.kernel_initializer)
+    self.b_var = self.add_weight(name='b',
+                                 shape=(self.decomp_size, self.output_dim),
+                                 trainable=True,
+                                 initializer=self.kernel_initializer)
     self.bias_var = self.add_weight(
         name='bias',
         shape=(self.output_dim,),
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
+
 
     def f(x: tf.Tensor, a_var: tf.Tensor, b_var: tf.Tensor, use_bias: bool,
           bias_var: tf.Tensor) -> tf.Tensor:

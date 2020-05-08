@@ -9,7 +9,8 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+@tf.keras.utils.register_keras_serializable( # type: ignore
+    package='tensornetwork')
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
@@ -128,6 +129,7 @@ class DenseMPO(Layer):
         initializer=self.bias_initializer) if self.use_bias else None
 
   def call(self, inputs: tf.Tensor) -> tf.Tensor:
+
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, in_leg_dim: int,
           use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
