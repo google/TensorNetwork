@@ -161,6 +161,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
     dtype = dtype if dtype is not None else tf.float64
     if (dtype is tf.complex128) or (dtype is tf.complex64):
+      #pylint: disable=unexpected-keyword-arg
       return tf.complex(
           tf.random.uniform(
               shape=shape,
@@ -173,6 +174,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
               maxval=boundaries[1],
               dtype=dtype.real_dtype))
     tf.random.set_seed(10)
+    #pylint: disable=unexpected-keyword-arg
     a = tf.random.uniform(
         shape=shape, minval=boundaries[0], maxval=boundaries[1], dtype=dtype)
     return a
