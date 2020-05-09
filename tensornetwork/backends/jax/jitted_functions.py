@@ -134,18 +134,18 @@ def _generate_jitted_eigsh_lanczos(jax):
       krv, unitary, states = vals
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
-      states = jax.ops.index_add(states, jax.ops.index[n],
+      states = jax.ops.index_add(states, jax.ops.index[n, :],
                                  krv[m + 1, :] * unitary[m, n])
       return [krv, unitary, states]
 
-    state_vector = jax.numpy.zeros([neig, numel], dtype=init.dtype)
-    _, _, vector = jax.lax.fori_loop(0, neig * (krylov_vecs.shape[0] - 1),
-                                     body_vector,
-                                     [krylov_vecs, U, state_vector])
-    vector /= jax.numpy.linalg.norm(vector)
+    state_vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
+    _, _, vectors = jax.lax.fori_loop(0, neig * (krylov_vecs.shape[0] - 1),
+                                      body_vector,
+                                      [krylov_vecs, U, state_vectors])
+
     return jax.numpy.array(eigvals[0:neig]), [
-        jax.numpy.reshape(vector[n, :], init.shape) /
-        jax.numpy.linalg.norm(vector[n, :]) for n in range(neig)
+        jax.numpy.reshape(vectors[n, :], init.shape) /
+        jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
     ]
 
   return jax_lanczos
