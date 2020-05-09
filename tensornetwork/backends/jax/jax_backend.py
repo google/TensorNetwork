@@ -227,6 +227,59 @@ class JaxBackend(base_backend.BaseBackend):
     return libjax.random.uniform(
         key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
+  def eigs(self,
+           matvec,
+           args,
+           v0,
+           numeig,
+           k,
+           p,
+           eps=0.7071,
+           maxiter=20,
+           which='LR'):
+
+    numits = k + p
+    krylov_vectors = libjax.numpy.zeros(
+        (k + p + 1, libjax.numpy.ravel(v0).shape[0]), dtype=v0.dtype)
+    H = libjax.numpy.zeros((k + p + 1, k + p), dtype=v0.dtype)
+    Vm_tmp, Hm_tmp, _, converged = jitted_functions._arnoldi_factorization(
+        matvec, args, v0, krylov_vectors, H, 0, k + p, eps)
+    Vm, Hm, fm = jitted_functions.update_data(Vm_tmp, Hm_tmp, numits)
+    it = 0
+    if which == 'LR':
+      _which = 0
+    elif which == 'LM':
+      _which = 1
+    else:
+      raise ValueError(f"{which} not implemented")
+
+    while (it < maxiter) and (not converged):
+      krylov_vectors, H, fk = jitted_functions.shifted_QR(
+          Vm, Hm, fm, k, p, _which)
+      Vm_tmp, Hm_tmp, _, converged = jitted_functions._arnoldi_factorization(
+          matvec, args, fk, krylov_vectors, H, k, k + p, eps)
+      Vm, Hm, fm = jitted_functions.update_data(Vm_tmp, Hm_tmp, numits)
+      it += 1
+
+    eigvals, U = libjax.numpy.linalg.eig(Hm)
+    _, inds = jitted_functions.LR_sort(eigvals, _which)
+
+    def body_vector(i, vals):
+      krv, unitary, states, inds = vals
+      dim = unitary.shape[1]
+      n, m = libjax.numpy.divmod(i, dim)
+      states = libjax.ops.index_add(states, libjax.ops.index[n, :],
+                                    krv[m, :] * unitary[m, inds[n]])
+      return [krv, unitary, states, inds]
+
+    state_vectors = libjax.numpy.zeros([numeig, Vm.shape[1]], dtype=v0.dtype)
+    _, _, vectors, _ = libjax.lax.fori_loop(0, numeig * Vm.shape[0],
+                                            body_vector,
+                                            [Vm, U, state_vectors, inds])
+    state_norms = libjax.numpy.linalg.norm(vectors, axis=1)
+    vectors = vectors / state_norms[:, None]
+    return eigvals[inds[0:numeig]], vectors
+
   def eigsh_lanczos(
       self,
       A: Callable,
