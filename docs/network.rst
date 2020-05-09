@@ -34,3 +34,4 @@ Common Functions
 .. autofunction:: tensornetwork.flatten_edges_between
 .. autofunction:: tensornetwork.get_parallel_edges
 .. autofunction:: tensornetwork.get_shared_edges
+.. autofunction:: tensornetwork.get_neighbors

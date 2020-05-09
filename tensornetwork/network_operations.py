@@ -874,3 +874,24 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
                                 "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
     node.backend = backend
+
+def get_neighbors(node: BaseNode) -> List[Node]:
+  """Get all of the neighbors that are directly connected to the given node.
+
+  Note: `node` will never be in the returned list, even if `node` has a
+  trace edge.
+
+  Args:
+    node: A node.
+
+  Returns:
+    All of the neighboring edges that share an `Edge` with `node`.
+  """
+  neighbors = []
+  for edge in node.edges:
+    if not edge.is_dangling() and not edge.is_trace():
+      if edge.node1 is node:
+        neighbors.append(edge.node2)
+      else:
+        neighbors.append(edge.node1)
+  return neighbors
