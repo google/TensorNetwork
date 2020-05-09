@@ -874,3 +874,13 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
                                 "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
     node.backend = backend
+
+def get_neighbors(node: BaseNode) -> List[Node]:
+  neighbors = []
+  for edge in node.edges:
+    if not edge.is_dangling() and not edge.is_trace():
+      if edge.node1 is node:
+        neighbors.append(edge.node2)
+      else:
+        neighbors.append(edge.node1)
+  return neighbors
