@@ -894,4 +894,4 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors.append(edge.node2)
       else:
         neighbors.append(edge.node1)
-  return neighbors
+  return list(dict.fromkeys(neighbors))
