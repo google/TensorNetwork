@@ -290,7 +290,7 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   def mv(x, mat):
     return np.dot(mat, x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -308,7 +308,7 @@ def test_eigsh_small_number_krylov_vectors():
   def mv(x, mat):
     return np.dot(mat, x)
 
-  eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -324,7 +324,7 @@ def test_eigsh_lanczos_1(dtype):
   def mv(x, mat):
     return np.dot(mat, x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, [], init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -345,7 +345,7 @@ def test_eigsh_lanczos_2(dtype):
   def mv(x, mat):
     return np.dot(mat, x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, [], shape=(D,), dtype=dtype)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -368,7 +368,7 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
     return np.dot(mat, x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      mv, [],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
@@ -517,8 +517,8 @@ def test_eigs(dtype, which):
   init = backend.randn((D,), dtype=dtype, seed=10)
   M = backend.randn((D, D), dtype=dtype, seed=10)
 
-  def mv(x, mat):
-    return np.dot(mat, x)
+  def mv(x):
+    return np.dot(M, x)
 
   eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(M)
