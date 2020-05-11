@@ -478,7 +478,7 @@ def test_matrix_inv_raises(dtype):
 def test_eigs_not_implemented():
   backend = pytorch_backend.PyTorchBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigs(np.ones((2, 2)))
+    backend.eigs(np.ones((2, 2)), [])
 
 
 def test_broadcast_right_multiplication():

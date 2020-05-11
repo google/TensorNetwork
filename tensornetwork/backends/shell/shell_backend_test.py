@@ -282,7 +282,8 @@ def test_eigh():
 
 def test_eigs():
   backend = shell_backend.ShellBackend()
-  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2), numeig=2)
+  eta, v = backend.eigs(
+      lambda x: x, args=[], initial_state=np.random.rand(2), numeig=2)
   assert len(eta) == 2
   for n in range(len(eta)):
     assert v[n].shape == (2,)
@@ -296,7 +297,7 @@ def test_eigs():
       return x
 
   mv = MV((2, 2))
-  eta, v = backend.eigs(mv, numeig=2)
+  eta, v = backend.eigs(mv, [], numeig=2)
   assert len(eta) == 2
   for n in range(len(eta)):
     assert v[n].shape == (2,)
@@ -314,7 +315,7 @@ def test_eigs_initial_state_shape():
       return x
 
   mv = MV(((2,), (2,)))
-  eta, v = backend.eigs(mv, backend.randn((2,)))
+  eta, v = backend.eigs(mv, [], backend.randn((2,)))
   assert len(eta) == 1
   for n in range(len(eta)):
     assert v[n].shape == (2,)
@@ -333,11 +334,11 @@ def test_eigs_raises():
   backend = shell_backend.ShellBackend()
   mv = MV((2, 2))
   with pytest.raises(ValueError):
-    backend.eigs(mv, initial_state=np.random.rand(3))
+    backend.eigs(mv, args=[], initial_state=np.random.rand(3))
   with pytest.raises(AttributeError):
-    backend.eigs(lambda x: x)
+    backend.eigs(lambda x: x, args=[])
   with pytest.raises(ValueError):
-    backend.eigs(np.random.rand(2, 2), initial_state=np.random.rand(3))
+    backend.eigs(np.random.rand(2, 2), args=[], initial_state=np.random.rand(3))
 
 
 def index_update():

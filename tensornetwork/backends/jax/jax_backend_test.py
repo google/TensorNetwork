@@ -296,7 +296,7 @@ def test_base_backend_eigs_not_implemented():
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((4, 2, 3), dtype=np.float64)
   with pytest.raises(NotImplementedError):
-    backend.eigs(tensor)
+    backend.eigs(tensor, [])
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
