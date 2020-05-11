@@ -228,57 +228,40 @@ class JaxBackend(base_backend.BaseBackend):
         key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
   def eigs(self,
-           matvec,
-           args,
-           v0,
-           numeig,
-           k,
-           p,
-           eps=0.7071,
-           maxiter=20,
-           which='LR'):
+           A: Callable,
+           args: Optional[List] = None,
+           initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
+           num_krylov_vecs: int = 50,
+           numeig: int = 6,
+           tol: float = 1E-8,
+           which: Text = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    if args is None:
+      args = []
+    if which in ('SI', 'LI', 'SM', 'SR'):
+      raise ValueError(f'which = {which} is currently not supported.')
 
-    numits = k + p
-    krylov_vectors = libjax.numpy.zeros(
-        (k + p + 1, libjax.numpy.ravel(v0).shape[0]), dtype=v0.dtype)
-    H = libjax.numpy.zeros((k + p + 1, k + p), dtype=v0.dtype)
-    Vm_tmp, Hm_tmp, _, converged = jitted_functions._arnoldi_factorization(
-        matvec, args, v0, krylov_vectors, H, 0, k + p, eps)
-    Vm, Hm, fm = jitted_functions.update_data(Vm_tmp, Hm_tmp, numits)
-    it = 0
-    if which == 'LR':
-      _which = 0
-    elif which == 'LM':
-      _which = 1
-    else:
-      raise ValueError(f"{which} not implemented")
+    if numeig + 1 >= num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
 
-    while (it < maxiter) and (not converged):
-      krylov_vectors, H, fk = jitted_functions.shifted_QR(
-          Vm, Hm, fm, k, p, _which)
-      Vm_tmp, Hm_tmp, _, converged = jitted_functions._arnoldi_factorization(
-          matvec, args, fk, krylov_vectors, H, k, k + p, eps)
-      Vm, Hm, fm = jitted_functions.update_data(Vm_tmp, Hm_tmp, numits)
-      it += 1
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
 
-    eigvals, U = libjax.numpy.linalg.eig(Hm)
-    _, inds = jitted_functions.LR_sort(eigvals, _which)
+    if not isinstance(initial_state, jnp.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
+    if not hasattr(self, '_jaxlan'):
+      # pylint: disable=attribute-defined-outside-init
+      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
 
-    def body_vector(i, vals):
-      krv, unitary, states, inds = vals
-      dim = unitary.shape[1]
-      n, m = libjax.numpy.divmod(i, dim)
-      states = libjax.ops.index_add(states, libjax.ops.index[n, :],
-                                    krv[m, :] * unitary[m, inds[n]])
-      return [krv, unitary, states, inds]
-
-    state_vectors = libjax.numpy.zeros([numeig, Vm.shape[1]], dtype=v0.dtype)
-    _, _, vectors, _ = libjax.lax.fori_loop(0, numeig * Vm.shape[0],
-                                            body_vector,
-                                            [Vm, U, state_vectors, inds])
-    state_norms = libjax.numpy.linalg.norm(vectors, axis=1)
-    vectors = vectors / state_norms[:, None]
-    return eigvals[inds[0:numeig]], vectors
+    iram_jax_2 = jitted_functions._implicitly_restarted_arnoldi(jax)
 
   def eigsh_lanczos(
       self,

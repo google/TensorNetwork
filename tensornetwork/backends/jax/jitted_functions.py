@@ -152,7 +152,7 @@ def _generate_jitted_eigsh_lanczos(jax):
   return jax_lanczos
 
 
-def _implicitly_rerstarted_arnoldi(jax):
+def _implicitly_restarted_arnoldi(jax):
   """
   """
 
