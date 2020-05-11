@@ -151,7 +151,6 @@ class InfiniteMPS(BaseMPS):
     # we cast them.
     eta, dens = self.backend.eigs(
         A=mv,
-        args=[],
         initial_state=initial_state,
         num_krylov_vecs=num_krylov_vecs,
         numeig=1,
