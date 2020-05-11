@@ -513,3 +513,17 @@ def test_get_neighbors(backend):
     b[1] ^ b[2]
     result = tn.get_neighbors(b)
     assert result == [a, c]
+
+def test_get_neighbors_no_duplicates(backend):
+  with tn.DefaultBackend(backend):
+    a = tn.Node(np.ones((2, 2, 2)))
+    b = tn.Node(np.ones((2, 2, 2, 2, 2)))
+    c = tn.Node(np.ones((2, 2, 2)))
+    d = tn.Node(np.ones((2, 2)))
+    b[0] ^ a[0]
+    b[1] ^ a[1]
+    b[2] ^ c[0]
+    a[2] ^ d[1]
+    b[3] ^ b[4]
+    result = tn.get_neighbors(b)
+    assert result == [a, c]
