@@ -228,13 +228,15 @@ class ShellBackend(base_backend.BaseBackend):
 
   def eigs(self,
            A: Callable,
+           args: List,
            initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
            num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
 
     if (initial_state is not None) and hasattr(A, 'shape'):
       if initial_state.shape != A.shape[1]:
