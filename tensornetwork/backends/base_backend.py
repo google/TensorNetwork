@@ -370,6 +370,7 @@ class BaseBackend:
             'SR' : smallest real part
             'LI' : largest imaginary part
             'SI' : smallest imaginary part
+        Note that not all of those might be supported by specialized backends.
       maxiter: The maximum number of iterations.
     Returns:
        `Tensor`: An array of `numeig` lowest eigenvalues
