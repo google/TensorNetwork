@@ -152,7 +152,7 @@ def _generate_jitted_eigsh_lanczos(jax):
   return jax_lanczos
 
 
-def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
+def _implicitly_rerstarted_arnoldi(jax):
   """
   """
 
@@ -164,7 +164,7 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
     vector, krylov_vectors, n, H = vals
     v = krylov_vectors[j, :]
     h = jax.numpy.vdot(v, jax.numpy.ravel(vector))
-    H = index_update(H, index[j, n], h)
+    H = jax.ops.index_update(H, jax.ops.index[j, n], h)
     vector = vector - h * v
     return [vector, krylov_vectors, n, H]
 
@@ -192,10 +192,12 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
     """
     Z = jax.numpy.linalg.norm(v0)
     v = v0 / Z
-    krylov_vectors = index_update(krylov_vectors, index[start, :], v)
-    H = jax.lax.cond(start > 0, start,
-                     lambda x: index_update(H, index[x, x - 1], Z), None,
-                     lambda x: H)
+    krylov_vectors = jax.ops.index_update(krylov_vectors,
+                                          jax.ops.index[start, :], v)
+    H = jax.lax.cond(
+        start > 0, start,
+        lambda x: jax.ops.index_update(H, jax.ops.index[x, x - 1], Z), None,
+        lambda x: H)
 
     def body(vals):
       krylov_vectors, H, matvec, vector, _, threshold, i, maxiter = vals
@@ -205,13 +207,14 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
           0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
       norm = jax.numpy.linalg.norm(Av)
       Av /= norm
-      H = index_update(H, index[i + 1, i], norm)
+      H = jax.ops.index_update(H, jax.ops.index[i + 1, i], norm)
 
       def update_krylov_vecs(args):
         krylov_vecs, vector, pos = args
-        return index_update(krylov_vecs, index[pos, :], Av)
+        return jax.ops.index_update(krylov_vecs, jax.ops.index[pos, :], Av)
 
-      krylov_vectors = index_update(krylov_vectors, index[i + 1, :], Av)
+      krylov_vectors = jax.ops.index_update(krylov_vectors,
+                                            jax.ops.index[i + 1, :], Av)
       return [krylov_vectors, H, matvec, Av, norm, threshold, i + 1, maxiter]
 
     def cond_fun(vals):
@@ -259,7 +262,7 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
     shifts, _ = funs[which](evals, p)
     #compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
-    q = index_update(q, index[-1], 1)
+    q = jax.ops.index_update(q, jax.ops.index[-1], 1)
     m = Hm.shape[0]
 
     for shift in shifts:
@@ -272,12 +275,13 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
     Vk = Vm[0:k, :]
     Hk = Hm[0:k, 0:k]
     H = jax.numpy.zeros((k + p + 1, k + p), dtype=fm.dtype)
-    H = index_update(H, index[0:k, 0:k], Hk)
+    H = jax.ops.index_update(H, jax.ops.index[0:k, 0:k], Hk)
     Z = jax.np.linalg.norm(fk)
     v = fk / Z
     krylov_vectors = jax.numpy.zeros((k + p + 1, Vm.shape[1]), dtype=fm.dtype)
-    krylov_vectors = index_update(krylov_vectors, index[0:k, :], Vk)
-    krylov_vectors = index_update(krylov_vectors, index[k:], v)
+    krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[0:k, :],
+                                          Vk)
+    krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[k:], v)
     return krylov_vectors, H, fk
 
   @partial(jax.jit, static_argnums=(2,))
@@ -286,3 +290,54 @@ def _generate_jitted_implicitly_rerstarted_arnoldi(jax):
     Hm = Hm_tmp[0:numits, 0:numits]
     fm = Vm_tmp[numits, :] * Hm_tmp[numits, numits - 1]
     return Vm, Hm, fm
+
+  def iram(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
+           maxiter):
+
+    N = np.prod(initial_state.shape)
+    p = num_krylov_vecs - numeig
+    if p < 2 or num_krylov_vecs > N:
+      raise ValueError()
+
+    dtype = initial_state.dtype
+    krylov_vectors = jax.numpy.zeros(
+        (num_krylov_vecs + 1, jax.numpy.ravel(initial_state).shape[0]),
+        dtype=dtype)
+    H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
+    Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
+        matvec, args, initial_state, krylov_vectors, H, 0, num_krylov_vecs, eps)
+    Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
+    it = 0
+    if which == 'LR':
+      _which = 0
+    elif which == 'LM':
+      _which = 1
+    else:
+      raise ValueError(f"{which} not implemented")
+
+    while (it < maxiter) and (not converged):
+      krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, numeig, p, _which)
+      Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
+          matvec, args, fk, krylov_vectors, H, numeig, num_krylov_vecs, eps)
+      Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
+      it += 1
+
+    eigvals, U = jax.numpy.linalg.eig(Hm)
+    _, inds = LR_sort(eigvals, _which)
+
+    def body_vector(i, vals):
+      krv, unitary, states, inds = vals
+      dim = unitary.shape[1]
+      n, m = jax.numpy.divmod(i, dim)
+      states = jax.ops.index_add(states, jax.ops.index[n, :],
+                                 krv[m, :] * unitary[m, inds[n]])
+      return [krv, unitary, states, inds]
+
+    state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=dtype)
+    _, _, vectors, _ = jax.lax.fori_loop(0, numeig * Vm.shape[0], body_vector,
+                                         [Vm, U, state_vectors, inds])
+    state_norms = jax.numpy.linalg.norm(vectors, axis=1)
+    vectors = vectors / state_norms[:, None]
+    return eigvals[inds[0:numeig]], vectors
+
+  return iram
