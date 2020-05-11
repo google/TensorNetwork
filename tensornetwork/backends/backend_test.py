@@ -310,13 +310,13 @@ def test_base_backend_eigh_not_implemented():
 def test_base_backend_eigs_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigs(np.ones((2, 2)), args=[])
+    backend.eigs(np.ones((2, 2)))
 
 
 def test_base_backend_eigs_lanczos_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(lambda x: x, [], np.ones((2)))
+    backend.eigsh_lanczos(lambda x: x, np.ones((2)))
 
 
 def test_base_backend_addition_not_implemented():
