@@ -453,10 +453,17 @@ class BlockSparseTensor(ChargeArray):
                              False)
 
   @classmethod
-  def fromdense(cls, indices, array) -> "BlockSparseTensor":
+  def fromdense(cls, indices: List[Index],
+                array: np.ndarray) -> "BlockSparseTensor":
     """
-    Map the sparse tensor to dense storage.
-    
+    Initialize a BlockSparseTensor from a dense array.
+    Args:
+      indices: A list of `Index` objects.
+      array: A numpy array.
+    Returns:
+      BlockSparseTensors: A Tensor initialized from the elements
+        of `array` at the positions where `indices` fuse to 
+        the identity charge.
     """
     shape = [i.dim for i in indices]
     if not np.array_equal(shape, array.shape):
@@ -477,9 +484,9 @@ class BlockSparseTensor(ChargeArray):
         flows=flows,
         target_charges=charges[0].identity_charges.unique_charges,
         return_locations=True)
+
     ar = np.ravel(array)
-    data = np.zeros(ar.shape[0], ar.dtype)
-    data[locs] = ar[locs]
+    data = ar[locs]
     return cls(
         data=data,
         charges=charges,
