@@ -74,8 +74,7 @@ class BaseDMRG:
           'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
           .format(self.right_envs[0].dtype, self.dtype))
 
-    def _single_site_matvec(mpstensor, args):
-      L, mpotensor, R = args
+    def _single_site_matvec(mpstensor, L, mpotensor, R):
       return ncon([L, mpstensor, mpotensor, R],
                   [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                   backend=self.backend.name)

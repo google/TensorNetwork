@@ -287,8 +287,8 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = np.linalg.eigh(H)
@@ -305,8 +305,8 @@ def test_eigsh_small_number_krylov_vectors():
   init = np.array([1, 1], dtype=np.float64)
   H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
-  def mv(x, args=[]):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
@@ -321,8 +321,8 @@ def test_eigsh_lanczos_1(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [], init)
   eta2, U2 = np.linalg.eigh(H)
@@ -342,8 +342,8 @@ def test_eigsh_lanczos_2(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [], shape=(D,), dtype=dtype)
   eta2, U2 = np.linalg.eigh(H)
@@ -364,8 +364,8 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, U1 = backend.eigsh_lanczos(
       mv, [],
@@ -517,8 +517,8 @@ def test_eigs(dtype, which):
   init = backend.randn((D,), dtype=dtype, seed=10)
   M = backend.randn((D, D), dtype=dtype, seed=10)
 
-  def mv(x, args=[]):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(M)
@@ -632,8 +632,8 @@ def test_eigs_raises_error_for_bad_initial_state():
   init = [1] * D
   M = backend.randn((D, D), dtype=np.float64)
 
-  def mv(x, args=[]):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   with pytest.raises(TypeError):
     backend.eigs(mv, initial_state=init)

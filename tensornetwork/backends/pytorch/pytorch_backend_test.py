@@ -259,8 +259,8 @@ def test_eigsh_lanczos_1():
   tmp = backend.randn((D, D), dtype=dtype)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=D)
   eta2, U2 = H.symeig(eigenvectors=True)
@@ -277,8 +277,8 @@ def test_eigsh_small_number_krylov_vectors():
   init = backend.convert_to_tensor(np.array([1, 1], dtype=np.float64))
   H = backend.convert_to_tensor(np.array([[1, 2], [3, 4]], dtype=np.float64))
 
-  def mv(x, args=[]):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
@@ -293,8 +293,8 @@ def test_eigsh_lanczos_reorthogonalize(numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
       mv, [],
@@ -325,8 +325,8 @@ def test_eigsh_lanczos_2():
   tmp = backend.randn((D, D), dtype=dtype)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x, args=[]):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
       mv, [],
