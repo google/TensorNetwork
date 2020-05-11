@@ -632,8 +632,8 @@ def test_eigs_raises_error_for_bad_initial_state():
   init = [1] * D
   M = backend.randn((D, D), dtype=np.float64)
 
-  def mv(x, mat):
-    return np.dot(mat, x)
+  def mv(x):
+    return np.dot(M, x)
 
   with pytest.raises(TypeError):
     backend.eigs(mv, initial_state=init)
