@@ -237,6 +237,8 @@ class ShellBackend(base_backend.BaseBackend):
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
            maxiter: Optional[int] = None) -> Tuple[List, List]:
+    if args is None:
+      args = []
 
     if num_krylov_vecs < numeig + 1:
       raise ValueError('`num_krylov_vecs` >= `numeig+1` required!')
@@ -266,6 +268,8 @@ class ShellBackend(base_backend.BaseBackend):
                     delta: float = 1E-8,
                     ndiag: int = 20,
                     reorthogonalize: bool = False) -> Tuple[List, List]:
+    if args is None:
+      args = []
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
