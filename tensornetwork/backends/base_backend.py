@@ -334,7 +334,7 @@ class BaseBackend:
 
   def eigs(self,
            A: Callable,
-           args: List,
+           args: Optional[List[Tensor]] = None,
            initial_state: Optional[Tensor] = None,
            shape: Optional[Tuple[int, ...]] = None,
            dtype: Optional[Type[np.number]] = None,
@@ -381,7 +381,7 @@ class BaseBackend:
 
   def eigsh_lanczos(self,
                     A: Callable,
-                    args: List,
+                    args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple[int, ...]] = None,
                     dtype: Optional[Type[np.number]] = None,

@@ -349,30 +349,30 @@ def test_eigsh_lanczos_raises():
   backend = pytorch_backend.PyTorchBackend()
   with pytest.raises(
       ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(
       ValueError,
       match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
       "Use `reorthogonalize=True` for `numeig > 1`"):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=torch.float64)
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=torch.float64)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [])
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(
       TypeError, match="Expected a `torch.Tensor`. Got <class 'list'>"):
-    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b, expected", [
@@ -478,7 +478,7 @@ def test_matrix_inv_raises(dtype):
 def test_eigs_not_implemented():
   backend = pytorch_backend.PyTorchBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigs(np.ones((2, 2)), [])
+    backend.eigs(np.ones((2, 2)))
 
 
 def test_broadcast_right_multiplication():
