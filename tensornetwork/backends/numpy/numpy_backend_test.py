@@ -520,7 +520,7 @@ def test_eigs(dtype, which):
   def mv(x):
     return np.dot(M, x)
 
-  eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
+  eta1, U1 = backend.eigs(mv, [], init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(M)
   val, index = find(which, eta2)
   v2 = U2[:, index]
@@ -536,35 +536,20 @@ def test_eigs_raises_error_for_unsupported_which(which):
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigs(A=A, which=which)
+    backend.eigs(A=A, [], which=which)
 
 
-def test_eigs_raises_error_for_incompatible_shapes():
+def test_eigs_raises():
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   init = backend.randn((3,), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigs(A, initial_state=init)
-
-
-def test_eigs_raises_error_for_unshaped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  print(hasattr(A, "shape"))
-  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
-
-
-def test_eigs_raises_error_for_untyped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
+  with pytest.raises(ValueError, match=""):
+    backend.eigs(A, [], initial_state=init, num_krylov_vecs=10, numeig=9)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])

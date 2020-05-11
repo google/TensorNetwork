@@ -77,6 +77,7 @@ def _generate_jitted_eigsh_lanczos(jax):
                                       [normalized_vector, krylov_vectors]),
           False, lambda x: [normalized_vector, krylov_vectors])
       Av = matvec(*args, normalized_vector)
+      #Av = matvec(normalized_vector, args)
 
       diag_element = jax.numpy.dot(
           jax.numpy.conj(jax.numpy.ravel(normalized_vector)),
