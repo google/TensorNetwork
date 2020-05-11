@@ -334,24 +334,31 @@ class BaseBackend:
 
   def eigs(self,
            A: Callable,
+           args: List,
            initial_state: Optional[Tensor] = None,
-           num_krylov_vecs: Optional[int] = 200,
-           numeig: Optional[int] = 1,
-           tol: Optional[float] = 1E-8,
-           which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> List[Tensor]:
-    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs of a
-    linear operator `A`. `A` can be either a linear operator type object or a
-    regular callable. If no `initial_state` is provided then `A` has to have an
-    attribute `shape` so that a suitable initial state can be randomly
-    generated.
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
+           num_krylov_vecs: int = 50,
+           numeig: int = 1,
+           tol: float = 1E-8,
+           which: Text = 'LR',
+           maxiter: Optional[int] = None) -> List[Tensor]:
+    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs 
+    of a linear operator `A`. `A` is a callable implementing the 
+    matrix-vector product. If no `initial_state` is provided then 
+    `shape` and `dtype` have to be passed so that a suitable initial 
+    state can be randomly  generated.
 
     Args:
       A: A (sparse) implementation of a linear operator
-      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn`
         method.
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
