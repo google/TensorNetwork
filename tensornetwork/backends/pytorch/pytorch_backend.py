@@ -187,10 +187,10 @@ class PyTorchBackend(base_backend.BaseBackend):
     of a `LinearOperator` `A`.
     Args:
       A: A (sparse) implementation of a linear operator.
-         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         Call signature of `A` is `res = A(vector, args)`, where `vector`
          can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
       arsg: A list of arguments to `A`.  `A` will be called as
-        `res = A(*args, initial_state)`.
+        `res = A(initial_state, args)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `torch.randn` method
       shape: The shape of the input-dimension of `A`.
@@ -257,7 +257,7 @@ class PyTorchBackend(base_backend.BaseBackend):
           vector_n -= (v.view(-1).dot(vector_n.view(-1))) * torchlib.reshape(
               v, vector_n.shape)
       krylov_vecs.append(vector_n)
-      A_vector_n = A(*args, vector_n)
+      A_vector_n = A(vector_n, args)
       diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
