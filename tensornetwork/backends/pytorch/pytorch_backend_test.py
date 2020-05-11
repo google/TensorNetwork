@@ -262,7 +262,7 @@ def test_eigsh_lanczos_1():
   def mv(x, mat):
     return mat.mv(x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=D)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=D)
   eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -280,7 +280,7 @@ def test_eigsh_small_number_krylov_vectors():
   def mv(x, mat):
     return mat.mv(x)
 
-  eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -297,7 +297,7 @@ def test_eigsh_lanczos_reorthogonalize(numeig):
     return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      mv, [],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
@@ -329,7 +329,7 @@ def test_eigsh_lanczos_2():
     return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      mv, [],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       reorthogonalize=True,
