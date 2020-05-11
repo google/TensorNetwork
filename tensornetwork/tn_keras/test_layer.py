@@ -7,10 +7,11 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
+from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[256, 1024])
+@pytest.fixture(params=[512, 4096])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -19,7 +20,7 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO'])
+@pytest.fixture(params=['DenseDecomp', 'DenseMPO', 'DenseEntangler'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -29,13 +30,13 @@ def make_model(dummy_data, request):
     model = Sequential()
     model.add(
         DenseMPO(data.shape[1],
-                 num_nodes=int(math.log(int(data.shape[1]), 4)),
+                 num_nodes=int(math.log(int(data.shape[1]), 8)),
                  bond_dim=8,
                  use_bias=True,
                  activation='relu',
                  input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  else:
+  elif request.param == 'DenseDecomp':
     model = Sequential()
     model.add(
         DenseDecomp(512,
@@ -43,6 +44,20 @@ def make_model(dummy_data, request):
                     use_bias=True,
                     activation='relu',
                     input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  else:
+    num_legs = 3
+    leg_dim = round(data.shape[-1]**(1. / num_legs))
+    assert leg_dim**num_legs == data.shape[-1]
+
+    model = Sequential()
+    model.add(
+        DenseEntangler(leg_dim**num_legs,
+                       num_legs=num_legs,
+                       num_levels=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
 
   return model
@@ -58,8 +73,8 @@ def test_train(dummy_data, make_model):
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
 
-  # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=10, batch_size=32)
+  # Train the model for 5 epochs
+  history = model.fit(data, labels, epochs=5, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
@@ -127,7 +142,7 @@ def test_mpo_num_parameters(dummy_data):
   # pylint: disable=redefined-outer-name
   data, _ = dummy_data
   output_dim = data.shape[1]
-  num_nodes = int(math.log(data.shape[1], 4))
+  num_nodes = int(math.log(data.shape[1], 8))
   bond_dim = 8
 
   model = Sequential()
@@ -139,13 +154,38 @@ def test_mpo_num_parameters(dummy_data):
                activation='relu',
                input_shape=(data.shape[1],)))
 
-  in_leg_dim = int(data.shape[1]**(1. / num_nodes))
-  out_leg_dim = int(output_dim**(1. / num_nodes))
+  in_leg_dim = math.ceil(data.shape[1]**(1. / num_nodes))
+  out_leg_dim = math.ceil(output_dim**(1. / num_nodes))
 
   # num_params = num_edge_node_params + num_middle_node_params + bias_params
   expected_num_parameters = (2 * in_leg_dim * bond_dim * out_leg_dim) + (
       (num_nodes - 2) * in_leg_dim * bond_dim * bond_dim *
       out_leg_dim) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_entangler_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+
+  num_legs = 3
+  num_levels = 3
+  leg_dim = round(data.shape[-1]**(1. / num_legs))
+  assert leg_dim**num_legs == data.shape[-1]
+
+  model = Sequential()
+  model.add(
+      DenseEntangler(leg_dim**num_legs,
+                     num_legs=num_legs,
+                     num_levels=num_levels,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=(data.shape[1],)))
+
+  # num_params = entangler_node_params + bias_params
+  expected_num_parameters = num_levels * (leg_dim**4) + leg_dim**num_legs
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
@@ -164,6 +204,8 @@ def test_config(make_model):
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
     new_model = DenseDecomp.from_config(layer_config)
+  elif 'entangler' in model.layers[0].name:
+    new_model = DenseEntangler.from_config(layer_config)
 
   # Build the layer so we can count params below
   new_model.build(layer_config['batch_input_shape'])
