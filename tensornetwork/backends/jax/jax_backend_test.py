@@ -308,10 +308,10 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta1, U1 = backend.eigsh_lanczos(matvec, [H], init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -326,10 +326,10 @@ def test_eigsh_small_number_krylov_vectors():
   init = np.array([1, 1], dtype=np.float64)
   H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta1, _ = backend.eigsh_lanczos(matvec, [H], init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -342,7 +342,7 @@ def test_eigsh_lanczos_1(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
@@ -363,7 +363,7 @@ def test_eigsh_lanczos_2(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
@@ -385,11 +385,11 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      matvec, [H],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       numeig=numeig,

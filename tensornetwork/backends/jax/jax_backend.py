@@ -330,10 +330,10 @@ class JaxBackend(base_backend.BaseBackend):
     
     Args:
       A: A (sparse) implementation of a linear operator.
-         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
          can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
       arsg: A list of arguments to `A`.  `A` will be called as
-        `res = A(*args, initial_state)`.
+        `res = A(initial_state, *args)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       shape: The shape of the input-dimension of `A`.

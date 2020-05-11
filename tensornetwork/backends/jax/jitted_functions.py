@@ -21,7 +21,7 @@ def _generate_jitted_eigsh_lanczos(jax):
   ```
   `matvec`: A callable implementing the matrix-vector product of a 
   linear operator. `arguments`: Arguments to `matvec` additional to 
-  an input vector. `matvec` will be called as `matvec(*args, init)`.
+  an input vector. `matvec` will be called as `matvec(init, *args)`.
   `init`: An initial input state to `matvec`.
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
@@ -45,7 +45,7 @@ def _generate_jitted_eigsh_lanczos(jax):
       matvec: A callable implementing the matrix-vector product of a 
         linear operator.
       arguments: Arguments to `matvec` additional to an input vector. 
-        `matvec` will be called as `matvec(*args, init)`.
+        `matvec` will be called as `matvec(init, *args)`.
       init: An initial input state to `matvec`.
       ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
       neig: Number of eigenvalue-eigenvector pairs to be computed.
@@ -76,8 +76,7 @@ def _generate_jitted_eigsh_lanczos(jax):
           lambda x: jax.lax.fori_loop(0, i, body_modified_gram_schmidt,
                                       [normalized_vector, krylov_vectors]),
           False, lambda x: [normalized_vector, krylov_vectors])
-      Av = matvec(*args, normalized_vector)
-      #Av = matvec(normalized_vector, args)
+      Av = matvec(normalized_vector, *args)
 
       diag_element = jax.numpy.dot(
           jax.numpy.conj(jax.numpy.ravel(normalized_vector)),
