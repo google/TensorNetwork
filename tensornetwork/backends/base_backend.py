@@ -334,7 +334,7 @@ class BaseBackend:
 
   def eigs(self,
            A: Callable,
-           args: List,
+           args: Optional[List[Tensor]] = None,
            initial_state: Optional[Tensor] = None,
            shape: Optional[Tuple[int, ...]] = None,
            dtype: Optional[Type[np.number]] = None,
@@ -343,16 +343,15 @@ class BaseBackend:
            tol: float = 1E-8,
            which: Text = 'LR',
            maxiter: Optional[int] = None) -> List[Tensor]:
-    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs of a
-    linear operator `A`. `A` can be either a linear operator type object or a
-    regular callable. If no `initial_state` is provided then `A` has to have an
-    attribute `shape` so that a suitable initial state can be randomly
-    generated.
-
+    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs 
+    of a linear operator `A`. `A` is a callable implementing the 
+    matrix-vector product. If no `initial_state` is provided then 
+    `shape` and `dtype` have to be passed so that a suitable initial 
+    state can be randomly  generated.
     Args:
       A: A (sparse) implementation of a linear operator
       arsg: A list of arguments to `A`.  `A` will be called as
-        `res = A(*args, initial_state)`.
+        `res = A(initial_state, *args)`.
       initial_state: An initial vector for the algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn`
         method.
@@ -381,7 +380,7 @@ class BaseBackend:
 
   def eigsh_lanczos(self,
                     A: Callable,
-                    args: List,
+                    args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple[int, ...]] = None,
                     dtype: Optional[Type[np.number]] = None,

@@ -178,7 +178,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def eigs(self,
            A: Callable,
-           args: List,
+           args: Optional[List] = None,
            initial_state: Optional[Tensor] = None,
            shape: Optional[Tuple[int, ...]] = None,
            dtype: Optional[Type[np.number]] = None,
@@ -198,8 +198,8 @@ class NumPyBackend(base_backend.BaseBackend):
 
     Args:
       A: A (sparse) implementation of a linear operator
-      arsg: A list of arguments to `A`.  `A` will be called as
-        `res = A(*args, initial_state)`.
+      args: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
       initial_state: An initial vector for the algorithm. If `None`,
         a random initial `Tensor` is created using the `numpy.random.randn`
         method.
@@ -224,6 +224,8 @@ class NumPyBackend(base_backend.BaseBackend):
        `np.ndarray`: An array of `numeig` lowest eigenvalues
        `np.ndarray`: An array of `numeig` lowest eigenvectors
     """
+    if args is None:
+      args = []
     if which == 'SI':
       raise ValueError('which = SI is currently not supported.')
     if which == 'LI':
@@ -243,10 +245,9 @@ class NumPyBackend(base_backend.BaseBackend):
           type(initial_state)))
 
     shape = initial_state.shape
-    print(shape)
 
     def matvec(vector):
-      return np.ravel(A(*args, np.reshape(vector, shape)))
+      return np.ravel(A(np.reshape(vector, shape), *args))
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
@@ -269,7 +270,7 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def eigsh_lanczos(self,
                     A: Callable,
-                    args: List,
+                    args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple] = None,
                     dtype: Optional[Type[np.number]] = None,
@@ -314,6 +315,9 @@ class NumPyBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
+    if args is None:
+      args = []
+
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 

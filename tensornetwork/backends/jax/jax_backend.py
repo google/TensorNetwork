@@ -283,7 +283,7 @@ class JaxBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
-      args: List[Tensor],
+      args: Optional[List[Tensor]] = None,
       initial_state: Optional[Tensor] = None,
       shape: Optional[Tuple] = None,
       dtype: Optional[Type[np.number]] = None,

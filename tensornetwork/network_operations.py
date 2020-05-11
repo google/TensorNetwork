@@ -888,10 +888,14 @@ def get_neighbors(node: BaseNode) -> List[Node]:
     All of the neighboring edges that share an `Edge` with `node`.
   """
   neighbors = []
+  neighbors_set = set()
   for edge in node.edges:
     if not edge.is_dangling() and not edge.is_trace():
       if edge.node1 is node:
-        neighbors.append(edge.node2)
-      else:
+        if edge.node2 not in neighbors_set:
+          neighbors.append(edge.node2)
+          neighbors_set.add(edge.node2)
+      elif edge.node1 not in neighbors_set:
         neighbors.append(edge.node1)
+        neighbors_set.add(edge.node1)
   return neighbors
