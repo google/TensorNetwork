@@ -517,10 +517,10 @@ def test_eigs(dtype, which):
   init = backend.randn((D,), dtype=dtype, seed=10)
   M = backend.randn((D, D), dtype=dtype, seed=10)
 
-  def mv(x):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-  eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
+  eta1, U1 = backend.eigs(mv, [M], init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(M)
   val, index = find(which, eta2)
   v2 = U2[:, index]
@@ -536,62 +536,41 @@ def test_eigs_raises_error_for_unsupported_which(which):
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigs(A=A, which=which)
+    backend.eigs(A=A, args=[], which=which)
 
 
-def test_eigs_raises_error_for_incompatible_shapes():
+def test_eigs_raises():
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   init = backend.randn((3,), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigs(A, initial_state=init)
+  with pytest.raises(ValueError, match=""):
+    backend.eigs(A, [], initial_state=init, num_krylov_vecs=10, numeig=9)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
 
 
-def test_eigs_raises_error_for_unshaped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  print(hasattr(A, "shape"))
-  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
-
-
-def test_eigs_raises_error_for_untyped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
-
-
-@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
-def test_eigs_no_init(dtype, which):
+def test_eigs_no_init(which):
   backend = numpy_backend.NumPyBackend()
+  dtype = np.complex128
   D = 16
   np.random.seed(10)
   H = backend.randn((D, D), dtype=dtype, seed=10)
 
-  class LinearOperator:
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigs(mv, numeig=1, which=which)
+  eta1, U1 = backend.eigs(
+      mv, [H], shape=(D,), dtype=dtype, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(H)
   val, index = find(which, eta2)
   v2 = U2[:, index]
-  v2 = v2 / sum(v2)
+  v2 = v2 / np.sum(v2)
   v1 = np.reshape(U1[0], (D))
-  v1 = v1 / sum(v1)
+  v1 = v1 / np.sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)
 
@@ -605,17 +584,10 @@ def test_eigs_init(dtype, which):
   H = backend.randn((D, D), dtype=dtype, seed=10)
   init = backend.randn((D,), dtype=dtype)
 
-  class LinearOperator:
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigs(mv, initial_state=init, numeig=1, which=which)
+  eta1, U1 = backend.eigs(mv, [H], initial_state=init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(H)
   val, index = find(which, eta2)
   v2 = U2[:, index]
@@ -632,11 +604,11 @@ def test_eigs_raises_error_for_bad_initial_state():
   init = [1] * D
   M = backend.randn((D, D), dtype=np.float64)
 
-  def mv(x):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   with pytest.raises(TypeError):
-    backend.eigs(mv, initial_state=init)
+    backend.eigs(mv, [M], initial_state=init)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
