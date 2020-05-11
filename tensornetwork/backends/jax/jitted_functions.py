@@ -75,7 +75,7 @@ def _generate_jitted_eigsh_lanczos(jax):
           lambda x: jax.lax.fori_loop(0, i, body_modified_gram_schmidt,
                                       [normalized_vector, krylov_vectors]),
           False, lambda x: [normalized_vector, krylov_vectors])
-      Av = matvec(normalized_vector, args)
+      Av = matvec(normalized_vector, *args)
 
       diag_element = jax.numpy.dot(
           jax.numpy.conj(jax.numpy.ravel(normalized_vector)),
