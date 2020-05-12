@@ -95,14 +95,14 @@ class DenseEntangler(Layer):
     super(DenseEntangler, self).build(input_shape)
 
     # Ensure input dim and output dim match
-    assert input_shape[-1] == self.output_dim, \
-      f'Input dim {input_shape[-1]} and output dim \
-      {self.output_dim} must match.'
+    assert (
+        input_shape[-1] == self.output_dim
+    ), f'Input dim {input_shape[-1]} not equal to output dim {self.output_dim}'
 
     # Ensure the Entangler dimensions will work
-    assert is_perfect_root(input_shape[-1], self.num_legs), \
-      f'Input dim incorrect.\
-      {input_shape[-1]}**(1. / {self.num_legs}) must be round.'
+    assert (
+        is_perfect_root(input_shape[-1], self.num_legs)
+    ), f'Input dim {input_shape[-1]}**(1. / {self.num_legs}) must be round.'
 
     self.leg_dim = round(input_shape[-1]**(1. / self.num_legs))
     self.num_nodes = self.num_levels
@@ -121,7 +121,7 @@ class DenseEntangler(Layer):
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, num_legs: int,
           leg_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
