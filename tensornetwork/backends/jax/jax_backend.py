@@ -256,7 +256,7 @@ class JaxBackend(base_backend.BaseBackend):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
     if A not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
     if not hasattr(self, '_iram'):
       # pylint: disable=attribute-defined-outside-init
       self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
