@@ -7,10 +7,11 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
+from tensornetwork.tn_keras.expander import DenseExpander
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[256, 1024])
+@pytest.fixture(params=[256])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -19,7 +20,7 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO'])
+@pytest.fixture(params=['DenseDecomp', 'DenseMPO', 'DenseExpander'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -35,7 +36,7 @@ def make_model(dummy_data, request):
                  activation='relu',
                  input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  else:
+  elif request.param == 'DenseDecomp':
     model = Sequential()
     model.add(
         DenseDecomp(512,
@@ -43,6 +44,14 @@ def make_model(dummy_data, request):
                     use_bias=True,
                     activation='relu',
                     input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  else:
+    model = Sequential()
+    model.add(
+        DenseExpander(num_nodes=1,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(data.shape[-1],)))
     model.add(Dense(1, activation='sigmoid'))
 
   return model
@@ -59,7 +68,7 @@ def test_train(dummy_data, make_model):
                 metrics=['accuracy'])
 
   # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=10, batch_size=32)
+  history = model.fit(data, labels, epochs=5, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
@@ -164,6 +173,8 @@ def test_config(make_model):
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
     new_model = DenseDecomp.from_config(layer_config)
+  elif 'expander' in model.layers[0].name:
+    new_model = DenseExpander.from_config(layer_config)
 
   # Build the layer so we can count params below
   new_model.build(layer_config['batch_input_shape'])
