@@ -212,7 +212,7 @@ def test_eigsh_lanczos_1():
   D = 16
   init = backend.randn((D,))
   eigvals, eigvecs = backend.eigsh_lanczos(
-      lambda x: x, [], init, numeig=3, reorthogonalize=True)
+      lambda x: x, initial_state=init, numeig=3, reorthogonalize=True)
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
     assert ev.shape == tuple()
@@ -226,7 +226,7 @@ def test_eigsh_lanczos_shape():
     return x
 
   eigvals, eigvecs = backend.eigsh_lanczos(
-      mv, [], shape=(D,), dtype=np.float64, numeig=3, reorthogonalize=True)
+      mv, shape=(D,), dtype=np.float64, numeig=3, reorthogonalize=True)
 
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
@@ -242,7 +242,7 @@ def test_eigsh_lanczos_init_shape():
     return x
 
   eigvals, eigvecs = backend.eigsh_lanczos(
-      mv, [], numeig=3, initial_state=init, reorthogonalize=True)
+      mv, numeig=3, initial_state=init, reorthogonalize=True)
   for n, ev in enumerate(eigvals):
     assert eigvecs[n].shape == (D,)
     assert ev.shape == tuple()
@@ -251,17 +251,17 @@ def test_eigsh_lanczos_init_shape():
 def test_eigsh_lanczos_raises():
   backend = shell_backend.ShellBackend()
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigsh_lanczos(lambda x: x, [])
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(TypeError):
-    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b", [
@@ -282,21 +282,16 @@ def test_eigh():
 
 def test_eigs():
   backend = shell_backend.ShellBackend()
-  eta, v = backend.eigs(lambda x: x, initial_state=np.random.rand(2), numeig=2)
+  init = shell_backend.ShellTensor((2,), np.float64)
+  eta, v = backend.eigs(lambda x: x, initial_state=init, numeig=2)
   assert len(eta) == 2
   for n in range(len(eta)):
     assert v[n].shape == (2,)
 
-  class MV:
+  def mv(x):
+    return x
 
-    def __init__(self, shape):
-      self.shape = shape
-
-    def __call__(self, x):
-      return x
-
-  mv = MV((2, 2))
-  eta, v = backend.eigs(mv, numeig=2)
+  eta, v = backend.eigs(mv, shape=(2,), dtype=np.float64, numeig=2)
   assert len(eta) == 2
   for n in range(len(eta)):
     assert v[n].shape == (2,)
@@ -305,39 +300,36 @@ def test_eigs():
 def test_eigs_initial_state_shape():
   backend = shell_backend.ShellBackend()
 
-  class MV:
+  def mv(x):
+    return x
 
-    def __init__(self, shape):
-      self.shape = shape
-
-    def __call__(self, x):
-      return x
-
-  mv = MV(((2,), (2,)))
-  eta, v = backend.eigs(mv, backend.randn((2,)))
+  eta, v = backend.eigs(mv, initial_state=backend.randn((2,)))
   assert len(eta) == 1
   for n in range(len(eta)):
     assert v[n].shape == (2,)
 
 
 def test_eigs_raises():
-
-  class MV:
-
-    def __init__(self, shape):
-      self.shape = shape
-
-    def __call__(self, x):
-      return x
-
   backend = shell_backend.ShellBackend()
-  mv = MV((2, 2))
   with pytest.raises(ValueError):
-    backend.eigs(mv, initial_state=np.random.rand(3))
-  with pytest.raises(AttributeError):
+    backend.eigs(lambda x: x, numeig=10, num_krylov_vecs=10)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(lambda x: x, shape=(10,), dtype=None)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(lambda x: x, shape=None, dtype=np.float64)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
     backend.eigs(lambda x: x)
-  with pytest.raises(ValueError):
-    backend.eigs(np.random.rand(2, 2), initial_state=np.random.rand(3))
+  with pytest.raises(TypeError):
+    backend.eigs(lambda x: x, initial_state=[1, 2, 3])
 
 
 def index_update():

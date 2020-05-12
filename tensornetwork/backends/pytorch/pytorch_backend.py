@@ -172,7 +172,7 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def eigsh_lanczos(self,
                     A: Callable,
-                    args: List,
+                    args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple] = None,
                     dtype: Optional[Type[np.number]] = None,
@@ -217,6 +217,8 @@ class PyTorchBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
+    if args is None:
+      args = []
     #TODO: make this work for tensorflow in graph mode
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')

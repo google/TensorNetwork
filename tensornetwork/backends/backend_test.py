@@ -316,7 +316,7 @@ def test_base_backend_eigs_not_implemented():
 def test_base_backend_eigs_lanczos_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(lambda x: x, [], np.ones((2)))
+    backend.eigsh_lanczos(lambda x: x, np.ones((2)))
 
 
 def test_base_backend_addition_not_implemented():
@@ -401,6 +401,8 @@ def test_base_backend_broadcast_left_multiplication_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.broadcast_left_multiplication(np.ones((2, 2)), np.ones((2, 2)))
+
+
 def test_backend_instantiation(backend):
   backend1 = backend_factory.get_backend(backend)
   backend2 = backend_factory.get_backend(backend)
