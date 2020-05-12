@@ -401,6 +401,41 @@ def test_todense(num_charges, chargetype):
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_fromdense(num_charges, chargetype):
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = 4
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  charges = [get_charge(chargetype, num_charges, Ds[n]) for n in range(rank)]
+  fused = fuse_charges(charges, flows)
+  mask = fused == np.zeros((num_charges, 1))
+  inds = np.nonzero(mask)[0]
+  inds2 = np.nonzero(np.logical_not(mask))[0]
+  indices = [Index(charges[n], flows[n]) for n in range(rank)]
+
+  dense = np.random.random_sample(Ds)
+  arr = BlockSparseTensor.fromdense(indices, dense)
+  dense_arr = arr.todense()
+
+  np.testing.assert_allclose(np.ravel(dense)[inds], arr.data)
+  np.testing.assert_allclose(np.ravel(dense_arr)[inds2], 0)
+
+
+def test_fromdense_raises():
+  np.random.seed(10)
+  Ds = [8, 9, 10, 11]
+  rank = len(Ds)
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  charges = [U1Charge.random(Ds[n], -5, 5) for n in range(rank)]
+  indices = [Index(charges[n], flows[n]) for n in range(rank)]
+
+  dense = np.random.random_sample([8, 9, 9, 11])
+  with pytest.raises(ValueError):
+    _ = BlockSparseTensor.fromdense(indices, dense)
+
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
 @pytest.mark.parametrize('op', [np.add, np.subtract])
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_add_sub(op, dtype, num_charges, chargetype):
