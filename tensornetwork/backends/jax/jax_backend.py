@@ -289,17 +289,17 @@ class JaxBackend(base_backend.BaseBackend):
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
-      tol: The desired precision of the eigenvalus. Uses
-        `np.linalg.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
-        as stopping criterion between two diagonalization steps of the
-        tridiagonal operator.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not 
+        guaranteed. This feature may be added at a later point.
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector :math: `x_n` has an L2 norm
         :math:`\\lVert x_n\\rVert < delta`, the iteration
         is stopped. It means that an (approximate) invariant subspace has
         been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
-        to check convergence.
+        to check convergence. This has currently no effect for the jax backend, 
+        but may be added at a later point.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
