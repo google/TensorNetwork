@@ -178,16 +178,16 @@ class DenseEntangler(Layer):
     config = {}
 
     # Include the Entangler-specific arguments
-    mpo_args = ['output_dim', 'num_legs', 'num_levels', 'use_bias']
-    for arg in mpo_args:
+    args = ['output_dim', 'num_legs', 'num_levels', 'use_bias']
+    for arg in args:
       config[arg] = getattr(self, arg)
 
     # Serialize the activation
     config['activation'] = activations.serialize(getattr(self, 'activation'))
 
     # Serialize the initializers
-    mpo_initializers = ['kernel_initializer', 'bias_initializer']
-    for initializer_arg in mpo_initializers:
+    layer_initializers = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in layer_initializers:
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 
