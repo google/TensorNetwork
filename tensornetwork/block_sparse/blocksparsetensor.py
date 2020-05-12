@@ -18,7 +18,7 @@ from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition
+from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition, reduce_charges
 from tensornetwork.block_sparse.charge import fuse_charges, BaseCharge, intersect, charge_equal
 import copy
 # pylint: disable=line-too-long
@@ -451,6 +451,48 @@ class BlockSparseTensor(ChargeArray):
                              [c.copy() for c in self._charges],
                              self._flows.copy(), copy.deepcopy(self._order),
                              False)
+
+  @classmethod
+  def fromdense(cls, indices: List[Index],
+                array: np.ndarray) -> "BlockSparseTensor":
+    """
+    Initialize a BlockSparseTensor from a dense array.
+    Args:
+      indices: A list of `Index` objects.
+      array: A numpy array.
+    Returns:
+      BlockSparseTensors: A Tensor initialized from the elements
+        of `array` at the positions where `indices` fuse to 
+        the identity charge.
+    """
+    shape = [i.dim for i in indices]
+    if not np.array_equal(shape, array.shape):
+      raise ValueError(
+          f"Cannot initialize an BlockSparseTensor of shape {shape}"
+          f" from an array of shape {array.shape}")
+    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+
+    charges = []
+    flows = []
+    for i in indices:
+      charges.extend(i.flat_charges)
+      flows.extend(i.flat_flows)
+
+    _, locs = reduce_charges(
+        charges=charges,
+        flows=flows,
+        target_charges=charges[0].identity_charges.unique_charges,
+        return_locations=True)
+
+    ar = np.ravel(array)
+    data = ar[locs]
+    return cls(
+        data=data,
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=False)
 
   def todense(self) -> np.ndarray:
     """
