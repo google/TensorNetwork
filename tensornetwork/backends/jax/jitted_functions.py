@@ -165,7 +165,7 @@ def _implicitly_restarted_arnoldi(jax):
     v = krylov_vectors[j, :]
     h = jax.numpy.vdot(v, jax.numpy.ravel(vector))
     H = jax.ops.index_update(H, jax.ops.index[j, n], h)
-    vector = vector - h * v
+    vector = vector - h * jax.numpy.reshape(v, vector.shape)
     return [vector, krylov_vectors, n, H]
 
   @partial(jax.jit, static_argnums=(5, 6, 7))
@@ -177,7 +177,7 @@ def _implicitly_restarted_arnoldi(jax):
     Args:
       matvec: The matrix vector product.
       args: List of arguments to `matvec`.
-      v0: Initial state to `matvev`.
+      v0: Initial state to `matvec`.
       krylov_vectors: An array for storing the krylov vectors. The individual
         vectors are stored as columns.
       H: Matrix of overlaps.
@@ -193,7 +193,8 @@ def _implicitly_restarted_arnoldi(jax):
     Z = jax.numpy.linalg.norm(v0)
     v = v0 / Z
     krylov_vectors = jax.ops.index_update(krylov_vectors,
-                                          jax.ops.index[start, :], v)
+                                          jax.ops.index[start, :],
+                                          jax.numpy.ravel(v))
     H = jax.lax.cond(
         start > 0, start,
         lambda x: jax.ops.index_update(H, jax.ops.index[x, x - 1], Z), None,
@@ -201,20 +202,22 @@ def _implicitly_restarted_arnoldi(jax):
 
     def body(vals):
       krylov_vectors, H, matvec, vector, _, threshold, i, maxiter = vals
-      Av = matvec(*args, vector)
+      Av = matvec(vector, *args)
       initial_vals = [Av, krylov_vectors, i, H]
       Av, krylov_vectors, _, H = jax.lax.fori_loop(
           0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
-      norm = jax.numpy.linalg.norm(Av)
+      norm = jax.numpy.linalg.norm(jax.numpy.ravel(Av))
       Av /= norm
       H = jax.ops.index_update(H, jax.ops.index[i + 1, i], norm)
 
       def update_krylov_vecs(args):
         krylov_vecs, vector, pos = args
-        return jax.ops.index_update(krylov_vecs, jax.ops.index[pos, :], Av)
+        return jax.ops.index_update(krylov_vecs, jax.ops.index[pos, :],
+                                    jax.numpy.ravel(Av))
 
       krylov_vectors = jax.ops.index_update(krylov_vectors,
-                                            jax.ops.index[i + 1, :], Av)
+                                            jax.ops.index[i + 1, :],
+                                            jax.numpy.ravel(Av))
       return [krylov_vectors, H, matvec, Av, norm, threshold, i + 1, maxiter]
 
     def cond_fun(vals):
@@ -318,7 +321,8 @@ def _implicitly_restarted_arnoldi(jax):
     while (it < maxiter) and (not converged):
       krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, numeig, p, _which)
       Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
-          matvec, args, fk, krylov_vectors, H, numeig, num_krylov_vecs, eps)
+          matvec, args, jax.numpy.reshape(fk, initial_state.shape),
+          krylov_vectors, H, numeig, num_krylov_vecs, eps)
       Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
       it += 1
 
@@ -338,6 +342,9 @@ def _implicitly_restarted_arnoldi(jax):
                                          [Vm, U, state_vectors, inds])
     state_norms = jax.numpy.linalg.norm(vectors, axis=1)
     vectors = vectors / state_norms[:, None]
-    return eigvals[inds[0:numeig]], vectors
+    return eigvals[inds[0:numeig]], [
+        jax.numpy.reshape(vectors[n, :], initial_state.shape)
+        for n in range(numeig)
+    ]
 
   return iram
