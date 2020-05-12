@@ -257,11 +257,18 @@ class JaxBackend(base_backend.BaseBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
-    if not hasattr(self, '_jaxlan'):
+    if not hasattr(self, '_iram'):
       # pylint: disable=attribute-defined-outside-init
-      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
-
-    iram_jax_2 = jitted_functions._implicitly_restarted_arnoldi(jax)
+      self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
+    return self._iram(
+        matvec=_CACHED_MATVECS[A],
+        args=args,
+        initial_state=initial_state,
+        num_krylov_vecs=num_krylov_vecs,
+        numeig=numeig,
+        which=which,
+        eps=np.sqrt(1 / 2),
+        maxiter=maxiter)
 
   def eigsh_lanczos(
       self,
