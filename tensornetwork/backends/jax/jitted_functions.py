@@ -1,5 +1,6 @@
 from functools import partial
 import numpy as np
+import time
 from typing import Any, Callable, List
 Tensor = Any
 
@@ -169,9 +170,8 @@ def _implicitly_restarted_arnoldi(jax):
     return [vector, krylov_vectors, n, H]
 
   @partial(jax.jit, static_argnums=(5, 6, 7))
-  def _arnoldi_factorization(matvec: Callable, args: List, v0: Tensor,
-                             krylov_vectors: Tensor, H: Tensor, start: int,
-                             num_krylov_vecs: int, eps: float):
+  def _arnoldi_factorization(matvec, args, v0, krylov_vectors, H, start,
+                             num_krylov_vecs, eps):
     """
     Compute an arnoldi factorization of `matvec`.
     Args:
@@ -258,10 +258,10 @@ def _implicitly_restarted_arnoldi(jax):
   ########################################################
   ########################################################
 
-  @partial(jax.jit, static_argnums=(3, 4, 5))
-  def shifted_QR(Vm, Hm, fm, k, p, which):
+  @partial(jax.jit, static_argnums=(4, 5, 6))
+  def shifted_QR(Vm, Hm, fm, evals, k, p, which):
     funs = [LR_sort, LM_sort]
-    evals, _ = jax.np.linalg.eig(Hm)
+    #evals, _ = jax.np.linalg.eig(Hm)
     shifts, _ = funs[which](evals, p)
     #compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
@@ -294,6 +294,26 @@ def _implicitly_restarted_arnoldi(jax):
     fm = Vm_tmp[numits, :] * Hm_tmp[numits, numits - 1]
     return Vm, Hm, fm
 
+  @partial(jax.jit, static_argnums=(3,))
+  def get_vectors(Vm, unitary, inds, numeig):
+
+    def body_vector(i, vals):
+      krv, unitary, states, inds = vals
+      dim = unitary.shape[1]
+      n, m = jax.numpy.divmod(i, dim)
+      states = jax.ops.index_add(states, jax.ops.index[n, :],
+                                 krv[m, :] * unitary[m, inds[n]])
+      return [krv, unitary, states, inds]
+
+    state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=Vm.dtype)
+    t1 = time.time()
+    _, _, state_vectors, _ = jax.lax.fori_loop(
+        0, numeig * Vm.shape[0], body_vector,
+        [Vm, unitary, state_vectors, inds])
+    state_norms = jax.numpy.linalg.norm(state_vectors, axis=1)
+    state_vectors = state_vectors / state_norms[:, None]
+    return state_vectors
+
   def iram(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
            maxiter):
 
@@ -307,9 +327,17 @@ def _implicitly_restarted_arnoldi(jax):
         (num_krylov_vecs + 1, jax.numpy.ravel(initial_state).shape[0]),
         dtype=dtype)
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
+    t1 = time.time()
     Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
         matvec, args, initial_state, krylov_vectors, H, 0, num_krylov_vecs, eps)
+    Vm_tmp.block_until_ready()
+    dt_ar = time.time() - t1
+
+    t1 = time.time()
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
+    Vm.block_until_ready()
+    dt_update = time.time() - t1
+
     it = 0
     if which == 'LR':
       _which = 0
@@ -317,31 +345,67 @@ def _implicitly_restarted_arnoldi(jax):
       _which = 1
     else:
       raise ValueError(f"{which} not implemented")
+    if maxiter > 0:
+      if Vm.dtype == np.float64:
+        dtype = np.complex128
+      elif Vm.dtype == np.float32:
+        dtype = np.complex64
+      elif Vm.dtype == np.complex128:
+        dtype = Vm.dtype
+      elif Vm.dtype == np.complex64:
+        dtype = Vm.dtype
+      else:
+        raise TypeError(f'dtype {Vm.dtype} not supported')
+      Vm = Vm.astype(dtype)
+      Hm = Hm.astype(dtype)
+      fm = fm.astype(dtype)
 
     while (it < maxiter) and (not converged):
-      krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, numeig, p, _which)
+      evals, _ = jax.np.linalg.eig(Hm)
+
+      krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, evals, numeig, p, _which)
+      v0 = jax.numpy.reshape(fk, initial_state.shape)
+      t1 = time.time()
       Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
-          matvec, args, jax.numpy.reshape(fk, initial_state.shape),
-          krylov_vectors, H, numeig, num_krylov_vecs, eps)
+          matvec, args, v0, krylov_vectors, H, numeig, num_krylov_vecs, eps)
+      Vm_tmp.block_until_ready()
+      #print('second arnoldi:', time.time() - t1)
       Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
       it += 1
-
-    eigvals, U = jax.numpy.linalg.eig(Hm)
+    t1 = time.time()
+    ev_, U_ = np.linalg.eig(np.array(Hm))
+    eigvals = jax.numpy.array(ev_)
+    U = jax.numpy.array(U_)
+    #eigvals, U = jax.numpy.linalg.eig(Hm)
     _, inds = LR_sort(eigvals, _which)
+    inds.block_until_ready()
+    dt_eigvals = time.time() - t1
+    t1 = time.time()
+    vectors = get_vectors(Vm, U, inds, numeig)
+    vectors.block_until_ready()
+    dt_vecs = time.time() - t1
+    # def body_vector(i, vals):
+    #   krv, unitary, states, inds = vals
+    #   dim = unitary.shape[1]
+    #   n, m = jax.numpy.divmod(i, dim)
+    #   states = jax.ops.index_add(states, jax.ops.index[n, :],
+    #                              krv[m, :] * unitary[m, inds[n]])
+    #   return [krv, unitary, states, inds]
 
-    def body_vector(i, vals):
-      krv, unitary, states, inds = vals
-      dim = unitary.shape[1]
-      n, m = jax.numpy.divmod(i, dim)
-      states = jax.ops.index_add(states, jax.ops.index[n, :],
-                                 krv[m, :] * unitary[m, inds[n]])
-      return [krv, unitary, states, inds]
+    # state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=dtype)
+    # t1 = time.time()
+    # _, _, vectors, _ = jax.lax.fori_loop(0, numeig * Vm.shape[0], body_vector,
+    #                                      [Vm, U, state_vectors, inds])
 
-    state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=dtype)
-    _, _, vectors, _ = jax.lax.fori_loop(0, numeig * Vm.shape[0], body_vector,
-                                         [Vm, U, state_vectors, inds])
-    state_norms = jax.numpy.linalg.norm(vectors, axis=1)
-    vectors = vectors / state_norms[:, None]
+    # vectors.block_until_ready()
+    # dt_vecs = time.time() - t1
+    # state_norms = jax.numpy.linalg.norm(vectors, axis=1)
+    # vectors = vectors / state_norms[:, None]
+    # print('arnoldi:', dt_ar)
+    # print('update:', dt_update)
+    # print('eigvals:', dt_eigvals)
+    # print('eigvecs:', dt_vecs)
+
     return eigvals[inds[0:numeig]], [
         jax.numpy.reshape(vectors[n, :], initial_state.shape)
         for n in range(numeig)
