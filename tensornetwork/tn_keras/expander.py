@@ -20,21 +20,24 @@ class DenseExpander(Layer):
   # as first layer in a sequential model:
   model = Sequential()
   model.add(
-    DenseExpander(num_nodes=2,
+    DenseExpander(exp_base=2
+                  num_nodes=3,
                   use_bias=True,
                   activation='relu',
                   input_shape=(128,)))
   # now the model will take as input arrays of shape (*, 128)
-  # and output arrays of shape (*, 2097152).
+  # and output arrays of shape (*, 1024).
   # After the first layer, you don't need to specify
   # the size of the input anymore:
-  model.add(DenseExpander(num_nodes=2, use_bias=True, activation='relu'))
+  model.add(
+    DenseExpander(exp_base=2, num_nodes=2, use_bias=True, activation='relu'))
   ```
 
   Args:
+    exp_base: Positive integer, base of the dimensionality expansion term.
     num_nodes: Positive integer, number of nodes in expander.
-      Note: the output dim will be input_shape[-1]**(num_nodes+1) so increasing
-      num_nodes will increase the output dim exponentially.
+      Note: the output dim will be input_shape[-1] * (exp_base**num_nodes)
+      so increasing num_nodes will increase the output dim exponentially.
     activation: Activation function to use.
       If you don't specify anything, no activation is applied
       (ie. "linear" activation: `a(x) = x`).
@@ -43,13 +46,14 @@ class DenseExpander(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_shape[-1])`.
+    2D tensor with shape: (batch_size, input_shape[-1]).
 
   Output shape:
-    2D tensor with shape: `(batch_size, input_shape[-1]**(num_nodes+1))`.
+    2D tensor with shape: (batch_size, input_shape[-1]*(exp_base**num_nodes)).
   """
 
   def __init__(self,
+               exp_base: int,
                num_nodes: int,
                use_bias: Optional[bool] = True,
                activation: Optional[Text] = None,
@@ -62,6 +66,7 @@ class DenseExpander(Layer):
 
     super(DenseExpander, self).__init__(**kwargs)
 
+    self.exp_base = exp_base
     self.num_nodes = num_nodes
     self.nodes = []
     self.use_bias = use_bias
@@ -78,12 +83,12 @@ class DenseExpander(Layer):
 
     super(DenseExpander, self).build(input_shape)
 
-    self.output_dim = input_shape[-1]**(self.num_nodes + 1)
+    self.output_dim = input_shape[-1] * (self.exp_base**self.num_nodes)
 
     for i in range(self.num_nodes):
       self.nodes.append(
           self.add_weight(name=f'node_{i}',
-                          shape=(input_shape[-1], input_shape[-1],
+                          shape=(input_shape[-1], self.exp_base,
                                  input_shape[-1]),
                           trainable=True,
                           initializer=self.kernel_initializer))
@@ -117,7 +122,7 @@ class DenseExpander(Layer):
       #    xxxxxxx
 
       result = tf.reshape(state_node.tensor, (-1,))
-      print('result shape', result.shape)
+
       if use_bias:
         result += bias_var
 
@@ -145,16 +150,16 @@ class DenseExpander(Layer):
     config = {}
 
     # Include the Expander-specific arguments
-    expander_args = ['num_nodes', 'use_bias']
-    for arg in expander_args:
+    args = ['exp_base', 'num_nodes', 'use_bias']
+    for arg in args:
       config[arg] = getattr(self, arg)
 
     # Serialize the activation
     config['activation'] = activations.serialize(getattr(self, 'activation'))
 
     # Serialize the initializers
-    mpo_initializers = ['kernel_initializer', 'bias_initializer']
-    for initializer_arg in mpo_initializers:
+    initializers_list = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in initializers_list:
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 

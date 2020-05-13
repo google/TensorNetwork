@@ -11,11 +11,11 @@ from tensornetwork.tn_keras.expander import DenseExpander
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[256])
+@pytest.fixture(params=[256, 1024])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
-  data = np.random.randint(10, size=(1000, request.param))
+  data = np.random.randint(50, size=(1000, request.param))
   labels = np.concatenate((np.ones((500, 1)), np.zeros((500, 1))), axis=0)
   return data, labels
 
@@ -45,10 +45,11 @@ def make_model(dummy_data, request):
                     activation='relu',
                     input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  else:
+  elif request.param == 'DenseExpander':
     model = Sequential()
     model.add(
-        DenseExpander(num_nodes=1,
+        DenseExpander(exp_base=2,
+                      num_nodes=3,
                       use_bias=True,
                       activation='relu',
                       input_shape=(data.shape[-1],)))
@@ -68,7 +69,7 @@ def test_train(dummy_data, make_model):
                 metrics=['accuracy'])
 
   # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=5, batch_size=32)
+  history = model.fit(data, labels, epochs=10, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
@@ -155,6 +156,29 @@ def test_mpo_num_parameters(dummy_data):
   expected_num_parameters = (2 * in_leg_dim * bond_dim * out_leg_dim) + (
       (num_nodes - 2) * in_leg_dim * bond_dim * bond_dim *
       out_leg_dim) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_expander_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+  exp_base = 2
+  num_nodes = 3
+  model = Sequential()
+  model.add(
+      DenseExpander(exp_base=exp_base,
+                    num_nodes=num_nodes,
+                    use_bias=True,
+                    activation='relu',
+                    input_shape=(data.shape[-1],)))
+
+  output_dim = data.shape[-1] * (exp_base**num_nodes)
+
+  # num_params = (num_nodes * num_node_params) + num_bias_params
+  expected_num_parameters = (num_nodes * data.shape[-1] * data.shape[-1] *
+                             exp_base) + output_dim
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
