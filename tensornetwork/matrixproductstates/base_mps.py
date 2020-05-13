@@ -483,10 +483,10 @@ class BaseMPS:
     node1 = Node(self.tensors[site1], backend=self.backend)
     node2 = Node(self.tensors[site2], backend=self.backend)
     node1[2] ^ node2[0]
-    gate_node[2] ^ node1[1]
-    gate_node[3] ^ node2[1]
-    left_edges = [node1[0], gate_node[0]]
-    right_edges = [gate_node[1], node2[2]]
+    gate_node[0] ^ node1[1]
+    gate_node[2] ^ node2[1]
+    left_edges = [node1[0], gate_node[1]]
+    right_edges = [gate_node[3], node2[2]]
     result = node1 @ node2 @ gate_node
     U, S, V, tw = split_node_full_svd(
         result,
