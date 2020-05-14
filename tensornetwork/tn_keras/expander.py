@@ -4,7 +4,7 @@ from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
 import tensornetwork as tn
-from tensornetwork.network_components import Node
+from tensornetwork import Node
 import numpy as np
 import math
 
