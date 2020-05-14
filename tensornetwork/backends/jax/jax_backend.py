@@ -230,7 +230,7 @@ class JaxBackend(base_backend.BaseBackend):
   def eigsh_lanczos(
       self,
       A: Callable,
-      args: List[Tensor],
+      args: Optional[List[Tensor]] = None,
       initial_state: Optional[Tensor] = None,
       shape: Optional[Tuple] = None,
       dtype: Optional[Type[np.number]] = None,
@@ -277,10 +277,10 @@ class JaxBackend(base_backend.BaseBackend):
     
     Args:
       A: A (sparse) implementation of a linear operator.
-         Call signature of `A` is `res = A(*args, vector)`, where `vector`
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
          can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
       arsg: A list of arguments to `A`.  `A` will be called as
-        `res = A(*args, initial_state)`.
+        `res = A(initial_state, *args)`.
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       shape: The shape of the input-dimension of `A`.
@@ -289,17 +289,17 @@ class JaxBackend(base_backend.BaseBackend):
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
-      tol: The desired precision of the eigenvalus. Uses
-        `np.linalg.norm(eigvalsnew[0:numeig] - eigvalsold[0:numeig]) < tol`
-        as stopping criterion between two diagonalization steps of the
-        tridiagonal operator.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not 
+        guaranteed. This feature may be added at a later point.
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector :math: `x_n` has an L2 norm
         :math:`\\lVert x_n\\rVert < delta`, the iteration
         is stopped. It means that an (approximate) invariant subspace has
         been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
-        to check convergence.
+        to check convergence. This has currently no effect for the jax backend, 
+        but may be added at a later point.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
@@ -307,6 +307,8 @@ class JaxBackend(base_backend.BaseBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
+    if args is None:
+      args = []
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 

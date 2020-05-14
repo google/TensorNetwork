@@ -308,10 +308,10 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta1, U1 = backend.eigsh_lanczos(matvec, [H], init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -326,10 +326,10 @@ def test_eigsh_small_number_krylov_vectors():
   init = np.array([1, 1], dtype=np.float64)
   H = np.array([[1, 2], [3, 4]], dtype=np.float64)
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta1, _ = backend.eigsh_lanczos(matvec, [H], init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -342,7 +342,7 @@ def test_eigsh_lanczos_1(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
@@ -363,7 +363,7 @@ def test_eigsh_lanczos_2(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
@@ -385,11 +385,11 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def matvec(H, x):
+  def mv(x, H):
     return jax.numpy.dot(H, x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      matvec, [H],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
@@ -414,30 +414,30 @@ def test_eigsh_lanczos_raises():
   backend = jax_backend.JaxBackend()
   with pytest.raises(
       ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(
       ValueError,
       match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
       "Use `reorthogonalize=True` for `numeig > 1`"):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=np.float64)
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [])
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(
       TypeError, match="Expected a `jax.array`. Got <class 'list'>"):
-    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)

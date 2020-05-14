@@ -259,10 +259,10 @@ def test_eigsh_lanczos_1():
   tmp = backend.randn((D, D), dtype=dtype)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=D)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=D)
   eta2, U2 = H.symeig(eigenvectors=True)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -277,10 +277,10 @@ def test_eigsh_small_number_krylov_vectors():
   init = backend.convert_to_tensor(np.array([1, 1], dtype=np.float64))
   H = backend.convert_to_tensor(np.array([[1, 2], [3, 4]], dtype=np.float64))
 
-  def mv(x):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
-  eta1, _ = backend.eigsh_lanczos(mv, [], init, num_krylov_vecs=1)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
   np.testing.assert_allclose(eta1[0], 5)
 
 
@@ -293,11 +293,11 @@ def test_eigsh_lanczos_reorthogonalize(numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      mv, [],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       numeig=numeig,
@@ -325,11 +325,11 @@ def test_eigsh_lanczos_2():
   tmp = backend.randn((D, D), dtype=dtype)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x):
-    return H.mv(x)
+  def mv(x, mat):
+    return mat.mv(x)
 
   eta1, U1 = backend.eigsh_lanczos(
-      mv, [],
+      mv, [H],
       shape=(D,),
       dtype=dtype,
       reorthogonalize=True,
@@ -349,30 +349,30 @@ def test_eigsh_lanczos_raises():
   backend = pytorch_backend.PyTorchBackend()
   with pytest.raises(
       ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=10, num_krylov_vecs=9)
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
   with pytest.raises(
       ValueError,
       match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
       "Use `reorthogonalize=True` for `numeig > 1`"):
-    backend.eigsh_lanczos(lambda x: x, [], numeig=2, reorthogonalize=False)
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=(10,), dtype=None)
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [], shape=None, dtype=torch.float64)
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=torch.float64)
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigsh_lanczos(lambda x: x, [])
+    backend.eigsh_lanczos(lambda x: x)
   with pytest.raises(
       TypeError, match="Expected a `torch.Tensor`. Got <class 'list'>"):
-    backend.eigsh_lanczos(lambda x: x, [], initial_state=[1, 2, 3])
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b, expected", [

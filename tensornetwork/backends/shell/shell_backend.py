@@ -228,33 +228,37 @@ class ShellBackend(base_backend.BaseBackend):
 
   def eigs(self,
            A: Callable,
+           args: Optional[List[Tensor]] = None,
            initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
            num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    if args is None:
+      args = []
 
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
+    if num_krylov_vecs < numeig + 1:
+      raise ValueError('`num_krylov_vecs` >= `numeig+1` required!')
 
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
       return [ShellTensor(tuple()) for _ in range(numeig)
-             ], [ShellTensor((A.shape[0],)) for _ in range(numeig)]
+             ], [ShellTensor(shape) for _ in range(numeig)]
+    if not isinstance(initial_state, ShellTensor):
+      raise TypeError("Expected a `ShellTensor`. Got {}".format(
+          type(initial_state)))
 
     return [ShellTensor(tuple()) for _ in range(numeig)
            ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def eigsh_lanczos(self,
                     A: Callable,
-                    args: List,
+                    args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple] = None,
                     dtype: Optional[Type[np.number]] = None,
@@ -264,6 +268,8 @@ class ShellBackend(base_backend.BaseBackend):
                     delta: float = 1E-8,
                     ndiag: int = 20,
                     reorthogonalize: bool = False) -> Tuple[List, List]:
+    if args is None:
+      args = []
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
