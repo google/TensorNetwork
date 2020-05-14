@@ -44,7 +44,7 @@ class DenseEntangler(Layer):
       If you don't specify anything, no activation is applied
       (ie. "linear" activation: `a(x) = x`).
     use_bias: Boolean, whether the layer uses a bias vector.
-    kernel_initializer: Initializer for the two weight matrices.
+    kernel_initializer: Initializer for the weight matrices.
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
@@ -67,8 +67,12 @@ class DenseEntangler(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    assert num_legs > 2, 'Need at least 2 legs to create Entangler'
-    assert num_levels >= 1, 'Need at least 1 level to create Entangler'
+    assert (
+        num_legs >
+        2), f'Need at least 2 legs to create Entangler but got {num_legs} legs'
+    assert (
+        num_levels >= 1
+    ), f'Need at least 1 level to create Entangler but got {num_levels} levels'
 
     super(DenseEntangler, self).__init__(**kwargs)
 
