@@ -729,8 +729,8 @@ class BlockSparseTensor(ChargeArray):
     data = np.empty(len(self.data), dtype=self.dtype)
     for n, sparse_block in enumerate(sparse_blocks):
       ind = np.nonzero(tr_charges == charges[n])[0][0]
-      permutation = tr_sparse_blocks[ind]
-      data[sparse_block] = self.data[permutation]
+      perm = tr_sparse_blocks[ind]
+      data[sparse_block] = self.data[perm]
 
     _, inds = np.unique(permutation, return_index=True)
     new_flat_order = inds[self.flat_order]
