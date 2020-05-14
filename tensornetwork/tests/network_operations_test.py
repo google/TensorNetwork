@@ -547,5 +547,5 @@ def test_operator_kron_raises(backend):
     A = np.ones((2, 2, 2))
     B = np.ones((2, 2, 2))
     with pytest.raises(
-      ValueError, match="All operator tensors must have an even order."):
+        ValueError, match="All operator tensors must have an even order."):
       tn.operator_kron([A, B])

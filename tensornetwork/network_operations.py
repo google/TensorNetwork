@@ -923,8 +923,8 @@ def operator_kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
     order = len(node.shape)
     if order % 2 != 0:
       raise ValueError(
-        f"All operator tensors must have an even order. "
-        f"Found tensor with order {order}")
+          f"All operator tensors must have an even order. "
+          f"Found tensor with order {order}")
     input_edges += node.edges[:order//2]
     output_edges += node.edges[order//2:]
     nodes.append(node)
