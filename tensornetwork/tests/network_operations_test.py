@@ -527,3 +527,25 @@ def test_get_neighbors_no_duplicates(backend):
     b[3] ^ b[4]
     result = tn.get_neighbors(b)
     assert result == [a, c]
+
+def test_operator_kron(backend):
+  with tn.DefaultBackend(backend):
+    X = np.array([[0, 1], [1, 0]], dtype=np.float32)
+    Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    expected = np.kron(X, Z).reshape(2, 2, 2, 2)
+    result = tn.operator_kron([X, Z])
+    np.testing.assert_allclose(result.tensor, expected)
+    # Test mixed node/ tensor
+    result = tn.operator_kron([tn.Node(X), Z])
+    np.testing.assert_allclose(result.tensor, expected)
+    # Test only nodes.
+    result = tn.operator_kron([tn.Node(X), tn.Node(Z)])
+    np.testing.assert_allclose(result.tensor, expected)
+
+def test_operator_kron(backend):
+  with tn.DefaultBackend(backend):
+    A = np.ones((2, 2, 2))
+    B = np.ones((2, 2, 2))
+    with pytest.raises(
+      ValueError, match="All operator tensors must have an even order."):
+      tn.operator_kron([A, B])

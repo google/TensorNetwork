@@ -20,7 +20,7 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
+from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, contract_parallel
@@ -899,3 +899,34 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors.append(edge.node1)
         neighbors_set.add(edge.node1)
   return neighbors
+
+def operator_kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
+  """Kronecker product that presevers operator edge order.
+
+  Args:
+    tensors: A sequence of `Tensor`s or `BaseNode` objects.
+
+  Returns:
+    A `Node` that is the kronecker product of the given inputs. The first
+    half of the edges of this node would represent the "input" edges of the
+    operator and the last half of edges are the "output" edges of the
+    operator.
+  """
+  nodes = []
+  input_edges = []
+  output_edges = []
+  for tensor in tensors:
+    if isinstance(tensor, BaseNode):
+      node = tensor
+    else:
+      node = Node(tensor)
+    order = len(node.shape)
+    if order % 2 != 0:
+      raise ValueError(
+        f"All operator tensors must have an even order. "
+        f"Found tensor with order {order}")
+    input_edges += node.edges[:order//2]
+    output_edges += node.edges[order//2:]
+    nodes.append(node)
+  result = outer_product_final_nodes(nodes, input_edges + output_edges)
+  return result
