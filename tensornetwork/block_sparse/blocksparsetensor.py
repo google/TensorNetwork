@@ -635,9 +635,9 @@ class BlockSparseTensor(ChargeArray):
     #now subtraction is save
     return BlockSparseTensor(
         data=self.data - other.data,
-        charges=other._charges,
-        flows=other._flows,
-        order=other._order,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
         check_consistency=False)
 
   def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
@@ -649,9 +649,9 @@ class BlockSparseTensor(ChargeArray):
     #now addition is save
     return BlockSparseTensor(
         data=self.data + other.data,
-        charges=other._charges,
-        flows=other._flows,
-        order=other._order,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
         check_consistency=False)
 
   def __mul__(self, number: np.number) -> "BlockSparseTensor":
