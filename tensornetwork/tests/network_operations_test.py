@@ -542,7 +542,7 @@ def test_operator_kron(backend):
     result = tn.operator_kron([tn.Node(X), tn.Node(Z)])
     np.testing.assert_allclose(result.tensor, expected)
 
-def test_operator_kron(backend):
+def test_operator_kron_raises(backend):
   with tn.DefaultBackend(backend):
     A = np.ones((2, 2, 2))
     B = np.ones((2, 2, 2))
