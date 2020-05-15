@@ -35,3 +35,4 @@ Common Functions
 .. autofunction:: tensornetwork.get_parallel_edges
 .. autofunction:: tensornetwork.get_shared_edges
 .. autofunction:: tensornetwork.get_neighbors
+.. autofunction:: tensornetwork.kron

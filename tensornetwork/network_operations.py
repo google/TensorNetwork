@@ -901,10 +901,22 @@ def get_neighbors(node: BaseNode) -> List[Node]:
   return neighbors
 
 def kron(nodes: Sequence[BaseNode]) -> BaseNode:
-  """Kronecker product of the given tensors/nodes.
+  """Kronecker product of the given nodes.
+
+  Kronecker products of nodes is the same as the outer product, but the order
+  of the axes is different. The first half of edges of all of the nodes will
+  appear first half of edges in the resulting node, and the second half ot the
+  edges in each node will be in the second half of the resulting node.
+
+  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
+  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
+  :math:`R_{acdgbefh}`.
+   
+  The kronecker product is designed such that the kron of many operators is
+  itself an operator. 
 
   Args:
-    nodes: A sequence of `Tensor`s or `BaseNode` objects.
+    nodes: A sequence of `BaseNode` objects.
 
   Returns:
     A `Node` that is the kronecker product of the given inputs. The first
