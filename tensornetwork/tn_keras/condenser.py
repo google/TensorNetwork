@@ -107,12 +107,6 @@ class DenseCondenser(Layer):
       input_reshaped = tf.reshape(x, (exp_base,) * num_nodes + (output_dim,))
       state_node = tn.Node(input_reshaped, name='xnode', backend="tensorflow")
 
-      for i in range(num_nodes):
-        op = tn.Node(nodes[i], name=f'node_{i}', backend="tensorflow")
-        tn.connect(state_node.edges[-1], op[0])
-        tn.connect(state_node.edges[-2], op[1])
-        state_node = tn.contract_between(state_node, op)
-
       # The TN will be connected like this:
       #      xxxxxxxxx
       #      | | |   |
@@ -123,6 +117,12 @@ class DenseCondenser(Layer):
       #      33333
       #        |
       #        |
+
+      for i in range(num_nodes):
+        op = tn.Node(nodes[i], name=f'node_{i}', backend="tensorflow")
+        tn.connect(state_node.edges[-1], op[0])
+        tn.connect(state_node.edges[-2], op[1])
+        state_node = tn.contract_between(state_node, op)
 
       result = tf.reshape(state_node.tensor, (-1,))
       if use_bias:
