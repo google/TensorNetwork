@@ -103,13 +103,9 @@ class DenseExpander(Layer):
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, use_bias: bool,
           bias_var: tf.Tensor) -> tf.Tensor:
+
       state_node = tn.Node(x, name='xnode', backend="tensorflow")
       operating_edge = state_node[0]
-      for i in range(num_nodes):
-        op = tn.Node(nodes[i], name=f'node_{i}', backend="tensorflow")
-        tn.connect(operating_edge, op[0])
-        operating_edge = op[2]
-        state_node = tn.contract_between(state_node, op)
 
       # The TN will be connected like this:
       #     |    |   |   |
@@ -120,6 +116,12 @@ class DenseExpander(Layer):
       #     11111
       #       |
       #    xxxxxxx
+
+      for i in range(num_nodes):
+        op = tn.Node(nodes[i], name=f'node_{i}', backend="tensorflow")
+        tn.connect(operating_edge, op[0])
+        operating_edge = op[2]
+        state_node = tn.contract_between(state_node, op)
 
       result = tf.reshape(state_node.tensor, (-1,))
 
