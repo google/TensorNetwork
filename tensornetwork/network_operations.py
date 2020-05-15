@@ -900,8 +900,8 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors_set.add(edge.node1)
   return neighbors
 
-def operator_kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
-  """Kronecker product that presevers operator edge order.
+def kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
+  """Kronecker product of the given tensors/nodes.
 
   Args:
     tensors: A sequence of `Tensor`s or `BaseNode` objects.
