@@ -900,11 +900,11 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors_set.add(edge.node1)
   return neighbors
 
-def kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
+def kron(nodes: Sequence[BaseNode]) -> BaseNode:
   """Kronecker product of the given tensors/nodes.
 
   Args:
-    tensors: A sequence of `Tensor`s or `BaseNode` objects.
+    nodes: A sequence of `Tensor`s or `BaseNode` objects.
 
   Returns:
     A `Node` that is the kronecker product of the given inputs. The first
@@ -912,14 +912,9 @@ def kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
     operator and the last half of edges are the "output" edges of the
     operator.
   """
-  nodes = []
   input_edges = []
   output_edges = []
-  for tensor in tensors:
-    if isinstance(tensor, BaseNode):
-      node = tensor
-    else:
-      node = Node(tensor)
+  for node in nodes:
     order = len(node.shape)
     if order % 2 != 0:
       raise ValueError(
@@ -927,6 +922,5 @@ def kron(tensors: Sequence[Union[BaseNode, Tensor]]) -> BaseNode:
           f"Found tensor with order {order}")
     input_edges += node.edges[:order//2]
     output_edges += node.edges[order//2:]
-    nodes.append(node)
   result = outer_product_final_nodes(nodes, input_edges + output_edges)
   return result
