@@ -3,15 +3,15 @@ import tensornetwork as tn
 import tensornetwork.functional as functional
 
 def no_duplicates(values):
+  """Return a set of elements from values that only appear once."""
   elements = set()
   for i in values:
     if values.count(i) == 1:
       elements.add(i)
   return elements
 
-
-
 def merge_network_nodes(network1, network2):
+  """Merge two NetworkNodes together into a new NetworkNode."""
   nodes = network1.nodes + network2.nodes
   axes_map = defaultdict(lambda: [])
   for axes, edges in network1.axes_map.items():
@@ -27,7 +27,6 @@ class NetworkNode:
 
   def contract(self, algo, axis_order):
     node_dict, edge_dict = tn.copy(self.nodes)
-    print(self.axes_map)
     for edges in self.axes_map.values():
       if len(edges) != 2 and len(edges) != 1:
         raise AssertionError(f"Bad construction {edges}")
@@ -52,7 +51,6 @@ class FunctionalNode:
       axes_map = defaultdict(lambda: [])
       for axis, edge in zip(axes, node.edges):
         axes_map[axis] += [edge]
-      print(axes_map)
       self.network_node = NetworkNode(
           [node], 
           axes_map
