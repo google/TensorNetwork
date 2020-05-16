@@ -47,10 +47,15 @@ def test_qubits():
   # |0> -------X---
 
   # H gate.
+  # state is not materialized.
   state, qubits[0] = apply_gate(state, H, [qubits[0]])
+  assert len(state.lazy_network.nodes) == 2
   # CNOT gate.
+  # state is still not materialized
   state, qubits[0], qubits[1] = apply_gate(state, CNOT, [qubits[0], qubits[1]])
+  assert len(state.lazy_network.nodes) == 3
   expected = np.array([[1.0, 0.0], [0.0, 1.0]]) / np.sqrt(2.0)
+  # State is materialized on the state.tensor call.py
   np.testing.assert_allclose(expected, state.tensor)
 
 def test_reuse_node():
