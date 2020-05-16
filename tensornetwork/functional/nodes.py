@@ -107,6 +107,10 @@ class FunctionalNode:
     new_lazy_network = merge_lazy_networks(self.lazy_network, other.lazy_network)
     return FunctionalNode(new_lazy_network, new_axes_order)
 
+  def __getitem__(self, key):
+    values = key.split(',')
+    return self(*values)
+
   def conj(self):
     if hasattr(self, "lazy_network"):
       return FunctionalNode(self.lazy_network.conj(), self.axes_order)

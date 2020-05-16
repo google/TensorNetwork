@@ -16,9 +16,21 @@ def test_sanity_check():
   a = FunctionalNode(a_val)
   b = FunctionalNode(b_val)
   # Order is initialized on first node(...) call.
-  c = a("a", "b") @ b("b", "c")
-  # C is lazily evaluated until a c(...) or c.tensor call.
+  c = a["a,b"] @ b["b,c"]
+  # C is lazily evaluated until a c(...), c[...] or c.tensor call.
   np.testing.assert_allclose(c("a", "c").tensor, expected)
+
+
+def test_trace_edges():
+  a_val = np.random.randn(2, 4, 4, 5)
+  b_val = np.random.randn(2, 3, 5)
+  expected = np.einsum("abbc,adc->d", a_val, b_val)
+  a = FunctionalNode(a_val)
+  b = FunctionalNode(b_val)
+  # Brackets [...] are used for comma separated keys.
+  # Parenths (...) are used for arbitrary hasable objects
+  c = a["alpha,b,b,c"] @ b("alpha", 5, "c")
+  np.testing.assert_allclose(expected, c(5).tensor)
 
 def test_qubits():
   def apply_gate(state, operator, operating_qubits):
@@ -58,16 +70,6 @@ def test_reuse_node():
   # You may consider doing this for debugging/documentation reasons.
   f = a("b", "a") @ d("b", "d")
   np.testing.assert_allclose(f("a", "d").tensor, expected)
-
-
-def test_trace_edges():
-  a_val = np.random.randn(2, 4, 4, 5)
-  b_val = np.random.randn(2, 3, 5)
-  expected = np.einsum("abbc,adc->d", a_val, b_val)
-  a = FunctionalNode(a_val)
-  b = FunctionalNode(b_val)
-  c = a("a", "b", "b", "c") @ b("a", "d", "c")
-  np.testing.assert_allclose(expected, c("d").tensor)
 
 def test_reuse_node_different_axes():
   a_val = np.random.randn(2, 3)
