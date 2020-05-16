@@ -13,18 +13,11 @@ def test_sanity_check():
   a_val = np.random.randn(2, 3)
   b_val = np.random.randn(3, 4)
   expected = a_val @ b_val
-  a = FunctionalNode(a_val, ["a", "b"])
-  b = FunctionalNode(b_val, ["b", "c"])
-  c = a @ b
-  np.testing.assert_allclose(c("a", "c").tensor, expected)
-
-def test_sanity_check():
-  a_val = np.random.randn(2, 3)
-  b_val = np.random.randn(3, 4)
-  expected = a_val @ b_val
-  a = FunctionalNode(a_val, ["a", "b"])
-  b = FunctionalNode(b_val, ["b", "c"])
-  c = a @ b
+  a = FunctionalNode(a_val)
+  b = FunctionalNode(b_val)
+  # Order is initialized on first node(...) call.
+  c = a("a", "b") @ b("b", "c")
+  # C is lazily evaluated until a c(...) or c.tensor call.
   np.testing.assert_allclose(c("a", "c").tensor, expected)
 
 def test_qubits():
@@ -55,8 +48,18 @@ def test_reuse_node():
   a = FunctionalNode(a_val, ["a", "b"])
   b = FunctionalNode(b_val, ["b", "c"])
   # Order no longer matters!
-  c = a("a", "b") @ b("c", "b")
-  d = FunctionalNode(d_val, ["b", "d"])
-  # Nodes can always be reused
-  e = a("b", "a") @ d("d", "b")
+  c = a @ b
+  d = FunctionalNode(d_val)
+  # Nodes can always be reused since they are immutable
+  # up to lazy evaluation.
+  e = a @ d("b", "d")
   np.testing.assert_allclose(e("a", "d").tensor, expected)
+
+def test_trace_edges():
+  a_val = np.random.randn(2, 4, 4, 5)
+  b_val = np.random.randn(2, 3, 5)
+  expected = np.einsum("abbc,adc->d", a_val, b_val)
+  a = FunctionalNode(a_val)
+  b = FunctionalNode(b_val)
+  c = a("a", "b", "b", "c") @ b("a", "d", "c")
+  np.testing.assert_allclose(expected, c("d").tensor)
