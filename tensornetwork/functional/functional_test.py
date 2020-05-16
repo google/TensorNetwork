@@ -54,6 +54,11 @@ def test_reuse_node():
   # up to lazy evaluation.
   e = a @ d("b", "d")
   np.testing.assert_allclose(e("a", "d").tensor, expected)
+  # You can always redefined the axes of a FunctionalNode
+  # You may consider doing this for debugging/documentation reasons.
+  f = a("b", "a") @ d("b", "d")
+  np.testing.assert_allclose(f("a", "d").tensor, expected)
+
 
 def test_trace_edges():
   a_val = np.random.randn(2, 4, 4, 5)
