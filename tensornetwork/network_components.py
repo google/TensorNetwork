@@ -907,7 +907,6 @@ class CopyNode(BaseNode):
 
     return node
 
-
 class Edge:
   """Each edge represents a vector space common to the tensors it connects and
   over which a contraction may be performed. In numpy terms, each edge
@@ -1900,7 +1899,6 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
 
   new_edge = Edge(
       node1=node1, axis1=axis1_num, name=name, node2=node2, axis2=axis2_num)
-
   node1.add_edge(new_edge, axis1_num, override=True)
   node2.add_edge(new_edge, axis2_num, override=True)
   return new_edge
