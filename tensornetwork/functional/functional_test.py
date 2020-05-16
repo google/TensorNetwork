@@ -48,7 +48,7 @@ def test_reuse_node():
   a = FunctionalNode(a_val, ["a", "b"])
   b = FunctionalNode(b_val, ["b", "c"])
   # Order no longer matters!
-  c = a @ b
+  c = b @ a
   d = FunctionalNode(d_val)
   # Nodes can always be reused since they are immutable
   # up to lazy evaluation.
