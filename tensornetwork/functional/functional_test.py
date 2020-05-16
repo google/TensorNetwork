@@ -97,3 +97,13 @@ def test_conj():
   np.testing.assert_allclose(c().tensor, -1.0)
   c = a @ a.conj()
   np.testing.assert_allclose(c().tensor, 1.0)
+
+def test_materialize():
+  a_val = np.random.randn(2, 3)
+  b_val = np.random.randn(2, 3)
+  a = FunctionalNode(a_val, ["a", "b"])
+  b = FunctionalNode(b_val, ["d", "b"])
+  c = a @ a
+  assert len(c.lazy_network.nodes) == 2
+  c = c.materialize()
+  assert len(c.lazy_network.nodes) == 1

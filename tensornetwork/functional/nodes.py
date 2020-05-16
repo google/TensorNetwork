@@ -89,16 +89,26 @@ class FunctionalNode:
     Args:
       *axes_order: The new order of the axes.
     Returns:
-      a new FunctionalNode with the given order.
+      A new FunctionalNode with the given order.
     """ 
     if self.axes_order is None:
       return FunctionalNode(self.node, axes_order)
-    return FunctionalNode(self.lazy_network, axes_order)
+    if functional.LAZY_LEVEL == "extreme":
+      return FunctionalNode(self.lazy_network, axes_order)
+    else:
+      return self.materialize(axes_order)
 
   @property
   def tensor(self):
     return self.lazy_network.contract(
         tn.contractors.greedy, self.axes_order).tensor
+
+  def materialize(self, axes_order=None):
+    if axes_order is None:
+      axes_order = self.axes_order
+    node = self.lazy_network.contract(
+        tn.contractors.greedy, axes_order)
+    return FunctionalNode(node, axes_order)
 
   def __matmul__(self, other):
     left_axes = no_duplicates(self.axes_order)
@@ -114,5 +124,3 @@ class FunctionalNode:
   def conj(self):
     if hasattr(self, "lazy_network"):
       return FunctionalNode(self.lazy_network.conj(), self.axes_order)
-
-
