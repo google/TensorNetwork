@@ -57,5 +57,6 @@ def test_reuse_node():
   # Order no longer matters!
   c = a("a", "b") @ b("c", "b")
   d = FunctionalNode(d_val, ["b", "d"])
-  e = a @ d("d", "b")
+  # Nodes can always be reused
+  e = a("b", "a") @ d("d", "b")
   np.testing.assert_allclose(e("a", "d").tensor, expected)
