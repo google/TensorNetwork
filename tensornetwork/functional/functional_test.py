@@ -68,3 +68,30 @@ def test_trace_edges():
   b = FunctionalNode(b_val)
   c = a("a", "b", "b", "c") @ b("a", "d", "c")
   np.testing.assert_allclose(expected, c("d").tensor)
+
+def test_reuse_node_different_axes():
+  a_val = np.random.randn(2, 3)
+  b_val = np.random.randn(3, 4)
+  expected = a_val @ b_val
+  a = FunctionalNode(a_val)
+  b = FunctionalNode(b_val)
+  c = a("a", "b") @ b("b", "c")
+  np.testing.assert_allclose(c("a", "c").tensor, expected)
+  # If a FunctionalNode doesn't have predefined axes,
+  # you can reuse it several times with different names.
+  f = a("x", "y") @ b("y", "z")
+  np.testing.assert_allclose(f("x", "z").tensor, expected)
+
+def test_reuse_with_self():
+  a_val = np.random.randn(2, 3)
+  expected = np.trace(a_val @ a_val.T)
+  a = FunctionalNode(a_val, ["a", "b"])
+  c = a @ a
+  np.testing.assert_allclose(c().tensor, expected)
+
+def test_conj():
+  a = FunctionalNode(np.array([1.j, 0.0]), ["a"])
+  c = a @ a
+  np.testing.assert_allclose(c().tensor, -1.0)
+  c = a @ a.conj()
+  np.testing.assert_allclose(c().tensor, 1.0)

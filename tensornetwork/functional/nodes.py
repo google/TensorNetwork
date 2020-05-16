@@ -12,22 +12,23 @@ def no_duplicates(values):
 
 def merge_lazy_networks(network1, network2):
   """Merge two LazyNetworks together into a new LazyNetwork."""
-  nodes = network1.nodes + network2.nodes
   axes_map = defaultdict(lambda: [])
-  for axes, edges in network1.axes_map.items():
-    axes_map[axes] += edges
-  for axes, edges in network2.axes_map.items():
-    axes_map[axes] += edges
+  nodes = []
+  for network in [network1, network2]:
+    nodes_dict, edge_dict = tn.copy(network.nodes)
+    nodes += nodes_dict.values()
+    for axes, edges in network.axes_map.items():
+      axes_map[axes] += [edge_dict[edge] for edge in edges]
   return LazyNetwork(nodes, axes_map)
 
 class LazyNetwork:
   """A lazy tensor network."""
   def __init__(self, nodes, axes_map):
     self.nodes = nodes
-    self.axes_map = axes_map
+    self.axes_map = axes_map # Dict[Hashable, List[tn.Edge]]
 
   def contract(self, algo, axis_order):
-    """Contract the tensor network into a node.
+    """Nondestructively contract the tensor network into a node.
     Args:
       algo: a contraction algorithm.
       axis_order: Order of the output axes for this network.
@@ -45,6 +46,14 @@ class LazyNetwork:
         edge_dict[self.axes_map[axis][0]] for axis in axis_order
     ]
     return algo(list(node_dict.values()), output_edge_order=edge_order) 
+
+  def conj(self):
+    node_dict, edge_dict = tn.copy(self.nodes, conjugate=True)
+    new_nodes = [node_dict[node] for node in self.nodes]
+    new_axes_map = defaultdict(lambda: [])
+    for axis, edges in self.axes_map.items():
+      new_axes_map[axis] += [edge_dict[edge] for edge in self.axes_map[axis]]
+    return LazyNetwork(new_nodes, new_axes_map)
 
 class FunctionalNode:
   """A functional Node. This Node is immutable unlike the standard tn.Node
@@ -75,7 +84,7 @@ class FunctionalNode:
     self.axes_order = axes[:]
 
   def __call__(self, *axes_order):
-    """Generate a permutation of the given FuncationNode.
+    """Generate a permutation of the given FunctionalNode.
 
     Args:
       *axes_order: The new order of the axes.
@@ -97,4 +106,9 @@ class FunctionalNode:
     new_axes_order = list(left_axes ^ right_axes)
     new_lazy_network = merge_lazy_networks(self.lazy_network, other.lazy_network)
     return FunctionalNode(new_lazy_network, new_axes_order)
+
+  def conj(self):
+    if hasattr(self, "lazy_network"):
+      return FunctionalNode(self.lazy_network.conj(), self.axes_order)
+
 
