@@ -45,6 +45,7 @@ def test_qubits():
   # |0>-- H -- o --
   #            | 
   # |0> -------X---
+
   # H gate.
   state, qubits[0] = apply_gate(state, H, [qubits[0]])
   # CNOT gate.
@@ -94,9 +95,19 @@ def test_reuse_with_self():
 def test_conj():
   a = FunctionalNode(np.array([1.j, 0.0]), ["a"])
   c = a @ a
-  np.testing.assert_allclose(c().tensor, -1.0)
+  np.testing.assert_allclose(c.tensor, -1.0)
   c = a @ a.conj()
-  np.testing.assert_allclose(c().tensor, 1.0)
+  np.testing.assert_allclose(c.tensor, 1.0)
+
+def test_materialize():
+  a_val = np.random.randn(2, 3)
+  b_val = np.random.randn(2, 3)
+  a = FunctionalNode(a_val, ["a", "b"])
+  b = FunctionalNode(b_val, ["d", "b"])
+  c = a @ a
+  assert len(c.lazy_network.nodes) == 2
+  c = c.materialize()
+  assert len(c.lazy_network.nodes) == 1
 
 def test_materialize():
   a_val = np.random.randn(2, 3)

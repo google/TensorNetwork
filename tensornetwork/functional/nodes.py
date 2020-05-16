@@ -124,3 +124,4 @@ class FunctionalNode:
   def conj(self):
     if hasattr(self, "lazy_network"):
       return FunctionalNode(self.lazy_network.conj(), self.axes_order)
+    return FunctionalNode(self.node.conj())
