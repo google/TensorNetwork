@@ -21,7 +21,8 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
+@pytest.fixture(
+  params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
