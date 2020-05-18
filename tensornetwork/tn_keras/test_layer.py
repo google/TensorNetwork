@@ -12,7 +12,7 @@ from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[512, 4096])
+@pytest.fixture(params=[512])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -21,7 +21,8 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseEntangler'])
+@pytest.fixture(
+    params=['DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseEntangler'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -83,8 +84,8 @@ def test_train(dummy_data, make_model):
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
 
-  # Train the model for 5 epochs
-  history = model.fit(data, labels, epochs=5, batch_size=32)
+  # Train the model for 10 epochs
+  history = model.fit(data, labels, epochs=10, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
