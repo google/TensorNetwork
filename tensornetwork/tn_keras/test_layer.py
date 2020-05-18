@@ -7,6 +7,7 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
+from tensornetwork.tn_keras.condenser import DenseCondenser
 from tensornetwork.tn_keras.expander import DenseExpander
 from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
@@ -21,8 +22,10 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(
-    params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
+@pytest.fixture(params=[
+    'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
+    'DenseEntangler'
+])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -46,6 +49,15 @@ def make_model(dummy_data, request):
                     use_bias=True,
                     activation='relu',
                     input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseCondenser':
+    model = Sequential()
+    model.add(
+        DenseCondenser(exp_base=2,
+                       num_nodes=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
   elif request.param == 'DenseExpander':
     model = Sequential()
@@ -176,6 +188,29 @@ def test_mpo_num_parameters(dummy_data):
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
 
+def test_condenser_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+  exp_base = 2
+  num_nodes = 3
+  model = Sequential()
+  model.add(
+      DenseCondenser(exp_base=exp_base,
+                     num_nodes=num_nodes,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=(data.shape[1],)))
+
+  output_dim = data.shape[-1] // (exp_base**num_nodes)
+
+  # num_params = (num_nodes * num_node_params) + num_bias_params
+  expected_num_parameters = (num_nodes * output_dim * output_dim *
+                             exp_base) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
 def test_expander_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -195,6 +230,7 @@ def test_expander_num_parameters(dummy_data):
   # num_params = (num_nodes * num_node_params) + num_bias_params
   expected_num_parameters = (num_nodes * data.shape[-1] * data.shape[-1] *
                              exp_base) + output_dim
+
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
 
@@ -237,6 +273,8 @@ def test_config(make_model):
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
     new_model = DenseDecomp.from_config(layer_config)
+  elif 'condenser' in model.layers[0].name:
+    new_model = DenseCondenser.from_config(layer_config)
   elif 'expander' in model.layers[0].name:
     new_model = DenseExpander.from_config(layer_config)
   elif 'entangler' in model.layers[0].name:
