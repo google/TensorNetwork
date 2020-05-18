@@ -12,7 +12,7 @@ from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[512, 4096])
+@pytest.fixture(params=[512])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -22,7 +22,7 @@ def dummy_data(request):
 
 
 @pytest.fixture(
-  params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
+    params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
