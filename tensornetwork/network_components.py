@@ -1011,7 +1011,7 @@ class Edge:
     self._axes[0] = axis1
 
   @property
-  def axis2(self) -> int:
+  def axis2(self) -> Optional[int]:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing axis2 is no longer possible')
