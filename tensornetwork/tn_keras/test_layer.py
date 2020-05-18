@@ -7,11 +7,12 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
+from tensornetwork.tn_keras.expander import DenseExpander
 from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[512, 4096])
+@pytest.fixture(params=[512])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -20,7 +21,8 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO', 'DenseEntangler'])
+@pytest.fixture(
+    params=['DenseDecomp', 'DenseMPO', 'DenseEntangler', 'DenseExpander'])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -45,7 +47,16 @@ def make_model(dummy_data, request):
                     activation='relu',
                     input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  else:
+  elif request.param == 'DenseExpander':
+    model = Sequential()
+    model.add(
+        DenseExpander(exp_base=2,
+                      num_nodes=3,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(data.shape[-1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseEntangler':
     num_legs = 3
     leg_dim = round(data.shape[-1]**(1. / num_legs))
     assert leg_dim**num_legs == data.shape[-1]
@@ -73,8 +84,8 @@ def test_train(dummy_data, make_model):
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
 
-  # Train the model for 5 epochs
-  history = model.fit(data, labels, epochs=5, batch_size=32)
+  # Train the model for 10 epochs
+  history = model.fit(data, labels, epochs=10, batch_size=32)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
@@ -165,6 +176,28 @@ def test_mpo_num_parameters(dummy_data):
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
 
+def test_expander_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+  exp_base = 2
+  num_nodes = 3
+  model = Sequential()
+  model.add(
+      DenseExpander(exp_base=exp_base,
+                    num_nodes=num_nodes,
+                    use_bias=True,
+                    activation='relu',
+                    input_shape=(data.shape[-1],)))
+
+  output_dim = data.shape[-1] * (exp_base**num_nodes)
+
+  # num_params = (num_nodes * num_node_params) + num_bias_params
+  expected_num_parameters = (num_nodes * data.shape[-1] * data.shape[-1] *
+                             exp_base) + output_dim
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
 def test_entangler_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -204,6 +237,8 @@ def test_config(make_model):
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
     new_model = DenseDecomp.from_config(layer_config)
+  elif 'expander' in model.layers[0].name:
+    new_model = DenseExpander.from_config(layer_config)
   elif 'entangler' in model.layers[0].name:
     new_model = DenseEntangler.from_config(layer_config)
 
