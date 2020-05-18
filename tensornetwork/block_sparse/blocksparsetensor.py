@@ -628,9 +628,10 @@ class BlockSparseTensor(ChargeArray):
 
   def __sub__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     self._sub_add_protection(other)
-    _, index_other = np.unique(other.flat_order, return_index=True)
     #bring self into the same storage layout as other
-    self.transpose_data(self.flat_order[index_other], inplace=True)
+    perm = np.empty(len(self.flat_order), dtype=np.int32)
+    perm[other.flat_order] = self.flat_order
+    self.transpose_data(perm, inplace=True)
     #now subtraction is save
     return BlockSparseTensor(
         data=self.data - other.data,
@@ -642,8 +643,9 @@ class BlockSparseTensor(ChargeArray):
   def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     self._sub_add_protection(other)
     #bring self into the same storage layout as other
-    _, index_other = np.unique(other.flat_order, return_index=True)
-    self.transpose_data(self.flat_order[index_other], inplace=True)
+    perm = np.empty(len(self.flat_order), dtype=np.int32)
+    perm[other.flat_order] = self.flat_order
+    self.transpose_data(perm, inplace=True)
     #now addition is save
     return BlockSparseTensor(
         data=self.data + other.data,
@@ -691,8 +693,8 @@ class BlockSparseTensor(ChargeArray):
 
   # pylint: disable=arguments-differ
   def transpose_data(self,
-                     flat_order: Optional[Union[Tuple, List,
-                                                np.ndarray]] = None,
+                     permutation: Optional[Union[Tuple, List,
+                                                 np.ndarray]] = None,
                      inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
@@ -705,34 +707,39 @@ class BlockSparseTensor(ChargeArray):
     by permuting `data` into this order, transposing `_charges` and `_flows`,
     and changing `_order` to `[[0,1],[2],[3]]`.
     Args:
-      flat_order: An optional alternative order to be used to transposed the 
-        tensor. If `None` defaults to `BlockSparseTensor.flat_order`.
+      permutation: An optional alternative order to be used to transposed the 
+        tensor. If `None` defaults to `BlockSparseTensor.permutation`.
     """
     flat_charges = self.flat_charges
     flat_flows = self.flat_flows
-    if flat_order is None:
-      flat_order = self.flat_order
+    if permutation is None:
+      permutation = self.flat_order
 
-    if np.array_equal(flat_order, np.arange(len(flat_order))):
+    if np.array_equal(permutation, np.arange(len(permutation))):
       return self
     tr_partition = _find_best_partition(
-        [flat_charges[n].dim for n in flat_order])
+        [flat_charges[n].dim for n in permutation])
 
     tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
-        flat_charges, flat_flows, tr_partition, flat_order)
+        flat_charges, flat_flows, tr_partition, permutation)
 
     sparse_blocks, charges, _ = _find_diagonal_sparse_blocks(
-        [flat_charges[n] for n in flat_order],
-        [flat_flows[n] for n in flat_order], tr_partition)
+        [flat_charges[n] for n in permutation],
+        [flat_flows[n] for n in permutation], tr_partition)
     data = np.empty(len(self.data), dtype=self.dtype)
     for n, sparse_block in enumerate(sparse_blocks):
       ind = np.nonzero(tr_charges == charges[n])[0][0]
-      permutation = tr_sparse_blocks[ind]
-      data[sparse_block] = self.data[permutation]
+      perm = tr_sparse_blocks[ind]
+      data[sparse_block] = self.data[perm]
+
+    _, inds = np.unique(permutation, return_index=True)
+    new_flat_order = inds[self.flat_order]
     tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
-    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-    charges = [self._charges[o] for o in flat_order]
-    flows = [self._flows[o] for o in flat_order]
+    order = [
+        list(new_flat_order[tmp[n]:tmp[n + 1]]) for n in range(len(tmp) - 1)
+    ]
+    charges = [self._charges[o] for o in permutation]
+    flows = [self._flows[o] for o in permutation]
     if not inplace:
       return BlockSparseTensor(
           data,

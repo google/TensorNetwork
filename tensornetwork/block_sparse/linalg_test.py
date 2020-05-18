@@ -330,7 +330,7 @@ def test_eigh_prod(dtype, Ds, num_charges):
   B = A + A.T.conj()
   E, V = eigh(B)
   B_ = V @ diag(E) @ V.conj().T
-  np.testing.assert_allclose(B.data, B_.data)
+  np.testing.assert_allclose(B.transpose_data(inplace=True).data, B_.data)
   for n in range(len(B._charges)):
     assert charge_equal(B_._charges[n], B._charges[n])
 
@@ -416,7 +416,7 @@ def test_eig_prod(dtype, Ds, num_charges):
   A = A.reshape([dims, dims])
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
-  np.testing.assert_allclose(A.data, A_.data)
+  np.testing.assert_allclose(A.transpose_data(inplace=True).data, A_.data)
 
 
 def test_eig_raises():
