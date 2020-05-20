@@ -1457,7 +1457,7 @@ def test_edge_name_setter_throws_type_error(single_node_edge, name):
 
 def test_edge_node1_throws_value_error(single_node_edge):
   edge = Edge(node1=single_node_edge.node, axis1=0, name="edge")
-  edge.node1 = None
+  edge._nodes[0] = None
   err_msg = "node1 for edge 'edge' no longer exists."
   with pytest.raises(ValueError, match=err_msg):
     edge.node1
