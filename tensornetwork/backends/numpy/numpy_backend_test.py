@@ -1,4 +1,3 @@
-"""Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
 import scipy as sp
@@ -51,6 +50,14 @@ def test_slice():
   actual = backend.slice(a, (1, 1), (2, 2))
   expected = np.array([[5., 6.], [8., 9.]])
   np.testing.assert_allclose(expected, actual)
+
+
+def test_slice_raises_error():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.convert_to_tensor(
+      np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]))
+  with pytest.raises(ValueError):
+    backend.slice(a, (1, 1), (2, 2, 2))
 
 
 def test_shape_tensor():
@@ -272,6 +279,40 @@ def test_conj():
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_valid_init_operator_with_shape(dtype):
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_small_number_krylov_vectors():
+  backend = numpy_backend.NumPyBackend()
+  init = np.array([1, 1], dtype=np.float64)
+  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta1[0], 5)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_lanczos_1(dtype):
   backend = numpy_backend.NumPyBackend()
   D = 16
@@ -280,10 +321,10 @@ def test_eigsh_lanczos_1(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  def mv(x):
-    return np.dot(H, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-  eta1, U1 = backend.eigsh_lanczos(mv, init)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -301,17 +342,10 @@ def test_eigsh_lanczos_2(dtype):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  class LinearOperator:
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigsh_lanczos(mv)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
   eta2, U2 = np.linalg.eigh(H)
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
@@ -330,19 +364,15 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
   tmp = backend.randn((D, D), dtype=dtype, seed=10)
   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
 
-  class LinearOperator:
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(
-      mv,
+      mv, [H],
+      shape=(D,),
+      dtype=dtype,
       numeig=numeig,
+      num_krylov_vecs=D,
       reorthogonalize=True,
       ndiag=1,
       tol=10**(-12),
@@ -361,43 +391,32 @@ def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
 
 def test_eigsh_lanczos_raises():
   backend = numpy_backend.NumPyBackend()
-  with pytest.raises(AttributeError):
-    backend.eigsh_lanczos(lambda x: x)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
     backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
+      "Use `reorthogonalize=True` for `numeig > 1`"):
     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
-
-
-def test_eigsh_lanczos_raises_error_for_incompatible_shapes():
-  backend = numpy_backend.NumPyBackend()
-  A = backend.randn((4, 4), dtype=np.float64)
-  init = backend.randn((3,), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigsh_lanczos(A, initial_state=init)
-
-
-def test_eigsh_lanczos_raises_error_for_untyped_A():
-  backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigsh_lanczos(A)
-
-
-def test_eigsh_lanczos_raises_error_for_bad_initial_state():
-  backend = numpy_backend.NumPyBackend()
-  D = 16
-  init = [1] * D
-  M = backend.randn((D, D), dtype=np.float64)
-
-  def mv(x):
-    return np.dot(M, x)
-
-  with pytest.raises(TypeError):
-    backend.eigsh_lanczos(mv, initial_state=init)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(
+      TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("a, b, expected", [
@@ -498,40 +517,11 @@ def test_eigs(dtype, which):
   init = backend.randn((D,), dtype=dtype, seed=10)
   M = backend.randn((D, D), dtype=dtype, seed=10)
 
-  def mv(x):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
-  eta1, U1 = backend.eigs(mv, init, numeig=1, which=which)
+  eta1, U1 = backend.eigs(mv, [M], init, numeig=1, which=which)
   eta2, U2 = np.linalg.eig(M)
-  val, index = find(which, eta2)
-  v2 = U2[:, index]
-  v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
-  v1 = v1 / sum(v1)
-  np.testing.assert_allclose(find(which, eta1)[0], val)
-  np.testing.assert_allclose(v1, v2)
-
-
-@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
-def test_eigs_no_init(dtype, which):
-  backend = numpy_backend.NumPyBackend()
-  D = 16
-  np.random.seed(10)
-  H = backend.randn((D, D), dtype=dtype, seed=10)
-
-  class LinearOperator:
-
-    def __init__(self, shape, dtype):
-      self.shape = shape
-      self.dtype = dtype
-
-    def __call__(self, x):
-      return np.dot(H, x)
-
-  mv = LinearOperator(shape=((D,), (D,)), dtype=dtype)
-  eta1, U1 = backend.eigs(mv, numeig=1, which=which)
-  eta2, U2 = np.linalg.eig(H)
   val, index = find(which, eta2)
   v2 = U2[:, index]
   v2 = v2 / sum(v2)
@@ -549,32 +539,63 @@ def test_eigs_raises_error_for_unsupported_which(which):
     backend.eigs(A=A, which=which)
 
 
-def test_eigs_raises_error_for_incompatible_shapes():
+def test_eigs_raises():
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   init = backend.randn((3,), dtype=np.float64)
-  with pytest.raises(ValueError):
-    backend.eigs(A, initial_state=init)
+  with pytest.raises(ValueError, match=""):
+    backend.eigs(A, initial_state=init, num_krylov_vecs=10, numeig=9)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
 
 
-def test_eigs_raises_error_for_unshaped_A():
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs_no_init(which):
   backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  print(hasattr(A, "shape"))
-  err_msg = "`A` has no  attribute `shape`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state`"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
+  dtype = np.complex128
+  D = 16
+  np.random.seed(10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+
+  eta1, U1 = backend.eigs(
+      mv, [H], shape=(D,), dtype=dtype, numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(H)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / np.sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / np.sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)
 
 
-def test_eigs_raises_error_for_untyped_A():
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ['LM', 'LR', 'SM', 'SR'])
+def test_eigs_init(dtype, which):
   backend = numpy_backend.NumPyBackend()
-  A = Mock(spec=[])
-  A.shape = Mock(return_value=(2, 2))
-  err_msg = "`A` has no  attribute `dtype`. Cannot initialize lanczos. " \
-            "Please provide a valid `initial_state` with a `dtype` attribute"
-  with pytest.raises(AttributeError, match=err_msg):
-    backend.eigs(A)
+  D = 16
+  np.random.seed(10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+  init = backend.randn((D,), dtype=dtype)
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+
+  eta1, U1 = backend.eigs(mv, [H], initial_state=init, numeig=1, which=which)
+  eta2, U2 = np.linalg.eig(H)
+  val, index = find(which, eta2)
+  v2 = U2[:, index]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(find(which, eta1)[0], val)
+  np.testing.assert_allclose(v1, v2)
 
 
 def test_eigs_raises_error_for_bad_initial_state():
@@ -583,11 +604,11 @@ def test_eigs_raises_error_for_bad_initial_state():
   init = [1] * D
   M = backend.randn((D, D), dtype=np.float64)
 
-  def mv(x):
-    return np.dot(M, x)
+  def mv(x, mat):
+    return np.dot(mat, x)
 
   with pytest.raises(TypeError):
-    backend.eigs(mv, initial_state=init)
+    backend.eigs(mv, [M], initial_state=init)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])

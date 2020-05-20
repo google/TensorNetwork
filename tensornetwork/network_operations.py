@@ -20,7 +20,7 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
+from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, contract_parallel
@@ -370,6 +370,7 @@ def split_node_qr(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -461,6 +462,7 @@ def split_node_rq(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -587,6 +589,7 @@ def split_node_full_svd(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -871,3 +874,65 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
                                 "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
     node.backend = backend
+
+def get_neighbors(node: BaseNode) -> List[Node]:
+  """Get all of the neighbors that are directly connected to the given node.
+
+  Note: `node` will never be in the returned list, even if `node` has a
+  trace edge.
+
+  Args:
+    node: A node.
+
+  Returns:
+    All of the neighboring edges that share an `Edge` with `node`.
+  """
+  neighbors = []
+  neighbors_set = set()
+  for edge in node.edges:
+    if not edge.is_dangling() and not edge.is_trace():
+      if edge.node1 is node:
+        if edge.node2 not in neighbors_set:
+          neighbors.append(edge.node2)
+          neighbors_set.add(edge.node2)
+      elif edge.node1 not in neighbors_set:
+        neighbors.append(edge.node1)
+        neighbors_set.add(edge.node1)
+  return neighbors
+
+def kron(nodes: Sequence[BaseNode]) -> BaseNode:
+  """Kronecker product of the given nodes.
+
+  Kronecker products of nodes is the same as the outer product, but the order
+  of the axes is different. The first half of edges of all of the nodes will
+  appear first half of edges in the resulting node, and the second half ot the
+  edges in each node will be in the second half of the resulting node.
+
+  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
+  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
+  :math:`R_{acdgbefh}`.
+   
+  The kronecker product is designed such that the kron of many operators is
+  itself an operator. 
+
+  Args:
+    nodes: A sequence of `BaseNode` objects.
+
+  Returns:
+    A `Node` that is the kronecker product of the given inputs. The first
+    half of the edges of this node would represent the "input" edges of the
+    operator and the last half of edges are the "output" edges of the
+    operator.
+  """
+  input_edges = []
+  output_edges = []
+  for node in nodes:
+    order = len(node.shape)
+    if order % 2 != 0:
+      raise ValueError(
+          f"All operator tensors must have an even order. "
+          f"Found tensor with order {order}")
+    input_edges += node.edges[:order//2]
+    output_edges += node.edges[order//2:]
+  result = outer_product_final_nodes(nodes, input_edges + output_edges)
+  return result

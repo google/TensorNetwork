@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from tensornetwork import connect, contract, Node
 from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends import backend_factory
 
 
 def clean_tensornetwork_modules():
@@ -32,6 +33,8 @@ def no_backend_dependency(monkeypatch):
     return import_orig(name, globals, locals, fromlist, level)
 
   monkeypatch.setattr(builtins, '__import__', mocked_import)
+  # Nuke the cache.
+  backend_factory._INSTANTIATED_BACKENDS = dict()
 
 
 @pytest.mark.usefixtures('no_backend_dependency')
@@ -147,7 +150,7 @@ def test_basic_network_without_backends_raises_error():
     Node(np.ones((2, 2)), backend="tensorflow")
   with pytest.raises(ImportError):
     Node(np.ones((2, 2)), backend="pytorch")
-[]
+
 
 def test_base_backend_name():
   backend = BaseBackend()
@@ -313,7 +316,7 @@ def test_base_backend_eigs_not_implemented():
 def test_base_backend_eigs_lanczos_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(np.ones((2, 2)))
+    backend.eigsh_lanczos(lambda x: x, np.ones((2)))
 
 
 def test_base_backend_addition_not_implemented():
@@ -380,3 +383,27 @@ def test_base_backend_expm_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
     backend.expm(np.ones((2, 2)))
+
+
+def test_base_backend_sparse_shape_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sparse_shape(np.ones((2, 2)))
+
+
+def test_base_backend_broadcast_right_multiplication_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.broadcast_right_multiplication(np.ones((2, 2)), np.ones((2, 2)))
+
+
+def test_base_backend_broadcast_left_multiplication_not_implemented():
+  backend = BaseBackend()
+  with pytest.raises(NotImplementedError):
+    backend.broadcast_left_multiplication(np.ones((2, 2)), np.ones((2, 2)))
+
+
+def test_backend_instantiation(backend):
+  backend1 = backend_factory.get_backend(backend)
+  backend2 = backend_factory.get_backend(backend)
+  assert backend1 is backend2

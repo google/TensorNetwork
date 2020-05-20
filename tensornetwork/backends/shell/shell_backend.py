@@ -31,7 +31,7 @@ class ShellTensor:
     return self
 
 
-Tensor = ShellTensor
+Tensor = Any
 
 
 class ShellBackend(base_backend.BaseBackend):
@@ -62,13 +62,14 @@ class ShellBackend(base_backend.BaseBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(self,
-                        tensor: Tensor,
-                        split_axis: int,
-                        max_singular_values: Optional[int] = None,
-                        max_truncation_error: Optional[float] = None,
-                        relative: Optional[bool] = False
-                       ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+  def svd_decomposition(
+      self,
+      tensor: Tensor,
+      split_axis: int,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
@@ -93,7 +94,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -103,7 +104,7 @@ class ShellBackend(base_backend.BaseBackend):
 
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
-    center_dim = min(tensor.shape)
+    center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
@@ -227,47 +228,48 @@ class ShellBackend(base_backend.BaseBackend):
 
   def eigs(self,
            A: Callable,
+           args: Optional[List[Tensor]] = None,
            initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
            num_krylov_vecs: Optional[int] = 200,
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None,
-           dtype: Optional[Type] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    if args is None:
+      args = []
 
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
+    if num_krylov_vecs < numeig + 1:
+      raise ValueError('`num_krylov_vecs` >= `numeig+1` required!')
 
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor((A.shape[0],)) for _ in range(numeig)
-      ]
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(shape) for _ in range(numeig)]
+    if not isinstance(initial_state, ShellTensor):
+      raise TypeError("Expected a `ShellTensor`. Got {}".format(
+          type(initial_state)))
 
-    if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
-    raise ValueError(
-        '`A` has no attribut shape and no `initial_state` is given.')
-
-  def eigsh_lanczos(
-      self,
-      A: Callable,
-      initial_state: Optional[Tensor] = None,
-      num_krylov_vecs: Optional[int] = 200,
-      numeig: Optional[int] = 1,
-      tol: Optional[float] = 1E-8,
-      delta: Optional[float] = 1E-8,
-      ndiag: Optional[int] = 20,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
-
+  def eigsh_lanczos(self,
+                    A: Callable,
+                    args: Optional[List[Tensor]] = None,
+                    initial_state: Optional[Tensor] = None,
+                    shape: Optional[Tuple] = None,
+                    dtype: Optional[Type[np.number]] = None,
+                    num_krylov_vecs: int = 20,
+                    numeig: int = 1,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False) -> Tuple[List, List]:
+    if args is None:
+      args = []
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
@@ -275,28 +277,18 @@ class ShellBackend(base_backend.BaseBackend):
       raise ValueError(
           "Got numeig = {} > 1 and `reorthogonalize = False`. "
           "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
-
-    if (initial_state is not None) and hasattr(A, 'shape'):
-      if initial_state.shape != A.shape[1]:
-        raise ValueError(
-            "A.shape[1]={} and initial_state.shape={} are incompatible.".format(
-                A.shape[1], initial_state.shape))
-
     if initial_state is None:
-      if not hasattr(A, 'shape'):
-        raise AttributeError("`A` has no  attribute `shape`. Cannot initialize "
-                             "lanczos. Please provide a valid `initial_state`")
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(A.shape[0]) for _ in range(numeig)
-      ]
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      return [ShellTensor(tuple()) for _ in range(numeig)
+             ], [ShellTensor(shape) for _ in range(numeig)]
+    if not isinstance(initial_state, ShellTensor):
+      raise TypeError("Expected a `ShellTensor`. Got {}".format(
+          type(initial_state)))
 
-    if initial_state is not None:
-      return [ShellTensor(tuple()) for _ in range(numeig)], [
-          ShellTensor(initial_state.shape) for _ in range(numeig)
-      ]
-
-    raise ValueError(
-        '`A` has no attribut shape adn no `initial_state` is given.')
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     raise NotImplementedError("Shell tensor has not implemented addition( + )")
@@ -347,3 +339,6 @@ class ShellBackend(base_backend.BaseBackend):
       shape1 = shape1 + tuple([1] * (len(tensor2.shape) - len(shape1)))
     shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor2.shape, shape1)])
     return ShellTensor(shape)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return fun

@@ -500,3 +500,46 @@ def test_split_node_qr_orig_shape(backend):
   n1 = tn.Node(np.random.rand(3, 4, 5), backend=backend)
   tn.split_node_qr(n1, [n1[0], n1[2]], [n1[1]])
   np.testing.assert_allclose(n1.shape, (3, 4, 5))
+
+def test_get_neighbors(backend):
+  with tn.DefaultBackend(backend):
+    a = tn.Node(np.ones((2, 2)))
+    b = tn.Node(np.ones((2, 2, 2, 2)))
+    c = tn.Node(np.ones((2, 2, 2)))
+    d = tn.Node(np.ones((2, 2)))
+    b[0] ^ a[1]
+    b[3] ^ c[2]
+    a[0] ^ d[1]
+    b[1] ^ b[2]
+    result = tn.get_neighbors(b)
+    assert result == [a, c]
+
+def test_get_neighbors_no_duplicates(backend):
+  with tn.DefaultBackend(backend):
+    a = tn.Node(np.ones((2, 2, 2)))
+    b = tn.Node(np.ones((2, 2, 2, 2, 2)))
+    c = tn.Node(np.ones((2, 2, 2)))
+    d = tn.Node(np.ones((2, 2)))
+    b[0] ^ a[0]
+    b[1] ^ a[1]
+    b[2] ^ c[0]
+    a[2] ^ d[1]
+    b[3] ^ b[4]
+    result = tn.get_neighbors(b)
+    assert result == [a, c]
+
+def test_operator_kron(backend):
+  with tn.DefaultBackend(backend):
+    X = np.array([[0, 1], [1, 0]], dtype=np.float32)
+    Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    expected = np.kron(X, Z).reshape(2, 2, 2, 2)
+    result = tn.kron([tn.Node(X), tn.Node(Z)])
+    np.testing.assert_allclose(result.tensor, expected)
+
+def test_kron_raises(backend):
+  with tn.DefaultBackend(backend):
+    A = tn.Node(np.ones((2, 2, 2)))
+    B = tn.Node(np.ones((2, 2, 2)))
+    with pytest.raises(
+        ValueError, match="All operator tensors must have an even order."):
+      tn.kron([A, B])
