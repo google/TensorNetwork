@@ -19,7 +19,7 @@ import numpy as np
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_full_svd, conj
+from tensornetwork.network_operations import split_node_full_svd, conj, split_node_qr
 from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.ncon_interface import ncon
@@ -471,37 +471,61 @@ class BaseMPS:
           'Found site2 ={}, site1={}. Only nearest neighbor gates are currently '
           'supported'.format(site2, site1))
 
-    if (max_singular_values or
-        max_truncation_err) and self.center_position not in (site1, site2):
-      raise ValueError(
-          'center_position = {}, but gate is applied at sites {}, {}. '
-          'Truncation should only be done if the gate '
-          'is applied at the center position of the MPS'.format(
-              self.center_position, site1, site2))
-
-    gate_node = Node(gate, backend=self.backend)
-    node1 = Node(self.tensors[site1], backend=self.backend)
-    node2 = Node(self.tensors[site2], backend=self.backend)
-    node1[2] ^ node2[0]
-    gate_node[2] ^ node1[1]
-    gate_node[3] ^ node2[1]
-    left_edges = [node1[0], gate_node[0]]
-    right_edges = [gate_node[1], node2[2]]
-    result = node1 @ node2 @ gate_node
-    U, S, V, tw = split_node_full_svd(
-        result,
-        left_edges=left_edges,
-        right_edges=right_edges,
-        max_singular_values=max_singular_values,
-        max_truncation_err=max_truncation_err,
-        left_name=node1.name,
-        right_name=node2.name)
-    V.reorder_edges([S[1]] + right_edges)
-    left_edges = left_edges + [S[1]]
-    res = contract_between(U, S, name=U.name).reorder_edges(left_edges)
-    self.tensors[site1] = res.tensor
-    self.tensors[site2] = V.tensor
-    return tw
+    if (max_singular_values or max_truncation_err): 
+    
+        if (self.center_position not in (site1, site2)):
+            raise ValueError(
+              'center_position = {}, but gate is applied at sites {}, {}. '
+              'Truncation should only be done if the gate '
+              'is applied at the center position of the MPS'.format(
+                  self.center_position, site1, site2))
+            
+        else:
+            
+            gate_node = Node(gate, backend=self.backend)
+            node1 = Node(self.tensors[site1], backend=self.backend)
+            node2 = Node(self.tensors[site2], backend=self.backend)
+            node1[2] ^ node2[0]
+            gate_node[2] ^ node1[1]
+            gate_node[3] ^ node2[1]
+            left_edges = [node1[0], gate_node[0]]
+            right_edges = [gate_node[1], node2[2]]
+            result = node1 @ node2 @ gate_node
+            U, S, V, tw = split_node_full_svd(
+                result,
+                left_edges=left_edges,
+                right_edges=right_edges,
+                max_singular_values=max_singular_values,
+                max_truncation_err=max_truncation_err,
+                left_name=node1.name,
+                right_name=node2.name)
+            V.reorder_edges([S[1]] + right_edges)
+            left_edges = left_edges + [S[1]]
+            res = contract_between(U, S, name=U.name).reorder_edges(left_edges)
+            self.tensors[site1] = res.tensor
+            self.tensors[site2] = V.tensor
+            return tw
+            
+    else:
+        
+        gate_node = Node(gate, backend=self.backend)
+        node1 = Node(self.tensors[site1], backend=self.backend)
+        node2 = Node(self.tensors[site2], backend=self.backend)
+        node1[2] ^ node2[0]
+        gate_node[2] ^ node1[1]
+        gate_node[3] ^ node2[1]
+        left_edges = [node1[0], gate_node[0]]
+        right_edges = [gate_node[1], node2[2]]
+        result = node1 @ node2 @ gate_node
+        Q, R = split_node_qr(
+            result,
+            left_edges=left_edges,
+            right_edges=right_edges,
+            left_name=node1.name,
+            right_name=node2.name)
+        self.tensors[site1] = Q.tensor
+        self.tensors[site2] = R.tensor
+        return None
 
   def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
     """Apply a one-site gate to an MPS. This routine will in general destroy
