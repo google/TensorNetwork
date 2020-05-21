@@ -671,17 +671,6 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
-    # perm = np.empty(len(self.flat_order), dtype=np.int32)
-    # perm[other.flat_order] = self.flat_order
-    # self.transpose_data(perm, inplace=True)
-    # #now addition is save
-    # return BlockSparseTensor(
-    #     data=self.data + other.data,
-    #     charges=self._charges,
-    #     flows=self._flows,
-    #     order=self._order,
-    #     check_consistency=False)
-
   def __mul__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(
