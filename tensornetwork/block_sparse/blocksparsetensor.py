@@ -477,7 +477,7 @@ class BlockSparseTensor(ChargeArray):
     flows = []
     for i in indices:
       charges.extend(i.flat_charges)
-      flows.extend(i.flat_flows)
+      flows.extend(i._flows)
 
     _, locs = reduce_charges(
         charges=charges,
@@ -739,7 +739,7 @@ class BlockSparseTensor(ChargeArray):
         tensor. If `None` defaults to `BlockSparseTensor.permutation`.
     """
     flat_charges = self.flat_charges
-    flat_flows = self.flat_flows
+    flat_flows = self._flows
     if permutation is None:
       permutation = self.flat_order
 
@@ -822,7 +822,7 @@ def outerproduct(tensor1: BlockSparseTensor,
   """
 
   final_charges = tensor1._charges + tensor2._charges
-  final_flows = tensor1.flat_flows + tensor2.flat_flows
+  final_flows = tensor1._flows + tensor2._flows
   order2 = [list(np.asarray(s) + len(tensor1._charges)) for s in tensor2._order]
 
   data = np.zeros(
@@ -976,8 +976,8 @@ def tensordot(
   flat_order_1 = flatten(new_order1)
   flat_order_2 = flatten(new_order2)
 
-  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1.flat_flows
-  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2.flat_flows
+  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1._flows
+  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2._flows
 
   left_charges = []
   right_charges = []

@@ -63,8 +63,7 @@ def diag(tensor: ChargeArray) -> Any:
           "`diag` currently only implemented for `ChargeArray` with ndim=1, "
           "found `ndim={}`".format(tensor.ndim))
     flat_charges = tensor._charges + tensor._charges
-    flat_flows = list(tensor.flat_flows) + list(
-        np.logical_not(tensor.flat_flows))
+    flat_flows = list(tensor._flows) + list(np.logical_not(tensor._flows))
     flat_order = list(tensor.flat_order) + list(
         np.asarray(tensor.flat_order) + len(tensor._charges))
     tr_partition = len(tensor._order[0])
@@ -92,7 +91,7 @@ def diag(tensor: ChargeArray) -> Any:
         check_consistency=False)
 
   flat_charges = tensor._charges
-  flat_flows = tensor.flat_flows
+  flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
   sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(
@@ -213,7 +212,7 @@ def svd(matrix: BlockSparseTensor,
     raise NotImplementedError("svd currently supports only tensors of order 2.")
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
@@ -328,7 +327,7 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
@@ -415,7 +414,7 @@ def eigh(matrix: BlockSparseTensor,
     raise NotImplementedError("eigh currently supports only rank-2 tensors.")
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
@@ -473,7 +472,7 @@ def eig(matrix: BlockSparseTensor) -> Tuple[ChargeArray, BlockSparseTensor]:
     raise NotImplementedError("eig currently supports only rank-2 tensors.")
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
@@ -530,7 +529,7 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
     raise ValueError("`inv` can only be taken for matrices, "
                      "found tensor.ndim={}".format(matrix.ndim))
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
@@ -581,8 +580,7 @@ def eye(column_index: Index,
 
   blocks, _, shapes = _find_diagonal_sparse_blocks(
       column_index.flat_charges + row_index.flat_charges,
-      column_index.flat_flows + row_index.flat_flows,
-      len(column_index.flat_charges))
+      column_index._flows + row_index._flows, len(column_index.flat_charges))
   data = np.empty(np.int64(np.sum(np.prod(shapes, axis=0))), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
@@ -595,7 +593,7 @@ def eye(column_index: Index,
   return BlockSparseTensor(
       data=data,
       charges=column_index.flat_charges + row_index.flat_charges,
-      flows=column_index.flat_flows + row_index.flat_flows,
+      flows=column_index._flows + row_index._flows,
       order=order,
       check_consistency=False)
 
@@ -676,7 +674,7 @@ def pinv(matrix: BlockSparseTensor,
                      "found tensor.ndim={}".format(matrix.ndim))
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, _, shapes = _find_transposed_diagonal_sparse_blocks(
