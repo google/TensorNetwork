@@ -41,7 +41,8 @@ def test_ascend(random_tensors):
   assert len(h.shape) == 6
   D = h.shape[0]
   hmat = np.reshape(h, [D**3] * 2)
-  assert np.isclose(np.linalg.norm(hmat - np.conj(np.transpose(hmat))), 0.0)
+  norm = np.linalg.norm(hmat - np.conj(np.transpose(hmat)))
+  assert np.isclose(norm, 0.0)
 
 
 def test_energy(wavelet_tensors):
@@ -68,7 +69,7 @@ def test_opt(wavelet_tensors):
 @pytest.fixture(params=[2, 3])
 def random_tensors(request):
   D = request.param
-  key = jax.random.PRNGKey(int(time.time()))
+  key = jax.random.PRNGKey(0)
 
   h = jax.random.normal(key, shape=[D**3] * 2)
   h = 0.5 * (h + np.conj(np.transpose(h)))
@@ -84,7 +85,7 @@ def random_tensors(request):
   dis = np.reshape(u, [D] * 4)
   iso = np.reshape(vh, [D] * 4)[:, :, :, 0]
 
-  return (h, s, iso, dis)
+  return tuple(x.astype(np.complex128) for x in (h, s, iso, dis))
 
 
 @pytest.fixture
@@ -116,4 +117,4 @@ def wavelet_tensors(request):
   w = np.transpose(w, [1, 2, 0])
   u = np.transpose(u, [2, 3, 0, 1])
 
-  return h, w, u
+  return tuple(np.complex64(x) for x in (h, w, u))
