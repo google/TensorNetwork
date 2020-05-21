@@ -580,7 +580,8 @@ def eye(column_index: Index,
 
   blocks, _, shapes = _find_diagonal_sparse_blocks(
       column_index.flat_charges + row_index.flat_charges,
-      column_index._flows + row_index._flows, len(column_index.flat_charges))
+      column_index.flat_flows + row_index.flat_flows,
+      len(column_index.flat_charges))
   data = np.empty(np.int64(np.sum(np.prod(shapes, axis=0))), dtype=dtype)
   for n, block in enumerate(blocks):
     data[block] = np.ravel(np.eye(shapes[0, n], shapes[1, n], dtype=dtype))
@@ -593,7 +594,7 @@ def eye(column_index: Index,
   return BlockSparseTensor(
       data=data,
       charges=column_index.flat_charges + row_index.flat_charges,
-      flows=column_index._flows + row_index._flows,
+      flows=column_index.flat_flows + row_index.flat_flows,
       order=order,
       check_consistency=False)
 
