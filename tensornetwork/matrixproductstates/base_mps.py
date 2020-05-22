@@ -449,7 +449,7 @@ class BaseMPS:
       site2: The second site where the gate acts.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
-      new_center_position: The new orthogonality center. If None, does not restore canonical form
+      new_center_position: The new orthogonality center.
 
     Returns:
       `Tensor`: A scalar tensor containing the truncated weight of the
@@ -472,10 +472,12 @@ class BaseMPS:
       raise ValueError(
           'Found site2 ={}, site1={}. Only nearest neighbor gates are currently '
           'supported'.format(site2, site1))
-
+    if ((self.center_position is None) and (new_center_position is not None)): #temporary fix
+      raise ValueError('Cannot change orthogonality center if previously non canonical')
+    
     if (max_singular_values or max_truncation_err): 
     
-      if ((self.center_position)
+      if ((self.center_position is not None)
           and (self.center_position not in (site1, site2))):
           
         raise ValueError(
@@ -535,9 +537,9 @@ class BaseMPS:
       self.tensors[site2] = Q.tensor
       tw = self.backend.convert_to_tensor(0)
       
-      if (self.center_position):
+      if (self.center_position is not None):
         if (self.center_position in (site1, site2)):
-          if (new_center_position):
+          if (new_center_position is not None):
             self.position(site=new_center_position, normalize = False)
           else:
             self.position(site = self.center_position, normalize = False)
@@ -566,13 +568,17 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
+    if ((self.center_position is None) and (new_center_position is not None)): #temporary fix
+      raise ValueError('Cannot change orthogonality center if previously non canonical')
+      
     self.tensors[site] = ncon([gate, self.tensors[site]],
                               [[-2, 1], [-1, 1, -3]],
                               backend=self.backend.name)    
-    if new_center_position:
-      self.position(site=new_center_position, normalize = False)
-    else:
+    
+    if (new_center_position is None):
       self.center_position = None
+    else:
+      self.position(site=new_center_position, normalize = False)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
@@ -649,3 +655,4 @@ class BaseMPS:
 
   def canonicalize(self, *args, **kwargs) -> np.number:
     raise NotImplementedError()
+
