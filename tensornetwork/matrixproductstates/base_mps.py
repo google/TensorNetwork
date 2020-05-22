@@ -437,7 +437,8 @@ class BaseMPS:
                           site1: int,
                           site2: int,
                           max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None) -> Tensor:
+                          max_truncation_err: Optional[float] = None,
+                          new_center_position: Optional[int] = None) -> Tensor:
     """Apply a two-site gate to an MPS. This routine will in general destroy
     any canonical form of the state. If a canonical form is needed, the user
     can restore it using `FiniteMPS.position`.
@@ -448,6 +449,7 @@ class BaseMPS:
       site2: The second site where the gate acts.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      new_center_position: The new orthogonality center. If None, does not restore canonical form
 
     Returns:
       `Tensor`: A scalar tensor containing the truncated weight of the
@@ -464,7 +466,7 @@ class BaseMPS:
       raise ValueError('site2 = {} is not between 1 <= site < N = {}'.format(
           site2, len(self)))
     if site2 <= site1:
-      raise ValueError('site2 = {} has to be larger than site2 = {}'.format(
+      raise ValueError('site2 = {} has to be larger than site1 = {}'.format(
           site2, site1))
     if site2 != site1 + 1:
       raise ValueError(
@@ -473,7 +475,9 @@ class BaseMPS:
 
     if (max_singular_values or max_truncation_err): 
     
-      if (self.center_position not in (site1, site2)):
+      if ((self.center_position)
+          and (self.center_position not in (site1, site2))):
+          
         raise ValueError(
             'center_position = {}, but gate is applied at sites {}, {}. '
             'Truncation should only be done if the gate '
@@ -502,10 +506,16 @@ class BaseMPS:
       res = contract_between(U, S, name=U.name).reorder_edges(left_edges)
       self.tensors[site1] = res.tensor
       self.tensors[site2] = V.tensor
+      
+      if (new_center_position):
+        self.position(site = new_center_position, normalize = False)
+      else:
+        self.position(site = self.center_position, normalize = False)
+          
       return tw
             
     else:
-      
+         
       gate_node = Node(gate, backend=self.backend)
       node1 = Node(self.tensors[site1], backend=self.backend)
       node2 = Node(self.tensors[site2], backend=self.backend)
@@ -523,15 +533,32 @@ class BaseMPS:
           right_name=node2.name)
       self.tensors[site1] = R.tensor
       self.tensors[site2] = Q.tensor
-      return backend.convert_to_tensor([])
+      tw = self.backend.convert_to_tensor([])
+      
+      if (self.center_position):
+        if (self.center_position in (site1, site2)):
+          if (new_center_position):
+            self.position(site=new_center_position, normalize = False)
+          else:
+            self.position(site = self.center_position, normalize = False)
+        else:
+          self.center_position = None
+      else:
+        self.center_position = None
+        
+      return tw
   
-  def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
+  def apply_one_site_gate(self,
+                          gate: Tensor,
+                          site: int,
+                          new_center_position: Optional[int] = None) -> None:
     """Apply a one-site gate to an MPS. This routine will in general destroy
     any canonical form of the state. If a canonical form is needed, the user
-    can restore it using `FiniteMPS.position`
+    can restore it using 'new_center_position' argument
     Args:
       gate: a one-body gate
       site: the site where the gate should be applied
+      new_center_position: New orthogonality center. If None, does not restore canonical form
     """
     if len(gate.shape) != 2:
       raise ValueError('rank of gate is {} but has to be 2'.format(
@@ -541,7 +568,11 @@ class BaseMPS:
           site, len(self)))
     self.tensors[site] = ncon([gate, self.tensors[site]],
                               [[-2, 1], [-1, 1, -3]],
-                              backend=self.backend.name)
+                              backend=self.backend.name)    
+    if new_center_position:
+      self.position(site=new_center_position, normalize = False)
+    else:
+      self.center_position = None
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
