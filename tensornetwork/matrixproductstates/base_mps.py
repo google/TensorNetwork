@@ -533,7 +533,7 @@ class BaseMPS:
           right_name=node2.name)
       self.tensors[site1] = R.tensor
       self.tensors[site2] = Q.tensor
-      tw = self.backend.convert_to_tensor([])
+      tw = self.backend.convert_to_tensor(0)
       
       if (self.center_position):
         if (self.center_position in (site1, site2)):
