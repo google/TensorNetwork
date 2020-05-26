@@ -25,12 +25,25 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
-def jittable_ncon(
+def _jittable_ncon(
     tensors, 
     network_structure, 
     con_order, 
     out_order, 
     backend):
+  """Jittable Ncon function.
+
+  Args:
+    tensors: List of tensors.
+    network_structure: List of list of integers that descripes the network
+      structure.
+    con_order: Order of the contraction.
+    out_order: Order of the final axis order.
+    backend: A backend object.
+  
+  Returns:
+    The final tensor after contraction.
+  """
   nodes, con_edges, out_edges = ncon_network(
       tensors,
       network_structure,
