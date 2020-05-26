@@ -178,7 +178,7 @@ def ncon(
 
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
-        jittable_ncon, static_argnums=(1, 2, 3, 4))
+        _jittable_ncon, static_argnums=(1, 2, 3, 4))
   res_tensor = _CACHED_JITTED_NCONS[backend](
       _tensors, network_structure, con_order, out_order, backend_obj)
   if all(are_nodes):
