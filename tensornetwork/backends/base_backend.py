@@ -596,7 +596,7 @@ class BaseBackend:
 
   def jit(self, fun: Callable, *args: Any, **kwargs: Any) -> Callable:
     """
-    Return a jitted or graph-compiled version of `fun` \
+    Return a jitted or graph-compiled version of `fun`
     for JAX backend. For all other backends returns `fun`.
     Args:
       fun: Callable
