@@ -594,11 +594,10 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `expm`.".format(
         self.name))
 
-  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+  def jit(self, fun: Callable, *args: Any, **kwargs: Any) -> Callable:
     """
-    Return a jitted or graph-compiled version of `fun` \
-    for jax and tensorflow backends. For all other backends
-    returns `fun`.
+    Return a jitted or graph-compiled version of `fun`
+    for JAX backend. For all other backends returns `fun`.
     Args:
       fun: Callable
       args: Arguments to `fun`.
