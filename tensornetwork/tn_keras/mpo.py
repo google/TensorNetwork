@@ -99,7 +99,6 @@ class DenseMPO(Layer):
     super(DenseMPO, self).build(input_shape)
 
     self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
-    print("in leg dim", self.in_leg_dim)
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
 
     self.nodes.append(
