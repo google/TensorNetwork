@@ -2,5 +2,5 @@ tensorflow>=2.0.0
 pytype==2020.04.22
 pytest
 torch>=1.1
-jax>=0.1.0
-jaxlib>=0.1.27
+jax>=0.1.68
+jaxlib>=0.1.47

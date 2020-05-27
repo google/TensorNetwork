@@ -5,6 +5,7 @@ import os
 import shutil
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
+import tensorflow as tf
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
 from tensornetwork.tn_keras.condenser import DenseCondenser
@@ -89,6 +90,7 @@ def make_model(dummy_data, request):
 def test_train(dummy_data, make_model):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
+  tf.random.set_seed(0)
   data, labels = dummy_data
   model = make_model
 
@@ -107,6 +109,7 @@ def test_train(dummy_data, make_model):
 def test_weights_change(dummy_data, make_model):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
+  tf.random.set_seed(0)
   data, labels = dummy_data
   model = make_model
   model.compile(optimizer='adam',
@@ -287,7 +290,7 @@ def test_config(make_model):
   np.testing.assert_equal(expected_num_parameters, new_model.count_params())
 
 
-def test_model_save(dummy_data, make_model):
+def test_model_save(dummy_data, make_model, tmp_path):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
   data, labels = dummy_data
@@ -301,6 +304,7 @@ def test_model_save(dummy_data, make_model):
 
   for save_path in ['test_model', 'test_model.h5']:
     # Save model to a SavedModel folder or h5 file, then load model
+    save_path = tmp_path / save_path
     model.save(save_path)
     loaded_model = load_model(save_path)
 

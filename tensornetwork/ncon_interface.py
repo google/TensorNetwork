@@ -22,6 +22,81 @@ from tensornetwork.backends.base_backend import BaseBackend
 
 Tensor = Any
 
+_CACHED_JITTED_NCONS = {}
+
+
+def _jittable_ncon(
+    tensors, 
+    network_structure, 
+    con_order, 
+    out_order, 
+    backend):
+  """Jittable Ncon function.
+
+  Args:
+    tensors: List of tensors.
+    network_structure: List of list of integers that descripes the network
+      structure.
+    con_order: Order of the contraction.
+    out_order: Order of the final axis order.
+    backend: A backend object.
+  
+  Returns:
+    The final tensor after contraction.
+  """
+  nodes, con_edges, out_edges = ncon_network(
+      tensors,
+      network_structure,
+      con_order=con_order,
+      out_order=out_order,
+      backend=backend)
+
+  nodes = set(nodes)  # we don't need the ordering here
+
+  # Reverse the list so we can pop from the end: O(1).
+  con_edges = con_edges[::-1]
+  while con_edges:
+    nodes_to_contract = con_edges[-1].get_nodes()
+    edges_to_contract = network_components.get_shared_edges(*nodes_to_contract)
+
+    # Eat up all parallel edges that are adjacent in the ordering.
+    adjacent_parallel_edges = set()
+    for edge in reversed(con_edges):
+      if edge in edges_to_contract:
+        adjacent_parallel_edges.add(edge)
+      else:
+        break
+    con_edges = con_edges[:-len(adjacent_parallel_edges)]
+
+    # In an optimal ordering, all edges connecting a given pair of nodes are
+    # adjacent in con_order. If this is not the case, warn the user.
+    leftovers = edges_to_contract - adjacent_parallel_edges
+    if leftovers:
+      warnings.warn(
+          "Suboptimal ordering detected. Edges {} are not adjacent in the "
+          "contraction order to edges {}, connecting nodes {}. Deviating from "
+          "the specified ordering!".format(
+              list(map(str, leftovers)),
+              list(map(str, adjacent_parallel_edges)),
+              list(map(str, nodes_to_contract))))
+      con_edges = [e for e in con_edges if e not in edges_to_contract]
+
+    if set(nodes_to_contract) == nodes:
+      # This contraction produces the final output, so order the edges
+      # here to avoid transposes in some cases.
+      contraction_output_order = out_edges
+    else:
+      contraction_output_order = None
+
+    nodes = nodes - set(nodes_to_contract)
+    nodes.add(
+        network_components.contract_between(
+            *nodes_to_contract,
+            name="con({},{})".format(*nodes_to_contract),
+            output_edge_order=contraction_output_order))
+  # TODO: More efficient ordering of products based on out_edges
+  res_node = network_components.outer_product_final_nodes(nodes, out_edges)
+  return res_node.tensor
 
 def ncon(
     tensors: Sequence[Union[network_components.BaseNode, Tensor]],
@@ -101,62 +176,14 @@ def ncon(
     else:
       _tensors.append(t)
 
-  nodes, con_edges, out_edges = ncon_network(
-      _tensors,
-      network_structure,
-      con_order=con_order,
-      out_order=out_order,
-      backend=backend_obj)
-
-  nodes = set(nodes)  # we don't need the ordering here
-
-  # Reverse the list so we can pop from the end: O(1).
-  con_edges = con_edges[::-1]
-  while con_edges:
-    nodes_to_contract = con_edges[-1].get_nodes()
-    edges_to_contract = network_components.get_shared_edges(*nodes_to_contract)
-
-    # Eat up all parallel edges that are adjacent in the ordering.
-    adjacent_parallel_edges = set()
-    for edge in reversed(con_edges):
-      if edge in edges_to_contract:
-        adjacent_parallel_edges.add(edge)
-      else:
-        break
-    con_edges = con_edges[:-len(adjacent_parallel_edges)]
-
-    # In an optimal ordering, all edges connecting a given pair of nodes are
-    # adjacent in con_order. If this is not the case, warn the user.
-    leftovers = edges_to_contract - adjacent_parallel_edges
-    if leftovers:
-      warnings.warn(
-          "Suboptimal ordering detected. Edges {} are not adjacent in the "
-          "contraction order to edges {}, connecting nodes {}. Deviating from "
-          "the specified ordering!".format(
-              list(map(str, leftovers)),
-              list(map(str, adjacent_parallel_edges)),
-              list(map(str, nodes_to_contract))))
-      con_edges = [e for e in con_edges if e not in edges_to_contract]
-
-    if set(nodes_to_contract) == nodes:
-      # This contraction produces the final output, so order the edges
-      # here to avoid transposes in some cases.
-      contraction_output_order = out_edges
-    else:
-      contraction_output_order = None
-
-    nodes = nodes - set(nodes_to_contract)
-    nodes.add(
-        network_components.contract_between(
-            *nodes_to_contract,
-            name="con({},{})".format(*nodes_to_contract),
-            output_edge_order=contraction_output_order))
-
-  # TODO: More efficient ordering of products based on out_edges
-  res_node = network_components.outer_product_final_nodes(nodes, out_edges)
+  if backend not in _CACHED_JITTED_NCONS:
+    _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
+        _jittable_ncon, static_argnums=(1, 2, 3, 4))
+  res_tensor = _CACHED_JITTED_NCONS[backend](
+      _tensors, network_structure, con_order, out_order, backend_obj)
   if all(are_nodes):
-    return res_node
-  return res_node.tensor
+    return network_components.Node(res_tensor, backend=backend_obj)
+  return res_tensor
 
 
 def ncon_network(
