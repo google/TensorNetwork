@@ -13,8 +13,12 @@ import math
 class Conv2DMPO(Layer):
   """2D Convolutional Matrix Product Operator (MPO) TN layer.
 
-  This layer creates an MPO kernel which is contracted and convolved
-  with the layer input to produce a tensor of outputs.
+  This layer recreates the functionality of a traditional convolutional
+  layer, but stores the 'kernel' as a network of nodes forming an MPO.
+  The bond dimension of the MPO can be adjusted to increase or decrease the
+  number of parameters independently of the input and output dimensions.
+  When the layer is called, the MPO is contracted into a traditional kernel
+  and convolved with the layer input to produce a tensor of outputs.
 
   Example:
 
