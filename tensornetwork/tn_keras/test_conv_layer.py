@@ -117,7 +117,7 @@ def test_config(make_model):
   np.testing.assert_equal(expected_num_parameters, new_model.count_params())
   assert layer_config == new_model.get_config()
 
-def test_model_save(dummy_data, make_model):
+def test_model_save(dummy_data, make_model, tmp_path):
   # pylint: disable=redefined-outer-name
   data, labels = dummy_data
   model = make_model
@@ -128,8 +128,9 @@ def test_model_save(dummy_data, make_model):
   # Train the model for 5 epochs
   model.fit(data, labels, epochs=5)
 
-  for save_path in ['test_model', 'test_model.h5']:
+  for save_path in [tmp_path / 'test_model', tmp_path / 'test_model.h5']:
     # Save model to a SavedModel folder or h5 file, then load model
+    print('save_path: ', save_path)
     model.save(save_path)
     loaded_model = load_model(save_path)
 

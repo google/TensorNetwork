@@ -82,7 +82,7 @@ class Conv2DMPO(Layer):
     4D tensor with shape: `(batch_size, h, w, channels)`.
 
   Output shape:
-    2D tensor with shape: `(batch_size, h, w, filters)`.
+    4D tensor with shape: `(batch_size, h_out, w_out, filters)`.
   """
   def __init__(self,
                filters: int,
@@ -146,13 +146,13 @@ class Conv2DMPO(Layer):
     channels = input_shape[channel_axis]
 
     # Ensure dividable dimensions
-    assert is_perfect_root(channels, self.num_nodes), \
-      f'Input dim incorrect.\
-      {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
+    assert is_perfect_root(channels, self.num_nodes), (
+        f'Input dim incorrect. '
+        f'{input_shape[-1]}**(1. / {self.num_nodes}) must be round.')
 
-    assert is_perfect_root(self.filters, self.num_nodes), \
-      f'Output dim incorrect. \
-      {self.filters}**(1. / {self.num_nodes}) must be round.'
+    assert is_perfect_root(self.filters, self.num_nodes), (
+        f'Output dim incorrect. '
+        f'{self.filters}**(1. / {self.num_nodes}) must be round.')
 
     super(Conv2DMPO, self).build(input_shape)
 
@@ -199,16 +199,15 @@ class Conv2DMPO(Layer):
       tn_nodes[i][2] ^ tn_nodes[i+1][1]
     input_edges = [n[0] for n in tn_nodes]
     output_edges = [n[3] for n in tn_nodes]
-    edges = [tn_nodes[0][1], tn_nodes[-1][2]] + \
-        input_edges + output_edges
+    edges = [tn_nodes[0][1], tn_nodes[-1][2]] + input_edges + output_edges
 
-    contract = tn.contractors.greedy(tn_nodes, edges)
+    contracted = tn.contractors.greedy(tn_nodes, edges)
     tn.flatten_edges(input_edges)
     tn.flatten_edges(output_edges)
 
     tf_df = 'NCHW' if self.data_format == 'channels_first' else 'NHWC'
     result = tf.nn.conv2d(inputs,
-                          contract.tensor,
+                          contracted.tensor,
                           self.strides,
                           self.padding.upper(),
                           data_format=tf_df,
@@ -222,8 +221,8 @@ class Conv2DMPO(Layer):
       result = self.activation(result)
     return result
 
-  def compute_output_shape(self, input_shape: List[int]) -> \
-      Tuple[int, int, int, int]:
+  def compute_output_shape(self, input_shape: List[int]) -> Tuple[
+      int, int, int, int]:
     if self.data_format == 'channels_first':
       space = input_shape[2:]
     else:
