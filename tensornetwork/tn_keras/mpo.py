@@ -79,7 +79,6 @@ class DenseMPO(Layer):
   def build(self, input_shape: List[int]) -> None:
     # Disable the attribute-defined-outside-init violations in this function
     # pylint: disable=attribute-defined-outside-init
-    print("Input SHape", input_shape)
     if input_shape[-1] is None:
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
