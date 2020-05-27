@@ -4,7 +4,6 @@ from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
 import tensornetwork as tn
-from tensornetwork.network_components import Node
 import numpy as np
 import math
 
@@ -80,6 +79,7 @@ class DenseMPO(Layer):
   def build(self, input_shape: List[int]) -> None:
     # Disable the attribute-defined-outside-init violations in this function
     # pylint: disable=attribute-defined-outside-init
+    print("Input SHape", input_shape)
     if input_shape[-1] is None:
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
@@ -89,17 +89,18 @@ class DenseMPO(Layer):
       return round(root)**n_nodes == n
 
     # Ensure the MPO dimensions will work
-    assert is_perfect_root(input_shape[-1], self.num_nodes), \
-      f'Input dim incorrect.\
-      {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
+    assert is_perfect_root(input_shape[-1], self.num_nodes), (
+      f'Input dim incorrect.'
+      f'{input_shape[-1]}**(1. / {self.num_nodes}) must be round.')
 
-    assert is_perfect_root(self.output_dim, self.num_nodes), \
-      f'Output dim incorrect. \
-      {self.output_dim}**(1. / {self.num_nodes}) must be round.'
+    assert is_perfect_root(self.output_dim, self.num_nodes), (
+      f'Output dim incorrect.'
+      f'{self.output_dim}**(1. / {self.num_nodes}) must be round.')
 
     super(DenseMPO, self).build(input_shape)
 
     self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
+    print("in leg dim", self.in_leg_dim)
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
 
     self.nodes.append(
@@ -131,7 +132,7 @@ class DenseMPO(Layer):
   def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
 
 
-    def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, in_leg_dim: int,
+    def f(x: tf.Tensor, nodes: List[tf.Tensor], num_nodes: int, in_leg_dim: int,
           use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
       orig_shape = x.shape
       l = [in_leg_dim] * num_nodes
@@ -161,7 +162,7 @@ class DenseMPO(Layer):
       for i in range(1, len(tn_nodes)):
         temp = temp @ tn_nodes[i]
 
-      result = tf.reshape(temp.tensor, orig_shape)
+      result = tf.reshape(temp.tensor, (-1,))
       if use_bias:
         result += bias_var
 

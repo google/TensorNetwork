@@ -6,11 +6,11 @@ import shutil
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 import tensorflow as tf
-from tensornetwork.tn_keras.dense import DenseDecomp
-from tensornetwork.tn_keras.mpo import DenseMPO
-from tensornetwork.tn_keras.condenser import DenseCondenser
-from tensornetwork.tn_keras.expander import DenseExpander
-from tensornetwork.tn_keras.entangler import DenseEntangler
+from tensornetwork.tn_keras import DenseDecomp
+from tensornetwork.tn_keras import DenseMPO
+from tensornetwork.tn_keras import DenseCondenser
+from tensornetwork.tn_keras import DenseExpander
+from tensornetwork.tn_keras import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
@@ -18,8 +18,8 @@ from tensorflow.keras.layers import Dense  # type: ignore
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
-  data = np.random.randint(10, size=(1000, request.param))
-  labels = np.concatenate((np.ones((500, 1)), np.zeros((500, 1))), axis=0)
+  data = np.random.randint(10, size=(10, request.param))
+  labels = np.concatenate((np.ones((5, 1)), np.zeros((5, 1))), axis=0)
   return data, labels
 
 
@@ -99,7 +99,7 @@ def test_train(dummy_data, make_model):
                 metrics=['accuracy'])
 
   # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=10, batch_size=32)
+  history = model.fit(data, labels, epochs=10, batch_size=10)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]

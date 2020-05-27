@@ -4,7 +4,6 @@ from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
 import tensornetwork as tn
-from tensornetwork.network_components import Node
 import numpy as np
 import math
 
@@ -68,8 +67,8 @@ class DenseEntangler(Layer):
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
     assert (
-        num_legs >
-        2), f'Need at least 2 legs to create Entangler but got {num_legs} legs'
+        num_legs > 2
+    ), f'Need at least 2 legs to create Entangler but got {num_legs} legs'
     assert (
         num_levels >= 1
     ), f'Need at least 1 level to create Entangler but got {num_levels} levels'
@@ -127,7 +126,7 @@ class DenseEntangler(Layer):
 
   def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
 
-    def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, num_legs: int,
+    def f(x: tf.Tensor, nodes: List[tf.Tensor], num_nodes: int, num_legs: int,
           leg_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
 
       orig_shape = x.shape

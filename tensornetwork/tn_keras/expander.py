@@ -4,7 +4,6 @@ from tensorflow.keras import activations
 from tensorflow.keras import initializers
 from typing import List, Optional, Text, Tuple
 import tensornetwork as tn
-from tensornetwork import Node
 import numpy as np
 import math
 
@@ -101,7 +100,7 @@ class DenseExpander(Layer):
 
   def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
 
-    def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, use_bias: bool,
+    def f(x: tf.Tensor, nodes: List[tf.Tensor], num_nodes: int, use_bias: bool,
           bias_var: tf.Tensor) -> tf.Tensor:
 
       state_node = tn.Node(x, name='xnode', backend="tensorflow")

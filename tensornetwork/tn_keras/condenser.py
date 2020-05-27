@@ -101,7 +101,7 @@ class DenseCondenser(Layer):
 
   def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
 
-    def f(x: tf.Tensor, nodes: List[Node], output_dim: int, exp_base: int,
+    def f(x: tf.Tensor, nodes: List[tf.Tensor], output_dim: int, exp_base: int,
           num_nodes: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
 
       input_reshaped = tf.reshape(x, (exp_base,) * num_nodes + (output_dim,))
