@@ -10,7 +10,6 @@ import math
 
 
 @tf.keras.utils.register_keras_serializable()  # type: ignore
-# package='tensornetwork', name='dense_mpo')
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
@@ -160,7 +159,6 @@ class DenseMPO(Layer):
       for i in range(1, len(tn_nodes)):
         temp = temp @ tn_nodes[i]
 
-      # output_shape = tuple([out_leg_dim] * num_nodes)
       result = tf.reshape(temp.tensor, (-1, output_dim))
       if use_bias:
         result += bias_var
@@ -189,16 +187,16 @@ class DenseMPO(Layer):
     config = {}
 
     # Include the MPO-specific arguments
-    mpo_args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
-    for arg in mpo_args:
+    args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
+    for arg in args:
       config[arg] = getattr(self, arg)
 
     # Serialize the activation
     config['activation'] = activations.serialize(getattr(self, 'activation'))
 
     # Serialize the initializers
-    mpo_initializers = ['kernel_initializer', 'bias_initializer']
-    for initializer_arg in mpo_initializers:
+    custom_initializers = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in custom_initializers:
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 
