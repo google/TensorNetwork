@@ -249,4 +249,5 @@ class TensorFlowBackend(base_backend.BaseBackend):
     return tf.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
-    return tf.function(fun, *args, **kwargs)
+    # tf.function is slow and bad.
+    return fun
