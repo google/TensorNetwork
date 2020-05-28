@@ -626,13 +626,29 @@ class BlockSparseTensor(ChargeArray):
       raise ValueError(
           "cannot add or subtract tensors non-matching sparse shapes")
 
+  def _align_storage_layout(self, other):
+    """
+    Align storage layouts of self and other.
+    """
+    self_is_ordered = np.array_equal(self.flat_order,
+                                     np.arange(len(self.flat_order)))
+    other_is_ordered = np.array_equal(other.flat_order,
+                                      np.arange(len(other.flat_order)))
+    both_unordered = (not self_is_ordered) and (not other_is_ordered)
+    if self_is_ordered and (not other_is_ordered):
+      #bring other into the same storage layout as other
+      perm = np.empty(len(other.flat_order), dtype=np.int32)
+      perm[self.flat_order] = other.flat_order
+      other.transpose_data(perm, inplace=True)
+    elif ((not self_is_ordered) and other_is_ordered) or both_unordered:
+      #bring self into the same storage layout as other
+      perm = np.empty(len(self.flat_order), dtype=np.int32)
+      perm[other.flat_order] = self.flat_order
+      self.transpose_data(perm, inplace=True)
+
   def __sub__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
-    self._sub_add_protection(other)
-    #bring self into the same storage layout as other
-    perm = np.empty(len(self.flat_order), dtype=np.int32)
-    perm[other.flat_order] = self.flat_order
-    self.transpose_data(perm, inplace=True)
-    #now subtraction is save
+    self._sub_add_protection(other)  #perform checks
+    self._align_storage_layout(other)  #align storage layout of self and other
     return BlockSparseTensor(
         data=self.data - other.data,
         charges=self._charges,
@@ -641,11 +657,8 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
-    self._sub_add_protection(other)
-    #bring self into the same storage layout as other
-    perm = np.empty(len(self.flat_order), dtype=np.int32)
-    perm[other.flat_order] = self.flat_order
-    self.transpose_data(perm, inplace=True)
+    self._sub_add_protection(other)  #perform checks
+    self._align_storage_layout(other)  #align storage layout of self and other
     #now addition is save
     return BlockSparseTensor(
         data=self.data + other.data,
