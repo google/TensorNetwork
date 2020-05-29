@@ -338,3 +338,6 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def isscalar(self, tensor: Tensor):
+    return tensor.ndim == 1

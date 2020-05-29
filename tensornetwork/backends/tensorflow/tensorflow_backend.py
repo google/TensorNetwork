@@ -251,3 +251,6 @@ class TensorFlowBackend(base_backend.BaseBackend):
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     # tf.function is slow and bad.
     return fun
+
+  def isscalar(self, tensor: Tensor):
+    return tf.rank(tensor) == 1

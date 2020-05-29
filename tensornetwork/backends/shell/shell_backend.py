@@ -25,6 +25,7 @@ class ShellTensor:
   def __init__(self, shape: Tuple[int, ...], dtype=None):
     self.shape = shape
     self.dtype = dtype
+    self.ndim = len(shape)
 
   def reshape(self, new_shape: Tuple[int, ...]):
     self.shape = new_shape
@@ -342,3 +343,6 @@ class ShellBackend(base_backend.BaseBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def isscalar(tensor: Tensor):
+    return tensor.ndim == 1

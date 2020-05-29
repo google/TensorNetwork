@@ -607,3 +607,7 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
+
+  def isscalar(self, tensor: Tensor):
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `isscalar`.".format(self.name))
