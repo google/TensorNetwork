@@ -714,3 +714,26 @@ def test_BlockSparseTensor_transpose_data_3():
   np.testing.assert_allclose(a.flows, b.flows)
   np.testing.assert_allclose(a.flows, b.flows)
   np.testing.assert_allclose(adense + bdense, cdense)
+
+
+def test_flat_flows():
+  Ds = [10, 11, 12, 13]
+  charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
+  flows = [True, False, True, False]
+  inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
+  a = BlockSparseTensor.random(inds, dtype=np.float64)
+  order = [0, 3, 1, 2]
+  a = a.transpose(order)
+  np.testing.assert_allclose(a.flat_flows, [a._flows[o] for o in a.flat_order])
+
+
+def test_flat_charges():
+  Ds = [10, 11, 12, 13]
+  charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
+  flows = [True, False, True, False]
+  inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
+  a = BlockSparseTensor.random(inds, dtype=np.float64)
+  order = [0, 3, 1, 2]
+  a = a.transpose(order)
+  for n, o in enumerate(a.flat_order):
+    charge_equal(a.flat_charges[n], a._charges[o])
