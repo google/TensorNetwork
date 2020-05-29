@@ -521,3 +521,12 @@ def test_sparse_shape():
   backend = pytorch_backend.PyTorchBackend()
   tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+def test_isscalar():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = torch.Tensor(np.random.rand(2, 2))
+  t2 = torch.Tensor(np.array(1.0))
+  backend.isscalar(t1) == False
+  backend.isscalar(t2) == True

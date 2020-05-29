@@ -340,4 +340,4 @@ class PyTorchBackend(base_backend.BaseBackend):
     return fun
 
   def isscalar(self, tensor: Tensor):
-    return tensor.ndim == 1
+    return tensor.ndim == 0

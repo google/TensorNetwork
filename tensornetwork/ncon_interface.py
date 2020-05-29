@@ -25,12 +25,7 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
-def _jittable_ncon(
-    tensors, 
-    network_structure, 
-    con_order, 
-    out_order, 
-    backend):
+def _jittable_ncon(tensors, network_structure, con_order, out_order, backend):
   """Jittable Ncon function.
 
   Args:
@@ -97,6 +92,7 @@ def _jittable_ncon(
   # TODO: More efficient ordering of products based on out_edges
   res_node = network_components.outer_product_final_nodes(nodes, out_edges)
   return res_node.tensor
+
 
 def ncon(
     tensors: Sequence[Union[network_components.BaseNode, Tensor]],
@@ -179,8 +175,8 @@ def ncon(
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4))
-  res_tensor = _CACHED_JITTED_NCONS[backend](
-      _tensors, network_structure, con_order, out_order, backend_obj)
+  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
+                                             con_order, out_order, backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor

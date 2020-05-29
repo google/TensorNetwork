@@ -563,3 +563,12 @@ def test_jit_args():
   res3 = fun_jit(x, y=y, A=A)
   np.testing.assert_allclose(res1, res2)
   np.testing.assert_allclose(res1, res3)
+
+
+def test_isscalar():
+  np.random.seed(10)
+  backend = jax_backend.JaxBackend()
+  t1 = jax.numpy.array(np.random.rand(2, 2))
+  t2 = jax.numpy.array(1.0)
+  backend.isscalar(t1) == False
+  backend.isscalar(t2) == True

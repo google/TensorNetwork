@@ -800,3 +800,28 @@ def test_sparse_shape(dtype, num_charges):
   backend = symmetric_backend.SymmetricBackend()
   for s1, s2 in zip(a.sparse_shape, backend.sparse_shape(a)):
     assert s1 == s2
+
+
+def test_isscalar():
+  t1 = BlockSparseTensor(
+      data=np.array(1.0),
+      charges=[],
+      flows=[],
+      order=[],
+      check_consistency=False)
+  num_charges = 1
+  dtype = np.float64
+  Ds = [11, 12, 13]
+  R = len(Ds)
+  charges = [
+      BaseCharge(
+          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          charge_types=[U1Charge] * num_charges) for n in range(R)
+  ]
+  flows = list(np.full(R, fill_value=False, dtype=np.bool))
+  indices = [Index(charges[n], flows[n]) for n in range(R)]
+  t2 = BlockSparseTensor.random(indices=indices, dtype=dtype)
+
+  backend = symmetric_backend.SymmetricBackend()
+  assert backend.isscalar(t1) == True
+  assert backend.isscalar(t2) == False

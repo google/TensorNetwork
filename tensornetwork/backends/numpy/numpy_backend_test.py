@@ -734,3 +734,12 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_isscalar():
+  np.random.seed(10)
+  backend = numpy_backend.NumPyBackend()
+  t1 = np.random.rand(2, 2)
+  t2 = np.array(1.0)
+  backend.isscalar(t1) == False
+  backend.isscalar(t2) == True

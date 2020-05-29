@@ -90,8 +90,7 @@ class SymmetricBackend(base_backend.BaseBackend):
     return self.bs.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor,
-                       BlockSparseTensor)) and (not numpy.isscalar(tensor)):
+    if not isinstance(tensor, BlockSparseTensor):
       raise TypeError(
           "cannot convert tensor of type `{}` to `BlockSparseTensor`".format(
               type(tensor)))
@@ -190,5 +189,5 @@ class SymmetricBackend(base_backend.BaseBackend):
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
 
-  def isscalar(tensor: Tensor):
-    return tensor.ndim == 1
+  def isscalar(self, tensor: Tensor):
+    return tensor.ndim == 0

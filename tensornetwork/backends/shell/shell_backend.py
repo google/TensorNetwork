@@ -344,5 +344,5 @@ class ShellBackend(base_backend.BaseBackend):
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
 
-  def isscalar(tensor: Tensor):
-    return tensor.ndim == 1
+  def isscalar(self, tensor: Tensor):
+    return tensor.ndim == 0
