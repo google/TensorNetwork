@@ -156,11 +156,11 @@ class ChargeArray:
 
   @property
   def flat_charges(self) -> List[BaseCharge]:
-    return self._charges
+    return list([self._charges[o] for o in self.flat_order])
 
   @property
   def flat_flows(self) -> List:
-    return list(self._flows)
+    return list([self._flows[o] for o in self.flat_order])
 
   @property
   def flat_order(self) -> np.ndarray:
@@ -254,7 +254,7 @@ class ChargeArray:
     flat_dims = np.asarray(
         [self._charges[n].dim for o in self._order for n in o])
 
-    if len(new_shape) > len(self.flat_charges):
+    if len(new_shape) > len(self._charges):
       raise ValueError("The shape {} is incompatible with the "
                        "elementary shape {} of the tensor.".format(
                            tuple(new_shape), tuple(flat_dims)))
@@ -312,7 +312,7 @@ class ChargeArray:
     and changing `_order` to `[[0,1],[2],[3]]`.
     """
 
-    flat_charges = self.flat_charges
+    flat_charges = self._charges
     flat_shape = [c.dim for c in flat_charges]
     flat_order = self.flat_order
     tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
@@ -368,7 +368,7 @@ class ChargeArray:
     return ChargeArray(
         data=np.conj(self.data),
         charges=self._charges,
-        flows=list(np.logical_not(self._flows)),
+        flows=np.logical_not(self._flows),
         order=self._order,
         check_consistency=False)
 
@@ -723,8 +723,8 @@ class BlockSparseTensor(ChargeArray):
       permutation: An optional alternative order to be used to transposed the 
         tensor. If `None` defaults to `BlockSparseTensor.permutation`.
     """
-    flat_charges = self.flat_charges
-    flat_flows = self.flat_flows
+    flat_charges = self._charges
+    flat_flows = self._flows
     if permutation is None:
       permutation = self.flat_order
 
@@ -807,7 +807,7 @@ def outerproduct(tensor1: BlockSparseTensor,
   """
 
   final_charges = tensor1._charges + tensor2._charges
-  final_flows = tensor1.flat_flows + tensor2.flat_flows
+  final_flows = list(tensor1._flows) + list(tensor2._flows)
   order2 = [list(np.asarray(s) + len(tensor1._charges)) for s in tensor2._order]
 
   data = np.zeros(
@@ -961,8 +961,8 @@ def tensordot(
   flat_order_1 = flatten(new_order1)
   flat_order_2 = flatten(new_order2)
 
-  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1.flat_flows
-  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2.flat_flows
+  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1._flows
+  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2._flows
 
   left_charges = []
   right_charges = []
