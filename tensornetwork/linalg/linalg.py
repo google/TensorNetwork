@@ -35,7 +35,7 @@ def initialize_node(fname: Text,
                     axis_names: Optional[List[Text]] = None,
                     backend: Optional[Union[Text, BaseBackend]] = None,
                     **fkwargs: dict):
-  """Return a Node wrapping data obtained by an initialization function 
+  """Return a Node wrapping data obtained by an initialization function
   implemented in a backend. The Node will have the same shape as the
   underlying array that function generates, with all Edges dangling.
 
@@ -73,7 +73,7 @@ def eye(N: int,
         axis_names: Optional[List[Text]] = None,
         backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node representing a 2D array with ones on the diagonal and
-  zeros elsewhere. The Node has two dangling Edges. 
+  zeros elsewhere. The Node has two dangling Edges.
   Args:
     N (int): The first dimension of the returned matrix.
     dtype, optional: The dtype of the returned matrix.
@@ -136,4 +136,57 @@ def ones(shape: Sequence[int],
   the_node = initialize_node("ones", shape,
                              name=name, axis_names=axis_names, backend=backend,
                              dtype=dtype)
+  return the_node
+
+
+def randn(shape: Sequence[int],
+          dtype: Optional[Type[np.number]],
+          seed: Optional[int] = None,
+          name: Optional[Text] = None,
+          axis_names: Optional[List[Text]] = None,
+          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+  """Return a Node of shape 'shape' of Gaussian random floats.
+  The Node has one dangling Edge per dimension.
+  Args:
+    shape : Shape of the array.
+    dtype, optional: dtype of array.
+    seed, optional: Seed for the RNG.
+    name (text, optional): Name of the Node.
+    axis_names (optional): List of names of the edges.
+    backend (optional): The backend or its name.
+  Returns:
+    the_node : Node of shape 'shape'
+        Represents an array of all ones.
+  """
+  the_node = initialize_node("randn", shape,
+                             name=name, axis_names=axis_names, backend=backend,
+                             seed=seed, dtype=dtype)
+  return the_node
+
+
+def random_uniform(shape: Sequence[int],
+                   dtype: Optional[Type[np.number]],
+                   seed: Optional[int] = None,
+                   boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+                   name: Optional[Text] = None,
+                   axis_names: Optional[List[Text]] = None,
+                   backend:
+                   Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+  """Return a Node of shape 'shape' of uniform random floats.
+  The Node has one dangling Edge per dimension.
+  Args:
+    shape : Shape of the array.
+    dtype, optional: dtype of array.
+    seed, optional: Seed for the RNG.
+    boundaries : Values lie in [boundaries[0], boundaries[1]).
+    name (text, optional): Name of the Node.
+    axis_names (optional): List of names of the edges.
+    backend (optional): The backend or its name.
+  Returns:
+    the_node : Node of shape 'shape'
+        Represents an array of all ones.
+  """
+  the_node = initialize_node("random_uniform", shape,
+                             name=name, axis_names=axis_names, backend=backend,
+                             seed=seed, boundaries=boundaries, dtype=dtype)
   return the_node

@@ -1,8 +1,10 @@
 import numpy as np
+import time
 import pytest
 import jax.numpy as jnp
 import jax.config as config
 from tensornetwork.linalg import linalg
+from tensornetwork import backends
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
 #pylint: disable=no-member
@@ -21,8 +23,8 @@ def test_eye():
   M = 6
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey"]
-  backends = ["jax", "numpy"]
-  for backend in backends:
+  backend_list = ["jax", "numpy"]
+  for backend in backend_list:
     for dtype in np_dtypes + np_int_dtypes + np_uint_dtypes:
       tnI = linalg.eye(N, dtype=dtype, M=M, name=name, axis_names=axis_names,
                        backend=backend)
@@ -37,8 +39,8 @@ def test_zeros():
   shape = (5, 10, 3)
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey", "Renaldo"]
-  backends = ["jax", "numpy"]
-  for backend in backends:
+  backend_list = ["jax", "numpy"]
+  for backend in backend_list:
     for dtype in np_dtypes + np_int_dtypes + np_uint_dtypes:
       tnI = linalg.zeros(shape, dtype=dtype, name=name, axis_names=axis_names,
                          backend=backend)
@@ -53,10 +55,51 @@ def test_ones():
   shape = (5, 10, 3)
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey", "Renaldo"]
-  backends = ["jax", "numpy"]
-  for backend in backends:
+  backend_list = ["jax", "numpy"]
+  for backend in backend_list:
     for dtype in np_dtypes + np_int_dtypes + np_uint_dtypes:
       tnI = linalg.ones(shape, dtype=dtype, name=name, axis_names=axis_names,
                         backend=backend)
       npI = np.ones(shape, dtype=dtype)
+      np.testing.assert_allclose(tnI.tensor, npI)
+
+
+def test_randn():
+  """
+  Tests linalg.randn against the backend code.
+  """
+  shape = (5, 10, 3, 2)
+  seed = int(time.time())
+  np.random.seed(seed=seed)
+  name = "Jeffrey"
+  axis_names = ["Sam", "Blinkey", "Renaldo", "Jarvis"]
+  backend_list = ["jax", "numpy"]
+  for backend in backend_list:
+    backend_obj = backends.backend_factory.get_backend(backend)
+    for dtype in np_dtypes:
+      tnI = linalg.randn(shape, dtype=dtype, name=name, axis_names=axis_names,
+                         backend=backend, seed=seed)
+      npI = backend_obj.randn(shape, dtype=dtype, seed=seed)
+      np.testing.assert_allclose(tnI.tensor, npI)
+
+
+def test_random_uniform():
+  """
+  Tests linalg.ones against np.ones.
+  """
+  shape = (5, 10, 3, 2)
+  seed = int(time.time())
+  np.random.seed(seed=seed)
+  boundaries = (-0.3, 10.5)
+  name = "Jeffrey"
+  axis_names = ["Sam", "Blinkey", "Renaldo", "Jarvis"]
+  backend_list = ["jax", "numpy"]
+  for backend in backend_list:
+    backend_obj = backends.backend_factory.get_backend(backend)
+    for dtype in np_dtypes:
+      tnI = linalg.random_uniform(shape, dtype=dtype, name=name, 
+                                  axis_names=axis_names, backend=backend, 
+                                  seed=seed, boundaries=boundaries)
+      npI = backend_obj.random_uniform(shape, dtype=dtype, seed=seed, 
+                                       boundaries=boundaries)
       np.testing.assert_allclose(tnI.tensor, npI)
