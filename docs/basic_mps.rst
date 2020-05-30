@@ -255,7 +255,7 @@ An efficient algorithm takes advantage of the factorization properties of the re
 
 .. code-block:: python3
 
-  np.random.seed(3) # fix a seed to build the same tensors each time random is called
+  np.random.seed(3) # fix seed to build the same tensors each time random is called
 
   phys_dim = 2
   bond_dim = 2
