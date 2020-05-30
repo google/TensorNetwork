@@ -72,7 +72,7 @@ One way to work around this "dimensionality catastrophe" is to focus on a partic
 
 where :math:`\{ \alpha \} = \{ \alpha_1, \ldots, \alpha_{\textsf{N}-1}\}`, and :math:`\alpha_i \in \{1 \cdots D_i \}`.
 
-.. figure:: /_static/basic_mps/tensor_3.png
+.. figure:: _static/basic_mps/tensor_3.png
   :align: center
 
 The figure above shows the graphical representation of each block of the MPS. The width of each leg represents the fact that each dimension can be different (their labels are in gray). The indices of each physical and bond dimension at each site :math:`j` are labelled :math:`s_j,\alpha_j` respectively. If an edge links two matrices, we say it is connected and a matrix product is understood.
@@ -248,7 +248,7 @@ Inner Product of MPS
 
 Inner products appear all the time in calculations of expectation values and norms of quantum states. They are sometimes called *overlaps*. Notice that the MPS structure makes the inner product of tensors graphically intuitive, involving the contraction of all the connected edges and bonds:
 
-.. figure:: /_static/basic_mps/tensor_4.png
+.. figure:: _static/basic_mps/tensor_4.png
   :align: center
 
 An efficient algorithm takes advantage of the factorization properties of the resulting matrices once the tensors have been put into an MPS form. We make the contractions in a "edge-bond-bond" sequence, sweeping along the graph:
