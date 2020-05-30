@@ -41,7 +41,7 @@ def svd_decomposition(
   matrix = bt.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
 
   flat_charges = matrix._charges
-  flat_flows = matrix.flat_flows
+  flat_flows = matrix._flows
   flat_order = matrix.flat_order
   tr_partition = len(matrix._order[0])
   blocks, charges, shapes = _find_transposed_diagonal_sparse_blocks(
