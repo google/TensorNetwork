@@ -563,7 +563,7 @@ class BaseMPS:
 
   def check_canonical(self) -> Any:
     """Check whether the MPS is in a canonical form.
-
+    If `center_position` is `None`, no check is performed.
     Returns:
       The L2 norm of the vector of local deviations.
     """
