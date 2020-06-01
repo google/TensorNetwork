@@ -84,6 +84,29 @@ def test_BaseDMRG_raises():
              numpy_backend.ones((1, 1, 1), dtype=dtype), 'name')
 
 
+def test_BaseDMRG_raises():
+  backend = 'numpy'
+  backend_obj = backend_factory.get_backend(backend)
+  dtype = np.float64
+
+  N = 10
+  D = 10
+  Jz = np.ones(N - 1)
+  Jxy = np.ones(N - 1)
+  Bz = np.zeros(N)
+  mpo = FiniteXXZ(Jz, Jxy, Bz, dtype=dtype, backend=backend)
+  tensors = [np.random.randn(1, 2, D)] + [
+      np.random.randn(D, 2, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, 2, 1)]
+  mps = FiniteMPS(
+      tensors, center_position=None, canonicalize=False, backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="Found mps in non-canonical form. Please canonicalize mps."):
+    BaseDMRG(mps, mpo, backend_obj.ones((1, 1, 1), dtype=dtype),
+             backend_obj.ones((1, 1, 1), dtype=dtype), 'name')
+
+
 def test_BaseDMRG_position(backend_dtype_values):
   backend = backend_factory.get_backend(backend_dtype_values[0])
   dtype = backend_dtype_values[1]
