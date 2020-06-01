@@ -56,7 +56,10 @@ class FiniteMPS(BaseMPS):
                center_position: Optional[int] = None,
                canonicalize: Optional[bool] = True,
                backend: Optional[Union[BaseBackend, Text]] = None) -> None:
-    """Initialize a `FiniteMPS`.
+    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state is brought
+       into canonical form, with `BaseMPS.center_position` at `center_position`.
+       if `center_position` is `None` and `canonicalize = True`, 
+       `BaseMPS.center_position` is set to 0.
 
     Args:
       tensors: A list of `Tensor` objects.
