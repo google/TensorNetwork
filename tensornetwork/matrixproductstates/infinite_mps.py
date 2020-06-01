@@ -44,7 +44,7 @@ class InfiniteMPS(BaseMPS):
 
   def __init__(self,
                tensors: List[Tensor],
-               center_position: Optional[int] = 0,
+               center_position: Optional[int] = None,
                connector_matrix: Optional[Tensor] = None,
                backend: Optional[Union[BaseBackend, Text]] = None) -> None:
     """Initialize a InfiniteMPS.
@@ -204,6 +204,9 @@ class InfiniteMPS(BaseMPS):
     Returns:
       None
     """
+    if self.center_position is None:
+      self.center_position = 0
+
     # bring center_position to 0
     self.position(0)
     # dtype of eta is the same as InfiniteMPS.dtype
@@ -250,7 +253,7 @@ class InfiniteMPS(BaseMPS):
 
     r /= self.backend.trace(r)
     r = (r + self.backend.transpose(self.backend.conj(r), (1, 0))) / 2.0
-    # eigvals_left and u_left are both `Tensor` objects
+    # eigvals_right and u_right are both `Tensor` objects
     eigvals_right, u_right = self.backend.eigh(r)
     eigvals_right /= self.backend.norm(eigvals_right)
     if pseudo_inverse_cutoff:
