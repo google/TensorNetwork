@@ -229,7 +229,7 @@ class BaseMPS:
     """Compute the action of the MPS transfer-operator at site `site`.
 
     Args:
-      site: a site of the MPS
+      site: A site of the MPS
       direction:
         * if `1, 'l'` or `'left'`: compute the left-action
           of the MPS transfer-operator at `site` on the input `matrix`.
