@@ -395,7 +395,6 @@ class ChargeArray:
     if self.ndim == 0:
       if len(self.data) == 1:
         return self.data[0]
-      return self.dtype.type(0.0)  #the default value is currently 0.0
     raise ValueError("can only convert an array of size 1 to a Python scalar")
 
 
