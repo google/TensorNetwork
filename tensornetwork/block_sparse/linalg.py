@@ -602,7 +602,8 @@ def eye(column_index: Index,
 def trace(tensor: BlockSparseTensor,
           axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
   """
-  Compute the trace of a matrix or tensor.
+  Compute the trace of a matrix or tensor. If input has `ndim>2`, take
+  the trace over the last two dimensions.
   Args:
     tensor: A `BlockSparseTensor`.
     axes: The axes over which the trace should be computed.
@@ -656,6 +657,8 @@ def trace(tensor: BlockSparseTensor,
       a1ar[np.logical_xor(mask_min, mask_max)] -= 1
       a0 = list(a0ar)
       a1 = list(a1ar)
+    if out.ndim == 0:
+      return out.item()
     return out  # pytype: disable=bad-return-type
   raise ValueError("trace can only be taken for tensors with ndim > 1")
 
