@@ -391,13 +391,6 @@ class ChargeArray:
   def __truediv__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__truediv__ not implemented for ChargeArray")
 
-  def item(self):
-    if self.ndim == 0:
-      if len(self.data) == 1:
-        return self.data[0]
-      return self.dtype.type(0.0)  #the default value is currently 0.0
-    raise ValueError("can only convert an array of size 1 to a Python scalar")
-
 
 class BlockSparseTensor(ChargeArray):
   """
