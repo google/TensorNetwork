@@ -252,5 +252,5 @@ class TensorFlowBackend(base_backend.BaseBackend):
     # tf.function is slow and bad.
     return fun
 
-  def isscalar(self, tensor: Tensor):
-    return tensor.ndim == 0
+  def ndim(self, tensor: Tensor):
+    return tensor.ndim

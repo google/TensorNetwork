@@ -565,10 +565,10 @@ def test_jit_args():
   np.testing.assert_allclose(res1, res3)
 
 
-def test_isscalar():
+def test_ndim():
   np.random.seed(10)
   backend = jax_backend.JaxBackend()
   t1 = jax.numpy.array(np.random.rand(2, 2))
   t2 = jax.numpy.array(1.0)
-  backend.isscalar(t1) == False
-  backend.isscalar(t2) == True
+  backend.ndim(t1) == 2
+  backend.ndim(t2) == 0

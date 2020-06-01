@@ -483,11 +483,10 @@ def test_jit_args():
   np.testing.assert_allclose(res1, res3)
 
 
-def test_isscalar():
+def test_ndim():
   np.random.seed(10)
   backend = tensorflow_backend.TensorFlowBackend()
-
   t1 = tf.convert_to_tensor(np.random.rand(2, 2))
   t2 = tf.convert_to_tensor(np.array(1))
-  backend.isscalar(t1) == False
-  backend.isscalar(t2) == True
+  backend.ndim(t1) == 2
+  backend.ndim(t2) == 0

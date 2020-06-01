@@ -608,6 +608,13 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
 
-  def isscalar(self, tensor: Tensor):
+  def ndim(self, tensor: Tensor):
+    """
+    Return the number of dimensions of `tensor`.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      int: The number of dimensions of `tensor`.
+    """
     raise NotImplementedError(
         "Backend '{}' has not implemented `isscalar`.".format(self.name))

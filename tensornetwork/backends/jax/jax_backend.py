@@ -403,5 +403,5 @@ class JaxBackend(base_backend.BaseBackend):
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return libjax.jit(fun, *args, **kwargs)
 
-  def isscalar(self, tensor: Tensor):
-    return jnp.isscalar(tensor)
+  def ndim(self, tensor: Tensor):
+    return tensor.ndim

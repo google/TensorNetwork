@@ -436,10 +436,10 @@ def test_index_update():
   assert actual.shape == (4, 4, 4)
 
 
-def test_isscalar():
+def test_ndim():
   np.random.seed(10)
   backend = shell_backend.ShellBackend()
   t1 = shell_backend.ShellTensor((2, 2), np.float64)
   t2 = shell_backend.ShellTensor(tuple([]), np.float64)
-  backend.isscalar(t1) == False
-  backend.isscalar(t2) == True
+  backend.ndim(t1) == 2
+  backend.ndim(t2) == 0

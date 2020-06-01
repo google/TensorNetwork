@@ -802,7 +802,7 @@ def test_sparse_shape(dtype, num_charges):
     assert s1 == s2
 
 
-def test_isscalar():
+def test_ndim():
   t1 = BlockSparseTensor(
       data=np.array(1.0),
       charges=[],
@@ -823,5 +823,5 @@ def test_isscalar():
   t2 = BlockSparseTensor.random(indices=indices, dtype=dtype)
 
   backend = symmetric_backend.SymmetricBackend()
-  assert backend.isscalar(t1) == True
-  assert backend.isscalar(t2) == False
+  assert backend.ndim(t1) == 0
+  assert backend.ndim(t2) == 3
