@@ -488,5 +488,5 @@ def test_ndim():
   backend = tensorflow_backend.TensorFlowBackend()
   t1 = tf.convert_to_tensor(np.random.rand(2, 2))
   t2 = tf.convert_to_tensor(np.array(1))
-  backend.ndim(t1) == 2
-  backend.ndim(t2) == 0
+  assert backend.ndim(t1) == 2
+  assert backend.ndim(t2) == 0

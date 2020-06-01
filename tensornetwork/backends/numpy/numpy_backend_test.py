@@ -741,5 +741,5 @@ def test_ndim():
   backend = numpy_backend.NumPyBackend()
   t1 = np.random.rand(2, 2)
   t2 = np.array(1.0)
-  backend.ndim(t1) == 2
-  backend.ndim(t2) == 0
+  assert backend.ndim(t1) == 2
+  assert backend.ndim(t2) == 0

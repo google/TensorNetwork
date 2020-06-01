@@ -528,5 +528,5 @@ def test_ndim():
   backend = pytorch_backend.PyTorchBackend()
   t1 = torch.Tensor(np.random.rand(2, 2))
   t2 = torch.Tensor(np.array(1.0))
-  backend.ndim(t1) == 2
-  backend.ndim(t2) == 0
+  assert backend.ndim(t1) == 2
+  assert backend.ndim(t2) == 0

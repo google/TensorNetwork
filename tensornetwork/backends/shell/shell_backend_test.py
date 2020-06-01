@@ -441,5 +441,5 @@ def test_ndim():
   backend = shell_backend.ShellBackend()
   t1 = shell_backend.ShellTensor((2, 2), np.float64)
   t2 = shell_backend.ShellTensor(tuple([]), np.float64)
-  backend.ndim(t1) == 2
-  backend.ndim(t2) == 0
+  assert backend.ndim(t1) == 2
+  assert backend.ndim(t2) == 0
