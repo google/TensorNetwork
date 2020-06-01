@@ -391,6 +391,14 @@ class ChargeArray:
   def __truediv__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__truediv__ not implemented for ChargeArray")
 
+  def __repr__(self):
+
+    output = 'BlockSparseTensor\n shape: ' + repr(
+        self.shape) + '\n flat flows: ' + repr(
+            self.flat_flows) + '\n charge types: ' + self._charges[0].names
+
+    return output
+
 
 class BlockSparseTensor(ChargeArray):
   """
