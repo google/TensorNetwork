@@ -98,7 +98,7 @@ def zeros(shape: Sequence[int],
           name: Optional[Text] = None,
           axis_names: Optional[List[Text]] = None,
           backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
-  """Return a Node of shape shape of all zeros.
+  """Return a Node of shape `shape` of all zeros.
   The Node has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -107,7 +107,7 @@ def zeros(shape: Sequence[int],
     axis_names (optional): List of names of the edges.
     backend (optional): The backend or its name.
   Returns:
-    the_node : Node of shape shape. Represents an array of all zeros.
+    the_node : Node of shape `shape`. Represents an array of all zeros.
   """
   the_node = initialize_node("zeros", shape,
                              name=name, axis_names=axis_names, backend=backend,
@@ -120,7 +120,7 @@ def ones(shape: Sequence[int],
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None,
          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
-  """Return a Node of shape shape of all ones.
+  """Return a Node of shape `shape` of all ones.
   The Node has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -129,7 +129,7 @@ def ones(shape: Sequence[int],
     axis_names (optional): List of names of the edges.
     backend (optional): The backend or its name.
   Returns:
-    the_node : Node of shape 'shape'
+    the_node : Node of shape `shape`
         Represents an array of all ones.
   """
   the_node = initialize_node("ones", shape,
@@ -144,7 +144,7 @@ def randn(shape: Sequence[int],
           name: Optional[Text] = None,
           axis_names: Optional[List[Text]] = None,
           backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
-  """Return a Node of shape shape of Gaussian random floats.
+  """Return a Node of shape `shape` of Gaussian random floats.
   The Node has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -154,8 +154,7 @@ def randn(shape: Sequence[int],
     axis_names (optional): List of names of the edges.
     backend (optional): The backend or its name.
   Returns:
-    the_node : Node of shape 'shape'
-        Represents an array of all ones.
+    the_node : Node of shape `shape` filled with Gaussian random data.
   """
   the_node = initialize_node("randn", shape,
                              name=name, axis_names=axis_names, backend=backend,
@@ -171,7 +170,7 @@ def random_uniform(shape: Sequence[int],
                    axis_names: Optional[List[Text]] = None,
                    backend:
                    Optional[Union[Text, BaseBackend]] = None) -> Tensor:
-  """Return a Node of shape shape of uniform random floats.
+  """Return a Node of shape `shape` of uniform random floats.
   The Node has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -182,8 +181,7 @@ def random_uniform(shape: Sequence[int],
     axis_names (optional): List of names of the edges.
     backend (optional): The backend or its name.
   Returns:
-    the_node : Node of shape shape
-        Represents an array of all ones.
+    the_node : Node of shape `shape` filled with uniform random data.
   """
   the_node = initialize_node("random_uniform", shape,
                              name=name, axis_names=axis_names, backend=backend,
