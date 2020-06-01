@@ -393,9 +393,11 @@ class ChargeArray:
 
   def __repr__(self):
 
-    output = 'BlockSparseTensor\n shape: ' + repr(
-        self.shape) + '\n flat flows: ' + repr(
-            self.flat_flows) + '\n charge types: ' + self._charges[0].names
+    output = 'BlockSparseTensor\n   shape: ' + repr(
+        self.shape
+    ) + '\n   charge types: ' + self._charges[0].names + '\n   dtype: ' + repr(
+        self.dtype.name) + '\n   flat flows: ' + repr(
+            self.flat_flows) + '\n   order: ' + repr(self._order)
 
     return output
 
