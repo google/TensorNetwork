@@ -84,7 +84,7 @@ def test_BaseDMRG_raises():
              numpy_backend.ones((1, 1, 1), dtype=dtype), 'name')
 
 
-def test_BaseDMRG_raises():
+def test_BaseDMRG_raises_2():
   backend = 'numpy'
   backend_obj = backend_factory.get_backend(backend)
   dtype = np.float64

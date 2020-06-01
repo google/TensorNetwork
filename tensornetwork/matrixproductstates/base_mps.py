@@ -561,6 +561,7 @@ class BaseMPS:
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
+  # pylint: disable=inconsistent-return-statements
   def check_canonical(self) -> Any:
     """Check whether the MPS is in a canonical form.
     If `center_position` is `None`, no check is performed.
@@ -568,9 +569,8 @@ class BaseMPS:
       The L2 norm of the vector of local deviations.
     """
     if self.center_position is None:
-      warnigns.warn(
+      warnings.warn(
           "BaseMPS.center_position is `None`. Skipping `check_canonical`")
-      # pylint: disable=inconsistent-return-statements
       return
     deviations = []
     for site in range(len(self.tensors)):
