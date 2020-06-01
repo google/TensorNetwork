@@ -74,9 +74,9 @@ class BaseMPS:
     """
     if (center_position is not None) and (center_position < 0 or
                                           center_position >= len(tensors)):
-      raise ValueError(
-          'center_position = {} not between 0 <= center_position < {}'.format(
-              center_position, len(tensors)))
+      raise ValueError("`center_position = {}` is different from `None` and "
+                       "not between 0 <= center_position < {}".format(
+                           center_position, len(tensors)))
     if backend is None:
       backend = get_default_backend()
     if isinstance(backend, BaseBackend):
