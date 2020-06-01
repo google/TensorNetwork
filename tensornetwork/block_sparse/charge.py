@@ -164,8 +164,10 @@ class BaseCharge:
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
-    return str(
-        type(self)) + '\n' + 'charges: \n' + self.charges.__repr__() + '\n'
+    names = repr(
+        [ct.__new__(ct).__class__.__name__ for ct in self.charge_types])
+    return 'BaseCharge object:' + '\n charge types: ' + names + '\n charges:' + str(
+        self.charges).replace('\n', '\n\t ') + '\n'
 
   def __iter__(self):
     return self.Iterator(self.unique_charges, self.charge_labels)
@@ -532,6 +534,18 @@ class BaseCharge:
 class U1Charge(BaseCharge):
   """Charge Class for the U1 symmetry group."""
 
+  def __init__(self,
+               charges: Union[List, np.ndarray],
+               charge_labels: Optional[np.ndarray] = None,
+               charge_types: Optional[List[Type["BaseCharge"]]] = None,
+               charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+
+    super().__init__(
+        charges,
+        charge_labels,
+        charge_types=[type(self)],
+        charge_dtype=charge_dtype)
+
   @staticmethod
   def fuse(charge1, charge2) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
@@ -558,6 +572,7 @@ class Z2Charge(BaseCharge):
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
+    self.name = 'Z2Charge'
     #do some checks before calling the base class constructor
     unique = np.unique(np.ravel(charges))
     if not np.all(np.isin(unique, [0, 1])):
