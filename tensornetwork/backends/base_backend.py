@@ -616,5 +616,5 @@ class BaseBackend:
     Returns:
       int: The number of dimensions of `tensor`.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `isscalar`.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `ndim`.".format(
+        self.name))
