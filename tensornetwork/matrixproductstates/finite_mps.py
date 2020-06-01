@@ -78,7 +78,7 @@ class FiniteMPS(BaseMPS):
     if canonicalize:
       if (center_position is None) or (center_position == 0):
         self.center_position = len(self) - 1
-        self.position(center_position)
+        self.position(0)
       elif center_position == len(self) - 1:
         self.center_position = 0
         self.position(center_position)
