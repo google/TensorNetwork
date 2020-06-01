@@ -20,24 +20,24 @@ np_uint = [np.uint8, np.uint16, np.uint32, np.uint64]
 np_dtypes = {"real": np_real, "float": np_float,
              "rand": np_float,
              "int": np_int + np_uint,
-             "all": np_real+ np_int + np_uint}
+             "all": np_real+ np_int + np_uint + [None, ]}
 
 tf_real = [tf.float32, tf.float16, tf.float64]
 tf_float = tf_real + [tf.complex64, tf.complex128]
 tf_int = [tf.int8, tf.int16, tf.int32, tf.int64]
 tf_uint = [tf.uint8, tf.uint16, tf.uint32, tf.uint64]
 tf_dtypes = {"real": tf_real, "float": tf_float,
-             "rand": tf_real,
+             "rand": tf_real + [None, ],
              "int": tf_int + tf_uint,
-             "all": tf_real + tf_int + tf_uint}
+             "all": tf_real + tf_int + tf_uint + [None, ]}
 
 torch_float = [torch.float32, torch.float16, torch.float64]
 torch_int = [torch.int8, torch.int16, torch.int32, torch.int64]
 torch_uint = [torch.uint8]
 torch_dtypes = {"real": torch_float, "float": torch_float,
-                "rand": [torch.float32, torch.float64],
+                "rand": [torch.float32, torch.float64, None],
                 "int": torch_int + torch_uint,
-                "all": torch_float + torch_int + torch_uint}
+                "all": torch_float + torch_int + torch_uint + [None, ]}
 
 dtypes = {"pytorch": torch_dtypes,
           "jax": np_dtypes, "numpy": np_dtypes, "tensorflow": tf_dtypes}
