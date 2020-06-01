@@ -737,3 +737,20 @@ def test_flat_charges():
   a = a.transpose(order)
   for n, o in enumerate(a.flat_order):
     charge_equal(a.flat_charges[n], a._charges[o])
+
+
+def test_item():
+  t1 = BlockSparseTensor(
+      data=np.array(1.0),
+      charges=[],
+      flows=[],
+      order=[],
+      check_consistency=False)
+  assert t1.item() == 1
+  Ds = [10, 11, 12, 13]
+  charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
+  flows = [True, False, True, False]
+  inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
+  t2 = BlockSparseTensor.random(inds, dtype=np.float64)
+  with pytest.raises(ValueError):
+    t2.item()

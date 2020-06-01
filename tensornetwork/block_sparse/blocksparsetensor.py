@@ -401,6 +401,13 @@ class ChargeArray:
 
     return output
 
+  def item(self):
+    if self.ndim == 0:
+      if len(self.data) == 1:
+        return self.data[0]
+      return self.dtype.type(0.0)  #the default value is currently 0.0
+    raise ValueError("can only convert an array of size 1 to a Python scalar")
+
 
 class BlockSparseTensor(ChargeArray):
   """
@@ -940,23 +947,15 @@ def tensordot(
 
   #checks finished
 
-  #special case inner product
+  #special case inner product (returns an ndim=0 tensor)
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
     t1 = tensor1.transpose(axes1).transpose_data()
     t2 = tensor2.transpose(axes2).transpose_data()
-    data = np.dot(t1.data, t2.data)
-    charge = tensor1._charges[0]
-    final_charge = charge.__new__(type(charge))
-
-    final_charge.__init__(
-        np.empty((charge.num_symmetries, 0), dtype=np.int16),
-        charge_labels=np.empty(0, dtype=np.int16),
-        charge_types=charge.charge_types)
     return BlockSparseTensor(
-        data=data,
-        charges=[final_charge],
-        flows=[False],
-        order=[[0]],
+        data=np.dot(t1.data, t2.data),
+        charges=[],
+        flows=[],
+        order=[],
         check_consistency=False)
 
   #in all other cases we perform a regular tensordot
