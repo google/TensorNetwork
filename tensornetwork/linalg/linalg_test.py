@@ -118,7 +118,6 @@ def test_randn(backend):
     tnI = linalg.randn(shape, dtype=dtype, name=name, axis_names=axis_names,
                        backend=backend, seed=seed)
     npI = backend_obj.randn(shape, dtype=dtype, seed=seed)
-    data = tnI.tensor
     np.testing.assert_allclose(tnI.tensor, npI)
     assert tnI.name == name
     edges = tnI.get_all_dangling()
