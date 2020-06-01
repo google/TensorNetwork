@@ -21,10 +21,11 @@ from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_full_svd, conj
 from tensornetwork.backends import backend_factory
-from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+import warnings
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.base_backend import BaseBackend
+from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
 
@@ -560,7 +561,7 @@ class BaseMPS:
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
-  def check_canonical(self) -> Tensor:
+  def check_canonical(self) -> Any:
     """Check whether the MPS is in a canonical form.
 
     Returns:
@@ -569,6 +570,7 @@ class BaseMPS:
     if self.center_position is None:
       warnigns.warn(
           "BaseMPS.center_position is `None`. Skipping `check_canonical`")
+      # pylint: disable=inconsistent-return-statements
       return
     deviations = []
     for site in range(len(self.tensors)):
