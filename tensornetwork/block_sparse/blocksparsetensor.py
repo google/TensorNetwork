@@ -392,12 +392,16 @@ class ChargeArray:
     raise NotImplementedError("__truediv__ not implemented for ChargeArray")
 
   def __repr__(self):
-
+    if len(self._charges) > 0:
+      charge_types = self._charges[0].names
+    else:
+      charge_types = 'no charge types (scalar)'
     output = 'BlockSparseTensor\n   shape: ' + repr(
         self.shape
-    ) + '\n   charge types: ' + self._charges[0].names + '\n   dtype: ' + repr(
+    ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
         self.dtype.name) + '\n   flat flows: ' + repr(
-            self.flat_flows) + '\n   order: ' + repr(self._order)
+            self.flat_flows) + '\n   order: ' + repr(
+                self._order) + '\n   data:' + repr(self.data)
 
     return output
 
