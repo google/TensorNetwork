@@ -137,11 +137,10 @@ class FiniteMPS(BaseMPS):
       else:
         self.center_position = len(self.tensors) - 1
         self.position(0, normalize=normalize)
-
       return self.position(pos, normalize=normalize)
-    else:
-      self.center_position = len(self.tensors) - 1
-      return self.position(0, normalize=normalize)
+
+    self.center_position = len(self.tensors) - 1
+    return self.position(0, normalize=normalize)
 
   def check_canonical(self) -> Tensor:
     """Check whether the MPS is in the expected canonical form.
