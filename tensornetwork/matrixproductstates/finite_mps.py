@@ -117,7 +117,7 @@ class FiniteMPS(BaseMPS):
     return cls(tensors=tensors, center_position=0, backend=backend)
 
   # pylint: disable=arguments-differ
-  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+  def canonicalize(self, normalize: bool = True) -> np.number:
     """Bring the MPS into canonical form according to
     `center_position`. If `center_position` is `None`, the 
     MPS is canonicalized with `center_position = 0`.
@@ -128,13 +128,20 @@ class FiniteMPS(BaseMPS):
     Returns:
       `Tensor`: The norm of the MPS.
     """
+    N = len(self.tensors)
     if self.center_position is not None:
       pos = self.center_position
+      if pos >= N // 2:
+        self.center_position = 0
+        self.position(N - 1, normalize=normalize)
+      else:
+        self.center_position = len(self.tensors) - 1
+        self.position(0, normalize=normalize)
+
+      return self.position(pos, normalize=normalize)
     else:
-      pos = 0
-    self.position(0, normalize=False)
-    self.position(len(self.tensors) - 1, normalize=False)
-    return self.position(pos, normalize=normalize)
+      self.center_position = len(self.tensors) - 1
+      return self.position(0, normalize=normalize)
 
   def check_canonical(self) -> Tensor:
     """Check whether the MPS is in the expected canonical form.
