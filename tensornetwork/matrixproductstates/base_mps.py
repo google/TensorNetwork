@@ -57,7 +57,7 @@ class BaseMPS:
 
   def __init__(self,
                tensors: List[Tensor],
-               center_position: Optional[int] = 0,
+               center_position: Optional[int] = None,
                connector_matrix: Optional[Tensor] = None,
                backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """Initialize a BaseMPS.
@@ -72,7 +72,8 @@ class BaseMPS:
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
-    if center_position < 0 or center_position >= len(tensors):
+    if (center_position is not None) and (center_position < 0 or
+                                          center_position >= len(tensors)):
       raise ValueError(
           'center_position = {} not between 0 <= center_position < {}'.format(
               center_position, len(tensors)))
@@ -137,14 +138,21 @@ class BaseMPS:
     return len(self.tensors)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
-    """Shift `FiniteMPS.center_position` to `site`.
+    """Shift `center_position` to `site`.
 
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
     Returns:
       `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
+    Raises:
+      ValueError: If `center_position` is `None`.
     """
+    if self.center_position is None:
+      raise ValueError(
+          "BaseMPS.center_position is `None`, cannot shift `center_position`."
+          "Reset `center_position` manually or use `canonicalize`")
+
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.tensors) or site < 0:
       raise ValueError('site = {} not between values'
@@ -553,11 +561,15 @@ class BaseMPS:
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
   def check_canonical(self) -> Tensor:
-    """Check whether the MPS is in the expected canonical form.
+    """Check whether the MPS is in a canonical form.
 
     Returns:
       The L2 norm of the vector of local deviations.
     """
+    if self.center_position is None:
+      warnigns.warn(
+          "BaseMPS.center_position is `None`. Skipping `check_canonical`")
+      return
     deviations = []
     for site in range(len(self.tensors)):
       if site < self.center_position:
