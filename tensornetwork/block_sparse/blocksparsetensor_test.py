@@ -752,5 +752,8 @@ def test_item():
   flows = [True, False, True, False]
   inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
   t2 = BlockSparseTensor.random(inds, dtype=np.float64)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="can only convert an array of"
+      " size 1 to a Python scalar"):
     t2.item()
