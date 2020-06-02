@@ -200,7 +200,7 @@ def _generate_arnoldi_factorization(jax):
   """
 
   @jax.jit
-  def modified_gram_schmidt_step_arnoldi(j: int, vals: List):
+  def modified_gram_schmidt_step_arnoldi(j, vals):
     """
     Single step of a modified gram-schmidt orthogonalization.
     Args:
