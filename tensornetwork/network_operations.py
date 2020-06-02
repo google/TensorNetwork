@@ -20,7 +20,7 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
+from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, contract_parallel
@@ -899,3 +899,40 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors.append(edge.node1)
         neighbors_set.add(edge.node1)
   return neighbors
+
+def kron(nodes: Sequence[BaseNode]) -> BaseNode:
+  """Kronecker product of the given nodes.
+
+  Kronecker products of nodes is the same as the outer product, but the order
+  of the axes is different. The first half of edges of all of the nodes will
+  appear first half of edges in the resulting node, and the second half ot the
+  edges in each node will be in the second half of the resulting node.
+
+  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
+  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
+  :math:`R_{acdgbefh}`.
+   
+  The kronecker product is designed such that the kron of many operators is
+  itself an operator. 
+
+  Args:
+    nodes: A sequence of `BaseNode` objects.
+
+  Returns:
+    A `Node` that is the kronecker product of the given inputs. The first
+    half of the edges of this node would represent the "input" edges of the
+    operator and the last half of edges are the "output" edges of the
+    operator.
+  """
+  input_edges = []
+  output_edges = []
+  for node in nodes:
+    order = len(node.shape)
+    if order % 2 != 0:
+      raise ValueError(
+          f"All operator tensors must have an even order. "
+          f"Found tensor with order {order}")
+    input_edges += node.edges[:order//2]
+    output_edges += node.edges[order//2:]
+  result = outer_product_final_nodes(nodes, input_edges + output_edges)
+  return result

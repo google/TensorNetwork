@@ -964,11 +964,9 @@ class Edge:
     else:
       if not isinstance(name, str):
         raise TypeError("Edge name should be str type")
+    self._nodes = [node1, node2]
+    self._axes = [axis1, axis2]
     self._name = name
-    self.node1 = node1
-    self._axis1 = axis1
-    self.node2 = node2
-    self._axis2 = axis2
     self._is_dangling = node2 is None
 
   # contraction methods now explicitly disable Edges by setting
@@ -979,10 +977,7 @@ class Edge:
   # collection. Once we set them to None explicitly, they will be garbage
   # collected once their refcount goes to zero.
   def disable(self):
-    # pylint: disable=attribute-defined-outside-init
-    self._node1 = None
-    # pylint: disable=attribute-defined-outside-init
-    self._node2 = None
+    self._nodes = [None, None]
     self.is_disabled = True
 
   @property
@@ -1006,32 +1001,32 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing axis1 is no longer possible')
-    return self._axis1
+    return self._axes[0]
 
   @axis1.setter
   def axis1(self, axis1: int) -> None:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
-    self._axis1 = axis1
+    self._axes[0] = axis1
 
   @property
-  def axis2(self) -> int:
+  def axis2(self) -> Optional[int]:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing axis2 is no longer possible')
-    return self._axis2
+    return self._axes[1]
 
   @axis2.setter
   def axis2(self, axis2: int) -> None:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
-    self._axis2 = axis2
+    self._axes[1] = axis2
 
   def get_nodes(self) -> List[Optional[BaseNode]]:
     """Get the nodes of the edge."""
-    return [self.node1, self.node2]
+    return self._nodes[:]
 
   def update_axis(self, old_axis: int, old_node: BaseNode, new_axis: int,
                   new_node: BaseNode) -> None:
@@ -1063,9 +1058,9 @@ class Edge:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing node1 is no longer possible')
-    if self._node1 is None:
+    if self._nodes[0] is None:
       raise ValueError("node1 for edge '{}' no longer exists.".format(self))
-    return self._node1
+    return self._nodes[0]
 
   @property
   def node2(self) -> Optional[BaseNode]:
@@ -1074,9 +1069,9 @@ class Edge:
           'Edge has been disabled, accessing node2 is no longer possible')
     if self._is_dangling:
       return None
-    if self._node2 is None:
+    if self._nodes[1] is None:
       raise ValueError("node2 for edge '{}' no longer exists.".format(self))
-    return self._node2
+    return self._nodes[1]
 
   @node1.setter
   def node1(self, node: BaseNode) -> None:
@@ -1084,7 +1079,7 @@ class Edge:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
     # pylint: disable=attribute-defined-outside-init
-    self._node1 = node
+    self._nodes[0] = node
 
   @node2.setter
   def node2(self, node: Optional[BaseNode]) -> None:
@@ -1092,7 +1087,7 @@ class Edge:
       raise ValueError(
           'Edge has been disabled, setting node2 is no longer possible')
     # pylint: disable=attribute-defined-outside-init
-    self._node2 = node
+    self._nodes[1] = node
     if node is None:
       self._is_dangling = True
 

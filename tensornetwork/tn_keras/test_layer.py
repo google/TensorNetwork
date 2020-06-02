@@ -5,12 +5,16 @@ import os
 import shutil
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
+import tensorflow as tf
 from tensornetwork.tn_keras.dense import DenseDecomp
 from tensornetwork.tn_keras.mpo import DenseMPO
+from tensornetwork.tn_keras.condenser import DenseCondenser
+from tensornetwork.tn_keras.expander import DenseExpander
+from tensornetwork.tn_keras.entangler import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 
-@pytest.fixture(params=[256, 1024])
+@pytest.fixture(params=[512])
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
@@ -19,7 +23,10 @@ def dummy_data(request):
   return data, labels
 
 
-@pytest.fixture(params=['DenseDecomp', 'DenseMPO'])
+@pytest.fixture(params=[
+    'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
+    'DenseEntangler'
+])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
@@ -29,13 +36,13 @@ def make_model(dummy_data, request):
     model = Sequential()
     model.add(
         DenseMPO(data.shape[1],
-                 num_nodes=int(math.log(int(data.shape[1]), 4)),
+                 num_nodes=int(math.log(int(data.shape[1]), 8)),
                  bond_dim=8,
                  use_bias=True,
                  activation='relu',
                  input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  else:
+  elif request.param == 'DenseDecomp':
     model = Sequential()
     model.add(
         DenseDecomp(512,
@@ -44,6 +51,38 @@ def make_model(dummy_data, request):
                     activation='relu',
                     input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseCondenser':
+    model = Sequential()
+    model.add(
+        DenseCondenser(exp_base=2,
+                       num_nodes=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseExpander':
+    model = Sequential()
+    model.add(
+        DenseExpander(exp_base=2,
+                      num_nodes=3,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(data.shape[-1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseEntangler':
+    num_legs = 3
+    leg_dim = round(data.shape[-1]**(1. / num_legs))
+    assert leg_dim**num_legs == data.shape[-1]
+
+    model = Sequential()
+    model.add(
+        DenseEntangler(leg_dim**num_legs,
+                       num_legs=num_legs,
+                       num_levels=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
 
   return model
 
@@ -51,6 +90,7 @@ def make_model(dummy_data, request):
 def test_train(dummy_data, make_model):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
+  tf.random.set_seed(0)
   data, labels = dummy_data
   model = make_model
 
@@ -69,6 +109,7 @@ def test_train(dummy_data, make_model):
 def test_weights_change(dummy_data, make_model):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
+  tf.random.set_seed(0)
   data, labels = dummy_data
   model = make_model
   model.compile(optimizer='adam',
@@ -127,7 +168,7 @@ def test_mpo_num_parameters(dummy_data):
   # pylint: disable=redefined-outer-name
   data, _ = dummy_data
   output_dim = data.shape[1]
-  num_nodes = int(math.log(data.shape[1], 4))
+  num_nodes = int(math.log(data.shape[1], 8))
   bond_dim = 8
 
   model = Sequential()
@@ -139,13 +180,84 @@ def test_mpo_num_parameters(dummy_data):
                activation='relu',
                input_shape=(data.shape[1],)))
 
-  in_leg_dim = int(data.shape[1]**(1. / num_nodes))
-  out_leg_dim = int(output_dim**(1. / num_nodes))
+  in_leg_dim = math.ceil(data.shape[1]**(1. / num_nodes))
+  out_leg_dim = math.ceil(output_dim**(1. / num_nodes))
 
   # num_params = num_edge_node_params + num_middle_node_params + bias_params
   expected_num_parameters = (2 * in_leg_dim * bond_dim * out_leg_dim) + (
       (num_nodes - 2) * in_leg_dim * bond_dim * bond_dim *
       out_leg_dim) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_condenser_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+  exp_base = 2
+  num_nodes = 3
+  model = Sequential()
+  model.add(
+      DenseCondenser(exp_base=exp_base,
+                     num_nodes=num_nodes,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=(data.shape[1],)))
+
+  output_dim = data.shape[-1] // (exp_base**num_nodes)
+
+  # num_params = (num_nodes * num_node_params) + num_bias_params
+  expected_num_parameters = (num_nodes * output_dim * output_dim *
+                             exp_base) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_expander_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+  exp_base = 2
+  num_nodes = 3
+  model = Sequential()
+  model.add(
+      DenseExpander(exp_base=exp_base,
+                    num_nodes=num_nodes,
+                    use_bias=True,
+                    activation='relu',
+                    input_shape=(data.shape[-1],)))
+
+  output_dim = data.shape[-1] * (exp_base**num_nodes)
+
+  # num_params = (num_nodes * num_node_params) + num_bias_params
+  expected_num_parameters = (num_nodes * data.shape[-1] * data.shape[-1] *
+                             exp_base) + output_dim
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_entangler_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+
+  num_legs = 3
+  num_levels = 3
+  leg_dim = round(data.shape[-1]**(1. / num_legs))
+  assert leg_dim**num_legs == data.shape[-1]
+
+  model = Sequential()
+  model.add(
+      DenseEntangler(leg_dim**num_legs,
+                     num_legs=num_legs,
+                     num_levels=num_levels,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=(data.shape[1],)))
+
+  # num_params = entangler_node_params + bias_params
+  expected_num_parameters = num_levels * (leg_dim**4) + leg_dim**num_legs
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
@@ -164,6 +276,12 @@ def test_config(make_model):
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
     new_model = DenseDecomp.from_config(layer_config)
+  elif 'condenser' in model.layers[0].name:
+    new_model = DenseCondenser.from_config(layer_config)
+  elif 'expander' in model.layers[0].name:
+    new_model = DenseExpander.from_config(layer_config)
+  elif 'entangler' in model.layers[0].name:
+    new_model = DenseEntangler.from_config(layer_config)
 
   # Build the layer so we can count params below
   new_model.build(layer_config['batch_input_shape'])
@@ -172,7 +290,7 @@ def test_config(make_model):
   np.testing.assert_equal(expected_num_parameters, new_model.count_params())
 
 
-def test_model_save(dummy_data, make_model):
+def test_model_save(dummy_data, make_model, tmp_path):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
   data, labels = dummy_data
@@ -186,6 +304,7 @@ def test_model_save(dummy_data, make_model):
 
   for save_path in ['test_model', 'test_model.h5']:
     # Save model to a SavedModel folder or h5 file, then load model
+    save_path = tmp_path / save_path
     model.save(save_path)
     loaded_model = load_model(save_path)
 

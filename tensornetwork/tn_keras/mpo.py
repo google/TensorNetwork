@@ -9,8 +9,7 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable() # type: ignore
-    # package='tensornetwork', name='dense_mpo')
+@tf.keras.utils.register_keras_serializable()  # type: ignore
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
@@ -128,12 +127,11 @@ class DenseMPO(Layer):
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
-
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, in_leg_dim: int,
-          use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
-      orig_shape = x.shape
+          output_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
+
       l = [in_leg_dim] * num_nodes
       input_reshaped = tf.reshape(x, tuple(l))
       x_node = tn.Node(input_reshaped, name='xnode', backend="tensorflow")
@@ -161,7 +159,7 @@ class DenseMPO(Layer):
       for i in range(1, len(tn_nodes)):
         temp = temp @ tn_nodes[i]
 
-      result = tf.reshape(temp.tensor, orig_shape)
+      result = tf.reshape(temp.tensor, (-1, output_dim))
       if use_bias:
         result += bias_var
 
@@ -169,7 +167,7 @@ class DenseMPO(Layer):
 
     result = tf.vectorized_map(
         lambda vec: f(vec, self.nodes, self.num_nodes, self.in_leg_dim, self.
-                      use_bias, self.bias_var), inputs)
+                      output_dim, self.use_bias, self.bias_var), inputs)
     if self.activation is not None:
       result = self.activation(result)
     return tf.reshape(result, (-1, self.output_dim))
@@ -189,16 +187,16 @@ class DenseMPO(Layer):
     config = {}
 
     # Include the MPO-specific arguments
-    mpo_args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
-    for arg in mpo_args:
+    args = ['output_dim', 'num_nodes', 'bond_dim', 'use_bias']
+    for arg in args:
       config[arg] = getattr(self, arg)
 
     # Serialize the activation
     config['activation'] = activations.serialize(getattr(self, 'activation'))
 
     # Serialize the initializers
-    mpo_initializers = ['kernel_initializer', 'bias_initializer']
-    for initializer_arg in mpo_initializers:
+    custom_initializers = ['kernel_initializer', 'bias_initializer']
+    for initializer_arg in custom_initializers:
       config[initializer_arg] = initializers.serialize(
           getattr(self, initializer_arg))
 
