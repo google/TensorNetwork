@@ -227,6 +227,49 @@ class JaxBackend(base_backend.BaseBackend):
     return libjax.random.uniform(
         key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
+  def eigs(self,
+           A: Callable,
+           args: Optional[List] = None,
+           initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
+           num_krylov_vecs: int = 50,
+           numeig: int = 6,
+           tol: float = 1E-8,
+           which: Text = 'LR',
+           maxiter: Optional[int] = None) -> Tuple[List, List]:
+    if args is None:
+      args = []
+    if which in ('SI', 'LI', 'SM', 'SR'):
+      raise ValueError(f'which = {which} is currently not supported.')
+
+    if numeig + 1 >= num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
+
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
+
+    if not isinstance(initial_state, jnp.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
+    if not hasattr(self, '_iram'):
+      # pylint: disable=attribute-defined-outside-init
+      self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
+    return self._iram(
+        matvec=_CACHED_MATVECS[A],
+        args=args,
+        initial_state=initial_state,
+        num_krylov_vecs=num_krylov_vecs,
+        numeig=numeig,
+        which=which,
+        eps=np.sqrt(1 / 2),
+        maxiter=maxiter)
+
   def eigsh_lanczos(
       self,
       A: Callable,
