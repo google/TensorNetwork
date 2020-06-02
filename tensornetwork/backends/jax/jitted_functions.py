@@ -288,7 +288,7 @@ def _generate_arnoldi_factorization(jax):
     kvfinal, Hfinal, _, _, norm, _, it, _ = jax.lax.while_loop(
         cond_fun, body, [
             krylov_vectors, H, matvec, v,
-            norms_dtype.type(1E6), eps, start, num_krylov_vecs
+            norms_dtype.type(1E3), eps, start, num_krylov_vecs
         ])
     return kvfinal, Hfinal, it, norm < eps
 
