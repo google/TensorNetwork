@@ -181,8 +181,10 @@ def _generate_arnoldi_factorization(jax):
     args: List of arguments to `matvec`.
     v0: Initial state to `matvec`.
     krylov_vectors: An array for storing the krylov vectors. The individual
-      vectors are stored as columns.a
-    H: Matrix of overlaps.
+      vectors are stored as columns. The shape of `krylov_vecs` has to be
+      (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
+    H: Matrix of overlaps. The shape has to be 
+      (num_krylov_vecs + 1,num_krylov_vecs + 1).
     start: Integer denoting the start position where the first 
       produced krylov_vector should be inserted into `krylov_vectors`
     num_krylov_vecs: Number of krylov iterations, should be identical to 
@@ -242,8 +244,10 @@ def _generate_arnoldi_factorization(jax):
       args: List of arguments to `matvec`.
       v0: Initial state to `matvec`.
       krylov_vectors: An array for storing the krylov vectors. The individual
-        vectors are stored as columns.a
-      H: Matrix of overlaps.
+        vectors are stored as columns. The shape of `krylov_vecs` has to be
+        (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
+      H: Matrix of overlaps. The shape has to be 
+        (num_krylov_vecs + 1,num_krylov_vecs + 1).
       start: Integer denoting the start position where the first 
         produced krylov_vector should be inserted into `krylov_vectors`
       num_krylov_vecs: Number of krylov iterations, should be identical to 
