@@ -59,15 +59,14 @@ def _generate_jitted_eigsh_lanczos(jax):
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
-      vector -= jax.numpy.vdot(v, jax.numpy.ravel(vector)) * jax.numpy.reshape(
-          v, vector.shape)
+      vector -= jax.numpy.vdot(v, vector) * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
       current_vector, krylov_vectors, vector_norms = vals[0:3]
       diagonal_elements, matvec, args, _ = vals[3:7]
       threshold, i, maxiteration = vals[7:]
-      norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
+      norm = jax.numpy.linalg.norm(current_vector)
       normalized_vector = current_vector / norm
       normalized_vector, krylov_vectors = jax.lax.cond(
           reortho, True,
@@ -76,9 +75,7 @@ def _generate_jitted_eigsh_lanczos(jax):
           False, lambda x: [normalized_vector, krylov_vectors])
       Av = matvec(normalized_vector, *args)
 
-      diag_element = jax.numpy.dot(
-          jax.numpy.conj(jax.numpy.ravel(normalized_vector)),
-          jax.numpy.ravel(Av))
+      diag_element = jax.numpy.vdot(normalized_vector, Av)
 
       res = jax.numpy.reshape(
           jax.numpy.ravel(Av) -
@@ -217,7 +214,7 @@ def _generate_arnoldi_factorization(jax):
     """
     vector, krylov_vectors, n, H = vals
     v = krylov_vectors[j, :]
-    h = jax.numpy.vdot(v, jax.numpy.ravel(vector))
+    h = jax.numpy.vdot(v, vector)
     H = jax.ops.index_update(H, jax.ops.index[j, n], h)
     vector = vector - h * jax.numpy.reshape(v, vector.shape)
     return [vector, krylov_vectors, n, H]
@@ -275,7 +272,7 @@ def _generate_arnoldi_factorization(jax):
       initial_vals = [Av, krylov_vectors, i, H]
       Av, krylov_vectors, _, H = jax.lax.fori_loop(
           0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
-      norm = jax.numpy.linalg.norm(jax.numpy.ravel(Av))
+      norm = jax.numpy.linalg.norm(Av)
       Av /= norm
       H = jax.ops.index_update(H, jax.ops.index[i + 1, i], norm)
       krylov_vectors = jax.ops.index_update(krylov_vectors,
