@@ -188,7 +188,7 @@ def _generate_arnoldi_factorization(jax):
     start: Integer denoting the start position where the first 
       produced krylov_vector should be inserted into `krylov_vectors`
     num_krylov_vecs: Number of krylov iterations, should be identical to 
-      `krylov_vectors.shape[0]`
+      `krylov_vectors.shape[0] + 1`
     eps: Convergence parameter. Iteration is terminated if the norm of a
       krylov-vector falls below `eps`.
 
@@ -251,7 +251,7 @@ def _generate_arnoldi_factorization(jax):
       start: Integer denoting the start position where the first 
         produced krylov_vector should be inserted into `krylov_vectors`
       num_krylov_vecs: Number of krylov iterations, should be identical to 
-        `krylov_vectors.shape[0]`
+        `krylov_vectors.shape[0] + 1`
       eps: Convergence parameter. Iteration is terminated if the norm of a
         krylov-vector falls below `eps`.
     Returns:
