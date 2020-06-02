@@ -236,7 +236,7 @@ def _generate_arnoldi_factorization(jax):
     with `matrix` the matrix representation of `matvec` and 
     `Vm =  jax.numpy.transpose(kv[:it, :])`, 
     `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
-    and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
+    and `em` a cartesian basis vector of shape `(1, kv.shape[1])` 
     with `em[0, -1] == 1` and 0 elsewhere.
     
     Note that the caller is responsible for dtype consistency between 
