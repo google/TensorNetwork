@@ -7,6 +7,7 @@ jax.config.update('jax_enable_x64', True)
 
 
 def test_arnoldi_factorization():
+  np.random.seed(10)
   D = 20
   mat = np.random.rand(D, D)
   x = np.random.rand(D)
