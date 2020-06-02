@@ -155,7 +155,47 @@ def _generate_jitted_eigsh_lanczos(jax):
   return jax_lanczos
 
 
-def _arnoldi_factorization(jax):
+def _generate_arnoldi_factorization(jax):
+  """
+  Helper function to create a jitted arnoldi factorization. 
+  The function returns a function `_arnoldi_fact` which 
+  performs an m-step arnoldi factorization.
+
+  `_arnoldi_fact` computes an m-step arnoldi factorization 
+  of an input callable `matvec`, with m = min(`it`,`num_krylov_vecs`). 
+  `_arnoldi_fact` will do at most `num_krylov_vecs` steps. 
+  `_arnoldi_fact` returns arrays `kv` and `H` which satisfy 
+  the Arnoldi recurrence relation
+  ```
+  matrix @ Vm - Vm @ Hm - fm * em = 0
+  ```
+  with `matrix` the matrix representation of `matvec` and 
+  `Vm =  jax.numpy.transpose(kv[:it, :])`, 
+  `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
+  and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
+  with `em[0, -1] == 1` and 0 elsewhere.
+
+  The arguments to `_arnoldi_fact` are:
+
+  Args:
+    matvec: The matrix vector product. This function has to be wrapped into 
+      `jax.tree_util.Partial`. `matvec` will be called as `matvec(x, *args)`
+      for an input vector `x`.
+    args: List of arguments to `matvec`.
+    v0: Initial state to `matvec`.
+    krylov_vectors: An array for storing the krylov vectors. The individual
+      vectors are stored as columns.a
+    H: Matrix of overlaps.
+    start: Integer denoting the start position where the first produced krylov_vector 
+      should be inserted into `krylov_vectors`
+    num_krylov_vecs: Number of krylov iterations, should be identical to 
+      `krylov_vectors.shape[0]`
+  Returns:
+    kv: An array of krylov vectors
+    H: A matrix of overlaps 
+    it: The number of performed iterations.
+
+  """
 
   @jax.jit
   def modified_gram_schmidt_step_arnoldi(j: int, vals: List):
@@ -184,7 +224,19 @@ def _arnoldi_factorization(jax):
   def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
                     eps):
     """
-    Compute an m-step arnoldi factorization of `matvec`.
+    Compute an m-step arnoldi factorization of `matvec`, with 
+    m = min(`it`,`num_krylov_vecs`). The factorization will 
+    do at most `num_krylov_vecs` steps. The returned arrays 
+    `kv` and `H` will satisfy the Arnoldi recurrence relation
+    ```
+    matrix @ Vm - Vm @ Hm - fm * em = 0
+    ```
+    with `matrix` the matrix representation of `matvec` and 
+    `Vm =  jax.numpy.transpose(kv[:it, :])`, 
+    `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
+    and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
+    with `em[0, -1] == 1` and 0 elsewhere.
+
     Args:
       matvec: The matrix vector product.
       args: List of arguments to `matvec`.
