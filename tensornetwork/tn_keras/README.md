@@ -36,13 +36,13 @@ mpo_model.add(Dense(1, use_bias=True, activation='sigmoid'))
     * ![Image of MPO](images/mpo.png)
 
 - **Entangler**. A TN layer inspired by quantum circuits that allows one to dramatically increase the dimensionality of hidden layers, far beyond what is currently feasible with normal dense layers e.g. hidden layers of >1M in size. Note for this layer the input dimensions and output dimensions will be equal. Additionally, `input_shape[-1]**(1. / num_legs)` must be round. `num_levels` is the only parameter that does not change input/output shape; it can be increased to increase the power of the layer, but inference time will also scale approximately linearly. The TN looks like:
-    * ![Image of MPO](images/entangler.png)
+    * ![Image of Entangler](images/entangler.png)
 
 - **Expander**. A TN layer to expand the dimensionality of an input tensor, commonly used in conjunction with Entangler. Since Entangler does not modify the input dimension, an Expander layer is often placed before an Entangler layer to increase the size of the input. Note the output dim will be `input_shape[-1] * (exp_base**num_nodes)` so increasing `num_nodes` will increase the output dim exponentially. The TN looks like: 
-    * ![Image of MPO](images/expander.png)
+    * ![Image of Expander](images/expander.png)
 
-- **Condenser**. A TN layer to reduce the dimensionality of an input tensor, commonly used in conjunction with Entangler. Since Entangler does not modify the output dimension, a Condenser layer is often placed after an Entangler layer to decrease the size of the output. Note: the output dim will be `input_shape[-1] // (exp_base**num_nodes)` so increasing `num_nodes` will decrease the output dim exponentially. The TN looks like:
-    * ![Image of MPO](images/condenser.png)
+- **Condenser**. A TN layer to reduce the dimensionality of an input tensor, commonly used in conjunction with Entangler. Since Entangler does not modify the output dimension, a Condenser layer is often placed after an Entangler layer to decrease the size of the output. Note the output dim will be `input_shape[-1] // (exp_base**num_nodes)` so increasing `num_nodes` will decrease the output dim exponentially. The TN looks like:
+    * ![Image of Condenser](images/condenser.png)
 
 ## Support
 
