@@ -536,7 +536,7 @@ def test_eigs_raises_error_for_unsupported_which(which):
   backend = numpy_backend.NumPyBackend()
   A = backend.randn((4, 4), dtype=np.float64)
   with pytest.raises(ValueError):
-    backend.eigs(A=A, [], which=which)
+    backend.eigs(A=A, which=which)
 
 
 def test_eigs_raises():
