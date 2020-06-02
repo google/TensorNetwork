@@ -391,6 +391,20 @@ class ChargeArray:
   def __truediv__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__truediv__ not implemented for ChargeArray")
 
+  def __repr__(self):
+    if len(self._charges) > 0:
+      charge_types = self._charges[0].names
+    else:
+      charge_types = 'no charge types (scalar)'
+    output = 'BlockSparseTensor\n   shape: ' + repr(
+        self.shape
+    ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
+        self.dtype.name) + '\n   flat flows: ' + repr(
+            self.flat_flows) + '\n   order: ' + repr(
+                self._order) + '\n   data:' + repr(self.data)
+
+    return output
+
   def item(self):
     if self.ndim == 0:
       if len(self.data) == 1:
@@ -505,7 +519,7 @@ class BlockSparseTensor(ChargeArray):
     Map the sparse tensor to dense storage.
     
     """
-    if len(self.shape) == 0:
+    if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
     out[np.nonzero(
