@@ -562,7 +562,6 @@ class Z2Charge(BaseCharge):
                charge_labels: Optional[np.ndarray] = None,
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
-    self.name = 'Z2Charge'
     #do some checks before calling the base class constructor
     unique = np.unique(np.ravel(charges))
     if not np.all(np.isin(unique, [0, 1])):
