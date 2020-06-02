@@ -187,6 +187,9 @@ def _generate_arnoldi_factorization(jax):
       produced krylov_vector should be inserted into `krylov_vectors`
     num_krylov_vecs: Number of krylov iterations, should be identical to 
       `krylov_vectors.shape[0]`
+    eps: Convergence parameter. Iteration is terminated if the norm of a
+      krylov-vector falls below `eps`.
+
   Returns:
     kv: An array of krylov vectors
     H: A matrix of overlaps 
@@ -245,6 +248,8 @@ def _generate_arnoldi_factorization(jax):
         produced krylov_vector should be inserted into `krylov_vectors`
       num_krylov_vecs: Number of krylov iterations, should be identical to 
         `krylov_vectors.shape[0]`
+      eps: Convergence parameter. Iteration is terminated if the norm of a
+        krylov-vector falls below `eps`.
     Returns:
       kv: An array of krylov vectors
       H: A matrix of overlaps 
