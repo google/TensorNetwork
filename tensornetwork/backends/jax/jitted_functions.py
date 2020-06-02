@@ -155,14 +155,23 @@ def _generate_jitted_eigsh_lanczos(jax):
   return jax_lanczos
 
 
-def _implicitly_restarted_arnoldi(jax):
-  """
-  """
+def _arnoldi_factorization(jax):
 
   @jax.jit
   def modified_gram_schmidt_step_arnoldi(j: int, vals: List):
     """
-    single step of a modified gram-schmidt orthogonalization
+    Single step of a modified gram-schmidt orthogonalization.
+    Args:
+      j: Integer value denoting the vector to be orthogonalized.
+      vals: A list of variables:
+        `vector`: The current vector to be orthogonalized
+        to all previous ones
+        `krylov_vectors`: jax.array of collected krylov vectors
+        `n`: integer denoting the column-position of the overlap 
+          <`krylov_vector`|`vector`> within `H`.
+    Returns:
+      updated vals.
+             
     """
     vector, krylov_vectors, n, H = vals
     v = krylov_vectors[j, :]
@@ -172,16 +181,16 @@ def _implicitly_restarted_arnoldi(jax):
     return [vector, krylov_vectors, n, H]
 
   @partial(jax.jit, static_argnums=(5, 6, 7))
-  def _arnoldi_factorization(matvec, args, v0, krylov_vectors, H, start,
-                             num_krylov_vecs, eps):
+  def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
+                    eps):
     """
-    Compute an arnoldi factorization of `matvec`.
+    Compute an m-step arnoldi factorization of `matvec`.
     Args:
       matvec: The matrix vector product.
       args: List of arguments to `matvec`.
       v0: Initial state to `matvec`.
       krylov_vectors: An array for storing the krylov vectors. The individual
-        vectors are stored as columns.
+        vectors are stored as columns.a
       H: Matrix of overlaps.
       start: Integer denoting the start position where the first produced krylov_vector 
         should be inserted into `krylov_vectors`
@@ -240,10 +249,16 @@ def _implicitly_restarted_arnoldi(jax):
         ])
     return kvfinal, Hfinal, it, norm < eps
 
+  return _arnoldi_fact
+
+
+def _implicitly_restarted_arnoldi(jax):
+  """
+  """
+  arnoldi_fact = arnoldi_factorization(jax)
   #######################################################
   ########  NEW SORTING FUCTIONS ISERTED HERE  ##########
   #######################################################
-
   @partial(jax.jit, static_argnums=(1,))
   def LR_sort(evals, p):
     inds = np.argsort(jax.numpy.real(evals), kind='stable')[::-1]
@@ -263,7 +278,7 @@ def _implicitly_restarted_arnoldi(jax):
   @partial(jax.jit, static_argnums=(4, 5, 6))
   def shifted_QR(Vm, Hm, fm, evals, k, p, which):
     funs = [LR_sort, LM_sort]
-    #evals, _ = jax.np.linalg.eig(Hm)
+    #evals, _ = jax.numpy.linalg.eig(Hm)
     shifts, _ = funs[which](evals, p)
     #compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
@@ -271,7 +286,7 @@ def _implicitly_restarted_arnoldi(jax):
     m = Hm.shape[0]
 
     for shift in shifts:
-      Qj, Rj = jax.np.linalg.qr(Hm - shift * jax.np.eye(m))
+      Qj, Rj = jax.numpy.linalg.qr(Hm - shift * jax.numpy.eye(m))
       Hm = Qj.T.conj() @ Hm @ Qj
       Vm = Qj.T @ Vm
       q = q @ Qj
@@ -281,7 +296,7 @@ def _implicitly_restarted_arnoldi(jax):
     Hk = Hm[0:k, 0:k]
     H = jax.numpy.zeros((k + p + 1, k + p), dtype=fm.dtype)
     H = jax.ops.index_update(H, jax.ops.index[0:k, 0:k], Hk)
-    Z = jax.np.linalg.norm(fk)
+    Z = jax.numpy.linalg.norm(fk)
     v = fk / Z
     krylov_vectors = jax.numpy.zeros((k + p + 1, Vm.shape[1]), dtype=fm.dtype)
     krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[0:k, :],
@@ -330,8 +345,9 @@ def _implicitly_restarted_arnoldi(jax):
         dtype=dtype)
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
     t1 = time.time()
-    Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
-        matvec, args, initial_state, krylov_vectors, H, 0, num_krylov_vecs, eps)
+    Vm_tmp, Hm_tmp, _, converged = _arnoldi_fact(matvec, args, initial_state,
+                                                 krylov_vectors, H, 0,
+                                                 num_krylov_vecs, eps)
     Vm_tmp.block_until_ready()
     dt_ar = time.time() - t1
 
@@ -363,13 +379,14 @@ def _implicitly_restarted_arnoldi(jax):
       fm = fm.astype(dtype)
 
     while (it < maxiter) and (not converged):
-      evals, _ = jax.np.linalg.eig(Hm)
+      evals, _ = jax.numpy.linalg.eig(Hm)
 
       krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, evals, numeig, p, _which)
       v0 = jax.numpy.reshape(fk, initial_state.shape)
       t1 = time.time()
-      Vm_tmp, Hm_tmp, _, converged = _arnoldi_factorization(
-          matvec, args, v0, krylov_vectors, H, numeig, num_krylov_vecs, eps)
+      Vm_tmp, Hm_tmp, _, converged = _arnoldi_fact(matvec, args, v0,
+                                                   krylov_vectors, H, numeig,
+                                                   num_krylov_vecs, eps)
       Vm_tmp.block_until_ready()
       #print('second arnoldi:', time.time() - t1)
       Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
