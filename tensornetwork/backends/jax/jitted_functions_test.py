@@ -6,12 +6,12 @@ from tensornetwork.backends.jax.jitted_functions import _generate_arnoldi_factor
 jax.config.update('jax_enable_x64', True)
 
 
-def test_arnoldi_factorization():
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_arnoldi_factorization(dtype):
   np.random.seed(10)
   D = 20
-  mat = np.random.rand(D, D)
-  x = np.random.rand(D)
-  dtype = np.float64
+  mat = np.random.rand(D, D).astype(dtype)
+  x = np.random.rand(D).astype(dtype)
 
   @jax.tree_util.Partial
   @jax.jit
@@ -30,4 +30,4 @@ def test_arnoldi_factorization():
   em = np.zeros((1, Vm.shape[1]))
   em[0, -1] = 1
   np.testing.assert_almost_equal(mat @ Vm - Vm @ Hm - fm[:, None] * em,
-                                 np.zeros((it, Vm.shape[1])))
+                                 np.zeros((it, Vm.shape[1])).astype(dtype))
