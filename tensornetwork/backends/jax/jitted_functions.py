@@ -186,8 +186,8 @@ def _generate_arnoldi_factorization(jax):
     krylov_vectors: An array for storing the krylov vectors. The individual
       vectors are stored as columns.a
     H: Matrix of overlaps.
-    start: Integer denoting the start position where the first produced krylov_vector 
-      should be inserted into `krylov_vectors`
+    start: Integer denoting the start position where the first 
+      produced krylov_vector should be inserted into `krylov_vectors`
     num_krylov_vecs: Number of krylov iterations, should be identical to 
       `krylov_vectors.shape[0]`
   Returns:
@@ -244,8 +244,8 @@ def _generate_arnoldi_factorization(jax):
       krylov_vectors: An array for storing the krylov vectors. The individual
         vectors are stored as columns.a
       H: Matrix of overlaps.
-      start: Integer denoting the start position where the first produced krylov_vector 
-        should be inserted into `krylov_vectors`
+      start: Integer denoting the start position where the first 
+        produced krylov_vector should be inserted into `krylov_vectors`
       num_krylov_vecs: Number of krylov iterations, should be identical to 
         `krylov_vectors.shape[0]`
     Returns:
@@ -272,19 +272,13 @@ def _generate_arnoldi_factorization(jax):
       norm = jax.numpy.linalg.norm(jax.numpy.ravel(Av))
       Av /= norm
       H = jax.ops.index_update(H, jax.ops.index[i + 1, i], norm)
-
-      def update_krylov_vecs(args):
-        krylov_vecs, vector, pos = args
-        return jax.ops.index_update(krylov_vecs, jax.ops.index[pos, :],
-                                    jax.numpy.ravel(Av))
-
       krylov_vectors = jax.ops.index_update(krylov_vectors,
                                             jax.ops.index[i + 1, :],
                                             jax.numpy.ravel(Av))
       return [krylov_vectors, H, matvec, Av, norm, threshold, i + 1, maxiter]
 
     def cond_fun(vals):
-      kv, _, _, _, norm, threshold, iteration, maxiter = vals
+      _, _, _, _, norm, threshold, iteration, maxiter = vals
 
       def check_thresh(check_vals):
         val, thresh = check_vals

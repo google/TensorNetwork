@@ -1,9 +1,9 @@
 import numpy as np
 import jax
 import pytest
-from tensornetwork.backends.jax.jitted_functions import _arnoldi_factorization
-import jax.config as config
-config.update('jax_enable_x64', True)
+#pylint: disable=line-too-long
+from tensornetwork.backends.jax.jitted_functions import _generate_arnoldi_factorization
+jax.config.update('jax_enable_x64', True)
 
 
 def test_arnoldi_factorization():
@@ -17,7 +17,7 @@ def test_arnoldi_factorization():
   def matvec(vector, matrix):
     return matrix @ vector
 
-  arnoldi = _arnoldi_factorization(jax)
+  arnoldi = _generate_arnoldi_factorization(jax)
   ncv = 40
   kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
   H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
