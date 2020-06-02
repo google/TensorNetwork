@@ -1,7 +1,5 @@
 from functools import partial
 import numpy as np
-from typing import Any, Callable, List
-Tensor = Any
 
 
 def _generate_jitted_eigsh_lanczos(jax):
