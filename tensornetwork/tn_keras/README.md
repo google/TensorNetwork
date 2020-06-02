@@ -12,7 +12,7 @@ TN Keras exists to simplify tensorization of existing TensorFlow models. These l
 
 `pip install tensornetwork` and then:
 
-```sh
+```python
 import tensornetwork as tn
 import tensorflow as tf
 from tensornetwork.tn_keras import DenseMPO
@@ -30,10 +30,19 @@ mpo_model.add(Dense(1, use_bias=True, activation='sigmoid'))
 ## Networks
 
 - **DenseDecomp**. A TN layer comparable to Dense that carries out matrix multiplication with 2 significantly smaller weight matrices instead of 1 large one. This layer is similar to performing a SVD on the weight matrix and dropping the lowest singular values. The TN looks like:
-![Image of Decomp](https://4.bp.blogspot.com/-WCz7EdJ_1xU/XkHJD3UaefI/AAAAAAAACrg/rXcx1rF_2OomT04XI2topzLd2bBAcypXgCLcBGAsYHQ/s1600/imageLikeEmbed.png)
+    * ![Image of Decomp](images/decomp.png)
 
 - **DenseMPO**. A TN layer that implements an MPO (Matrix Product Operator), a common tensor network found in condensed matter physics. MPOs are one of the most successful TNs we've seen in practice. Note for this layer the input dimension, output dimension, and number of nodes must all relate in order for the network structure to work. Specifically, `input_shape[-1]**(1. / num_nodes)` and `output_dim**(1. / num_nodes)` must both be round. The TN looks like:
-![Image of MPO](https://1.bp.blogspot.com/-0-63SOqomZ0/XkL-3fcFdTI/AAAAAAAACsI/aK7hJf1PzRIGjV42qxA8cCUbjjj-9zRNwCLcBGAsYHQ/s1600/Screen%2BShot%2B2020-02-11%2Bat%2B11.21.38%2BAM.png)
+    * ![Image of MPO](images/mpo.png)
+
+- **Entangler**. A TN layer inspired by quantum circuits that allows one to dramatically increase the dimensionality of hidden layers, far beyond what is currently feasible with normal dense layers e.g. hidden layers of >1M in size. Note for this layer the input dimensions and output dimensions will be equal. Additionally, `input_shape[-1]**(1. / num_legs)` must be round. `num_levels` is the only parameter that does not change input/output shape; it can be increased to increase the power of the layer, but inference time will also scale approximately linearly. The TN looks like:
+    * ![Image of MPO](images/entangler.png)
+
+- **Expander**. A TN layer to expand the dimensionality of an input tensor, commonly used in conjunction with Entangler. Since Entangler does not modify the input dimension, an Expander layer is often placed before an Entangler layer to increase the size of the input. Note the output dim will be `input_shape[-1] * (exp_base**num_nodes)` so increasing `num_nodes` will increase the output dim exponentially. The TN looks like: 
+    * ![Image of MPO](images/expander.png)
+
+- **Condenser**. A TN layer to reduce the dimensionality of an input tensor, commonly used in conjunction with Entangler. Since Entangler does not modify the output dimension, a Condenser layer is often placed after an Entangler layer to decrease the size of the output. Note: the output dim will be `input_shape[-1] // (exp_base**num_nodes)` so increasing `num_nodes` will decrease the output dim exponentially. The TN looks like:
+    * ![Image of MPO](images/condenser.png)
 
 ## Support
 
