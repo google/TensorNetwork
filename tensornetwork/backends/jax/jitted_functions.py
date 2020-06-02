@@ -169,6 +169,9 @@ def _generate_arnoldi_factorization(jax):
   and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
   with `em[0, -1] == 1` and 0 elsewhere.
 
+  Note that the caller is responsible for dtype consistency between 
+  the inputs, i.e. dtypes between all input arrays have to match.
+
   The arguments to `_arnoldi_fact` are:
 
   Args:
@@ -235,7 +238,10 @@ def _generate_arnoldi_factorization(jax):
     `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
     and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
     with `em[0, -1] == 1` and 0 elsewhere.
-
+    
+    Note that the caller is responsible for dtype consistency between 
+    the inputs, i.e. dtypes between all input arrays have to match.
+    
     Args:
       matvec: The matrix vector product.
       args: List of arguments to `matvec`.
