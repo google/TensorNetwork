@@ -1,6 +1,5 @@
 from functools import partial
 import numpy as np
-import time
 from typing import Any, Callable, List
 Tensor = Any
 
