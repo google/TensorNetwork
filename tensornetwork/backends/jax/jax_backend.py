@@ -290,7 +290,8 @@ class JaxBackend(base_backend.BaseBackend):
       numeig: The number of eigenvector-eigenvalue pairs to be computed.
       tol: The desired precision of the eigenvalues. For the jax backend
         this has currently no effect, and precision of eigenvalues is not 
-        guaranteed. This feature may be added at a later point.
+        guaranteed. This feature may be added at a later point. To increase
+        precision the caller can either increase `maxiter` or `num_krylov_vecs`.
       which: Flag for targetting different types of eigenvalues. Currently 
         supported are `which = 'LR'` (larges real part) and `which = 'LM'` 
         (larges magnitude).
@@ -392,6 +393,7 @@ class JaxBackend(base_backend.BaseBackend):
       tol: The desired precision of the eigenvalues. For the jax backend
         this has currently no effect, and precision of eigenvalues is not 
         guaranteed. This feature may be added at a later point.
+        To increase precision the caller can increase `num_krylov_vecs`.
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector :math: `x_n` has an L2 norm
         :math:`\\lVert x_n\\rVert < delta`, the iteration
