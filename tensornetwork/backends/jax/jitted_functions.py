@@ -272,6 +272,7 @@ def _generate_arnoldi_factorization(jax):
         lambda x: jax.ops.index_update(H, jax.ops.index[x, x - 1], Z), None,
         lambda x: H)
 
+    # body of the arnoldi iteration
     def body(vals):
       krylov_vectors, H, matvec, vector, _, threshold, i, maxiter = vals
       Av = matvec(vector, *args)
@@ -289,6 +290,7 @@ def _generate_arnoldi_factorization(jax):
     def cond_fun(vals):
       _, _, _, _, norm, threshold, iteration, maxiter = vals
 
+      # check if an invariant subspace has been found
       def check_thresh(check_vals):
         val, thresh = check_vals
         return jax.lax.cond(val < thresh, False, lambda x: x, True, lambda x: x)
