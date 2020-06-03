@@ -325,15 +325,8 @@ class JaxBackend(base_backend.BaseBackend):
     if not hasattr(self, '_iram'):
       # pylint: disable=attribute-defined-outside-init
       self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
-    return self._iram(
-        matvec=_CACHED_MATVECS[A],
-        args=args,
-        initial_state=initial_state,
-        num_krylov_vecs=num_krylov_vecs,
-        numeig=numeig,
-        which=which,
-        eps=tol,
-        maxiter=maxiter)
+    return self._iram(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
+                      numeig, which, tol, maxiter)
 
   def eigsh_lanczos(
       self,
