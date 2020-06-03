@@ -156,11 +156,11 @@ class ChargeArray:
 
   @property
   def flat_charges(self) -> List[BaseCharge]:
-    return self._charges
+    return list([self._charges[o] for o in self.flat_order])
 
   @property
   def flat_flows(self) -> List:
-    return list(self._flows)
+    return list([self._flows[o] for o in self.flat_order])
 
   @property
   def flat_order(self) -> np.ndarray:
@@ -254,7 +254,7 @@ class ChargeArray:
     flat_dims = np.asarray(
         [self._charges[n].dim for o in self._order for n in o])
 
-    if len(new_shape) > len(self.flat_charges):
+    if len(new_shape) > len(self._charges):
       raise ValueError("The shape {} is incompatible with the "
                        "elementary shape {} of the tensor.".format(
                            tuple(new_shape), tuple(flat_dims)))
@@ -312,7 +312,7 @@ class ChargeArray:
     and changing `_order` to `[[0,1],[2],[3]]`.
     """
 
-    flat_charges = self.flat_charges
+    flat_charges = self._charges
     flat_shape = [c.dim for c in flat_charges]
     flat_order = self.flat_order
     tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
@@ -368,7 +368,7 @@ class ChargeArray:
     return ChargeArray(
         data=np.conj(self.data),
         charges=self._charges,
-        flows=list(np.logical_not(self._flows)),
+        flows=np.logical_not(self._flows),
         order=self._order,
         check_consistency=False)
 
@@ -390,6 +390,26 @@ class ChargeArray:
 
   def __truediv__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__truediv__ not implemented for ChargeArray")
+
+  def __repr__(self):
+    if len(self._charges) > 0:
+      charge_types = self._charges[0].names
+    else:
+      charge_types = 'no charge types (scalar)'
+    output = 'BlockSparseTensor\n   shape: ' + repr(
+        self.shape
+    ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
+        self.dtype.name) + '\n   flat flows: ' + repr(
+            self.flat_flows) + '\n   order: ' + repr(
+                self._order) + '\n   data:' + repr(self.data)
+
+    return output
+
+  def item(self):
+    if self.ndim == 0:
+      if len(self.data) == 1:
+        return self.data[0]
+    raise ValueError("can only convert an array of size 1 to a Python scalar")
 
 
 class BlockSparseTensor(ChargeArray):
@@ -499,7 +519,7 @@ class BlockSparseTensor(ChargeArray):
     Map the sparse tensor to dense storage.
     
     """
-    if len(self.shape) == 0:
+    if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
     out[np.nonzero(
@@ -626,13 +646,29 @@ class BlockSparseTensor(ChargeArray):
       raise ValueError(
           "cannot add or subtract tensors non-matching sparse shapes")
 
+  def _align_storage_layout(self, other):
+    """
+    Align storage layouts of self and other.
+    """
+    self_is_ordered = np.array_equal(self.flat_order,
+                                     np.arange(len(self.flat_order)))
+    other_is_ordered = np.array_equal(other.flat_order,
+                                      np.arange(len(other.flat_order)))
+    both_unordered = (not self_is_ordered) and (not other_is_ordered)
+    if self_is_ordered and (not other_is_ordered):
+      #bring other into the same storage layout as other
+      perm = np.empty(len(other.flat_order), dtype=np.int32)
+      perm[self.flat_order] = other.flat_order
+      other.transpose_data(perm, inplace=True)
+    elif ((not self_is_ordered) and other_is_ordered) or both_unordered:
+      #bring self into the same storage layout as other
+      perm = np.empty(len(self.flat_order), dtype=np.int32)
+      perm[other.flat_order] = self.flat_order
+      self.transpose_data(perm, inplace=True)
+
   def __sub__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
-    self._sub_add_protection(other)
-    #bring self into the same storage layout as other
-    perm = np.empty(len(self.flat_order), dtype=np.int32)
-    perm[other.flat_order] = self.flat_order
-    self.transpose_data(perm, inplace=True)
-    #now subtraction is save
+    self._sub_add_protection(other)  #perform checks
+    self._align_storage_layout(other)  #align storage layout of self and other
     return BlockSparseTensor(
         data=self.data - other.data,
         charges=self._charges,
@@ -641,11 +677,8 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   def __add__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
-    self._sub_add_protection(other)
-    #bring self into the same storage layout as other
-    perm = np.empty(len(self.flat_order), dtype=np.int32)
-    perm[other.flat_order] = self.flat_order
-    self.transpose_data(perm, inplace=True)
+    self._sub_add_protection(other)  #perform checks
+    self._align_storage_layout(other)  #align storage layout of self and other
     #now addition is save
     return BlockSparseTensor(
         data=self.data + other.data,
@@ -710,8 +743,8 @@ class BlockSparseTensor(ChargeArray):
       permutation: An optional alternative order to be used to transposed the 
         tensor. If `None` defaults to `BlockSparseTensor.permutation`.
     """
-    flat_charges = self.flat_charges
-    flat_flows = self.flat_flows
+    flat_charges = self._charges
+    flat_flows = self._flows
     if permutation is None:
       permutation = self.flat_order
 
@@ -794,7 +827,7 @@ def outerproduct(tensor1: BlockSparseTensor,
   """
 
   final_charges = tensor1._charges + tensor2._charges
-  final_flows = tensor1.flat_flows + tensor2.flat_flows
+  final_flows = list(tensor1._flows) + list(tensor2._flows)
   order2 = [list(np.asarray(s) + len(tensor1._charges)) for s in tensor2._order]
 
   data = np.zeros(
@@ -917,23 +950,15 @@ def tensordot(
 
   #checks finished
 
-  #special case inner product
+  #special case inner product (returns an ndim=0 tensor)
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
     t1 = tensor1.transpose(axes1).transpose_data()
     t2 = tensor2.transpose(axes2).transpose_data()
-    data = np.dot(t1.data, t2.data)
-    charge = tensor1._charges[0]
-    final_charge = charge.__new__(type(charge))
-
-    final_charge.__init__(
-        np.empty((charge.num_symmetries, 0), dtype=np.int16),
-        charge_labels=np.empty(0, dtype=np.int16),
-        charge_types=charge.charge_types)
     return BlockSparseTensor(
-        data=data,
-        charges=[final_charge],
-        flows=[False],
-        order=[[0]],
+        data=np.dot(t1.data, t2.data),
+        charges=[],
+        flows=[],
+        order=[],
         check_consistency=False)
 
   #in all other cases we perform a regular tensordot
@@ -948,8 +973,8 @@ def tensordot(
   flat_order_1 = flatten(new_order1)
   flat_order_2 = flatten(new_order2)
 
-  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1.flat_flows
-  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2.flat_flows
+  flat_charges_1, flat_flows_1 = tensor1._charges, tensor1._flows
+  flat_charges_2, flat_flows_2 = tensor2._charges, tensor2._flows
 
   left_charges = []
   right_charges = []
