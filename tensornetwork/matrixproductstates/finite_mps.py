@@ -20,8 +20,7 @@ import functools
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
-# pylint: disable=line-too-long
-from tensornetwork.network_operations import conj
+from tensornetwork.linalg.linalg import conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.backends.base_backend import BaseBackend
