@@ -5,8 +5,8 @@ import jax.numpy as jnp
 import jax.config as config
 import torch
 import tensorflow as tf
-import tensornetwork as tn
 from tensornetwork.linalg import linalg
+from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork import backends
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.backends.jax import jax_backend
@@ -186,50 +186,50 @@ def test_conj(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
 
-  a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
-  abar = tn.conj(a)
+  a = Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  abar = linalg.conj(a)
   np.testing.assert_allclose(abar.tensor, a.backend.conj(a.tensor))
 
 
 def test_transpose(backend):
-  a = tn.Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
+  a = Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
   order = [a[n] for n in reversed(range(5))]
-  transpa = tn.transpose(a, [4, 3, 2, 1, 0])
+  transpa = linalg.transpose(a, [4, 3, 2, 1, 0])
   a.reorder_edges(order)
   np.testing.assert_allclose(a.tensor, transpa.tensor)
 
 
 def test_operator_kron(backend):
-  with tn.DefaultBackend(backend):
+  with DefaultBackend(backend):
     X = np.array([[0, 1], [1, 0]], dtype=np.float32)
     Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
     expected = np.kron(X, Z).reshape(2, 2, 2, 2)
-    result = tn.kron([tn.Node(X), tn.Node(Z)])
+    result = linalg.kron([Node(X), Node(Z)])
     np.testing.assert_allclose(result.tensor, expected)
 
 
 def test_kron_raises(backend):
-  with tn.DefaultBackend(backend):
-    A = tn.Node(np.ones((2, 2, 2)))
-    B = tn.Node(np.ones((2, 2, 2)))
+  with DefaultBackend(backend):
+    A = Node(np.ones((2, 2, 2)))
+    B = Node(np.ones((2, 2, 2)))
     with pytest.raises(
         ValueError, match="All operator tensors must have an even order."):
-      tn.kron([A, B])
+      linalg.kron([A, B])
 
 
 def test_norm_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    tn.norm(node)
+    linalg.norm(node)
 
 
 def test_conj_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    tn.conj(node)
+    linalg.conj(node)
 
 
 def test_transpose_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    tn.transpose(node, permutation=[])
+    linalg.transpose(node, permutation=[])
