@@ -58,7 +58,9 @@ class BaseDMRG:
     if len(mps) != len(mpo):
       raise ValueError('len(mps) = {} is different from len(mpo) = {}'.format(
           len(mps), len(mpo)))
-
+    if mps.center_position is None:
+      raise ValueError(
+          "Found mps in non-canonical form. Please canonicalize mps.")
     self.mps = mps
     self.mpo = mpo
     self.left_envs = {0: self.backend.convert_to_tensor(left_boundary)}
