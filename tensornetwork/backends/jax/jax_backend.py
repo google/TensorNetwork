@@ -237,7 +237,7 @@ class JaxBackend(base_backend.BaseBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: int = 20) -> Tuple[List, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest 
     eigenvector-eigenvalue pairs of a linear operator `A`. 
@@ -309,7 +309,7 @@ class JaxBackend(base_backend.BaseBackend):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig > num_krylov_vecs:
-      raise ValueError('`num_krylov_vecs` >=`numeig` required!')
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
     if initial_state is None:
       if (shape is None) or (dtype is None):
