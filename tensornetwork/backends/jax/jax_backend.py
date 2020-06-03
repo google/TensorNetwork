@@ -295,7 +295,8 @@ class JaxBackend(base_backend.BaseBackend):
       which: Flag for targetting different types of eigenvalues. Currently 
         supported are `which = 'LR'` (larges real part) and `which = 'LM'` 
         (larges magnitude).
-      maxiter: Maximum number of restarts.
+      maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes 
+        equivalent to a simple Arnoldi method.
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -307,8 +308,8 @@ class JaxBackend(base_backend.BaseBackend):
     if which in ('SI', 'LI', 'SM', 'SR'):
       raise ValueError(f'which = {which} is currently not supported.')
 
-    if numeig + 1 >= num_krylov_vecs:
-      raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
+    if numeig > num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` >=`numeig` required!')
 
     if initial_state is None:
       if (shape is None) or (dtype is None):
@@ -331,7 +332,7 @@ class JaxBackend(base_backend.BaseBackend):
         num_krylov_vecs=num_krylov_vecs,
         numeig=numeig,
         which=which,
-        eps=np.sqrt(1 / 2),
+        eps=tol,
         maxiter=maxiter)
 
   def eigsh_lanczos(
