@@ -247,23 +247,6 @@ def test_split_node_qr(backend):
   np.testing.assert_allclose(a.tensor, tn.contract(left[3]).tensor)
 
 
-def test_conj(backend):
-  if backend == "pytorch":
-    pytest.skip("Complex numbers currently not supported in PyTorch")
-
-  a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
-  abar = tn.conj(a)
-  np.testing.assert_allclose(abar.tensor, a.backend.conj(a.tensor))
-
-
-def test_transpose(backend):
-  a = tn.Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
-  order = [a[n] for n in reversed(range(5))]
-  transpa = tn.transpose(a, [4, 3, 2, 1, 0])
-  a.reorder_edges(order)
-  np.testing.assert_allclose(a.tensor, transpa.tensor)
-
-
 def test_reachable(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(10)]
   _ = [nodes[n][0] ^ nodes[n + 1][1] for n in range(len(nodes) - 1)]
@@ -392,24 +375,6 @@ def test_switch_backend(backend):
   assert nodes[0].backend.name == backend
 
 
-def test_norm_of_node_without_backend_raises_error():
-  node = np.random.rand(3, 3, 3)
-  with pytest.raises(AttributeError):
-    tn.norm(node)
-
-
-def test_conj_of_node_without_backend_raises_error():
-  node = np.random.rand(3, 3, 3)
-  with pytest.raises(AttributeError):
-    tn.conj(node)
-
-
-def test_transpose_of_node_without_backend_raises_error():
-  node = np.random.rand(3, 3, 3)
-  with pytest.raises(AttributeError):
-    tn.transpose(node, permutation=[])
-
-
 def test_split_node_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
@@ -501,6 +466,7 @@ def test_split_node_qr_orig_shape(backend):
   tn.split_node_qr(n1, [n1[0], n1[2]], [n1[1]])
   np.testing.assert_allclose(n1.shape, (3, 4, 5))
 
+
 def test_get_neighbors(backend):
   with tn.DefaultBackend(backend):
     a = tn.Node(np.ones((2, 2)))
@@ -513,6 +479,7 @@ def test_get_neighbors(backend):
     b[1] ^ b[2]
     result = tn.get_neighbors(b)
     assert result == [a, c]
+
 
 def test_get_neighbors_no_duplicates(backend):
   with tn.DefaultBackend(backend):
@@ -527,19 +494,3 @@ def test_get_neighbors_no_duplicates(backend):
     b[3] ^ b[4]
     result = tn.get_neighbors(b)
     assert result == [a, c]
-
-def test_operator_kron(backend):
-  with tn.DefaultBackend(backend):
-    X = np.array([[0, 1], [1, 0]], dtype=np.float32)
-    Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
-    expected = np.kron(X, Z).reshape(2, 2, 2, 2)
-    result = tn.kron([tn.Node(X), tn.Node(Z)])
-    np.testing.assert_allclose(result.tensor, expected)
-
-def test_kron_raises(backend):
-  with tn.DefaultBackend(backend):
-    A = tn.Node(np.ones((2, 2, 2)))
-    B = tn.Node(np.ones((2, 2, 2)))
-    with pytest.raises(
-        ValueError, match="All operator tensors must have an even order."):
-      tn.kron([A, B])
