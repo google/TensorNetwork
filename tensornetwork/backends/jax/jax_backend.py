@@ -238,6 +238,70 @@ class JaxBackend(base_backend.BaseBackend):
            tol: float = 1E-8,
            which: Text = 'LR',
            maxiter: Optional[int] = None) -> Tuple[List, List]:
+    """
+    Implicitly restarted Arnoldi method for finding the lowest 
+    eigenvector-eigenvalue pairs of a linear operator `A`. 
+    `A` is a function implementing the matrix-vector
+    product. 
+
+    WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
+    at the first invocation of `eigs`, and on any subsequent calls 
+    if the python `id` of `A` changes, even if the formal definition of `A` 
+    stays the same. 
+    Example: the following will jit once at the beginning, and then never again:
+
+    ```python
+    import jax
+    import numpy as np
+    def A(H,x):
+      return jax.np.dot(H,x)
+    for n in range(100):
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigs(A, [H],x) #jitting is triggerd only at `n=0`
+    ```
+
+    The following code triggers jitting at every iteration, which 
+    results in considerably reduced performance
+
+    ```python
+    import jax
+    import numpy as np
+    for n in range(100):
+      def A(H,x):
+        return jax.np.dot(H,x)
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigs(A, [H],x) #jitting is triggerd at every step `n`
+    ```
+    
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not 
+        guaranteed. This feature may be added at a later point.
+      which: Flag for targetting different types of eigenvalues. Currently 
+        supported are `which = 'LR'` (larges real part) and `which = 'LM'` 
+        (larges magnitude).
+      maxiter: Maximum number of restarts.
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` eigenvalues
+       eigvecs: A list of `numeig` eigenvectors
+    """
+
     if args is None:
       args = []
     if which in ('SI', 'LI', 'SM', 'SR'):
@@ -285,7 +349,7 @@ class JaxBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` is a function implementing the matrix-vector
+    of a hermitian linear operator `A`. `A` is a function implementing the matrix-vector
     product. 
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
     at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
