@@ -18,6 +18,7 @@ from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
 from tensornetwork.backends import base_backend
+#pylint: disable=line-too-long
 from tensornetwork.network_components import BaseNode, Node, outer_product_final_nodes
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
@@ -111,13 +112,8 @@ def zeros(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape`. Represents an array of all zeros.
   """
-  the_node = initialize_node(
-      "zeros",
-      shape,
-      name=name,
-      axis_names=axis_names,
-      backend=backend,
-      dtype=dtype)
+  the_node = initialize_node("zeros", shape, name=name, axis_names=axis_names,
+                             backend=backend, dtype=dtype)
   return the_node
 
 
@@ -138,13 +134,8 @@ def ones(shape: Sequence[int],
     the_node : Node of shape `shape`
         Represents an array of all ones.
   """
-  the_node = initialize_node(
-      "ones",
-      shape,
-      name=name,
-      axis_names=axis_names,
-      backend=backend,
-      dtype=dtype)
+  the_node = initialize_node("ones", shape, name=name, axis_names=axis_names,
+                             backend=backend, dtype=dtype)
   return the_node
 
 
@@ -166,14 +157,8 @@ def randn(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape` filled with Gaussian random data.
   """
-  the_node = initialize_node(
-      "randn",
-      shape,
-      name=name,
-      axis_names=axis_names,
-      backend=backend,
-      seed=seed,
-      dtype=dtype)
+  the_node = initialize_node("randn", shape, name=name, axis_names=axis_names,
+                             backend=backend, seed=seed, dtype=dtype)
   return the_node
 
 
@@ -198,15 +183,9 @@ def random_uniform(
   Returns:
     the_node : Node of shape `shape` filled with uniform random data.
   """
-  the_node = initialize_node(
-      "random_uniform",
-      shape,
-      name=name,
-      axis_names=axis_names,
-      backend=backend,
-      seed=seed,
-      boundaries=boundaries,
-      dtype=dtype)
+  the_node = initialize_node("random_uniform", shape, name=name,
+                             axis_names=axis_names, backend=backend,
+                             seed=seed, boundaries=boundaries, dtype=dtype)
   return the_node
 
 
