@@ -309,7 +309,41 @@ def _generate_arnoldi_factorization(jax):
 
 def _implicitly_restarted_arnoldi(jax):
   """
+  Helper function to generate a jitted function to do an
+  implicitly restarted arnoldi factorization of `matvec`. The 
+  returned routine finds the lowest `numeig` 
+  eigenvector-eigenvalue pairs of `matvec` 
+  by alternating between compression and re-expansion of an initial 
+  `num_krylov_vecs`-step Arnoldi factorization. 
+
+  Note: The caller has to ensure that the dtype of the return value 
+  of `matvec` matches the dtype of the initial state. Otherwise jax
+  will raise a TypeError.
+
+  The function signature of the returned function is 
+    Args:
+      matvec: A callable representing the linear operator.
+      args: Arguments to `matvec`.  `matvec` is called with 
+        `matvec(x, *args)` with `x` the input array on which 
+        `matvec` should act.
+      initial_state: An starting vector for the iteration.
+      num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
+        numeig: The number of desired eigenvector-eigenvalue pairs.
+      which: Which eigenvalues to target. Currently supported: `which = 'LR'`
+        or `which = 'LM'`.
+      eps: Convergence flag. If the norm of a krylov vector drops below `eps`
+        the iteration is terminated.
+      maxiter: Maximum number of (outer) iteration steps.
+    Returns:
+      eta, U: Two lists containing eigenvalues and eigenvectors.
+  
+  Args:
+    jax: The jax module.
+  Returns:
+    Callable: A function performing an implicitly restarted 
+      Arnoldi factorization
   """
+
   arnoldi_fact = _generate_arnoldi_factorization(jax)
   #######################################################
   ########  NEW SORTING FUCTIONS INSERTED HERE  #########
@@ -389,7 +423,7 @@ def _implicitly_restarted_arnoldi(jax):
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine 
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec` 
-    by alternating compression and re-expansion of an initial 
+    by alternating between compression and re-expansion of an initial 
     `num_krylov_vecs`-step Arnoldi factorization. 
 
     Note: The caller has to ensure that the dtype of the return value 
@@ -414,10 +448,11 @@ def _implicitly_restarted_arnoldi(jax):
     """
     N = np.prod(initial_state.shape)
     p = num_krylov_vecs - numeig
-    if p <= 1 or num_krylov_vecs > N:
-      raise ValueError(
-          f"`num_krylov_vecs` must be between `numeig` + 1 < `num_krylov_vecs` <= N={N},"
-          f" `num_krylov_vecs`={num_krylov_vecs}")
+    num_krylov_vecs = np.min([num_krylov_vecs, N])
+    if (p <= 1) and (num_krylov_vecs < N):
+      raise ValueError(f"`num_krylov_vecs` must be between `numeig` + 1 <"
+                       f" `num_krylov_vecs` <= N={N},"
+                       f" `num_krylov_vecs`={num_krylov_vecs}")
 
     dtype = initial_state.dtype
     # initialize arrays
@@ -427,11 +462,12 @@ def _implicitly_restarted_arnoldi(jax):
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
 
     # perform initial arnoldi factorization
-    Vm_tmp, Hm_tmp, _, converged = arnoldi_fact(matvec, args, initial_state,
-                                                krylov_vectors, H, 0,
-                                                num_krylov_vecs, eps)
+    Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(matvec, args,
+                                                     initial_state,
+                                                     krylov_vectors, H, 0,
+                                                     num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
-    Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
+    Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
 
     it = 0
     if which == 'LR':
