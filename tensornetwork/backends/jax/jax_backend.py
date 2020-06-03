@@ -343,8 +343,8 @@ class JaxBackend(base_backend.BaseBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a hermitian linear operator `A`. `A` is a function implementing the matrix-vector
-    product. 
+    of a hermitian linear operator `A`. `A` is a function implementing 
+    the matrix-vector product. 
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
     at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
     if the python `id` of `A` changes, even if the formal definition of `A` 
