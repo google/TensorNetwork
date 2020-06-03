@@ -374,7 +374,7 @@ def _implicitly_restarted_arnoldi(jax):
     m = Hm.shape[0]
 
     for shift in shifts:
-      Qj, Rj = jax.numpy.linalg.qr(Hm - shift * jax.numpy.eye(m))
+      Qj, _ = jax.numpy.linalg.qr(Hm - shift * jax.numpy.eye(m))
       Hm = Qj.T.conj() @ Hm @ Qj
       Vm = Qj.T @ Vm
       q = q @ Qj
