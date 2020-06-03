@@ -292,13 +292,6 @@ def index_update(dtype):
   np.testing.assert_allclose(tensor, out)
 
 
-def test_base_backend_eigs_not_implemented():
-  backend = jax_backend.JaxBackend()
-  tensor = backend.randn((4, 2, 3), dtype=np.float64)
-  with pytest.raises(NotImplementedError):
-    backend.eigs(tensor)
-
-
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_valid_init_operator_with_shape(dtype):
   backend = jax_backend.JaxBackend()
@@ -324,13 +317,13 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 def test_eigsh_small_number_krylov_vectors():
   backend = jax_backend.JaxBackend()
   init = np.array([1, 1], dtype=np.float64)
-  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+  H = np.array([[1, 2], [2, 4]], dtype=np.float64)
 
   def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
-  np.testing.assert_allclose(eta1[0], 5)
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, numeig=1, num_krylov_vecs=2)
+  np.testing.assert_almost_equal(eta1, [0])
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -563,3 +556,110 @@ def test_jit_args():
   res3 = fun_jit(x, y=y, A=A)
   np.testing.assert_allclose(res1, res2)
   np.testing.assert_allclose(res1, res3)
+
+
+def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
+  _, iy = np.nonzero(np.abs(eta[:, None] - eta_exact[None, :]) < thresh)
+  U_exact_perm = U_exact[:, iy]
+  U_exact_perm = U_exact_perm / np.expand_dims(np.sum(U_exact_perm, axis=0), 0)
+  U = U / np.expand_dims(np.sum(U, axis=0), 0)
+  np.testing.assert_allclose(U_exact_perm, U)
+  np.testing.assert_allclose(eta, eta_exact[iy])
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_all_eigvals_with_init(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(mv, [H], init, numeig=D, num_krylov_vecs=D)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_all_eigvals_no_init(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(
+      mv, [H], shape=(D,), dtype=dtype, numeig=D, num_krylov_vecs=D)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_few_eigvals_with_init(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(mv, [H], init, numeig=4, num_krylov_vecs=10, maxiter=50)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_few_eigvals_no_init(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(
+      mv, [H], shape=(D,), dtype=dtype, numeig=4, num_krylov_vecs=10)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+
+def test_eigs_raises():
+  backend = jax_backend.JaxBackend()
+  with pytest.raises(
+      ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
+    backend.eigs(lambda x: x, numeig=10, num_krylov_vecs=9)
+
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(lambda x: x, shape=(10,), dtype=None)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(lambda x: x, shape=None, dtype=np.float64)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(lambda x: x)
+  with pytest.raises(
+      TypeError, match="Expected a `jax.array`. Got <class 'list'>"):
+    backend.eigs(lambda x: x, initial_state=[1, 2, 3])
+  for which in ('SI', 'LI', 'SM', 'SR'):
+    with pytest.raises(
+        ValueError, match=f'which = {which} is currently not supported.'):
+      backend.eigs(lambda x: x, which=which)
