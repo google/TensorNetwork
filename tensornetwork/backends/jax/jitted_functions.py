@@ -170,8 +170,6 @@ def _generate_arnoldi_factorization(jax):
   Note that the caller is responsible for dtype consistency between 
   the inputs, i.e. dtypes between all input arrays have to match.
 
-  The arguments to `_arnoldi_fact` are:
-
   Args:
     matvec: The matrix vector product. This function has to be wrapped into 
       `jax.tree_util.Partial`. `matvec` will be called as `matvec(x, *args)`
