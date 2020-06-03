@@ -287,7 +287,7 @@ class JaxBackend(base_backend.BaseBackend):
       dtype: The dtype of the input `A`. If no `initial_state` is provided,
         a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
-      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalues. For the jax backend
         this has currently no effect, and precision of eigenvalues is not 
@@ -388,7 +388,7 @@ class JaxBackend(base_backend.BaseBackend):
       dtype: The dtype of the input `A`. If no `initial_state` is provided,
         a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
-      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalues. For the jax backend
         this has currently no effect, and precision of eigenvalues is not 
