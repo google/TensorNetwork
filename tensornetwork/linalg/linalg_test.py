@@ -6,6 +6,7 @@ import jax.config as config
 import torch
 import tensorflow as tf
 from tensornetwork.linalg import linalg
+from tensornetwork.network_components import Node
 from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork import backends
 from tensornetwork.backends.numpy import numpy_backend
