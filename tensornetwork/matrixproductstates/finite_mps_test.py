@@ -492,3 +492,17 @@ def test_save_not_implemented(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=0, backend=backend)
   with pytest.raises(NotImplementedError):
     mps.save('tmp')
+
+
+def test_check_canonical_raises(backend):
+  N, D, d = 10, 10, 2
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  mps = FiniteMPS(
+      tensors, center_position=None, canonicalize=False, backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="FiniteMPS.center_positions is `None`. "
+      "Cannot check canonical form."):
+    mps.check_canonical()
