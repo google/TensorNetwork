@@ -15,6 +15,10 @@ class DenseDecomp(Layer):
   This layer is similar to performing a SVD on the weight matrix and dropping
   the lowest singular values.
 
+  This layer can take an input shape of arbitrary dimension, with the first
+  dimension expected to be a batch dimension. The weight matrix will be
+  constructed from and applied to the last input dimension.
+
   Example:
 
   ```python
@@ -41,10 +45,10 @@ class DenseDecomp(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_shape[-1])`.
+    nD tensor with shape: `(batch_size, input.shape[1:])`.
 
   Output shape:
-    2D tensor with shape: `(batch_size, output_dim)`.
+    nD tensor with shape: `(batch_size, input.shape[1:-1], output_dim)`.
   """
 
   def __init__(self,
@@ -121,16 +125,18 @@ class DenseDecomp(Layer):
         result += bias_var
 
       return result
-
+    input_shape = list(inputs.shape)
+    inputs = tf.reshape(inputs, (-1, input_shape[-1]))
     result = tf.vectorized_map(
         lambda vec: f(vec, self.a_var, self.b_var, self.use_bias, self.bias_var
                      ), inputs)
     if self.activation is not None:
       result = self.activation(result)
-    return tf.reshape(result, (-1, self.output_dim))
+    result = tf.reshape(result, [-1] + input_shape[1:-1] + [self.output_dim,])
+    return result
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
-    return (input_shape[0], self.output_dim)
+    return tuple(input_shape[0:-1]) + (self.output_dim,)
 
   def get_config(self) -> dict:
     """Returns the config of the layer.
