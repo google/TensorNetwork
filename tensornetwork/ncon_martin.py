@@ -141,7 +141,7 @@ def _partial_trace(tensor, labels, backend_obj):
 
 
 def _jittable_ncon(tensors, network_structure, con_order, out_order,
-                   check_network, backend_obj):
+                   backend_obj):
   """Jittable Ncon function.
 
   Args:
@@ -150,7 +150,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
       structure.
     con_order: Order of the contraction.
     out_order: Order of the final axis order.
-    check_network: Boolean flag. If `True` check the network.
     backend: A backend object.
   
   Returns:
@@ -164,8 +163,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     raise ValueError("`network_structure` is not a list")
   network_structure = [np.array(l) for l in network_structure]
   flat_connections = np.concatenate(network_structure)
-  if out_order is None:
-    out_order = flat_connections[flat_connections < 0]
 
   if con_order is None:
     con_order = np.unique(flat_connections[flat_connections > 0])
@@ -218,8 +215,14 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
 
   # do final permutation
   if len(network_structure[0]) > 0:
-    tensors[0] = backend_obj.transpose(tensors[0],
-                                       tuple(np.argsort(-out_order)))
+    if out_order is None:
+      return backend_obj.transpose(tensors[0], tuple(np.argsort(-out_order)))
+
+    _, l1, l2 = np.intersect1d(
+        network_structure, out_order, assume_unique=True, return_indices=True)
+    return backend_obj.transpose(tensors[0], tuple(l1[l2]))
+
+
   return tensors[0]
 
 
@@ -353,13 +356,14 @@ def ncon(
   if check_network:
     _check_network(network_structure, [t.shape for t in _tensors],
                    flat_connections, con_order, out_order, reverse_mapping)
-
+  print(out_order)
+  print(network_structure)
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
                                              con_order, out_order,
-                                             check_network, backend_obj)
+                                             backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
