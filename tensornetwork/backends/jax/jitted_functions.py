@@ -306,6 +306,7 @@ def _generate_arnoldi_factorization(jax):
 
   return _arnoldi_fact
 
+
 def _implicitly_restarted_arnoldi(jax):
   """
   Helper function to generate a jitted function to do an
