@@ -16,7 +16,7 @@
 import warnings
 import numpy as np
 # pylint: disable=line-too-long
-from typing import Any, Sequence, Optional, Union, Text
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
@@ -358,7 +358,7 @@ def ncon(
                    flat_connections, con_order, out_order, reverse_mapping)
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
-        _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
+        _jittable_ncon, static_argnums=(1, 2, 3, 4))
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
                                              con_order, out_order,
                                              backend_obj)
