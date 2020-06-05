@@ -59,16 +59,14 @@ def _generate_jitted_eigsh_lanczos(jax):
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
-      vector -= jax.numpy.dot(jax.numpy.conj(v),
-                              jax.numpy.ravel(vector)) * jax.numpy.reshape(
-                                  v, vector.shape)
+      vector -= jax.numpy.vdot(v, vector) * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
       current_vector, krylov_vectors, vector_norms = vals[0:3]
       diagonal_elements, matvec, args, _ = vals[3:7]
       threshold, i, maxiteration = vals[7:]
-      norm = jax.numpy.linalg.norm(jax.numpy.ravel(current_vector))
+      norm = jax.numpy.linalg.norm(current_vector)
       normalized_vector = current_vector / norm
       normalized_vector, krylov_vectors = jax.lax.cond(
           reortho, True,
@@ -77,9 +75,7 @@ def _generate_jitted_eigsh_lanczos(jax):
           False, lambda x: [normalized_vector, krylov_vectors])
       Av = matvec(normalized_vector, *args)
 
-      diag_element = jax.numpy.dot(
-          jax.numpy.conj(jax.numpy.ravel(normalized_vector)),
-          jax.numpy.ravel(Av))
+      diag_element = jax.numpy.vdot(normalized_vector, Av)
 
       res = jax.numpy.reshape(
           jax.numpy.ravel(Av) -
@@ -149,3 +145,161 @@ def _generate_jitted_eigsh_lanczos(jax):
     ]
 
   return jax_lanczos
+
+
+def _generate_arnoldi_factorization(jax):
+  """
+  Helper function to create a jitted arnoldi factorization. 
+  The function returns a function `_arnoldi_fact` which 
+  performs an m-step arnoldi factorization.
+
+  `_arnoldi_fact` computes an m-step arnoldi factorization 
+  of an input callable `matvec`, with m = min(`it`,`num_krylov_vecs`). 
+  `_arnoldi_fact` will do at most `num_krylov_vecs` steps. 
+  `_arnoldi_fact` returns arrays `kv` and `H` which satisfy 
+  the Arnoldi recurrence relation
+  ```
+  matrix @ Vm - Vm @ Hm - fm * em = 0
+  ```
+  with `matrix` the matrix representation of `matvec` and 
+  `Vm =  jax.numpy.transpose(kv[:it, :])`, 
+  `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
+  and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
+  with `em[0, -1] == 1` and 0 elsewhere.
+
+  Note that the caller is responsible for dtype consistency between 
+  the inputs, i.e. dtypes between all input arrays have to match.
+
+  Args:
+    matvec: The matrix vector product. This function has to be wrapped into 
+      `jax.tree_util.Partial`. `matvec` will be called as `matvec(x, *args)`
+      for an input vector `x`.
+    args: List of arguments to `matvec`.
+    v0: Initial state to `matvec`.
+    krylov_vectors: An array for storing the krylov vectors. The individual
+      vectors are stored as columns. The shape of `krylov_vecs` has to be
+      (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
+    H: Matrix of overlaps. The shape has to be 
+      (num_krylov_vecs + 1,num_krylov_vecs + 1).
+    start: Integer denoting the start position where the first 
+      produced krylov_vector should be inserted into `krylov_vectors`
+    num_krylov_vecs: Number of krylov iterations, should be identical to 
+      `krylov_vectors.shape[0] + 1`
+    eps: Convergence parameter. Iteration is terminated if the norm of a
+      krylov-vector falls below `eps`.
+
+  Returns:
+    kv: An array of krylov vectors
+    H: A matrix of overlaps 
+    it: The number of performed iterations.
+
+  """
+
+  @jax.jit
+  def modified_gram_schmidt_step_arnoldi(j, vals):
+    """
+    Single step of a modified gram-schmidt orthogonalization.
+    Args:
+      j: Integer value denoting the vector to be orthogonalized.
+      vals: A list of variables:
+        `vector`: The current vector to be orthogonalized
+        to all previous ones
+        `krylov_vectors`: jax.array of collected krylov vectors
+        `n`: integer denoting the column-position of the overlap 
+          <`krylov_vector`|`vector`> within `H`.
+    Returns:
+      updated vals.
+             
+    """
+    vector, krylov_vectors, n, H = vals
+    v = krylov_vectors[j, :]
+    h = jax.numpy.vdot(v, vector)
+    H = jax.ops.index_update(H, jax.ops.index[j, n], h)
+    vector = vector - h * jax.numpy.reshape(v, vector.shape)
+    return [vector, krylov_vectors, n, H]
+
+  @partial(jax.jit, static_argnums=(5, 6, 7))
+  def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
+                    eps):
+    """
+    Compute an m-step arnoldi factorization of `matvec`, with 
+    m = min(`it`,`num_krylov_vecs`). The factorization will 
+    do at most `num_krylov_vecs` steps. The returned arrays 
+    `kv` and `H` will satisfy the Arnoldi recurrence relation
+    ```
+    matrix @ Vm - Vm @ Hm - fm * em = 0
+    ```
+    with `matrix` the matrix representation of `matvec` and 
+    `Vm =  jax.numpy.transpose(kv[:it, :])`, 
+    `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
+    and `em` a cartesian basis vector of shape `(1, kv.shape[1])` 
+    with `em[0, -1] == 1` and 0 elsewhere.
+    
+    Note that the caller is responsible for dtype consistency between 
+    the inputs, i.e. dtypes between all input arrays have to match.
+    
+    Args:
+      matvec: The matrix vector product.
+      args: List of arguments to `matvec`.
+      v0: Initial state to `matvec`.
+      krylov_vectors: An array for storing the krylov vectors. The individual
+        vectors are stored as columns. The shape of `krylov_vecs` has to be
+        (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
+      H: Matrix of overlaps. The shape has to be 
+        (num_krylov_vecs + 1,num_krylov_vecs + 1).
+      start: Integer denoting the start position where the first 
+        produced krylov_vector should be inserted into `krylov_vectors`
+      num_krylov_vecs: Number of krylov iterations, should be identical to 
+        `krylov_vectors.shape[0] + 1`
+      eps: Convergence parameter. Iteration is terminated if the norm of a
+        krylov-vector falls below `eps`.
+    Returns:
+      kv: An array of krylov vectors
+      H: A matrix of overlaps 
+      it: The number of performed iterations.
+    """
+    Z = jax.numpy.linalg.norm(v0)
+    v = v0 / Z
+    krylov_vectors = jax.ops.index_update(krylov_vectors,
+                                          jax.ops.index[start, :],
+                                          jax.numpy.ravel(v))
+    H = jax.lax.cond(
+        start > 0, start,
+        lambda x: jax.ops.index_update(H, jax.ops.index[x, x - 1], Z), None,
+        lambda x: H)
+
+    # body of the arnoldi iteration
+    def body(vals):
+      krylov_vectors, H, matvec, vector, _, threshold, i, maxiter = vals
+      Av = matvec(vector, *args)
+      initial_vals = [Av, krylov_vectors, i, H]
+      Av, krylov_vectors, _, H = jax.lax.fori_loop(
+          0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
+      norm = jax.numpy.linalg.norm(Av)
+      Av /= norm
+      H = jax.ops.index_update(H, jax.ops.index[i + 1, i], norm)
+      krylov_vectors = jax.ops.index_update(krylov_vectors,
+                                            jax.ops.index[i + 1, :],
+                                            jax.numpy.ravel(Av))
+      return [krylov_vectors, H, matvec, Av, norm, threshold, i + 1, maxiter]
+
+    def cond_fun(vals):
+      _, _, _, _, norm, threshold, iteration, maxiter = vals
+
+      # check if an invariant subspace has been found
+      def check_thresh(check_vals):
+        val, thresh = check_vals
+        return jax.lax.cond(val < thresh, False, lambda x: x, True, lambda x: x)
+
+      return jax.lax.cond(iteration < maxiter, [norm, threshold], check_thresh,
+                          False, lambda x: x)
+
+    norms_dtype = np.real(v0.dtype).dtype
+    kvfinal, Hfinal, _, _, norm, _, it, _ = jax.lax.while_loop(
+        cond_fun, body, [
+            krylov_vectors, H, matvec, v,
+            norms_dtype.type(1E3), eps, start, num_krylov_vecs
+        ])
+    return kvfinal, Hfinal, it, norm < eps
+
+  return _arnoldi_fact
