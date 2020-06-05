@@ -1,6 +1,5 @@
 # Copyright 2019 The TensorNetwork Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+## Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -220,7 +219,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     _, l1, l2 = np.intersect1d(
         network_structure, out_order, assume_unique=True, return_indices=True)
     return backend_obj.transpose(tensors[0], tuple(l1[l2]))
-
   return tensors[0]
 
 
