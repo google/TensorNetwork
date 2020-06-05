@@ -356,8 +356,6 @@ def ncon(
   if check_network:
     _check_network(network_structure, [t.shape for t in _tensors],
                    flat_connections, con_order, out_order, reverse_mapping)
-  print(out_order)
-  print(network_structure)
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
@@ -367,3 +365,126 @@ def ncon(
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
+
+
+def ncon_network(
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence],
+    con_order: Optional[Sequence] = None,
+    out_order: Optional[Sequence] = None,
+    backend: Optional[Union[Text, BaseBackend]] = None
+) -> Tuple[List[network_components.BaseNode], List[network_components.Edge],
+           List[network_components.Edge]]:
+  r"""Creates a network from a list of tensors according to `tensors`.
+
+    The network is provided as a list of lists, one for each
+    tensor, specifying labels for the edges connected to that tensor.
+
+    If a contraction order `con_order` and an output order `out_order`
+    are both provided, the edge labels can be anything.
+    Otherwise (`con_order == None or out_order == None`), the edge labels 
+    must be integers and edges will be contracted in ascending order.
+    Negative integers denote the (dangling) indices of the output tensor,
+    which will be in descending order, e.g. `[-1,-2,-3,...]`.
+
+    This is used internally by `ncon()`.
+
+    Args:
+      tensors: List of `Tensor`s.
+      network_structure: List of lists specifying the tensor network.
+      con_order: List of edge labels specifying the contraction order.
+      out_order: List of edge labels specifying the output order.
+      backend: String or BaseBackend object specifying the backend to use. 
+        Defaults to the default TensorNetwork backend.
+    Returns:
+      nodes: List of constructed nodes in the same order as given in `tensors`.
+      con_edges: List of internal `Edge` objects in contraction order.
+      out_edges: List of dangling `Edge` objects in output order.
+  """
+  if len(tensors) != len(network_structure):
+    raise ValueError('len(tensors) != len(network_structure)')
+
+  nodes, edges = _build_network(tensors, network_structure, backend)
+
+  if con_order is None:
+    try:
+      con_order = sorted((k for k in edges if k >= 0))
+      if con_order and con_order[0] == 0:
+        raise ValueError("'0' is not a valid edge label when the "
+                         "contraction order is not specified separately.")
+    except TypeError:
+      raise ValueError("Non-integer edge label(s): {}".format(
+          list(edges.keys())))
+  else:
+    if len(con_order) != len(set(con_order)):
+      raise ValueError("Duplicate labels in con_order: {}".format(con_order))
+
+  if out_order is None:
+    try:
+      out_order = sorted((k for k in edges if k < 0), reverse=True)
+    except TypeError:
+      raise ValueError("Non-integer edge label(s): {}".format(
+          list(edges.keys())))
+  else:
+    if len(out_order) != len(set(out_order)):
+      raise ValueError("Duplicate labels in out_order: {}".format(out_order))
+
+  try:
+    con_edges = [edges[k] for k in con_order]
+    out_edges = [edges[k] for k in out_order]
+  except KeyError as err:
+    raise ValueError("Order contained an unknown edge label: {}".format(
+        err.args[0]))
+
+  if len(con_edges) + len(out_edges) != len(edges):
+    raise ValueError(
+        "Edges {} were not included in the contraction and output "
+        "ordering.".format(
+            list(set(edges.keys()) - set(con_order) - set(out_order))))
+
+  for e in con_edges:
+    if e.is_dangling():
+      raise ValueError(
+          "Contraction edge {} appears only once in the network.".format(
+              str(e)))
+
+  for e in out_edges:
+    if not e.is_dangling():
+      raise ValueError(
+          "Output edge {} appears more than once in the network.".format(
+              str(e)))
+
+  return nodes, con_edges, out_edges
+
+
+def _build_network(
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence],
+    backend: Optional[Union[BaseBackend, Text]] = None,
+) -> Tuple[List[network_components.BaseNode], Dict[Any,
+                                                   network_components.Edge]]:
+  nodes = []
+  edges = {}
+  for i, (tensor, edge_lbls) in enumerate(zip(tensors, network_structure)):
+    if len(tensor.shape) != len(edge_lbls):
+      raise ValueError(
+          "Incorrect number of edge labels specified tensor {}".format(i))
+    if isinstance(tensor, network_components.BaseNode):
+      node = tensor
+    else:
+      node = network_components.Node(
+          tensor, name="tensor_{}".format(i), backend=backend)
+
+    nodes.append(node)
+
+    for (axis_num, edge_lbl) in enumerate(edge_lbls):
+      if edge_lbl not in edges:
+        e = node[axis_num]
+        e.set_name(str(edge_lbl))
+        edges[edge_lbl] = e
+      else:
+        # This will raise an error if the edges are not dangling.
+        e = network_components.connect(
+            edges[edge_lbl], node[axis_num], name=str(edge_lbl))
+        edges[edge_lbl] = e
+  return nodes, edges
