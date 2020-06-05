@@ -221,7 +221,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
         network_structure, out_order, assume_unique=True, return_indices=True)
     return backend_obj.transpose(tensors[0], tuple(l1[l2]))
 
-
   return tensors[0]
 
 
@@ -337,7 +336,6 @@ def ncon(
       out_order = np.array(l)
     else:
       out_order = np.array(out_order)
-
   if con_order is None:
     con_order = np.unique(flat_connections[flat_connections > 0])
   else:
@@ -359,8 +357,7 @@ def ncon(
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4))
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
-                                             con_order, out_order,
-                                             backend_obj)
+                                             con_order, out_order, backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
