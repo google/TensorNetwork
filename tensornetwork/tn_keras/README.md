@@ -15,7 +15,7 @@ TN Keras exists to simplify tensorization of existing TensorFlow models. These l
 ```python
 import tensornetwork as tn
 import tensorflow as tf
-from tensornetwork.tn_keras import DenseMPO
+from tensornetwork.tn_keras.mpo import DenseMPO
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 
@@ -36,6 +36,8 @@ mpo_model.add(Dense(1, use_bias=True, activation='sigmoid'))
 - **DenseMPO**. A TN layer that implements an MPO (Matrix Product Operator), a common tensor network found in condensed matter physics. MPOs are one of the most successful TNs we've seen in practice. Note for this layer the input dimension, output dimension, and number of nodes must all relate in order for the network structure to work. Specifically, `input_shape[-1]**(1. / num_nodes)` and `output_dim**(1. / num_nodes)` must both be round. The TN looks like:
 
 ![Image of MPO](images/mpo.png)
+
+- **Conv2DMPO**. A TN layer that recreates the functionality of a traditional 2d convolutional layer, but stores the 'kernel' as a network of nodes forming an MPO. The bond dimension of the MPO can be adjusted to increase or decrease the number of parameters independently of the input and output dimensions. When the layer is called, the MPO is contracted into a traditional kernel and convolved with the layer input to produce a tensor of outputs. As with the DenseMPO the `input_shape[-1]**(1. / num_nodes)` and `output_dim**(1. / num_nodes)` must both be round.
 
 - **Entangler**. A TN layer inspired by quantum circuits that allows one to dramatically increase the dimensionality of hidden layers, far beyond what is currently feasible with normal dense layers e.g. hidden layers of >1M in size. Note for this layer the input dimensions and output dimensions will be equal. Additionally, `input_shape[-1]**(1. / num_legs)` must be round. `num_levels` is the only parameter that does not change input/output shape; it can be increased to increase the power of the layer, but inference time will also scale approximately linearly. The TN looks like:
 

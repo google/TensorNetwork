@@ -226,10 +226,8 @@ class NumPyBackend(base_backend.BaseBackend):
     """
     if args is None:
       args = []
-    if which == 'SI':
-      raise ValueError('which = SI is currently not supported.')
-    if which == 'LI':
-      raise ValueError('which = LI is currently not supported.')
+    if which in ('SI', 'LI'):
+      raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig + 1 >= num_krylov_vecs:
       raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
