@@ -141,6 +141,34 @@ def test_output_shape(dummy_data, make_model):
   np.testing.assert_equal(expected_output_shape, actual_output_shape)
 
 
+@pytest.fixture(params=[(100, 10, 10, 512), (100, 512), (20, 10, 256)])
+def high_dim_data(request):
+  np.random.seed(42)
+  # Generate dummy data for use in tests
+  data = np.random.randint(10, size=request.param)
+  return data
+
+def test_decomp_higher_dim_input_output_shape(high_dim_data):
+  # pylint: disable=redefined-outer-name
+  data = high_dim_data
+  output_dim = 256
+  decomp_size = 128
+
+  model = Sequential()
+  model.add(
+      DenseDecomp(output_dim,
+                  decomp_size=decomp_size,
+                  use_bias=True,
+                  activation='relu',
+                  input_shape=(data.shape[-1],)))
+
+  actual_output_shape = model(data).shape
+  expected_output_shape = model.compute_output_shape(data.shape)
+
+  np.testing.assert_equal(expected_output_shape, actual_output_shape)
+
+
+
 def test_decomp_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
