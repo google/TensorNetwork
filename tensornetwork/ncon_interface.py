@@ -1,6 +1,5 @@
 # Copyright 2019 The TensorNetwork Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+## Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -217,12 +216,9 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
   if len(network_structure[0]) > 0:
     if out_order is None:
       return backend_obj.transpose(tensors[0], tuple(np.argsort(-out_order)))
-
     _, l1, l2 = np.intersect1d(
         network_structure, out_order, assume_unique=True, return_indices=True)
     return backend_obj.transpose(tensors[0], tuple(l1[l2]))
-
-
   return tensors[0]
 
 
@@ -325,7 +321,7 @@ def ncon(
     reverse_mapping = {v: k for k, v in mapping.items()}
     flat_connections = np.concatenate(network_structure)
   if out_order is None:
-    out_order = flat_connections[flat_connections < 0]
+    out_order = np.sort(flat_connections[flat_connections < 0])[::-1]
   else:
     if mapping is not None:
       l = []
@@ -338,7 +334,6 @@ def ncon(
       out_order = np.array(l)
     else:
       out_order = np.array(out_order)
-
   if con_order is None:
     con_order = np.unique(flat_connections[flat_connections > 0])
   else:
@@ -360,8 +355,7 @@ def ncon(
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4))
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
-                                             con_order, out_order,
-                                             backend_obj)
+                                             con_order, out_order, backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
