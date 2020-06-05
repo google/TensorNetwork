@@ -45,10 +45,10 @@ class DenseDecomp(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    nD tensor with shape: `(batch_size, input.shape[1:])`.
+    N-D tensor with shape: `(batch_size, ..., input_dim)`.
 
   Output shape:
-    nD tensor with shape: `(batch_size, input.shape[1:-1], output_dim)`.
+    N-D tensor with shape: `(batch_size, ..., output_dim)`.
   """
 
   def __init__(self,
