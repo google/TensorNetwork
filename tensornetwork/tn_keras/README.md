@@ -15,7 +15,7 @@ TN Keras exists to simplify tensorization of existing TensorFlow models. These l
 ```python
 import tensornetwork as tn
 import tensorflow as tf
-from tensornetwork.tn_keras import DenseMPO
+from tensornetwork.tn_keras.mpo import DenseMPO
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 
