@@ -22,7 +22,6 @@ var/
 .installed.cfg
 *.egg
 docs/clean
-docs/stubs
 
 # Installer logs
 pip-log.txt
