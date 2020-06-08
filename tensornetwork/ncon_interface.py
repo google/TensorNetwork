@@ -149,7 +149,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
       structure.
     con_order: Order of the contraction.
     out_order: Order of the final axis order.
-    backend: A backend object.
+    backend_obj: A backend object.
 
   Returns:
     The final tensor after contraction.
