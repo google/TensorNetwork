@@ -19,7 +19,8 @@ import numpy as np
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_full_svd, conj
+from tensornetwork.network_operations import split_node_full_svd
+from tensornetwork.linalg.linalg import conj
 from tensornetwork.backends import backend_factory
 import warnings
 from tensornetwork.ncon_interface import ncon
