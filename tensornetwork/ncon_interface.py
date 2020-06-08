@@ -368,7 +368,10 @@ def ncon_network(
     backend: Optional[Union[Text, BaseBackend]] = None
 ) -> Tuple[List[network_components.BaseNode], List[network_components.Edge],
            List[network_components.Edge]]:
-  r"""Creates a network from a list of tensors according to `tensors`.
+  r"""
+    Deprecated: support of this function will bbe dropped without futher notice.
+
+    Creates a network from a list of tensors according to `tensors`.
 
     The network is provided as a list of lists, one for each
     tensor, specifying labels for the edges connected to that tensor.
