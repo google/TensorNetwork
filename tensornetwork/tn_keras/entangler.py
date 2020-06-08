@@ -13,6 +13,10 @@ import math
 class DenseEntangler(Layer):
   """Entangler TN layer. Allows for very large hidden layers.
 
+  This layer can take an input shape of arbitrary dimension, with the first
+  dimension expected to be a batch dimension. The weight matrix will be
+  constructed from and applied to the last input dimension.
+
   Example:
 
   ```python
@@ -48,10 +52,10 @@ class DenseEntangler(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_shape[-1])`.
+    N-D tensor with shape: `(batch_size, ..., input_dim)`.
 
   Output shape:
-    2D tensor with shape: `(batch_size, output_dim)`.
+    N-D tensor with shape: `(batch_size, ..., output_dim)`.
   """
 
   def __init__(self,
@@ -145,14 +149,14 @@ class DenseEntangler(Layer):
         x_node = tn.contract_between(x_node, node)
 
       # The TN will be connected in a "staircase" pattern, like this:
-      #    |  |   |  |
-      #    |  |   3333
-      #    |  |   |  |
-      #    |  22222  |
-      #    |  |   |  |
-      #    1111   |  |
-      #    |  |   |  |
-      #    xxxxxxxxxxx
+      #    |  |  |  |
+      #    |  |  3333
+      #    |  |  |  |
+      #    |  2222  |
+      #    |  |  |  |
+      #    1111  |  |
+      #    |  |  |  |
+      #    xxxxxxxxxx
 
       result = tf.reshape(x_node.tensor, orig_shape)
       if use_bias:
@@ -160,15 +164,18 @@ class DenseEntangler(Layer):
 
       return result
 
+    input_shape = list(inputs.shape)
+    inputs = tf.reshape(inputs, (-1, input_shape[-1]))
     result = tf.vectorized_map(
         lambda vec: f(vec, self.nodes, self.num_nodes, self.num_legs, self.
                       leg_dim, self.use_bias, self.bias_var), inputs)
     if self.activation is not None:
       result = self.activation(result)
-    return tf.reshape(result, (-1, self.output_dim))
+    result = tf.reshape(result, [-1] + input_shape[1:-1] + [self.output_dim,])
+    return result
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
-    return (input_shape[0], self.output_dim)
+    return tuple(input_shape[0:-1]) + (self.output_dim,)
 
   def get_config(self) -> dict:
     """Returns the config of the layer.

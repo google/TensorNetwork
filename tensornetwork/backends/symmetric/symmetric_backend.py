@@ -90,6 +90,10 @@ class SymmetricBackend(base_backend.BaseBackend):
     return self.bs.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
+    if numpy.isscalar(tensor):
+      tensor = BlockSparseTensor(
+          data=tensor, charges=[], flows=[], order=[], check_consistency=False)
+
     if not isinstance(tensor, BlockSparseTensor):
       raise TypeError(
           "cannot convert tensor of type `{}` to `BlockSparseTensor`".format(
