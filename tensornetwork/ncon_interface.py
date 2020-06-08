@@ -168,7 +168,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
   else:
     con_order = np.array(con_order)
 
-  # do all partial traces
+  # partial trace
   for n, tensor in enumerate(tensors):
     tensors[n], network_structure[n], contracted_labels = _partial_trace(
         tensor, network_structure[n], backend_obj)
@@ -176,7 +176,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
         con_order,
         np.intersect1d(con_order, contracted_labels, return_indices=True)[1])
 
-  # do all binary contractions
+  # binary contractions
   while len(con_order) > 0:
     cont_ind = con_order[0]  # the next index to be contracted
     locs = np.sort(
@@ -187,7 +187,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     labels_t2 = network_structure.pop(locs[1])
     labels_t1 = network_structure.pop(locs[0])
 
-    # do binary contraction
     common_labels, t1_cont, t2_cont = np.intersect1d(
         labels_t1, labels_t2, assume_unique=True, return_indices=True)
     tensors.append(
@@ -195,14 +194,14 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     network_structure.append(
         np.append(np.delete(labels_t1, t1_cont), np.delete(labels_t2, t2_cont)))
 
-    # update con_order
+    # remove contracted labels from con_order
     con_order = np.delete(
         con_order,
         np.intersect1d(
             con_order, common_labels, assume_unique=True,
             return_indices=True)[1])
 
-  # do all outer products
+  # outer products
   while len(tensors) > 1:
     t2 = tensors.pop()
     t1 = tensors.pop()
@@ -212,7 +211,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     tensors.append(backend_obj.outer_product(t1, t2))
     network_structure.append(np.append(labels_t1, labels_t2))
 
-  # do final permutation
+  # final permutation
   if len(network_structure[0]) > 0:
     if out_order is None:
       return backend_obj.transpose(tensors[0], tuple(np.argsort(-out_order)))
