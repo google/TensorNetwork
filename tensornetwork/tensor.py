@@ -31,9 +31,9 @@ class Tensor():
       backend = backend_contextmanager.get_default_backend()
     backend_obj = backends.backend_factory.get_backend(backend)
     self.backend = backend_obj
-    self.array = array
+    self.array = self.backend.convert_to_tensor(array)
     self.shape = array.shape
-    self.size = np.cumprod(self.shape)[0]
+    self.size = np.prod(self.shape)
     self.ndim = len(self.shape)
 
   #def __getitem__
@@ -61,19 +61,19 @@ class Tensor():
     array_H = self.backend.transpose(star)
     return Tensor(array_H, backend=self.backend)
 
-  @property
-  def real(self) -> Tensor:
-    """ Returns: The real part of the `Tensor`.
-    """
-    array_r = self.backend.real(self.array)
-    return Tensor(array_r, backend=self.backend)
+  #  @property
+  #  def real(self) -> Tensor:
+  #    """ Returns: The real part of the `Tensor`.
+  #    """
+  #    array_r = self.backend.real(self.array)
+  #    return Tensor(array_r, backend=self.backend)
 
-  @property
-  def imag(self) -> Tensor:
-    """ Returns: The imaginary part of the `Tensor`.
-    """
-    array_i = self.backend.imag(self.array)
-    return Tensor(array_i, backend=self.backend)
+  #  @property
+  #  def imag(self) -> Tensor:
+  #    """ Returns: The imaginary part of the `Tensor`.
+  #    """
+  #    array_i = self.backend.imag(self.array)
+  #    return Tensor(array_i, backend=self.backend)
 
   # def all(self):
 
@@ -112,8 +112,8 @@ class Tensor():
     wheras ravel returns a view when possible.
     """
     size = self.size
-    flat = self.backend.reshape(self.array, [size,])
-    return Tensor(flat.copy(), backend=self.backend)
+    flat = self.reshape([size,]).copy()
+    return flat
 
   def fill(self, val: float):
     """ Returns a `Tensor` filled with the scalar value `val`.
@@ -129,17 +129,16 @@ class Tensor():
     filled_arr = self.backend.index_update(self.array, mask, vals)
     return Tensor(filled_arr, backend=self.backend)
 
-  def hconj(self, axes: Optional[Sequence[int]] = None) -> Tensor:
+  def hconj(self, perm: Optional[Sequence[int]] = None) -> Tensor:
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.
     Args:
-      axes: The permutation. If None (default) the index order is reversed.
+      axes: The permutation. If None (default) the index order is reversed.  
     Returns:
       The Hermitian conjugated `Tensor`.
     """
-    star = self.backend.conj(self.array)
-    dag = self.backend.transpose(star, perm=axes)
-    return Tensor(dag, backend=self.backend)
+    dag = self.conj().transpose(perm=perm)
+    return dag
 
   # def max:
 
@@ -156,8 +155,8 @@ class Tensor():
     dimension.
     """
     size = self.size
-    flat = self.backend.reshape(self.array, [size,])
-    return Tensor(flat, backend=self.backend)
+    flat = self.reshape(shape=[size,])
+    return flat
 
 
   def reshape(self, shape: Sequence[int]) -> Tensor:
@@ -179,23 +178,27 @@ class Tensor():
     """
     shape = self.shape
     squeezed_shape = [d for d in shape if d != 1]
-    return Tensor(squeezed_shape, backend=self.backend)
+    return self.reshape(squeezed_shape)
 
   # def std:
 
   # def sum:
 
-  def trace(self):
-    """
-    Return the trace over the last two axes of the given tensor.
+  #  def trace(self, pivot: Optional[int] = None):
+  #    """
+  #    Return the trace of this tensor according to the matricization set
+  #    by `pivot`.
 
-    TODO: Numpy allows one to specify which axes are to be traced along.
-    Should we also do so?
-    """
-    trace = self.backend.trace(self.array)
-    return trace
 
-  def transpose(self, axes: Optional[Sequence[int]] = None) -> Tensor:
+  #    The integer argument `pivot`
+
+  #    TODO: Numpy allows one to specify which axes are to be traced along.
+  #    Should we also do so?
+  #    """
+  #    trace = self.backend.trace(self.array)
+  #    return trace
+
+  def transpose(self, perm: Optional[Sequence[int]] = None) -> Tensor:
     """ Return a new `Tensor` transposed according to the permutation set
     by `axes`. By default the axes are reversed.
     Args:
@@ -203,5 +206,5 @@ class Tensor():
     Returns:
       The transposed `Tensor`.
     """
-    array_T = self.backend.transpose(self.array, perm=axes)
+    array_T = self.backend.transpose(self.array, perm=perm)
     return Tensor(array_T, backend=self.backend)

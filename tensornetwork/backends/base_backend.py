@@ -50,7 +50,8 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented reshape.".format(self.name))
 
-  def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
+  def transpose(self, tensor: Tensor,
+                perm: Optional[Sequence[int]] = None) -> Tensor:
     """Transpose a tensor according to a given permutation
     Args:
       tensor: A tensor.
