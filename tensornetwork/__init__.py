@@ -27,17 +27,17 @@ from tensornetwork.network_operations import (
 )
 
 #pylint: disable=line-too-long
-from tensornetwork.linalg.linalg import (
-    conj,    
-    eye,
-    kron,
-    norm,
-    ones,
-    randn,
-    random_uniform,
-    transpose,
-    zeros,
-    )
+#  from tensornetwork.linalg.linalg import (
+#      conj,
+#      eye,
+#      kron,
+#      norm,
+#      ones,
+#      randn,
+#      random_uniform,
+#      transpose,
+#      zeros,
+#      )
 
 from tensornetwork.network_components import (
     contract,
@@ -56,6 +56,8 @@ from tensornetwork.network_components import (
     slice_edge,    
     split_edge
     )
+
+from tensornetwork.tensor import Tensor
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, disconnect
 from tensornetwork.ncon_interface import ncon, ncon_network
