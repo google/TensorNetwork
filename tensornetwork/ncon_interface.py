@@ -30,23 +30,20 @@ def _map_string_to_int(network_structure):
   unique, cnts = np.unique(flat_labels, return_counts=True)
   cont_labels = unique[cnts >= 2]
   out_labels = unique[cnts == 1]
-  ordered_cont_labels = np.sort(cont_labels)
   ordered_out_labels = np.sort(out_labels)
 
   mapping = dict(zip(cont_labels, np.arange(1, len(cont_labels) + 1)))
-  cont_mapping = dict(zip(cont_labels, np.arange(1, len(cont_labels) + 1)))
   out_mapping = dict(
       zip(ordered_out_labels, -np.arange(1,
                                          len(ordered_out_labels) + 1)))
   mapping.update(out_mapping)
-
   mapped_network_structure = [
-      np.array([mapping[label]
-                for label in labels])
+      np.array([
+          mapping[str(label)]  #`label` we force 'label' a `str`
+          for label in labels
+      ])
       for labels in network_structure
   ]
-  mapped_con_order = [cont_mapping[label] for label in ordered_cont_labels]
-  mapped_out_order = [out_mapping[label] for label in ordered_out_labels]
   return mapped_network_structure, mapping
 
 
@@ -66,39 +63,56 @@ def _check_network(network_structure, tensor_dimensions, flat_connections,
   neg_cnts = cnts[unique < 0]
   if len(network_structure) != len(tensor_dimensions):
     raise ValueError("number of tensors does not match the"
-                     " number of network connections")
+                     " number of network connections.")
 
   for n, dims in enumerate(tensor_dimensions):
     if len(dims) != len(network_structure[n]):
       raise ValueError(f"number of indices does not match"
-                       f" number of labels on tensor {n}")
-
+                       f" number of labels on tensor {n}.")
+  # check `con_order`
+  log_array = np.isin(con_order, pos_cons)
+  if not np.all(log_array):
+    raise ValueError((f"labels {con_order[np.logical_not(log_array)]} in `con_order` "
+                      f"do not appear in network structure."))
+  
+  unique_con, con_cnts = np.unique(con_order, return_counts=True)
+  if np.any(con_cnts >= 2):
+    raise ValueError(
+        f"contraction labels {unique_con[con_cnts>=2]} appear more than once in `con_order`.")
+    
   if not np.array_equal(np.sort(con_order), np.unique(pos_cons)):
     raise ValueError((f"{[reverse_mapping[o] for o in con_order]} "
-                      f"is not a valid contraction order"))
+                      f"is not a valid contraction order."))
 
+  # check `out_order`
+  log_array = np.isin(out_order, neg_cons)
+  if not np.all(log_array):
+    raise ValueError((f"labels {out_order[np.logical_not(log_array)]} in `out_order` "
+                      f"do not appear in network structure."))
+  
   unique_out, cnts_out = np.unique(out_order, return_counts=True)
   if np.any(cnts_out > 1):
-    msg = [reverse_mapping[u] for u in unique_out[cnts > 1]]
-    raise ValueError((f"output labels {msg}" f" appear more than once "))
+    msg = [reverse_mapping[u] for u in unique_out[cnts_out > 1]]
+    raise ValueError((f"output labels {msg}" f" appear more than once in `out_order`."))
 
+  
   if not np.array_equal(np.sort(out_order), np.unique(neg_cons)):
     msg1 = [reverse_mapping[o] for o in out_order]
     msg2 = [reverse_mapping[o] for o in neg_cons]
     raise ValueError((f"{msg1} is not a valid output order "
-                      f"for free output indices {msg2} "))
+                      f"for free output indices {msg2}."))
 
   if len(np.nonzero(unique == 0)[0]) != 0:
     raise ValueError("only nonzero values are allowed "
-                     "to specify network structure")
+                     "to specify network structure.")
 
   if not np.all(pos_cnts == 2):
     msg = [reverse_mapping[o] for o in pos_connections[pos_cnts != 2]]
     raise ValueError(f"contracted connections {msg}"
-                     f" do not appear exactly twice")
+                     f" do not appear exactly twice.")
   if not np.all(neg_cnts == 1):
     msg = [reverse_mapping[o] for o in neg_connections[neg_cnts != 1]]
-    raise ValueError(f"output connections " f"{msg} appear " f"more than once")
+    raise ValueError(f"output connections " f"{msg} appear " f"more than once.")
 
   un_pos = np.unique(pos_cons)
   for u in un_pos:
@@ -106,7 +120,7 @@ def _check_network(network_structure, tensor_dimensions, flat_connections,
     if dims[0] != dims[1]:
       raise ValueError(f"tensor dimensions of "
                        f"connection {reverse_mapping[u]}"
-                       f" do not match, got dimensions {dims}")
+                       f" do not match, got dimensions {dims}.")
 
 
 def _partial_trace(tensor, labels, backend_obj):
@@ -122,15 +136,13 @@ def _partial_trace(tensor, labels, backend_obj):
     free_indices = np.delete(
         np.arange(tensor.ndim, dtype=np.int16), contracted_indices)
 
-    free_dimensions = [shape[d] for d in free_indices]
     contracted_dimension = np.prod(
         [shape[d] for d in contracted_indices[:num_cont]])
-    temp_shape = backend_obj.shape_concat(
-        [free_dimensions, [contracted_dimension, contracted_dimension]], axis=0)
+    temp_shape = tuple([contracted_dimension, contracted_dimension])
     result = backend_obj.trace(
         backend_obj.reshape(
             backend_obj.transpose(tensor,
-                                  np.append(free_indices, contracted_indices)),
+                                  tuple(np.append(free_indices, contracted_indices))),
             temp_shape))
     new_labels = np.delete(labels, contracted_indices)
     contracted_labels = np.unique(labels[contracted_indices])
@@ -288,6 +300,11 @@ def ncon(
   else:
     backend_obj = backend_factory.get_backend(backend)
 
+  if out_order == []: #allow empty list as input
+    out_order = None
+  if con_order == []: #allow empty list as input
+    con_order = None
+    
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
@@ -306,6 +323,8 @@ def ncon(
   flat_connections = np.concatenate(network_structure)
   mapping = None
   reverse_mapping = None
+
+    
   if flat_connections.dtype.type is np.str_:
     if (con_order is not None) and (np.array(con_order).dtype.type
                                     is not np.str_):
@@ -315,8 +334,10 @@ def ncon(
                                     is not np.str_):
       raise TypeError("network_structure and out_order "
                       "have to have the same dtype")
-
     network_structure, mapping = _map_string_to_int(network_structure)
+    print(network_structure)
+    print(mapping)
+
     reverse_mapping = {v: k for k, v in mapping.items()}
     flat_connections = np.concatenate(network_structure)
   if out_order is None:
