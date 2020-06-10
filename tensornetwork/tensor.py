@@ -46,7 +46,7 @@ class Tensor():
     return self.array.dtype
 
   @property
-  def T(self) -> Tensor:
+  def T(self) -> "Tensor":
     """ The `Tensor` with reversed axes.
     Returns:
       The transposed `Tensor`.
@@ -54,7 +54,7 @@ class Tensor():
     return self.transpose()
 
   @property
-  def H(self) -> Tensor:
+  def H(self) -> "Tensor":
     """ The conjugate `Tensor` with reversed axes.
     """
     star = self.backend.conj(self.array)
@@ -62,14 +62,14 @@ class Tensor():
     return Tensor(array_H, backend=self.backend)
 
   #  @property
-  #  def real(self) -> Tensor:
+  #  def real(self) -> "Tensor":
   #    """ Returns: The real part of the `Tensor`.
   #    """
   #    array_r = self.backend.real(self.array)
   #    return Tensor(array_r, backend=self.backend)
 
   #  @property
-  #  def imag(self) -> Tensor:
+  #  def imag(self) -> "Tensor":
   #    """ Returns: The imaginary part of the `Tensor`.
   #    """
   #    array_i = self.backend.imag(self.array)
@@ -83,18 +83,18 @@ class Tensor():
 
   # def argmin():
 
-  def conj(self) -> Tensor:
+  def conj(self) -> "Tensor":
     """ Returns: The complex-conjugated `Tensor`.
     """
     star = self.backend.conj(self.array)
     return Tensor(star, backend=self.backend)
 
-  def conjugate(self) -> Tensor:
+  def conjugate(self) -> "Tensor":
     """ Returns: The complex-conjugated `Tensor`.
     """
     return self.conj()
 
-  def copy(self) -> Tensor:
+  def copy(self) -> "Tensor":
     """ Returns: A copy of the `Tensor`.
     """
     return copy.deepcopy(self)
@@ -129,7 +129,7 @@ class Tensor():
     filled_arr = self.backend.index_update(self.array, mask, vals)
     return Tensor(filled_arr, backend=self.backend)
 
-  def hconj(self, perm: Optional[Sequence[int]] = None) -> Tensor:
+  def hconj(self, perm: Optional[Sequence[int]] = None) -> "Tensor":
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.
     Args:
@@ -159,7 +159,7 @@ class Tensor():
     return flat
 
 
-  def reshape(self, shape: Sequence[int]) -> Tensor:
+  def reshape(self, shape: Sequence[int]) -> "Tensor":
     """Return a new `Tensor` with the same data but a new shape `shape`.
     Args:
       shape: The new shape.
@@ -198,7 +198,7 @@ class Tensor():
   #    trace = self.backend.trace(self.array)
   #    return trace
 
-  def transpose(self, perm: Optional[Sequence[int]] = None) -> Tensor:
+  def transpose(self, perm: Optional[Sequence[int]] = None) -> "Tensor":
     """ Return a new `Tensor` transposed according to the permutation set
     by `axes`. By default the axes are reversed.
     Args:
