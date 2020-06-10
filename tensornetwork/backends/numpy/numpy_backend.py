@@ -33,7 +33,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def reshape(self, tensor: Tensor, shape: Tensor):
     return np.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm=None):
     return np.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
