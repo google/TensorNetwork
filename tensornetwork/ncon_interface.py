@@ -340,7 +340,7 @@ def ncon(
       raise TypeError("network_structure and out_order "
                       "have to have the same dtype")
     network_structure, mapping = _map_string_to_int(network_structure)
-
+    
     reverse_mapping = {v: k for k, v in mapping.items()}
     flat_connections = np.concatenate(network_structure)
   if out_order is None:
