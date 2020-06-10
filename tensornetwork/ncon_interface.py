@@ -205,7 +205,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
     common_labels, t1_cont, t2_cont = np.intersect1d(
         labels_t1, labels_t2, assume_unique=True, return_indices=True)
 
-    inds_sort = np.argsort(t1_cont)
+    ind_sort = np.argsort(t1_cont)
     tensors.append(
         backend_obj.tensordot(
             t1, t2, axes=(tuple(t1_cont[ind_sort]), tuple(t2_cont[ind_sort]))))
