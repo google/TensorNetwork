@@ -118,20 +118,52 @@ def test_node_order_spec_noninteger(backend):
 
 def test_invalid_network(backend):
   a = np.ones((2, 2))
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="number of tensors does not "
+      "match the number of network connections."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 't')], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match="number of indices does not match "
+      "number of labels on tensor 0."):
     ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[3, 4\] in `con_order` "
+      r"do not appear in network structure."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contraction labels [2]"
+      " appear more than once in `con_order`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[2, 2],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"contracted connections \[1, 2\]"
+      " do not appear exactly twice."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted connections \[2, 3\]"
+      " do not appear exactly twice."):
+    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted connections \[0.1, 1.0\] "
+      "do not appear exactly twice."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="only nonzero values are allowed to "
+      "specify network structure."):
+    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
 
 
 def test_node_invalid_network(backend):
@@ -144,8 +176,6 @@ def test_node_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 't')], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
   with pytest.raises(ValueError):
@@ -203,20 +233,6 @@ def test_node_invalid_order(backend):
     ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
                         con_order=['i1', 'i1', 'i2'],
                         out_order=[],
-                        backend=backend)
-
-
-def test_out_of_order_contraction(backend):
-  a = np.ones((2, 2, 2))
-  with pytest.warns(UserWarning, match='Suboptimal ordering'):
-    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
-                        backend=backend)
-
-
-def test_node_out_of_order_contraction(backend):
-  a = Node(np.ones((2, 2, 2)), backend=backend)
-  with pytest.warns(UserWarning, match='Suboptimal ordering'):
-    ncon_interface.ncon([a, a, a], [(-1, 1, 3), (1, 3, 2), (2, -2, -3)],
                         backend=backend)
 
 
