@@ -72,14 +72,16 @@ def _check_network(network_structure, tensor_dimensions, flat_connections,
   # check `con_order`
   log_array = np.isin(con_order, pos_cons)
   if not np.all(log_array):
-    raise ValueError((f"labels {con_order[np.logical_not(log_array)]} in `con_order` "
-                      f"do not appear in network structure."))
-  
+    raise ValueError(
+        (f"labels {con_order[np.logical_not(log_array)]} in `con_order` "
+         f"do not appear in network structure."))
+
   unique_con, con_cnts = np.unique(con_order, return_counts=True)
   if np.any(con_cnts >= 2):
     raise ValueError(
-        f"contraction labels {unique_con[con_cnts>=2]} appear more than once in `con_order`.")
-    
+        f"contraction labels {unique_con[con_cnts>=2]} appear more than once in `con_order`."
+    )
+
   if not np.array_equal(np.sort(con_order), np.unique(pos_cons)):
     raise ValueError((f"{[reverse_mapping[o] for o in con_order]} "
                       f"is not a valid contraction order."))
@@ -87,15 +89,16 @@ def _check_network(network_structure, tensor_dimensions, flat_connections,
   # check `out_order`
   log_array = np.isin(out_order, neg_cons)
   if not np.all(log_array):
-    raise ValueError((f"labels {out_order[np.logical_not(log_array)]} in `out_order` "
-                      f"do not appear in network structure."))
-  
+    raise ValueError(
+        (f"labels {out_order[np.logical_not(log_array)]} in `out_order` "
+         f"do not appear in network structure."))
+
   unique_out, cnts_out = np.unique(out_order, return_counts=True)
   if np.any(cnts_out > 1):
     msg = [reverse_mapping[u] for u in unique_out[cnts_out > 1]]
-    raise ValueError((f"output labels {msg}" f" appear more than once in `out_order`."))
+    raise ValueError((f"output labels {msg}"
+                      f" appear more than once in `out_order`."))
 
-  
   if not np.array_equal(np.sort(out_order), np.unique(neg_cons)):
     msg1 = [reverse_mapping[o] for o in out_order]
     msg2 = [reverse_mapping[o] for o in neg_cons]
@@ -141,8 +144,8 @@ def _partial_trace(tensor, labels, backend_obj):
     temp_shape = tuple([contracted_dimension, contracted_dimension])
     result = backend_obj.trace(
         backend_obj.reshape(
-            backend_obj.transpose(tensor,
-                                  tuple(np.append(free_indices, contracted_indices))),
+            backend_obj.transpose(
+                tensor, tuple(np.append(free_indices, contracted_indices))),
             temp_shape))
     new_labels = np.delete(labels, contracted_indices)
     contracted_labels = np.unique(labels[contracted_indices])
@@ -201,8 +204,11 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
 
     common_labels, t1_cont, t2_cont = np.intersect1d(
         labels_t1, labels_t2, assume_unique=True, return_indices=True)
+
+    inds_sort = np.argsort(t1_cont)
     tensors.append(
-        backend_obj.tensordot(t1, t2, axes=(tuple(t1_cont), tuple(t2_cont))))
+        backend_obj.tensordot(
+            t1, t2, axes=(tuple(t1_cont[ind_sort]), tuple(t2_cont[ind_sort]))))
     network_structure.append(
         np.append(np.delete(labels_t1, t1_cont), np.delete(labels_t2, t2_cont)))
 
@@ -300,11 +306,11 @@ def ncon(
   else:
     backend_obj = backend_factory.get_backend(backend)
 
-  if out_order == []: #allow empty list as input
+  if out_order == []:  #allow empty list as input
     out_order = None
-  if con_order == []: #allow empty list as input
+  if con_order == []:  #allow empty list as input
     con_order = None
-    
+
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
@@ -324,7 +330,6 @@ def ncon(
   mapping = None
   reverse_mapping = None
 
-    
   if flat_connections.dtype.type is np.str_:
     if (con_order is not None) and (np.array(con_order).dtype.type
                                     is not np.str_):
