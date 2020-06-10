@@ -125,17 +125,17 @@ def test_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
   with pytest.raises(
       ValueError,
-      match=f"contracted connections \[1, 2\]"
+      match=r"contracted connections \[1, 2\]"
       " do not appear exactly twice."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(
       ValueError,
-      match=f"contracted connections \[2, 3\]"
+      match=r"contracted connections \[2, 3\]"
       " do not appear exactly twice."):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
   with pytest.raises(
       ValueError,
-      match="contracted connections \[0.1, 1.0\] "
+      match=r"contracted connections \[0.1, 1.0\] "
       "do not appear exactly twice."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(
