@@ -7,6 +7,7 @@ import torch
 import tensorflow as tf
 import tensornetwork as tn
 from tensornetwork.linalg import linalg
+from tensornetwork.network_components import Node
 from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork import backends
 from tensornetwork.backends.numpy import numpy_backend
