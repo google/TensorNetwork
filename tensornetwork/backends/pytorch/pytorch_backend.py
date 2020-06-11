@@ -256,12 +256,11 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * torchlib.reshape(
+          vector_n -= (v.contiguous().view(-1).dot(vector_n.contiguous().view(-1))) * torchlib.reshape(
               v, vector_n.shape)
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
-      print(vector_n.shape)
-      diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
+      diag_elements.append(vector_n.contiguous().view(-1).dot(A_vector_n.contiguous().view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
