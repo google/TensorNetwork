@@ -251,6 +251,22 @@ def test_conj():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_eigsh_lanczos_0():
+  #this test should just not crash
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  D = 4
+  init = backend.randn((2, 2, 2), dtype=dtype)
+  tmp = backend.randn((8, 8), dtype=dtype)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+  H = H.reshape([2, 2, 2, 2, 2, 2])
+
+  def mv(x, mat):
+    return torch.tensordot(mat, x, ([0, 3, 5], [2, 0, 1])).permute([2, 0, 1])
+
+  backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=D)
+
+
 def test_eigsh_lanczos_1():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
