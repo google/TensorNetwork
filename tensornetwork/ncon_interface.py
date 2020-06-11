@@ -266,7 +266,7 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
 
 
 def ncon(
-    tensors: Any,
+    tensors: Sequence[Union[network_components.BaseNode, Tensor]],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
