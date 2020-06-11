@@ -43,6 +43,7 @@ master_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 napolean_use_rtype = False
 # -- Options for HTML output -------------------------------------------------
 

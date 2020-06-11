@@ -1,4 +1,3 @@
-
 # Copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +18,11 @@ from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
 from tensornetwork.backends import base_backend
+#pylint: disable=line-too-long
+from tensornetwork.network_components import BaseNode, Node, outer_product_final_nodes
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 from tensornetwork import network_components
-
 
 Tensor = Any
 BaseBackend = base_backend.BaseBackend
@@ -34,8 +34,7 @@ def initialize_node(fname: Text,
                     name: Optional[Text] = None,
                     axis_names: Optional[List[Text]] = None,
                     backend: Optional[Union[Text, BaseBackend]] = None,
-                    **fkwargs: Any
-                    ) -> Tensor:
+                    **fkwargs: Any) -> Tensor:
   """Return a Node wrapping data obtained by an initialization function
   implemented in a backend. The Node will have the same shape as the
   underlying array that function generates, with all Edges dangling.
@@ -61,8 +60,7 @@ def initialize_node(fname: Text,
     backend_obj = backends.backend_factory.get_backend(backend)
   func = getattr(backend_obj, fname)
   data = func(*fargs, **fkwargs)
-  node = network_components.Node(data, name=name, axis_names=axis_names,
-                                 backend=backend)
+  node = Node(data, name=name, axis_names=axis_names, backend=backend)
   return node
 
 
@@ -168,8 +166,7 @@ def random_uniform(shape: Sequence[int],
                    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
                    name: Optional[Text] = None,
                    axis_names: Optional[List[Text]] = None,
-                   backend:
-                   Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+                   backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node of shape `shape` of uniform random floats.
   The Node has one dangling Edge per dimension.
   Args:
@@ -187,3 +184,123 @@ def random_uniform(shape: Sequence[int],
                              name=name, axis_names=axis_names, backend=backend,
                              seed=seed, boundaries=boundaries, dtype=dtype)
   return the_node
+
+
+def norm(node: BaseNode) -> Tensor:
+  """The L2 norm of `node`
+
+  Args:
+    node: A `BaseNode`. 
+
+  Returns:
+    The L2 norm.
+
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
+  """
+  if not hasattr(node, 'backend'):
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
+        node, type(node)))
+  return node.backend.norm(node.tensor)
+
+
+def conj(node: BaseNode,
+         name: Optional[Text] = None,
+         axis_names: Optional[List[Text]] = None) -> BaseNode:
+  """Conjugate a `node`.
+
+  Args:
+    node: A `BaseNode`.
+    name: Optional name to give the new node.
+    axis_names: Optional list of names for the axis.
+
+  Returns:
+    A new node. The complex conjugate of `node`.
+
+  Raises:
+    AttributeError: If `node` has no `backend` attribute.
+  """
+  if not hasattr(node, 'backend'):
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
+        node, type(node)))
+  backend = node.backend
+  if not axis_names:
+    axis_names = node.axis_names
+
+  return Node(
+      backend.conj(node.tensor),
+      name=name,
+      axis_names=axis_names,
+      backend=backend)
+
+
+def transpose(node: BaseNode,
+              permutation: Sequence[Union[Text, int]],
+              name: Optional[Text] = None,
+              axis_names: Optional[List[Text]] = None) -> BaseNode:
+  """Transpose `node`
+
+  Args:
+    node: A `BaseNode`.
+    permutation: A list of int or str. The permutation of the axis.
+    name: Optional name to give the new node.
+    axis_names: Optional list of names for the axis.
+
+  Returns:
+    A new node. The transpose of `node`.
+
+  Raises:
+    AttributeError: If `node` has no `backend` attribute, or if
+      `node` has no tensor.
+    ValueError: If either `permutation` is not the same as expected or
+      if you try to permute with a trace edge.
+  """
+
+  if not hasattr(node, 'backend'):
+    raise AttributeError('Node {} of type {} has no `backend`'.format(
+        node, type(node)))
+
+  perm = [node.get_axis_number(p) for p in permutation]
+  if not axis_names:
+    axis_names = node.axis_names
+
+  new_node = Node(
+      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
+  return new_node.reorder_axes(perm)
+
+
+def kron(nodes: Sequence[BaseNode]) -> BaseNode:
+  """Kronecker product of the given nodes.
+
+  Kronecker products of nodes is the same as the outer product, but the order
+  of the axes is different. The first half of edges of all of the nodes will
+  appear first half of edges in the resulting node, and the second half ot the
+  edges in each node will be in the second half of the resulting node.
+
+  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
+  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
+  :math:`R_{acdgbefh}`.
+   
+  The kronecker product is designed such that the kron of many operators is
+  itself an operator. 
+
+  Args:
+    nodes: A sequence of `BaseNode` objects.
+
+  Returns:
+    A `Node` that is the kronecker product of the given inputs. The first
+    half of the edges of this node would represent the "input" edges of the
+    operator and the last half of edges are the "output" edges of the
+    operator.
+  """
+  input_edges = []
+  output_edges = []
+  for node in nodes:
+    order = len(node.shape)
+    if order % 2 != 0:
+      raise ValueError(f"All operator tensors must have an even order. "
+                       f"Found tensor with order {order}")
+    input_edges += node.edges[:order // 2]
+    output_edges += node.edges[order // 2:]
+  result = outer_product_final_nodes(nodes, input_edges + output_edges)
+  return result

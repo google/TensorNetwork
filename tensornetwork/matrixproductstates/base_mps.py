@@ -19,12 +19,14 @@ import numpy as np
 # pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_full_svd, conj
+from tensornetwork.network_operations import split_node_full_svd
+from tensornetwork.linalg.linalg import conj
 from tensornetwork.backends import backend_factory
-from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+import warnings
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.base_backend import BaseBackend
+from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
 
@@ -57,7 +59,7 @@ class BaseMPS:
 
   def __init__(self,
                tensors: List[Tensor],
-               center_position: Optional[int] = 0,
+               center_position: Optional[int] = None,
                connector_matrix: Optional[Tensor] = None,
                backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """Initialize a BaseMPS.
@@ -72,10 +74,11 @@ class BaseMPS:
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
-    if center_position < 0 or center_position >= len(tensors):
-      raise ValueError(
-          'center_position = {} not between 0 <= center_position < {}'.format(
-              center_position, len(tensors)))
+    if (center_position is not None) and (center_position < 0 or
+                                          center_position >= len(tensors)):
+      raise ValueError("`center_position = {}` is different from `None` and "
+                       "not between 0 <= center_position < {}".format(
+                           center_position, len(tensors)))
     if backend is None:
       backend = get_default_backend()
     if isinstance(backend, BaseBackend):
@@ -137,14 +140,21 @@ class BaseMPS:
     return len(self.tensors)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
-    """Shift `FiniteMPS.center_position` to `site`.
+    """Shift `center_position` to `site`.
 
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
     Returns:
       `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
+    Raises:
+      ValueError: If `center_position` is `None`.
     """
+    if self.center_position is None:
+      raise ValueError(
+          "BaseMPS.center_position is `None`, cannot shift `center_position`."
+          "Reset `center_position` manually or use `canonicalize`")
+
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.tensors) or site < 0:
       raise ValueError('site = {} not between values'
@@ -221,7 +231,7 @@ class BaseMPS:
     """Compute the action of the MPS transfer-operator at site `site`.
 
     Args:
-      site: a site of the MPS
+      site: A site of the MPS
       direction:
         * if `1, 'l'` or `'left'`: compute the left-action
           of the MPS transfer-operator at `site` on the input `matrix`.
@@ -552,12 +562,17 @@ class BaseMPS:
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
-  def check_canonical(self) -> Tensor:
-    """Check whether the MPS is in the expected canonical form.
-
+  # pylint: disable=inconsistent-return-statements
+  def check_canonical(self) -> Any:
+    """Check whether the MPS is in a canonical form.
+    If `center_position` is `None`, no check is performed.
     Returns:
       The L2 norm of the vector of local deviations.
     """
+    if self.center_position is None:
+      warnings.warn(
+          "BaseMPS.center_position is `None`. Skipping `check_canonical`")
+      return
     deviations = []
     for site in range(len(self.tensors)):
       if site < self.center_position:

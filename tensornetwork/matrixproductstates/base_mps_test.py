@@ -71,6 +71,24 @@ def test_backend_initialization(backend):
   np.testing.assert_allclose(Z, 1.0)
 
 
+def test_backend_initialization_raises(backend):
+  be = backend_factory.get_backend(backend)
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  with pytest.raises(
+      ValueError,
+      match="`center_position = 10` is different from `None` and "
+      "not between 0 <= center_position < 10"):
+    BaseMPS(tensors, center_position=N, backend=be)
+  with pytest.raises(
+      ValueError,
+      match="`center_position = -1` is different from `None` and "
+      "not between 0 <= center_position < 10"):
+    BaseMPS(tensors, center_position=-1, backend=be)
+
+
 def test_left_orthonormalization(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -154,10 +172,21 @@ def test_position_raises_error(backend):
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match="site = -1 not between values"
+      " 0 < site < N = 10"):
     mps.position(-1)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match="site = 11 not between values"
+      " 0 < site < N = 10"):
     mps.position(11)
+  mps = BaseMPS(tensors, center_position=None, backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="BaseMPS.center_position is"
+      " `None`, cannot shift `center_position`."
+      "Reset `center_position` manually or use `canonicalize`"):
+    mps.position(1)
 
 
 def test_position_no_normalization(backend):
