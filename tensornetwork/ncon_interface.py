@@ -378,8 +378,6 @@ def ncon(
       l.append(mapping[o])
     con_order = np.array(l)
 
-  print(network_structure)
-  print(con_order)
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4))
