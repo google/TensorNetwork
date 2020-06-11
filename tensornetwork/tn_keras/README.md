@@ -1,6 +1,6 @@
 # TensorNetwork Keras Layers
 
-TN Keras exists to simplify tensorization of existing TensorFlow models. These layers try to match the APIs for existing Keras layers closely.
+TN Keras exists to simplify tensorization of existing TensorFlow models. These layers try to match the APIs for existing Keras layers closely. Please note these layers are currently intended for experimentation only, not production. These layers are in alpha and upcoming releases might include breaking changes.
 
 ## Table of Contents
 
