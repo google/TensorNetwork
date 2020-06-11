@@ -214,4 +214,3 @@ class DenseMPO(Layer):
     # Get base config
     base_config = super(DenseMPO, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
-
