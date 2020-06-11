@@ -260,6 +260,7 @@ class PyTorchBackend(base_backend.BaseBackend):
               v, vector_n.shape)
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
+      print(vector_n.shape)
       diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):

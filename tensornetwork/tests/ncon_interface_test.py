@@ -15,6 +15,7 @@ import pytest
 import numpy as np
 from tensornetwork import BaseNode, Node
 from tensornetwork import ncon_interface
+from tensornetwork.ncon_interface import _get_cont_out_labels
 from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
 
@@ -137,8 +138,7 @@ def test_invalid_network(backend):
                         con_order=[3, 4],
                         backend=backend)
   with pytest.raises(
-      ValueError,
-      match=r"label 2"
+      ValueError, match=r"label 2"
       " appears more than once in `con_order`."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
                         con_order=[2, 2],
@@ -179,8 +179,7 @@ def test_invalid_network(backend):
                         out_order=[1, -1],
                         backend=backend)
   with pytest.raises(
-      ValueError,
-      match=r"label -1 appears more than once in `out_order`."):
+      ValueError, match=r"label -1 appears more than once in `out_order`."):
     ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                         out_order=[-1, -1],
                         backend=backend)
@@ -194,12 +193,6 @@ def test_invalid_network(backend):
       r"integers, found \[3, 2\]"):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
   with pytest.raises(
-      TypeError,
-      match=r"open labels have to be either all "
-      r"integers or all strings, found mixed types"
-      r" \[<class 'int'>, <class 'float'>\]."):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
-  with pytest.raises(
       ValueError,
       match="only nonzero values are allowed to "
       "specify network structure."):
@@ -207,18 +200,13 @@ def test_invalid_network(backend):
   with pytest.raises(
       ValueError,
       match=r"open string labels have to be prepended with '-'; "
-      r"found \['2', '1'\]"):
+      r"found \['1', '2'\]"):
     ncon_interface.ncon([a, a], [('1', 1), (1, '2')], backend=backend)
   with pytest.raises(
       ValueError,
       match=r"open integer labels have to be negative integers, "
       r"found \[2, 1\]"):
     ncon_interface.ncon([a, a], [(1, 3), (3, 2)], backend=backend)
-  with pytest.raises(
-      TypeError,
-      match=r"open labels have to be either all integers or all strings, "
-      r"found mixed types \[<class 'str'>, <class 'int'>\]."):
-    ncon_interface.ncon([a, a], [(1, 3), (3, '2')], backend=backend)
   with pytest.raises(
       ValueError,
       match=r"contracted labels can only be positive integers or strings"
@@ -239,8 +227,6 @@ def test_node_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(TypeError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
   with pytest.raises(ValueError):
@@ -391,3 +377,23 @@ def test_node_contraction(backend):
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res.tensor, res_np)
 
+
+def test_get_cont_out_labels():
+  network_structure = [[-1, 2, '3', '33', '4', 3, '-33'],
+                       ['-4', -2, '-3', '3', '33', '4', 2, 3]]
+  # pylint: disable=line-too-long
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
+      network_structure)
+  exp_int_cont_labels = [2, 3]
+  exp_str_cont_labels = ['3', '33', '4']
+  exp_int_out_labels = [-1, -2]
+  exp_str_out_labels = ['-3', '-33', '-4']
+
+  def check(exp, actual):
+    for e, a in zip(exp, actual):
+      assert e == a
+
+  check(exp_int_cont_labels, int_cont_labels)
+  check(exp_str_cont_labels, str_cont_labels)
+  check(exp_int_out_labels, int_out_labels)
+  check(exp_str_out_labels, str_out_labels)

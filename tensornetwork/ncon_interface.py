@@ -14,7 +14,7 @@
 
 import warnings
 import numpy as np
-from typing import Any, Sequence, List, Optional, Union, Text
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
@@ -24,27 +24,38 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
-def _get_cont_out_labels(network_structure: List[List]):
+def _get_cont_out_labels(
+    network_structure: List[List]) -> Tuple[List, List, List, List]:
+  """
+  Compute the contracted and free labels of `network_structure`.
+  Contracted labels are labels appearing more than once,
+  free labels are labels appearing exactly once.
+  Computed lists are ordered according to int and ASCII ordering 
+  for integer and string values, with first entries in each list
+  being ordered integer labels followed by ASCII ordered string 
+  labels.
+  Returns:
+    cont_labels, out_labels: The contracted and free labels
+      of `network_structure`.
+  """
   flat_labels = [l for sublist in network_structure for l in sublist]
   out_labels = [l for l in flat_labels if flat_labels.count(l) == 1]
-
-  if np.any([isinstance(f, str) for f in out_labels]):
-    # pylint: disable=unnecessary-lambda
-    out_labels = sorted(out_labels, key=lambda x: str(x))[::-1]
-  else:
-    out_labels = sorted(out_labels)[::-1]
+  int_out_labels = sorted([o for o in out_labels if not isinstance(o, str)
+                          ])[::-1]
+  # pylint: disable=unnecessary-lambda
+  str_out_labels = sorted([o for o in out_labels if isinstance(o, str)],
+                          key=lambda x: str(x))
 
   cont_labels = []
   for l in flat_labels:
     if (flat_labels.count(l) > 1) and (l not in cont_labels):
       cont_labels.append(l)
+  int_cont_labels = sorted([o for o in cont_labels if not isinstance(o, str)])
+  # pylint: disable=unnecessary-lambda
+  str_cont_labels = sorted([o for o in cont_labels if isinstance(o, str)],
+                           key=lambda x: str(x))
 
-  if np.any([isinstance(f, str) for f in cont_labels]):
-    # pylint: disable=unnecessary-lambda
-    cont_labels = sorted(cont_labels, key=lambda x: str(x))
-  else:
-    cont_labels = sorted(cont_labels)
-  return cont_labels, out_labels
+  return int_cont_labels, str_cont_labels, int_out_labels, str_out_labels
 
 
 def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
@@ -76,36 +87,27 @@ def _check_network(network_structure, tensor_dimensions, con_order, out_order):
   if len(wrong_labels) != 0:
     raise ValueError(
         f"labels {wrong_labels} appear more than twice in `network_structure`.")
+  # pylint: disable=line-too-long
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
+      network_structure)
+  out_labels = int_out_labels + str_out_labels
+  cont_labels = int_cont_labels + str_cont_labels
 
-  cont_labels, out_labels = _get_cont_out_labels(network_structure)
-
-  if (cont_labels.count(0) > 0) or (out_labels.count(0) > 0):
+  if (int_cont_labels.count(0) > 0) or (int_out_labels.count(0) > 0):
     raise ValueError("only nonzero values are allowed to "
                      "specify network structure.")
 
-  are_int = np.all([isinstance(l, int) for l in out_labels])
-  are_str = np.all([isinstance(l, str) for l in out_labels])
-  if are_str and (out_order is None):
-    if not np.all([o[0] == '-' for o in out_labels]):
-      raise ValueError(f"open string labels have to be prepended with '-'; "
-                       f"found {out_labels}")
-    out_labels = sorted(out_labels, key=lambda x: str(x[1:]))
-  elif are_int and (out_order is None):
-    if not np.all(np.array(out_labels) < 0):
-      raise ValueError(f"open integer labels have to be negative integers, "
-                       f"found {out_labels}")
-  elif (not (are_int or are_str)) and (out_order is None):
-    raise TypeError(f"open labels have to be either all"
-                    f" integers or all strings, "
-                    f"found mixed types {[type(l) for l in out_labels]}.")
-
-  int_cont_labels = [l for l in cont_labels if isinstance(l, int)]
-  str_cont_labels = [l for l in cont_labels if isinstance(l, str)]
+  if (out_order is None) and (not np.all([o[0] == '-'
+                                          for o in str_out_labels])):
+    raise ValueError(f"open string labels have to be prepended with '-'; "
+                     f"found {out_labels}")
+  if (out_order is None) and (not np.all(np.array(int_out_labels) < 0)):
+    raise ValueError(f"open integer labels have to be negative integers, "
+                     f"found {out_labels}")
   if np.any(np.array(int_cont_labels) < 0):
     raise ValueError(
         f"contracted labels can only be positive integers or strings"
         f", found {cont_labels}.")
-
   if np.any([l[0] == '-' for l in str_cont_labels]):
     raise ValueError(f"contracted labels must not be prepended with '-'"
                      f", found {cont_labels}.")
@@ -276,13 +278,25 @@ def ncon(
 
     The network is provided as a list of lists, one for each
     tensor, specifying labels for the edges connected to that tensor.
-
-    If a contraction order `con_order` and an output order `out_order`
-    are both provided, the edge labels can be anything.
-    Otherwise (`con_order == None or out_order == None`), the edge labels 
-    must be nonzero integers and edges will be contracted in ascending order.
-    Negative integers denote the (dangling) indices of the output tensor,
-    which will be in descending order, e.g. `[-1,-2,-3,...]`.
+    
+    Labels appearing only once in `network_structure` (open labels)
+    remain uncontracted, labels appearing twice (contracted labels) are
+    contracted over. 
+    If `out_order = None`, output labels can either be negative numbers or
+    strings with a hyphen character ('-') prepended, e.g. '-out_label_1'.
+    If `out_order = None` output labels are ordered according to descending
+    number ordering and ascending ASCII ordering, with number labels always 
+    appearing before string labels. Example:
+    network_structure = [[-1, 1, '-3', '2'], [-2, '2', 1, '-33']] results 
+    in an output order of [-1, -2, '-3', '-33'].
+    If `out_order` is given, the indices of the resulting tensor will be
+    transposed into this order. In this case output labels can be arbitrary
+    numbers and arbitrary strings (no minus or hyphen necessary).
+    
+    If `con_order = None`, `ncon` will first contract all number labels 
+    in ascending order followed by all string labels in ascending ASCII 
+    order.
+    If `con_order` is given, `ncon` will contract according to this order.
 
     For example, matrix multiplication:
 
@@ -334,7 +348,9 @@ def ncon(
     out_order = None
   if con_order == []:  #allow empty list as input
     con_order = None
-
+    
+  # convert to lists
+  network_structure = [list(l) for l in network_structure]
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
@@ -356,8 +372,11 @@ def ncon(
     # map the network strcuture to integers; if any of the labels is a `str`
     # type, the ordering defaults to string-ordering, i.e.
     # [[1, 2, '12'], [1, 9]] -> [[1, -2, -1],[1, -3]]
-    cont_labels, out_labels = _get_cont_out_labels(network_structure)
-
+    # pylint: disable=line-too-long
+    int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
+        network_structure)
+    cont_labels = int_cont_labels + str_cont_labels
+    out_labels = int_out_labels + str_out_labels
   network_structure, mapping = _canonicalize_network_structure(
       cont_labels, out_labels, network_structure)
 
@@ -371,6 +390,9 @@ def ncon(
       l.append(mapping[o])
     out_order = np.array(l)
   if con_order is None:
+    #canonicalization of network structure takes care of appropriate
+    #contraction ordering (i.e. use ASCII ordering for str and
+    #regular ordering for int)
     con_order = np.unique(flat_connections[flat_connections > 0])
   else:
     l = []
