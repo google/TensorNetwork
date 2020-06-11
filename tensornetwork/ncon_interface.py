@@ -201,13 +201,6 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
 
   if not isinstance(network_structure, list):
     raise ValueError("`network_structure` is not a list")
-  network_structure = [np.array(l) for l in network_structure]
-  flat_connections = np.concatenate(network_structure)
-
-  if con_order is None:
-    con_order = np.unique(flat_connections[flat_connections > 0])
-  else:
-    con_order = np.array(con_order)
 
   # partial trace
   for n, tensor in enumerate(tensors):
