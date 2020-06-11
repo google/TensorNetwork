@@ -132,38 +132,103 @@ def test_invalid_network(backend):
   with pytest.raises(
       ValueError,
       match=r"labels \[3, 4\] in `con_order` "
-      r"do not appear in network structure."):
+      r"do not appear as contracted labels in `network_structure`."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
                         con_order=[3, 4],
                         backend=backend)
   with pytest.raises(
       ValueError,
-      match=r"contraction labels [2]"
-      " appear more than once in `con_order`."):
+      match=r"label 2"
+      " appears more than once in `con_order`."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
                         con_order=[2, 2],
                         backend=backend)
-
   with pytest.raises(
       ValueError,
-      match=r"contracted connections \[1, 2\]"
-      " do not appear exactly twice."):
+      match=r"`con_order = \[3, 4, 5\] is not a valid "
+      r"contraction order for contracted labels \[1, 2\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4, 5],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`con_order = \[-1, 2\] "
+      r"is not a valid contraction order for contracted labels \[2\]"):
+    ncon_interface.ncon([a, a], [(-1, 2), (2, -2)],
+                        con_order=[-1, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`out_order` = \[2, 2\] is not a valid output"
+      r" order for open labels \[\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        out_order=[2, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[-3\] in `out_order` do not "
+      r"appear in `network_structure`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[-3, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[1\] in `out_order` appear more "
+      r"than once in `network_structure`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[1, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"label -1 appears more than once in `out_order`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[-1, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r'labels \[2\] appear more than twice in `network_structure`.'):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(
       ValueError,
-      match=r"contracted connections \[2, 3\]"
-      " do not appear exactly twice."):
+      match=r"open integer labels have to be negative "
+      r"integers, found \[3, 2\]"):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
   with pytest.raises(
-      ValueError,
-      match=r"contracted connections \[0.1, 1.0\] "
-      "do not appear exactly twice."):
+      TypeError,
+      match=r"open labels have to be either all "
+      r"integers or all strings, found mixed types"
+      r" \[<class 'int'>, <class 'float'>\]."):
     ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(
       ValueError,
       match="only nonzero values are allowed to "
       "specify network structure."):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"open string labels have to be prepended with '-'; "
+      r"found \['2', '1'\]"):
+    ncon_interface.ncon([a, a], [('1', 1), (1, '2')], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"open integer labels have to be negative integers, "
+      r"found \[2, 1\]"):
+    ncon_interface.ncon([a, a], [(1, 3), (3, 2)], backend=backend)
+  with pytest.raises(
+      TypeError,
+      match=r"open labels have to be either all integers or all strings, "
+      r"found mixed types \[<class 'str'>, <class 'int'>\]."):
+    ncon_interface.ncon([a, a], [(1, 3), (3, '2')], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted labels can only be positive integers or strings"
+      r", found \[-5\]."):
+    ncon_interface.ncon([a, a], [(-1, -5), (-5, -2)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted labels must"
+      r" not be prepended with '-', found \['-5'\]."):
+    ncon_interface.ncon([a, a], [(-1, '-5'), ('-5', -2)], backend=backend)
 
 
 def test_node_invalid_network(backend):
@@ -174,7 +239,7 @@ def test_node_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(ValueError):
+  with pytest.raises(TypeError):
     ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
@@ -326,14 +391,3 @@ def test_node_contraction(backend):
   res_np = res_np.reshape((2, 2, 2))
   np.testing.assert_allclose(res.tensor, res_np)
 
-
-def test_backend_network(backend):
-  a = np.random.randn(2, 2, 2)
-  nodes, _, out_edges = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2),
-                                                                (1, 2, 3),
-                                                                (3, -2, -3)],
-                                                    backend=backend)
-  res = greedy(nodes, out_edges).tensor
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res, res_np)
