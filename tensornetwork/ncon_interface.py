@@ -23,7 +23,6 @@ Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
 
-
 def _get_cont_out_labels(
     network_structure: List[List]) -> Tuple[List, List, List, List]:
   """
@@ -164,10 +163,10 @@ def _partial_trace(tensor, labels, backend_obj):
         num_cont * 2, order='F')
     free_indices = np.delete(
         np.arange(tensor.ndim, dtype=np.int16), contracted_indices)
-
     contracted_dimension = np.prod(
         [shape[d] for d in contracted_indices[:num_cont]])
-    temp_shape = tuple([contracted_dimension, contracted_dimension])
+    temp_shape = tuple([shape[pos] for pos in free_indices] +
+                       [contracted_dimension, contracted_dimension])
     result = backend_obj.trace(
         backend_obj.reshape(
             backend_obj.transpose(
@@ -341,7 +340,7 @@ def ncon(
     out_order = None
   if con_order == []:  #allow empty list as input
     con_order = None
-    
+
   # convert to lists
   network_structure = [list(l) for l in network_structure]
   are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
