@@ -398,7 +398,6 @@ def test_get_cont_out_labels():
   check(exp_int_out_labels, int_out_labels)
   check(exp_str_out_labels, str_out_labels)
 
-
 def test_partial_traces(backend):
   np.random.seed(10)
   a = np.random.rand(4, 4, 4, 4)
