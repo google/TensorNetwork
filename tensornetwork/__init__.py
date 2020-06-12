@@ -58,7 +58,7 @@ from tensornetwork.network_components import (
     )
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, disconnect
-from tensornetwork.ncon_interface import ncon, ncon_network
+from tensornetwork.ncon_interface import ncon
 from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
