@@ -158,7 +158,10 @@ class ShellBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     expr_list = expression.split(",")
     expr_list[-1], res = expr_list[-1].split("->")
     shape = tuple(self._find_char(expr_list, char, tensors) for char in res)

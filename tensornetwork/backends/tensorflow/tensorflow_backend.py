@@ -111,12 +111,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensordot2.tensordot(tf, tensor1, tensor2, 0)
-
   def einsum(self,
              expression: str,
              *tensors: Tensor,
              optimize: bool = True) -> Tensor:
-    return tf.einsum(expression, *tensors)
+    return tf.einsum(expression, *tensors, optimize=optimize)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return tf.linalg.norm(tensor)
