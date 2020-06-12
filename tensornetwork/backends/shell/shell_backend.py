@@ -157,7 +157,7 @@ class ShellBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
-
+  #pylint: disable=unused-argument
   def einsum(self,
              expression: str,
              *tensors: Tensor,
