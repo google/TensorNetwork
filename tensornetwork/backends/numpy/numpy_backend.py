@@ -30,9 +30,10 @@ class NumPyBackend(base_backend.BaseBackend):
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     # use einsum for scalar-like products, its much faster
     if not isinstance(axes, int):
-      if not len(axes[0]) == len(axes[1]):
-        raise ValueError("shape-mismatch for sum")
       if len(axes[0]) == a.ndim:
+        if not len(axes[0]) == len(axes[1]):
+          raise ValueError("shape-mismatch for sum")
+        
         u, pos1, _ = np.intersect1d(
             axes[0], axes[1], return_indices=True, assume_unique=True)
         labels = int_to_cap_string[u]
