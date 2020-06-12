@@ -19,6 +19,7 @@ import numpy as np
 import scipy as sp
 Tensor = Any
 
+int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
@@ -36,7 +37,7 @@ class NumPyBackend(base_backend.BaseBackend):
         
         u, pos1, _ = np.intersect1d(
             axes[0], axes[1], return_indices=True, assume_unique=True)
-        labels = int_to_cap_string[u]
+        labels = int_to_string[u]
         labels_1 = labels[pos1]
         labels_2 = np.array([''] * len(labels_1))
         labels_2[np.array(axes[1])] = labels
