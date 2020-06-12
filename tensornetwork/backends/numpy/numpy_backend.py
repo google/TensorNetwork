@@ -41,7 +41,7 @@ class NumPyBackend(base_backend.BaseBackend):
         labels_2[np.array(axes[1])] = labels
         einsum_label = ','.join([''.join(labels_1), ''.join(labels_2)])
         return np.array(np.einsum(einsum_label, a, b, optimize=True))
-
+      return np.tensordot(a, b, axes)
     return np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
