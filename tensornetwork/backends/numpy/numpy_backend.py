@@ -452,11 +452,3 @@ class NumPyBackend(base_backend.BaseBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
-
-  def sum(self, tensor: Tensor, axis: Optional[Sequence[int]] = None) -> Tensor:
-    return np.sum(tensor, axis=axis)
-
-  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
-      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
-    return np.matmul(tensor1, tensor2)

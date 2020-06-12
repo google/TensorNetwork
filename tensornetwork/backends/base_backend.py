@@ -607,38 +607,3 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
-  
-  def sum(self, tensor: Tensor, axis: Optional[Sequence[int]] = None) -> Tensor:
-    """
-    Sum elements of `tensor` along the specified `axis`. Results in a
-    new Tensor with the summed axis removed.
-    Args:
-      tensor: An input tensor.
-    Returns:
-      tensor: The result of performing the summation. The order of the tensor 
-        will be reduced by 1.
-    """
-    raise NotImplementedError("Backend '{}' has not implemented `sum`.".format(
-        self.name))
-
-  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    """
-    Perform a possibly batched matrix-matrix multiplication 
-    between `tensor1` and `tensor2`. The following behaviour 
-    is similar to `numpy.matmul`:
-    - If both arguments are 2-D they are multiplied like conventional
-      matrices.
-    - If either argument is N-D, N > 2, it is treated as a stack of
-      matrices residing in the last two indexes and broadcast accordingly.
-    Both arguments to `matmul` have to be tensors of order >= 2.
-    Args:
-      tensor: An input tensor.
-    Returns:
-      tensor: The result of performing the summation. The order of the tensor 
-        will be reduced by 1.
-    """
-
-  
-    
-
-
