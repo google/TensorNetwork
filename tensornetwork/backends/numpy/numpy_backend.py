@@ -31,7 +31,7 @@ class NumPyBackend(base_backend.BaseBackend):
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
     # use einsum for scalar-like products, its much faster
     if not isinstance(axes, int):
-      if len(axes[0]) == a.ndim:
+      if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
         if not len(axes[0]) == len(axes[1]):
           raise ValueError("shape-mismatch for sum")
         
@@ -40,6 +40,7 @@ class NumPyBackend(base_backend.BaseBackend):
         labels = int_to_string[u]
         labels_1 = labels[pos1]
         labels_2 = np.array([''] * len(labels_1))
+
         labels_2[np.array(axes[1])] = labels
         einsum_label = ','.join([''.join(labels_1), ''.join(labels_2)])
         return np.array(np.einsum(einsum_label, a, b, optimize=True))
