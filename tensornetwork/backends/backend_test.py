@@ -256,7 +256,7 @@ def test_base_backend_outer_product_not_implemented():
 def test_base_backend_einsul_not_implemented():
   backend = BaseBackend()
   with pytest.raises(NotImplementedError):
-    backend.einsum("ii", np.ones((2, 2)))
+    backend.einsum("ii", np.ones((2, 2)), optimize=True)
 
 
 def test_base_backend_norm_not_implemented():
