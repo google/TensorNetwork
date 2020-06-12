@@ -130,8 +130,11 @@ class JaxBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return jnp.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return jnp.einsum(expression, *tensors)
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
+    return jnp.einsum(expression, *tensors, optimize=optimize)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return jnp.linalg.norm(tensor)

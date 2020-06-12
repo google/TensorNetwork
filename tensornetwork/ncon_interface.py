@@ -22,6 +22,9 @@ from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
+int_to_cap_string = np.array(list(map(chr, list(range(65, 91)))))
+int_to_low_string = np.array(list(map(chr, list(range(97, 123)))))
+
 
 def _get_cont_out_labels(
     network_structure: List[List]) -> Tuple[List, List, List, List]:
