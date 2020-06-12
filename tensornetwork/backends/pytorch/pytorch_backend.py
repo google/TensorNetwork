@@ -263,7 +263,6 @@ class PyTorchBackend(base_backend.BaseBackend):
       A_vector_n = A(vector_n, *args)
       diag_elements.append(vector_n.contiguous().view(-1).dot(
           A_vector_n.contiguous().view(-1)))
-
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
         A_tridiag = torchlib.diag(
