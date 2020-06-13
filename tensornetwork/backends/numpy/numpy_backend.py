@@ -34,10 +34,10 @@ class NumPyBackend(base_backend.BaseBackend):
       if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
         if not len(axes[0]) == len(axes[1]):
           raise ValueError("shape-mismatch for sum")
-        
+
         u, pos1, _ = np.intersect1d(
             axes[0], axes[1], return_indices=True, assume_unique=True)
-        labels = int_to_string[u]
+        labels = int_to_string[0:len(u)]
         labels_1 = labels[pos1]
         labels_2 = np.array([''] * len(labels_1))
 
