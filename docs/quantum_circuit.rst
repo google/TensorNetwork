@@ -10,7 +10,7 @@ To get started, lets create a `|0>` state by using 1 node.
 .. code-block:: python3
 
   import tensornetwork as tn
-  import numpy as np 
+  import numpy as np
 
   state = tn.Node(np.array([1.0 + 0.0j, 0.0 + 0.0j]))
 
@@ -54,17 +54,19 @@ Here, we create an initial `|00>` state and evolve to a `|00> + |11>` bell state
       qubit_edges[bit] = op[i + len(operating_qubits)]
 
   # These are just numpy arrays of the operators.
-  # The definitions have been removed for simplicity.
-  H = np.array(...)
-  CNOT = np.array(...)
+  H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+  CNOT = np.zeros((2, 2, 2, 2), dtype=complex)
+  CNOT[0][0][0][0] = 1
+  CNOT[0][1][0][1] = 1
+  CNOT[1][0][1][1] = 1
+  CNOT[1][1][1][0] = 1
   all_nodes = []
-  # NodeCollection allows us to store all of the nodes create under this context.
+  # NodeCollection allows us to store all of the nodes created under this context.
   with tn.NodeCollection(all_nodes):
-    # Create the in
     state_nodes = [
-        tn.Node(np.array([1.0 + 0.0j, 0.0 + 0.0j],) for _ in range(2)
+        tn.Node(np.array([1.0 + 0.0j, 0.0 + 0.0j],)) for _ in range(2)
     ]
-    qubits = [state_nodes[0] for node in nodes]
+    qubits = [node[0] for node in state_nodes]
     apply_gate(qubits, H, [0])
     apply_gate(qubits, CNOT, [0, 1])
   # We can contract the entire tensornetwork easily with a contractor algorithm
