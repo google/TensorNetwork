@@ -18,12 +18,12 @@ from __future__ import print_function
 import numpy as np
 import functools
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
-# pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj
+from tensornetwork.linalg.linalg import conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
+from tensornetwork.backends.base_backend import BaseBackend
 Tensor = Any
 
 
@@ -31,8 +31,7 @@ class FiniteMPS(BaseMPS):
   """An MPS class for finite systems.
 
 
-  MPS tensors are stored as a list of `Node` objects in the `FiniteMPS.nodes`
-  attribute.
+  MPS tensors are stored as a list.
   `FiniteMPS` has a central site, also called orthogonality center.
   The position of this central site is stored in `FiniteMPS.center_position`,
   and it can be be shifted using the `FiniteMPS.position` method.
@@ -52,14 +51,17 @@ class FiniteMPS(BaseMPS):
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
-               center_position: Optional[int] = 0,
+               tensors: List[Tensor],
+               center_position: Optional[int] = None,
                canonicalize: Optional[bool] = True,
-               backend: Optional[Text] = None) -> None:
-    """Initialize a `FiniteMPS`.
+               backend: Optional[Union[BaseBackend, Text]] = None) -> None:
+    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state is brought
+       into canonical form, with `BaseMPS.center_position` at `center_position`.
+       if `center_position` is `None` and `canonicalize = True`, 
+       `BaseMPS.center_position` is set to 0.
 
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
       canonicalize: If `True` the mps is canonicalized at initialization.
       backend: The name of the backend that should be used to perform
@@ -73,9 +75,9 @@ class FiniteMPS(BaseMPS):
         connector_matrix=None,
         backend=backend)
     if canonicalize:
-      if center_position == 0:
+      if (center_position is None) or (center_position == 0):
         self.center_position = len(self) - 1
-        self.position(center_position)
+        self.position(0)
       elif center_position == len(self) - 1:
         self.center_position = 0
         self.position(center_position)
@@ -89,7 +91,7 @@ class FiniteMPS(BaseMPS):
              d: List[int],
              D: List[int],
              dtype: Type[np.number],
-             backend: Optional[Text] = None):
+             backend: Optional[Union[BaseBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
 
@@ -114,23 +116,30 @@ class FiniteMPS(BaseMPS):
     return cls(tensors=tensors, center_position=0, backend=backend)
 
   # pylint: disable=arguments-differ
-  def canonicalize(self, normalize: Optional[bool] = True) -> np.number:
+  def canonicalize(self, normalize: bool = True) -> np.number:
     """Bring the MPS into canonical form according to
-    `FiniteMPS.center_position`.
-
-    Assuming nothing about the content of the current tensors, brings the
-    tensors into canonical form with a center site at
-    `FiniteMPS.center_position`.
+    `center_position`. If `center_position` is `None`, the 
+    MPS is canonicalized with `center_position = 0`.
 
     Args:
-      normalize: If `True`, normalize matrices when shifting.
+      normalize: If `True`, normalize matrices when shifting the 
+        orthogonality center.
     Returns:
       `Tensor`: The norm of the MPS.
     """
-    pos = self.center_position
-    self.position(0, normalize=False)
-    self.position(len(self.nodes) - 1, normalize=False)
-    return self.position(pos, normalize=normalize)
+    N = len(self.tensors)
+    if self.center_position is not None:
+      pos = self.center_position
+      if pos >= N // 2:
+        self.center_position = 0
+        self.position(N - 1, normalize=normalize)
+      else:
+        self.center_position = len(self.tensors) - 1
+        self.position(0, normalize=normalize)
+      return self.position(pos, normalize=normalize)
+
+    self.center_position = len(self.tensors) - 1
+    return self.position(0, normalize=normalize)
 
   def check_canonical(self) -> Tensor:
     """Check whether the MPS is in the expected canonical form.
@@ -138,8 +147,11 @@ class FiniteMPS(BaseMPS):
     Returns:
       The L2 norm of the vector of local deviations.
     """
+    if self.center_position is None:
+      raise ValueError(
+          "FiniteMPS.center_positions is `None`. Cannot check canonical form.")
     deviations = []
-    for site in range(len(self.nodes)):
+    for site in range(len(self.tensors)):
       if site < self.center_position:
         deviation = self.check_orthonormality('l', site)
       elif site > self.center_position:
@@ -163,6 +175,10 @@ class FiniteMPS(BaseMPS):
     sites = np.array(sites)  #enable logical indexing
     if len(sites) == 0:
       return {}
+    if self.center_position is not None:
+      center_position = self.center_position
+    else:
+      center_position = 0
 
     n2 = np.max(sites)
 
@@ -175,26 +191,26 @@ class FiniteMPS(BaseMPS):
 
     # left-reduced density matrices to the left of `center_position`
     # (including center_position) are all identities
-    left_sites = sites[sites <= self.center_position]
+    left_sites = sites[sites <= center_position]
     left_envs = {}
     for site in left_sites:
       left_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[0], dtype=self.dtype),
+          self.backend.eye(N=self.tensors[site].shape[0], dtype=self.dtype),
           backend=self.backend)
 
     # left reduced density matrices at sites > center_position
     # have to be calculated from a network contraction
-    if n2 > self.center_position:
+    if n2 > center_position:
       nodes = {}
       conj_nodes = {}
-      for site in range(self.center_position, n2):
-        nodes[site] = Node(self.nodes[site], backend=self.backend)
-        conj_nodes[site] = conj(self.nodes[site])
+      for site in range(center_position, n2):
+        nodes[site] = Node(self.tensors[site], backend=self.backend)
+        conj_nodes[site] = conj(nodes[site])
 
-      nodes[self.center_position][0] ^ conj_nodes[self.center_position][0]
-      nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
+      nodes[center_position][0] ^ conj_nodes[center_position][0]
+      nodes[center_position][1] ^ conj_nodes[center_position][1]
 
-      for site in range(self.center_position + 1, n2):
+      for site in range(center_position + 1, n2):
         nodes[site][0] ^ nodes[site - 1][2]
         conj_nodes[site][0] ^ conj_nodes[site - 1][2]
         nodes[site][1] ^ conj_nodes[site][1]
@@ -202,19 +218,19 @@ class FiniteMPS(BaseMPS):
       edges = {site: node[2] for site, node in nodes.items()}
       conj_edges = {site: node[2] for site, node in conj_nodes.items()}
 
-      left_env = contract_between(nodes[self.center_position],
-                                  conj_nodes[self.center_position])
+      left_env = contract_between(nodes[center_position],
+                                  conj_nodes[center_position])
       left_env.reorder_edges(
-          [edges[self.center_position], conj_edges[self.center_position]])
-      if self.center_position + 1 in sites:
-        left_envs[self.center_position + 1] = left_env
-      for site in range(self.center_position + 1, n2):
+          [edges[center_position], conj_edges[center_position]])
+      if center_position + 1 in sites:
+        left_envs[center_position + 1] = left_env
+      for site in range(center_position + 1, n2):
         left_env = contract_between(left_env, nodes[site])
         left_env = contract_between(left_env, conj_nodes[site])
         if site + 1 in sites:
           left_env.reorder_edges([edges[site], conj_edges[site]])
           left_envs[site + 1] = left_env
-    return left_envs
+    return {k: v.tensor for k, v in left_envs.items()}
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     """Compute right reduced density matrices for site `sites. This returns a
@@ -231,6 +247,11 @@ class FiniteMPS(BaseMPS):
     if len(sites) == 0:
       return {}
 
+    if self.center_position is not None:
+      center_position = self.center_position
+    else:
+      center_position = len(self.tensors) - 1
+
     n1 = np.min(sites)
     #check if all elements of `sites` are within allowed range
     if not np.all(sites < len(self)):
@@ -241,26 +262,26 @@ class FiniteMPS(BaseMPS):
 
     # right-reduced density matrices to the right of `center_position`
     # (including center_position) are all identities
-    right_sites = sites[sites >= self.center_position]
+    right_sites = sites[sites >= center_position]
     right_envs = {}
     for site in right_sites:
       right_envs[site] = Node(
-          self.backend.eye(N=self.nodes[site].shape[2], dtype=self.dtype),
+          self.backend.eye(N=self.tensors[site].shape[2], dtype=self.dtype),
           backend=self.backend)
 
     # right reduced density matrices at sites < center_position
     # have to be calculated from a network contraction
-    if n1 < self.center_position:
+    if n1 < center_position:
       nodes = {}
       conj_nodes = {}
-      for site in reversed(range(n1 + 1, self.center_position + 1)):
-        nodes[site] = Node(self.nodes[site], backend=self.backend)
-        conj_nodes[site] = conj(self.nodes[site])
+      for site in reversed(range(n1 + 1, center_position + 1)):
+        nodes[site] = Node(self.tensors[site], backend=self.backend)
+        conj_nodes[site] = conj(nodes[site])
 
-      nodes[self.center_position][2] ^ conj_nodes[self.center_position][2]
-      nodes[self.center_position][1] ^ conj_nodes[self.center_position][1]
+      nodes[center_position][2] ^ conj_nodes[center_position][2]
+      nodes[center_position][1] ^ conj_nodes[center_position][1]
 
-      for site in reversed(range(n1 + 1, self.center_position)):
+      for site in reversed(range(n1 + 1, center_position)):
         nodes[site][2] ^ nodes[site + 1][0]
         conj_nodes[site][2] ^ conj_nodes[site + 1][0]
         nodes[site][1] ^ conj_nodes[site][1]
@@ -268,20 +289,19 @@ class FiniteMPS(BaseMPS):
       edges = {site: node[0] for site, node in nodes.items()}
       conj_edges = {site: node[0] for site, node in conj_nodes.items()}
 
-      right_env = contract_between(nodes[self.center_position],
-                                   conj_nodes[self.center_position])
-      if self.center_position - 1 in sites:
+      right_env = contract_between(nodes[center_position],
+                                   conj_nodes[center_position])
+      if center_position - 1 in sites:
         right_env.reorder_edges(
-            [edges[self.center_position], conj_edges[self.center_position]])
-        right_envs[self.center_position - 1] = right_env
-      for site in reversed(range(n1 + 1, self.center_position)):
+            [edges[center_position], conj_edges[center_position]])
+        right_envs[center_position - 1] = right_env
+      for site in reversed(range(n1 + 1, center_position)):
         right_env = contract_between(right_env, nodes[site])
         right_env = contract_between(right_env, conj_nodes[site])
         if site - 1 in sites:
           right_env.reorder_edges([edges[site], conj_edges[site]])
           right_envs[site - 1] = right_env
-
-    return right_envs
+    return {k: v.tensor for k, v in right_envs.items()}
 
   def save(self, path: str):
     raise NotImplementedError()

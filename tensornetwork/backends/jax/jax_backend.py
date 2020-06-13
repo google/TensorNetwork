@@ -16,11 +16,16 @@ from typing import Any, Optional, Tuple, Callable, List, Text, Type, Sequence
 from tensornetwork.backends import base_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
+from tensornetwork.backends.jax import jitted_functions
+from functools import partial
 
 Tensor = Any
 
-
 # pylint: disable=abstract-method
+
+_CACHED_MATVECS = {}
+
+
 class JaxBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -222,6 +227,113 @@ class JaxBackend(base_backend.BaseBackend):
     return libjax.random.uniform(
         key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
+  def eigsh_lanczos(
+      self,
+      A: Callable,
+      args: Optional[List[Tensor]] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple] = None,
+      dtype: Optional[Type[np.number]] = None,
+      num_krylov_vecs: int = 20,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      delta: float = 1E-8,
+      ndiag: int = 10,
+      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+    """
+    Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` is a function implementing the matrix-vector
+    product. 
+    WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
+    at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
+    if the python `id` of `A` changes, even if the formal definition of `A` 
+    stays the same. 
+    Example: the following will jit once at the beginning, and then never again:
+
+    ```python
+    import jax
+    import numpy as np
+    def A(H,x):
+      return jax.np.dot(H,x)
+    for n in range(100):
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh_lanczos(A, [H],x) #jitting is triggerd only at `n=0`
+    ```
+
+    The following code triggers jitting at every iteration, which 
+    results in considerably reduced performance
+
+    ```python
+    import jax
+    import numpy as np
+    for n in range(100):
+      def A(H,x):
+        return jax.np.dot(H,x)
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh_lanczos(A, [H],x) #jitting is triggerd at every step `n`
+    ```
+    
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the Lanczos algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not 
+        guaranteed. This feature may be added at a later point.
+      delta: Stopping criterion for Lanczos iteration.
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
+        been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
+        to check convergence. This has currently no effect for the jax backend, 
+        but may be added at a later point.
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
+        explicit orthogonalization (more costly than `reorthogonalize=False`)
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` lowest eigenvalues
+       eigvecs: A list of `numeig` lowest eigenvectors
+    """
+    if args is None:
+      args = []
+    if num_krylov_vecs < numeig:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
+    if numeig > 1 and not reorthogonalize:
+      raise ValueError(
+          "Got numeig = {} > 1 and `reorthogonalize = False`. "
+          "Use `reorthogonalize=True` for `numeig > 1`".format(numeig))
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
+
+    if not isinstance(initial_state, jnp.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
+    if not hasattr(self, '_jaxlan'):
+      # pylint: disable=attribute-defined-outside-init
+      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
+
+    return self._jaxlan(_CACHED_MATVECS[A], args, initial_state,
+                        num_krylov_vecs, numeig, delta, reorthogonalize)
+
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)
 
@@ -287,3 +399,6 @@ class JaxBackend(base_backend.BaseBackend):
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
     return jsp.linalg.expm(matrix)
+
+  def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
+    return libjax.jit(fun, *args, **kwargs)

@@ -1,12 +1,12 @@
-# pytype: skip-file
-"""Tests for graphmode_tensornetwork."""
 import tensorflow as tf
 import numpy as np
 import scipy as sp
 import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
-
+import jax.config as config
+# pylint: disable=no-member
+config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 
@@ -299,11 +299,145 @@ def test_base_backend_eigs_not_implemented():
     backend.eigs(tensor)
 
 
-def test_base_backend_eigsh_lanczos_not_implemented():
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_valid_init_operator_with_shape(dtype):
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn((4, 2, 3), dtype=np.float64)
-  with pytest.raises(NotImplementedError):
-    backend.eigsh_lanczos(tensor)
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+def test_eigsh_small_number_krylov_vectors():
+  backend = jax_backend.JaxBackend()
+  init = np.array([1, 1], dtype=np.float64)
+  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta1[0], 5)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_1(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_2(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
+  eta2, U2 = np.linalg.eigh(H)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("numeig", [1, 2, 3, 4])
+def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
+  backend = jax_backend.JaxBackend()
+  D = 24
+  np.random.seed(10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta1, U1 = backend.eigsh_lanczos(
+      mv, [H],
+      shape=(D,),
+      dtype=dtype,
+      numeig=numeig,
+      num_krylov_vecs=D,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=1E-12,
+      delta=1E-12)
+  eta2, U2 = np.linalg.eigh(H)
+
+  np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
+  for n in range(numeig):
+    v2 = U2[:, n]
+    v2 /= np.sum(v2)  #fix phases
+    v1 = np.reshape(U1[n], (D))
+    v1 /= np.sum(v1)
+
+    np.testing.assert_allclose(v1, v2, rtol=1E-5, atol=1E-5)
+
+
+def test_eigsh_lanczos_raises():
+  backend = jax_backend.JaxBackend()
+  with pytest.raises(
+      ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
+  with pytest.raises(
+      ValueError,
+      match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
+      "Use `reorthogonalize=True` for `numeig > 1`"):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(
+      TypeError, match="Expected a `jax.array`. Got <class 'list'>"):
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -396,3 +530,36 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_jit():
+  backend = jax_backend.JaxBackend()
+
+  def fun(x, A, y):
+    return jax.numpy.dot(x, jax.numpy.dot(A, y))
+
+  fun_jit = backend.jit(fun)
+  x = jax.numpy.array(np.random.rand(4))
+  y = jax.numpy.array(np.random.rand(4))
+  A = jax.numpy.array(np.random.rand(4, 4))
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  np.testing.assert_allclose(res1, res2)
+
+
+def test_jit_args():
+  backend = jax_backend.JaxBackend()
+
+  def fun(x, A, y):
+    return jax.numpy.dot(x, jax.numpy.dot(A, y))
+
+  fun_jit = backend.jit(fun)
+  x = jax.numpy.array(np.random.rand(4))
+  y = jax.numpy.array(np.random.rand(4))
+  A = jax.numpy.array(np.random.rand(4, 4))
+
+  res1 = fun(x, A, y)
+  res2 = fun_jit(x, A, y)
+  res3 = fun_jit(x, y=y, A=A)
+  np.testing.assert_allclose(res1, res2)
+  np.testing.assert_allclose(res1, res3)

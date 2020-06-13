@@ -20,94 +20,11 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect
+from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
-
-
-def norm(node: BaseNode) -> Tensor:
-  """The L2 norm of `node`
-
-  Args:
-    node: A `BaseNode`. 
-
-  Returns:
-    The L2 norm.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute.
-  """
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-  return node.backend.norm(node.tensor)
-
-
-def conj(node: BaseNode,
-         name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate a `node`.
-
-  Args:
-    node: A `BaseNode`.
-    name: Optional name to give the new node.
-    axis_names: Optional list of names for the axis.
-
-  Returns:
-    A new node. The complex conjugate of `node`.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute.
-  """
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-  backend = node.backend
-  if not axis_names:
-    axis_names = node.axis_names
-
-  return Node(
-      backend.conj(node.tensor),
-      name=name,
-      axis_names=axis_names,
-      backend=backend)
-
-
-def transpose(node: BaseNode,
-              permutation: Sequence[Union[Text, int]],
-              name: Optional[Text] = None,
-              axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Transpose `node`
-
-  Args:
-    node: A `BaseNode`.
-    permutation: A list of int or str. The permutation of the axis.
-    name: Optional name to give the new node.
-    axis_names: Optional list of names for the axis.
-
-  Returns:
-    A new node. The transpose of `node`.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute, or if
-      `node` has no tensor.
-    ValueError: If either `permutation` is not the same as expected or
-      if you try to permute with a trace edge.
-  """
-
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-
-  perm = [node.get_axis_number(p) for p in permutation]
-  if not axis_names:
-    axis_names = node.axis_names
-
-  new_node = Node(
-      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
-  return new_node.reorder_axes(perm)
 
 
 def copy(nodes: Iterable[BaseNode],
@@ -370,6 +287,7 @@ def split_node_qr(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -461,6 +379,7 @@ def split_node_rq(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -587,6 +506,7 @@ def split_node_full_svd(
   Raises:
     AttributeError: If `node` has no backend attribute
   """
+
   if not hasattr(node, 'backend'):
     raise AttributeError('Node {} of type {} has no `backend`'.format(
         node, type(node)))
@@ -871,3 +791,29 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
                                 "is '{}'".format(node.backend))
     node.tensor = backend.convert_to_tensor(node.tensor)
     node.backend = backend
+
+
+def get_neighbors(node: BaseNode) -> List[Node]:
+  """Get all of the neighbors that are directly connected to the given node.
+
+  Note: `node` will never be in the returned list, even if `node` has a
+  trace edge.
+
+  Args:
+    node: A node.
+
+  Returns:
+    All of the neighboring edges that share an `Edge` with `node`.
+  """
+  neighbors = []
+  neighbors_set = set()
+  for edge in node.edges:
+    if not edge.is_dangling() and not edge.is_trace():
+      if edge.node1 is node:
+        if edge.node2 not in neighbors_set:
+          neighbors.append(edge.node2)
+          neighbors_set.add(edge.node2)
+      elif edge.node1 not in neighbors_set:
+        neighbors.append(edge.node1)
+        neighbors_set.add(edge.node1)
+  return neighbors

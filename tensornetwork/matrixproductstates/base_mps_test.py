@@ -71,6 +71,24 @@ def test_backend_initialization(backend):
   np.testing.assert_allclose(Z, 1.0)
 
 
+def test_backend_initialization_raises(backend):
+  be = backend_factory.get_backend(backend)
+  D, d, N = 10, 2, 10
+  tensors = [np.random.randn(1, d, D)] + [
+      np.random.randn(D, d, D) for _ in range(N - 2)
+  ] + [np.random.randn(D, d, 1)]
+  with pytest.raises(
+      ValueError,
+      match="`center_position = 10` is different from `None` and "
+      "not between 0 <= center_position < 10"):
+    BaseMPS(tensors, center_position=N, backend=be)
+  with pytest.raises(
+      ValueError,
+      match="`center_position = -1` is different from `None` and "
+      "not between 0 <= center_position < 10"):
+    BaseMPS(tensors, center_position=-1, backend=be)
+
+
 def test_left_orthonormalization(backend_dtype_values):
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -114,11 +132,12 @@ def test_apply_one_site_gate(backend_dtype_values):
       get_random_np((D, d, D), dtype) for _ in range(N - 2)
   ] + [get_random_np((D, d, 1), dtype)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
-  tensor = mps.nodes[5].tensor
+  tensor = mps.tensors[5]
   gate = get_random_np((2, 2), dtype)
+
   mps.apply_one_site_gate(gate, 5)
   actual = np.transpose(np.tensordot(tensor, gate, ([1], [1])), (0, 2, 1))
-  np.testing.assert_allclose(mps.nodes[5].tensor, actual)
+  np.testing.assert_allclose(mps.tensors[5], actual)
 
 
 def test_apply_two_site_gate(backend_dtype_values):
@@ -131,27 +150,20 @@ def test_apply_two_site_gate(backend_dtype_values):
   ] + [get_random_np((D, d, 1), dtype)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
   gate = get_random_np((2, 2, 2, 2), dtype)
-  tensor1 = mps.nodes[5].tensor
-  tensor2 = mps.nodes[6].tensor
+  tensor1 = mps.tensors[5]
+  tensor2 = mps.tensors[6]
 
   mps.apply_two_site_gate(gate, 5, 6)
   tmp = np.tensordot(tensor1, tensor2, ([2], [0]))
   actual = np.transpose(np.tensordot(tmp, gate, ([1, 2], [2, 3])), (0, 2, 3, 1))
-  mps.nodes[5][2] ^ mps.nodes[6][0]
-  order = [mps.nodes[5][0], mps.nodes[5][1], mps.nodes[6][1], mps.nodes[6][2]]
-  res = tn.contract_between(mps.nodes[5], mps.nodes[6])
+  node1 = tn.Node(mps.tensors[5], backend=backend)
+  node2 = tn.Node(mps.tensors[6], backend=backend)
+
+  node1[2] ^ node2[0]
+  order = [node1[0], node1[1], node2[1], node2[2]]
+  res = tn.contract_between(node1, node2)
   res.reorder_edges(order)
   np.testing.assert_allclose(res.tensor, actual)
-
-
-def test_mps_switch_backend(backend):
-  D, d, N = 10, 2, 10
-  tensors = [get_random_np((1, d, D), np.float64)] + [
-      get_random_np((D, d, D), np.float64) for _ in range(N - 2)
-  ] + [get_random_np((D, d, 1), np.float64)]
-  mps = BaseMPS(tensors, center_position=0, backend="numpy")
-  mps.switch_backend(backend)
-  assert mps.backend.name == backend
 
 
 def test_position_raises_error(backend):
@@ -160,10 +172,21 @@ def test_position_raises_error(backend):
       np.random.randn(D, d, D) for _ in range(N - 2)
   ] + [np.random.randn(D, d, 1)]
   mps = BaseMPS(tensors, center_position=0, backend=backend)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match="site = -1 not between values"
+      " 0 < site < N = 10"):
     mps.position(-1)
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError, match="site = 11 not between values"
+      " 0 < site < N = 10"):
     mps.position(11)
+  mps = BaseMPS(tensors, center_position=None, backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="BaseMPS.center_position is"
+      " `None`, cannot shift `center_position`."
+      "Reset `center_position` manually or use `canonicalize`"):
+    mps.position(1)
 
 
 def test_position_no_normalization(backend):
@@ -211,24 +234,23 @@ def test_position_no_shift_no_normalization(backend):
   np.testing.assert_allclose(Z, 5.656854)
 
 
-def test_different_backends_raises_error():
-  D, d = 4, 2
-  tensors = [np.ones((1, d, D))]
-  mps1 = BaseMPS(tensors, backend='numpy')
-  mps2 = BaseMPS(tensors, backend='tensorflow')
-  mps1.nodes = mps1.nodes + mps2.nodes
-  with pytest.raises(ValueError):
-    mps1.backend
-
-
 def test_different_dtypes_raises_error():
   D, d = 4, 2
   tensors = [
       np.ones((1, d, D), dtype=np.float64),
       np.ones((D, d, D), dtype=np.complex64)
   ]
-  mps = BaseMPS(tensors, backend='numpy')
-  with pytest.raises(ValueError):
+  with pytest.raises(TypeError):
+    BaseMPS(tensors, backend='numpy')
+
+  _tensors = [
+      np.ones((1, d, D), dtype=np.float64),
+      np.ones((D, d, D), dtype=np.float64)
+  ]
+
+  mps = BaseMPS(_tensors, backend='numpy')
+  mps.tensors = tensors
+  with pytest.raises(TypeError):
     mps.dtype
 
 
@@ -265,12 +287,11 @@ def test_apply_transfer_operator_left(backend):
   mps = BaseMPS(tensors, backend=backend)
 
   expected = np.array([[74., 58., 38.], [78., 146., 102.], [38., 114., 74.]])
-  actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction=1, matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="l", matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(
-      site=3, direction="left", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="left", matrix=mat)
   np.testing.assert_allclose(actual, expected)
 
 
@@ -286,12 +307,11 @@ def test_apply_transfer_operator_right(backend):
   mps = BaseMPS(tensors, backend=backend)
   expected = np.array([[80., -20., 128.], [-20., 10., -60.], [144., -60.,
                                                               360.]])
-  actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction=-1, matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="r", matrix=mat)
   np.testing.assert_allclose(actual, expected)
-  actual = mps.apply_transfer_operator(
-      site=3, direction="right", matrix=mat).tensor
+  actual = mps.apply_transfer_operator(site=3, direction="right", matrix=mat)
   np.testing.assert_allclose(actual, expected)
 
 
@@ -340,37 +360,37 @@ def test_measure_two_body_correlator_value_error(backend):
         op1=operator, op2=operator, site1=-1, sites2=[2])
 
 
-def test_get_node(backend):
+def test_get_tensor(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend)
-  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-  np.testing.assert_allclose(mps.get_node(1).tensor, tensor2)
+  np.testing.assert_allclose(mps.get_tensor(0), tensor1)
+  np.testing.assert_allclose(mps.get_tensor(1), tensor2)
 
 
-def test_get_node_connector_matrix(backend):
+def test_get_tensor_connector_matrix(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   connector = backend.convert_to_tensor(np.ones((2, 2), dtype=np.float64))
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend, connector_matrix=connector)
-  np.testing.assert_allclose(mps.get_node(0).tensor, tensor1)
-  np.testing.assert_allclose(mps.get_node(1).tensor, 2 * tensor2)
+  np.testing.assert_allclose(mps.get_tensor(0), tensor1)
+  np.testing.assert_allclose(mps.get_tensor(1), 2 * tensor2)
 
 
-def test_get_node_raises_error(backend):
+def test_get_tensor_raises_error(backend):
   backend = backend_factory.get_backend(backend)
   tensor1 = np.ones((2, 3, 2), dtype=np.float64)
   tensor2 = 2 * np.ones((2, 3, 2), dtype=np.float64)
   tensors = [tensor1, tensor2]
   mps = BaseMPS(tensors, backend=backend)
   with pytest.raises(ValueError):
-    mps.get_node(site=-1)
+    mps.get_tensor(site=-1)
   with pytest.raises(IndexError):
-    mps.get_node(site=3)
+    mps.get_tensor(site=3)
 
 
 def test_check_canonical(backend):
@@ -407,12 +427,10 @@ def test_apply_two_site_gate_2(backend):
       gate=gate, site1=1, site2=2, max_singular_values=1)
   np.testing.assert_allclose(actual[0], 9.133530)
   expected = np.array([[5.817886], [9.039142]])
-  np.testing.assert_allclose(
-      np.abs(mps.nodes[1].tensor[0]), expected, rtol=1e-04)
+  np.testing.assert_allclose(np.abs(mps.tensors[1][0]), expected, rtol=1e-04)
   expected = np.array([[0.516264, 0.080136, 0.225841],
                        [0.225841, 0.59876, 0.516264]])
-  np.testing.assert_allclose(
-      np.abs(mps.nodes[2].tensor[0]), expected, rtol=1e-04)
+  np.testing.assert_allclose(np.abs(mps.tensors[2][0]), expected, rtol=1e-04)
 
 
 def test_apply_two_site_wrong_gate_raises_error(backend):
@@ -496,7 +514,7 @@ def test_apply_one_site_gate_2(backend):
   gate = backend.convert_to_tensor(np.array([[0, 1], [1, 0]], dtype=np.float64))
   mps.apply_one_site_gate(gate=gate, site=1)
   expected = np.array([[1., -2., 1.], [1., 2., 1.]])
-  np.testing.assert_allclose(mps.nodes[1].tensor[0], expected)
+  np.testing.assert_allclose(mps.tensors[1][0], expected)
 
 
 def test_apply_one_site_gate_wrong_gate_raises_error(backend):

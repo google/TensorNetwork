@@ -164,8 +164,8 @@ class BaseCharge:
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
-    return str(
-        type(self)) + '\n' + 'charges: \n' + self.charges.__repr__() + '\n'
+    return 'BaseCharge object:' + '\n charge types: ' + self.names + '\n charges:' + str(
+        self.charges).replace('\n', '\n\t ') + '\n'
 
   def __iter__(self):
     return self.Iterator(self.unique_charges, self.charge_labels)
@@ -527,6 +527,10 @@ class BaseCharge:
         np.logical_or.reduce(np.logical_and.reduce(tmp, axis=0), axis=1))[0]
 
     return np.isin(self.charge_labels, inds)
+
+  @property
+  def names(self):
+    return repr([ct.__new__(ct).__class__.__name__ for ct in self.charge_types])
 
 
 class U1Charge(BaseCharge):

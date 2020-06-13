@@ -17,11 +17,16 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 # pylint: disable=line-too-long
-from tensornetwork.network_components import Node, contract, contract_between, BaseNode
+from tensornetwork.network_components import Node, contract_between
 # pylint: disable=line-too-long
-from tensornetwork.network_operations import split_node_qr, split_node_rq, split_node_full_svd, norm, conj, switch_backend
-from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+from tensornetwork.network_operations import split_node_full_svd
+from tensornetwork.linalg.linalg import conj
+from tensornetwork.backends import backend_factory
+import warnings
+from tensornetwork.ncon_interface import ncon
+from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.base_backend import BaseBackend
+from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
 
@@ -31,20 +36,20 @@ class BaseMPS:
 
   Important attributes:
 
-    * `BaseMPS.nodes`: stores the tensors in a list of `Node` objects
-    * `BaseMPS.center_position`: the location of the orthogonality site
-    * `BaseMPS.connector_matrix`: a rank-2 `Tensor` stored in a `Node`.
-      `BaseMPS.connector_matrix` connects unit cells back to themselves.
+    * `BaseMPS.tensors`: A list of mps tensors.
+    * `BaseMPS.center_position`: The location of the orthogonality site
+    * `BaseMPS.connector_matrix`: A rank-2 `Tensor` stored in a `Node`.
+      `BaseMPS.connector_matrix` Connects unit cells back to themselves.
        To stack different unit cells, the `BaseMPS.connector_matrix` is
        absorbed into the rightmost (by convention) mps tensor prior
        to stacking.
 
-  To obtain a sequence of `Node` objects `[node_1,...,node_N]`
+  To obtain a sequence of `Tensor` objects `[tensor_1,...,tensor_N]`
   which can be arbitrarily stacked, i.e.
-  `stacked_nodes=[node_1,...,node_N, node_1, ..., node_N,...]`
-  use the `BaseMPS.get_node` function. This function automatically
-  absorbs `BaseNode.connector_matrix` into the correct `Node` object
-  to ensure that `Node`s (i.e. the mps tensors) can be consistently
+  `stacked_tensors=[tensor_1,...,tensor_N, tensor_1, ..., tensor_N,...]`
+  use the `BaseMPS.get_tensor` function. This function automatically
+  absorbs `BaseMPS.connector_matrix` into the correct `Tensoor` object
+  to ensure that `Tensors`s (i.e. the mps tensors) can be consistently
   stacked without gauge jumps.
 
   The orthogonality center can be be shifted using the
@@ -53,83 +58,126 @@ class BaseMPS:
   """
 
   def __init__(self,
-               tensors: List[Union[BaseNode, Tensor]],
-               center_position: Optional[int] = 0,
-               connector_matrix: Optional[Union[BaseNode, Tensor]] = None,
+               tensors: List[Tensor],
+               center_position: Optional[int] = None,
+               connector_matrix: Optional[Tensor] = None,
                backend: Optional[Union[Text, BaseBackend]] = None) -> None:
     """Initialize a BaseMPS.
 
     Args:
-      tensors: A list of `Tensor` or `BaseNode` objects.
+      tensors: A list of `Tensor` objects.
       center_position: The initial position of the center site.
-      connector_matrix: A `Tensor` or `BaseNode` of rank 2 connecting
+      connector_matrix: A `Tensor` of rank 2 connecting
         different unitcells. A value `None` is equivalent to an identity
         `connector_matrix`.
       backend: The name of the backend that should be used to perform
         contractions. Available backends are currently 'numpy', 'tensorflow',
         'pytorch', 'jax'
     """
-    if center_position < 0 or center_position >= len(tensors):
-      raise ValueError(
-          'center_position = {} not between 0 <= center_position < {}'.format(
-              center_position, len(tensors)))
+    if (center_position is not None) and (center_position < 0 or
+                                          center_position >= len(tensors)):
+      raise ValueError("`center_position = {}` is different from `None` and "
+                       "not between 0 <= center_position < {}".format(
+                           center_position, len(tensors)))
+    if backend is None:
+      backend = get_default_backend()
+    if isinstance(backend, BaseBackend):
+      self.backend = backend
+    else:
+      self.backend = backend_factory.get_backend(backend)
 
-    # we're no longer connecting MPS nodes because it's barely needed
     # the dtype is deduced from the tensor object.
-    self.nodes = [
-        Node(tensors[n], backend=backend, name='node{}'.format(n))
-        for n in range(len(tensors))
-    ]
+    self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
+    if not all(
+        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+      raise TypeError('not all dtypes in BaseMPS.tensors are the same')
 
-    self.connector_matrix = Node(
-        connector_matrix,
-        backend=backend) if connector_matrix is not None else connector_matrix
+    self.connector_matrix = connector_matrix
     self.center_position = center_position
 
-  def __len__(self):
-    return len(self.nodes)
+    ########################################################################
+    ##########       define functions for jitted operations       ##########
+    ########################################################################
+    def qr_decomposition(tensor):
+      return self.backend.qr_decomposition(tensor, 2)
+
+    self.qr_decomposition = self.backend.jit(qr_decomposition)
+
+    def rq_decomposition(tensor):
+      return self.backend.rq_decomposition(tensor, 1)
+
+    self.rq_decomposition = self.backend.jit(rq_decomposition)
+
+    def left_transfer_operator(A, l, Abar):
+      return ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
+                  backend=self.backend.name)
+
+    self.left_transfer_operator = self.backend.jit(left_transfer_operator)
+
+    def right_transfer_operator(B, r, Bbar):
+      return ncon([B, r, Bbar], [[-1, 2, 1], [1, 3], [-2, 2, 3]],
+                  backend=self.backend.name)
+
+    self.right_transfer_operator = self.backend.jit(right_transfer_operator)
+
+    def lcontract(R, tensor):
+      return ncon([R, tensor], [[-1, 1], [1, -2, -3]],
+                  backend=self.backend.name)
+
+    self.lcontract = self.backend.jit(lcontract)
+
+    def rcontract(tensor, R):
+      return ncon([tensor, R], [[-1, -2, 1], [1, -3]],
+                  backend=self.backend.name)
+
+    self.rcontract = self.backend.jit(rcontract)
+    self.norm = self.backend.jit(self.backend.norm)
+    ########################################################################
+    ########################################################################
+    ########################################################################
+
+  def __len__(self) -> int:
+    return len(self.tensors)
 
   def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
-    """Shift `FiniteMPS.center_position` to `site`.
+    """Shift `center_position` to `site`.
 
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
     Returns:
       `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
+    Raises:
+      ValueError: If `center_position` is `None`.
     """
+    if self.center_position is None:
+      raise ValueError(
+          "BaseMPS.center_position is `None`, cannot shift `center_position`."
+          "Reset `center_position` manually or use `canonicalize`")
+
     #`site` has to be between 0 and len(mps) - 1
-    if site >= len(self.nodes) or site < 0:
+    if site >= len(self.tensors) or site < 0:
       raise ValueError('site = {} not between values'
                        ' 0 < site < N = {}'.format(site, len(self)))
     #nothing to do
     if site == self.center_position:
-      Z = self.backend.norm(self.nodes[self.center_position].tensor)
+      Z = self.norm(self.tensors[self.center_position])
       if normalize:
-        self.nodes[self.center_position].tensor /= Z
+        self.tensors[self.center_position] /= Z
       return Z
 
     #shift center_position to the right using QR decomposition
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = split_node_qr(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0], self.nodes[n][1]],
-            right_edges=[self.nodes[n][2]],
-            left_name=self.nodes[n].name)
-        Q[2] | R[0]  #break the edge between Q and R
-        order = [R[0], self.nodes[n + 1][1], self.nodes[n + 1][2]]
-        R[1] ^ self.nodes[n + 1][0]  #connect R to the right node
-        self.nodes[n] = Q  #Q is a left-isometric tensor of rank 3
-        self.nodes[n + 1] = contract(R[1], name=self.nodes[n + 1].name)
-        self.nodes[n + 1].reorder_edges(order)
-        Z = norm(self.nodes[n + 1])
-
+        Q, R = self.qr_decomposition(self.tensors[n])
+        self.tensors[n] = Q
+        self.tensors[n + 1] = self.lcontract(R, self.tensors[n + 1])
+        Z = self.norm(self.tensors[n + 1])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         if normalize:
-          self.nodes[n + 1].tensor /= Z
+          self.tensors[n + 1] /= Z
 
       self.center_position = site
 
@@ -137,43 +185,26 @@ class BaseMPS:
     else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
-        R, Q = split_node_rq(
-            self.nodes[n],
-            left_edges=[self.nodes[n][0]],
-            right_edges=[self.nodes[n][1], self.nodes[n][2]],
-            right_name=self.nodes[n].name)
-        #print(self.nodes[n].shape, R.shape, Q.shape)
-        R[1] | Q[0]  #break the edge between R and Q
-        R[0] ^ self.nodes[n - 1][2]  #connect R to the left node
-        order = [self.nodes[n - 1][0], self.nodes[n - 1][1], R[1]]
-
+        R, Q = self.rq_decomposition(self.tensors[n])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
-        self.nodes[n] = Q  #Q is a right-isometric tensor of rank 3
-        self.nodes[n - 1] = contract(R[0], name=self.nodes[n - 1].name)
-        self.nodes[n - 1].reorder_edges(order)
-        Z = norm(self.nodes[n - 1])
+        self.tensors[n] = Q  #Q is a right-isometric tensor of rank 3
+        self.tensors[n - 1] = self.rcontract(self.tensors[n - 1], R)
+        Z = self.norm(self.tensors[n - 1])
         if normalize:
-          self.nodes[n - 1].tensor /= Z
+          self.tensors[n - 1] /= Z
 
       self.center_position = site
     #return the norm of the last R tensor (useful for checks)
     return Z
 
   @property
-  def backend(self):
-    if not all([
-        self.nodes[0].backend.name == node.backend.name for node in self.nodes
-    ]):
-      raise ValueError('not all backends in FiniteMPS.nodes are the same')
-    return self.nodes[0].backend
+  def dtype(self) -> Type[np.number]:
+    if not all(
+        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+      raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
-  @property
-  def dtype(self):
-    if not all([self.nodes[0].dtype == node.dtype for node in self.nodes]):
-      raise ValueError('not all dtype in FiniteMPS.nodes are the same')
-
-    return self.nodes[0].dtype
+    return self.tensors[0].dtype
 
   def save(self, path: str):
     raise NotImplementedError()
@@ -181,21 +212,13 @@ class BaseMPS:
   @property
   def bond_dimensions(self) -> List:
     """A list of bond dimensions of `BaseMPS`"""
-    return [self.nodes[0].shape[0]] + [node.shape[2] for node in self.nodes]
+    return [self.tensors[0].shape[0]] + [t.shape[2] for t in self.tensors]
 
   @property
   def physical_dimensions(self) -> List:
     """A list of physical Hilbert-space dimensions of `BaseMPS`"""
 
-    return [node.shape[1] for node in self.nodes]
-
-  def switch_backend(self, new_backend: Text) -> None:
-    """Change the backend of all the nodes in the MPS.
-
-    Args:
-      new_backend (str): The new backend.
-    """
-    switch_backend(self.nodes, new_backend)
+    return [t.shape[1] for t in self.tensors]
 
   def right_envs(self, sites: Sequence[int]) -> Dict:
     raise NotImplementedError()
@@ -204,11 +227,11 @@ class BaseMPS:
     raise NotImplementedError()
 
   def apply_transfer_operator(self, site: int, direction: Union[Text, int],
-                              matrix: Union[BaseNode, Tensor]) -> BaseNode:
+                              matrix: Tensor) -> Tensor:
     """Compute the action of the MPS transfer-operator at site `site`.
 
     Args:
-      site: a site of the MPS
+      site: A site of the MPS
       direction:
         * if `1, 'l'` or `'left'`: compute the left-action
           of the MPS transfer-operator at `site` on the input `matrix`.
@@ -216,27 +239,17 @@ class BaseMPS:
           of the MPS transfer-operator at `site` on the input `matrix`
       matrix: A rank-2 tensor or matrix.
     Returns:
-      `Node`: The result of applying the MPS transfer-operator to `matrix`
+      `Tensor`: The result of applying the MPS transfer-operator to `matrix`
     """
-    mat = Node(matrix, backend=self.backend)
-    node = self.get_node(site)
-    conj_node = conj(node)
-    node[1] ^ conj_node[1]
     if direction in (1, 'l', 'left'):
-      mat[0] ^ node[0]
-      mat[1] ^ conj_node[0]
-      edge_order = [node[2], conj_node[2]]
-    elif direction in (-1, 'r', 'right'):
-      mat[0] ^ node[2]
-      mat[1] ^ conj_node[2]
-      edge_order = [node[0], conj_node[0]]
-    else:
-      raise ValueError("direction must be one of {1, 'l', 'left', "
-                       "'-1', 'r', 'right'}")
-    result = mat @ node @ conj_node
-    return result.reorder_edges(edge_order)
+      return self.left_transfer_operator(self.tensors[site], matrix,
+                                         self.backend.conj(self.tensors[site]))
+    if direction in (-1, 'r', 'right'):
+      return self.right_transfer_operator(self.tensors[site], matrix,
+                                          self.backend.conj(self.tensors[site]))
+    raise ValueError(f'unknown value {direction} for direction')
 
-  def measure_local_operator(self, ops: List[Union[BaseNode, Tensor]],
+  def measure_local_operator(self, ops: List[Tensor],
                              sites: Sequence[int]) -> List:
     """Measure the expectation value of local operators `ops` site `sites`.
 
@@ -256,9 +269,9 @@ class BaseMPS:
     res = []
     for n, site in enumerate(sites):
       O = Node(ops[n], backend=self.backend)
-      R = right_envs[site]
-      L = left_envs[site]
-      A = Node(self.nodes[site], backend=self.backend)
+      R = Node(right_envs[site], backend=self.backend)
+      L = Node(left_envs[site], backend=self.backend)
+      A = Node(self.tensors[site], backend=self.backend)
       conj_A = conj(A)
       O[1] ^ A[1]
       O[0] ^ conj_A[1]
@@ -270,8 +283,7 @@ class BaseMPS:
       res.append(result.tensor)
     return res
 
-  def measure_two_body_correlator(self, op1: Union[BaseNode, Tensor],
-                                  op2: Union[BaseNode, Tensor], site1: int,
+  def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
                                   sites2: Sequence[int]) -> List:
     """
     Compute the correlator 
@@ -318,10 +330,10 @@ class BaseMPS:
     c = []
     if len(left_sites) > 0:
 
-      A = Node(self.nodes[site1], backend=self.backend)
+      A = Node(self.tensors[site1], backend=self.backend)
       O1 = Node(op1, backend=self.backend)
       conj_A = conj(A)
-      R = rs[site1]
+      R = Node(rs[site1], backend=self.backend)
       R[0] ^ A[2]
       R[1] ^ conj_A[2]
       A[1] ^ O1[1]
@@ -344,10 +356,10 @@ class BaseMPS:
 
       for n in range(site1 - 1, n1 - 1, -1):
         if n in left_sites:
-          A = Node(self.nodes[n % N], backend=self.backend)
+          A = Node(self.tensors[n % N], backend=self.backend)
           conj_A = conj(A)
           O2 = Node(op2, backend=self.backend)
-          L = ls[n % N]
+          L = Node(ls[n % N], backend=self.backend)
           L[0] ^ A[0]
           L[1] ^ conj_A[0]
           O2[0] ^ conj_A[1]
@@ -358,7 +370,9 @@ class BaseMPS:
           res = (((L @ A) @ O2) @ conj_A) @ R
           c.append(res.tensor)
         if n > n1:
-          R = self.apply_transfer_operator(n % N, 'right', R)
+          R = Node(
+              self.apply_transfer_operator(n % N, 'right', R.tensor),
+              backend=self.backend)
 
       c = list(reversed(c))
 
@@ -366,9 +380,9 @@ class BaseMPS:
     if site1 in sites2:
       O1 = Node(op1, backend=self.backend)
       O2 = Node(op2, backend=self.backend)
-      L = ls[site1]
-      R = rs[site1]
-      A = Node(self.nodes[site1], backend=self.backend)
+      L = Node(ls[site1], backend=self.backend)
+      R = Node(rs[site1], backend=self.backend)
+      A = Node(self.tensors[site1], backend=self.backend)
       conj_A = conj(A)
 
       O1[1] ^ O2[0]
@@ -384,9 +398,9 @@ class BaseMPS:
 
     # compute <op1(site1) op2(site2)> for site1 < site2
     if len(right_sites) > 0:
-      A = Node(self.nodes[site1], backend=self.backend)
+      A = Node(self.tensors[site1], backend=self.backend)
       conj_A = conj(A)
-      L = ls[site1]
+      L = Node(ls[site1], backend=self.backend)
       O1 = Node(op1, backend=self.backend)
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
@@ -409,8 +423,8 @@ class BaseMPS:
       #  ---A--........-- A*-------
       for n in range(site1 + 1, n2 + 1):
         if n in right_sites:
-          R = rs[n % N]
-          A = Node(self.nodes[n % N], backend=self.backend)
+          R = Node(rs[n % N], backend=self.backend)
+          A = Node(self.tensors[n % N], backend=self.backend)
           conj_A = conj(A)
           O2 = Node(op2, backend=self.backend)
           A[0] ^ L[0]
@@ -423,11 +437,13 @@ class BaseMPS:
           c.append(res.tensor)
 
         if n < n2:
-          L = self.apply_transfer_operator(n % N, 'left', L)
+          L = Node(
+              self.apply_transfer_operator(n % N, 'left', L.tensor),
+              backend=self.backend)
     return c
 
   def apply_two_site_gate(self,
-                          gate: Union[BaseNode, Tensor],
+                          gate: Tensor,
                           site1: int,
                           site2: int,
                           max_singular_values: Optional[int] = None,
@@ -474,35 +490,33 @@ class BaseMPS:
               self.center_position, site1, site2))
 
     gate_node = Node(gate, backend=self.backend)
-
-    self.nodes[site1][2] ^ self.nodes[site2][0]
-    gate_node[2] ^ self.nodes[site1][1]
-    gate_node[3] ^ self.nodes[site2][1]
-    left_edges = [self.nodes[site1][0], gate_node[0]]
-    right_edges = [gate_node[1], self.nodes[site2][2]]
-    result = self.nodes[site1] @ self.nodes[site2] @ gate_node
+    node1 = Node(self.tensors[site1], backend=self.backend)
+    node2 = Node(self.tensors[site2], backend=self.backend)
+    node1[2] ^ node2[0]
+    gate_node[2] ^ node1[1]
+    gate_node[3] ^ node2[1]
+    left_edges = [node1[0], gate_node[0]]
+    right_edges = [gate_node[1], node2[2]]
+    result = node1 @ node2 @ gate_node
     U, S, V, tw = split_node_full_svd(
         result,
         left_edges=left_edges,
         right_edges=right_edges,
         max_singular_values=max_singular_values,
         max_truncation_err=max_truncation_err,
-        left_name=self.nodes[site1].name,
-        right_name=self.nodes[site2].name)
+        left_name=node1.name,
+        right_name=node2.name)
     V.reorder_edges([S[1]] + right_edges)
     left_edges = left_edges + [S[1]]
-    self.nodes[site1] = contract_between(
-        U, S, name=U.name).reorder_edges(left_edges)
-    self.nodes[site2] = V
-    self.nodes[site1][2] | self.nodes[site2][0]
+    res = contract_between(U, S, name=U.name).reorder_edges(left_edges)
+    self.tensors[site1] = res.tensor
+    self.tensors[site2] = V.tensor
     return tw
 
-  def apply_one_site_gate(self, gate: Union[BaseNode, Tensor],
-                          site: int) -> None:
+  def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
     """Apply a one-site gate to an MPS. This routine will in general destroy
     any canonical form of the state. If a canonical form is needed, the user
     can restore it using `FiniteMPS.position`
-
     Args:
       gate: a one-body gate
       site: the site where the gate should be applied
@@ -513,12 +527,9 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    gate_node = Node(gate, backend=self.backend)
-    gate_node[1] ^ self.nodes[site][1]
-    edge_order = [self.nodes[site][0], gate_node[0], self.nodes[site][2]]
-    self.nodes[site] = contract_between(
-        gate_node, self.nodes[site],
-        name=self.nodes[site].name).reorder_edges(edge_order)
+    self.tensors[site] = ncon([gate, self.tensors[site]],
+                              [[-2, 1], [-1, 1, -3]],
+                              backend=self.backend.name)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
@@ -536,7 +547,9 @@ class BaseMPS:
       raise ValueError(
           "Wrong value `which`={}. "
           "`which` as to be 'l','left', 'r' or 'right.".format(which))
-    n1 = self.get_node(site)  #we need to absorb the connector_matrix
+    n1 = Node(
+        self.get_tensor(site),
+        backend=self.backend)  #we need to absorb the connector_matrix
     n2 = conj(n1)
     if which in ('l', 'left'):
       n1[0] ^ n2[0]
@@ -545,18 +558,23 @@ class BaseMPS:
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
     result = n1 @ n2
-    return self.backend.norm(
+    return self.norm(
         abs(result.tensor - self.backend.eye(
             N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
 
-  def check_canonical(self) -> Tensor:
-    """Check whether the MPS is in the expected canonical form.
-
+  # pylint: disable=inconsistent-return-statements
+  def check_canonical(self) -> Any:
+    """Check whether the MPS is in a canonical form.
+    If `center_position` is `None`, no check is performed.
     Returns:
       The L2 norm of the vector of local deviations.
     """
+    if self.center_position is None:
+      warnings.warn(
+          "BaseMPS.center_position is `None`. Skipping `check_canonical`")
+      return
     deviations = []
-    for site in range(len(self.nodes)):
+    for site in range(len(self.tensors)):
       if site < self.center_position:
         deviation = self.check_orthonormality('l', site)
       elif site > self.center_position:
@@ -566,17 +584,17 @@ class BaseMPS:
       deviations.append(deviation**2)
     return self.backend.sqrt(sum(deviations))
 
-  def get_node(self, site: int) -> BaseNode:
-    """Returns the `Node` object at `site`.
+  def get_tensor(self, site: int) -> Tensor:
+    """Returns the `Tensor` object at `site`.
 
     If `site==len(self) - 1` `BaseMPS.connector_matrix`
     is absorbed fromt the right-hand side into the returned
-    `Node` object.
+    `Tensor` object.
 
     Args:
       site: The site for which to return the `Node`.
     Returns:
-      `Node`: The node at `site`.
+      `Tensor`: The tensor at `site`.
     """
     if site >= len(self):
       raise IndexError(
@@ -587,16 +605,9 @@ class BaseMPS:
           'index `site` has to be larger than 0 (found `site`={}).'.format(
               site))
     if (site == len(self) - 1) and (self.connector_matrix is not None):
-      self.nodes[site][2] ^ self.connector_matrix[0]
-      order = [
-          self.nodes[site][0], self.nodes[site][1], self.connector_matrix[1]
-      ]
-      return contract_between(
-          self.nodes[site],
-          self.connector_matrix,
-          name=self.nodes[site].name,
-          output_edge_order=order)
-    return self.nodes[site]
+      return self.rcontract(self.tensors[site], self.connector_matrix)
+
+    return self.tensors[site]
 
   def canonicalize(self, *args, **kwargs) -> np.number:
     raise NotImplementedError()
