@@ -107,13 +107,14 @@ class AbstractNode(ABC):
     raise NotImplementedError("AbstractNode has not implemented addition ( + )")
 
   def __sub__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
-    raise NotImplementedError("AbstractNode has not implemented subtraction ( - )")
+    raise NotImplementedError(
+        "AbstractNode has not implemented subtraction ( - )")
 
   def __mul__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
     raise NotImplementedError("AbstractNode has not implemented multiply ( * )")
 
-  def __truediv__(self, other: Union[int, float, "AbstractNode"]
-                  ) -> "AbstractNode":
+  def __truediv__(self, other: Union[int, float,
+                                     "AbstractNode"]) -> "AbstractNode":
     raise NotImplementedError("AbstractNode has not implemented divide ( / )")
 
   @property
@@ -748,13 +749,14 @@ class CopyNode(AbstractNode):
     raise NotImplementedError("AbstractNode has not implemented addition ( + )")
 
   def __sub__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
-    raise NotImplementedError("AbstractNode has not implemented subtraction ( - )")
+    raise NotImplementedError(
+        "AbstractNode has not implemented subtraction ( - )")
 
   def __mul__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
     raise NotImplementedError("AbstractNode has not implemented multiply ( * )")
 
-  def __truediv__(self, other: Union[int, float, "AbstractNode"]
-                  ) -> "AbstractNode":
+  def __truediv__(self, other: Union[int, float,
+                                     "AbstractNode"]) -> "AbstractNode":
     raise NotImplementedError("AbstractNode has not implemented divide ( / )")
 
   @property
@@ -857,8 +859,8 @@ class CopyNode(AbstractNode):
   def _make_einsum_output_term(self, next_index: int) -> str:
     return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
-  def _make_einsum_expression(self, partners: Dict[AbstractNode, Set[int]]
-                              ) -> str:
+  def _make_einsum_expression(self, partners: Dict[AbstractNode,
+                                                   Set[int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
     einsum_input_terms = []
     for partner_node, shared_axes in partners.items():
@@ -1139,9 +1141,8 @@ class Edge:
     edge_group.create_dataset('name', data=self.name)
 
   @classmethod
-  def _load_edge(cls,
-                 edge_data: h5py.Group,
-                 nodes_dict: Dict[Text, AbstractNode]):
+  def _load_edge(cls, edge_data: h5py.Group, nodes_dict: Dict[Text,
+                                                              AbstractNode]):
     """load an edge based on hdf5 data.
 
     Args:

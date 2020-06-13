@@ -21,6 +21,7 @@ Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 
+
 class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -166,8 +167,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     dtype = dtype if dtype is not None else np.float64
     if ((np.dtype(dtype) is np.dtype(np.complex128)) or
         (np.dtype(dtype) is np.dtype(np.complex64))):
-      return np.random.randn(*shape).astype(
-          dtype) + 1j * np.random.randn(*shape).astype(dtype)
+      return np.random.randn(
+          *shape).astype(dtype) + 1j * np.random.randn(*shape).astype(dtype)
     return np.random.randn(*shape).astype(dtype)
 
   def random_uniform(self,

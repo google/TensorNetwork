@@ -387,8 +387,8 @@ class QuOperator():
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")
 
-  def __rmul__(self, other: Union["QuOperator", AbstractNode,
-                                  Tensor]) -> "QuOperator":
+  def __rmul__(
+      self, other: Union["QuOperator", AbstractNode, Tensor]) -> "QuOperator":
     """Scalar multiplication of operators.
 
     See `.__mul__()`.

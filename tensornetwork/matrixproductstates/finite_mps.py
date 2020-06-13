@@ -87,11 +87,12 @@ class FiniteMPS(BaseMPS):
         self.position(center_position)
 
   @classmethod
-  def random(cls,
-             d: List[int],
-             D: List[int],
-             dtype: Type[np.number],
-             backend: Optional[Union[AbstractBackend, Text]] = None) -> "FiniteMPS":
+  def random(
+      cls,
+      d: List[int],
+      D: List[int],
+      dtype: Type[np.number],
+      backend: Optional[Union[AbstractBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
 

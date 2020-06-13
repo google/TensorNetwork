@@ -33,8 +33,9 @@ _BACKENDS = {
 _INSTANTIATED_BACKENDS = dict()
 
 
-def get_backend(backend: Union[Text, abstract_backend.AbstractBackend]
-                ) -> abstract_backend.AbstractBackend:
+def get_backend(
+    backend: Union[Text, abstract_backend.AbstractBackend]
+) -> abstract_backend.AbstractBackend:
   if isinstance(backend, abstract_backend.AbstractBackend):
     return backend
   if backend not in _BACKENDS:

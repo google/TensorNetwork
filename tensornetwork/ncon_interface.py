@@ -23,6 +23,7 @@ Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
 
+
 def _get_cont_out_labels(
     network_structure: List[List]) -> Tuple[List, List, List, List]:
   """

@@ -85,9 +85,14 @@ def eye(N: int,
         Represents an array of all zeros except for the k'th diagonal of all
         ones.
   """
-  the_node = initialize_node("eye", N,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype, M=M)
+  the_node = initialize_node(
+      "eye",
+      N,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype,
+      M=M)
   return the_node
 
 
@@ -107,9 +112,13 @@ def zeros(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape`. Represents an array of all zeros.
   """
-  the_node = initialize_node("zeros", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype)
+  the_node = initialize_node(
+      "zeros",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype)
   return the_node
 
 
@@ -130,9 +139,13 @@ def ones(shape: Sequence[int],
     the_node : Node of shape `shape`
         Represents an array of all ones.
   """
-  the_node = initialize_node("ones", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype)
+  the_node = initialize_node(
+      "ones",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype)
   return the_node
 
 
@@ -154,19 +167,25 @@ def randn(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape` filled with Gaussian random data.
   """
-  the_node = initialize_node("randn", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             seed=seed, dtype=dtype)
+  the_node = initialize_node(
+      "randn",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      seed=seed,
+      dtype=dtype)
   return the_node
 
 
-def random_uniform(shape: Sequence[int],
-                   dtype: Optional[Type[np.number]] = None,
-                   seed: Optional[int] = None,
-                   boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-                   name: Optional[Text] = None,
-                   axis_names: Optional[List[Text]] = None,
-                   backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+def random_uniform(
+    shape: Sequence[int],
+    dtype: Optional[Type[np.number]] = None,
+    seed: Optional[int] = None,
+    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+    name: Optional[Text] = None,
+    axis_names: Optional[List[Text]] = None,
+    backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node of shape `shape` of uniform random floats.
   The Node has one dangling Edge per dimension.
   Args:
@@ -180,9 +199,15 @@ def random_uniform(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape` filled with uniform random data.
   """
-  the_node = initialize_node("random_uniform", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             seed=seed, boundaries=boundaries, dtype=dtype)
+  the_node = initialize_node(
+      "random_uniform",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      seed=seed,
+      boundaries=boundaries,
+      dtype=dtype)
   return the_node
 
 
