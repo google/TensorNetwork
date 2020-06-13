@@ -18,7 +18,7 @@ from typing import Any, Sequence, List, Optional, Union, Text, Tuple
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
@@ -258,13 +258,13 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
 
 
 def ncon(
-    tensors: Sequence[Union[network_components.BaseNode, Tensor]],
+    tensors: Sequence[Union[network_components.AbstractNode, Tensor]],
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
     check_network: bool = True,
-    backend: Optional[Union[Text, BaseBackend]] = None
-) -> Union[network_components.BaseNode, Tensor]:
+    backend: Optional[Union[Text, AbstractBackend]] = None
+) -> Union[network_components.AbstractNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
 
@@ -316,7 +316,7 @@ def ncon(
       https://arxiv.org/abs/1402.0939
 
     Args:
-      tensors: List of `Tensors` or `BaseNodes`.
+      tensors: List of `Tensors` or `AbstractNodes`.
       network_structure: List of lists specifying the tensor network structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
@@ -326,12 +326,12 @@ def ncon(
 
     Returns:
       The result of the contraction. The result is returned as a `Node`
-      if all elements of `tensors` are `BaseNode` objects, else
+      if all elements of `tensors` are `AbstractNode` objects, else
       it is returned as a `Tensor` object.
     """
   if backend is None:
     backend = get_default_backend()
-  if isinstance(backend, BaseBackend):
+  if isinstance(backend, AbstractBackend):
     backend_obj = backend
   else:
     backend_obj = backend_factory.get_backend(backend)
@@ -343,15 +343,15 @@ def ncon(
 
   # convert to lists
   network_structure = [list(l) for l in network_structure]
-  are_nodes = [isinstance(t, network_components.BaseNode) for t in tensors]
-  nodes = {t for t in tensors if isinstance(t, network_components.BaseNode)}
+  are_nodes = [isinstance(t, network_components.AbstractNode) for t in tensors]
+  nodes = {t for t in tensors if isinstance(t, network_components.AbstractNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
     raise ValueError("Some nodes have backends different from '{}'".format(
         backend_obj.name))
 
   _tensors = []
   for t in tensors:
-    if isinstance(t, network_components.BaseNode):
+    if isinstance(t, network_components.AbstractNode):
       _tensors.append(t.tensor)
     else:
       _tensors.append(t)

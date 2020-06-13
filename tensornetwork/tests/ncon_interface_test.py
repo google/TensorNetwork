@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import numpy as np
-from tensornetwork import BaseNode, Node
+from tensornetwork import AbstractNode, Node
 from tensornetwork import ncon_interface
 from tensornetwork.ncon_interface import _get_cont_out_labels
 from tensornetwork.backends.backend_factory import get_backend
@@ -53,7 +53,7 @@ def test_return_type(backend):
   result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
   result_3 = ncon_interface.ncon([n1, t2], [(-1, 1), (1, -2)], backend=backend)
   assert isinstance(result_1, type(n1.backend.convert_to_tensor(t1)))
-  assert isinstance(result_2, BaseNode)
+  assert isinstance(result_2, AbstractNode)
   assert isinstance(result_3, type(n1.backend.convert_to_tensor(t1)))
 
 

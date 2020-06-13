@@ -13,7 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 import scipy as sp
@@ -21,7 +21,7 @@ Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 
-class NumPyBackend(base_backend.BaseBackend):
+class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):

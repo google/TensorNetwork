@@ -23,7 +23,7 @@ tensor networks.
 from typing import Any, Union, Callable, Optional, Sequence, Collection, Text
 from typing import Tuple, Set, List, Type
 import numpy as np
-from tensornetwork.network_components import BaseNode, Node, Edge, connect
+from tensornetwork.network_components import AbstractNode, Node, Edge, connect
 from tensornetwork.network_components import CopyNode
 from tensornetwork.network_operations import get_all_nodes, copy, reachable
 from tensornetwork.network_operations import get_subgraph_dangling, remove_node
@@ -34,7 +34,7 @@ Tensor = Any
 def quantum_constructor(
     out_edges: Sequence[Edge],
     in_edges: Sequence[Edge],
-    ref_nodes: Optional[Collection[BaseNode]] = None,
+    ref_nodes: Optional[Collection[AbstractNode]] = None,
     ignore_edges: Optional[Collection[Edge]] = None) -> "QuOperator":
   """Constructs an appropriately specialized QuOperator.
 
@@ -104,7 +104,7 @@ def check_spaces(edges_1: Sequence[Edge], edges_2: Sequence[Edge]) -> None:
                            i, e1.dimension, e2.dimension))
 
 
-def eliminate_identities(nodes: Collection[BaseNode]) -> Tuple[dict, dict]:
+def eliminate_identities(nodes: Collection[AbstractNode]) -> Tuple[dict, dict]:
   """Eliminates any connected CopyNodes that are identity matrices.
 
   This will modify the network represented by `nodes`.
@@ -163,7 +163,7 @@ class QuOperator():
   def __init__(self,
                out_edges: Sequence[Edge],
                in_edges: Sequence[Edge],
-               ref_nodes: Optional[Collection[BaseNode]] = None,
+               ref_nodes: Optional[Collection[AbstractNode]] = None,
                ignore_edges: Optional[Collection[Edge]] = None) -> None:
     """Creates a new `QuOperator` from a tensor network.
 
@@ -219,7 +219,7 @@ class QuOperator():
     return cls(out_edges, in_edges, set([n]))
 
   @property
-  def nodes(self) -> Set[BaseNode]:
+  def nodes(self) -> Set[AbstractNode]:
     """All tensor-network nodes involved in the operator."""
     return reachable(
         get_all_nodes(self.out_edges + self.in_edges) | self.ref_nodes)
@@ -358,7 +358,7 @@ class QuOperator():
 
     return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
 
-  def __mul__(self, other: Union["QuOperator", BaseNode,
+  def __mul__(self, other: Union["QuOperator", AbstractNode,
                                  Tensor]) -> "QuOperator":
     """Scalar multiplication of operators.
 
@@ -372,7 +372,7 @@ class QuOperator():
     Note: This is a special case of `tensor_product()`.
     """
     if not isinstance(other, QuOperator):
-      if isinstance(other, BaseNode):
+      if isinstance(other, AbstractNode):
         node = other
       else:
         node = Node(other, backend=self.nodes.pop().backend)
@@ -387,7 +387,7 @@ class QuOperator():
     raise ValueError("Elementwise multiplication is only supported if at "
                      "least one of the arguments is a scalar.")
 
-  def __rmul__(self, other: Union["QuOperator", BaseNode,
+  def __rmul__(self, other: Union["QuOperator", AbstractNode,
                                   Tensor]) -> "QuOperator":
     """Scalar multiplication of operators.
 
@@ -497,7 +497,7 @@ class QuVector(QuOperator):
 
   def __init__(self,
                subsystem_edges: Sequence[Edge],
-               ref_nodes: Optional[Collection[BaseNode]] = None,
+               ref_nodes: Optional[Collection[AbstractNode]] = None,
                ignore_edges: Optional[Collection[Edge]] = None) -> None:
     """Constructs a new `QuVector` from a tensor network.
 
@@ -562,7 +562,7 @@ class QuAdjointVector(QuOperator):
 
   def __init__(self,
                subsystem_edges: Sequence[Edge],
-               ref_nodes: Optional[Collection[BaseNode]] = None,
+               ref_nodes: Optional[Collection[AbstractNode]] = None,
                ignore_edges: Optional[Collection[Edge]] = None) -> None:
     """Constructs a new `QuAdjointVector` from a tensor network.
 
@@ -626,7 +626,7 @@ class QuScalar(QuOperator):
   """Represents a scalar via a tensor network."""
 
   def __init__(self,
-               ref_nodes: Collection[BaseNode],
+               ref_nodes: Collection[AbstractNode],
                ignore_edges: Optional[Collection[Edge]] = None) -> None:
     """Constructs a new `QuScalar` from a tensor network.
 

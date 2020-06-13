@@ -1,8 +1,8 @@
 
 from tensornetwork.network_components import (
-    BaseNode,    
+    AbstractNode,
     CopyNode,
-    Edge,    
+    Edge,
     Node,
     NodeCollection
     )
@@ -56,7 +56,7 @@ from tensornetwork.network_components import (
     slice_edge,    
     split_edge
     )
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, disconnect
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.version import __version__

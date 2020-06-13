@@ -1,9 +1,9 @@
-tensornetwork.BaseNode
+tensornetwork.AbstractNode
 ======================
 
 .. currentmodule:: tensornetwork
 
-.. autoclass:: BaseNode
+.. autoclass:: AbstractNode
 
    
    .. automethod:: __init__
@@ -13,27 +13,27 @@ tensornetwork.BaseNode
 
    .. autosummary::
    
-      ~BaseNode.__init__
-      ~BaseNode.add_axis_names
-      ~BaseNode.add_edge
-      ~BaseNode.copy
-      ~BaseNode.disable
-      ~BaseNode.fresh_edges
-      ~BaseNode.get_all_dangling
-      ~BaseNode.get_all_edges
-      ~BaseNode.get_all_nondangling
-      ~BaseNode.get_axis_number
-      ~BaseNode.get_dimension
-      ~BaseNode.get_edge
-      ~BaseNode.get_rank
-      ~BaseNode.get_tensor
-      ~BaseNode.has_dangling_edge
-      ~BaseNode.has_nondangling_edge
-      ~BaseNode.reorder_axes
-      ~BaseNode.reorder_edges
-      ~BaseNode.set_name
-      ~BaseNode.set_tensor
-      ~BaseNode.tensor_from_edge_order
+      ~AbstractNode.__init__
+      ~AbstractNode.add_axis_names
+      ~AbstractNode.add_edge
+      ~AbstractNode.copy
+      ~AbstractNode.disable
+      ~AbstractNode.fresh_edges
+      ~AbstractNode.get_all_dangling
+      ~AbstractNode.get_all_edges
+      ~AbstractNode.get_all_nondangling
+      ~AbstractNode.get_axis_number
+      ~AbstractNode.get_dimension
+      ~AbstractNode.get_edge
+      ~AbstractNode.get_rank
+      ~AbstractNode.get_tensor
+      ~AbstractNode.has_dangling_edge
+      ~AbstractNode.has_nondangling_edge
+      ~AbstractNode.reorder_axes
+      ~AbstractNode.reorder_edges
+      ~AbstractNode.set_name
+      ~AbstractNode.set_tensor
+      ~AbstractNode.tensor_from_edge_order
    
    
 
@@ -43,12 +43,12 @@ tensornetwork.BaseNode
 
    .. autosummary::
    
-      ~BaseNode.axis_names
-      ~BaseNode.dtype
-      ~BaseNode.edges
-      ~BaseNode.name
-      ~BaseNode.shape
-      ~BaseNode.sparse_shape
-      ~BaseNode.tensor
+      ~AbstractNode.axis_names
+      ~AbstractNode.dtype
+      ~AbstractNode.edges
+      ~AbstractNode.name
+      ~AbstractNode.shape
+      ~AbstractNode.sparse_shape
+      ~AbstractNode.tensor
    
    

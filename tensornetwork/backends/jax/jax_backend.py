@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Optional, Tuple, Callable, List, Text, Type, Sequence
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
@@ -26,8 +26,8 @@ Tensor = Any
 _CACHED_MATVECS = {}
 
 
-class JaxBackend(base_backend.BaseBackend):
-  """See base_backend.BaseBackend for documentation."""
+class JaxBackend(abstract_backend.AbstractBackend):
+  """See abstract_backend.AbstractBackend for documentation."""
 
   def __init__(self, dtype: Optional[np.dtype] = None):
     # pylint: disable=global-variable-undefined

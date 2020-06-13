@@ -17,15 +17,15 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, outer_product_final_nodes
+from tensornetwork.network_components import AbstractNode, Node, outer_product_final_nodes
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 from tensornetwork import network_components
 
 Tensor = Any
-BaseBackend = base_backend.BaseBackend
+BaseBackend = abstract_backend.AbstractBackend
 
 
 # INITIALIZATION
@@ -186,11 +186,11 @@ def random_uniform(shape: Sequence[int],
   return the_node
 
 
-def norm(node: BaseNode) -> Tensor:
+def norm(node: AbstractNode) -> Tensor:
   """The L2 norm of `node`
 
   Args:
-    node: A `BaseNode`. 
+    node: A `AbstractNode`.
 
   Returns:
     The L2 norm.
@@ -204,13 +204,13 @@ def norm(node: BaseNode) -> Tensor:
   return node.backend.norm(node.tensor)
 
 
-def conj(node: BaseNode,
+def conj(node: AbstractNode,
          name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None) -> BaseNode:
+         axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Conjugate a `node`.
 
   Args:
-    node: A `BaseNode`.
+    node: A `AbstractNode`.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
 
@@ -234,14 +234,14 @@ def conj(node: BaseNode,
       backend=backend)
 
 
-def transpose(node: BaseNode,
+def transpose(node: AbstractNode,
               permutation: Sequence[Union[Text, int]],
               name: Optional[Text] = None,
-              axis_names: Optional[List[Text]] = None) -> BaseNode:
+              axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Transpose `node`
 
   Args:
-    node: A `BaseNode`.
+    node: A `AbstractNode`.
     permutation: A list of int or str. The permutation of the axis.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
@@ -269,7 +269,7 @@ def transpose(node: BaseNode,
   return new_node.reorder_axes(perm)
 
 
-def kron(nodes: Sequence[BaseNode]) -> BaseNode:
+def kron(nodes: Sequence[AbstractNode]) -> AbstractNode:
   """Kronecker product of the given nodes.
 
   Kronecker products of nodes is the same as the outer product, but the order
@@ -285,7 +285,7 @@ def kron(nodes: Sequence[BaseNode]) -> BaseNode:
   itself an operator. 
 
   Args:
-    nodes: A sequence of `BaseNode` objects.
+    nodes: A sequence of `AbstractNode` objects.
 
   Returns:
     A `Node` that is the kronecker product of the given inputs. The first

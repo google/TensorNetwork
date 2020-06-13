@@ -19,7 +19,7 @@ from tensornetwork.backends.jax import jax_backend
 from tensornetwork.backends.shell import shell_backend
 from tensornetwork.backends.pytorch import pytorch_backend
 from tensornetwork.backends.symmetric import symmetric_backend
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 _BACKENDS = {
     "tensorflow": tensorflow_backend.TensorFlowBackend,
     "numpy": numpy_backend.NumPyBackend,
@@ -33,9 +33,9 @@ _BACKENDS = {
 _INSTANTIATED_BACKENDS = dict()
 
 
-def get_backend(
-    backend: Union[Text, base_backend.BaseBackend]) -> base_backend.BaseBackend:
-  if isinstance(backend, base_backend.BaseBackend):
+def get_backend(backend: Union[Text, abstract_backend.AbstractBackend]
+                ) -> abstract_backend.AbstractBackend:
+  if isinstance(backend, abstract_backend.AbstractBackend):
     return backend
   if backend not in _BACKENDS:
     raise ValueError("Backend '{}' does not exist".format(backend))
