@@ -19,6 +19,7 @@ import numpy as np
 import scipy as sp
 Tensor = Any
 
+int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 
 class NumPyBackend(base_backend.BaseBackend):
   """See base_backend.BaseBackend for documentation."""
@@ -28,6 +29,22 @@ class NumPyBackend(base_backend.BaseBackend):
     self.name = "numpy"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+    # use einsum for scalar-like products, its much faster
+    if not isinstance(axes, int):
+      if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
+        if not len(axes[0]) == len(axes[1]):
+          raise ValueError("shape-mismatch for sum")
+
+        u, pos1, _ = np.intersect1d(
+            axes[0], axes[1], return_indices=True, assume_unique=True)
+        labels = int_to_string[0:len(u)]
+        labels_1 = labels[pos1]
+        labels_2 = np.array([''] * len(labels_1))
+
+        labels_2[np.array(axes[1])] = labels
+        einsum_label = ','.join([''.join(labels_1), ''.join(labels_2)])
+        return np.array(np.einsum(einsum_label, a, b, optimize=True))
+      return np.tensordot(a, b, axes)
     return np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):

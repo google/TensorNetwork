@@ -397,3 +397,13 @@ def test_get_cont_out_labels():
   check(exp_str_cont_labels, str_cont_labels)
   check(exp_int_out_labels, int_out_labels)
   check(exp_str_out_labels, str_out_labels)
+  
+def test_partial_traces(backend):
+  np.random.seed(10)
+  a = np.random.rand(4, 4, 4, 4)
+  res = ncon_interface.ncon([a, a], [(-1, 1, 1, 3), (2, -2, 2, 3)],
+                            backend=backend)
+  t1 = np.trace(a, axis1=1, axis2=2)
+  t2 = np.trace(a, axis1=0, axis2=2)
+  exp = np.tensordot(t1, t2, ([1], [1]))
+  np.testing.assert_allclose(res, exp)
