@@ -7,9 +7,9 @@ from collections import namedtuple
 import h5py
 import re
 #pylint: disable=line-too-long
-from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection, BaseNode, _remove_trace_edge, _remove_edges
+from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection, AbstractNode, _remove_trace_edge, _remove_edges
 import tensornetwork as tn
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 
 string_type = h5py.special_dtype(vlen=str)
 
@@ -18,7 +18,7 @@ DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
 
 
-class TestNode(BaseNode):
+class TestNode(AbstractNode):
 
   def get_tensor(self):  #pylint: disable=useless-super-delegation
     return super().get_tensor()
@@ -1500,7 +1500,7 @@ def test_get_all_dangling_double_node(double_node_edge):
 def test_flatten_edges_different_backend_raises_value_error(single_node_edge):
   node1 = single_node_edge.node
   node2 = tn.Node(np.random.rand(2, 2, 2))
-  node2.backend = BaseBackend()
+  node2.backend = AbstractBackend()
   with pytest.raises(ValueError):
     tn.flatten_edges(node1.get_all_edges() + node2.get_all_edges())
 

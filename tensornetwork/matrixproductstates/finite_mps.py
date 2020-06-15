@@ -23,7 +23,7 @@ from tensornetwork.backends import backend_factory
 from tensornetwork.linalg.linalg import conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 Tensor = Any
 
 
@@ -54,7 +54,7 @@ class FiniteMPS(BaseMPS):
                tensors: List[Tensor],
                center_position: Optional[int] = None,
                canonicalize: Optional[bool] = True,
-               backend: Optional[Union[BaseBackend, Text]] = None) -> None:
+               backend: Optional[Union[AbstractBackend, Text]] = None) -> None:
     """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state is brought
        into canonical form, with `BaseMPS.center_position` at `center_position`.
        if `center_position` is `None` and `canonicalize = True`, 
@@ -87,11 +87,12 @@ class FiniteMPS(BaseMPS):
         self.position(center_position)
 
   @classmethod
-  def random(cls,
-             d: List[int],
-             D: List[int],
-             dtype: Type[np.number],
-             backend: Optional[Union[BaseBackend, Text]] = None) -> "FiniteMPS":
+  def random(
+      cls,
+      d: List[int],
+      D: List[int],
+      dtype: Type[np.number],
+      backend: Optional[Union[AbstractBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
 

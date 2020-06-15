@@ -14,7 +14,7 @@
 
 import functools
 import operator
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 #pylint: disable=line-too-long
 from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
@@ -34,7 +34,7 @@ class ShellTensor:
 Tensor = Any
 
 
-class ShellBackend(base_backend.BaseBackend):
+class ShellBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):

@@ -19,10 +19,10 @@ import numpy as np
 Tensor = Any
 
 
-class BaseBackend:
+class AbstractBackend:
 
   def __init__(self):
-    self.name = 'base backend'
+    self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
