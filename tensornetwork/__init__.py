@@ -27,16 +27,12 @@ from tensornetwork.network_operations import (
 )
 
 #pylint: disable=line-too-long
-from tensornetwork.linalg.linalg import (
-    conj,
+from tensornetwork.linalg.initialization import (
     eye,
-    kron,
-    norm,
     ones,
     randn,
     random_uniform,
-    transpose,
-    zeros,
+    zeros
     )
 
 from tensornetwork.network_components import (
