@@ -20,97 +20,14 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
+from tensornetwork.network_components import AbstractNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
 
 
-def norm(node: BaseNode) -> Tensor:
-  """The L2 norm of `node`
-
-  Args:
-    node: A `BaseNode`. 
-
-  Returns:
-    The L2 norm.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute.
-  """
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-  return node.backend.norm(node.tensor)
-
-
-def conj(node: BaseNode,
-         name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Conjugate a `node`.
-
-  Args:
-    node: A `BaseNode`.
-    name: Optional name to give the new node.
-    axis_names: Optional list of names for the axis.
-
-  Returns:
-    A new node. The complex conjugate of `node`.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute.
-  """
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-  backend = node.backend
-  if not axis_names:
-    axis_names = node.axis_names
-
-  return Node(
-      backend.conj(node.tensor),
-      name=name,
-      axis_names=axis_names,
-      backend=backend)
-
-
-def transpose(node: BaseNode,
-              permutation: Sequence[Union[Text, int]],
-              name: Optional[Text] = None,
-              axis_names: Optional[List[Text]] = None) -> BaseNode:
-  """Transpose `node`
-
-  Args:
-    node: A `BaseNode`.
-    permutation: A list of int or str. The permutation of the axis.
-    name: Optional name to give the new node.
-    axis_names: Optional list of names for the axis.
-
-  Returns:
-    A new node. The transpose of `node`.
-
-  Raises:
-    AttributeError: If `node` has no `backend` attribute, or if
-      `node` has no tensor.
-    ValueError: If either `permutation` is not the same as expected or
-      if you try to permute with a trace edge.
-  """
-
-  if not hasattr(node, 'backend'):
-    raise AttributeError('Node {} of type {} has no `backend`'.format(
-        node, type(node)))
-
-  perm = [node.get_axis_number(p) for p in permutation]
-  if not axis_names:
-    axis_names = node.axis_names
-
-  new_node = Node(
-      node.tensor, name=name, axis_names=node.axis_names, backend=node.backend)
-  return new_node.reorder_axes(perm)
-
-
-def copy(nodes: Iterable[BaseNode],
+def copy(nodes: Iterable[AbstractNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
   """Copy the given nodes and their edges.
 
@@ -162,8 +79,8 @@ def copy(nodes: Iterable[BaseNode],
   return node_dict, edge_dict
 
 
-def replicate_nodes(nodes: Iterable[BaseNode],
-                    conjugate: bool = False) -> List[BaseNode]:
+def replicate_nodes(nodes: Iterable[AbstractNode],
+                    conjugate: bool = False) -> List[AbstractNode]:
   """Copy the given nodes and their edges.
 
   If nodes A and B are connected but only A is passed in to be
@@ -182,7 +99,7 @@ def replicate_nodes(nodes: Iterable[BaseNode],
   return [new_nodes[node] for node in nodes]
 
 
-def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
+def remove_node(node: AbstractNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   """Remove a node from the network.
 
   Args:
@@ -207,7 +124,7 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
 
 
 def split_node(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
@@ -216,7 +133,7 @@ def split_node(
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode, Tensor]:
+) -> Tuple[AbstractNode, AbstractNode, Tensor]:
   """Split a `node` using Singular Value Decomposition.
 
   Let :math:`M` be the matrix created by flattening `left_edges` and 
@@ -332,13 +249,13 @@ def split_node(
 
 
 def split_node_qr(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode]:
+) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using QR decomposition.
 
   Let :math:`M` be the matrix created by 
@@ -421,13 +338,13 @@ def split_node_qr(
 
 
 def split_node_rq(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode]:
+) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using RQ (reversed QR) decomposition.
 
   Let :math:`M` be the matrix created by 
@@ -512,7 +429,7 @@ def split_node_rq(
 
 
 def split_node_full_svd(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
@@ -523,7 +440,7 @@ def split_node_full_svd(
     right_name: Optional[Text] = None,
     left_edge_name: Optional[Text] = None,
     right_edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode, BaseNode, Tensor]:
+) -> Tuple[AbstractNode, AbstractNode, AbstractNode, Tensor]:
   """Split a node by doing a full singular value decomposition.
 
   Let :math:`M` be the matrix created by 
@@ -652,7 +569,7 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
+def _reachable(nodes: Set[AbstractNode]) -> Set[AbstractNode]:
   if not nodes:
     raise ValueError("Reachable requires at least 1 node.")
   node_que = collections.deque(nodes)
@@ -670,21 +587,21 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
 
 
 def reachable(
-    inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
-) -> Set[BaseNode]:
+    inputs: Union[AbstractNode, Iterable[AbstractNode], Edge, Iterable[Edge]]
+) -> Set[AbstractNode]:
   """Computes all nodes reachable from `node` or `edge.node1` by connected
   edges.
 
   Args:
-    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
+    inputs: A `AbstractNode`/`Edge` or collection of `AbstractNodes`/`Edges`
   Returns:
-    A set of `BaseNode` objects that can be reached from `node`
+    A set of `AbstractNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  if isinstance(inputs, BaseNode):
+  if isinstance(inputs, AbstractNode):
     inputs = {inputs}
   elif isinstance(inputs, Edge):
     inputs = {inputs.node1}
@@ -693,13 +610,13 @@ def reachable(
   return _reachable(set(inputs))
 
 
-def check_correct(nodes: Iterable[BaseNode],
+def check_correct(nodes: Iterable[AbstractNode],
                   check_connections: Optional[bool] = True) -> None:
   """Check if the network defined by `nodes` fulfills necessary consistency
   relations.
 
   Args:
-    nodes: A list of `BaseNode` objects.
+    nodes: A list of `AbstractNode` objects.
     check_connections: Check if the network is connected.
 
   Returns:
@@ -732,7 +649,7 @@ def check_correct(nodes: Iterable[BaseNode],
     check_connected(nodes)
 
 
-def check_connected(nodes: Iterable[BaseNode]) -> None:
+def check_connected(nodes: Iterable[AbstractNode]) -> None:
   """Check if all nodes in `nodes` are connected.
 
   Args:
@@ -749,7 +666,7 @@ def check_connected(nodes: Iterable[BaseNode]) -> None:
     raise ValueError("Non-connected graph")
 
 
-def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
+def get_all_nodes(edges: Iterable[Edge]) -> Set[AbstractNode]:
   """Return the set of nodes connected to edges."""
   nodes = set()
   for edge in edges:
@@ -761,7 +678,7 @@ def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_edges(nodes: Iterable[AbstractNode]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:
@@ -769,7 +686,7 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_subgraph_dangling(nodes: Iterable[AbstractNode]) -> Set[Edge]:
   """Get all of the edges that are "relatively dangling" to the given nodes.
 
   A "relatively dangling" edge is an edge that is either actually dangling
@@ -789,14 +706,14 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return output
 
 
-def contract_trace_edges(node: BaseNode) -> BaseNode:
+def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   """contract all trace edges of `node`.
 
   Args:
-    node: A `BaseNode` object.
+    node: A `AbstractNode` object.
 
   Returns:
-    A new `BaseNode` obtained from contracting all trace edges.
+    A new `AbstractNode` obtained from contracting all trace edges.
 
   Raises:
     ValueError: If `node` has no trace edges.
@@ -847,7 +764,7 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   return node_dict, edge_dict
 
 
-def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
+def switch_backend(nodes: Iterable[AbstractNode], new_backend: Text) -> None:
   """Change the backend of the nodes.
 
   This will convert all `node`'s tensors to the `new_backend`'s Tensor type.
@@ -875,7 +792,8 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
     node.tensor = backend.convert_to_tensor(node.tensor)
     node.backend = backend
 
-def get_neighbors(node: BaseNode) -> List[Node]:
+
+def get_neighbors(node: AbstractNode) -> List[Node]:
   """Get all of the neighbors that are directly connected to the given node.
 
   Note: `node` will never be in the returned list, even if `node` has a
@@ -899,40 +817,3 @@ def get_neighbors(node: BaseNode) -> List[Node]:
         neighbors.append(edge.node1)
         neighbors_set.add(edge.node1)
   return neighbors
-
-def kron(nodes: Sequence[BaseNode]) -> BaseNode:
-  """Kronecker product of the given nodes.
-
-  Kronecker products of nodes is the same as the outer product, but the order
-  of the axes is different. The first half of edges of all of the nodes will
-  appear first half of edges in the resulting node, and the second half ot the
-  edges in each node will be in the second half of the resulting node.
-
-  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
-  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
-  :math:`R_{acdgbefh}`.
-   
-  The kronecker product is designed such that the kron of many operators is
-  itself an operator. 
-
-  Args:
-    nodes: A sequence of `BaseNode` objects.
-
-  Returns:
-    A `Node` that is the kronecker product of the given inputs. The first
-    half of the edges of this node would represent the "input" edges of the
-    operator and the last half of edges are the "output" edges of the
-    operator.
-  """
-  input_edges = []
-  output_edges = []
-  for node in nodes:
-    order = len(node.shape)
-    if order % 2 != 0:
-      raise ValueError(
-          f"All operator tensors must have an even order. "
-          f"Found tensor with order {order}")
-    input_edges += node.edges[:order//2]
-    output_edges += node.edges[order//2:]
-  result = outer_product_final_nodes(nodes, input_edges + output_edges)
-  return result

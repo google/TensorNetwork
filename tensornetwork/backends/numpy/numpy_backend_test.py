@@ -734,3 +734,12 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_tensordot_inner():
+  backend = numpy_backend.NumPyBackend()
+  a = np.ones((2, 3, 4))
+  b = np.ones((4, 2, 3))
+  actual = backend.tensordot(a, b, ((0, 1, 2), (1, 2, 0)))
+  expected = np.tensordot(a, b, ((0, 1, 2), (1, 2, 0)))
+  np.testing.assert_allclose(expected, actual)
