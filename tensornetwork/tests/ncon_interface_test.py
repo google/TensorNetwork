@@ -314,7 +314,7 @@ def test_outer_product_1(backend):
 def test_outer_product_2(backend):
   a = np.random.rand(10, 100)
   b = np.random.rand(8)
-  res = tn.ncon([a, b], [(-1, -2), (-3,)],
+  res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
                 out_order=[-2, -1, -3],
                 backend=backend)
   exp = np.einsum('ij,k->jik', a, b)
@@ -323,9 +323,6 @@ def test_outer_product_2(backend):
 
 
 def test_node_outer_product(backend):
-  if backend == "jax":
-    pytest.skip("Jax outer product support is currently broken.")
-
   t1 = np.array([1, 2, 3])
   t2 = np.array([1, 2])
   a = Node(t1, backend=backend)
