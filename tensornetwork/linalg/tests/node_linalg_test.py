@@ -186,14 +186,8 @@ def test_random_uniform(backend):
 def test_conj(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
-
-<<<<<<< HEAD:tensornetwork/linalg/tests/node_linalg_test.py
-  a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
-  abar = node_linalg.conj(a)
-=======
   a = Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
-  abar = linalg.conj(a)
->>>>>>> upstream/experimental_ncon:tensornetwork/linalg/linalg_test.py
+  abar = node_linalg.conj(a)
   np.testing.assert_allclose(abar.tensor, a.backend.conj(a.tensor))
 
 

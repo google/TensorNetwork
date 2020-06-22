@@ -17,10 +17,10 @@ import copy
 import warnings
 from typing import Any, Union, Text, Optional, List, Sequence
 import numpy as np
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork import backends, backend_contextmanager
 
-BaseBackend = base_backend.BaseBackend
+BaseBackend = abstract_backend.AbstractBackend
 
 class Tensor():
   def __init__(self,

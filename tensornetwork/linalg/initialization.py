@@ -17,17 +17,17 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 from tensornetwork.tensor import Tensor
 
-BaseBackend = base_backend.BaseBackend
+AbstractBackend = abstract_backend.AbstractBackend
 
 
 def initialize_tensor(fname: Text,
                       *fargs: Any,
-                      backend: Optional[Union[Text, BaseBackend]] = None,
+                      backend: Optional[Union[Text, AbstractBackend]] = None,
                       **fkwargs: Any) -> Tensor:
   """Return a Tensor wrapping data obtained by an initialization function
   implemented in a backend. The Tensor will have the same shape as the
@@ -56,7 +56,7 @@ def initialize_tensor(fname: Text,
 def eye(N: int,
         dtype: Optional[Type[np.number]] = None,
         M: Optional[int] = None,
-        backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+        backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor representing a 2D array with ones on the diagonal and
   zeros elsewhere. The Tensor has two dangling Edges.
   Args:
@@ -75,7 +75,7 @@ def eye(N: int,
 
 def zeros(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
-          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor of shape `shape` of all zeros.
   The Tensor has one dangling Edge per dimension.
   Args:
@@ -91,7 +91,7 @@ def zeros(shape: Sequence[int],
 
 def ones(shape: Sequence[int],
          dtype: Optional[Type[np.number]] = None,
-         backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor of shape `shape` of all ones.
   The Tensor has one dangling Edge per dimension.
   Args:
@@ -109,7 +109,7 @@ def ones(shape: Sequence[int],
 def randn(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
           seed: Optional[int] = None,
-          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor of shape `shape` of Gaussian random floats.
   The Tensor has one dangling Edge per dimension.
   Args:
@@ -129,7 +129,7 @@ def random_uniform(shape: Sequence[int],
                    dtype: Optional[Type[np.number]] = None,
                    seed: Optional[int] = None,
                    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-                   backend: Optional[Union[Text, BaseBackend]]
+                   backend: Optional[Union[Text, AbstractBackend]]
                    = None) -> Tensor:
   """Return a Tensor of shape `shape` of uniform random floats.
   The Tensor has one dangling Edge per dimension.
