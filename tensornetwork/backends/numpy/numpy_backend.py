@@ -20,8 +20,6 @@ import scipy as sp
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
-
-
 class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -131,8 +129,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return np.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return np.einsum(expression, *tensors)
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
+    return np.einsum(expression, *tensors, optimize=optimize)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return np.linalg.norm(tensor)
