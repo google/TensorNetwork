@@ -1,6 +1,7 @@
 from functools import partial
+from typing import List, Any
 import numpy as np
-
+Tensor = Any
 
 def _generate_jitted_eigsh_lanczos(jax):
   """
@@ -419,7 +420,7 @@ def _implicitly_restarted_arnoldi(jax):
     return state_vectors
 
   def implicitly_restarted_arnoldi_method(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-           maxiter):
+           maxiter) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine 
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec` 
