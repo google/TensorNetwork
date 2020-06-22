@@ -5,7 +5,6 @@ import jax.numpy as jnp
 import jax.config as config
 import torch
 import tensorflow as tf
-import tensornetwork as tn
 from tensornetwork.linalg import node_linalg
 from tensornetwork.network_components import Node
 from tensornetwork.backend_contextmanager import DefaultBackend
@@ -188,13 +187,18 @@ def test_conj(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
 
+<<<<<<< HEAD:tensornetwork/linalg/tests/node_linalg_test.py
   a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   abar = node_linalg.conj(a)
+=======
+  a = Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
+  abar = linalg.conj(a)
+>>>>>>> upstream/experimental_ncon:tensornetwork/linalg/linalg_test.py
   np.testing.assert_allclose(abar.tensor, a.backend.conj(a.tensor))
 
 
 def test_transpose(backend):
-  a = tn.Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
+  a = Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
   order = [a[n] for n in reversed(range(5))]
   transpa = node_linalg.transpose(a, [4, 3, 2, 1, 0])
   a.reorder_edges(order)
@@ -206,14 +210,14 @@ def test_operator_kron(backend):
     X = np.array([[0, 1], [1, 0]], dtype=np.float32)
     Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
     expected = np.kron(X, Z).reshape(2, 2, 2, 2)
-    result = node_linalg.kron([tn.Node(X), tn.Node(Z)])
+    result = node_linalg.kron([Node(X), Node(Z)])
     np.testing.assert_allclose(result.tensor, expected)
 
 
 def test_kron_raises(backend):
   with DefaultBackend(backend):
-    A = tn.Node(np.ones((2, 2, 2)))
-    B = tn.Node(np.ones((2, 2, 2)))
+    A = Node(np.ones((2, 2, 2)))
+    B = Node(np.ones((2, 2, 2)))
     with pytest.raises(
         ValueError, match="All operator tensors must have an even order."):
       node_linalg.kron([A, B])

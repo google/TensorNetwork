@@ -25,7 +25,7 @@ from tensornetwork.backends import backend_factory
 import warnings
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 Tensor = Any
 
@@ -61,7 +61,7 @@ class BaseMPS:
                tensors: List[Tensor],
                center_position: Optional[int] = None,
                connector_matrix: Optional[Tensor] = None,
-               backend: Optional[Union[Text, BaseBackend]] = None) -> None:
+               backend: Optional[Union[Text, AbstractBackend]] = None) -> None:
     """Initialize a BaseMPS.
 
     Args:
@@ -81,7 +81,7 @@ class BaseMPS:
                            center_position, len(tensors)))
     if backend is None:
       backend = get_default_backend()
-    if isinstance(backend, BaseBackend):
+    if isinstance(backend, AbstractBackend):
       self.backend = backend
     else:
       self.backend = backend_factory.get_backend(backend)

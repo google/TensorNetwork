@@ -17,15 +17,15 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, outer_product_final_nodes
+from tensornetwork.network_components import AbstractNode, Node, outer_product_final_nodes
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 from tensornetwork import network_components
 
 Tensor = Any
-BaseBackend = base_backend.BaseBackend
+BaseBackend = abstract_backend.AbstractBackend
 
 
 # INITIALIZATION
@@ -82,9 +82,14 @@ def eye(N: int,
         Represents an array of all zeros except for the k'th diagonal of all
         ones.
   """
-  the_node = initialize_node("eye", N,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype, M=M)
+  the_node = initialize_node(
+      "eye",
+      N,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype,
+      M=M)
   return the_node
 
 
@@ -104,9 +109,13 @@ def zeros(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape`. Represents an array of all zeros.
   """
-  the_node = initialize_node("zeros", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype)
+  the_node = initialize_node(
+      "zeros",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype)
   return the_node
 
 
@@ -127,9 +136,13 @@ def ones(shape: Sequence[int],
     the_node : Node of shape `shape`
         Represents an array of all ones.
   """
-  the_node = initialize_node("ones", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             dtype=dtype)
+  the_node = initialize_node(
+      "ones",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype)
   return the_node
 
 
@@ -151,19 +164,25 @@ def randn(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape` filled with Gaussian random data.
   """
-  the_node = initialize_node("randn", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             seed=seed, dtype=dtype)
+  the_node = initialize_node(
+      "randn",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      seed=seed,
+      dtype=dtype)
   return the_node
 
 
-def random_uniform(shape: Sequence[int],
-                   dtype: Optional[Type[np.number]] = None,
-                   seed: Optional[int] = None,
-                   boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-                   name: Optional[Text] = None,
-                   axis_names: Optional[List[Text]] = None,
-                   backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+def random_uniform(
+    shape: Sequence[int],
+    dtype: Optional[Type[np.number]] = None,
+    seed: Optional[int] = None,
+    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+    name: Optional[Text] = None,
+    axis_names: Optional[List[Text]] = None,
+    backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node of shape `shape` of uniform random floats.
   The Node has one dangling Edge per dimension.
   Args:
@@ -177,17 +196,23 @@ def random_uniform(shape: Sequence[int],
   Returns:
     the_node : Node of shape `shape` filled with uniform random data.
   """
-  the_node = initialize_node("random_uniform", shape,
-                             name=name, axis_names=axis_names, backend=backend,
-                             seed=seed, boundaries=boundaries, dtype=dtype)
+  the_node = initialize_node(
+      "random_uniform",
+      shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      seed=seed,
+      boundaries=boundaries,
+      dtype=dtype)
   return the_node
 
 
-def norm(node: BaseNode) -> Tensor:
+def norm(node: AbstractNode) -> Tensor:
   """The L2 norm of `node`
 
   Args:
-    node: A `BaseNode`. 
+    node: A `AbstractNode`.
 
   Returns:
     The L2 norm.
@@ -201,13 +226,13 @@ def norm(node: BaseNode) -> Tensor:
   return node.backend.norm(node.tensor)
 
 
-def conj(node: BaseNode,
+def conj(node: AbstractNode,
          name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None) -> BaseNode:
+         axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Conjugate a `node`.
 
   Args:
-    node: A `BaseNode`.
+    node: A `AbstractNode`.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
 
@@ -231,14 +256,14 @@ def conj(node: BaseNode,
       backend=backend)
 
 
-def transpose(node: BaseNode,
+def transpose(node: AbstractNode,
               permutation: Sequence[Union[Text, int]],
               name: Optional[Text] = None,
-              axis_names: Optional[List[Text]] = None) -> BaseNode:
+              axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Transpose `node`
 
   Args:
-    node: A `BaseNode`.
+    node: A `AbstractNode`.
     permutation: A list of int or str. The permutation of the axis.
     name: Optional name to give the new node.
     axis_names: Optional list of names for the axis.
@@ -266,7 +291,7 @@ def transpose(node: BaseNode,
   return new_node.reorder_axes(perm)
 
 
-def kron(nodes: Sequence[BaseNode]) -> BaseNode:
+def kron(nodes: Sequence[AbstractNode]) -> AbstractNode:
   """Kronecker product of the given nodes.
 
   Kronecker products of nodes is the same as the outer product, but the order
@@ -282,7 +307,7 @@ def kron(nodes: Sequence[BaseNode]) -> BaseNode:
   itself an operator. 
 
   Args:
-    nodes: A sequence of `BaseNode` objects.
+    nodes: A sequence of `AbstractNode` objects.
 
   Returns:
     A `Node` that is the kronecker product of the given inputs. The first

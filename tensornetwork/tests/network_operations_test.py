@@ -15,8 +15,8 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-from tensornetwork.backends.base_backend import BaseBackend
 from tensornetwork.linalg import node_linalg
+from tensornetwork.backends.abstract_backend import AbstractBackend
 
 
 def test_replicate_nodes(backend):
@@ -439,7 +439,7 @@ def test_contract_trace_edges(backend):
 
 def test_switch_backend_raises_error(backend):
   a = tn.Node(np.random.rand(3, 3, 3))
-  a.backend = BaseBackend()
+  a.backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
     tn.switch_backend({a}, backend)
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
@@ -25,7 +25,7 @@ Tensor = Any
 
 
 #pylint: disable=abstract-method
-class SymmetricBackend(base_backend.BaseBackend):
+class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -109,7 +109,10 @@ class SymmetricBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.bs.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     raise NotImplementedError("`einsum` currently not implemented")
 
   def norm(self, tensor: Tensor) -> Tensor:

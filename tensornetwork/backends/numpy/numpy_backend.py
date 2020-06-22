@@ -13,14 +13,14 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 import scipy as sp
 Tensor = Any
 
-
-class NumPyBackend(base_backend.BaseBackend):
+int_to_string = np.array(list(map(chr, list(range(65, 91)))))
+class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -28,6 +28,22 @@ class NumPyBackend(base_backend.BaseBackend):
     self.name = "numpy"
 
   def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+    # use einsum for scalar-like products, its much faster
+    if not isinstance(axes, int):
+      if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
+        if not len(axes[0]) == len(axes[1]):
+          raise ValueError("shape-mismatch for sum")
+
+        u, pos1, _ = np.intersect1d(
+            axes[0], axes[1], return_indices=True, assume_unique=True)
+        labels = int_to_string[0:len(u)]
+        labels_1 = labels[pos1]
+        labels_2 = np.array([''] * len(labels_1))
+
+        labels_2[np.array(axes[1])] = labels
+        einsum_label = ','.join([''.join(labels_1), ''.join(labels_2)])
+        return np.array(np.einsum(einsum_label, a, b, optimize=True))
+      return np.tensordot(a, b, axes)
     return np.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor):
@@ -113,8 +129,11 @@ class NumPyBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return np.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return np.einsum(expression, *tensors)
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
+    return np.einsum(expression, *tensors, optimize=optimize)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return np.linalg.norm(tensor)
@@ -149,8 +168,8 @@ class NumPyBackend(base_backend.BaseBackend):
     dtype = dtype if dtype is not None else np.float64
     if ((np.dtype(dtype) is np.dtype(np.complex128)) or
         (np.dtype(dtype) is np.dtype(np.complex64))):
-      return np.random.randn(*shape).astype(
-          dtype) + 1j * np.random.randn(*shape).astype(dtype)
+      return np.random.randn(
+          *shape).astype(dtype) + 1j * np.random.randn(*shape).astype(dtype)
     return np.random.randn(*shape).astype(dtype)
 
   def random_uniform(self,
@@ -226,10 +245,8 @@ class NumPyBackend(base_backend.BaseBackend):
     """
     if args is None:
       args = []
-    if which == 'SI':
-      raise ValueError('which = SI is currently not supported.')
-    if which == 'LI':
-      raise ValueError('which = LI is currently not supported.')
+    if which in ('SI', 'LI'):
+      raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig + 1 >= num_krylov_vecs:
       raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
