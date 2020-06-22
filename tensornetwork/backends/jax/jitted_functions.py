@@ -418,7 +418,7 @@ def _implicitly_restarted_arnoldi(jax):
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
 
-  def iram(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
+  def implicitly_restarted_arnoldi_method(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
            maxiter):
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine 
@@ -514,4 +514,4 @@ def _implicitly_restarted_arnoldi(jax):
         for n in range(numeig)
     ]
 
-  return iram
+  return implicitly_restarted_arnoldi_method
