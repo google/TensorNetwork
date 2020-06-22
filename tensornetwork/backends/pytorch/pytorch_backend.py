@@ -13,7 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
 
@@ -24,7 +24,7 @@ Tensor = Any
 #pylint: disable=abstract-method
 
 
-class PyTorchBackend(base_backend.BaseBackend):
+class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):

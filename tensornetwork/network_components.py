@@ -23,7 +23,7 @@ import h5py
 #pylint: disable=useless-import-alias
 from tensornetwork import ops
 from tensornetwork.backends import backend_factory
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.backend_contextmanager import get_default_backend
 
 string_type = h5py.special_dtype(vlen=str)
@@ -33,8 +33,8 @@ Tensor = Any
 # network_components.py and network.py types.
 
 
-class BaseNode(ABC):
-  """Base class for nodes. Should be subclassed.
+class AbstractNode(ABC):
+  """Abstract class for nodes. Should be subclassed.
 
   A Node represents a concrete tensor in a tensor network. The number of edges
   for a node represents the rank of that tensor.
@@ -53,7 +53,7 @@ class BaseNode(ABC):
   def __init__(self,
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               backend: Optional[BaseBackend] = None,
+               backend: Optional[AbstractBackend] = None,
                shape: Optional[Tuple[int]] = None) -> None:
     """Create a node. Should be subclassed before usage and a limited number of
     abstract methods and properties implemented.
@@ -103,21 +103,23 @@ class BaseNode(ABC):
 
     super().__init__()
 
-  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+  def __add__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented addition ( + )")
 
-  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+  def __sub__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError(
+        "AbstractNode has not implemented subtraction ( - )")
 
-  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+  def __mul__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented multiply ( * )")
 
-  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented divide ( / )")
+  def __truediv__(self, other: Union[int, float,
+                                     "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented divide ( / )")
 
   @property
   def dtype(self):
-    #any derived instance of BaseNode always has to have a tensor
+    #any derived instance of AbstractNode always has to have a tensor
     return self.tensor.dtype
 
   def add_axis_names(self, axis_names: List[Text]) -> None:
@@ -197,7 +199,7 @@ class BaseNode(ABC):
     """Return rank of tensor represented by self."""
     return len(self.shape)
 
-  def reorder_edges(self, edge_order: List["Edge"]) -> "BaseNode":
+  def reorder_edges(self, edge_order: List["Edge"]) -> "AbstractNode":
     """Reorder the edges for this given Node.
 
     This will reorder the node's edges and transpose the underlying tensor
@@ -250,7 +252,7 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
-  def reorder_axes(self, perm: List[int]) -> "BaseNode":
+  def reorder_axes(self, perm: List[int]) -> "AbstractNode":
     """Reorder axes of the node's tensor.
 
     This will also update all of the node's edges.
@@ -285,7 +287,7 @@ class BaseNode(ABC):
       self.axis_names = tmp_axis_names
     return self
 
-  def tensor_from_edge_order(self, perm: List["Edge"]) -> "BaseNode":
+  def tensor_from_edge_order(self, perm: List["Edge"]) -> "AbstractNode":
     order = []
     for edge in perm:
       if edge.node1 is self:
@@ -375,14 +377,14 @@ class BaseNode(ABC):
     return self.name
 
   def __lt__(self, other) -> bool:
-    if not isinstance(other, BaseNode):
+    if not isinstance(other, AbstractNode):
       raise ValueError("Object {} is not a Node type.".format(other))
     return id(self) < id(other)
 
-  def __matmul__(self, other: "BaseNode") -> "BaseNode":
+  def __matmul__(self, other: "AbstractNode") -> "AbstractNode":
     if not hasattr(self, '_tensor'):
       raise AttributeError("Please provide a valid tensor for this Node.")
-    if not isinstance(other, BaseNode):
+    if not isinstance(other, AbstractNode):
       raise TypeError("Cannot use '@' with type '{}'".format(type(other)))
     if self.is_disabled:
       raise ValueError("Cannot use '@' on disabled node {}.".format(self.name))
@@ -435,7 +437,7 @@ class BaseNode(ABC):
 
   @classmethod
   @abstractmethod
-  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, node_data: h5py.Group) -> "AbstractNode":
     """load a node based on hdf5 data.
 
     Args:
@@ -489,7 +491,7 @@ class BaseNode(ABC):
         data=np.array([edge.name for edge in self.edges], dtype=object))
 
   @abstractmethod
-  def copy(self, conjugate: bool = False) -> "BaseNode":
+  def copy(self, conjugate: bool = False) -> "AbstractNode":
     return
 
   def fresh_edges(self, axis_names: Optional[List[Text]] = None) -> None:
@@ -502,7 +504,7 @@ class BaseNode(ABC):
       self.add_edge(new_edge, i, True)
 
 
-class Node(BaseNode):
+class Node(AbstractNode):
   """A Node represents a concrete tensor in a tensor network. The number of
   edges for a node represents the rank of that tensor.
 
@@ -518,33 +520,33 @@ class Node(BaseNode):
   """
 
   def __init__(self,
-               tensor: Union[Tensor, BaseNode],
+               tensor: Union[Tensor, AbstractNode],
                name: Optional[Text] = None,
                axis_names: Optional[List[Text]] = None,
-               backend: Optional[Union[Text, BaseBackend]] = None) -> None:
+               backend: Optional[Union[Text, AbstractBackend]] = None) -> None:
     """Create a node.
 
     Args:
-      tensor: The concrete that is represented by this node, or a `BaseNode`
+      tensor: The concrete that is represented by this node, or a `AbstractNode`
         object. If a tensor is passed, it can be
         be either a numpy array or the tensor-type of the used backend.
-        If a `BaseNode` is passed, the passed node has to have the same \
+        If a `AbstractNode` is passed, the passed node has to have the same \
         backend as given by `backend`.
       name: Name of the node. Used primarily for debugging.
       axis_names: List of names for each of the tensor's axes.
-      backend: The name of the backend or an instance of a `BaseBackend`.
+      backend: The name of the backend or an instance of a `AbstractBackend`.
 
     Raises:
       ValueError: If there is a repeated name in `axis_names` or if the length
         doesn't match the shape of the tensor.
     """
-    if isinstance(tensor, BaseNode):
+    if isinstance(tensor, AbstractNode):
       #always use the `Node`'s backend
       backend = tensor.backend
       tensor = tensor.tensor
     if backend is None:
       backend = get_default_backend()
-    if isinstance(backend, BaseBackend):
+    if isinstance(backend, AbstractBackend):
       backend_obj = backend
     else:
       backend_obj = backend_factory.get_backend(backend)
@@ -677,7 +679,7 @@ class Node(BaseNode):
     node_group.create_dataset('tensor', data=self._tensor)
 
   @classmethod
-  def _load_node(cls, node_data: h5py.Group) -> "BaseNode":
+  def _load_node(cls, node_data: h5py.Group) -> "AbstractNode":
     """Load a node based on hdf5 data.
 
     Args:
@@ -704,7 +706,7 @@ class Node(BaseNode):
             f'\nedges : \n{edges!r} \n)')
 
 
-class CopyNode(BaseNode):
+class CopyNode(AbstractNode):
 
   def __init__(self,
                rank: int,
@@ -743,17 +745,19 @@ class CopyNode(BaseNode):
         backend=backend_obj,
         shape=(dimension,) * rank)
 
-  def __add__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented addition ( + )")
+  def __add__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented addition ( + )")
 
-  def __sub__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented subtraction ( - )")
+  def __sub__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError(
+        "AbstractNode has not implemented subtraction ( - )")
 
-  def __mul__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented multiply ( * )")
+  def __mul__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented multiply ( * )")
 
-  def __truediv__(self, other: Union[int, float, "BaseNode"]) -> "BaseNode":
-    raise NotImplementedError("BaseNode has not implemented divide ( / )")
+  def __truediv__(self, other: Union[int, float,
+                                     "AbstractNode"]) -> "AbstractNode":
+    raise NotImplementedError("AbstractNode has not implemented divide ( / )")
 
   @property
   def dtype(self):
@@ -817,15 +821,15 @@ class CopyNode(BaseNode):
   def _is_my_trace(self, edge: "Edge") -> bool:
     return edge.node1 is self and edge.node2 is self
 
-  def _get_partner(self, edge: "Edge") -> Tuple[BaseNode, int]:
+  def _get_partner(self, edge: "Edge") -> Tuple[AbstractNode, int]:
     if edge.node1 is self:
       assert edge.axis2 is not None
       return edge.node2, edge.axis2
     assert edge.node2 is self
     return edge.node1, edge.axis1
 
-  def get_partners(self) -> Dict[BaseNode, Set[int]]:
-    partners = {}  # type: Dict[BaseNode, Set[int]]
+  def get_partners(self) -> Dict[AbstractNode, Set[int]]:
+    partners = {}  # type: Dict[AbstractNode, Set[int]]
     for edge in self.edges:
       if edge.is_dangling():
         raise ValueError('Cannot contract copy tensor with dangling edges')
@@ -840,7 +844,7 @@ class CopyNode(BaseNode):
   _VALID_SUBSCRIPTS = list(
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
 
-  def _make_einsum_input_term(self, node: BaseNode, shared_axes: Set[int],
+  def _make_einsum_input_term(self, node: AbstractNode, shared_axes: Set[int],
                               next_index: int) -> Tuple[str, int]:
     indices = []
     for axis in range(node.get_rank()):
@@ -855,7 +859,8 @@ class CopyNode(BaseNode):
   def _make_einsum_output_term(self, next_index: int) -> str:
     return "".join(self._VALID_SUBSCRIPTS[i] for i in range(1, next_index))
 
-  def _make_einsum_expression(self, partners: Dict[BaseNode, Set[int]]) -> str:
+  def _make_einsum_expression(self, partners: Dict[AbstractNode,
+                                                   Set[int]]) -> str:
     next_index = 1  # zero is reserved for the shared index
     einsum_input_terms = []
     for partner_node, shared_axes in partners.items():
@@ -935,10 +940,10 @@ class Edge:
   """
 
   def __init__(self,
-               node1: BaseNode,
+               node1: AbstractNode,
                axis1: int,
                name: Optional[Text] = None,
-               node2: Optional[BaseNode] = None,
+               node2: Optional[AbstractNode] = None,
                axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
@@ -1024,12 +1029,12 @@ class Edge:
           'Edge has been disabled, setting node1 is no longer possible')
     self._axes[1] = axis2
 
-  def get_nodes(self) -> List[Optional[BaseNode]]:
+  def get_nodes(self) -> List[Optional[AbstractNode]]:
     """Get the nodes of the edge."""
     return self._nodes[:]
 
-  def update_axis(self, old_axis: int, old_node: BaseNode, new_axis: int,
-                  new_node: BaseNode) -> None:
+  def update_axis(self, old_axis: int, old_node: AbstractNode, new_axis: int,
+                  new_node: AbstractNode) -> None:
     """Update the node that Edge is connected to.
 
     Args:
@@ -1054,7 +1059,7 @@ class Edge:
                            self.node2, self.axis2))
 
   @property
-  def node1(self) -> BaseNode:
+  def node1(self) -> AbstractNode:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing node1 is no longer possible')
@@ -1063,7 +1068,7 @@ class Edge:
     return self._nodes[0]
 
   @property
-  def node2(self) -> Optional[BaseNode]:
+  def node2(self) -> Optional[AbstractNode]:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, accessing node2 is no longer possible')
@@ -1074,7 +1079,7 @@ class Edge:
     return self._nodes[1]
 
   @node1.setter
-  def node1(self, node: BaseNode) -> None:
+  def node1(self, node: AbstractNode) -> None:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting node1 is no longer possible')
@@ -1082,7 +1087,7 @@ class Edge:
     self._nodes[0] = node
 
   @node2.setter
-  def node2(self, node: Optional[BaseNode]) -> None:
+  def node2(self, node: Optional[AbstractNode]) -> None:
     if self.is_disabled:
       raise ValueError(
           'Edge has been disabled, setting node2 is no longer possible')
@@ -1136,7 +1141,8 @@ class Edge:
     edge_group.create_dataset('name', data=self.name)
 
   @classmethod
-  def _load_edge(cls, edge_data: h5py.Group, nodes_dict: Dict[Text, BaseNode]):
+  def _load_edge(cls, edge_data: h5py.Group, nodes_dict: Dict[Text,
+                                                              AbstractNode]):
     """load an edge based on hdf5 data.
 
     Args:
@@ -1214,7 +1220,7 @@ class Edge:
     return self.disconnect()
 
 
-def get_shared_edges(node1: BaseNode, node2: BaseNode) -> Set[Edge]:
+def get_shared_edges(node1: AbstractNode, node2: AbstractNode) -> Set[Edge]:
   """Get all edges shared between two nodes.
 
   Args:
@@ -1248,7 +1254,7 @@ def get_parallel_edges(edge: Edge) -> Set[Edge]:
   return get_shared_edges(edge.node1, edge.node2)
 
 
-def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_nondangling(nodes: Iterable[AbstractNode]) -> Set[Edge]:
   """Return the set of all non-dangling edges."""
   edges = set()
   for node in nodes:
@@ -1256,7 +1262,7 @@ def get_all_nondangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_all_dangling(nodes: Iterable[BaseNode]) -> List[Edge]:
+def get_all_dangling(nodes: Iterable[AbstractNode]) -> List[Edge]:
   """Return the set of all dangling edges."""
   edges = []
   for node in nodes:
@@ -1392,8 +1398,8 @@ def flatten_edges(edges: List[Edge],
 
 
 def flatten_edges_between(
-    node1: BaseNode,
-    node2: BaseNode,
+    node1: AbstractNode,
+    node2: AbstractNode,
 ) -> Optional[Edge]:
   """Flatten all of the edges between the given two nodes.
 
@@ -1412,7 +1418,7 @@ def flatten_edges_between(
   return None
 
 
-def flatten_all_edges(nodes: Iterable[BaseNode]) -> List[Edge]:
+def flatten_all_edges(nodes: Iterable[AbstractNode]) -> List[Edge]:
   """Flatten all edges that belong to the nodes.
 
   Returns:
@@ -1617,7 +1623,7 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
   return edge
 
 
-def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
+def _remove_trace_edge(edge: Edge, new_node: AbstractNode) -> None:
   """Collapse a trace edge. `edge` is disabled before returning.
 
   Take a trace edge (i.e. with edge.node1 = edge.node2),
@@ -1666,8 +1672,8 @@ def _remove_trace_edge(edge: Edge, new_node: BaseNode) -> None:
   edge.disable()  #disabled edge!
 
 
-def _remove_edges(edges: Set[Edge], node1: BaseNode, node2: BaseNode,
-                  new_node: BaseNode) -> None:
+def _remove_edges(edges: Set[Edge], node1: AbstractNode, node2: AbstractNode,
+                  new_node: AbstractNode) -> None:
   """Takes a set of `edges` shared between `node1` and `node2` to be contracted
   over, and moves all other uncontracted edges from `node1` and `node2` to
   `new_node`.
@@ -1736,7 +1742,7 @@ def _remove_edges(edges: Set[Edge], node1: BaseNode, node2: BaseNode,
   [edge.disable() for edge in edges]  #disabled edges!
 
 
-def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
+def _contract_trace(edge: Edge, name: Optional[Text] = None) -> AbstractNode:
   """Contract a trace edge.
   `edge` is disabled before returning.
   Args:
@@ -1770,7 +1776,7 @@ def _contract_trace(edge: Edge, name: Optional[Text] = None) -> BaseNode:
 
 def contract(edge: Edge,
              name: Optional[Text] = None,
-             axis_names: Optional[List[Text]] = None) -> BaseNode:
+             axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Contract an edge connecting two nodes.
 
   All edges of `node1` and `node2` are passed on to the new node,
@@ -1821,7 +1827,7 @@ def contract(edge: Edge,
 
 
 def contract_copy_node(copy_node: CopyNode,
-                       name: Optional[Text] = None) -> BaseNode:
+                       name: Optional[Text] = None) -> AbstractNode:
   """Contract all edges incident on given copy node.
 
   Args:
@@ -1856,7 +1862,7 @@ def contract_copy_node(copy_node: CopyNode,
   return new_node
 
 
-def contract_parallel(edge: Edge) -> BaseNode:
+def contract_parallel(edge: Edge) -> AbstractNode:
   """Contract all edges parallel to this edge.
 
   This method calls `contract_between` with the nodes connected by the edge.
@@ -1915,13 +1921,13 @@ def disconnect(edge,
 
 
 def contract_between(
-    node1: BaseNode,
-    node2: BaseNode,
+    node1: AbstractNode,
+    node2: AbstractNode,
     name: Optional[Text] = None,
     allow_outer_product: bool = False,
     output_edge_order: Optional[Sequence[Edge]] = None,
     axis_names: Optional[List[Text]] = None,
-) -> BaseNode:
+) -> AbstractNode:
   """Contract all of the edges between the two given nodes.
 
   If `output_edge_order` is not set, the output axes will be ordered as:
@@ -2025,8 +2031,8 @@ def contract_between(
   return new_node
 
 
-def outer_product_final_nodes(nodes: Iterable[BaseNode],
-                              edge_order: List[Edge]) -> BaseNode:
+def outer_product_final_nodes(nodes: Iterable[AbstractNode],
+                              edge_order: List[Edge]) -> AbstractNode:
   """Get the outer product of `nodes`
 
   For example, if there are 3 nodes remaining in `nodes` with
@@ -2054,10 +2060,10 @@ def outer_product_final_nodes(nodes: Iterable[BaseNode],
   return final_node.reorder_edges(edge_order)
 
 
-def outer_product(node1: BaseNode,
-                  node2: BaseNode,
+def outer_product(node1: AbstractNode,
+                  node2: AbstractNode,
                   name: Optional[Text] = None,
-                  axis_names: Optional[List[Text]] = None) -> BaseNode:
+                  axis_names: Optional[List[Text]] = None) -> AbstractNode:
   """Calculates an outer product of the two nodes.
 
   This causes the nodes to combine their edges and axes, so the shapes are
@@ -2135,7 +2141,7 @@ class NodeCollection:
 
   """
 
-  def __init__(self, container: Union[Set[BaseNode], List[BaseNode]]):
+  def __init__(self, container: Union[Set[AbstractNode], List[AbstractNode]]):
     """Initialize the NodeCollection context manager.
 
     Args:
@@ -2150,7 +2156,7 @@ class NodeCollection:
       raise ValueError("Item passed to NodeCollection must be list or set")
     self._container = container
 
-  def add(self, node: BaseNode):
+  def add(self, node: AbstractNode):
     if isinstance(self._container, set):
       self._container.add(node)
     else:
