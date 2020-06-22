@@ -721,7 +721,7 @@ def test_remove_after_flatten(backend):
 
 def test_custom_backend():
   # pylint: disable=abstract-method
-  class StringBackend(tn.BaseBackend):
+  class StringBackend(tn.AbstractBackend):
 
     def __init__(self):
       super().__init__()
@@ -737,7 +737,7 @@ def test_custom_backend():
       return (1,)
 
   backend = StringBackend()
-  assert isinstance(backend, tn.BaseBackend)
+  assert isinstance(backend, tn.AbstractBackend)
   a = tn.Node("Hello ", backend=backend)
   b = tn.Node("world!", backend=backend)
   a[0] ^ b[0]
