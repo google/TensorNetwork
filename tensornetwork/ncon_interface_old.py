@@ -18,7 +18,7 @@ from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 
 Tensor = Any
 
@@ -103,7 +103,7 @@ def ncon(
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
-    backend: Optional[Union[Text, BaseBackend]] = None
+    backend: Optional[Union[Text, AbstractBackend]] = None
 ) -> Union[network_components.BaseNode, Tensor]:
   r"""Contracts a list of tensors or nodes according to a tensor network 
     specification.
@@ -158,7 +158,7 @@ def ncon(
     """
   if backend is None:
     backend = get_default_backend()
-  if isinstance(backend, BaseBackend):
+  if isinstance(backend, AbstractBackend):
     backend_obj = backend
   else:
     backend_obj = backend_factory.get_backend(backend)
@@ -191,7 +191,7 @@ def ncon_network(
     network_structure: Sequence[Sequence],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
-    backend: Optional[Union[Text, BaseBackend]] = None
+    backend: Optional[Union[Text, AbstractBackend]] = None
 ) -> Tuple[List[network_components.BaseNode], List[network_components.Edge],
            List[network_components.Edge]]:
   r"""Creates a network from a list of tensors according to `tensors`.
@@ -213,7 +213,7 @@ def ncon_network(
       network_structure: List of lists specifying the tensor network.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
-      backend: String or BaseBackend object specifying the backend to use. 
+      backend: String or AbstractBackend object specifying the backend to use. 
         Defaults to the default TensorNetwork backend.
     Returns:
       nodes: List of constructed nodes in the same order as given in `tensors`.
@@ -279,7 +279,7 @@ def ncon_network(
 def _build_network(
     tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence],
-    backend: Optional[Union[BaseBackend, Text]] = None,
+    backend: Optional[Union[AbstractBackend, Text]] = None,
 ) -> Tuple[List[network_components.BaseNode], Dict[Any,
                                                    network_components.Edge]]:
   nodes = []
