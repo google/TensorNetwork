@@ -13,8 +13,9 @@
 # limitations under the License.
 import pytest
 import numpy as np
-from tensornetwork import BaseNode, Node
+from tensornetwork import AbstractNode, Node
 from tensornetwork import ncon_interface
+from tensornetwork.ncon_interface import _get_cont_out_labels
 from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
 
@@ -52,7 +53,7 @@ def test_return_type(backend):
   result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
   result_3 = ncon_interface.ncon([n1, t2], [(-1, 1), (1, -2)], backend=backend)
   assert isinstance(result_1, type(n1.backend.convert_to_tensor(t1)))
-  assert isinstance(result_2, BaseNode)
+  assert isinstance(result_2, AbstractNode)
   assert isinstance(result_3, type(n1.backend.convert_to_tensor(t1)))
 
 
@@ -125,19 +126,72 @@ def test_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
   with pytest.raises(
       ValueError,
-      match=r"contracted connections \[1, 2\]"
-      " do not appear exactly twice."):
+      match="number of indices does not match "
+      "number of labels on tensor 0."):
+    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[3, 4\] in `con_order` "
+      r"do not appear as contracted labels in `network_structure`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4],
+                        backend=backend)
+  with pytest.raises(
+      ValueError, match=r"label 2"
+      " appears more than once in `con_order`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[2, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`con_order = \[3, 4, 5\] is not a valid "
+      r"contraction order for contracted labels \[1, 2\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4, 5],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`con_order = \[-1, 2\] "
+      r"is not a valid contraction order for contracted labels \[2\]"):
+    ncon_interface.ncon([a, a], [(-1, 2), (2, -2)],
+                        con_order=[-1, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`out_order` = \[2, 2\] is not a valid output"
+      r" order for open labels \[\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        out_order=[2, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[-3\] in `out_order` do not "
+      r"appear in `network_structure`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[-3, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[1\] in `out_order` appear more "
+      r"than once in `network_structure`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[1, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError, match=r"label -1 appears more than once in `out_order`."):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[-1, -1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r'labels \[2\] appear more than twice in `network_structure`.'):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(
       ValueError,
-      match=r"contracted connections \[2, 3\]"
-      " do not appear exactly twice."):
+      match=r"open integer labels have to be negative "
+      r"integers, found \[3, 2\]"):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"contracted connections \[0.1, 1.0\] "
-      "do not appear exactly twice."):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(
       ValueError,
       match="only nonzero values are allowed to "
@@ -145,9 +199,24 @@ def test_invalid_network(backend):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
   with pytest.raises(
       ValueError,
-      match="number of indices does not match "
-      "number of labels on tensor 0."):
-    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
+      match=r"open string labels have to be prepended with '-'; "
+      r"found \['1', '2'\]"):
+    ncon_interface.ncon([a, a], [('1', 1), (1, '2')], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"open integer labels have to be negative integers, "
+      r"found \[2, 1\]"):
+    ncon_interface.ncon([a, a], [(1, 3), (3, 2)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted labels can only be positive integers or strings"
+      r", found \[-5\]."):
+    ncon_interface.ncon([a, a], [(-1, -5), (-5, -2)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"contracted labels must"
+      r" not be prepended with '-', found \['-5'\]."):
+    ncon_interface.ncon([a, a], [(-1, '-5'), ('-5', -2)], backend=backend)
 
 
 def test_node_invalid_network(backend):
@@ -158,8 +227,6 @@ def test_node_invalid_network(backend):
     ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 0.1)], backend=backend)
   with pytest.raises(ValueError):
     ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
   with pytest.raises(ValueError):
@@ -311,13 +378,32 @@ def test_node_contraction(backend):
   np.testing.assert_allclose(res.tensor, res_np)
 
 
-def test_backend_network(backend):
-  a = np.random.randn(2, 2, 2)
-  nodes, _, out_edges = ncon_interface.ncon_network([a, a, a], [(-1, 1, 2),
-                                                                (1, 2, 3),
-                                                                (3, -2, -3)],
-                                                    backend=backend)
-  res = greedy(nodes, out_edges).tensor
-  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
-  res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res, res_np)
+def test_get_cont_out_labels():
+  network_structure = [[-1, 2, '3', '33', '4', 3, '-33'],
+                       ['-4', -2, '-3', '3', '33', '4', 2, 3]]
+  # pylint: disable=line-too-long
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
+      network_structure)
+  exp_int_cont_labels = [2, 3]
+  exp_str_cont_labels = ['3', '33', '4']
+  exp_int_out_labels = [-1, -2]
+  exp_str_out_labels = ['-3', '-33', '-4']
+
+  def check(exp, actual):
+    for e, a in zip(exp, actual):
+      assert e == a
+
+  check(exp_int_cont_labels, int_cont_labels)
+  check(exp_str_cont_labels, str_cont_labels)
+  check(exp_int_out_labels, int_out_labels)
+  check(exp_str_out_labels, str_out_labels)
+  
+def test_partial_traces(backend):
+  np.random.seed(10)
+  a = np.random.rand(4, 4, 4, 4)
+  res = ncon_interface.ncon([a, a], [(-1, 1, 1, 3), (2, -2, 2, 3)],
+                            backend=backend)
+  t1 = np.trace(a, axis1=1, axis2=2)
+  t2 = np.trace(a, axis1=0, axis2=2)
+  exp = np.tensordot(t1, t2, ([1], [1]))
+  np.testing.assert_allclose(res, exp)

@@ -13,7 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
 
@@ -24,7 +24,7 @@ Tensor = Any
 #pylint: disable=abstract-method
 
 
-class PyTorchBackend(base_backend.BaseBackend):
+class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -121,8 +121,11 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return torchlib.tensordot(tensor1, tensor2, dims=0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  # pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return torchlib.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
@@ -258,11 +261,13 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * torchlib.reshape(
-              v, vector_n.shape)
+          vector_n -= (v.contiguous().view(-1).dot(
+              vector_n.contiguous().view(-1))) * torchlib.reshape(
+                  v, vector_n.shape)
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
-      diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
+      diag_elements.append(vector_n.contiguous().view(-1).dot(
+          A_vector_n.contiguous().view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian

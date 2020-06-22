@@ -13,7 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
 
@@ -25,7 +25,7 @@ Tensor = Any
 #pylint: disable=abstract-method
 
 
-class TensorFlowBackend(base_backend.BaseBackend):
+class TensorFlowBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -111,8 +111,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensordot2.tensordot(tf, tensor1, tensor2, 0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  #pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return tf.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
