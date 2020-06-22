@@ -419,8 +419,9 @@ def _implicitly_restarted_arnoldi(jax):
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
 
-  def implicitly_restarted_arnoldi_method(matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-           maxiter) -> Tuple[List[Tensor], List[Tensor]]:
+  def implicitly_restarted_arnoldi_method(
+      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
+      maxiter) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine 
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec` 
