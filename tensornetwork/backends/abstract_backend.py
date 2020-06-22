@@ -213,7 +213,7 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self, expression: str, *tensors: Tensor, optimize: bool) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
