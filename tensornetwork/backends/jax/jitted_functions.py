@@ -463,15 +463,10 @@ def _implicitly_restarted_arnoldi(jax):
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
 
     # perform initial arnoldi factorization
-    Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(
-        matvec=matvec,
-        args=args,
-        v0=initial_state,
-        krylov_vectors=krylov_vectors,
-        H=H,
-        start=0,
-        num_krylov_vecs=num_krylov_vecs,
-        eps=eps)
+    Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(matvec, args,
+                                                     initial_state,
+                                                     krylov_vectors, H, 0,
+                                                     num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
 
