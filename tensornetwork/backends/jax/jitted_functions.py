@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Any
+from typing import List, Any, Tuple
 import numpy as np
 Tensor = Any
 
