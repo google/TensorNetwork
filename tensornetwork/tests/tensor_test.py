@@ -21,12 +21,12 @@ import tensorflow as tf
 import torch
 import pytest
 import tensornetwork as tn
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork import backends, backend_contextmanager
 
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
-BaseBackend = base_backend.BaseBackend
+BaseBackend = abstract_backend.AbstractBackend
 
 np_real = [np.float32, np.float16, np.float64]
 np_complex = [np.complex64, np.complex128]
