@@ -315,11 +315,10 @@ def test_outer_product_2(backend):
   a = np.random.rand(10, 100)
   b = np.random.rand(8)
   res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
-                out_order=[-2, -1, -3],
-                backend=backend)
+                            out_order=[-2, -1, -3],
+                            backend=backend)
   exp = np.einsum('ij,k->jik', a, b)
   np.testing.assert_allclose(res, exp)
-
 
 
 def test_node_outer_product(backend):
