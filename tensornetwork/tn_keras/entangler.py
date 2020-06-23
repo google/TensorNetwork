@@ -102,24 +102,32 @@ class DenseEntangler(Layer):
 
     super(DenseEntangler, self).build(input_shape)
 
-    # Ensure input dim and output dim match
-    assert (
-        input_shape[-1] == self.output_dim
-    ), f'Input dim {input_shape[-1]} not equal to output dim {self.output_dim}'
-
     # Ensure the Entangler dimensions will work
     assert (
         is_perfect_root(input_shape[-1], self.num_legs)
     ), f'Input dim {input_shape[-1]}**(1. / {self.num_legs}) must be round.'
 
+    assert (
+        is_perfect_root(self.output_dim, self.num_legs)
+    ), f'Output dim {self.output_dim}**(1. / {self.num_legs}) must be round.'
+
     self.leg_dim = round(input_shape[-1]**(1. / self.num_legs))
-    self.num_nodes = self.num_levels
+    self.out_leg_dim = round(self.output_dim**(1. / self.num_legs))
+    self.num_nodes = self.num_levels * (self.num_legs - 1)
 
     for i in range(self.num_nodes):
+      current_level = i // (self.num_legs - 1)
+      node_out_dim = self.out_leg_dim
+      node_connect_dim = self.out_leg_dim
+
+      if current_level < self.num_levels - 1:
+        node_out_dim = self.leg_dim
+      if i < self.num_nodes - 1:
+        node_connect_dim = self.leg_dim
       self.nodes.append(
           self.add_weight(name=f'node_{i}',
-                          shape=(self.leg_dim, self.leg_dim, self.leg_dim,
-                                 self.leg_dim),
+                          shape=(self.leg_dim, self.leg_dim, node_out_dim,
+                                 node_connect_dim),
                           trainable=True,
                           initializer=self.kernel_initializer))
 
@@ -134,7 +142,6 @@ class DenseEntangler(Layer):
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, num_legs: int,
           leg_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
 
-      orig_shape = x.shape
       l = [leg_dim] * num_legs
       input_reshaped = tf.reshape(x, tuple(l))
 
@@ -158,7 +165,7 @@ class DenseEntangler(Layer):
       #    |  |  |  |
       #    xxxxxxxxxx
 
-      result = tf.reshape(x_node.tensor, orig_shape)
+      result = tf.reshape(x_node.tensor, (self.output_dim,))
       if use_bias:
         result += bias_var
 

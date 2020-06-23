@@ -25,7 +25,7 @@ def dummy_data(request):
 
 @pytest.fixture(params=[
     'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
-    'DenseEntangler'
+    'DenseEntangler', 'DenseEntanglerOut'
 ])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
@@ -77,6 +77,20 @@ def make_model(dummy_data, request):
     model = Sequential()
     model.add(
         DenseEntangler(leg_dim**num_legs,
+                       num_legs=num_legs,
+                       num_levels=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseEntanglerOut':
+    num_legs = 3
+    leg_dim = round(data.shape[-1]**(1. / num_legs))
+    assert leg_dim**num_legs == data.shape[-1]
+
+    model = Sequential()
+    model.add(
+        DenseEntangler((leg_dim * 2)**num_legs,
                        num_legs=num_legs,
                        num_levels=3,
                        use_bias=True,
@@ -147,6 +161,7 @@ def high_dim_data(request):
   # Generate dummy data for use in tests
   data = np.random.randint(10, size=request.param)
   return data
+
 
 @pytest.fixture(params=[
     'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
@@ -333,7 +348,35 @@ def test_entangler_num_parameters(dummy_data):
                      input_shape=(data.shape[1],)))
 
   # num_params = entangler_node_params + bias_params
-  expected_num_parameters = num_levels * (leg_dim**4) + leg_dim**num_legs
+  expected_num_parameters = num_levels * (num_legs - 1) * (leg_dim**4) + (
+      leg_dim**num_legs)
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+def test_entangler_asymmetric_num_parameters(dummy_data):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data, _ = dummy_data
+
+  num_legs = 3
+  num_levels = 3
+  leg_dim = round(data.shape[-1]**(1. / num_legs))
+  assert leg_dim**num_legs == data.shape[-1]
+  out_leg_dim = leg_dim * 2
+
+  model = Sequential()
+  model.add(
+      DenseEntangler(out_leg_dim**num_legs,
+                     num_legs=num_legs,
+                     num_levels=num_levels,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=(data.shape[1],)))
+
+  expected_num_parameters = (num_levels - 1) * (num_legs - 1) * (leg_dim**4) + (
+      num_legs - 2) * leg_dim**3 * out_leg_dim + leg_dim**2 * out_leg_dim**2 + (
+          out_leg_dim**num_legs)
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
