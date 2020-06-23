@@ -12,216 +12,189 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
-from typing import List, Union, Any, Tuple, Type, Optional, Sequence
-
+from typing import List, Union, Tuple, Optional
+# pylint: disable=line-too-long
 from tensornetwork.contractors.custom_path_solvers.pathsolvers import full_solve_complete
 
 
-#------------------------------------------------------------------------#
 def ncon_solver(tensors: List[np.ndarray],
-                connects: List[List[int]],
+                labels: List[List[int]],
                 max_branch: Optional[int] = None):
   """
-  Solve for the contraction order of a tensor network (encoded in the `ncon` 
-  syntax) that minimizes the computational cost. 
+  Solve for the contraction order of a tensor network (encoded in the `ncon`
+  syntax) that minimizes the computational cost.
   Args:
     tensors: list of the tensors in the network.
-    connects: list of the tensor connections (in standard `ncon` format).
-    max_branch: maximum number of contraction paths to search at each step. 
+    labels: list of the tensor connections (in standard `ncon` format).
+    max_branch: maximum number of contraction paths to search at each step.
   Returns:
     np.ndarray: the cheapest contraction order found (in ncon format).
     float: the cost of the network contraction, given as log10(total_FLOPS).
     bool: specifies if contraction order is guaranteed optimal.
   """
   # build log-adjacency matrix
-  log_adj = ncon_to_adj(tensors,connects)
-  
-  # run search algorithm
-  order, costs, is_optimal = full_solve_complete(log_adj,max_branch=max_branch)
-  
-  # put contraction order back into ncon format
-  cont_order = ord_to_ncon(connects,order)
-  
-  return cont_order, costs, is_optimal
+  log_adj = ncon_to_adj(tensors, labels)
 
-#------------------------------------------------------------------------#
-def ncon_to_adj(tensors: List[np.ndarray],
-                connects: List[List[int]]):
+  # run search algorithm
+  order, costs, is_optimal = full_solve_complete(log_adj, max_branch=max_branch)
+
+  # put contraction order back into ncon format
+  con_order = ord_to_ncon(labels, order)
+
+  return con_order, costs, is_optimal
+
+
+def ncon_to_adj(tensors: List[np.ndarray], labels: List[List[int]]):
   """
-  Create a log-adjacency matrix for a network from the `ncon` syntax. 
+  Create a log-adjacency matrix, where element [i,j] is the log10 of the total
+  dimension of the indices connecting ith and jth tensors, for a network
+  defined in the `ncon` syntax.
   Args:
     tensors: list of the tensors in the network.
-    connects: list of the tensor connections (in standard `ncon` format).
+    labels: list of the tensor connections (in standard `ncon` format).
   Returns:
     np.ndarray: the log-adjacency matrix.
   """
-  # process inputs  
-  N = len(connects)
-  ranks = [len(connects[i]) for i in range(N)]
-  flat_connects = np.hstack([connects[i] for i in range(N)])
-  tensor_counter = np.hstack([i*np.ones(ranks[i],dtype=int) for i in range(N)])
+  # process inputs
+  N = len(labels)
+  ranks = [len(labels[i]) for i in range(N)]
+  flat_labels = np.hstack([labels[i] for i in range(N)])
+  tensor_counter = np.hstack(
+      [i * np.ones(ranks[i], dtype=int) for i in range(N)])
   index_counter = np.hstack([np.arange(ranks[i]) for i in range(N)])
-  
-  # build log-adjacency index-by-index  
-  log_adj = np.zeros([N,N]);
-  unique_connects = np.unique(flat_connects)
-  for i in range(len(unique_connects)):
-      # identify tensor/index location of each edge
-      tnr = tensor_counter[flat_connects == unique_connects[i]]
-      ind = index_counter[flat_connects == unique_connects[i]]
-      if len(ind) == 1: # external index
-        log_adj[tnr[0],tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
-      elif len(ind) == 2: # internal index
-        if (tnr[0] != tnr[1]): # ignore partial traces
-          log_adj[tnr[0],tnr[1]] += np.log10(tensors[tnr[0]].shape[ind[0]])
-          log_adj[tnr[1],tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
-   
+
+  # build log-adjacency index-by-index
+  log_adj = np.zeros([N, N])
+  unique_labels = np.unique(flat_labels)
+  for ele in unique_labels:
+    # identify tensor/index location of each edge
+    tnr = tensor_counter[flat_labels == ele]
+    ind = index_counter[flat_labels == ele]
+    if len(ind) == 1:  # external index
+      log_adj[tnr[0], tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
+    elif len(ind) == 2:  # internal index
+      if (tnr[0] != tnr[1]):  # ignore partial traces
+        log_adj[tnr[0], tnr[1]] += np.log10(tensors[tnr[0]].shape[ind[0]])
+        log_adj[tnr[1], tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
+
   return log_adj
 
-#------------------------------------------------------------------------#
-def ord_to_ncon(connects: List[List[int]],
-                orders: np.ndarray):
+
+def ord_to_ncon(labels: List[List[int]], orders: np.ndarray):
   """
-  Produces a `ncon` compatible index contraction order from the sequence of 
-  pairwise contractions. 
+  Produces a `ncon` compatible index contraction order from the sequence of
+  pairwise contractions.
   Args:
-    connects: list of the tensor connections (in standard `ncon` format).
-    orders: array of dim (2,N-1) specifying the set of N-1 pairwise 
+    labels: list of the tensor connections (in standard `ncon` format).
+    orders: array of dim (2,N-1) specifying the set of N-1 pairwise
       tensor contractions.
   Returns:
     np.ndarray: the contraction order (in `ncon` format).
   """
-  
-  N = 1 + (orders.size//2)
-  orders = orders.reshape(2,N-1)
-  new_connects = [connects[i] for i in range(N)]
-  cont_order = np.zeros([0],dtype=int)
-  
-  for i in range(N): # always do partial traces first
-    uni_inds, counts = np.unique(new_connects[i],return_counts=True)
-    tr_inds = uni_inds[np.flatnonzero(counts == 2)]
-    cont_order = np.concatenate((cont_order,tr_inds))
-    temp_connect = np.array(new_connects[i])
-    for ind in tr_inds:
-      temp_connect = temp_connect[temp_connect != ind]
-    new_connects[i] = temp_connect 
-  
-  for i in range(N-1):  
-    # find common indices between tensor pair
-    cont_many, A_cont, B_cont = np.intersect1d(new_connects[orders[0,i]],
-                                               new_connects[orders[1,i]],  
-                                               return_indices=True)
-    temp_connects = np.append(np.delete(new_connects[orders[0,i]], A_cont), 
-                              np.delete(new_connects[orders[1,i]], B_cont))
-    cont_order = list(np.concatenate((cont_order,cont_many),axis=0))
-    
-    # build new set of connects
-    new_connects[orders[0,i]] = temp_connects
-    del new_connects[orders[1,i]]
-    
-  return cont_order
 
-#------------------------------------------------------------------------#
-def ncon_cost_check(tensor_list_in: List[np.ndarray], 
-                    connect_list_in: List[Union[List[int], Tuple[int]]], 
-                    cont_order: Optional[Union[List[int], str]] = None):
+  N = len(labels)
+  orders = orders.reshape(2, N - 1)
+  new_labels = [np.array(labels[i]) for i in range(N)]
+  con_order = np.zeros([0], dtype=int)
+
+  # remove all partial trace indices
+  for counter, temp_label in enumerate(new_labels):
+    uni_inds, counts = np.unique(temp_label, return_counts=True)
+    tr_inds = uni_inds[np.flatnonzero(counts == 2)]
+    con_order = np.concatenate((con_order, tr_inds))
+    new_labels[counter] = temp_label[np.isin(temp_label, uni_inds[counts == 1])]
+
+  for i in range(N - 1):
+    # find common indices between tensor pair
+    cont_many, A_cont, B_cont = np.intersect1d(
+        new_labels[orders[0, i]], new_labels[orders[1, i]], return_indices=True)
+    temp_labels = np.append(
+        np.delete(new_labels[orders[0, i]], A_cont),
+        np.delete(new_labels[orders[1, i]], B_cont))
+    con_order = list(np.concatenate((con_order, cont_many), axis=0))
+
+    # build new set of labels
+    new_labels[orders[0, i]] = temp_labels
+    del new_labels[orders[1, i]]
+
+  return con_order
+
+
+def ncon_cost_check(tensors: List[np.ndarray],
+                    labels: List[Union[List[int], Tuple[int]]],
+                    con_order: Optional[Union[List[int], str]] = None):
   """
-  Checks the computational cost of an `ncon` contraction (without actually 
-  doing the contraction). Ignore the cost contributions from partial traces 
+  Checks the computational cost of an `ncon` contraction (without actually
+  doing the contraction). Ignore the cost contributions from partial traces
   (which are always sub-leading).
   Args:
     tensors: list of the tensors in the network.
-    connects: length-N list of lists (or tuples) specifying the network 
-      connections. The jth entry of the ith list in connects labels the edge 
-      connected to the jth index of the ith tensor. Labels should be positive 
+    labels: length-N list of lists (or tuples) specifying the network
+      connections. The jth entry of the ith list in labels labels the edge
+      connected to the jth index of the ith tensor. Labels should be positive
       integers for internal indices and negative integers for free indices.
-    cont_order: optional argument to specify the order for contracting the 
-      positive indices. Defaults to ascending order if omitted. 
+    con_order: optional argument to specify the order for contracting the
+      positive indices. Defaults to ascending order if omitted.
   Returns:
     float: the cost of the network contraction, given as log10(total_FLOPS).
   """
-  
-  total_cost = None
-  num_tensors = len(tensor_list_in)
-  tensor_dims = [np.array(np.log10(tensor_list_in[ele].shape)) 
-                 for ele in range(num_tensors)]
-  connect_list = [np.array(connect_list_in[ele]) for ele in range(num_tensors)]
-  
+
+  total_cost = np.float('-inf')
+  N = len(tensors)
+  tensor_dims = [np.array(np.log10(ele.shape)) for ele in tensors]
+  connect_list = [np.array(ele) for ele in labels]
+
   # generate contraction order if necessary
   flat_connect = np.concatenate(connect_list)
-  if cont_order is None:
-    cont_order = np.unique(flat_connect[flat_connect > 0])
+  if con_order is None:
+    con_order = np.unique(flat_connect[flat_connect > 0])
   else:
-    cont_order = np.array(cont_order)
-  
+    con_order = np.array(con_order)
+
   # do all partial traces
-  for ele in range(num_tensors):
-    uni_inds, counts = np.unique(connect_list[ele],return_counts=True)
-    tr_inds = uni_inds[counts==2]
-    temp_connect = connect_list[ele]
-    temp_dims = tensor_dims[ele]
-    for ind in tr_inds:
-      temp_dims = temp_dims[temp_connect != ind]
-      temp_connect = temp_connect[temp_connect != ind]
-      cont_order = np.delete(cont_order, np.flatnonzero(cont_order == ind))
-      
-    tensor_dims[ele] = temp_dims
-    connect_list[ele] = temp_connect
-  
+  for counter, temp_connect in enumerate(connect_list):
+    uni_inds, counts = np.unique(temp_connect, return_counts=True)
+    tr_inds = np.isin(temp_connect, uni_inds[counts == 1])
+    tensor_dims[counter] = tensor_dims[counter][tr_inds]
+    connect_list[counter] = temp_connect[tr_inds]
+    con_order = con_order[np.logical_not(
+        np.isin(con_order, uni_inds[counts == 2]))]
+
   # do all binary contractions
-  while len(cont_order) > 0:
+  while len(con_order) > 0:
     # identify tensors to be contracted
-    cont_ind = cont_order[0]
-    locs = [ele for ele in range(len(connect_list)) 
-            if sum(connect_list[ele] == cont_ind) > 0]
-  
-    # do binary contraction
-    cont_many, A_cont, B_cont = np.intersect1d(connect_list[locs[0]], 
-                                               connect_list[locs[1]], 
-                                               assume_unique=True, 
-                                               return_indices=True)
-    A_dim = np.sum(tensor_dims[locs[0]])
-    B_dim = np.sum(tensor_dims[locs[1]]) 
-    cont_dim = np.sum((tensor_dims[locs[0]])[A_cont])
-    single_cost = A_dim + B_dim - cont_dim
-    if total_cost is None:
-      total_cost =  single_cost
-    else:
-      total_cost =  total_cost + np.log10(1+10**(single_cost-total_cost))
-    
-    tensor_dims.append(np.append(np.delete(tensor_dims[locs[0]], A_cont), 
-                                 np.delete(tensor_dims[locs[1]], B_cont)))
-    connect_list.append(np.append(np.delete(connect_list[locs[0]], A_cont), 
-                                  np.delete(connect_list[locs[1]], B_cont)))
-  
-    # remove contracted tensors from list and update cont_order
-    del tensor_dims[locs[1]]
-    del tensor_dims[locs[0]]
-    del connect_list[locs[1]]
-    del connect_list[locs[0]]
-    cont_order = np.delete(cont_order,np.intersect1d(cont_order,cont_many, 
-                                                     assume_unique=True, 
-                                                     return_indices=True)[1])
-  
+    cont_ind = con_order[0]
+    locs = [
+        ele for ele in range(len(connect_list))
+        if sum(connect_list[ele] == cont_ind) > 0
+    ]
+
+    # identify indices to be contracted
+    c1 = connect_list.pop(locs[1])
+    c0 = connect_list.pop(locs[0])
+    cont_many, A_cont, B_cont = np.intersect1d(
+        c0, c1, assume_unique=True, return_indices=True)
+
+    # identify dimensions of contracted
+    d1 = tensor_dims.pop(locs[1])
+    d0 = tensor_dims.pop(locs[0])
+    single_cost = np.sum(d0) + np.sum(d1) - np.sum(d0[A_cont])
+    total_cost = single_cost + np.log10(1 + 10**(total_cost - single_cost))
+
+    # update lists
+    tensor_dims.append(np.append(np.delete(d0, A_cont), np.delete(d1, B_cont)))
+    connect_list.append(np.append(np.delete(c0, A_cont), np.delete(c1, B_cont)))
+    con_order = con_order[np.logical_not(np.isin(con_order, cont_many))]
+
   # do all outer products
-  num_tensors = len(tensor_dims)
-  if (num_tensors > 1):
-    tensor_sizes = np.sort([np.sum(tensor_dims[ele]) 
-                            for ele in range(num_tensors)])
-    for i in range(num_tensors-1):
+  N = len(tensor_dims)
+  if (N > 1):
+    tensor_sizes = np.sort([np.sum(tensor_dims[ele]) for ele in range(N)])
+    for i in range(N - 1):
       single_cost = tensor_sizes[0] + tensor_sizes[1]
       tensor_sizes[0] += tensor_sizes[1]
-      tensor_sizes = np.sort(np.delete(tensor_sizes,1))
-      if total_cost is None:
-        total_cost =  single_cost
-      else:
-        total_cost =  total_cost + np.log10(1+10**(single_cost-total_cost))
-      
-  return total_cost
-    
-  
+      tensor_sizes = np.sort(np.delete(tensor_sizes, 1))
+      total_cost = single_cost + np.log10(1 + 10**(total_cost - single_cost))
 
+  return total_cost
