@@ -111,8 +111,11 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensordot2.tensordot(tf, tensor1, tensor2, 0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  #pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return tf.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
