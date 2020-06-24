@@ -122,7 +122,7 @@ def zeros(shape: Sequence[int],
   return the_node
 
 
-def zeros_like(a: np.ndarray,
+def zeros_like(a: Any,
          dtype: Optional[Type[np.number]] = None,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None,
@@ -176,7 +176,7 @@ def ones(shape: Sequence[int],
   return the_node
 
 
-def ones_like(a: np.ndarray,
+def ones_like(a: Any,
          dtype: Optional[Type[np.number]] = None,
          name: Optional[Text] = None,
          axis_names: Optional[List[Text]] = None,
