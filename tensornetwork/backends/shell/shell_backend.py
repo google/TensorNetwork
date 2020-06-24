@@ -257,9 +257,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
       raise TypeError("Expected a `ShellTensor`. Got {}".format(
           type(initial_state)))
 
-    return [ShellTensor(tuple()) for _ in range(numeig)], [
-        ShellTensor(initial_state.shape) for _ in range(numeig)
-    ]
+    return [ShellTensor(tuple()) for _ in range(numeig)
+           ], [ShellTensor(initial_state.shape) for _ in range(numeig)]
 
   def eigsh_lanczos(self,
                     A: Callable,
