@@ -259,11 +259,8 @@ def _jittable_ncon(tensors, flat_labels, sizes, con_order, out_order,
 
   # final permutation
   if len(network_structure[0]) > 0:
-    if out_order is None:
-      return backend_obj.transpose(tensors[0], tuple(np.argsort(-out_order)))
-    _, l1, l2 = np.intersect1d(
-        network_structure, out_order, assume_unique=True, return_indices=True)
-    return backend_obj.transpose(tensors[0], tuple(l1[l2]))
+    i1, i2 = np.nonzero(out_order[:, None] == network_structure[0][None, :])
+    return backend_obj.transpose(tensors[0], tuple(i1[i2]))
   return tensors[0]
 
 
