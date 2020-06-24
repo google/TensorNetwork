@@ -288,12 +288,14 @@ def test_node_invalid_order(backend):
 
 
 def test_output_order(backend):
+  np.random.seed(10)
   a = np.random.randn(2, 2)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
   np.testing.assert_allclose(res, a.transpose())
 
 
 def test_node_output_order(backend):
+  np.random.seed(10)  
   t = np.random.randn(2, 2)
   a = Node(t, backend=backend)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
@@ -347,6 +349,7 @@ def test_node_trace(backend):
 
 
 def test_small_matmul(backend):
+  np.random.seed(10)  
   a = np.random.randn(2, 2)
   b = np.random.randn(2, 2)
   res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend=backend)
@@ -354,6 +357,7 @@ def test_small_matmul(backend):
 
 
 def test_node_small_matmul(backend):
+  np.random.seed(10)  
   t1 = np.random.randn(2, 2)
   t2 = np.random.randn(2, 2)
 
@@ -364,6 +368,7 @@ def test_node_small_matmul(backend):
 
 
 def test_contraction(backend):
+  np.random.seed(10)
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
                             backend=backend)
@@ -373,6 +378,7 @@ def test_contraction(backend):
 
 
 def test_node_contraction(backend):
+  np.random.seed(10)
   tensor = np.random.randn(2, 2, 2)
   a = Node(tensor, backend=backend)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
