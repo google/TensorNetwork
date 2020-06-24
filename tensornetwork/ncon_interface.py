@@ -208,9 +208,6 @@ def _jittable_ncon(tensors, flat_labels, sizes, con_order, out_order,
   if not isinstance(tensors, list):
     raise ValueError("`tensors` is not a list")
 
-  if not isinstance(network_structure, list):
-    raise ValueError("`network_structure` is not a list")
-
   # partial trace
   for n, tensor in enumerate(tensors):
     tensors[n], network_structure[n], contracted_labels = _partial_trace(
