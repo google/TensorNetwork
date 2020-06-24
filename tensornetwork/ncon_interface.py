@@ -25,7 +25,8 @@ _CACHED_JITTED_NCONS = {}
 
 
 def _get_cont_out_labels(
-    network_structure: List[List]) -> Tuple[List, List, List, List]:
+    network_structure: Sequence[Sequence]) -> Tuple[List, List, List, List]:
+  
   """
   Compute the contracted and free labels of `network_structure`.
   Contracted labels are labels appearing more than once,
@@ -63,12 +64,13 @@ def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
   out_mapping = dict(zip(out_labels, -np.arange(1, len(out_labels) + 1)))
   mapping.update(out_mapping)
   mapped_network_structure = [
-      [mapping[label] for label in labels] for labels in network_structure
+    np.array([mapping[label] for label in labels]) for labels in network_structure
   ]
   return mapped_network_structure, mapping
 
 
-def _check_network(network_structure, tensor_dimensions, con_order, out_order):
+def _check_network(network_structure: Sequence[Sequence], tensor_dimensions,
+                   con_order, out_order):
   if len(network_structure) != len(tensor_dimensions):
     raise ValueError("number of tensors does not match the"
                      " number of network connections.")
@@ -346,7 +348,6 @@ def ncon(
     con_order = None
 
   # convert to lists
-  network_structure = [list(l) for l in network_structure]
   are_nodes = [isinstance(t, network_components.AbstractNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.AbstractNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
@@ -376,7 +377,6 @@ def ncon(
   network_structure, mapping = _canonicalize_network_structure(
       cont_labels, out_labels, network_structure)
 
-  network_structure = [np.array(l) for l in network_structure]
   flat_labels = np.concatenate(network_structure)
   if out_order is None:
     out_order = np.sort(flat_labels[flat_labels < 0])[::-1]
