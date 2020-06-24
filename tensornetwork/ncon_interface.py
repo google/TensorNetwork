@@ -405,7 +405,7 @@ def ncon(
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
-  # we need top back everything into tuples, or jax will insist on retracing ...
+  # we need to pack everything into tuples, or jax will insist on retracing ...
   sizes = tuple([len(l) for l in network_structure])
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels),
                                              sizes, tuple(con_order),
