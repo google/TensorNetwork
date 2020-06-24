@@ -24,8 +24,7 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
-def _get_cont_out_labels(
-    network_structure: Sequence[Sequence]) -> Tuple[List, List, List, List]:
+def _get_cont_out_labels(network_structure: Sequence[Sequence])->Any:
   """
   Compute the contracted and free labels of `network_structure`.
   Contracted labels are labels appearing more than once,
@@ -58,7 +57,7 @@ def _get_cont_out_labels(
   return int_cont_labels, str_cont_labels, int_out_labels, str_out_labels
 
 
-def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
+def _canonicalize_network_structure(cont_labels:Sequence, out_labels: Sequence, network_structure: Sequence[Sequence])->Any:
   mapping = dict(zip(cont_labels, np.arange(1, len(cont_labels) + 1)))
   out_mapping = dict(zip(out_labels, -np.arange(1, len(out_labels) + 1)))
   mapping.update(out_mapping)
@@ -71,7 +70,7 @@ def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
 
 
 def _check_network(network_structure: Sequence[Sequence], tensor_dimensions: Sequence[Tuple[int]],
-                   con_order: List[int], out_order: List[int]):
+                   con_order: List[int], out_order: List[int])->Any:
   if len(network_structure) != len(tensor_dimensions):
     raise ValueError("number of tensors does not match the"
                      " number of network connections.")
@@ -155,7 +154,8 @@ def _check_network(network_structure: Sequence[Sequence], tensor_dimensions: Seq
   return cont_labels, out_labels
 
 
-def _partial_trace(tensor, labels, backend_obj):
+def _partial_trace(tensor: Sequence[Tensor], labels: Sequence[int],
+                   backend_obj: AbstractBackend)->Any:
   unique, cnts = np.unique(labels, return_counts=True)
   if np.any(cnts == 2):
     shape = backend_obj.shape_tuple(tensor)
@@ -183,8 +183,8 @@ def _partial_trace(tensor, labels, backend_obj):
   return tensor, labels, []
 
 
-def _jittable_ncon(tensors, flat_labels, sizes, con_order, out_order,
-                   backend_obj):
+def _jittable_ncon(tensors: Sequence[Tensor], flat_labels: Tuple[int], sizes: Tuple[init], con_order: Tuple[int], out_order: Tuple[int],
+                   backend_obj: AbstractBackend)->Any:
   """Jittable Ncon function.
 
   Args:
