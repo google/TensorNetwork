@@ -25,7 +25,7 @@ def dummy_data(request):
 
 @pytest.fixture(params=[
     'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
-    'DenseEntangler', 'DenseEntanglerOut'
+    'DenseEntangler', 'DenseEntanglerAsymmetric'
 ])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
@@ -83,7 +83,7 @@ def make_model(dummy_data, request):
                        activation='relu',
                        input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  elif request.param == 'DenseEntanglerOut':
+  elif request.param == 'DenseEntanglerAsmmetric':
     num_legs = 3
     leg_dim = round(data.shape[-1]**(1. / num_legs))
     assert leg_dim**num_legs == data.shape[-1]
