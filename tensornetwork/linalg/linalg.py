@@ -122,6 +122,33 @@ def zeros(shape: Sequence[int],
   return the_node
 
 
+def zeros_like(a: np.ndarray,
+         dtype: Optional[Type[np.number]] = None,
+         name: Optional[Text] = None,
+         axis_names: Optional[List[Text]] = None,
+         backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+  """Return a Node of all ones, of same shape as `a`.
+  The Node has one dangling Edge per dimension.
+  Args:
+    shape : Shape of the array.
+    dtype, optional: dtype of array (default np.float64).
+    name (text, optional): Name of the Node.
+    axis_names (optional): List of names of the edges.
+    backend (optional): The backend or its name.
+  Returns:
+    the_node : Node of shape `shape`
+        Represents an array of all ones.
+  """
+  the_node = initialize_node(
+      "zeros",
+      a.shape,
+      name=name,
+      axis_names=axis_names,
+      backend=backend,
+      dtype=dtype)
+  return the_node
+
+
 def ones(shape: Sequence[int],
          dtype: Optional[Type[np.number]] = None,
          name: Optional[Text] = None,
