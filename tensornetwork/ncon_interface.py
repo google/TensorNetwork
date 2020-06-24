@@ -26,7 +26,6 @@ _CACHED_JITTED_NCONS = {}
 
 def _get_cont_out_labels(
     network_structure: Sequence[Sequence]) -> Tuple[List, List, List, List]:
-  
   """
   Compute the contracted and free labels of `network_structure`.
   Contracted labels are labels appearing more than once,
@@ -64,7 +63,9 @@ def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
   out_mapping = dict(zip(out_labels, -np.arange(1, len(out_labels) + 1)))
   mapping.update(out_mapping)
   mapped_network_structure = [
-    np.array([mapping[label] for label in labels]) for labels in network_structure
+      np.array([mapping[label]
+                for label in labels])
+      for labels in network_structure
   ]
   return mapped_network_structure, mapping
 
