@@ -83,7 +83,7 @@ def make_model(dummy_data, request):
                        activation='relu',
                        input_shape=(data.shape[1],)))
     model.add(Dense(1, activation='sigmoid'))
-  elif request.param == 'DenseEntanglerAsmmetric':
+  elif request.param == 'DenseEntanglerAsymmetric':
     num_legs = 3
     leg_dim = round(data.shape[-1]**(1. / num_legs))
     assert leg_dim**num_legs == data.shape[-1]
