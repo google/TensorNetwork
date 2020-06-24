@@ -180,7 +180,7 @@ def _partial_trace(tensor, labels, backend_obj):
   return tensor, labels, []
 
 
-def _jittable_ncon(tensors, network_structure, con_order, out_order,
+def _jittable_ncon(tensors, flat_labels, sizes, con_order, out_order,
                    backend_obj):
   """Jittable Ncon function.
 
@@ -195,7 +195,13 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
   Returns:
     The final tensor after contraction.
   """
+  # some jax-juggling to avoid retracing ...
+  slices = np.append(0,np.cumsum(sizes))
+  network_structure = [list(np.array(flat_labels)[slices[n]:slices[n+1]]) for n in range(len(slices)-1)]
+  con_order = list(con_order)
+  out_order = list(out_order)
 
+  # now we're ready to do stuff
   if not isinstance(tensors, list):
     raise ValueError("`tensors` is not a list")
 
@@ -374,9 +380,9 @@ def ncon(
       cont_labels, out_labels, network_structure)
 
   network_structure = [np.array(l) for l in network_structure]
-  flat_connections = np.concatenate(network_structure)
+  flat_labels = np.concatenate(network_structure)
   if out_order is None:
-    out_order = np.sort(flat_connections[flat_connections < 0])[::-1]
+    out_order = np.sort(flat_labels[flat_labels < 0])[::-1]
   else:
     l = []
     for o in out_order:
@@ -386,7 +392,7 @@ def ncon(
     #canonicalization of network structure takes care of appropriate
     #contraction ordering (i.e. use ASCII ordering for str and
     #regular ordering for int)
-    con_order = np.unique(flat_connections[flat_connections > 0])
+    con_order = np.unique(flat_labels[flat_labels > 0])
   else:
     l = []
     for o in con_order:
@@ -395,9 +401,11 @@ def ncon(
 
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
-        _jittable_ncon, static_argnums=(1, 2, 3, 4))
-  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
-                                             con_order, out_order, backend_obj)
+        _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
+  # we need top back everything into tuples, or jax will insist on retracing ...
+  sizes = tuple([len(l) for l in network_structure])
+  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels), sizes,
+                                             tuple(con_order), tuple(out_order), backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
