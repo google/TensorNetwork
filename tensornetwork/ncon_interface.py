@@ -24,8 +24,7 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
-def _get_cont_out_labels(
-    network_structure: List[List]) -> Tuple[List, List, List, List]:
+def _get_cont_out_labels(network_structure: Sequence[Sequence]) -> Any:
   """
   Compute the contracted and free labels of `network_structure`.
   Contracted labels are labels appearing more than once,
@@ -58,17 +57,24 @@ def _get_cont_out_labels(
   return int_cont_labels, str_cont_labels, int_out_labels, str_out_labels
 
 
-def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
+def _canonicalize_network_structure(
+    cont_labels: Sequence, out_labels: Sequence,
+    network_structure: Sequence[Sequence]) -> Any:
   mapping = dict(zip(cont_labels, np.arange(1, len(cont_labels) + 1)))
   out_mapping = dict(zip(out_labels, -np.arange(1, len(out_labels) + 1)))
   mapping.update(out_mapping)
   mapped_network_structure = [
-      [mapping[label] for label in labels] for labels in network_structure
+      np.array([mapping[label]
+                for label in labels])
+      for labels in network_structure
   ]
   return mapped_network_structure, mapping
 
 
-def _check_network(network_structure, tensor_dimensions, con_order, out_order):
+def _check_network(network_structure: Sequence[Sequence],
+                   tensor_dimensions: Sequence[Tuple[int]],
+                   con_order: Optional[List[int]] = None,
+                   out_order: Optional[List[int]] = None) -> Any:
   if len(network_structure) != len(tensor_dimensions):
     raise ValueError("number of tensors does not match the"
                      " number of network connections.")
@@ -152,7 +158,8 @@ def _check_network(network_structure, tensor_dimensions, con_order, out_order):
   return cont_labels, out_labels
 
 
-def _partial_trace(tensor, labels, backend_obj):
+def _partial_trace(tensor: Tensor, labels: np.ndarray,
+                   backend_obj: AbstractBackend) -> Any:
   unique, cnts = np.unique(labels, return_counts=True)
   if np.any(cnts == 2):
     shape = backend_obj.shape_tuple(tensor)
@@ -180,8 +187,9 @@ def _partial_trace(tensor, labels, backend_obj):
   return tensor, labels, []
 
 
-def _jittable_ncon(tensors, network_structure, con_order, out_order,
-                   backend_obj):
+def _jittable_ncon(tensors: Sequence[Tensor], flat_labels: Tuple[int],
+                   sizes: Tuple[int], con_order: Tuple[int],
+                   out_order: Tuple[int], backend_obj: AbstractBackend) -> Any:
   """Jittable Ncon function.
 
   Args:
@@ -195,12 +203,18 @@ def _jittable_ncon(tensors, network_structure, con_order, out_order,
   Returns:
     The final tensor after contraction.
   """
+  # some jax-juggling to avoid retracing ...
+  slices = np.append(0, np.cumsum(sizes))
+  network_structure = [
+      np.array(flat_labels)[slices[n]:slices[n + 1]]
+      for n in range(len(slices) - 1)
+  ]
+  con_order = np.array(con_order)
+  out_order = np.array(out_order)
 
+  # now we're ready to do stuff
   if not isinstance(tensors, list):
     raise ValueError("`tensors` is not a list")
-
-  if not isinstance(network_structure, list):
-    raise ValueError("`network_structure` is not a list")
 
   # partial trace
   for n, tensor in enumerate(tensors):
@@ -340,7 +354,6 @@ def ncon(
     con_order = None
 
   # convert to lists
-  network_structure = [list(l) for l in network_structure]
   are_nodes = [isinstance(t, network_components.AbstractNode) for t in tensors]
   nodes = {t for t in tensors if isinstance(t, network_components.AbstractNode)}
   if not all([n.backend.name == backend_obj.name for n in nodes]):
@@ -370,10 +383,9 @@ def ncon(
   network_structure, mapping = _canonicalize_network_structure(
       cont_labels, out_labels, network_structure)
 
-  network_structure = [np.array(l) for l in network_structure]
-  flat_connections = np.concatenate(network_structure)
+  flat_labels = np.concatenate(network_structure)
   if out_order is None:
-    out_order = np.sort(flat_connections[flat_connections < 0])[::-1]
+    out_order = np.sort(flat_labels[flat_labels < 0])[::-1]
   else:
     l = []
     for o in out_order:
@@ -383,7 +395,7 @@ def ncon(
     #canonicalization of network structure takes care of appropriate
     #contraction ordering (i.e. use ASCII ordering for str and
     #regular ordering for int)
-    con_order = np.unique(flat_connections[flat_connections > 0])
+    con_order = np.unique(flat_labels[flat_labels > 0])
   else:
     l = []
     for o in con_order:
@@ -392,9 +404,12 @@ def ncon(
 
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
-        _jittable_ncon, static_argnums=(1, 2, 3, 4))
-  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, network_structure,
-                                             con_order, out_order, backend_obj)
+        _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
+  # we need to pack everything into tuples, or jax will insist on retracing ...
+  sizes = tuple([len(l) for l in network_structure])
+  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels),
+                                             sizes, tuple(con_order),
+                                             tuple(out_order), backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
