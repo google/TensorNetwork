@@ -125,6 +125,25 @@ def test_ones(backend):
       assert edge.name == expected_name
     assert tnI.backend.name == backend
 
+def test_ones_like(backend):
+  """
+  Tests linalg.ones_like against np.ones_like.
+  """
+  a = np.arange(4).reshape((2,2))
+  name = "Jeffrey"
+  axis_names = ["Sam", "Blinkey"]
+  backend_obj = backends.backend_factory.get_backend(backend)
+  for dtype in dtypes[backend]["all"]:
+    tnI = linalg.ones_like(
+        a, dtype=dtype, name=name, axis_names=axis_names, backend=backend)
+    npI = backend_obj.ones(a.shape, dtype=dtype)
+    np.testing.assert_allclose(tnI.tensor, npI)
+    assert tnI.name == name
+    edges = tnI.get_all_dangling()
+    for edge, expected_name in zip(edges, axis_names):
+      assert edge.name == expected_name
+    assert tnI.backend.name == backend
+
 
 def test_randn(backend):
   """
