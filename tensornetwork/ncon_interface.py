@@ -70,8 +70,8 @@ def _canonicalize_network_structure(cont_labels, out_labels, network_structure):
   return mapped_network_structure, mapping
 
 
-def _check_network(network_structure: Sequence[Sequence], tensor_dimensions,
-                   con_order, out_order):
+def _check_network(network_structure: Sequence[Sequence], tensor_dimensions: Sequence[Tuple[int]],
+                   con_order: List[int], out_order: List[int]):
   if len(network_structure) != len(tensor_dimensions):
     raise ValueError("number of tensors does not match the"
                      " number of network connections.")
