@@ -196,10 +196,13 @@ def _jittable_ncon(tensors, flat_labels, sizes, con_order, out_order,
     The final tensor after contraction.
   """
   # some jax-juggling to avoid retracing ...
-  slices = np.append(0,np.cumsum(sizes))
-  network_structure = [list(np.array(flat_labels)[slices[n]:slices[n+1]]) for n in range(len(slices)-1)]
-  con_order = list(con_order)
-  out_order = list(out_order)
+  slices = np.append(0, np.cumsum(sizes))
+  network_structure = [
+      np.array(flat_labels)[slices[n]:slices[n + 1]]
+      for n in range(len(slices) - 1)
+  ]
+  con_order = np.array(con_order)
+  out_order = np.array(out_order)
 
   # now we're ready to do stuff
   if not isinstance(tensors, list):
@@ -404,8 +407,9 @@ def ncon(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
   # we need top back everything into tuples, or jax will insist on retracing ...
   sizes = tuple([len(l) for l in network_structure])
-  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels), sizes,
-                                             tuple(con_order), tuple(out_order), backend_obj)
+  res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels),
+                                             sizes, tuple(con_order),
+                                             tuple(out_order), backend_obj)
   if all(are_nodes):
     return network_components.Node(res_tensor, backend=backend_obj)
   return res_tensor
