@@ -37,7 +37,7 @@ Tensor = Any
 class ShellBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(ShellBackend, self).__init__()
     self.name = "shell"
 
@@ -319,7 +319,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
           .format(matrix.shape))
     return ShellTensor(matrix.shape)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -331,7 +332,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
     shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor1.shape, shape2)])
     return ShellTensor(shape)
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor1`, found `tensor1.shape = {}`"
