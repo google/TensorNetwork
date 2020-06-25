@@ -40,13 +40,13 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     torchlib = torch
     self.name = "pytorch"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]])->Tensor:
     return torchlib.tensordot(a, b, dims=axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor)->Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm)->Tensor:
     return tensor.permute(perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -324,7 +324,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
           .format(matrix.shape))
     return matrix.inverse()
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -332,7 +332,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
