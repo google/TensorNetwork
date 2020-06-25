@@ -16,7 +16,7 @@ import numpy as np
 from tensornetwork import AbstractNode, Node
 from tensornetwork import ncon_interface
 # pylint: disable=line-too-long
-from tensornetwork.ncon_interface import _get_cont_out_batch_labels, _canonicalize_network_structure
+from tensornetwork.ncon_interface import _get_cont_out_labels, _canonicalize_network_structure
 from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
 
@@ -381,7 +381,7 @@ def test_get_cont_out_labels_1():
   network_structure = [[-1, 2, '3', '33', '4', 3, '-33', '-5'],
                        ['-4', -2, '-3', '3', '33', '-5', '4', 2, 3, 6, 'hello']]
   # pylint: disable=line-too-long
-  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_batch_labels(
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
       network_structure)
   exp_int_cont_labels = [2, 3]
   exp_str_cont_labels = ['3', '33', '4']
@@ -400,7 +400,7 @@ def test_get_cont_out_labels_2():
   ], ['-4', -2, '-3', '3', '33', '-5', '4', '5', 2, 3, 5, -3, 11],
                        [5, -3, '-6', '5', 'ricksanchez']]
   # pylint: disable=line-too-long
-  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_batch_labels(
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
       network_structure)
   exp_int_cont_labels = [2, 3]
   exp_str_cont_labels = ['3', '33', '4']
