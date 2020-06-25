@@ -787,12 +787,7 @@ class BlockSparseTensor(ChargeArray):
     return self
 
   def __matmul__(self, other):
-
-    if (self.ndim != 2) or (other.ndim != 2):
-      raise ValueError("__matmul__ only implemented for matrices."
-                       " Found ndims =  {} and {}".format(
-                           self.ndim, other.ndim))
-    return tensordot(self, other, ([1], [0]))
+    return tensordot(self, other, ([self.ndim - 1], [0]))
 
   def conj(self) -> "BlockSparseTensor":
     """
