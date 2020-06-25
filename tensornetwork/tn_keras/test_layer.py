@@ -222,7 +222,7 @@ def make_high_dim_model(high_dim_data, request):
   return data, model
 
 
-def test_decomp_higher_dim_input_output_shape(make_high_dim_model):
+def test_higher_dim_input_output_shape(make_high_dim_model):
   # pylint: disable=redefined-outer-name
   data, model = make_high_dim_model
 
@@ -357,14 +357,11 @@ def test_entangler_num_parameters(dummy_data):
 @pytest.mark.parametrize('num_levels', list(range(1, 4)))
 @pytest.mark.parametrize('num_legs', list(range(2, 6)))
 @pytest.mark.parametrize('leg_dims', [(4, 8), (8, 4)])
-def test_entangler_asymmetric_num_parameters(num_legs, num_levels, leg_dims):
-  # Disable the redefined-outer-name violation in this function
-  # pylint: disable=redefined-outer-name
+def test_entangler_asymmetric_num_parameters_output_shape(num_legs,
+                                                          num_levels,
+                                                          leg_dims):
   leg_dim, out_leg_dim = leg_dims
   data_shape = (leg_dim ** num_legs,)
-
-  # num_levels = 3
-
   model = Sequential()
   model.add(
       DenseEntangler(out_leg_dim**num_legs,
@@ -385,9 +382,10 @@ def test_entangler_asymmetric_num_parameters(num_legs, num_levels, leg_dims):
           out_leg_dim**num_legs)
 
 
-  data = np.random.randint(10, size=(10, data_shape[0]))
-  model(data)
   np.testing.assert_equal(expected_num_parameters, model.count_params())
+  data = np.random.randint(10, size=(10, data_shape[0]))
+  out = model(data)
+  np.testing.assert_equal(out.shape, (data.shape[0], out_leg_dim**num_legs))
 
 
 def test_config(make_model):
