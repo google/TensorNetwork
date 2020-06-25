@@ -23,10 +23,10 @@ Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
 
-def _get_cont_out_batch_labels(
+def _get_cont_out_labels(
     network_structure: Sequence[Sequence[Union[int, str]]]) -> Any:
   """
-  Compute the contracted, free and batch labels of `network_structure`, 
+  Compute the contracted and free and labels of `network_structure`, 
   using the following rules:
   * Any negative number-type element and any hyphen-prepended str-type 
     element are considered output labels.
@@ -47,9 +47,6 @@ def _get_cont_out_batch_labels(
     str_cont_labels: The str-type contracted labels
     int_out_labels: The number-type output labels
     str_out_labels: The str-type output labels
-    int_batch_labels: The number-type batch labels
-    str_batch_labels: The str-type batch labels
-
   """
   flat_labels = [l for sublist in network_structure for l in sublist]
   int_labels = [o for o in flat_labels if not isinstance(o, str)]
