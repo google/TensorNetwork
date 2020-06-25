@@ -175,7 +175,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
