@@ -235,10 +235,11 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
                        f"appear in `network_structure`.")
 
   # check if contracted dimensions are matching
-  locations = {
-      l: np.nonzero([[l1 == l for l1 in labels] for labels in network_structure
-                    ])[0] for l in cont_labels
-  }
+  locations = {}
+  for l in cont_labels:
+    boolean_mask = [[l1 == l for l1 in labels] for labels in network_structure]
+    locations[l] = np.nonzero(boolean_mask)[0]
+
   mismatched_labels = []
   for label, locs in locations.items():
     inds = [
