@@ -243,6 +243,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       #normalize the current vector:
       norm_vector_n = self.norm(vector_n)
       if abs(norm_vector_n) < delta:
+        # we found an invariant subspace, time to stop
         break
       norms_vector_n.append(norm_vector_n)
       vector_n = vector_n / norms_vector_n[-1]
