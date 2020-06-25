@@ -21,7 +21,7 @@ import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
 
-#TODO (mganahl): implement sparse solvers
+#TODO (mganahl): implement eigs
 
 
 #pylint: disable=abstract-method
