@@ -157,6 +157,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
+
   #pylint: disable=unused-argument
   def einsum(self,
              expression: str,
@@ -239,7 +240,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     if args is None:
       args = []
 
@@ -270,7 +271,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     if args is None:
       args = []
     if num_krylov_vecs < numeig:
@@ -347,3 +348,22 @@ class ShellBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    if not keepdims:
+      newshape = np.delete(tensor.shape, axis)
+    else:
+      newshape = np.array(tensor.shape)
+      newshape[np.array(axis)] = 1
+    return ShellTensor(newshape)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    shape1 = np.array(tensor1.shape)[:-2]
+    shape2 = np.array(tensor2.shape)[:-2]
+    if not np.array_equal(shape1, shape2):
+      raise ValueError("shape mismatch for matmul")
+    new_shape = np.append(shape1, [tensor1.shape[-2], tensor2.shape[-1]])
+    return ShellTensor(new_shape)

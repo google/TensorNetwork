@@ -53,8 +53,8 @@ def _generate_jitted_eigsh_lanczos(jax):
       reortho: If `True`, reorthogonalize all krylov vectors at each step. 
         This should be used if `neig>1`.
     Returns:
-      list: Eigen values
-      list: Eigen values
+      jax.numpy.ndarray: Eigenvalues
+      list: Eigenvectors
     """
 
     def body_modified_gram_schmidt(i, vals):
