@@ -853,26 +853,30 @@ def test_eigsh_small_number_krylov_vectors():
   np.testing.assert_allclose(eta[0], 5)
 
 
-# @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-# def test_eigsh_lanczos_1(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   D = 16
-#   np.random.seed(10)
-#   init = backend.randn((D,), dtype=dtype, seed=10)
-#   tmp = backend.randn((D, D), dtype=dtype, seed=10)
-#   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_1(dtype):
+  np.random.seed(10)
+  D = 16  
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
 
-#   def mv(x, mat):
-#     return np.dot(mat, x)
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  H = H + H.conj().T
+  
+  init = BlockSparseTensor.random([index], dtype=dtype)
 
-#   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
-#   eta2, U2 = np.linalg.eigh(H)
-#   v2 = U2[:, 0]
-#   v2 = v2 / sum(v2)
-#   v1 = np.reshape(U1[0], (D))
-#   v1 = v1 / sum(v1)
-#   np.testing.assert_allclose(eta1[0], min(eta2))
-#   np.testing.assert_allclose(v1, v2)
+  def mv(x, mat):
+    return mat @ x
+
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np.linalg.eigh(H.todense())
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
+  v1 = np.reshape(U1[0], (D))
+  v1 = v1 / sum(v1)
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
 
 
 # @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
