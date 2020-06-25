@@ -116,9 +116,8 @@ def diag(tensor: ChargeArray) -> Any:
   return ChargeArray(data, newcharges, flows)
 
 
-def reshape(
-    tensor: ChargeArray, shape: Union[Sequence[Index], Sequence[int]]
-) -> ChargeArray:
+def reshape(tensor: ChargeArray, shape: Sequence[Union[Index,
+                                                       int]]) -> ChargeArray:
   """
   Reshape `tensor` into `shape.
   `ChargeArray.reshape` works the same as the dense 
@@ -170,8 +169,7 @@ def conj(tensor: ChargeArray) -> ChargeArray:
 
 
 def transpose(tensor: ChargeArray,
-              order: Optional[Union[List[int], np.ndarray]] = np.asarray([1,
-                                                                          0]),
+              order: Sequence[int] = np.asarray([1, 0]),
               shuffle: Optional[bool] = False) -> ChargeArray:
   """
   Transpose the tensor into the new order `order`. If `shuffle=False`
