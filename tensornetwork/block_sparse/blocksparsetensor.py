@@ -191,9 +191,7 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def reshape(
-      self, shape: Union[np.ndarray, Sequence[Union[Index,int]]]
-  ) -> "ChargeArray":
+  def reshape(self, shape: Sequence[Union[Index, int]]) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `ChargeArray.reshape` works the same as the dense 
@@ -328,9 +326,7 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose(self,
-                order: Union[Tuple[int, ...], List[int],
-                             np.ndarray] = np.asarray([1, 0]),
+  def transpose(self,order: Sequence[int] = np.asarray([1, 0]),
                 shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
