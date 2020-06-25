@@ -255,3 +255,15 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     # tf.function is slow and bad.
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return tf.math.reduce_sum(tensor, axis=axis, keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+
+    return tf.matmul(tensor1, tensor2)
