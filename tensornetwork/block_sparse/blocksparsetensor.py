@@ -192,8 +192,7 @@ class ChargeArray:
     return np.reshape(self.data, self.shape)
 
   def reshape(
-      self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...], List[int],
-                         Tuple[int, ...]]
+      self, shape: Union[np.ndarray, Sequence[Union[Index,int]]]
   ) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
