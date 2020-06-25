@@ -998,7 +998,7 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
   init = BlockSparseTensor.random([index], dtype=dtype)
   # note: this will only find eigenvalues in the charge (0,0)
   # block of H because `init` only has non-zero values there.
-  # to eigen values in other sectors we need to support non-zero
+  # To find eigen values in other sectors we need to support non-zero
   # divergence for block-sparse tensors
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np_backend.eigsh_lanczos(mv, [H.todense()], init.todense())
