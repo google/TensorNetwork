@@ -40,8 +40,10 @@ class DenseEntangler(Layer):
     output_dim: Positive integer, dimensionality of the output space.
       Note: output_dim must be equal to the dimensionality of the input.
     num_legs: Positive integer, number of legs the state node has.
-    num_levels: Positive integer, number of levels we want the entangler to
-      have. This is the only parameter that does not change input/output shape.
+    num_levels: Positive integer, number of complete levels we want the
+      entangler to have. A level consists of num_legs - 1 tensors, forming a
+      complete layer of tensors connecting accross all legs.
+      This is the only parameter that does not change input/output shape.
       It can be increased to increase the power of the layer, but inference
       time will also scale approximately linearly.
     activation: Activation function to use.
@@ -72,7 +74,7 @@ class DenseEntangler(Layer):
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
     assert (
-        num_legs >
+        num_legs >=
         2), f'Need at least 2 legs to create Entangler but got {num_legs} legs'
     assert (
         num_levels >= 1
@@ -117,17 +119,18 @@ class DenseEntangler(Layer):
 
     for i in range(self.num_nodes):
       current_level = i // (self.num_legs - 1)
-      node_out_dim = self.out_leg_dim
-      node_connect_dim = self.out_leg_dim
-
-      if current_level < self.num_levels - 1:
-        node_out_dim = self.leg_dim
-      if i < self.num_nodes - 1:
-        node_connect_dim = self.leg_dim
+      a = b = c = d = min(self.leg_dim, self.out_leg_dim)
+      if i == 0:
+        a = self.leg_dim
+      if i == self.num_nodes - 1:
+        d = self.out_leg_dim
+      if current_level == 0:
+        b = self.leg_dim
+      if current_level == self.num_levels - 1:
+        c = self.out_leg_dim
       self.nodes.append(
           self.add_weight(name=f'node_{i}',
-                          shape=(self.leg_dim, self.leg_dim, node_out_dim,
-                                 node_connect_dim),
+                          shape=(a, b, c, d),
                           trainable=True,
                           initializer=self.kernel_initializer))
 

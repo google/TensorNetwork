@@ -354,16 +354,16 @@ def test_entangler_num_parameters(dummy_data):
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
 
-def test_entangler_asymmetric_num_parameters(dummy_data):
+@pytest.mark.parametrize('num_levels', list(range(1, 4)))
+@pytest.mark.parametrize('num_legs', list(range(2, 6)))
+@pytest.mark.parametrize('leg_dims', [(4, 8), (8, 4)])
+def test_entangler_asymmetric_num_parameters(num_legs, num_levels, leg_dims):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name
-  data, _ = dummy_data
+  leg_dim, out_leg_dim = leg_dims
+  data_shape = (leg_dim ** num_legs,)
 
-  num_legs = 3
-  num_levels = 3
-  leg_dim = round(data.shape[-1]**(1. / num_legs))
-  assert leg_dim**num_legs == data.shape[-1]
-  out_leg_dim = leg_dim * 2
+  # num_levels = 3
 
   model = Sequential()
   model.add(
@@ -372,12 +372,21 @@ def test_entangler_asymmetric_num_parameters(dummy_data):
                      num_levels=num_levels,
                      use_bias=True,
                      activation='relu',
-                     input_shape=(data.shape[1],)))
+                     input_shape=data_shape))
 
-  expected_num_parameters = (num_levels - 1) * (num_legs - 1) * (leg_dim**4) + (
-      num_legs - 2) * leg_dim**3 * out_leg_dim + leg_dim**2 * out_leg_dim**2 + (
+
+  primary = leg_dim
+  secondary = out_leg_dim
+  if leg_dim > out_leg_dim:
+    primary, secondary = secondary, primary
+
+  expected_num_parameters = (num_levels - 1) * (num_legs - 1) * (primary**4) + (
+      num_legs - 2) * primary**3 * secondary + primary**2 * secondary**2 + (
           out_leg_dim**num_legs)
 
+
+  data = np.random.randint(10, size=(10, data_shape[0]))
+  model(data)
   np.testing.assert_equal(expected_num_parameters, model.count_params())
 
 
