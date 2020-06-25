@@ -23,7 +23,7 @@ int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(NumPyBackend, self).__init__()
     self.name = "numpy"
 
@@ -47,10 +47,10 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return np.tensordot(a, b, axes)
     return np.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor)->Tensor:
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return np.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm)->Tensor:
+  def transpose(self, tensor, perm) -> Tensor:
     return np.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -432,13 +432,15 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return np.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -447,19 +449,19 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor)->Tensor:
+  def sin(self, tensor: Tensor) -> Tensor:
     return np.sin(tensor)
 
-  def cos(self, tensor: Tensor)->Tensor:
+  def cos(self, tensor: Tensor) -> Tensor:
     return np.cos(tensor)
 
-  def exp(self, tensor: Tensor)->Tensor:
+  def exp(self, tensor: Tensor) -> Tensor:
     return np.exp(tensor)
 
-  def log(self, tensor: Tensor)->Tensor:
+  def log(self, tensor: Tensor) -> Tensor:
     return np.log(tensor)
 
-  def expm(self, matrix: Tensor)->Tensor:
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to numpy backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))

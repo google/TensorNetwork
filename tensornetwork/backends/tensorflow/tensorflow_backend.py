@@ -28,7 +28,7 @@ Tensor = Any
 class TensorFlowBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     # pylint: disable=global-variable-undefined
     global tf
     super(TensorFlowBackend, self).__init__()
@@ -41,13 +41,14 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     tf = tensorflow
     self.name = "tensorflow"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return tensordot2.tensordot(tf, a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return tf.reshape(tensor, shape)
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm) -> Tensor:
     return tf.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -229,16 +230,16 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     return tf.math.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     return tf.math.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     return tf.math.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     return tf.math.log(tensor)
 
   def expm(self, matrix: Tensor) -> Tensor:
