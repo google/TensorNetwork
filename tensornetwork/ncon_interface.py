@@ -557,7 +557,7 @@ def ncon(
     tensor, specifying labels for the edges connected to that tensor.
     
     Labels can be any numbers or strings. Negative number-type labels
-    and string-type labels with a prepended hyphen ('-') are open labels.
+    and string-type labels with a prepended hyphen ('-') are open labels
     and remain uncontracted.
 
     Positive number-type labels and string-type labels with no prepended 
