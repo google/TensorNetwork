@@ -19,7 +19,6 @@ from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 import tensornetwork.block_sparse as bs
 import numpy
-
 Tensor = Any
 
 #TODO (mganahl): implement sparse solvers
