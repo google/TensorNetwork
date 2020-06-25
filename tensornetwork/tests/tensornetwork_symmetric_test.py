@@ -240,8 +240,8 @@ def test_flatten_consistent_result(dtype, num_charges):
   flat_result_node = tn.contract(final_edge)
   flat_result_node.reorder_edges([a_dangling_flat, b_dangling_flat])
   flat_result = flat_result_node.tensor
-  flat_result = flat_result.transpose_data()
-  noflat_result = noflat_result.transpose_data()
+  flat_result = flat_result.contiguous()
+  noflat_result = noflat_result.contiguous()
   np.testing.assert_allclose(flat_result.data, noflat_result.data)
 
 
@@ -265,8 +265,8 @@ def test_flatten_trace_consistent_result(dtype, num_charges):
   e3 = tn.connect(a_flat[3], a_flat[5])
   final_edge = tn.flatten_edges([e1, e2, e3])
   flat_result = tn.contract(final_edge).tensor
-  flat_result = flat_result.transpose_data()
-  noflat_result = noflat_result.transpose_data()
+  flat_result = flat_result.contiguous()
+  noflat_result = noflat_result.contiguous()
   np.testing.assert_allclose(flat_result.data, noflat_result.data)
 
 
