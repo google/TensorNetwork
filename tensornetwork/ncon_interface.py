@@ -263,7 +263,7 @@ def _partial_trace(
     tensor: Tensor, labels: np.ndarray,
     backend_obj: AbstractBackend) -> Tuple[Tensor, np.ndarray, List]:
   """
-  Perform the partial trace `tensor`.
+  Perform the partial trace of `tensor`.
   All labels appearing twice in `labels` are traced out.
   Args:
     tensor: A tensor.
