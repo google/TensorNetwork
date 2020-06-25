@@ -603,7 +603,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def zeros(cls,
-            indices: Sequence[Index],            
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with zeros.
@@ -726,9 +726,8 @@ class BlockSparseTensor(ChargeArray):
 
   # pylint: disable=arguments-differ
   def contiguous(self,
-                     permutation: Optional[Union[Tuple, List,
-                                                 np.ndarray]] = None,
-                     inplace: Optional[bool] = False) -> Any:
+                 permutation: Optional[Union[Tuple, List, np.ndarray]] = None,
+                 inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
     of the elements in `BlockSparseTensor.data` corresponds to the 
