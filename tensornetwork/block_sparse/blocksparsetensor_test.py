@@ -599,8 +599,8 @@ def test_conj(dtype, num_charges, chargetype):
   np.testing.assert_allclose(b.data, np.conj(a.data))
 
 
-@pytest.mark.parametrize("rank1", [1,2])
-@pytest.mark.parametrize("rank2", [1,2])
+@pytest.mark.parametrize("rank1", [1, 2])
+@pytest.mark.parametrize("rank2", [1, 2])
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2])
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
