@@ -802,9 +802,12 @@ def test_sparse_shape(dtype, num_charges):
   for s1, s2 in zip(a.sparse_shape, backend.sparse_shape(a)):
     assert s1 == s2
 
-
+#################################################################
+# the following are sanity checks for eigsh_lanczos which do not
+# really use block sparsity (all charges are identity charges)
+#################################################################
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigsh_valid_init_operator_with_shape_dense(dtype):
+def test_eigsh_valid_init_operator_with_shape_sanity_check(dtype):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
   np_backend = numpy_backend.NumPyBackend()
@@ -830,10 +833,7 @@ def test_eigsh_valid_init_operator_with_shape_dense(dtype):
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
 
-
-
-
-def test_eigsh_small_number_krylov_vectors():
+def test_eigsh_small_number_krylov_vectors_sanity_check():
   np.random.seed(10)
   dtype=np.float64
   backend = symmetric_backend.SymmetricBackend()
@@ -842,7 +842,7 @@ def test_eigsh_small_number_krylov_vectors():
 
   H = BlockSparseTensor.random(indices, dtype=dtype)
   H.data = np.array([1, 2,3, 4], dtype=np.float64)
-  
+
   init = BlockSparseTensor.random([index], dtype=dtype)
   init.data = np.array([1, 1], dtype=np.float64)
 
@@ -854,16 +854,16 @@ def test_eigsh_small_number_krylov_vectors():
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigsh_lanczos_1(dtype):
+def test_eigsh_lanczos_sanity_check_1(dtype):
   np.random.seed(10)
-  D = 16  
+  D = 16
   backend = symmetric_backend.SymmetricBackend()
   index = Index(U1Charge.random(D, 0, 0), True)
   indices = [index, index.copy().flip_flow()]
 
   H = BlockSparseTensor.random(indices, dtype=dtype)
   H = H + H.conj().T
-  
+
   init = BlockSparseTensor.random([index], dtype=dtype)
 
   def mv(x, mat):
@@ -871,97 +871,115 @@ def test_eigsh_lanczos_1(dtype):
 
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np.linalg.eigh(H.todense())
+  v1 = np.reshape(U1[0].todense(), (D))
+  v1 = v1 / sum(v1)
+
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
-  v1 = np.reshape(U1[0], (D))
-  v1 = v1 / sum(v1)
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
 
 
-# @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-# def test_eigsh_lanczos_2(dtype):
-#   backend = numpy_backend.NumPyBackend()
-#   D = 16
-#   np.random.seed(10)
-#   tmp = backend.randn((D, D), dtype=dtype, seed=10)
-#   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_lanczos_sanity_check_2(dtype):
+  np.random.seed(10)
+  D = 16
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
 
-#   def mv(x, mat):
-#     return np.dot(mat, x)
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  H = H + H.conj().T
 
-#   eta1, U1 = backend.eigsh_lanczos(mv, [H], shape=(D,), dtype=dtype)
-#   eta2, U2 = np.linalg.eigh(H)
-#   v2 = U2[:, 0]
-#   v2 = v2 / sum(v2)
-#   v1 = np.reshape(U1[0], (D))
-#   v1 = v1 / sum(v1)
-#   np.testing.assert_allclose(eta1[0], min(eta2))
-#   np.testing.assert_allclose(v1, v2)
+  init = BlockSparseTensor.random([index], dtype=dtype)
 
+  def mv(x, mat):
+    return mat @ x
 
-# @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-# @pytest.mark.parametrize("numeig", [1, 2, 3, 4])
-# def test_eigsh_lanczos_reorthogonalize(dtype, numeig):
-#   backend = numpy_backend.NumPyBackend()
-#   D = 24
-#   np.random.seed(10)
-#   tmp = backend.randn((D, D), dtype=dtype, seed=10)
-#   H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+  eta1, U1 = backend.eigsh_lanczos(
+      mv, [H], shape=(H.sparse_shape[1].flip_flow(),), dtype=dtype)
+  eta2, U2 = np.linalg.eigh(H.todense())
+  v1 = np.reshape(U1[0].todense(), (D))
+  v1 = v1 / sum(v1)
 
-#   def mv(x, mat):
-#     return np.dot(mat, x)
+  v2 = U2[:, 0]
+  v2 = v2 / sum(v2)
 
-#   eta1, U1 = backend.eigsh_lanczos(
-#       mv, [H],
-#       shape=(D,),
-#       dtype=dtype,
-#       numeig=numeig,
-#       num_krylov_vecs=D,
-#       reorthogonalize=True,
-#       ndiag=1,
-#       tol=10**(-12),
-#       delta=10**(-12))
-#   eta2, U2 = np.linalg.eigh(H)
-
-#   np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
-#   for n in range(numeig):
-#     v2 = U2[:, n]
-#     v2 /= np.sum(v2)  #fix phases
-#     v1 = np.reshape(U1[n], (D))
-#     v1 /= np.sum(v1)
-
-#     np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
 
 
-# def test_eigsh_lanczos_raises():
-#   backend = numpy_backend.NumPyBackend()
-#   with pytest.raises(
-#       ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
-#     backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
-#   with pytest.raises(
-#       ValueError,
-#       match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
-#       "Use `reorthogonalize=True` for `numeig > 1`"):
-#     backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
-#   with pytest.raises(
-#       ValueError,
-#       match="if no `initial_state` is passed, then `shape` and"
-#       "`dtype` have to be provided"):
-#     backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
-#   with pytest.raises(
-#       ValueError,
-#       match="if no `initial_state` is passed, then `shape` and"
-#       "`dtype` have to be provided"):
-#     backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
-#   with pytest.raises(
-#       ValueError,
-#       match="if no `initial_state` is passed, then `shape` and"
-#       "`dtype` have to be provided"):
-#     backend.eigsh_lanczos(lambda x: x)
-#   with pytest.raises(
-#       TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
-#     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("numeig", [1, 2, 3, 4])
+def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
+  np.random.seed(10)
+  D = 24
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
+
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  H = H + H.conj().T
+
+  init = BlockSparseTensor.random([index], dtype=dtype)
+
+  def mv(x, mat):
+    return mat @ x
+
+  eta1, U1 = backend.eigsh_lanczos(
+      mv, [H],
+      shape=(H.sparse_shape[1].flip_flow(),),
+      dtype=dtype,
+      numeig=numeig,
+      num_krylov_vecs=D,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=10**(-12),
+      delta=10**(-12))
+  eta2, U2 = np.linalg.eigh(H.todense())
+
+  np.testing.assert_allclose(eta1[0:numeig], eta2[0:numeig])
+  for n in range(numeig):
+    v2 = U2[:, n]
+    v2 /= np.sum(v2)  #fix phases
+    v1 = np.reshape(U1[n].todense(), (D))
+    v1 /= np.sum(v1)
+
+    np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
+
+#################################################################
+# finished sanity checks
+#################################################################
+
+def test_eigsh_lanczos_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(
+      ValueError, match='`num_krylov_vecs` >= `numeig` required!'):
+    backend.eigsh_lanczos(lambda x: x, numeig=10, num_krylov_vecs=9)
+  with pytest.raises(
+      ValueError,
+      match="Got numeig = 2 > 1 and `reorthogonalize = False`. "
+      "Use `reorthogonalize=True` for `numeig > 1`"):
+    backend.eigsh_lanczos(lambda x: x, numeig=2, reorthogonalize=False)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=(10,), dtype=None)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x, shape=None, dtype=np.float64)
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigsh_lanczos(lambda x: x)
+  with pytest.raises(
+      TypeError, match="Expected a `BlockSparseTensor`. Got <class 'list'>"):
+    backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
+    
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_valid_init_operator_with_shape(dtype):
   np.random.seed(100)
@@ -978,6 +996,10 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
     return mat @ vec
 
   init = BlockSparseTensor.random([index], dtype=dtype)
+  # note: this will only find eigenvalues in the charge (0,0)
+  # block of H because `init` only has non-zero values there.
+  # to eigen values in other sectors we need to support non-zero
+  # divergence for block-sparse tensors
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
   eta2, U2 = np_backend.eigsh_lanczos(mv, [H.todense()], init.todense())
 
