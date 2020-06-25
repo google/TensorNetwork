@@ -802,6 +802,7 @@ def test_sparse_shape(dtype, num_charges):
   for s1, s2 in zip(a.sparse_shape, backend.sparse_shape(a)):
     assert s1 == s2
 
+
 #################################################################
 # the following are sanity checks for eigsh_lanczos which do not
 # really use block sparsity (all charges are identity charges)
@@ -833,15 +834,16 @@ def test_eigsh_valid_init_operator_with_shape_sanity_check(dtype):
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
 
+
 def test_eigsh_small_number_krylov_vectors_sanity_check():
   np.random.seed(10)
-  dtype=np.float64
+  dtype = np.float64
   backend = symmetric_backend.SymmetricBackend()
   index = Index(U1Charge.random(2, 0, 0), True)
   indices = [index, index.copy().flip_flow()]
 
   H = BlockSparseTensor.random(indices, dtype=dtype)
-  H.data = np.array([1, 2,3, 4], dtype=np.float64)
+  H.data = np.array([1, 2, 3, 4], dtype=np.float64)
 
   init = BlockSparseTensor.random([index], dtype=dtype)
   init.data = np.array([1, 1], dtype=np.float64)
@@ -947,9 +949,11 @@ def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
 
     np.testing.assert_allclose(v1, v2, rtol=10**(-5), atol=10**(-5))
 
+
 #################################################################
 # finished sanity checks
 #################################################################
+
 
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
@@ -979,14 +983,15 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(
       TypeError, match="Expected a `BlockSparseTensor`. Got <class 'list'>"):
     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
-    
+
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_valid_init_operator_with_shape(dtype):
   np.random.seed(100)
   backend = symmetric_backend.SymmetricBackend()
   np_backend = numpy_backend.NumPyBackend()
   D = 16
-  index = Index(U1Charge.random(D, -1,1), True)
+  index = Index(U1Charge.random(D, -1, 1), True)
   indices = [index, index.copy().flip_flow()]
 
   a = BlockSparseTensor.random(indices, dtype=dtype)
