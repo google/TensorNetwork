@@ -29,7 +29,7 @@ _CACHED_MATVECS = {}
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
-  def __init__(self, dtype: Optional[np.dtype] = None):
+  def __init__(self, dtype: Optional[np.dtype] = None) -> None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -47,13 +47,14 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return jnp.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm) -> Tensor:
     return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
@@ -240,7 +241,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: int = 20) -> Tuple[List, List]:
+           maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest 
     eigenvector-eigenvalue pairs of a linear operator `A`. 
@@ -343,7 +344,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       tol: float = 1E-8,
       delta: float = 1E-8,
       ndiag: int = 10,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+      reorthogonalize: Optional[bool] = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a hermitian linear operator `A`. `A` is a function implementing 
@@ -409,7 +410,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
-       eigvals: A list of `numeig` lowest eigenvalues
+       eigvals: An jax-array containing `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     if args is None:
@@ -467,13 +468,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return jnp.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -482,19 +485,19 @@ class JaxBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     return jnp.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     return jnp.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     return jnp.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     return jnp.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to numpy backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
@@ -507,3 +510,14 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return libjax.jit(fun, *args, **kwargs)
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return np.sum(tensor, axis=axis, keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+    return jnp.matmul(tensor1, tensor2)
