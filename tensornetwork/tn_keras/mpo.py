@@ -67,7 +67,7 @@ class DenseMPO(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    assert num_nodes > 2, 'Need at least 2 nodes to create MPO'
+    assert num_nodes > 2, 'Need at least 3 nodes to create MPO.'
 
     super(DenseMPO, self).__init__(**kwargs)
 
