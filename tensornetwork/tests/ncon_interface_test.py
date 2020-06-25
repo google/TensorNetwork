@@ -624,6 +624,14 @@ def test_multiple_batched_matmul_3(backend):
 
 
 def run_tests(a, b, c, backend):
+
+  with pytest.raises(
+      ValueError,
+      match=r"only alphanumeric values allowed for string labels, "
+      r"found \['henry@', 'megan!'\]"):
+    ncon_interface.ncon([a, a], [('megan!', 'henry@'), ('henry@', 'megan!')],
+                        backend=backend)
+
   with pytest.raises(
       ValueError,
       match="number of tensors does not "
