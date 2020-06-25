@@ -149,7 +149,7 @@ def test_ones_like(backend):
   """
   Tests linalg.ones_like against np.ones_like.
   """
-  a = np.arange(4).reshape((2,2))
+  a = np.arange(4).reshape((2, 2))
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey"]
   backend_obj = backends.backend_factory.get_backend(backend)

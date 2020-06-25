@@ -123,10 +123,10 @@ def zeros(shape: Sequence[int],
 
 
 def zeros_like(a: Any,
-         dtype: Optional[Type[np.number]] = None,
-         name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None,
-         backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+          dtype: Optional[Type[np.number]] = None,
+          name: Optional[Text] = None,
+          axis_names: Optional[List[Text]] = None,
+          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node of all ones, of same shape as `a`.
   The Node has one dangling Edge per dimension.
   Args:
@@ -177,10 +177,10 @@ def ones(shape: Sequence[int],
 
 
 def ones_like(a: Any,
-         dtype: Optional[Type[np.number]] = None,
-         name: Optional[Text] = None,
-         axis_names: Optional[List[Text]] = None,
-         backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
+          dtype: Optional[Type[np.number]] = None,
+          name: Optional[Text] = None,
+          axis_names: Optional[List[Text]] = None,
+          backend: Optional[Union[Text, BaseBackend]] = None) -> Tensor:
   """Return a Node of all ones, of same shape as `a`.
   The Node has one dangling Edge per dimension.
   Args:
