@@ -599,19 +599,22 @@ def test_conj(dtype, num_charges, chargetype):
   np.testing.assert_allclose(b.data, np.conj(a.data))
 
 
+@pytest.mark.parametrize("rank1", [1, 2])
+@pytest.mark.parametrize("rank2", [1, 2])
 @pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+@pytest.mark.parametrize('num_charges', [1, 2])
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
-def test_matmul(dtype, num_charges, chargetype):
+def test_matmul(dtype, num_charges, chargetype, rank1, rank2):
   np.random.seed(10)
-  Ds1 = [100, 200]
+  Ds1 = [20] * rank1
+  Ds2 = [20] * (rank2 - 1)
   is1 = [
       Index(get_charge(chargetype, num_charges, Ds1[n]), False)
-      for n in range(2)
+      for n in range(rank1)
   ]
-  is2 = [
-      is1[1].copy().flip_flow(),
-      Index(get_charge(chargetype, num_charges, 150), False)
+  is2 = [is1[-1].copy().flip_flow()] + [
+      Index(get_charge(chargetype, num_charges, Ds2[n]), False)
+      for n in range(rank2 - 1)
   ]
   tensor1 = BlockSparseTensor.random(is1, dtype=dtype)
   tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
