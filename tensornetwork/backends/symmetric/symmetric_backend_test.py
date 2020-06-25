@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
+from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal, BaseCharge
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
@@ -801,41 +802,55 @@ def test_sparse_shape(dtype, num_charges):
   for s1, s2 in zip(a.sparse_shape, backend.sparse_shape(a)):
     assert s1 == s2
 
-    
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigsh_valid_init_operator_with_shape(dtype):
+def test_eigsh_valid_init_operator_with_shape_dense(dtype):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
-  D=20
-  index = Index(U1Charge.random(D,-2,2),True)
-  indices=[index, index.copy().flip_flow()]
-  
-  a = BlockSparseTensor.random(indices)
+  np_backend = numpy_backend.NumPyBackend()
+  D = 16
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
+
+  a = BlockSparseTensor.random(indices, dtype=dtype)
   H = a + a.T.conj()
-  
-  init = BlockSparseTensor.random([index])
+
+  def mv(vec, mat):
+    return mat @ vec
+
+  init = BlockSparseTensor.random([index], dtype=dtype)
   eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  v1 = np.reshape(U1[0].todense(), (D))
+  v1 = v1 / sum(v1)
+
   eta2, U2 = np.linalg.eigh(H.todense())
   v2 = U2[:, 0]
   v2 = v2 / sum(v2)
-  v2[np.abs(v2)<1E-12]=0.0
-  v1 = np.reshape(U1[0].todense(), (D))
-  v1 = v1 / sum(v1)
+
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
-  
+
+
 
 
 def test_eigsh_small_number_krylov_vectors():
-  backend = symmetric_backend.SymmetricBackend()    
-  init = np.array([1, 1], dtype=np.float64)
-  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+  np.random.seed(10)
+  dtype=np.float64
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(2, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
+
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  H.data = np.array([1, 2,3, 4], dtype=np.float64)
+  
+  init = BlockSparseTensor.random([index], dtype=dtype)
+  init.data = np.array([1, 1], dtype=np.float64)
 
   def mv(x, mat):
-    return np.dot(mat, x)
+    return mat @ x
 
-  eta1, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
-  np.testing.assert_allclose(eta1[0], 5)
+  eta, _ = backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=1)
+  np.testing.assert_allclose(eta[0], 5)
 
 
 # @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
@@ -943,3 +958,32 @@ def test_eigsh_small_number_krylov_vectors():
 #   with pytest.raises(
 #       TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
 #     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigsh_valid_init_operator_with_shape(dtype):
+  np.random.seed(100)
+  backend = symmetric_backend.SymmetricBackend()
+  np_backend = numpy_backend.NumPyBackend()
+  D = 16
+  index = Index(U1Charge.random(D, -1,1), True)
+  indices = [index, index.copy().flip_flow()]
+
+  a = BlockSparseTensor.random(indices, dtype=dtype)
+  H = a + a.T.conj()
+
+  def mv(vec, mat):
+    return mat @ vec
+
+  init = BlockSparseTensor.random([index], dtype=dtype)
+  eta1, U1 = backend.eigsh_lanczos(mv, [H], init)
+  eta2, U2 = np_backend.eigsh_lanczos(mv, [H.todense()], init.todense())
+
+  v1 = np.reshape(U1[0].todense(), (D))
+  v1 = v1 / sum(v1)
+  v1 /= np.linalg.norm(v1)
+  v2 = np.reshape(U2[0], (D))
+  v2 = v2 / sum(v2)
+  v2[np.abs(v2) < 1E-12] = 0.0
+  v2 /= np.linalg.norm(v2)
+
+  np.testing.assert_allclose(eta1[0], min(eta2))
+  np.testing.assert_allclose(v1, v2)
