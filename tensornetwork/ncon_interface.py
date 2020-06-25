@@ -155,7 +155,7 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
 
   flat_labels = [l for sublist in network_structure for l in sublist]
   # pylint: disable=line-too-long
-  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_batch_labels(
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
       network_structure)
   out_labels = int_out_labels + str_out_labels
   cont_labels = int_cont_labels + str_cont_labels
