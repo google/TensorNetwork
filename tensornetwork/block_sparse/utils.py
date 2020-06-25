@@ -48,7 +48,7 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   return np.array(res)
 
 
-def get_flat_meta_data(indices: List[Index]) -> Tuple[List, List]:
+def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """
   Return charges and flows of flattened `indices`.
   Args:

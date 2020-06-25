@@ -127,19 +127,19 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     return self.bs.eye(N, M, dtype=dtype)
 
   def ones(self,
-           shape: List[Index],
+           shape: Sequence[Index],
            dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
     return self.bs.ones(shape, dtype=dtype)
 
   def zeros(self,
-            shape: List[Index],
+            shape: Sequence[Index],
             dtype: Optional[numpy.dtype] = None) -> Tensor:
     dtype = dtype if dtype is not None else numpy.float64
     return self.bs.zeros(shape, dtype=dtype)
 
   def randn(self,
-            shape: List[Index],
+            shape: Sequence[Index],
             dtype: Optional[numpy.dtype] = None,
             seed: Optional[int] = None) -> Tensor:
 
@@ -148,7 +148,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     return self.bs.randn(shape, dtype)
 
   def random_uniform(self,
-                     shape: List[Index],
+                     shape: Sequence[Index],
                      boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
                      dtype: Optional[numpy.dtype] = None,
                      seed: Optional[int] = None) -> Tensor:

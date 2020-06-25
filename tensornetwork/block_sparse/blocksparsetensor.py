@@ -531,7 +531,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def randn(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from a random normal distribution
@@ -554,7 +554,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def random(cls,
-             indices: Union[Tuple[Index], List[Index]],
+             indices: Sequence[Index],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
@@ -579,7 +579,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def ones(cls,
-           indices: Union[Tuple[Index], List[Index]],
+           indices: Sequence[Index],
            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with ones.
@@ -603,7 +603,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def zeros(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],            
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with zeros.
