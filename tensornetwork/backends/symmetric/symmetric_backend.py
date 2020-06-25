@@ -248,13 +248,21 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       vector_n = vector_n / norms_vector_n[-1]
       #store the Lanczos vector for later
       if reorthogonalize:
+        vector_n.contiguous()# bring into contiguous memory layout
         for v in krylov_vecs:
-          v.tranpose_data() # make sure storage layouts are matching
-          vector_n -= numpy.dot(numpy.conj(v.data), vector_n.data) * v
+          v.contiguous() # make sure storage layouts are matching
+          # we can savely operate on the tensor data now (pybass some checks)
+          vector_n.data -= numpy.dot(numpy.conj(v.data), vector_n.data) * v.data
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
+      A_vector_n.contiguous() #contiguous memory layout
+
+      # operate on tensor-data for scalar products
+      # this can be potentially problematic if vector_n and A_vector_n
+      # have non-matching shapes due to an erroneous matvec.
+      # If this is the case though an error will be thrown at line 281
       diag_elements.append(
-          numpy.dot(numpy.ravel(numpy.conj(vector_n)), numpy.ravel(A_vector_n)))
+          numpy.dot(numpy.conj(vector_n.data), A_vector_n.data))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
@@ -281,10 +289,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       eigvals = numpy.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
-      state = self.zeros(initial_state.shape, initial_state.dtype)
+      state = self.zeros(initial_state.sparse_shape, initial_state.dtype)
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
-      eigenvectors.append(state / numpy.linalg.norm(state))
+      eigenvectors.append(state / self.norm(state))
     return eigvals[0:numeig], eigenvectors
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
