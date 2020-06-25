@@ -117,8 +117,7 @@ def diag(tensor: ChargeArray) -> Any:
 
 
 def reshape(
-    tensor: ChargeArray, shape: Union[List[Index], Tuple[Index, ...], List[int],
-                                      Tuple[int, ...]]
+    tensor: ChargeArray, shape: Union[Sequence[Index], Sequence[int]]
 ) -> ChargeArray:
   """
   Reshape `tensor` into `shape.
