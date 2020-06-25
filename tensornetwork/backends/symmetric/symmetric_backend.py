@@ -181,14 +181,16 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return self.bs.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return self.tensordot(tensor1, self.diag(tensor2),
                           ([len(tensor1.shape) - 1], [0]))
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
