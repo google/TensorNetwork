@@ -811,7 +811,6 @@ def test_sparse_shape(dtype, num_charges):
 def test_eigsh_valid_init_operator_with_shape_sanity_check(dtype):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
-  np_backend = numpy_backend.NumPyBackend()
   D = 16
   index = Index(U1Charge.random(D, 0, 0), True)
   indices = [index, index.copy().flip_flow()]
@@ -893,8 +892,6 @@ def test_eigsh_lanczos_sanity_check_2(dtype):
   H = BlockSparseTensor.random(indices, dtype=dtype)
   H = H + H.conj().T
 
-  init = BlockSparseTensor.random([index], dtype=dtype)
-
   def mv(x, mat):
     return mat @ x
 
@@ -922,8 +919,6 @@ def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
 
   H = BlockSparseTensor.random(indices, dtype=dtype)
   H = H + H.conj().T
-
-  init = BlockSparseTensor.random([index], dtype=dtype)
 
   def mv(x, mat):
     return mat @ x
