@@ -29,7 +29,7 @@ _CACHED_MATVECS = {}
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
-  def __init__(self, dtype: Optional[np.dtype] = None):
+  def __init__(self, dtype: Optional[np.dtype] = None)->None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -47,13 +47,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]])->Tensor:
     return jnp.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor)->Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm)->Tensor:
     return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
@@ -467,13 +467,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return jnp.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor)->Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -482,19 +482,19 @@ class JaxBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor)->Tensor:
     return jnp.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor)->Tensor:
     return jnp.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor)->Tensor:
     return jnp.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor)->Tensor:
     return jnp.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor)->Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to numpy backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
