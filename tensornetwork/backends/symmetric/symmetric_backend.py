@@ -163,7 +163,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return self.bs.eigh(matrix)
-  
+
   def eigsh_lanczos(self,
                     A: Callable,
                     args: Optional[List[Tensor]] = None,
@@ -233,7 +233,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
     vector_n = initial_state
     vector_n.contiguous()# bring into contiguous memory layout
-    
+
     Z = self.norm(vector_n)
     vector_n /= Z
     norms_vector_n = []
@@ -270,7 +270,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
         A_tridiag = numpy.diag(diag_elements) + numpy.diag(
-            norms_vector_n[1:], 1) + numpy.diag(numpy.conj(norms_vector_n[1:]), -1)
+            norms_vector_n[1:], 1) + numpy.diag(
+                numpy.conj(norms_vector_n[1:]), -1)
         eigvals, u = numpy.linalg.eigh(A_tridiag)
         if not first:
           if numpy.linalg.norm(eigvals[0:numeig] - eigvalsold[0:numeig]) < tol:
