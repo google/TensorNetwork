@@ -102,7 +102,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     return tensor
 
   def trace(self, tensor: Tensor) -> Tensor:
-    # Default numpy.trace uses first two axes.
+    # Default np.trace uses first two axes.
     return self.bs.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
