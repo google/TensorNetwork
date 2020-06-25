@@ -410,7 +410,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
-       eigvals: An jax-array containing `numeig` lowest eigenvalues
+       eigvals: A jax-array containing `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     if args is None:
