@@ -571,7 +571,7 @@ def ncon(
     collapsed into a single dimension, and all closed batch labels will 
     have been summed over.
 
-    If `out_order = None` output labels are ordered according to descending
+    If `out_order = None`, output labels are ordered according to descending
     number ordering and ascending ASCII ordering, with number labels always 
     appearing before string labels. Example:
     network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] results 
