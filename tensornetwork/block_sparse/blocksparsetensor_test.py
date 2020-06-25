@@ -210,7 +210,7 @@ def test_ChargeArray_transpose_reshape(chargetype):
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_ChargeArray_transpose_data(num_charges, chargetype):
+def test_ChargeArray_contiguous(num_charges, chargetype):
   Ds = np.array([8, 9, 10, 11])
   order = [2, 0, 1, 3]
   flows = [True, False, True, False]
@@ -220,7 +220,7 @@ def test_ChargeArray_transpose_data(num_charges, chargetype):
   ]
   arr = ChargeArray.random(indices)
   data = np.ascontiguousarray(np.transpose(np.reshape(arr.data, Ds), order))
-  arr2 = arr.transpose(order).transpose_data()
+  arr2 = arr.transpose(order).contiguous()
   data3 = np.reshape(arr2.data, Ds[order])
   np.testing.assert_allclose(data, data3)
   np.testing.assert_allclose(arr2.shape, Ds[order])
@@ -230,7 +230,7 @@ def test_ChargeArray_transpose_data(num_charges, chargetype):
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_ChargeArray_transpose_reshape_transpose_data(num_charges, chargetype):
+def test_ChargeArray_transpose_reshape_contiguous(num_charges, chargetype):
   Ds = np.array([8, 9, 10, 11])
   flows = [True, False, True, False]
   indices = [
@@ -249,11 +249,11 @@ def test_ChargeArray_transpose_reshape_transpose_data(num_charges, chargetype):
 
   arr5 = arr4.reshape([9, 11, 10, 8])
   nparr5 = nparr4.reshape([9, 11, 10, 8])
-  np.testing.assert_allclose(arr3.transpose_data().data,
+  np.testing.assert_allclose(arr3.contiguous().data,
                              np.ascontiguousarray(nparr3).flat)
-  np.testing.assert_allclose(arr4.transpose_data().data,
+  np.testing.assert_allclose(arr4.contiguous().data,
                              np.ascontiguousarray(nparr4).flat)
-  np.testing.assert_allclose(arr5.transpose_data().data,
+  np.testing.assert_allclose(arr5.contiguous().data,
                              np.ascontiguousarray(nparr5).flat)
 
 
@@ -650,7 +650,7 @@ def test_matmul_raises():
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
-def test_BlockSparseTensor_transpose_data(num_charges, chargetype):
+def test_BlockSparseTensor_contiguous(num_charges, chargetype):
   np.random.seed(10)
   Ds = np.array([8, 9, 10, 11])
   order = [2, 0, 1, 3]
@@ -661,12 +661,12 @@ def test_BlockSparseTensor_transpose_data(num_charges, chargetype):
   ]
   arr = BlockSparseTensor.random(indices)
   data1 = np.ascontiguousarray(np.transpose(arr.todense(), order))
-  data2 = arr.transpose(order).transpose_data().todense()
+  data2 = arr.transpose(order).contiguous().todense()
   np.testing.assert_allclose(data1.strides, data2.strides)
   np.testing.assert_allclose(data1, data2)
 
 
-def test_BlockSparseTensor_transpose_data_1():
+def test_BlockSparseTensor_contiguous_1():
   Ds = [10, 11, 12, 13]
   charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
   flows = [True, False, True, False]
@@ -674,13 +674,13 @@ def test_BlockSparseTensor_transpose_data_1():
   b = BlockSparseTensor.random(inds, dtype=np.float64)
   order = [0, 3, 2, 1]
   b = b.transpose(order)
-  b_ = b.transpose_data(inplace=False)
+  b_ = b.contiguous(inplace=False)
   np.testing.assert_allclose(b.flows, b_.flows)
   for n in range(4):
     assert charge_equal(b._charges[order[n]], b_._charges[n])
 
 
-def test_BlockSparseTensor_transpose_data_2():
+def test_BlockSparseTensor_contiguous_2():
   Ds = [10, 11, 12, 13]
   charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
   flows = [True, False, True, False]
@@ -688,14 +688,14 @@ def test_BlockSparseTensor_transpose_data_2():
   b = BlockSparseTensor.random(inds, dtype=np.float64)
   order = [0, 3, 2, 1]
   b = b.transpose(order)
-  b_ = b.transpose_data(inplace=False)
-  b.transpose_data(inplace=True)
+  b_ = b.contiguous(inplace=False)
+  b.contiguous(inplace=True)
   np.testing.assert_allclose(b.flows, b_.flows)
   for n in range(4):
     assert charge_equal(b._charges[n], b_._charges[n])
 
 
-def test_BlockSparseTensor_transpose_data_3():
+def test_BlockSparseTensor_contiguous_3():
   Ds = [10, 11, 12, 13]
   charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
   flows = [True, False, True, False]
@@ -707,7 +707,7 @@ def test_BlockSparseTensor_transpose_data_3():
   order_b = [0, 2, 1, 3]
   b = BlockSparseTensor.random([inds[n] for n in order_b], dtype=np.float64)
   b = b.transpose([0, 3, 2, 1])
-  b.transpose_data([0, 2, 1, 3], inplace=True)
+  b.contiguous([0, 2, 1, 3], inplace=True)
   bdense = b.todense()
   c = a + b
   cdense = c.todense()
