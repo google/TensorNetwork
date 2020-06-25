@@ -734,3 +734,38 @@ def test_matrix_ops_raises(dtype, method):
   matrix = backend.randn((4, 3), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match=r".*N\*N matrix.*"):
     getattr(backend, method)(matrix)
+
+
+def test_tensordot_inner():
+  backend = numpy_backend.NumPyBackend()
+  a = np.ones((2, 3, 4))
+  b = np.ones((4, 2, 3))
+  actual = backend.tensordot(a, b, ((0, 1, 2), (1, 2, 0)))
+  expected = np.tensordot(a, b, ((0, 1, 2), (1, 2, 0)))
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_sum():
+  np.random.seed(10)
+  backend = numpy_backend.NumPyBackend()
+  tensor = np.random.rand(2, 3, 4)
+  a = backend.convert_to_tensor(tensor)
+  actual = backend.sum(a, axis=(1, 2))
+  expected = np.sum(tensor, axis=(1, 2))
+  np.testing.assert_allclose(expected, actual)
+
+  actual = backend.sum(a, axis=(1, 2), keepdims=True)
+  expected = np.sum(a, axis=(1, 2), keepdims=True)
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_matmul():
+  np.random.seed(10)
+  backend = numpy_backend.NumPyBackend()
+  t1 = np.random.rand(10, 2, 3)
+  t2 = np.random.rand(10, 3, 4)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)

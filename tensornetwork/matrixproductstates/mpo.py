@@ -15,7 +15,7 @@
 import numpy as np
 from tensornetwork.backends import backend_factory
 from tensornetwork.backend_contextmanager import get_default_backend
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import List, Union, Text, Optional, Any, Type
 Tensor = Any
 
@@ -29,7 +29,7 @@ class BaseMPO:
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Union[BaseBackend, Text]] = None,
+               backend: Optional[Union[AbstractBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
     """
     Initialize a BaseMPO.
@@ -41,7 +41,7 @@ class BaseMPO:
     """
     if backend is None:
       backend = get_default_backend()
-    if isinstance(backend, BaseBackend):
+    if isinstance(backend, AbstractBackend):
       self.backend = backend
     else:
       self.backend = backend_factory.get_backend(backend)
@@ -82,7 +82,7 @@ class InfiniteMPO(BaseMPO):
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Union[BaseBackend, Text]] = None,
+               backend: Optional[Union[AbstractBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
     """
     Initialize an infinite MPO object
@@ -110,7 +110,7 @@ class FiniteMPO(BaseMPO):
 
   def __init__(self,
                tensors: List[Tensor],
-               backend: Optional[Union[BaseBackend, Text]] = None,
+               backend: Optional[Union[AbstractBackend, Text]] = None,
                name: Optional[Text] = None) -> None:
     """
     Initialize a finite MPO object
@@ -136,7 +136,7 @@ class FiniteXXZ(FiniteMPO):
                Jxy: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Union[BaseBackend, Text]] = None,
+               backend: Optional[Union[AbstractBackend, Text]] = None,
                name: Text = 'XXZ_MPO') -> None:
     """
     Returns the MPO of the finite XXZ model.
@@ -232,7 +232,7 @@ class FiniteTFI(FiniteMPO):
                Jx: np.ndarray,
                Bz: np.ndarray,
                dtype: Type[np.number],
-               backend: Optional[Union[BaseBackend, Text]] = None,
+               backend: Optional[Union[AbstractBackend, Text]] = None,
                name: Text = 'TFI_MPO') -> None:
     """
     Returns the MPO of the finite TFI model.

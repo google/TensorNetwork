@@ -13,7 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
@@ -25,21 +25,22 @@ Tensor = Any
 
 
 #pylint: disable=abstract-method
-class SymmetricBackend(base_backend.BaseBackend):
+class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(SymmetricBackend, self).__init__()
     self.bs = bs
     self.name = "symmetric"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return self.bs.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return self.bs.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm) -> Tensor:
     return self.bs.transpose(tensor, perm)
 
   def svd_decomposition(
@@ -107,7 +108,10 @@ class SymmetricBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.bs.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     raise NotImplementedError("`einsum` currently not implemented")
 
   def norm(self, tensor: Tensor) -> Tensor:
@@ -177,14 +181,16 @@ class SymmetricBackend(base_backend.BaseBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return self.bs.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return self.tensordot(tensor1, self.diag(tensor2),
                           ([len(tensor1.shape) - 1], [0]))
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))

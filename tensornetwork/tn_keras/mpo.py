@@ -86,15 +86,19 @@ class DenseMPO(Layer):
     if input_shape[-1] is None:
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
+    # Try to convert n to an integer. tensorflow.compat.v1 uses a partially
+    # integer compatible interface that does not implement the __pow__
+    # function. __int__ is implemented, so calling this first is necessary.
+    input_dim = int(input_shape[-1])
 
     def is_perfect_root(n, n_nodes):
       root = n**(1. / n_nodes)
       return round(root)**n_nodes == n
 
     # Ensure the MPO dimensions will work
-    assert is_perfect_root(input_shape[-1], self.num_nodes), \
+    assert is_perfect_root(input_dim, self.num_nodes), \
       f'Input dim incorrect.\
-      {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
+      {input_dim}**(1. / {self.num_nodes}) must be round.'
 
     assert is_perfect_root(self.output_dim, self.num_nodes), \
       f'Output dim incorrect. \
@@ -102,7 +106,7 @@ class DenseMPO(Layer):
 
     super(DenseMPO, self).build(input_shape)
 
-    self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
+    self.in_leg_dim = math.ceil(input_dim**(1. / self.num_nodes))
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
 
     self.nodes.append(
