@@ -159,7 +159,11 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
       network_structure)
   out_labels = int_out_labels + str_out_labels
   cont_labels = int_cont_labels + str_cont_labels
-
+  str_labels = str_cont_labels + [l[1:] for l in str_out_labels]
+  mask = [l.isalnum() for l in str_labels]
+  if not np.all(mask):
+    raise ValueError(f"only alphanumeric values allowed for string labels, "
+                     f"found {[l for n, l in enumerate(str_labels) if not mask[n]]}")
   # make sure no value 0 is used as a label (legacy behaviour)
   if int_cont_labels.count(0) > 0:
     raise ValueError("only nonzero values are allowed to "
