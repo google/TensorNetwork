@@ -288,21 +288,21 @@ def test_node_invalid_order(backend):
 
 
 def test_output_order(backend):
+  np.random.seed(10)
   a = np.random.randn(2, 2)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
   np.testing.assert_allclose(res, a.transpose())
 
 
 def test_node_output_order(backend):
+  np.random.seed(10)  
   t = np.random.randn(2, 2)
   a = Node(t, backend=backend)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
   np.testing.assert_allclose(res.tensor, t.transpose())
 
 
-def test_outer_product(backend):
-  if backend == "jax":
-    pytest.skip("Jax outer product support is currently broken.")
+def test_outer_product_1(backend):
   a = np.array([1, 2, 3])
   b = np.array([1, 2])
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
@@ -313,10 +313,17 @@ def test_outer_product(backend):
   np.testing.assert_allclose(res, 196)
 
 
-def test_node_outer_product(backend):
-  if backend == "jax":
-    pytest.skip("Jax outer product support is currently broken.")
+def test_outer_product_2(backend):
+  a = np.random.rand(10, 100)
+  b = np.random.rand(8)
+  res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
+                            out_order=[-2, -1, -3],
+                            backend=backend)
+  exp = np.einsum('ij,k->jik', a, b)
+  np.testing.assert_allclose(res, exp)
 
+
+def test_node_outer_product(backend):
   t1 = np.array([1, 2, 3])
   t2 = np.array([1, 2])
   a = Node(t1, backend=backend)
@@ -342,6 +349,7 @@ def test_node_trace(backend):
 
 
 def test_small_matmul(backend):
+  np.random.seed(10)  
   a = np.random.randn(2, 2)
   b = np.random.randn(2, 2)
   res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend=backend)
@@ -349,6 +357,7 @@ def test_small_matmul(backend):
 
 
 def test_node_small_matmul(backend):
+  np.random.seed(10)  
   t1 = np.random.randn(2, 2)
   t2 = np.random.randn(2, 2)
 
@@ -359,6 +368,7 @@ def test_node_small_matmul(backend):
 
 
 def test_contraction(backend):
+  np.random.seed(10)
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
                             backend=backend)
@@ -368,6 +378,7 @@ def test_contraction(backend):
 
 
 def test_node_contraction(backend):
+  np.random.seed(10)
   tensor = np.random.randn(2, 2, 2)
   a = Node(tensor, backend=backend)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
@@ -397,7 +408,7 @@ def test_get_cont_out_labels():
   check(exp_str_cont_labels, str_cont_labels)
   check(exp_int_out_labels, int_out_labels)
   check(exp_str_out_labels, str_out_labels)
-  
+
 def test_partial_traces(backend):
   np.random.seed(10)
   a = np.random.rand(4, 4, 4, 4)

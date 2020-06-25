@@ -21,7 +21,7 @@ Tensor = Any
 
 class AbstractBackend:
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
