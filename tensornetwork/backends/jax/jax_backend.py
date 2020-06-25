@@ -241,7 +241,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: int = 20) -> Tuple[List, List]:
+           maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest 
     eigenvector-eigenvalue pairs of a linear operator `A`. 
@@ -344,7 +344,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       tol: float = 1E-8,
       delta: float = 1E-8,
       ndiag: int = 10,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+      reorthogonalize: Optional[bool] = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a hermitian linear operator `A`. `A` is a function implementing 
@@ -410,7 +410,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
-       eigvals: A list of `numeig` lowest eigenvalues
+       eigvals: An jax-array containing `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     if args is None:
@@ -510,3 +510,14 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return libjax.jit(fun, *args, **kwargs)
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return np.sum(tensor, axis=axis, keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+    return jnp.matmul(tensor1, tensor2)

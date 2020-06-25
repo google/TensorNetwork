@@ -34,7 +34,6 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
         if not len(axes[0]) == len(axes[1]):
           raise ValueError("shape-mismatch for sum")
-
         u, pos1, _ = np.intersect1d(
             axes[0], axes[1], return_indices=True, assume_unique=True)
         labels = int_to_string[0:len(u)]
@@ -206,7 +205,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a
@@ -284,7 +283,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     if dtype:
       eta = eta.astype(dtype)
       U = U.astype(dtype)
-    return list(eta), [np.reshape(U[:, n], shape) for n in range(numeig)]
+    return eta, [np.reshape(U[:, n], shape) for n in range(numeig)]
 
   def eigsh_lanczos(self,
                     A: Callable,
@@ -297,7 +296,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
@@ -474,3 +473,14 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return np.sum(tensor, axis=tuple(axis), keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+    return np.matmul(tensor1, tensor2)

@@ -25,7 +25,7 @@ def dummy_data(request):
 
 @pytest.fixture(params=[
     'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
-    'DenseEntangler'
+    'DenseEntangler', 'DenseEntanglerAsymmetric'
 ])
 def make_model(dummy_data, request):
   # Disable the redefined-outer-name violation in this function
@@ -77,6 +77,20 @@ def make_model(dummy_data, request):
     model = Sequential()
     model.add(
         DenseEntangler(leg_dim**num_legs,
+                       num_legs=num_legs,
+                       num_levels=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[1],)))
+    model.add(Dense(1, activation='sigmoid'))
+  elif request.param == 'DenseEntanglerAsymmetric':
+    num_legs = 3
+    leg_dim = round(data.shape[-1]**(1. / num_legs))
+    assert leg_dim**num_legs == data.shape[-1]
+
+    model = Sequential()
+    model.add(
+        DenseEntangler((leg_dim * 2)**num_legs,
                        num_legs=num_legs,
                        num_levels=3,
                        use_bias=True,
@@ -148,6 +162,7 @@ def high_dim_data(request):
   data = np.random.randint(10, size=request.param)
   return data
 
+
 @pytest.fixture(params=[
     'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
     'DenseEntangler'
@@ -207,7 +222,7 @@ def make_high_dim_model(high_dim_data, request):
   return data, model
 
 
-def test_decomp_higher_dim_input_output_shape(make_high_dim_model):
+def test_higher_dim_input_output_shape(make_high_dim_model):
   # pylint: disable=redefined-outer-name
   data, model = make_high_dim_model
 
@@ -333,9 +348,44 @@ def test_entangler_num_parameters(dummy_data):
                      input_shape=(data.shape[1],)))
 
   # num_params = entangler_node_params + bias_params
-  expected_num_parameters = num_levels * (leg_dim**4) + leg_dim**num_legs
+  expected_num_parameters = num_levels * (num_legs - 1) * (leg_dim**4) + (
+      leg_dim**num_legs)
 
   np.testing.assert_equal(expected_num_parameters, model.count_params())
+
+
+@pytest.mark.parametrize('num_levels', list(range(1, 4)))
+@pytest.mark.parametrize('num_legs', list(range(2, 6)))
+@pytest.mark.parametrize('leg_dims', [(4, 8), (8, 4)])
+def test_entangler_asymmetric_num_parameters_output_shape(num_legs,
+                                                          num_levels,
+                                                          leg_dims):
+  leg_dim, out_leg_dim = leg_dims
+  data_shape = (leg_dim ** num_legs,)
+  model = Sequential()
+  model.add(
+      DenseEntangler(out_leg_dim**num_legs,
+                     num_legs=num_legs,
+                     num_levels=num_levels,
+                     use_bias=True,
+                     activation='relu',
+                     input_shape=data_shape))
+
+
+  primary = leg_dim
+  secondary = out_leg_dim
+  if leg_dim > out_leg_dim:
+    primary, secondary = secondary, primary
+
+  expected_num_parameters = (num_levels - 1) * (num_legs - 1) * (primary**4) + (
+      num_legs - 2) * primary**3 * secondary + primary**2 * secondary**2 + (
+          out_leg_dim**num_legs)
+
+
+  np.testing.assert_equal(expected_num_parameters, model.count_params())
+  data = np.random.randint(10, size=(10, data_shape[0]))
+  out = model(data)
+  np.testing.assert_equal(out.shape, (data.shape[0], out_leg_dim**num_legs))
 
 
 def test_config(make_model):
