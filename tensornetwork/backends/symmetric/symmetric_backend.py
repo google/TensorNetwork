@@ -232,6 +232,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
 
     vector_n = initial_state
+    vector_n.contiguous()# bring into contiguous memory layout
+    
     Z = self.norm(vector_n)
     vector_n /= Z
     norms_vector_n = []
@@ -249,10 +251,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       vector_n = vector_n / norms_vector_n[-1]
       #store the Lanczos vector for later
       if reorthogonalize:
-        vector_n.contiguous()# bring into contiguous memory layout
+        #vector_n is always in contiguous memory layout at this point
         for v in krylov_vecs:
           v.contiguous() # make sure storage layouts are matching
-          # we can savely operate on the tensor data now (pybass some checks)
+          # it's save to operate on the tensor data now (pybass some checks)
           vector_n.data -= numpy.dot(numpy.conj(v.data), vector_n.data) * v.data
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
