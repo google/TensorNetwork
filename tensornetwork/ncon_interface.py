@@ -562,25 +562,23 @@ def ncon(
 
     Positive number-type labels and string-type labels with no prepended 
     hyphen ('-') are closed labels and are contracted.
-  
 
     Any open label appearing more than once is treated as an open 
     batch label. Any closed label appearing more than once is treated as 
-    an closed batch label.
+    a closed batch label.
 
-    Upon finishiing the contraction, all open batch labels will have been 
-    collapsed into dimension, and all closed batch labels will have been 
-    summed over.
+    Upon finishing the contraction, all open batch labels will have been 
+    collapsed into a single dimension, and all closed batch labels will 
+    have been summed over.
 
     If `out_order = None` output labels are ordered according to descending
     number ordering and ascending ASCII ordering, with number labels always 
     appearing before string labels. Example:
-    network_structure = [[-1, 1, '-3', '2'], [-2, '2', 1, '-33']] results 
-    in an output order of [-1, -2, '-3', '-33'].
+    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] results 
+    in an output order of [-1, -2, '-morty', '-rick'].
 
     If `out_order` is given, the indices of the resulting tensor will be
-    transposed into this order. In this case output labels can be arbitrary
-    numbers and arbitrary strings (no minus or hyphen necessary).
+    transposed into this order. 
     
     If `con_order = None`, `ncon` will first contract all number labels 
     in ascending order followed by all string labels in ascending ASCII 
