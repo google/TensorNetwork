@@ -572,8 +572,8 @@ def ncon(
     If `out_order = None`, output labels are ordered according to descending
     number ordering and ascending ASCII ordering, with number labels always 
     appearing before string labels. Example:
-    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] results 
-    in an output order of [-1, -2, '-morty', '-rick'].
+    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] 
+    results in an output order of [-1, -2, '-morty', '-rick'].
 
     If `out_order` is given, the indices of the resulting tensor will be
     transposed into this order. 
