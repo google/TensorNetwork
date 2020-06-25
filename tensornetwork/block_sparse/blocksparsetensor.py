@@ -787,9 +787,11 @@ class BlockSparseTensor(ChargeArray):
     return self
 
   def __matmul__(self, other):
-    """
-    Contract the last axis of `self` with the first axis of `other`.
-    """
+
+    if (self.ndim > 2) or (other.ndim > 2):
+      raise ValueError("__matmul__ is only implemented for vectors or matrices."
+                       " Found ndims = {} and {}".format(
+                           self.ndim, other.ndim))
     return tensordot(self, other, ([self.ndim - 1], [0]))
 
   def conj(self) -> "BlockSparseTensor":
