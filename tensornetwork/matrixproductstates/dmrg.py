@@ -212,7 +212,6 @@ class BaseDMRG:
     Returns:
       float/complex: The local energy after optimization.
     """
-
     site = self.mps.center_position
     #note: some backends will jit functions
     self.left_envs[site]
