@@ -460,7 +460,7 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     contractable_inds = np.nonzero(np.isin(labels, contractable_labels))[0]
     network_structure[loc] = np.delete(labels, contractable_inds)
     tensors[loc] = backend_obj.sum(tensors[loc], tuple(contractable_inds))
-    
+
 
   # perform binary and batch contractions
   skip_counter = 0
