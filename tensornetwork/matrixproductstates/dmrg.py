@@ -76,13 +76,6 @@ class BaseDMRG:
           'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
           .format(self.right_envs[0].dtype, self.dtype))
 
-    def _single_site_matvec(mpstensor, L, mpotensor, R):
-      return ncon([L, mpstensor, mpotensor, R],
-                  [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
-                  backend=self.backend.name)
-
-    #jitting happens inside eighs_lanczos
-    self.single_site_matvec = _single_site_matvec
     self.name = name
 
   @property
@@ -98,6 +91,11 @@ class BaseDMRG:
       raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
           self.mps.dtype, self.mpo.dtype))
     return self.mps.dtype
+  
+  def single_site_matvec(self, mpstensor, L, mpotensor, R):
+    return ncon([L, mpstensor, mpotensor, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=self.backend.name)
 
   def add_left_layer(self, L, mps_tensor, mpo_tensor):
     return ncon([L, mps_tensor, mpo_tensor,
@@ -307,7 +305,7 @@ class BaseDMRG:
         initial_site += 1
         print_msg(site=0)
 
-      for site in range(initial_site, len(self.mps) - 1):
+      for _ in range(initial_site, len(self.mps) - 1):
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='right',
@@ -319,7 +317,7 @@ class BaseDMRG:
         print_msg(site=self.mps.center_position - 1)
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
-      for site in reversed(range(len(self.mps) - 1)):
+      for _ in reversed(range(len(self.mps) - 1)):
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='left',
