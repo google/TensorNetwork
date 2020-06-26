@@ -23,6 +23,7 @@ Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
 
+
 def _get_cont_out_labels(
     network_structure: Sequence[Sequence[Union[int, str]]]) -> Any:
   """
@@ -413,10 +414,10 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     The final tensor after contraction.
   """
   # some jax-juggling to avoid retracing ...
+  flat_labels = np.array(flat_labels)
   slices = np.append(0, np.cumsum(sizes))
   network_structure = [
-      np.array(flat_labels)[slices[n]:slices[n + 1]]
-      for n in range(len(slices) - 1)
+      flat_labels[slices[n]:slices[n + 1]] for n in range(len(slices) - 1)
   ]
   con_order = np.array(con_order)
   out_order = np.array(out_order)
@@ -427,42 +428,54 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
   for n, tensor in enumerate(tensors):
     tensors[n], network_structure[n], contracted_labels = _partial_trace(
         tensor, network_structure[n], backend_obj)
-    con_order = np.delete(
-        con_order,
-        np.intersect1d(con_order, contracted_labels, return_indices=True)[1])
+
+    if len(contracted_labels) > 0:
+      con_order = np.delete(
+          con_order,
+          np.intersect1d(
+              con_order,
+              contracted_labels,
+              return_indices=True,
+              assume_unique=True)[1])
 
   # contracted all positive labels appearing only once in `network_structure`
   unique_labels, label_cnts = np.unique(
       np.concatenate(network_structure), return_counts=True)
   contractable_labels = unique_labels[np.logical_and(label_cnts == 1,
                                                      unique_labels > 0)]
-  locs = np.sort(
-      np.nonzero([
-          np.any(np.isin(labels, contractable_labels))
-          for labels in network_structure
-      ])[0])
 
+  # update con_order
+  if len(contractable_labels) > 0:
+    con_order = np.delete(
+        con_order,
+        np.nonzero(np.isin(con_order, contractable_labels))[0])
+
+  # collapse axes of single-labelled tensors
+  locs = [
+      n for n, labels in enumerate(network_structure)
+      if np.any(np.isin(labels, contractable_labels))
+  ]
   for loc in locs:
     labels = network_structure[loc]
     contractable_inds = np.nonzero(np.isin(labels, contractable_labels))[0]
     network_structure[loc] = np.delete(labels, contractable_inds)
     tensors[loc] = backend_obj.sum(tensors[loc], tuple(contractable_inds))
-
-  # update con_order after collapsing single labels
-  con_order = np.delete(con_order,
-                        np.nonzero(np.isin(con_order, contractable_labels))[0])
+    
 
   # perform binary and batch contractions
   skip_counter = 0
-  while len(con_order) > 0:
-    unique_labels, label_cnts = np.unique(
-        np.concatenate(network_structure), return_counts=True)
-    batch_labels = unique_labels[np.logical_or(
-        label_cnts > 2, np.logical_and(label_cnts == 2, unique_labels < 0))]
+  unique_labels, label_cnts = np.unique(
+      np.concatenate(network_structure), return_counts=True)
+  mask = np.logical_or(label_cnts > 2,
+                       np.logical_and(label_cnts == 2, unique_labels < 0))
+  batch_labels = unique_labels[mask]
+  batch_cnts = label_cnts[mask]
 
+  while len(con_order) > 0:
     # the next index to be contracted
     cont_ind = con_order[0]
-    if cont_ind in batch_labels:
+    if (cont_ind
+        in batch_labels) and (batch_cnts[batch_labels == cont_ind] > 1):
       # if its still a batch index then do it later
       con_order = np.append(np.delete(con_order, 0), cont_ind)
       skip_counter += 1
@@ -475,9 +488,11 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
       continue
 
     # find locations of `cont_ind` in `network_structure`
-    locs = np.sort(
-        np.nonzero([np.isin(cont_ind, labels) for labels in network_structure
-                   ])[0])
+    locs = [
+        n for n, labels in enumerate(network_structure)
+        if sum(labels == cont_ind) > 0
+    ]
+
     t2 = tensors.pop(locs[1])
     t1 = tensors.pop(locs[0])
     labels_t2 = network_structure.pop(locs[1])
@@ -491,9 +506,19 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
         batch_labels, common_labels, assume_unique=True)
     if common_batch_labels.shape[0] > 0:
       # case1: both tensors have one or more common batch indices -> use matmul
+      ix, _ = np.nonzero(batch_labels[:, None] == common_batch_labels[None, :])
+      # reduce the counts of these labels in `batch_cnts` by 1
+      batch_cnts[ix] -= 1
+      # if the count of a positive label falls below 3, remove it from `batch_labels`
+      mask = np.logical_or(batch_cnts > 2,
+                           np.logical_and(batch_cnts == 2, batch_labels < 0))
+      batch_labels = batch_labels[mask]
+      batch_cnts = batch_cnts[mask]
+
       tensors, network_structure, con_order = _batch_cont(
           t1, t2, tensors, network_structure, con_order, common_batch_labels,
           labels_t1, labels_t2, backend_obj)
+
     # in all other cases do a regular tensordot
     else:
       ind_sort = np.argsort(t1_cont)
