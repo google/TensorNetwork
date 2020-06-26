@@ -37,7 +37,7 @@ Tensor = Any
 class ShellBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(ShellBackend, self).__init__()
     self.name = "shell"
 
@@ -158,7 +158,11 @@ class ShellBackend(abstract_backend.AbstractBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  #pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     expr_list = expression.split(",")
     expr_list[-1], res = expr_list[-1].split("->")
     shape = tuple(self._find_char(expr_list, char, tensors) for char in res)
@@ -236,7 +240,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
            numeig: Optional[int] = 1,
            tol: Optional[float] = 1E-8,
            which: Optional[Text] = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     if args is None:
       args = []
 
@@ -267,7 +271,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     if args is None:
       args = []
     if num_krylov_vecs < numeig:
@@ -316,7 +320,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
           .format(matrix.shape))
     return ShellTensor(matrix.shape)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -328,7 +333,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
     shape = tuple([max([s1, s2]) for s1, s2 in zip(tensor1.shape, shape2)])
     return ShellTensor(shape)
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor1`, found `tensor1.shape = {}`"
@@ -342,3 +348,22 @@ class ShellBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    if not keepdims:
+      newshape = np.delete(tensor.shape, axis)
+    else:
+      newshape = np.array(tensor.shape)
+      newshape[np.array(axis)] = 1
+    return ShellTensor(newshape)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    shape1 = np.array(tensor1.shape)[:-2]
+    shape2 = np.array(tensor2.shape)[:-2]
+    if not np.array_equal(shape1, shape2):
+      raise ValueError("shape mismatch for matmul")
+    new_shape = np.append(shape1, [tensor1.shape[-2], tensor2.shape[-1]])
+    return ShellTensor(new_shape)

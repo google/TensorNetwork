@@ -27,7 +27,7 @@ Tensor = Any
 class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(PyTorchBackend, self).__init__()
     # pylint: disable=global-variable-undefined
     global torchlib
@@ -40,13 +40,14 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     torchlib = torch
     self.name = "pytorch"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return torchlib.tensordot(a, b, dims=axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm) -> Tensor:
     return tensor.permute(perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -119,8 +120,11 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return torchlib.tensordot(tensor1, tensor2, dims=0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  # pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return torchlib.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
@@ -181,7 +185,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -321,7 +325,8 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
           .format(matrix.shape))
     return matrix.inverse()
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -329,7 +334,8 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -340,3 +346,15 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return torchlib.sum(tensor, axis=axis, keepdim=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+
+    return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)
