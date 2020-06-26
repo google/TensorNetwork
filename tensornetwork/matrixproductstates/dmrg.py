@@ -275,12 +275,13 @@ class BaseDMRG:
     Returns:
       float: The energy upon termination of `run_one_site`.
     """
+    if num_sweeps == 0:
+      return 
+    
     converged = False
     final_energy = 1E100
     iteration = 1
     initial_site = 0
-    if num_sweeps == 0:
-      return 
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
 
