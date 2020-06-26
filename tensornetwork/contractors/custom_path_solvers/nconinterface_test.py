@@ -144,13 +144,3 @@ def test_ncon_cost_check2():
   cost = ncon_cost_check(tensors, connects, con_order)
   ex_cost = np.log10(3 * chi**3)
   assert np.allclose(cost, ex_cost)
-
-
-# for k in range(1000):
-#   test_ncon_solver()
-#   test_ncon_solver2()
-#   test_ncon_to_adj()
-#   test_ord_to_ncon()
-#   test_ncon_cost_check()
-#   test_ncon_cost_check2()
-#   print(k)

@@ -105,14 +105,3 @@ def test_full_solve_complete3():
       log_adj, cost_bound=cost_bound, max_branch=max_branch)
   assert order.shape == (2, N - 1)
   assert isinstance(cost, float)
-
-
-# for k in range(1000):
-#   test_greedy_size_solve()
-#   test_greedy_size_solve2()
-#   test_greedy_cost_solve()
-#   test_greedy_cost_solve2()
-#   test_full_solve_complete()
-#   test_full_solve_complete2()
-#   test_full_solve_complete3()
-#   print(k)
