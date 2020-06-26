@@ -147,7 +147,7 @@ def test_tensordot_vs_backend(backend, dtype):
   result = tensornetwork.tensordot(*tensors, dims)
   backend_obj = backends.backend_factory.get_backend(backend)
   arrays = [t.array for t in tensors]
-  backend_result = backend_obj.tensordot(*arrays, dims)
+  backend_result = backend_obj.tensordot(*arrays, axes=dims)
   np.testing.assert_allclose(backend_result, result.array)
 
 
