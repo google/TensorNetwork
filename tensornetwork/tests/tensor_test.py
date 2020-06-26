@@ -20,7 +20,7 @@ from jax import config
 import tensorflow as tf
 import torch
 import pytest
-import tensornetwork as tn
+import tensornetwork
 from tensornetwork.backends import abstract_backend
 from tensornetwork import backends, backend_contextmanager
 
@@ -69,11 +69,11 @@ def safe_zeros(shape, backend, dtype):
   init = np.zeros(shape, dtype=dtype)
   if backend == "pytorch" and dtype not in torch_supported_dtypes:
     with pytest.raises(TypeError):
-      A = tn.Tensor(init, backend=backend)
+      A = tensornetwork.Tensor(init, backend=backend)
     A = None
     init = None
   else:
-    A = tn.Tensor(init, backend=backend)
+    A = tensornetwork.Tensor(init, backend=backend)
   return (A, init)
 
 
@@ -94,11 +94,11 @@ def safe_randn(shape, backend, dtype):
 
   if backend == "pytorch" and dtype not in torch_supported_dtypes:
     with pytest.raises(TypeError):
-      A = tn.Tensor(init, backend=backend)
+      A = tensornetwork.Tensor(init, backend=backend)
     A = None
     init = None
   else:
-    A = tn.Tensor(init, backend=backend)
+    A = tensornetwork.Tensor(init, backend=backend)
   return (A, init)
 
 
@@ -144,7 +144,7 @@ def test_init_tensor_from_backend_array(backend, dtype):
     init = tf.zeros(shape, dtype=dtype)
   else:
     raise ValueError("Unexpected backend ", backend)
-  A = tn.Tensor(init, backend=backend)
+  A = tensornetwork.Tensor(init, backend=backend)
   assert A.backend.name == backend
   np.testing.assert_allclose(A.array, init)
   assert A.shape == init.shape
@@ -248,7 +248,7 @@ def test_tensor_reshape(backend, dtype):
 
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_tensor_transpose(backend, dtype):
-  """ Checks that Tensor.copy() works.
+  """ Checks that Tensor.transpose() works.
   """
   shape = (2, 3, 1)
   permutation = (1, 2, 0)

@@ -445,7 +445,7 @@ class AbstractBackend:
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default substraction of `tensor`.
+      Return the default subtraction of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.

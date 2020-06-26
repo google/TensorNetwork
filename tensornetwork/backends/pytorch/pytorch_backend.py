@@ -104,7 +104,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> int:
-    return np.prod(np.array(values))
+    return torchlib.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return torchlib.sqrt(tensor)
