@@ -184,19 +184,19 @@ def test_abstract_backend_slice_not_implemented():
 def test_abstract_backend_svd_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.svd_decomposition(np.ones((2, 2)), 0)
+    backend.svd(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_qr_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.qr_decomposition(np.ones((2, 2)), 0)
+    backend.qr(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_rq_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.rq_decomposition(np.ones((2, 2)), 0)
+    backend.rq(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_shape_concat_not_implemented():

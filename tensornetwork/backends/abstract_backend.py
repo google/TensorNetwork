@@ -74,7 +74,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -132,25 +132,25 @@ class AbstractBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+        "Backend '{}' has not implemented qr.".format(self.name))
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""

@@ -99,12 +99,12 @@ class BaseMPS:
     ##########       define functions for jitted operations       ##########
     ########################################################################
     def qr_decomposition(tensor):
-      return self.backend.qr_decomposition(tensor, 2)
+      return self.backend.qr(tensor, 2)
 
     self.qr_decomposition = self.backend.jit(qr_decomposition)
 
     def rq_decomposition(tensor):
-      return self.backend.rq_decomposition(tensor, 1)
+      return self.backend.rq(tensor, 1)
 
     self.rq_decomposition = self.backend.jit(rq_decomposition)
 
