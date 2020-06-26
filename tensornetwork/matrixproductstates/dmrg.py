@@ -83,28 +83,6 @@ class BaseDMRG:
 
     #jitting happens inside eighs_lanczos
     self.single_site_matvec = _single_site_matvec
-
-    ######################################################################
-    ###############  DEFINE JITTED FUNCTIONS   ###########################
-    ######################################################################
-
-    def _add_left_layer(L, mps_tensor, mpo_tensor):
-      return ncon([L, mps_tensor, mpo_tensor,
-                   self.backend.conj(mps_tensor)],
-                  [[2, 1, 5], [1, 3, -2], [2, -1, 4, 3], [5, 4, -3]],
-                  backend=self.backend.name)
-
-    self.add_left_layer = self.backend.jit(_add_left_layer)
-
-    def _add_right_layer(R, mps_tensor, mpo_tensor):
-      return ncon([R, mps_tensor, mpo_tensor,
-                   self.backend.conj(mps_tensor)],
-                  [[2, 1, 5], [-2, 3, 1], [-1, 2, 4, 3], [-3, 4, 5]],
-                  backend=self.backend.name)
-
-    self.add_left_layer = self.backend.jit(_add_left_layer)
-    self.add_right_layer = self.backend.jit(_add_right_layer)
-
     self.name = name
 
   @property
@@ -120,6 +98,18 @@ class BaseDMRG:
       raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
           self.mps.dtype, self.mpo.dtype))
     return self.mps.dtype
+
+  def add_left_layer(self, L, mps_tensor, mpo_tensor):
+    return ncon([L, mps_tensor, mpo_tensor,
+                 self.backend.conj(mps_tensor)],
+                [[2, 1, 5], [1, 3, -2], [2, -1, 4, 3], [5, 4, -3]],
+                backend=self.backend.name)
+
+  def add_right_layer(self, R, mps_tensor, mpo_tensor):
+    return ncon([R, mps_tensor, mpo_tensor,
+                 self.backend.conj(mps_tensor)],
+                [[2, 1, 5], [-2, 3, 1], [-1, 2, 4, 3], [-3, 4, 5]],
+                backend=self.backend.name)
 
   def position(self, site: int):
     """
