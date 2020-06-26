@@ -23,7 +23,6 @@ Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
 
-
 def _get_cont_out_labels(
     network_structure: Sequence[Sequence[Union[int, str]]]) -> Any:
   """
@@ -414,10 +413,10 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     The final tensor after contraction.
   """
   # some jax-juggling to avoid retracing ...
-  flat_labels = np.array(flat_labels)
   slices = np.append(0, np.cumsum(sizes))
   network_structure = [
-      flat_labels[slices[n]:slices[n + 1]] for n in range(len(slices) - 1)
+      np.array(flat_labels)[slices[n]:slices[n + 1]]
+      for n in range(len(slices) - 1)
   ]
   con_order = np.array(con_order)
   out_order = np.array(out_order)
