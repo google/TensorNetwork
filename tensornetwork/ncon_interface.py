@@ -517,7 +517,6 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
       tensors, network_structure, con_order = _batch_cont(
           t1, t2, tensors, network_structure, con_order, common_batch_labels,
           labels_t1, labels_t2, backend_obj)
-
     # in all other cases do a regular tensordot
     else:
       ind_sort = np.argsort(t1_cont)
