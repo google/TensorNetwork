@@ -91,7 +91,7 @@ class BaseDMRG:
       raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
           self.mps.dtype, self.mpo.dtype))
     return self.mps.dtype
-  
+
   def single_site_matvec(self, mpstensor, L, mpotensor, R):
     return ncon([L, mpstensor, mpotensor, R],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
@@ -227,7 +227,8 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
-        self.mps.tensors[site + 1] = ncon([R,  self.mps.tensors[site + 1]], [[-1, 1], [1, -2, -3]],
+        self.mps.tensors[site + 1] = ncon([R, self.mps.tensors[site + 1]],
+                                          [[-1, 1], [1, -2, -3]],
                                           backend=self.backend.name)
         self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], Q,
                                                        self.mpo.tensors[site])
@@ -237,8 +238,9 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site > 0:
         self.mps.center_position -= 1
-        self.mps.tensors[site - 1] = ncon([self.mps.tensors[site - 1], R], [[-1, -2, 1], [1, -3]],
-                                          backend=self.backend.name)        
+        self.mps.tensors[site - 1] = ncon([self.mps.tensors[site - 1], R],
+                                          [[-1, -2, 1], [1, -3]],
+                                          backend=self.backend.name)
         self.right_envs[site - 1] = self.add_right_layer(
             self.right_envs[site], Q, self.mpo.tensors[site])
 
@@ -276,8 +278,8 @@ class BaseDMRG:
       float: The energy upon termination of `run_one_site`.
     """
     if num_sweeps == 0:
-      return 
-    
+      return
+
     converged = False
     final_energy = 1E100
     iteration = 1
@@ -287,9 +289,10 @@ class BaseDMRG:
 
     def print_msg(site):
       if verbose > 0:
-        stdout.write("\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
-                     (iteration, num_sweeps, site, len(
-                         self.mps), np.real(energy), np.imag(energy)))
+        stdout.write(
+            "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
+            (iteration, num_sweeps, site, len(
+                self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
       if verbose > 1:
         print("")
