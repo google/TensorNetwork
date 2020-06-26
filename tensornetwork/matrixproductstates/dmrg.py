@@ -325,7 +325,7 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=self.mps.center_position-1)
+        print_msg(site=self.mps.center_position - 1)
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
       for site in reversed(range(len(self.mps) - 1)):
@@ -337,7 +337,7 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=self.mps.center_position+1)
+        print_msg(site=self.mps.center_position + 1)
 
       if np.abs(final_energy - energy) < precision:
         converged = True
