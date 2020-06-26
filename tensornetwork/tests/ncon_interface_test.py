@@ -15,7 +15,8 @@ import pytest
 import numpy as np
 from tensornetwork import AbstractNode, Node
 from tensornetwork import ncon_interface
-from tensornetwork.ncon_interface import _get_cont_out_labels
+# pylint: disable=line-too-long
+from tensornetwork.ncon_interface import _get_cont_out_labels, _canonicalize_network_structure
 from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
 
@@ -34,16 +35,18 @@ def backends(request):
 
 
 def test_sanity_check(backend):
-  t1, t2 = np.ones((2, 2)), np.ones((2, 2))
-  result_1 = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
-  np.testing.assert_allclose(result_1, np.ones((2, 2)) * 2)
+  np.random.seed(10)
+  t1, t2 = np.random.rand(2, 2), np.random.rand(2, 2)
+  result = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
+  np.testing.assert_allclose(result, t1 @ t2)
 
 
 def test_node_sanity_check(backend):
-  t1, t2 = np.ones((2, 2)), np.ones((2, 2))
+  np.random.seed(10)
+  t1, t2 = np.random.rand(2, 2), np.random.rand(2, 2)
   n1, n2 = Node(t1, backend=backend), Node(t2, backend=backend)
-  result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
-  np.testing.assert_allclose(result_2.tensor, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
+  np.testing.assert_allclose(result.tensor, t1 @ t2)
 
 
 def test_return_type(backend):
@@ -58,233 +61,92 @@ def test_return_type(backend):
 
 
 def test_order_spec(backend):
-  a = np.ones((2, 2))
+  np.random.seed(10)
+  a = np.random.rand(2, 2)
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                out_order=[-1, -2],
                                backend=backend)
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, a @ a)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
                                backend=backend)
 
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result, a @ a)
 
   result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
                                con_order=[1],
                                out_order=[-1, -2],
                                backend=backend)
+  np.testing.assert_allclose(result, a @ a)
 
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                               con_order=[1],
+                               out_order=[-2, -1],
+                               backend=backend)
+  np.testing.assert_allclose(result, (a @ a).T)
 
 
 def test_node_order_spec(backend):
-  node = Node(np.ones((2, 2)), backend=backend)
+  np.random.seed(10)
+  a = np.random.rand(2, 2)
+  node = Node(a, backend=backend)
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                out_order=[-1, -2],
                                backend=backend)
 
-  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result.tensor, a @ a)
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                con_order=[1],
                                backend=backend)
-
-  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+  np.testing.assert_allclose(result.tensor, a @ a)
 
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                con_order=[1],
                                out_order=[-1, -2],
                                backend=backend)
+  np.testing.assert_allclose(result.tensor, a @ a)
 
-  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
+  result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
+                               con_order=[1],
+                               out_order=[-2, -1],
+                               backend=backend)
+  np.testing.assert_allclose(result.tensor, (a @ a).T)
 
 
 def test_order_spec_noninteger(backend):
-  a = np.ones((2, 2))
-  result = ncon_interface.ncon([a, a], [('o1', 'i'), ('i', 'o2')],
+  np.random.seed(10)
+  a = np.random.rand(2, 2)
+  exp = a @ a
+  result = ncon_interface.ncon([a, a], [('-o1', 'i'), ('i', '-o2')],
                                con_order=['i'],
-                               out_order=['o1', 'o2'],
+                               out_order=['-o1', '-o2'],
                                backend=backend)
-  np.testing.assert_allclose(result, np.ones((2, 2)) * 2)
+
+  np.testing.assert_allclose(result, exp)
+  result = ncon_interface.ncon([a, a], [('-o1', 'i'), ('i', '-o2')],
+                               con_order=['i'],
+                               out_order=['-o2', '-o1'],
+                               backend=backend)
+
+  np.testing.assert_allclose(result, exp.T)
 
 
 def test_node_order_spec_noninteger(backend):
-  node = Node(np.ones((2, 2)), backend=backend)
-  result = ncon_interface.ncon([node, node], [('o1', 'i'), ('i', 'o2')],
+  np.random.seed(10)
+  a = np.random.rand(2, 2)
+  exp = a @ a
+  node = Node(a, backend=backend)
+  result = ncon_interface.ncon([node, node], [('-o1', 'i'), ('i', '-o2')],
                                con_order=['i'],
-                               out_order=['o1', 'o2'],
+                               out_order=['-o1', '-o2'],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, np.ones((2, 2)) * 2)
-
-
-def test_invalid_network(backend):
-  a = np.ones((2, 2))
-  with pytest.raises(
-      ValueError,
-      match="number of tensors does not "
-      "match the number of network connections."):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match="number of indices does not match "
-      "number of labels on tensor 0."):
-    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
-
-  with pytest.raises(
-      ValueError,
-      match=r"labels \[3, 4\] in `con_order` "
-      r"do not appear as contracted labels in `network_structure`."):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        con_order=[3, 4],
-                        backend=backend)
-  with pytest.raises(
-      ValueError, match=r"label 2"
-      " appears more than once in `con_order`."):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        con_order=[2, 2],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"`con_order = \[3, 4, 5\] is not a valid "
-      r"contraction order for contracted labels \[1, 2\]"):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        con_order=[3, 4, 5],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"`con_order = \[-1, 2\] "
-      r"is not a valid contraction order for contracted labels \[2\]"):
-    ncon_interface.ncon([a, a], [(-1, 2), (2, -2)],
-                        con_order=[-1, 2],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"`out_order` = \[2, 2\] is not a valid output"
-      r" order for open labels \[\]"):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        out_order=[2, 2],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"labels \[-3\] in `out_order` do not "
-      r"appear in `network_structure`."):
-    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
-                        out_order=[-3, -1],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"labels \[1\] in `out_order` appear more "
-      r"than once in `network_structure`."):
-    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
-                        out_order=[1, -1],
-                        backend=backend)
-  with pytest.raises(
-      ValueError, match=r"label -1 appears more than once in `out_order`."):
-    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
-                        out_order=[-1, -1],
-                        backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r'labels \[2\] appear more than twice in `network_structure`.'):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"open integer labels have to be negative "
-      r"integers, found \[3, 2\]"):
-    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match="only nonzero values are allowed to "
-      "specify network structure."):
-    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"open string labels have to be prepended with '-'; "
-      r"found \['1', '2'\]"):
-    ncon_interface.ncon([a, a], [('1', 1), (1, '2')], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"open integer labels have to be negative integers, "
-      r"found \[2, 1\]"):
-    ncon_interface.ncon([a, a], [(1, 3), (3, 2)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"contracted labels can only be positive integers or strings"
-      r", found \[-5\]."):
-    ncon_interface.ncon([a, a], [(-1, -5), (-5, -2)], backend=backend)
-  with pytest.raises(
-      ValueError,
-      match=r"contracted labels must"
-      r" not be prepended with '-', found \['-5'\]."):
-    ncon_interface.ncon([a, a], [(-1, '-5'), ('-5', -2)], backend=backend)
-
-
-def test_node_invalid_network(backend):
-  a = Node(np.ones((2, 2)), backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 2)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (3, 1)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
-
-
-def test_invalid_order(backend):
-  a = np.ones((2, 2))
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        con_order=[2, 3],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        out_order=[-1],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1'],
-                        out_order=[],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i2'],
-                        out_order=['i1'],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i1', 'i2'],
-                        out_order=[],
-                        backend=backend)
-
-
-def test_node_invalid_order(backend):
-  a = Node(np.ones((2, 2)), backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        con_order=[2, 3],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
-                        out_order=[-1],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1'],
-                        out_order=[],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i2'],
-                        out_order=['i1'],
-                        backend=backend)
-  with pytest.raises(ValueError):
-    ncon_interface.ncon([a, a], [('i1', 'i2'), ('i1', 'i2')],
-                        con_order=['i1', 'i1', 'i2'],
-                        out_order=[],
-                        backend=backend)
+  np.testing.assert_allclose(result.tensor, exp)
+  result = ncon_interface.ncon([node, node], [('-o1', 'i'), ('i', '-o2')],
+                               con_order=['i'],
+                               out_order=['-o2', '-o1'],
+                               backend=backend)
+  np.testing.assert_allclose(result.tensor, exp.T)
 
 
 def test_output_order(backend):
@@ -295,7 +157,7 @@ def test_output_order(backend):
 
 
 def test_node_output_order(backend):
-  np.random.seed(10)  
+  np.random.seed(10)
   t = np.random.randn(2, 2)
   a = Node(t, backend=backend)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
@@ -313,7 +175,19 @@ def test_outer_product_1(backend):
   np.testing.assert_allclose(res, 196)
 
 
+def test_outer_product_1_mixed_labels(backend):
+  a = np.array([1, 2, 3])
+  b = np.array([1, 2])
+  res = ncon_interface.ncon([a, b], [('-hi',), ('-ho',)], backend=backend)
+  np.testing.assert_allclose(res, np.kron(a, b).reshape((3, 2)))
+
+  res = ncon_interface.ncon([a, a, a, a], [('hi',), ('hi',), ('ho',), ('ho',)],
+                            backend=backend)
+  np.testing.assert_allclose(res, 196)
+
+
 def test_outer_product_2(backend):
+  np.random.seed(10)
   a = np.random.rand(10, 100)
   b = np.random.rand(8)
   res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
@@ -322,8 +196,18 @@ def test_outer_product_2(backend):
   exp = np.einsum('ij,k->jik', a, b)
   np.testing.assert_allclose(res, exp)
 
+def test_outer_product_2_mixed_labels(backend):
+  np.random.seed(10)
+  a = np.random.rand(10, 100)
+  b = np.random.rand(8)
+  res = ncon_interface.ncon([a, b], [(-1, '-hi'), ('-ho',)],
+                            out_order=['-hi', -1, '-ho'],
+                            backend=backend)
+  exp = np.einsum('ij,k->jik', a, b)
+  np.testing.assert_allclose(res, exp)
 
-def test_node_outer_product(backend):
+
+def test_node_outer_product_1(backend):
   t1 = np.array([1, 2, 3])
   t2 = np.array([1, 2])
   a = Node(t1, backend=backend)
@@ -336,9 +220,56 @@ def test_node_outer_product(backend):
   np.testing.assert_allclose(res.tensor, 196)
 
 
+def test_node_outer_product_1_mixed_labels(backend):
+  t1 = np.array([1, 2, 3])
+  t2 = np.array([1, 2])
+  a = Node(t1, backend=backend)
+  b = Node(t2, backend=backend)
+  res = ncon_interface.ncon([a, b], [('-hi',), ('-ho',)], backend=backend)
+  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape((3, 2)))
+
+  res = ncon_interface.ncon([a, a, a, a], [('hi',), ('hi',), ('ho',), ('ho',)],
+                            backend=backend)
+  np.testing.assert_allclose(res.tensor, 196)
+
+
+def test_node_outer_product_2(backend):
+  np.random.seed(10)
+  t1 = np.random.rand(10, 100)
+  t2 = np.random.rand(8)
+  a = Node(t1, backend=backend)
+  b = Node(t2, backend=backend)
+
+  res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
+                            out_order=[-2, -1, -3],
+                            backend=backend)
+  exp = np.einsum('ij,k->jik', t1, t2)
+  np.testing.assert_allclose(res.tensor, exp)
+
+
+def test_node_outer_product_2_mixed_labels(backend):
+  np.random.seed(10)
+  t1 = np.random.rand(10, 100)
+  t2 = np.random.rand(8)
+  a = Node(t1, backend=backend)
+  b = Node(t2, backend=backend)
+
+  res = ncon_interface.ncon([a, b], [(-1, '-hi'), ('-ho',)],
+                            out_order=['-hi', -1, '-ho'],
+                            backend=backend)
+  exp = np.einsum('ij,k->jik', t1, t2)
+  np.testing.assert_allclose(res.tensor, exp)
+
+
 def test_trace(backend):
   a = np.ones((2, 2))
   res = ncon_interface.ncon([a], [(1, 1)], backend=backend)
+  np.testing.assert_allclose(res, 2)
+
+
+def test_trace_str_labels(backend):
+  a = np.ones((2, 2))
+  res = ncon_interface.ncon([a], [('hi', 'hi')], backend=backend)
   np.testing.assert_allclose(res, 2)
 
 
@@ -348,16 +279,31 @@ def test_node_trace(backend):
   np.testing.assert_allclose(res.tensor, 2)
 
 
+def test_node_trace_str_labels(backend):
+  a = Node(np.ones((2, 2)), backend=backend)
+  res = ncon_interface.ncon([a], [('hi', 'hi')], backend=backend)
+  np.testing.assert_allclose(res.tensor, 2)
+
+
 def test_small_matmul(backend):
-  np.random.seed(10)  
+  np.random.seed(10)
   a = np.random.randn(2, 2)
   b = np.random.randn(2, 2)
   res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend=backend)
   np.testing.assert_allclose(res, a.transpose() @ b)
 
 
+def test_small_matmul_mixed_labels(backend):
+  np.random.seed(10)
+  a = np.random.randn(2, 2)
+  b = np.random.randn(2, 2)
+  res = ncon_interface.ncon([a, b], [('hi', -1), ('hi', '-ho')],
+                            backend=backend)
+  np.testing.assert_allclose(res, a.transpose() @ b)
+
+
 def test_node_small_matmul(backend):
-  np.random.seed(10)  
+  np.random.seed(10)
   t1 = np.random.randn(2, 2)
   t2 = np.random.randn(2, 2)
 
@@ -367,10 +313,34 @@ def test_node_small_matmul(backend):
   np.testing.assert_allclose(res.tensor, t1.transpose() @ t2)
 
 
+def test_node_small_matmul_mixed_labels(backend):
+  np.random.seed(10)
+  t1 = np.random.randn(2, 2)
+  t2 = np.random.randn(2, 2)
+
+  a = Node(t1, backend=backend)
+  b = Node(t2, backend=backend)
+
+  res = ncon_interface.ncon([a, b], [('hi', -1), ('hi', '-ho')],
+                            backend=backend)
+  np.testing.assert_allclose(res.tensor, t1.transpose() @ t2)
+
+
 def test_contraction(backend):
   np.random.seed(10)
   a = np.random.randn(2, 2, 2)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
+                            backend=backend)
+  res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
+  res_np = res_np.reshape((2, 2, 2))
+  np.testing.assert_allclose(res, res_np)
+
+
+def test_contraction_mixed_labels(backend):
+  np.random.seed(10)
+  a = np.random.randn(2, 2, 2)
+  res = ncon_interface.ncon([a, a, a], [(-1, 'rick', 2), ('rick', 2, 'morty'),
+                                        ('morty', -2, -3)],
                             backend=backend)
   res_np = a.reshape((2, 4)) @ a.reshape((4, 2)) @ a.reshape((2, 4))
   res_np = res_np.reshape((2, 2, 2))
@@ -389,9 +359,27 @@ def test_node_contraction(backend):
   np.testing.assert_allclose(res.tensor, res_np)
 
 
-def test_get_cont_out_labels():
-  network_structure = [[-1, 2, '3', '33', '4', 3, '-33'],
-                       ['-4', -2, '-3', '3', '33', '4', 2, 3]]
+def test_node_contraction_mixed_labels(backend):
+  np.random.seed(10)
+  tensor = np.random.randn(2, 2, 2)
+  a = Node(tensor, backend=backend)
+  res = ncon_interface.ncon([a, a, a], [(-1, 'rick', 2), ('rick', 2, 'morty'),
+                                        ('morty', -2, -3)],
+                            backend=backend)
+  res_np = tensor.reshape((2, 4)) @ tensor.reshape((4, 2)) @ tensor.reshape(
+      (2, 4))
+  res_np = res_np.reshape((2, 2, 2))
+  np.testing.assert_allclose(res.tensor, res_np)
+
+
+def check(exp, actual):
+  for e, a in zip(exp, actual):
+    assert e == a
+
+
+def test_get_cont_out_labels_1():
+  network_structure = [[-1, 2, '3', '33', '4', 3, '-33', '-5'],
+                       ['-4', -2, '-3', '3', '33', '-5', '4', 2, 3, 6, 'hello']]
   # pylint: disable=line-too-long
   int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
       network_structure)
@@ -400,14 +388,63 @@ def test_get_cont_out_labels():
   exp_int_out_labels = [-1, -2]
   exp_str_out_labels = ['-3', '-33', '-4']
 
-  def check(exp, actual):
-    for e, a in zip(exp, actual):
-      assert e == a
+  check(exp_int_cont_labels, int_cont_labels)
+  check(exp_str_cont_labels, str_cont_labels)
+  check(exp_int_out_labels, int_out_labels)
+  check(exp_str_out_labels, str_out_labels)
+
+
+def test_get_cont_out_labels_2():
+  network_structure = [[
+      -1, 2, '3', '33', '4', 3, '-33', '-5', 5, -3, '-6', '5'
+  ], ['-4', -2, '-3', '3', '33', '-5', '4', '5', 2, 3, 5, -3, 11],
+                       [5, -3, '-6', '5', 'ricksanchez']]
+  # pylint: disable=line-too-long
+  int_cont_labels, str_cont_labels, int_out_labels, str_out_labels = _get_cont_out_labels(
+      network_structure)
+  exp_int_cont_labels = [2, 3]
+  exp_str_cont_labels = ['3', '33', '4']
+  exp_int_out_labels = [-1, -2]
+  exp_str_out_labels = ['-3', '-33', '-4']
 
   check(exp_int_cont_labels, int_cont_labels)
   check(exp_str_cont_labels, str_cont_labels)
   check(exp_int_out_labels, int_out_labels)
   check(exp_str_out_labels, str_out_labels)
+
+def test_canonicalize_network_structure():
+  network_structure = [[-3, 10, 15, '-5'], [-5, -23, 8, '66', '60'],
+                       [3, 4, 5, '6']]
+  unique = [-3, 10, 15, '-5', -5, -23, 8, '66', '60', 3, 4, 5]
+  labels = [-1, 5, 6, -4, -2, -3, 4, 9, 8, 1, 2, 3, 7]
+
+  exp = [[-1, 5, 6, -4], [-2, -3, 4, 9, 8], [1, 2, 3, 7]]
+  actual, mapping = _canonicalize_network_structure(network_structure)
+  for u, l in zip(unique, labels):
+    assert mapping[u] == l
+
+  for a, b in zip(actual, exp):
+    np.testing.assert_allclose(a, b)
+
+
+def test_batched_outer_product(backend):
+  a = np.random.rand(10, 100)
+  b = np.random.rand(8, 100)
+  res = ncon_interface.ncon([a, b], [(-1, -3), (-2, -3)], backend=backend)
+  exp = np.einsum('ik,jk->ijk', a, b)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b], [(-1, -3), (-2, -3)],
+                            out_order=[-2, -1, -3],
+                            backend=backend)
+  exp = np.einsum('ik,jk->jik', a, b)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b], [(-1, -3), (-2, -3)],
+                            out_order=[-2, -3, -1],
+                            backend=backend)
+  exp = np.einsum('ik,jk->jki', a, b)
+
 
 def test_partial_traces(backend):
   np.random.seed(10)
@@ -418,3 +455,308 @@ def test_partial_traces(backend):
   t2 = np.trace(a, axis1=0, axis2=2)
   exp = np.tensordot(t1, t2, ([1], [1]))
   np.testing.assert_allclose(res, exp)
+
+
+def test_batched_traces(backend):
+  np.random.seed(10)
+  a = np.random.randn(10, 10, 100)
+  res = ncon_interface.ncon([a, a], [(1, 1, -1), (2, 2, -1)], backend=backend)
+  exp = np.einsum('iik,jjk->k', a, a)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_batched_matmul_1(backend):
+  np.random.seed(10)
+  a = np.random.randn(10, 11, 100)
+  b = np.random.randn(11, 100, 12)
+  res = ncon_interface.ncon([a, b], [(-1, 1, -3), (1, -3, -2)], backend=backend)
+  exp = np.einsum('ijk,jkm->imk', a, b)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b], [(-1, 1, -3), (1, -3, -2)],
+                            out_order=[-2, -1, -3],
+                            backend=backend)
+  exp = np.einsum('ijk,jkm->mik', a, b)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b], [(-1, 1, -3), (1, -3, -2)],
+                            out_order=[-3, -2, -1],
+                            backend=backend)
+  exp = np.einsum('ijk,jkm->kmi', a, b)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_batched_matmul_2(backend):
+  np.random.seed(10)
+  batchsize = 10
+  a = np.random.randn(2, 4, 4, batchsize)
+  b = np.random.randn(4, 3, batchsize, 5)
+  c = np.random.randn(batchsize, 5, 4)
+  res = ncon_interface.ncon([a, b, c], [(-1, 1, 2, -2), (1, -3, -2, 3),
+                                        (-2, 3, 2)],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,kec->akd', a, b, c)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c], [(-1, 1, 2, -2), (1, -3, -2, 3),
+                                        (-2, 3, 2)],
+                            out_order=[-3, -1, -2],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,kec->dak', a, b, c)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c], [(-1, 1, 2, -2), (1, -3, -2, 3),
+                                        (-2, 3, 2)],
+                            out_order=[-2, -1, -3],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,kec->kad', a, b, c)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_batched_matmul_3(backend):
+  np.random.seed(10)
+  batchsize = 10
+  a = np.random.randn(2, 4, 4, batchsize)
+  b = np.random.randn(4, 3, batchsize, 5)
+  c = np.random.randn(batchsize, 5, 4)
+  res = ncon_interface.ncon([a, b, c], [(-1, 1, 2, 4), (1, -2, 4, 3),
+                                        (4, 3, 2)],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,kec->ad', a, b, c)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c], [(-1, 1, 2, 4), (1, -2, 4, 3),
+                                        (4, 3, 2)],
+                            out_order=[-2, -1],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,kec->da', a, b, c)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_multiple_batched_matmul_1(backend):
+  np.random.seed(10)
+  batchsize1 = 10
+  batchsize2 = 12
+  a = np.random.randn(2, 4, 4, batchsize1)
+  b = np.random.randn(4, 3, batchsize1, 5)
+  c = np.random.randn(batchsize2, 5, 4)
+  e = np.random.randn(batchsize2, 3, 6)
+
+  res = ncon_interface.ncon([a, b, c, e], [(-1, 1, 2, -2), (1, 3, -2, 4),
+                                           (-3, 4, 2), (-3, 3, -4)],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,lec,ldf->aklf', a, b, c, e)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c, e], [(-1, 1, 2, -2), (1, 3, -2, 4),
+                                           (-3, 4, 2), (-3, 3, -4)],
+                            out_order=[-3, -1, -2, -4],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,lec,ldf->lakf', a, b, c, e)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c, e], [(-1, 1, 2, -2), (1, 3, -2, 4),
+                                           (-3, 4, 2), (-3, 3, -4)],
+                            out_order=[-3, -2, -4, -1],
+                            backend=backend)
+  exp = np.einsum('abck,bdke,lec,ldf->lkfa', a, b, c, e)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_multiple_batched_matmul_2(backend):
+  np.random.seed(10)
+  batchsize1 = 10
+  batchsize2 = 12
+  a = np.random.randn(2, 2, batchsize1, 2)
+  b = np.random.randn(2, batchsize1, 2, 2)
+  c = np.random.randn(batchsize1, 2, 2, 2)
+  e = np.random.randn(2, 2, batchsize2, 2)
+  f = np.random.randn(2, batchsize2, 2, 2)
+  g = np.random.randn(2, batchsize2, 2, 2)
+
+  res = ncon_interface.ncon([a, b, c, e, f, g], [(1, 2, -5, 3), (-1, -5, 2, 1),
+                                                 (-5, -3, 7, 6), (4, 5, -6, 3),
+                                                 (-2, -6, 6, -4),
+                                                 (7, -6, 5, 4)],
+                            backend=backend)
+  exp = np.einsum('abtc,etba,tfgh,ijqc,kqhl,gqji->ekfltq', a, b, c, e, f, g)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c, e, f, g], [(1, 2, -5, 3), (-1, -5, 2, 1),
+                                                 (-5, -3, 7, 6), (4, 5, -6, 3),
+                                                 (-2, -6, 6, -4),
+                                                 (7, -6, 5, 4)],
+                            out_order=[-5, -6, -2, -1, -4, -3],
+                            backend=backend)
+  exp = np.einsum('abtc,etba,tfgh,ijqc,kqhl,gqji->tqkelf', a, b, c, e, f, g)
+  np.testing.assert_allclose(res, exp)
+
+
+def test_multiple_batched_matmul_3(backend):
+  np.random.seed(10)
+  batchsize1 = 10
+  batchsize2 = 12
+  a = np.random.randn(2, 2, batchsize1, 2)
+  b = np.random.randn(2, batchsize1, 2, 2)
+  c = np.random.randn(batchsize1, 2, 2, 2)
+  e = np.random.randn(2, 2, batchsize2, 2)
+  f = np.random.randn(2, batchsize2, 2, 2)
+  g = np.random.randn(2, batchsize2, 2, 2)
+
+  res = ncon_interface.ncon([a, b, c, e, f, g], [(1, 2, 8, 3), (-1, 8, 2, 1),
+                                                 (8, -3, 7, 6), (4, 5, -6, 3),
+                                                 (-2, -6, 6, -4),
+                                                 (7, -6, 5, 4)],
+                            backend=backend)
+
+  exp = np.einsum('abtc,etba,tfgh,ijqc,kqhl,gqji->ekflq', a, b, c, e, f, g)
+  np.testing.assert_allclose(res, exp)
+
+  res = ncon_interface.ncon([a, b, c, e, f, g], [(1, 2, 8, 3), (-1, 8, 2, 1),
+                                                 (8, -3, 7, 6), (4, 5, -6, 3),
+                                                 (-2, -6, 6, -4),
+                                                 (7, -6, 5, 4)],
+                            out_order=[-6, -2, -1, -4, -3],
+                            backend=backend)
+
+  exp = np.einsum('abtc,etba,tfgh,ijqc,kqhl,gqji->qkelf', a, b, c, e, f, g)
+  np.testing.assert_allclose(res, exp)
+
+
+def run_tests(a, b, c, backend):
+
+  with pytest.raises(
+      ValueError,
+      match=r"only alphanumeric values allowed for string labels, "
+      r"found \['henry@', 'megan!'\]"):
+    ncon_interface.ncon([a, a], [('megan!', 'henry@'), ('henry@', 'megan!')],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match="number of tensors does not "
+      "match the number of network connections."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1), (1, 2)], backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="number of indices does not match "
+      "number of labels on tensor 0."):
+    ncon_interface.ncon([a, a], [(1,), (1, 2)], backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match="only nonzero values are allowed to "
+      "specify network structure."):
+    ncon_interface.ncon([a, a], [(0, 1), (1, 0)], backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"all number type labels in `con_order` have "
+      r"to be positive, found \[-1\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[-1, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"all string type labels in `con_order` "
+      r"must be unhyphenized, found \['-hi'\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=['-hi', 2],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \['hi', 1\] appear more than once in `con_order`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=['hi', 'hi', 1, 1],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"`con_order = \[3, 4, 5\] is not a valid "
+      r"contraction order for contracted labels \[1, 2\]"):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4, 5],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[3, 4\] in `con_order` "
+      r"do not appear as contracted labels in `network_structure`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        con_order=[3, 4],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"all number type labels in `out_order` have "
+      r"to be negative, found \[2\]"):
+    ncon_interface.ncon([a, a], [(-1, 1), (1, -2)],
+                        out_order=[-1, 2],
+                        backend=backend)
+  with pytest.raises(
+      ValueError,
+      match=r"all string type labels in `out_order` "
+      r"have to be hyphenized, found \['hi'\]"):
+    ncon_interface.ncon([a, a], [('-hi', 1), (1, -2)],
+                        out_order=['hi', -2],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \['-hi', -1\] appear more than once in `out_order`."):
+    ncon_interface.ncon([a, a], [(1, 2), (2, 1)],
+                        out_order=['-hi', '-hi', -1, -1],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"`out_order` = \[-1, -2, -3\] is not a valid output"
+      r" order for open labels \[-1, -2\]"):
+    ncon_interface.ncon([a, a], [(-1, 2), (2, -2)],
+                        out_order=[-1, -2, -3],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"labels \[-3, -4\] in `out_order` "
+      r"do not appear in `network_structure`."):
+    ncon_interface.ncon([a, a], [(-1, 2), (2, -2)],
+                        out_order=[-3, -4],
+                        backend=backend)
+
+  with pytest.raises(
+      ValueError,
+      match=r"tensor dimensions for labels \[2, 4\] "
+      r"are mismatching"):
+    ncon_interface.ncon([b, c], [(1, 2, 3, 4), (1, 2, 3, 4)], backend=backend)
+
+
+def test_invalid_network(backend):
+  a = np.ones((2, 2))
+  b = np.ones((2, 3, 4, 2))
+  c = np.ones((2, 4, 4, 3))
+  run_tests(a, b, c, backend)
+
+
+def test_node_invalid_network(backend):
+  a = np.ones((2, 2))
+  b = np.ones((2, 3, 4, 2))
+  c = np.ones((2, 4, 4, 3))
+  run_tests(
+      Node(a, backend=backend), Node(b, backend=backend),
+      Node(c, backend=backend), backend)
+
+
+def test_infinite_loop(backend):
+  a = np.ones((2, 2, 2))
+  b = np.ones((2, 2))
+  with pytest.raises(
+      ValueError,
+      match=r"ncon seems stuck in an infinite loop. \n"
+      r"Please check if `con_order` = \[3\] is a valid "
+      r"contraction order for \n"
+      r"`network_structure` = \[\[3, 1, 2\], \[3, 1\], \[3, 2\]\]"):
+    ncon_interface.ncon([a, b, b], [[3, 1, 2], [3, 1], [3, 2]],
+                        con_order=[3],
+                        check_network=False,
+                        backend=backend)
