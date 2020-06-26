@@ -35,7 +35,7 @@ def greedy_size_solve(log_adj_in: np.ndarray):
   orders = np.zeros([2, 0], dtype=int)
   costs = None
 
-  for t in range(N0 - 1):
+  for _ in range(N0 - 1):
     # compute tensor dims
     N = log_adj.shape[0]
     dims = np.sum(log_adj, axis=0).reshape(N)
@@ -62,7 +62,7 @@ def greedy_size_solve(log_adj_in: np.ndarray):
         [single_cost[xcoord[i], ycoord[i]] for i in range(len(xcoord))])
     cont_dims = np.array(
         [log_adj[xcoord[i], ycoord[i]] for i in range(len(xcoord))])
-    if (max(cont_dims) > 0):  # prioritise non-trivial contractions
+    if max(cont_dims) > 0:  # prioritise non-trivial contractions
       all_costs[cont_dims == 0] += max(all_costs) + 1
 
     cheapest_pos = np.argmin(all_costs)
@@ -107,7 +107,7 @@ def greedy_cost_solve(log_adj_in: np.ndarray):
   orders = np.zeros([2, 0], dtype=int)
   costs = None
 
-  for t in range(N - 1):
+  for _ in range(N - 1):
     # compute tensor dims and costs
     N = log_adj.shape[0]
     dims = np.sum(log_adj, axis=0).reshape(N)
@@ -163,14 +163,14 @@ def full_solve_complete(log_adj: np.ndarray,
   # start by trying both greedy algorithms
   order0, cost0 = greedy_size_solve(log_adj)
   order1, cost1 = greedy_cost_solve(log_adj)
-  if (cost0 < cost1):
+  if cost0 < cost1:
     order_greedy = order0
     cost_greedy = cost0
   else:
     order_greedy = order1
     cost_greedy = cost1
 
-  if (max_branch == 1):
+  if max_branch == 1:
     # return results from greedy
     order_was_found = False
   else:
@@ -184,7 +184,7 @@ def full_solve_complete(log_adj: np.ndarray,
     cost_bound = cost_greedy + tol
     total_truncated = 0
     order_was_found = True
-    for t in range(N - 1):
+    for _ in range(N - 1):
       log_adj, costs, groups, orders, num_truncated = _full_solve_single(
           log_adj,
           costs,
@@ -192,7 +192,7 @@ def full_solve_complete(log_adj: np.ndarray,
           orders,
           cost_bound=cost_bound,
           max_branch=max_branch)
-      if (log_adj.size == 0):
+      if log_adj.size == 0:
         # no paths found within the cost-bound
         order_was_found = False
         break
@@ -202,10 +202,10 @@ def full_solve_complete(log_adj: np.ndarray,
     # return result from full algorithm
     is_optimal = (total_truncated == 0)
     return orders.reshape(2, N - 1), costs.item(), is_optimal
-  else:
-    # return result from greedy algorithm
-    is_optimal = False
-    return order_greedy, cost_greedy, is_optimal
+
+  # return result from greedy algorithm
+  is_optimal = False
+  return order_greedy, cost_greedy, is_optimal
 
 
 def _full_solve_single(log_adj: np.ndarray,
@@ -247,7 +247,7 @@ def _full_solve_single(log_adj: np.ndarray,
 
   # initialize outputs
   N = log_adj.shape[0]
-  if (log_adj.ndim == 2):
+  if log_adj.ndim == 2:
     log_adj = log_adj.reshape(N, N, 1)
   final_adj = np.zeros([N - 1, N - 1, 0])
   final_costs = np.zeros([1, 0])
@@ -279,7 +279,7 @@ def _full_solve_single(log_adj: np.ndarray,
         comb_dims = dims[j, :] + dims[i, :]
         single_cost = np.reshape(comb_dims - log_adj[j, i, new_pos],
                                  [1, num_kept])
-        if (costs.size == 0):
+        if costs.size == 0:
           new_costs = single_cost
         else:
           prev_cost = costs[0, new_pos]
@@ -367,15 +367,15 @@ def _full_solve_single(log_adj: np.ndarray,
         cost_bound=cost_bound,
         max_branch=max_branch,
         allow_outer=True)
-  else:
-    # compress outputs
-    temp_pos = _reduce_nets(final_costs, final_groups, final_stable)[0]
-    final_adj = final_adj[:, :, temp_pos]
-    final_costs = final_costs[:, temp_pos]
-    final_groups = final_groups[:, temp_pos]
-    final_orders = final_orders[:, :, temp_pos]
-    final_stable = final_stable[:, temp_pos]
-    return final_adj, final_costs, final_groups, final_orders, total_truncated
+
+  # compress outputs
+  temp_pos = _reduce_nets(final_costs, final_groups, final_stable)[0]
+  final_adj = final_adj[:, :, temp_pos]
+  final_costs = final_costs[:, temp_pos]
+  final_groups = final_groups[:, temp_pos]
+  final_orders = final_orders[:, :, temp_pos]
+  final_stable = final_stable[:, temp_pos]
+  return final_adj, final_costs, final_groups, final_orders, total_truncated
 
 
 def _reduce_nets(costs: np.ndarray,
@@ -407,7 +407,7 @@ def _reduce_nets(costs: np.ndarray,
   num_truncated = 0
 
   if max_branch is not None:
-    if (orig_kept > max_branch):
+    if orig_kept > max_branch:
       # re-sort according to the costs
       cost_order = np.argsort(costs[:, new_pos]).flatten()
       new_pos = new_pos[cost_order]

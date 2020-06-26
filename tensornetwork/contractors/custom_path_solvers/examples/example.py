@@ -20,7 +20,6 @@ from tensornetwork.ncon_interface import ncon
 import opt_einsum as oe
 # pylint: disable=line-too-long
 from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver
-
 """
 An example for using`ncon_solver` to find an optimal contraction path for a
 networks defined in the `ncon` syntax. Note that there are essentially three

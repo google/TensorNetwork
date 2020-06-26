@@ -51,7 +51,7 @@ def test_ncon_solver2():
   rand_perm = np.argsort(np.random.rand(4 * N))
   comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[rand_perm]
   for k in range(N):
-    if (k < (N - 1)):
+    if k < (N - 1):
       connect_temp = np.concatenate((comb_inds[4 * k:4 * (k + 1)],
                                      [num_closed + k + 1, num_closed + k + 2]))
     else:
@@ -99,7 +99,7 @@ def test_ord_to_ncon():
   rand_perm = np.argsort(np.random.rand(4 * N))
   comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[rand_perm]
   for k in range(N):
-    if (k < (N - 1)):
+    if k < (N - 1):
       connect_temp = np.concatenate((comb_inds[4 * k:4 * (k + 1)],
                                      [num_closed + k + 1, num_closed + k + 2]))
     else:

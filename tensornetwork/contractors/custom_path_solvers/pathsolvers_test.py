@@ -36,7 +36,7 @@ def test_greedy_size_solve2():
   log_adj[1, 2] = d2
   log_adj += log_adj.T
   order, cost = greedy_size_solve(log_adj)
-  if (d1 >= d2):
+  if d1 >= d2:
     ex_order = np.array([[0, 0], [1, 1]])
     ex_cost = d2 + np.log10(10**d1 + 1)
   else:
@@ -76,7 +76,7 @@ def test_full_solve_complete():
   N = np.random.randint(2, 7)
   log_adj = 4.0 * np.random.randint(0, 2, [N, N]) * np.random.rand(N, N)
   log_adj += log_adj.T
-  order, cost, is_optimal = full_solve_complete(log_adj)
+  order, cost, _ = full_solve_complete(log_adj)
   assert order.shape == (2, N - 1)
   assert isinstance(cost, float)
 
@@ -89,7 +89,7 @@ def test_full_solve_complete2():
   log_adj += log_adj.T
   log_adj[0, 0] = d1
   log_adj[-1, -1] = d1
-  order, cost, is_optimal = full_solve_complete(log_adj)
+  _, cost, is_optimal = full_solve_complete(log_adj)
   ex_cost = np.log10((N - 1) * 10**(3 * d1))
   assert np.allclose(ex_cost, cost)
   assert is_optimal
@@ -101,7 +101,7 @@ def test_full_solve_complete3():
   log_adj += log_adj.T
   cost_bound = 10 * np.random.rand()
   max_branch = np.random.randint(1, 1000)
-  order, cost, is_optimal = full_solve_complete(
+  order, cost, _ = full_solve_complete(
       log_adj, cost_bound=cost_bound, max_branch=max_branch)
   assert order.shape == (2, N - 1)
   assert isinstance(cost, float)

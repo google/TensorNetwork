@@ -74,7 +74,7 @@ def ncon_to_adj(tensors: List[np.ndarray], labels: List[List[int]]):
     if len(ind) == 1:  # external index
       log_adj[tnr[0], tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
     elif len(ind) == 2:  # internal index
-      if (tnr[0] != tnr[1]):  # ignore partial traces
+      if tnr[0] != tnr[1]:  # ignore partial traces
         log_adj[tnr[0], tnr[1]] += np.log10(tensors[tnr[0]].shape[ind[0]])
         log_adj[tnr[1], tnr[0]] += np.log10(tensors[tnr[0]].shape[ind[0]])
 
@@ -189,9 +189,9 @@ def ncon_cost_check(tensors: List[np.ndarray],
 
   # do all outer products
   N = len(tensor_dims)
-  if (N > 1):
+  if N > 1:
     tensor_sizes = np.sort([np.sum(tensor_dims[ele]) for ele in range(N)])
-    for i in range(N - 1):
+    for _ in range(N - 1):
       single_cost = tensor_sizes[0] + tensor_sizes[1]
       tensor_sizes[0] += tensor_sizes[1]
       tensor_sizes = np.sort(np.delete(tensor_sizes, 1))
