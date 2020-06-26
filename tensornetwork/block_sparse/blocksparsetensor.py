@@ -326,7 +326,8 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose(self,order: Sequence[int] = np.asarray([1, 0]),
+  def transpose(self,
+                order: Sequence[int] = np.asarray([1, 0]),
                 shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
