@@ -59,7 +59,7 @@ def test_ncon_solver2():
           (comb_inds[4 * k:4 * (k + 1)], [num_closed + k + 1, num_closed + 1]))
     connects[k] = list(connect_temp[np.argsort(np.random.rand(6))])
   max_branch = np.random.randint(1, 1000)
-  con_order, costs, is_optimal = ncon_solver(
+  con_order, costs, _ = ncon_solver(
       tensors, connects, max_branch=max_branch)
   ex_cost = ncon_cost_check(tensors, connects, con_order)
   assert np.allclose(costs, ex_cost)
