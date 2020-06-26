@@ -509,7 +509,8 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
       ix, _ = np.nonzero(batch_labels[:, None] == common_batch_labels[None, :])
       # reduce the counts of these labels in `batch_cnts` by 1
       batch_cnts[ix] -= 1
-      # if the count of a positive label falls below 3, remove it from `batch_labels`
+      # if the count of a positive label falls below 3
+      # remove it from `batch_labels`
       mask = np.logical_or(batch_cnts > 2,
                            np.logical_and(batch_cnts == 2, batch_labels < 0))
       batch_labels = batch_labels[mask]
