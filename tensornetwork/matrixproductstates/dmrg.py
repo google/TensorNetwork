@@ -277,14 +277,16 @@ class BaseDMRG:
     """
     converged = False
     final_energy = 1E100
-    iteration = 0
+    iteration = 1
     initial_site = 0
+    if num_sweeps == 0:
+      return 
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
 
     def print_msg(site):
       if verbose > 0:
-        stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
+        stdout.write("\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
                      (iteration, num_sweeps, site, len(
                          self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
