@@ -410,7 +410,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
-       eigvals: An jax-array containing `numeig` lowest eigenvalues
+       eigvals: A jax-array containing `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     if args is None:
@@ -519,5 +519,5 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
-      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+      raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
     return jnp.matmul(tensor1, tensor2)
