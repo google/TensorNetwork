@@ -108,34 +108,20 @@ class BaseMPS:
 
     self.rq_decomposition = self.backend.jit(rq_decomposition)
 
-    def left_transfer_operator(A, l, Abar):
-      return ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
-                  backend=self.backend.name)
 
-    self.left_transfer_operator = self.backend.jit(left_transfer_operator)
-
-    def right_transfer_operator(B, r, Bbar):
-      return ncon([B, r, Bbar], [[-1, 2, 1], [1, 3], [-2, 2, 3]],
-                  backend=self.backend.name)
-
-    self.right_transfer_operator = self.backend.jit(right_transfer_operator)
-
-    def lcontract(R, tensor):
-      return ncon([R, tensor], [[-1, 1], [1, -2, -3]],
-                  backend=self.backend.name)
-
-    self.lcontract = self.backend.jit(lcontract)
-
-    def rcontract(tensor, R):
-      return ncon([tensor, R], [[-1, -2, 1], [1, -3]],
-                  backend=self.backend.name)
-
-    self.rcontract = self.backend.jit(rcontract)
     self.norm = self.backend.jit(self.backend.norm)
     ########################################################################
     ########################################################################
     ########################################################################
 
+  def left_transfer_operator(self, A, l, Abar):
+    return ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
+                backend=self.backend.name)
+  
+  def right_transfer_operator(self, B, r, Bbar):
+    return ncon([B, r, Bbar], [[-1, 2, 1], [1, 3], [-2, 2, 3]],
+                backend=self.backend.name)
+    
   def __len__(self) -> int:
     return len(self.tensors)
 
@@ -172,7 +158,8 @@ class BaseMPS:
       for n in range(self.center_position, site):
         Q, R = self.qr_decomposition(self.tensors[n])
         self.tensors[n] = Q
-        self.tensors[n + 1] = self.lcontract(R, self.tensors[n + 1])
+        self.tensors[n + 1] = ncon([R, self.tensors[n + 1]], [[-1, 1], [1, -2, -3]],
+                                   backend=self.backend.name)
         Z = self.norm(self.tensors[n + 1])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
@@ -189,7 +176,8 @@ class BaseMPS:
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self.tensors[n] = Q  #Q is a right-isometric tensor of rank 3
-        self.tensors[n - 1] = self.rcontract(self.tensors[n - 1], R)
+        self.tensors[n - 1] = ncon([self.tensors[n - 1], R], [[-1, -2, 1], [1, -3]],
+                                   backend=self.backend.name)        
         Z = self.norm(self.tensors[n - 1])
         if normalize:
           self.tensors[n - 1] /= Z
@@ -605,8 +593,8 @@ class BaseMPS:
           'index `site` has to be larger than 0 (found `site`={}).'.format(
               site))
     if (site == len(self) - 1) and (self.connector_matrix is not None):
-      return self.rcontract(self.tensors[site], self.connector_matrix)
-
+      return ncon([self.tensors[site], self.connector_matrix], [[-1, -2, 1], [1, -3]],
+                  backend=self.backend.name)
     return self.tensors[site]
 
   def canonicalize(self, *args, **kwargs) -> np.number:

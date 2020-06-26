@@ -432,25 +432,25 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
         np.intersect1d(con_order, contracted_labels, return_indices=True)[1])
 
   # contracted all positive labels appearing only once in `network_structure`
-  unique_labels, label_cnts = np.unique(
-      np.concatenate(network_structure), return_counts=True)
-  contractable_labels = unique_labels[np.logical_and(label_cnts == 1,
-                                                     unique_labels > 0)]
-  locs = np.sort(
-      np.nonzero([
-          np.any(np.isin(labels, contractable_labels))
-          for labels in network_structure
-      ])[0])
+  # unique_labels, label_cnts = np.unique(
+  #     np.concatenate(network_structure), return_counts=True)
+  # contractable_labels = unique_labels[np.logical_and(label_cnts == 1,
+  #                                                    unique_labels > 0)]
+  # locs = np.sort(
+  #     np.nonzero([
+  #         np.any(np.isin(labels, contractable_labels))
+  #         for labels in network_structure
+  #     ])[0])
 
-  for loc in locs:
-    labels = network_structure[loc]
-    contractable_inds = np.nonzero(np.isin(labels, contractable_labels))[0]
-    network_structure[loc] = np.delete(labels, contractable_inds)
-    tensors[loc] = backend_obj.sum(tensors[loc], tuple(contractable_inds))
+  # for loc in locs:
+  #   labels = network_structure[loc]
+  #   contractable_inds = np.nonzero(np.isin(labels, contractable_labels))[0]
+  #   network_structure[loc] = np.delete(labels, contractable_inds)
+  #   tensors[loc] = backend_obj.sum(tensors[loc], tuple(contractable_inds))
 
-  # update con_order after collapsing single labels
-  con_order = np.delete(con_order,
-                        np.nonzero(np.isin(con_order, contractable_labels))[0])
+  # # update con_order after collapsing single labels
+  # con_order = np.delete(con_order,
+  #                       np.nonzero(np.isin(con_order, contractable_labels))[0])
 
   # perform binary and batch contractions
   skip_counter = 0
@@ -478,29 +478,38 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     locs = np.sort(
         np.nonzero([np.isin(cont_ind, labels) for labels in network_structure
                    ])[0])
-    t2 = tensors.pop(locs[1])
-    t1 = tensors.pop(locs[0])
-    labels_t2 = network_structure.pop(locs[1])
-    labels_t1 = network_structure.pop(locs[0])
+    t2 = tensors[locs[1]]
+    t1 = tensors[locs[0]]
+    labels_t2 = network_structure[locs[1]]
+    labels_t1 = network_structure[locs[0]]
+    del tensors[locs[1]]    
+    del tensors[locs[0]]
+    del network_structure[locs[1]]    
+    del network_structure[locs[0]]
 
     common_labels, t1_cont, t2_cont = np.intersect1d(
         labels_t1, labels_t2, assume_unique=True, return_indices=True)
     # check if there are batch labels (i.e. labels appearing more than twice
     # in `network_structure`).
-    common_batch_labels = np.intersect1d(
-        batch_labels, common_labels, assume_unique=True)
-    if common_batch_labels.shape[0] > 0:
+    # common_batch_labels = np.intersect1d(
+    #     batch_labels, common_labels, assume_unique=True)
+    if False:#common_batch_labels.shape[0] > 0:
       # case1: both tensors have one or more common batch indices -> use matmul
       tensors, network_structure, con_order = _batch_cont(
           t1, t2, tensors, network_structure, con_order, common_batch_labels,
           labels_t1, labels_t2, backend_obj)
     # in all other cases do a regular tensordot
     else:
-      ind_sort = np.argsort(t1_cont)
+      #ind_sort = np.argsort(t1_cont)
+      # tensors.append(
+      #     backend_obj.tensordot(
+      #         t1, t2,
+      #         axes=(tuple(t1_cont[ind_sort]), tuple(t2_cont[ind_sort]))))
       tensors.append(
           backend_obj.tensordot(
               t1, t2,
-              axes=(tuple(t1_cont[ind_sort]), tuple(t2_cont[ind_sort]))))
+              axes=(t1_cont, t2_cont)))
+      
       network_structure.append(
           np.append(
               np.delete(labels_t1, t1_cont), np.delete(labels_t2, t2_cont)))

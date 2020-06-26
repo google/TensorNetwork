@@ -227,8 +227,8 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
-        self.mps.tensors[site + 1] = self.mps.lcontract(
-            R, self.mps.tensors[site + 1])
+        self.mps.tensors[site + 1] = ncon([R,  self.mps.tensors[site + 1]], [[-1, 1], [1, -2, -3]],
+                                          backend=self.backend.name)
         self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], Q,
                                                        self.mpo.tensors[site])
 
@@ -237,8 +237,8 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site > 0:
         self.mps.center_position -= 1
-        self.mps.tensors[site - 1] = self.mps.rcontract(
-            self.mps.tensors[site - 1], R)
+        self.mps.tensors[site - 1] = ncon([self.mps.tensors[site - 1], R], [[-1, -2, 1], [1, -3]],
+                                          backend=self.backend.name)        
         self.right_envs[site - 1] = self.add_right_layer(
             self.right_envs[site], Q, self.mpo.tensors[site])
 
