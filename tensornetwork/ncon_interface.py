@@ -473,7 +473,7 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
   while len(con_order) > 0:
     # the next index to be contracted
     cont_ind = con_order[0]
-    if (cont_ind in batch_labels):# and (batch_cnts[batch_labels == cont_ind] > 1):
+    if cont_ind in batch_labels:
       # if its still a batch index then do it later
       con_order = np.append(np.delete(con_order, 0), cont_ind)
       skip_counter += 1
