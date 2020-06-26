@@ -198,7 +198,9 @@ class BaseDMRG:
                          delta=1E-6,
                          ndiag=10) -> np.number:
     """
-    Single-site optimization at the current position of the center site.
+    Single-site optimization at the current position of the center site. 
+    The method shifts the center position of the mps by one site 
+    to the left or to the right, depending on the value of `sweep_dir`.
     Args:
       sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
         'right' or 'r' for a sweep from left to right.
