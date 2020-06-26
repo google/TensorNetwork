@@ -277,8 +277,6 @@ class BaseDMRG:
     Returns:
       float: The energy upon termination of `run_one_site`.
     """
-    if num_sweeps == 0:
-      return
 
     converged = False
     final_energy = 1E100
@@ -286,6 +284,10 @@ class BaseDMRG:
     initial_site = 0
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
+    if num_sweeps == 0:
+      return ncon([self.add_right_layer(self.right_envs[0],
+                                        self.mps.tensors[0],
+                                        self.mpo.tensors[0])],[[1, 1, -1]])
 
     def print_msg(site):
       if verbose > 0:
