@@ -63,7 +63,6 @@ def test_finite_mps_init(backend, N, pos):
 
 def test_canonical_finite_mps(backend_dtype_values):
   backend = backend_dtype_values[0]
-  backend_obj = backend_factory.get_backend(backend)  
   dtype = backend_dtype_values[1]
   D, d, N = 10, 2, 10
   tensors = [get_random_np((1, d, D), dtype)] + [
@@ -71,7 +70,7 @@ def test_canonical_finite_mps(backend_dtype_values):
   ] + [get_random_np((D, d, 1), dtype)]
   mps = FiniteMPS(
       tensors, center_position=N//2, backend=backend, canonicalize=True)
-  mps.center_position += 1 
+  mps.center_position += 1
   assert mps.check_canonical() > 1E-12
   mps.canonicalize()
   assert mps.check_canonical() < 1E-12
@@ -223,7 +222,7 @@ def test_left_envs_two_non_consecutive_sites(backend_dtype_values):
   for n, t in enumerate(mps.tensors):
     if n in [1, 3]:
       exp[n] = l
-    l = ncon([t, l, t], [[1, 2, -1], [1, 3], [3, 2, -2]], backend=backend)      
+    l = ncon([t, l, t], [[1, 2, -1], [1, 3], [3, 2, -2]], backend=backend)
   envs = mps.left_envs(sites=[1, 3])
   assert list(envs.keys()) == [1, 3]
   for n in [1, 3]:
@@ -264,7 +263,7 @@ def test_left_envs_all_sites(backend_dtype_values):
   exp = {}
   for n, t in enumerate(mps.tensors):
     exp[n] = l
-    l = ncon([t, l, t], [[1, 2, -1], [1, 3], [3, 2, -2]], backend=backend)      
+    l = ncon([t, l, t], [[1, 2, -1], [1, 3], [3, 2, -2]], backend=backend)
   envs = mps.left_envs(sites=range(N))
   assert list(envs.keys()) == list(range(N))
   for n in range(N):
@@ -409,7 +408,7 @@ def test_right_envs_two_non_consecutive_sites(backend_dtype_values):
     t = mps.tensors[n]
     if n in [1, 3]:
       exp[n] = r
-    r = ncon([t, r, t], [[-1, 2, 1], [1, 3], [-2, 2, 3]], backend=backend)      
+    r = ncon([t, r, t], [[-1, 2, 1], [1, 3], [-2, 2, 3]], backend=backend)
   envs = mps.right_envs(sites=[1, 3])
   assert set(envs.keys()) == {3, 1}
   for n in [1, 3]:
@@ -429,11 +428,9 @@ def test_right_envs_two_non_consecutive_sites_2(backend_dtype_values):
   mps = FiniteMPS(tensors, center_position=1, backend=backend_dtype_values[0])
   envs = mps.right_envs(sites=[1, 3])
   assert set(envs.keys()) == {1, 3}
-  exp1 = backend.convert_to_tensor(
-    np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
-  exp3 = backend.convert_to_tensor(
-    np.array([[1, 0], [0, 1]]))
-  
+  exp1 = backend.convert_to_tensor(np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
+  exp3 = backend.convert_to_tensor(np.array([[1, 0], [0, 1]]))
+
   np.testing.assert_array_almost_equal(envs[1], exp1)
   np.testing.assert_array_almost_equal(envs[3], exp3)
 

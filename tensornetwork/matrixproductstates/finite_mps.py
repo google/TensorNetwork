@@ -74,6 +74,8 @@ class FiniteMPS(BaseMPS):
         center_position=center_position,
         connector_matrix=None,
         backend=backend)
+    if (center_position is not None) and (not canonicalize):
+      raise ValueError("can only set center_position of canonical mps")
     if canonicalize:
       if center_position is None:
         center_position = 0
@@ -92,7 +94,7 @@ class FiniteMPS(BaseMPS):
       d: List[int],
       D: List[int],
       dtype: Type[np.number],
-      canonicalize: bool=True,
+      canonicalize: bool = True,
       backend: Optional[Union[AbstractBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
