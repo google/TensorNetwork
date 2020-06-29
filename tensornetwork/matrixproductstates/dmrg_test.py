@@ -174,9 +174,7 @@ def test_finite_DMRG_init(backend_dtype_values, N):
   D = 32
   mps = FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
   dmrg = FiniteDMRG(mps, mpo)
-  num_sweeps = 3
-  energy = dmrg.run_one_site(
-      num_sweeps=num_sweeps, num_krylov_vecs=10, verbose=0, precision=1E-10)
+  energy = dmrg.run_one_site(num_sweeps=4, num_krylov_vecs=10)
   np.testing.assert_allclose(energy, eta[0])
 
 
