@@ -21,10 +21,10 @@ import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
 
-#TODO (mganahl): implement eigs
+# TODO (mganahl): implement eigs
 
 
-#pylint: disable=abstract-method
+# pylint: disable=abstract-method
 class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
@@ -231,7 +231,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
 
     vector_n = initial_state
-    vector_n.contiguous()# bring into contiguous memory layout
+    vector_n.contiguous() # bring into contiguous memory layout
 
     Z = self.norm(vector_n)
     vector_n /= Z
@@ -241,23 +241,23 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     first = True
     eigvalsold = []
     for it in range(num_krylov_vecs):
-      #normalize the current vector:
+      # normalize the current vector:
       norm_vector_n = self.norm(vector_n)
       if abs(norm_vector_n) < delta:
         # we found an invariant subspace, time to stop
         break
       norms_vector_n.append(norm_vector_n)
       vector_n = vector_n / norms_vector_n[-1]
-      #store the Lanczos vector for later
+      # store the Lanczos vector for later
       if reorthogonalize:
-        #vector_n is always in contiguous memory layout at this point
+        # vector_n is always in contiguous memory layout at this point
         for v in krylov_vecs:
           v.contiguous() # make sure storage layouts are matching
           # it's save to operate on the tensor data now (pybass some checks)
           vector_n.data -= numpy.dot(numpy.conj(v.data), vector_n.data) * v.data
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
-      A_vector_n.contiguous() #contiguous memory layout
+      A_vector_n.contiguous() # contiguous memory layout
 
       # operate on tensor-data for scalar products
       # this can be potentially problematic if vector_n and A_vector_n
@@ -267,7 +267,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           numpy.dot(numpy.conj(vector_n.data), A_vector_n.data))
 
       if (it > 0) and (it % ndiag) == 0 and (len(diag_elements) >= numeig):
-        #diagonalize the effective Hamiltonian
+        # diagonalize the effective Hamiltonian
         A_tridiag = numpy.diag(diag_elements) + numpy.diag(
             norms_vector_n[1:], 1) + numpy.diag(
                 numpy.conj(norms_vector_n[1:]), -1)
