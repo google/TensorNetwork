@@ -6,6 +6,7 @@ from tensornetwork.network_operations import (
     reduced_density, remove_node, replicate_nodes, split_node,
     split_node_full_svd, split_node_qr, split_node_rq, switch_backend)
 
+from tensornetwork.tensor import Tensor
 from tensornetwork.linalg.initialization import (
     eye,
     ones,
@@ -13,8 +14,26 @@ from tensornetwork.linalg.initialization import (
     random_uniform,
     zeros
     )
+from tensornetwork.linalg.operations import (
+    tensordot,
+    reshape,
+    transpose,
+    take_slice,
+    shape,
+    sqrt,
+    outer,
+    einsum,
+    conj,
+    hconj,
+    sin,
+    cos,
+    exp,
+    log,
+    diagonal,
+    diagflat,
+    trace
+    )
 
-from tensornetwork.tensor import Tensor
 from tensornetwork.network_components import (
     contract, contract_between, contract_copy_node, contract_parallel,
     flatten_all_edges, flatten_edges, flatten_edges_between,
@@ -32,8 +51,11 @@ from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
 from tensornetwork.matrixproductstates.mpo import FiniteTFI, FiniteXXZ
+#pylint: disable=line-too-long
 from tensornetwork.backend_contextmanager import DefaultBackend, set_default_backend
 from tensornetwork import block_sparse
+#pylint: disable=line-too-long
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
 from tensornetwork.block_sparse.index import Index
+#pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge, ZNCharge

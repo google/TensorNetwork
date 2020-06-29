@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import jax.config as config
 import torch
 import tensorflow as tf
-from tensornetwork.linalg import initialization
+import tensornetwork
 from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork import backends
 from tensornetwork.backends.numpy import numpy_backend
@@ -66,51 +66,51 @@ dtypes = {
 
 def test_eye(backend):
   """
-  Tests initialization.eye against np.eye.
+  Tests tensornetwork.eye against np.eye.
   """
   N = 4
   M = 6
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = initialization.eye(N, dtype=dtype, M=M, backend=backend)
+    tnI = tensornetwork.eye(N, dtype=dtype, M=M, backend=backend)
     npI = backend_obj.eye(N, dtype=dtype, M=M)
     np.testing.assert_allclose(tnI.array, npI)
 
 
 def test_zeros(backend):
   """
-  Tests initialization.zeros against np.zeros.
+  Tests tensornetwork.zeros against np.zeros.
   """
   shape = (5, 10, 3)
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = initialization.zeros(shape, dtype=dtype, backend=backend)
+    tnI = tensornetwork.zeros(shape, dtype=dtype, backend=backend)
     npI = backend_obj.zeros(shape, dtype=dtype)
     np.testing.assert_allclose(tnI.array, npI)
 
 
 def test_ones(backend):
   """
-  Tests initialization.ones against np.ones.
+  Tests tensornetwork.ones against np.ones.
   """
   shape = (5, 10, 3)
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = initialization.ones(shape, dtype=dtype, backend=backend)
+    tnI = tensornetwork.ones(shape, dtype=dtype, backend=backend)
     npI = backend_obj.ones(shape, dtype=dtype)
     np.testing.assert_allclose(tnI.array, npI)
 
 
 def test_randn(backend):
   """
-  Tests initialization.randn against the backend code.
+  Tests tensornetwork.randn against the backend code.
   """
   shape = (5, 10, 3, 2)
   seed = int(time.time())
   np.random.seed(seed=seed)
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["rand"]:
-    tnI = initialization.randn(
+    tnI = tensornetwork.randn(
         shape,
         dtype=dtype,
         seed=seed,
@@ -121,7 +121,7 @@ def test_randn(backend):
 
 def test_random_uniform(backend):
   """
-  Tests initialization.ones against np.ones.
+  Tests tensornetwork.ones against np.ones.
   """
   shape = (5, 10, 3, 2)
   seed = int(time.time())
@@ -129,7 +129,7 @@ def test_random_uniform(backend):
   boundaries = (-0.3, 10.5)
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["rand"]:
-    tnI = initialization.random_uniform(
+    tnI = tensornetwork.random_uniform(
         shape,
         dtype=dtype,
         seed=seed,
