@@ -13,7 +13,7 @@
 # limitations under the License.
 import numpy as np
 import functools
-# pylint: disable=line-too-long
+
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
 from tensornetwork.linalg.linalg import conj
