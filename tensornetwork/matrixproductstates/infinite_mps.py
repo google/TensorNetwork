@@ -22,7 +22,6 @@ from tensornetwork.backends.abstract_backend import AbstractBackend
 Tensor = Any
 #TODO (mganahl): add jit
 
-
 class InfiniteMPS(BaseMPS):
   """An MPS class for infinite systems.
 
@@ -190,11 +189,11 @@ class InfiniteMPS(BaseMPS):
         of the mps.
       num_krylov_vecs: Number of Krylov vectors to diagonalize transfer_matrix
       maxiter: Maximum number of iterations in `eigs`
-      pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose pseudo-inverse
-        of a matrix. Given the SVD of a matrix :math:`M=U S V`, the inverse is
-        is computed as :math:`V^* S^{-1}_+ U^*`, where :math:`S^{-1}_+` equals
-        `S^{-1}` for all values in `S` which are larger than `pseudo_inverse_cutoff`,
-         and is 0 for all others.
+      pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose 
+        pseudo-inverse of a matrix. Given the SVD of a matrix :math:`M=U S V`, 
+        the inverse isd is computed as :math:`V^* S^{-1}_+ U^*`, 
+        where :math:`S^{-1}_+` equals `S^{-1}` for all values in `S` which 
+        are larger than `pseudo_inverse_cutoff`, and is 0 for all others.
     Returns:
       None
     """
