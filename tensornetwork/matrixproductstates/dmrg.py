@@ -285,14 +285,15 @@ class BaseDMRG:
     self.compute_right_envs()
 
     def print_msg(site):
-      if verbose > 0:
-        stdout.write(
-            "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
-            (iteration, num_sweeps, site, len(
-                self.mps), np.real(energy), np.imag(energy)))
+      if verbose < 2:
+        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
+        stdout.write(text % (iteration, num_sweeps, site, len(
+            self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
-      if verbose > 1:
-        print("")
+
+      if verbose >= 2:
+        print(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
+              f"site={site}/{len(self.mps)}: optimized E={energy}")
 
     while not converged:
       if initial_site == 0:
