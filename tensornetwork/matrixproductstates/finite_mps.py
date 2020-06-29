@@ -17,6 +17,7 @@ import functools
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
 from tensornetwork.linalg.linalg import conj
+from tensornetwork.ncon_interface import ncon
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.backends.abstract_backend import AbstractBackend
@@ -309,3 +310,61 @@ class FiniteMPS(BaseMPS):
 
   def save(self, path: str):
     raise NotImplementedError()
+
+  def sample(self, num_samples):
+    """
+      calculate samples from the MPS probability amplitude
+      Args:
+          num_samples(int): number of samples
+      Returns:
+          list of list:  the samples
+      """
+    dtype = self.dtype
+    ds = self.physical_dimensions
+    Ds = self.bond_dimensions
+    right_envs = self.right_envs(range(len(self)))
+    return self.backend.diag(ncon([self.tensors[0], self.backend.conj(self.tensors[0]),right_envs[0]], [[3,-1,1],[3,-2,2],[1,2]]))
+
+    sigmas = []
+    p_joint_1 = self.backend.ones(shape=[num_samples, 1], dtype=dtype)
+    lenv = self.backend.convert_to_tensor(
+        np.stack([np.eye(Ds[0], dtype=dtype) for _ in range(num_samples)],
+                 axis=0))  #shape (num_samples, 1, 1)
+    Z1 = np.ones(shape=[num_samples, 1], dtype=dtype)  #shape (num_samples, 1)
+
+    for site in range(len(self)):
+      stdout.write("\rgenerating samples at site %i" % (site))
+      Z0 = np.expand_dims(
+          np.linalg.norm(
+              np.reshape(lenv, (num_samples, Ds[site] * Ds[site])), axis=1),
+          1)  #shape (num_samples, 1)
+      lenv /= np.expand_dims(Z0, 2)
+      p_joint_0 = np.diagonal(
+          ncon.ncon([
+              lenv,
+              self.get_tensor(site),
+              np.conj(self.get_tensor(site)), right_envs[site]
+          ], [[-1, 1, 2], [1, 3, -2], [2, 4, -3], [3, 4]]),
+          axis1=1,
+          axis2=2)  #shape (Nt, d)
+
+      p_cond = Z0 / Z1 * np.abs(p_joint_0 / p_joint_1)
+
+      p_cond /= np.expand_dims(np.sum(p_cond, axis=1), 1)
+      p_cond = np.abs(p_cond)
+      sigmas.append([
+          np.random.choice([0, 1], size=1, p=p_cond[t, :])[0]
+          for t in range(num_samples)
+      ])
+      one_hots = np.eye(ds[site])[sigmas[-1]]
+      p_joint_1 = np.expand_dims(np.sum(p_cond * one_hots, axis=1), 1)
+
+      tmp = ncon.ncon([self.get_tensor(site), one_hots],
+                      [[-2, -3, 1], [-1, 1]])  #tmp has shape (Nt, Dl, Dr)
+      tmp2 = np.transpose(
+          np.matmul(np.transpose(lenv, (0, 2, 1)), tmp),
+          (0, 2, 1))  #has shape (Nt, Dr, Dl')
+      lenv = np.matmul(tmp2, np.conj(tmp))  #has shape (Nt, Dr, Dr')
+
+      Z1 = Z0
+    return np.stack(sigmas, axis=1)
