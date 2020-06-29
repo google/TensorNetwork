@@ -15,8 +15,9 @@ import pytest
 import numpy as np
 from tensornetwork import AbstractNode, Node
 from tensornetwork import ncon_interface
-# pylint: disable=line-too-long
-from tensornetwork.ncon_interface import _get_cont_out_labels, _canonicalize_network_structure
+
+from tensornetwork.ncon_interface import (_get_cont_out_labels,
+                                          _canonicalize_network_structure)
 from tensornetwork.backends.backend_factory import get_backend
 from tensornetwork.contractors import greedy
 
