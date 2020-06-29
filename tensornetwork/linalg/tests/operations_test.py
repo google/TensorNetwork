@@ -216,46 +216,6 @@ def test_take_slice_vs_backend(backend, dtype):
   assert result.shape == backend_result.shape
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
-def test_concatenate_vs_backend(backend, dtype):
-  """
-  Tests that concatenate yields the same result as the backend equivalent.
-  """
-  shape1 = (4, 3)
-  shape2 = (4, 5)
-  axis = 1
-  dtype = np_dtype_to_backend(backend, dtype)
-  tensor1 = tensornetwork.ones(shape1, backend=backend, dtype=dtype)
-  tensor2 = tensornetwork.ones(shape2, backend=backend, dtype=dtype)
-  tensors = [tensor1, tensor2]
-  result = tensornetwork.concatenate(tensors, axis=axis)
-  backend_obj = backends.backend_factory.get_backend(backend)
-  arrays = [t.array for t in tensors]
-  backend_result = backend_obj.shape_concat(arrays, axis=axis)
-  np.testing.assert_allclose(result.array, backend_result)
-
-
-@pytest.mark.parametrize("dtype", np_not_bool)
-def test_concatenate_invalid_backend_raises_value_error(backend, dtype):
-  """
-  Tests that concatenate raises ValueError when fed Tensors with different
-  backends. Other failure modes are tested at the backend level.
-  """
-  backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
-  this_name = set([backend])
-  other_backend_names = list(backend_names - this_name)
-  shape1 = (4, 3)
-  shape2 = (4, 5)
-  axis = 1
-  dtype1 = np_dtype_to_backend(backend, dtype)
-  tensor1 = tensornetwork.ones(shape1, backend=backend, dtype=dtype1)
-  for other_backend in other_backend_names:
-    dtype2 = np_dtype_to_backend(other_backend, dtype)
-    tensor2 = tensornetwork.ones(shape2, backend=other_backend, dtype=dtype2)
-    with pytest.raises(ValueError):
-      _ = tensornetwork.concatenate([tensor1, tensor2], axis=axis)
-
-
 @pytest.mark.parametrize("dtype", np_float_dtypes)
 @pytest.mark.parametrize("fname", ["sin", "cos", "exp", "log", "conj"])
 def test_unary_ops_vs_backend(backend, dtype, fname):
@@ -273,21 +233,6 @@ def test_unary_ops_vs_backend(backend, dtype, fname):
   else:
     backend_result = backend_func(tensor.array)
     tn_result = tn_func(tensor).array
-    np.testing.assert_allclose(backend_result, tn_result)
-
-
-@pytest.mark.parametrize("dtype", np_all_dtypes)
-def test_prod_vs_backend(backend, dtype):
-  shape = (4, 5, 6)
-  dtype_b = np_dtype_to_backend(backend, dtype)
-  backend_obj = backends.backend_factory.get_backend(backend)
-  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype_b)
-  if ((backend == "pytorch" and dtype == np.float16) or 
-      (backend == "tensorflow" and dtype == np.bool)):
-    pytest.skip("Prod not supported with this dtype and backend.")
-  else:
-    backend_result = backend_obj.shape_prod(tensor.array)
-    tn_result = tensornetwork.prod(tensor).array
     np.testing.assert_allclose(backend_result, tn_result)
 
 

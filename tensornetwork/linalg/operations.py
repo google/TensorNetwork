@@ -34,7 +34,7 @@ def _check_backends(tensors: Sequence[Tensor], fname: str) -> Tuple[bool, str]:
     errstr = "All Tensors fed to " + fname + "must have the same backend."
     errstr += "Backends were: \n"
     errstr += str([name + "\n" for name in backend_names])
-  return (all_backends_same, errstr)
+  return all_backends_same, errstr
 
 
 def tensordot(a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]) -> Tensor:
@@ -99,26 +99,6 @@ def take_slice(tensor: Tensor, start_indices: Tuple[int, ...],
   return sliced_tensor
 
 
-def concatenate(tensors: Sequence[Tensor],
-                axis: Optional[int] = 0) -> Tensor:
-  """Concatenate a sequence of Tensors together about the given axis.
-  Args:
-    tensors: The list of Tensors to concatenate.
-    axis   : The axis to concatenate on. Default 0.
-  Returns:
-    The concatenated Tensor.
-  """
-  if len(tensors) <= 1:
-    raise ValueError("Must supply at least two Tensors to concatenate.")
-  all_backends_same, errstr = _check_backends(tensors, "concatenate")
-  if not all_backends_same:
-    raise ValueError(errstr)
-  arrays = [tensor.array for tensor in tensors]
-  backend = tensors[0].backend
-  concat_array = backend.shape_concat(arrays, axis)
-  return Tensor(concat_array, backend=backend)
-
-
 def shape(tensor: Tensor) -> Tuple[Optional[int], ...]:
   """Get the shape of a Tensor as a tuple of integers.
 
@@ -130,12 +110,6 @@ def shape(tensor: Tensor) -> Tuple[Optional[int], ...]:
   return tensor.shape
 
 
-def prod(values: Tensor) -> Tensor:
-  """Take the product of all of the elements in values"""
-  out_array = values.backend.shape_prod(values.array)
-  return Tensor(out_array, backend=values.backend)
-
-
 def sqrt(tensor: Tensor) -> Tensor:
   """Take the square root (element wise) of a given Tensor."""
   out_array = tensor.backend.sqrt(tensor.array)
@@ -144,9 +118,9 @@ def sqrt(tensor: Tensor) -> Tensor:
 
 def outer(tensor1: Tensor, tensor2: Tensor) -> Tensor:
   """Calculate the outer product of the two given Tensors."""
-  if tensor1.backend.name != tensor2.backend.name:
-    errstr = "Tried to Tensordot Tensors with differing backends \n"
-    errstr += tensor1.backend.name + "and " + tensor2.backend.name + "."
+  tensors = [tensor1, tensor2]
+  all_backends_same, errstr = _check_backends(tensors, "outer")
+  if not all_backends_same:
     raise ValueError(errstr)
   out_data = tensor1.backend.outer_product(tensor1.array, tensor2.array)
   return Tensor(out_data, backend=tensor1.backend)
@@ -237,23 +211,46 @@ def log(tensor: Tensor) -> Tensor:
 def diagonal(tensor: Tensor, offset: Optional[int] = 0,
              axis1=0, axis2=1) -> Tensor:
   """
-  Extract diagonals from a Tensor.
+  Extracts the offset'th diagonal from the matrix slice of tensor indexed
+  by (axis1, axis2).
 
   Args:
     tensor: A Tensor.
-    offset     : Offset of the diagonal from the main diagonal. If tensor is 1D,
+    offset: Offset of the diagonal from the main diagonal.
+    axis1, axis2: Indices of the matrix slice to extract from.
+
+  Returns:
+    out  : A 1D Tensor storing the elements of the selected diagonal.
   """
   raise NotImplementedError()
 
 
 def diagflat(tensor: Tensor, k: Optional[int] = 0) -> Tensor:
   """
-  Construct a two-dimensional Tensor with the flattened input from tensor on
-  the diagonal.
+  Flattens tensor and places its elements at the k'th diagonal of a new
+  (tensor.size + k, tensor.size + k) `Tensor` of zeros.
+
+  Args:
+    tensor: A Tensor.
+    k     : The elements of tensor will be stored at this diagonal.
+  Returns:
+    out   : A (tensor.size + k, tensor.size + k) `Tensor` with the elements
+            of tensor on its kth diagonal.
   """
   raise NotImplementedError()
 
 
-def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> Tensor:
-  """Calculate the sum along diagonal entries of the given Tensor."""
+def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
+  """Calculate the sum along diagonal entries of the given Tensor. The
+     entries of the offset`th diagonal of the matrix slice of tensor indexed by
+     (axis1, axis2) are summed.
+
+  Args:
+    tensor: A Tensor.
+    offset: Offset of the diagonal from the main diagonal.
+    axis1, axis2: Indices of the matrix slice to extract from.
+
+  Returns:
+    out: The trace.
+  """
   raise NotImplementedError()
