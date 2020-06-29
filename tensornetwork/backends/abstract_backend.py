@@ -640,7 +640,5 @@ class AbstractBackend:
     Returns:
       tensor: The result of performing the matmul.
     """
-    raise NotImplementedError("Backend '{}' has not implemented `matmul`.".format(
-        self.name))
-  
-  def item():
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `matmul`.".format(self.name))
