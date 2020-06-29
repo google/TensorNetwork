@@ -70,7 +70,7 @@ def _get_cont_out_labels(
 
 def _canonicalize_network_structure(
     network_structure: Sequence[Sequence[Union[int, str]]]
-) -> Tuple[List[np.ndarray], Dict]:
+) -> Tuple[List[List], Dict]:
   """
   Map `network_structure` to a canonical form. 
   The elements in `network_structure` are replaced
@@ -224,25 +224,17 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
                        f"appear in `network_structure`.")
 
   # check if contracted dimensions are matching
-  locations = {}
+  mismatched_labels = []  
   for l in cont_labels:
-    boolean_mask = [[l1 == l for l1 in labels] for labels in network_structure]
-    locations[l] = np.nonzero(boolean_mask)[0]
+    dims = {
+        tensor_dimensions[m][n]
+        for m, labels in enumerate(network_structure)
+        for n, l1 in enumerate(labels)
+        if l1 == l
+    }
+    if len(dims) > 1:
+      mismatched_labels.append(l)
 
-  mismatched_labels = []
-  for label, locs in locations.items():
-    inds = [
-        np.nonzero([l1 == label
-                    for l1 in network_structure[loc]])[0]
-        for loc in locs
-    ]
-    if len(inds) > 0:
-      label_dims = np.concatenate([
-          np.array(tensor_dimensions[loc])[inds[n]]
-          for n, loc in enumerate(locs)
-      ])
-      if not np.all(label_dims == label_dims[0]):
-        mismatched_labels.append(label)
   if len(mismatched_labels) > 0:
     raise ValueError(
         f"tensor dimensions for labels {mismatched_labels} are mismatching")
@@ -250,11 +242,11 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
 
 def _partial_trace(
     tensor: Tensor, labels: List,
-    backend_obj: AbstractBackend) -> Tuple[Tensor, np.ndarray, List]:
+    backend_obj: AbstractBackend) -> Tuple[Tensor, List, List]:
   """
   Perform the partial trace of `tensor`.
   All labels appearing twice in `labels` are traced out.
-  Args:
+  Argns:
     tensor: A tensor.
     labels: The ncon-style labels of `tensor`.
   Returns:
@@ -291,7 +283,7 @@ def _batch_cont(
     t1: Tensor, t2: Tensor, tensors: List[Tensor],
     network_structure: List[List], con_order: List, common_batch_labels: Set,
     labels_t1: List, labels_t2: List, backend_obj: AbstractBackend
-) -> Tuple[Tensor, List[np.ndarray], np.ndarray]:
+) -> Tuple[Tensor, List[List], List]:
   """
   Subroutine for performing a batched contraction of tensors `t1` and `t2`.
   Args:
@@ -306,8 +298,8 @@ def _batch_cont(
     backend_obj: A backend object.
   Returns:
     List[Tensor]: Updated list of tensors.
-    List[np.ndarray]: Updated `network_structure`.
-    np.ndarray: Updated `con_order` (contraction order).
+    List[List]: Updated `network_structure`.
+    List: Updated `con_order` (contraction order).
   """
   common_batch_labels = list(common_batch_labels)
   #find positions of common batch labels
@@ -489,7 +481,8 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
           labels_t1, labels_t2, backend_obj)
     # in all other cases do a regular tensordot
     else:
-      ind_sort = np.argsort(t1_cont)
+      # for len(t1_cont)~<20 this is faster than np.argsort
+      ind_sort = [t1_cont.index(l) for l in sorted(t1_cont)]
       tensors.append(
           backend_obj.tensordot(
               t1,
