@@ -185,7 +185,8 @@ class AbstractBackend:
         "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
 
   def shape_prod(self, values: Tensor) -> Tensor:
-    """Take the product of all of the elements in values"""
+    """Returns the product of the entries of values, which should be the
+       shape of one of the relevant backend arrays."""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))
 
