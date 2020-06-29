@@ -242,7 +242,8 @@ class BaseMPS:
       sites: Sites where `ops` act.
 
     Returns:
-      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle` for n in `sites`
+      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle` 
+        for n in `sites`
     Raises:
       ValueError if `len(ops) != len(sites)`
     """
@@ -461,10 +462,9 @@ class BaseMPS:
       raise ValueError('site2 = {} has to be larger than site2 = {}'.format(
           site2, site1))
     if site2 != site1 + 1:
-      raise ValueError(
-        "Found site2 ={}, site1={}. Only nearest "
-        "neighbor gates are currently"
-        "supported".format(site2, site1))
+      raise ValueError("Found site2 ={}, site1={}. Only nearest "
+                       "neighbor gates are currently"
+                       "supported".format(site2, site1))
 
     if (max_singular_values or
         max_truncation_err) and self.center_position not in (site1, site2):
