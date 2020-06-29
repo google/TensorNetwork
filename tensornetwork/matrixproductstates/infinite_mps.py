@@ -13,10 +13,8 @@
 # limitations under the License.
 import numpy as np
 import functools
-# pylint: disable=line-too-long
 from tensornetwork.network_components import contract, contract_between
 from tensornetwork.backends import backend_factory
-# pylint: disable=line-too-long
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.ncon_interface import ncon
