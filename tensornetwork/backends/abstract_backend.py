@@ -226,7 +226,7 @@ class AbstractBackend:
 
   def eye(self,
           N: int,
-          dtype: Type[np.number],
+          dtype: Type[np.number],# pylint: disable=no-member
           M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
@@ -242,7 +242,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
 
-  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:# pylint: disable=no-member
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
        (numpy, torch, tensorflow) or a `ShapeType` object
@@ -255,7 +255,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
 
-  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:
+  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:# pylint: disable=no-member
     """Return a zeros-matrix of dimension `dim` Depending on specific backends,
     `dim` has to be either an int (numpy, torch, tensorflow) or a `ShapeType`
     object (for block-sparse backends).
@@ -271,7 +271,7 @@ class AbstractBackend:
 
   def randn(self,
             shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None,
+            dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
             seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim` Depending on specific
     backends, `dim` has to be either an int (numpy, torch, tensorflow) or a
@@ -290,7 +290,7 @@ class AbstractBackend:
   def random_uniform(self,
                      shape: Tuple[int, ...],
                      boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-                     dtype: Optional[Type[np.number]] = None,
+                     dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
                      seed: Optional[int] = None) -> Tensor:
     """Return a random uniform matrix of dimension `dim`.
 
@@ -337,7 +337,7 @@ class AbstractBackend:
            args: Optional[List[Tensor]] = None,
            initial_state: Optional[Tensor] = None,
            shape: Optional[Tuple[int, ...]] = None,
-           dtype: Optional[Type[np.number]] = None,
+           dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
            num_krylov_vecs: int = 50,
            numeig: int = 1,
            tol: float = 1E-8,
@@ -384,7 +384,7 @@ class AbstractBackend:
                     args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
                     shape: Optional[Tuple[int, ...]] = None,
-                    dtype: Optional[Type[np.number]] = None,
+                    dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
                     num_krylov_vecs: int = 20,
                     numeig: int = 1,
                     tol: float = 1E-8,
@@ -509,9 +509,9 @@ class AbstractBackend:
                                      tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor2` onto `tensor1`, i.e.
-    `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` is a
-    one-dimensional tensor. The broadcasting is applied to the last index of
-    `tensor1`.
+    `tensor1` * tensor2`, where `tensor1` is an arbitrary tensor and `tensor2` 
+    is a one-dimensional tensor. The broadcasting is applied to the last index 
+    of `tensor1`.
     Args:
       tensor1: A tensor.
       tensor2: A tensor.
@@ -526,9 +526,9 @@ class AbstractBackend:
                                     tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
-    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
-    one-dimensional tensor. The broadcasting is applied to the first index of
-    `tensor2`.
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` 
+    is a one-dimensional tensor. The broadcasting is applied to the first 
+    index of `tensor2`.
     Args:
       tensor1: A tensor.
       tensor2: A tensor.
