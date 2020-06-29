@@ -25,6 +25,12 @@ class BaseDMRG:
   """
   A base class for DMRG (and possibly other) simulations.
   Finite DMRG and infinite DMRG are subclassed from `BaseDMRG`.
+  Conventions:
+  * Left and right environment blocks are stored as tensors of
+    shape (M, D, D), with M the MPO bond dimension, and D the 
+    mps bond dimension.
+  * The second index of left and right blocks is the 
+    unconjugated index, the third is the conjugated index.
   """
 
   def __init__(self, mps: BaseMPS, mpo: BaseMPO, left_boundary: Tensor,
