@@ -288,8 +288,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         norms_vector_n[1:], 1) + numpy.diag(numpy.conj(norms_vector_n[1:]), -1)
     eigvals, u = numpy.linalg.eigh(A_tridiag)
     eigenvectors = []
-    if numpy.iscomplexobj(A_tridiag):
-      eigvals = numpy.array(eigvals).astype(A_tridiag.dtype)
+    eigvals = numpy.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.sparse_shape, initial_state.dtype)
