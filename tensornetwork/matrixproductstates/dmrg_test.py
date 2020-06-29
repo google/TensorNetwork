@@ -157,7 +157,7 @@ def test_compute_envs(backend_dtype_values):
                              sorted(list(dmrg.right_envs.keys())))
 
 
-@pytest.mark.parametrize("N", [4])
+@pytest.mark.parametrize("N", [4, 6, 7])
 def test_finite_DMRG_init(backend_dtype_values, N):
   np.random.seed(16)
   backend = backend_dtype_values[0]
