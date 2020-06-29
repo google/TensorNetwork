@@ -44,7 +44,10 @@ class Index:
     return self.dim
 
   def __repr__(self) -> str:
-    return str(self.dim)
+    dense_shape = str(self.dim)
+    charges = str(self._charges) 
+    flow_info = str(self.flow)
+    return f"{dense_shape} {charges} {flow_info}"
 
   @property
   def dim(self) -> int:
