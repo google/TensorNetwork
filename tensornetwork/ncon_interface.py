@@ -524,7 +524,7 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
 
 def ncon(
     tensors: Sequence[Union[network_components.AbstractNode, Tensor]],
-    network_structure: Sequence[Sequence[int]],
+    network_structure: Sequence[Sequence[Union[str, int]]],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
     check_network: bool = True,
