@@ -266,7 +266,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       diag_elements.append(
           numpy.dot(numpy.conj(vector_n.data), A_vector_n.data))
 
-      if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
+      if (it > 0) and (it % ndiag) == 0 and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
         A_tridiag = numpy.diag(diag_elements) + numpy.diag(
             norms_vector_n[1:], 1) + numpy.diag(
