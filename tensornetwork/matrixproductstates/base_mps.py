@@ -49,6 +49,13 @@ class BaseMPS:
   The orthogonality center can be be shifted using the
   `BaseMPS.position` method, which uses uses QR and RQ methods to shift
   `center_position`.
+
+  Conventions:
+  * Left and right reduced density matrices are stored as tensors of
+    shape (D, D) with D the  mps bond dimension.
+  * The first index of left and right reduced density matrices is the 
+    unconjugated index, the second is the conjugated index.
+
   """
 
   def __init__(self,
