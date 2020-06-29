@@ -307,8 +307,7 @@ class BaseDMRG:
 
         initial_site += 1
         print_msg(site=0)
-
-      for _ in range(initial_site, len(self.mps) - 1):
+      while self.mps.center_position < len(self.mps) - 1:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='right',
@@ -320,7 +319,7 @@ class BaseDMRG:
         print_msg(site=self.mps.center_position - 1)
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
-      for _ in reversed(range(len(self.mps) - 1)):
+      while self.mps.center_position > 0:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='left',
