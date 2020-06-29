@@ -14,14 +14,16 @@
 
 import warnings
 import numpy as np
-from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict
+from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
 from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
+import time
 Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
+
 
 def _get_cont_out_labels(
     network_structure: Sequence[Sequence[Union[int, str]]]) -> Any:
@@ -49,30 +51,17 @@ def _get_cont_out_labels(
     str_out_labels: The str-type output labels
   """
   flat_labels = [l for sublist in network_structure for l in sublist]
-  int_labels = [o for o in flat_labels if not isinstance(o, str)]
-  str_labels = [o for o in flat_labels if isinstance(o, str)]
+  int_labels = {o for o in flat_labels if not isinstance(o, str)}
+  str_labels = {o for o in flat_labels if isinstance(o, str)}
 
-  arr = np.array(int_labels)
-  int_out_labels = list(np.unique(arr[arr < 0]).astype(int))
-  int_cont_labels = []
+  int_out_labels = sorted([l for l in int_labels if l < 0], reverse=True)
+  int_cont_labels = sorted([label for label in int_labels if label >= 0])
 
-  for label in int_labels:
-    if (label >= 0) and (label not in int_cont_labels):
-      int_cont_labels.append(label)
+  str_out_labels = [label for label in str_labels if label[0] == '-']
+  str_cont_labels = [label for label in str_labels if label[0] != '-']
 
-  str_out_labels = []
-  str_cont_labels = []
-  for label in str_labels:
-    if (label[0] == '-') and (label not in str_out_labels):
-      str_out_labels.append(label)
-    if (label[0] != '-') and (label not in str_cont_labels):
-      str_cont_labels.append(label)
-
-  int_cont_labels = sorted(int_cont_labels)
   # pylint: disable=unnecessary-lambda
   str_cont_labels = sorted(str_cont_labels, key=lambda x: str(x))
-
-  int_out_labels = sorted(int_out_labels)[::-1]
   # pylint: disable=unnecessary-lambda
   str_out_labels = sorted(str_out_labels, key=lambda x: str(x))
   # pylint: disable=line-too-long
@@ -81,7 +70,7 @@ def _get_cont_out_labels(
 
 def _canonicalize_network_structure(
     network_structure: Sequence[Sequence[Union[int, str]]]
-) -> Tuple[List[np.ndarray], Dict]:
+) -> Tuple[List[List], Dict]:
   """
   Map `network_structure` to a canonical form. 
   The elements in `network_structure` are replaced
@@ -105,19 +94,16 @@ def _canonicalize_network_structure(
   
   """
   flat_labels = [l for sublist in network_structure for l in sublist]
-  neg_int_labels = [l for l in flat_labels if not isinstance(l, str) and l < 0]
-  pos_int_labels = [l for l in flat_labels if not isinstance(l, str) and l > 0]
-  neg_str_labels = [
-      l for l in flat_labels if isinstance(l, str) and l[0] == '-'
-  ]
-  pos_str_labels = [
-      l for l in flat_labels if isinstance(l, str) and l[0] != '-'
-  ]
-  neg_str_labels = list(np.unique(neg_str_labels))[::-1]
-  neg_int_labels = list(np.unique(neg_int_labels))
+  neg_int_labels = sorted(
+      list({l for l in flat_labels if not isinstance(l, str) and l < 0}))
+  pos_int_labels = sorted(
+      list({l for l in flat_labels if not isinstance(l, str) and l > 0}))
+  neg_str_labels = sorted(
+      {l for l in flat_labels if isinstance(l, str) and l[0] == '-'},
+      reverse=True)
+  pos_str_labels = sorted(
+      list({l for l in flat_labels if isinstance(l, str) and l[0] != '-'}))
 
-  pos_str_labels = list(np.unique(pos_str_labels))
-  pos_int_labels = list(np.unique(pos_int_labels))
   neg_mapping = dict(
       zip(neg_str_labels + neg_int_labels,
           np.arange(-len(neg_int_labels + neg_str_labels), 0)))
@@ -126,9 +112,7 @@ def _canonicalize_network_structure(
           np.arange(1, 1 + len(pos_int_labels + pos_str_labels))))
   neg_mapping.update(pos_mapping)
   mapped_network_structure = [
-      np.asarray([neg_mapping[label]
-                  for label in labels])
-      for labels in network_structure
+      [neg_mapping[label] for label in labels] for labels in network_structure
   ]
   return mapped_network_structure, neg_mapping
 
@@ -240,75 +224,66 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
                        f"appear in `network_structure`.")
 
   # check if contracted dimensions are matching
-  locations = {}
+  mismatched_labels = []  
   for l in cont_labels:
-    boolean_mask = [[l1 == l for l1 in labels] for labels in network_structure]
-    locations[l] = np.nonzero(boolean_mask)[0]
+    dims = {
+        tensor_dimensions[m][n]
+        for m, labels in enumerate(network_structure)
+        for n, l1 in enumerate(labels)
+        if l1 == l
+    }
+    if len(dims) > 1:
+      mismatched_labels.append(l)
 
-  mismatched_labels = []
-  for label, locs in locations.items():
-    inds = [
-        np.nonzero([l1 == label
-                    for l1 in network_structure[loc]])[0]
-        for loc in locs
-    ]
-    if len(inds) > 0:
-      label_dims = np.concatenate([
-          np.array(tensor_dimensions[loc])[inds[n]]
-          for n, loc in enumerate(locs)
-      ])
-      if not np.all(label_dims == label_dims[0]):
-        mismatched_labels.append(label)
   if len(mismatched_labels) > 0:
     raise ValueError(
         f"tensor dimensions for labels {mismatched_labels} are mismatching")
 
 
 def _partial_trace(
-    tensor: Tensor, labels: np.ndarray,
-    backend_obj: AbstractBackend) -> Tuple[Tensor, np.ndarray, List]:
+    tensor: Tensor, labels: List,
+    backend_obj: AbstractBackend) -> Tuple[Tensor, List, List]:
   """
   Perform the partial trace of `tensor`.
   All labels appearing twice in `labels` are traced out.
-  Args:
+  Argns:
     tensor: A tensor.
     labels: The ncon-style labels of `tensor`.
   Returns:
     Tensor: The result of the tracing.
   """
-  unique, cnts = np.unique(labels, return_counts=True)
-  if np.any(cnts == 2):
+  trace_labels = [l for l in labels if labels.count(l) == 2]
+  if len(trace_labels) > 0:
+    num_cont = len(trace_labels) // 2
+    unique_trace_labels = sorted(trace_labels)[0:-1:2]
+    trace_label_positions = [[
+        n for n, label in enumerate(labels) if label == trace_label
+    ] for trace_label in unique_trace_labels]
+    contracted_indices = [l[0] for l in trace_label_positions
+                         ] + [l[1] for l in trace_label_positions]
+    free_indices = [
+        n for n in range(len(labels)) if n not in contracted_indices
+    ]
     shape = backend_obj.shape_tuple(tensor)
-    unique_multiple = unique[cnts == 2]
-    num_cont = unique_multiple.shape[0]
-    ix, iy = np.nonzero(labels[:, None] == unique_multiple)
-    trace_label_positions = [ix[iy == n] for n in range(num_cont)]
-    contracted_indices = np.array(trace_label_positions).reshape(
-        num_cont * 2, order='F')
-    free_indices = np.delete(
-        np.arange(tensor.ndim, dtype=np.int16), contracted_indices)
     contracted_dimension = np.prod(
         [shape[d] for d in contracted_indices[:num_cont]])
     temp_shape = tuple([shape[pos] for pos in free_indices] +
                        [contracted_dimension, contracted_dimension])
     result = backend_obj.trace(
         backend_obj.reshape(
-            backend_obj.transpose(
-                tensor, tuple(np.append(free_indices, contracted_indices))),
+            backend_obj.transpose(tensor,
+                                  tuple(free_indices + contracted_indices)),
             temp_shape))
-    new_labels = np.delete(labels, contracted_indices)
-    contracted_labels = np.unique(labels[contracted_indices])
-
-    return result, new_labels, contracted_labels
+    new_labels = [l for l in labels if l not in unique_trace_labels]
+    return result, new_labels, unique_trace_labels
   return tensor, labels, []
 
 
 def _batch_cont(
     t1: Tensor, t2: Tensor, tensors: List[Tensor],
-    network_structure: List[np.ndarray], con_order: np.ndarray,
-    common_batch_labels: np.ndarray, labels_t1: np.ndarray,
-    labels_t2: np.ndarray, backend_obj: AbstractBackend
-) -> Tuple[Tensor, List[np.ndarray], np.ndarray]:
+    network_structure: List[List], con_order: List, common_batch_labels: Set,
+    labels_t1: List, labels_t2: List, backend_obj: AbstractBackend
+) -> Tuple[Tensor, List[List], List]:
   """
   Subroutine for performing a batched contraction of tensors `t1` and `t2`.
   Args:
@@ -323,38 +298,30 @@ def _batch_cont(
     backend_obj: A backend object.
   Returns:
     List[Tensor]: Updated list of tensors.
-    List[np.ndarray]: Updated `network_structure`.
-    np.ndarray: Updated `con_order` (contraction order).
+    List[List]: Updated `network_structure`.
+    List: Updated `con_order` (contraction order).
   """
+  common_batch_labels = list(common_batch_labels)
   #find positions of common batch labels
-  _, _, t1_batch_pos = np.intersect1d(
-      common_batch_labels, labels_t1, assume_unique=True, return_indices=True)
-  _, _, t2_batch_pos = np.intersect1d(
-      common_batch_labels, labels_t2, assume_unique=True, return_indices=True)
-
+  t1_batch_pos = [labels_t1.index(l) for l in common_batch_labels]
+  t2_batch_pos = [labels_t2.index(l) for l in common_batch_labels]
   #find positions of contracted non-batch labels
-  non_batch_labels_t1 = labels_t1[np.logical_not(
-      np.isin(labels_t1, common_batch_labels))]
-  non_batch_labels_t2 = labels_t2[np.logical_not(
-      np.isin(labels_t2, common_batch_labels))]
-  common_contracted_labels = np.intersect1d(
-      non_batch_labels_t1, non_batch_labels_t2, assume_unique=True)
-  _, _, t1_cont = np.intersect1d(
-      common_contracted_labels,
-      labels_t1,
-      assume_unique=True,
-      return_indices=True)
-  _, _, t2_cont = np.intersect1d(
-      common_contracted_labels,
-      labels_t2,
-      assume_unique=True,
-      return_indices=True)
+  non_batch_labels_t1 = {l for l in labels_t1 if l not in common_batch_labels}
+  non_batch_labels_t2 = {l for l in labels_t2 if l not in common_batch_labels}
+
+  common_contracted_labels = list(
+      non_batch_labels_t1.intersection(non_batch_labels_t2))
+  t1_cont = [labels_t1.index(l) for l in common_contracted_labels]
+  t2_cont = [labels_t2.index(l) for l in common_contracted_labels]
+
+  free_labels_t1 = set(labels_t1) - set(common_contracted_labels) - set(
+      common_batch_labels)
+  free_labels_t2 = set(labels_t2) - set(common_contracted_labels) - set(
+      common_batch_labels)
 
   # find positions of uncontracted non-batch labels
-  free_pos_t1 = np.setdiff1d(
-      np.arange(len(labels_t1)), np.append(t1_cont, t1_batch_pos))
-  free_pos_t2 = np.setdiff1d(
-      np.arange(len(labels_t2)), np.append(t2_cont, t2_batch_pos))
+  free_pos_t1 = [n for n, l in enumerate(labels_t1) if l in free_labels_t1]
+  free_pos_t2 = [n for n, l in enumerate(labels_t2) if l in free_labels_t2]
 
   t1_shape = np.array(backend_obj.shape_tuple(t1))
   t2_shape = np.array(backend_obj.shape_tuple(t2))
@@ -365,8 +332,8 @@ def _batch_cont(
                  np.prod(t2_shape[free_pos_t2]))
 
   #bring batch labels to the front
-  order_t1 = tuple(np.concatenate([t1_batch_pos, free_pos_t1, t1_cont]))
-  order_t2 = tuple(np.concatenate([t2_batch_pos, t2_cont, free_pos_t2]))
+  order_t1 = tuple(t1_batch_pos + free_pos_t1 + t1_cont)
+  order_t2 = tuple(t2_batch_pos + t2_cont + free_pos_t2)
 
   mat1 = backend_obj.reshape(backend_obj.transpose(t1, order_t1), newshape_t1)
   mat2 = backend_obj.reshape(backend_obj.transpose(t2, order_t2), newshape_t2)
@@ -378,20 +345,22 @@ def _batch_cont(
   result = backend_obj.reshape(result, final_shape)
 
   # update labels, tensors, network_structure and con_order
-  new_labels = np.concatenate(
-      [labels_t1[t1_batch_pos], labels_t1[free_pos_t1], labels_t2[free_pos_t2]])
+  new_labels = [labels_t1[i] for i in t1_batch_pos] + [
+      labels_t1[i] for i in free_pos_t1
+  ] + [labels_t2[i] for i in free_pos_t2]
+
   network_structure.append(new_labels)
   tensors.append(result)
-  if len(con_order) > 0:
-    con_order = np.delete(
-        con_order,
-        np.intersect1d(
-            common_contracted_labels,
-            con_order,
-            assume_unique=True,
-            return_indices=True)[2])
+  con_order = [c for c in con_order if c not in common_contracted_labels]
 
   return tensors, network_structure, con_order
+
+
+def label_intersection(labels1, labels2):
+  common_labels = list(set(labels1).intersection(labels2))
+  idx_1 = [labels1.index(l) for l in common_labels]
+  idx_2 = [labels2.index(l) for l in common_labels]
+  return common_labels, idx_1, idx_2
 
 
 def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
@@ -413,69 +382,60 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     The final tensor after contraction.
   """
   # some jax-juggling to avoid retracing ...
+  flat_labels = list(flat_labels)
   slices = np.append(0, np.cumsum(sizes))
   network_structure = [
-      np.array(flat_labels)[slices[n]:slices[n + 1]]
-      for n in range(len(slices) - 1)
+      flat_labels[slices[n]:slices[n + 1]] for n in range(len(slices) - 1)
   ]
-  con_order = np.array(con_order)
-  out_order = np.array(out_order)
+  out_order = list(out_order)
+  con_order = list(con_order)
   # pylint: disable=unnecessary-comprehension
   init_con_order = [c for c in con_order]
-  init_network_structure = [list(c) for c in network_structure]
+  init_network_structure = [c for c in network_structure]
+
   # partial trace
   for n, tensor in enumerate(tensors):
     tensors[n], network_structure[n], contracted_labels = _partial_trace(
         tensor, network_structure[n], backend_obj)
-
     if len(contracted_labels) > 0:
-      con_order = np.delete(
-          con_order,
-          np.intersect1d(
-              con_order,
-              contracted_labels,
-              return_indices=True,
-              assume_unique=True)[1])
+      con_order = [c for c in con_order if c not in contracted_labels]
 
+  flat_labels = [l for sublist in network_structure for l in sublist]
   # contracted all positive labels appearing only once in `network_structure`
-  unique_labels, label_cnts = np.unique(
-      np.concatenate(network_structure), return_counts=True)
-  contractable_labels = unique_labels[np.logical_and(label_cnts == 1,
-                                                     unique_labels > 0)]
-
+  contractable_labels = [
+      l for l in flat_labels if (flat_labels.count(l) == 1) and (l > 0)
+  ]
   # update con_order
   if len(contractable_labels) > 0:
-    con_order = np.delete(
-        con_order,
-        np.nonzero(np.isin(con_order, contractable_labels))[0])
-
+    con_order = [o for o in con_order if o not in contractable_labels]
   # collapse axes of single-labelled tensors
-  locs = [
-      n for n, labels in enumerate(network_structure)
-      if np.any(np.isin(labels, contractable_labels))
-  ]
+  locs = []
+  for n, labels in enumerate(network_structure):
+    if len(set(labels).intersection(contractable_labels)) > 0:
+      locs.append(n)
+
   for loc in locs:
     labels = network_structure[loc]
-    contractable_inds = np.nonzero(np.isin(labels, contractable_labels))[0]
-    network_structure[loc] = np.delete(labels, contractable_inds)
+    contractable_inds = [labels.index(l) for l in contractable_labels]
+    network_structure[loc] = [l for l in labels if l not in contractable_labels]
     tensors[loc] = backend_obj.sum(tensors[loc], tuple(contractable_inds))
-
 
   # perform binary and batch contractions
   skip_counter = 0
-  unique_labels, label_cnts = np.unique(
-      np.concatenate(network_structure), return_counts=True)
-  mask = np.logical_or(label_cnts > 2,
-                       np.logical_and(label_cnts == 2, unique_labels < 0))
-  batch_labels = unique_labels[mask]
-  batch_cnts = label_cnts[mask]
+  batch_labels = []
+  batch_cnts = []
+  for l in set(flat_labels):
+    cnt = flat_labels.count(l)
+    if (cnt > 2) or (cnt == 2 and l < 0):
+      batch_labels.append(l)
+      batch_cnts.append(cnt)
 
   while len(con_order) > 0:
     # the next index to be contracted
     cont_ind = con_order[0]
     if cont_ind in batch_labels:
       # if its still a batch index then do it later
-      con_order = np.append(np.delete(con_order, 0), cont_ind)
+      con_order.append(con_order.pop(0))
       skip_counter += 1
       # avoid being stuck in an infinite loop
       if skip_counter > len(con_order):
@@ -487,90 +447,84 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
 
     # find locations of `cont_ind` in `network_structure`
     locs = [
-        n for n, labels in enumerate(network_structure)
-        if sum(labels == cont_ind) > 0
+        n for n, labels in enumerate(network_structure) if cont_ind in labels
     ]
 
     t2 = tensors.pop(locs[1])
     t1 = tensors.pop(locs[0])
     labels_t2 = network_structure.pop(locs[1])
     labels_t1 = network_structure.pop(locs[0])
-
-    common_labels, t1_cont, t2_cont = np.intersect1d(
-        labels_t1, labels_t2, assume_unique=True, return_indices=True)
+    common_labels, t1_cont, t2_cont = label_intersection(labels_t1, labels_t2)
     # check if there are batch labels (i.e. labels appearing more than twice
     # in `network_structure`).
-    common_batch_labels = np.intersect1d(
-        batch_labels, common_labels, assume_unique=True)
-    if common_batch_labels.shape[0] > 0:
+    common_batch_labels = set(batch_labels).intersection(common_labels)
+    if len(common_batch_labels) > 0:
       # case1: both tensors have one or more common batch indices -> use matmul
-      ix, _ = np.nonzero(batch_labels[:, None] == common_batch_labels[None, :])
+      ix = np.nonzero(
+          np.array(batch_labels)[:, None] == np.array(
+              list(common_batch_labels))[None, :])[0]
       # reduce the counts of these labels in `batch_cnts` by 1
-      batch_cnts[ix] -= 1
-      # if the count of a positive label falls below 3
-      # remove it from `batch_labels`
-      mask = np.logical_or(batch_cnts > 2,
-                           np.logical_and(batch_cnts == 2, batch_labels < 0))
-      batch_labels = batch_labels[mask]
-      batch_cnts = batch_cnts[mask]
+      delete = []
+      for i in ix:
+        batch_cnts[i] -= 1
+        if (batch_labels[i] > 0) and (batch_cnts[i] <= 2):
+          delete.append(i)
+        elif (batch_labels[i] < 0) and (batch_cnts[i] < 2):
+          delete.append(i)
+
+      for i in sorted(delete, reverse=True):
+        del batch_cnts[i]
+        del batch_labels[i]
 
       tensors, network_structure, con_order = _batch_cont(
           t1, t2, tensors, network_structure, con_order, common_batch_labels,
           labels_t1, labels_t2, backend_obj)
     # in all other cases do a regular tensordot
     else:
-      ind_sort = np.argsort(t1_cont)
+      # for len(t1_cont)~<20 this is faster than np.argsort
+      ind_sort = [t1_cont.index(l) for l in sorted(t1_cont)]
       tensors.append(
           backend_obj.tensordot(
-              t1, t2,
-              axes=(tuple(t1_cont[ind_sort]), tuple(t2_cont[ind_sort]))))
-      network_structure.append(
-          np.append(
-              np.delete(labels_t1, t1_cont), np.delete(labels_t2, t2_cont)))
-
+              t1,
+              t2,
+              axes=(tuple([t1_cont[i] for i in ind_sort]),
+                    tuple([t2_cont[i] for i in ind_sort]))))
+      new_labels = [l for l in labels_t1 if l not in common_labels
+                   ] + [l for l in labels_t2 if l not in common_labels]
+      network_structure.append(new_labels)
       # remove contracted labels from con_order
-      con_order = np.delete(
-          con_order,
-          np.intersect1d(
-              con_order, common_labels, assume_unique=True,
-              return_indices=True)[1])
+      con_order = [c for c in con_order if c not in common_labels]
 
   # perform outer products and remaining batch contractions
   while len(tensors) > 1:
-    unique_labels, label_cnts = np.unique(
-        np.concatenate(network_structure), return_counts=True)
-    batch_labels = unique_labels[np.logical_or(
-        label_cnts > 2, np.logical_and(label_cnts == 2, unique_labels < 0))]
-
     t2 = tensors.pop()
     t1 = tensors.pop()
     labels_t2 = network_structure.pop()
     labels_t1 = network_structure.pop()
     # check if there are negative batch indices left
     # (have to be collapsed to a single one)
-    common_labels, t1_cont, t2_cont = np.intersect1d(
-        labels_t1, labels_t2, assume_unique=True, return_indices=True)
-    common_batch_labels = np.intersect1d(
-        batch_labels, common_labels, assume_unique=True)
-    if common_batch_labels.shape[0] > 0:
+    common_labels, t1_cont, t2_cont = label_intersection(labels_t1, labels_t2)
+    common_batch_labels = set(batch_labels).intersection(common_labels)
+    if len(common_batch_labels) > 0:
       # collapse all negative batch indices
       tensors, network_structure, con_order = _batch_cont(
           t1, t2, tensors, network_structure, con_order, common_batch_labels,
           labels_t1, labels_t2, backend_obj)
     else:
       tensors.append(backend_obj.outer_product(t1, t2))
-      network_structure.append(np.append(labels_t1, labels_t2))
+      network_structure.append(labels_t1 + labels_t2)
 
   # if necessary do a final permutation
-  if len(network_structure[0]) > 0:
-    i1, i2 = np.nonzero(out_order[:, None] == network_structure[0][None, :])
-    return backend_obj.transpose(tensors[0], tuple(i1[i2]))
+  if len(network_structure[0]) > 1:
+    labels = network_structure[0]
+    final_order = tuple([labels.index(l) for l in out_order])
+    return backend_obj.transpose(tensors[0], final_order)
   return tensors[0]
 
 
 def ncon(
     tensors: Sequence[Union[network_components.AbstractNode, Tensor]],
-    network_structure: Sequence[Sequence[int]],
+    network_structure: Sequence[Sequence[Union[str, int]]],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
     check_network: bool = True,
@@ -680,24 +634,24 @@ def ncon(
   if check_network:
     _check_network(network_structure, [t.shape for t in _tensors], con_order,
                    out_order)
-
   network_structure, mapping = _canonicalize_network_structure(
       network_structure)
-  flat_labels = np.concatenate(network_structure)
+  flat_labels = [l for sublist in network_structure for l in sublist]
+  unique_flat_labels = list(set(flat_labels))
   if out_order is None:
     # negative batch labels (negative labels appearing more than once)
     # are subject to the same output ordering as regular output labels
-    out_order = np.unique(flat_labels[flat_labels < 0])[::-1]
+    out_order = sorted([l for l in unique_flat_labels if l < 0], reverse=True)
   else:
-    out_order = np.asarray([mapping[o] for o in out_order])
+    out_order = [mapping[o] for o in out_order]
   if con_order is None:
     # canonicalization of network structure takes care of appropriate
     # contraction ordering (i.e. use ASCII ordering for str and
     # regular ordering for int)
     # all positive labels appearing are considered proper contraction labels.
-    con_order = np.unique(flat_labels[flat_labels > 0])
+    con_order = sorted([l for l in unique_flat_labels if l > 0])
   else:
-    con_order = np.asarray([mapping[o] for o in con_order])
+    con_order = [mapping[o] for o in con_order]
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
