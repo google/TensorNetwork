@@ -158,7 +158,7 @@ def test_compute_envs(backend_dtype_values):
 
 
 @pytest.mark.parametrize("N", [4])
-def test_finite_DMRG_init(backend_dtype_values, N, capsys):
+def test_finite_DMRG_init(backend_dtype_values, N):
   np.random.seed(16)
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
@@ -180,12 +180,11 @@ def test_finite_DMRG_init(backend_dtype_values, N, capsys):
   np.testing.assert_allclose(energy, eta[0])
 
 
-def test_finite_DMRG_init(backend_dtype_values, capsys):
+def test_finite_DMRG_init_outstream(backend_dtype_values, capsys):
   np.random.seed(16)
   N = 6
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
-  H = get_XXZ_Hamiltonian(N, 1, 1, 1)
   mpo = FiniteXXZ(
       Jz=np.ones(N - 1),
       Jxy=np.ones(N - 1),
