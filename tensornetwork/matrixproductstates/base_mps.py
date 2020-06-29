@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
-# pylint: disable=line-too-long
 from tensornetwork.network_components import Node, contract_between
-# pylint: disable=line-too-long
 from tensornetwork.network_operations import split_node_full_svd
 from tensornetwork.linalg.linalg import conj
 from tensornetwork.backends import backend_factory
