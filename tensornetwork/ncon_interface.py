@@ -243,7 +243,7 @@ def _partial_trace(
   """
   Perform the partial trace of `tensor`.
   All labels appearing twice in `labels` are traced out.
-  Argns:
+  Args:
     tensor: A tensor.
     labels: The ncon-style labels of `tensor`.
   Returns:
