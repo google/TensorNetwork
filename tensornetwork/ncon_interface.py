@@ -56,14 +56,12 @@ def _get_cont_out_labels(
 
   int_out_labels = sorted([l for l in int_labels if l < 0], reverse=True)
   int_cont_labels = sorted([label for label in int_labels if label >= 0])
-
-  str_out_labels = [label for label in str_labels if label[0] == '-']
-  str_cont_labels = [label for label in str_labels if label[0] != '-']
-
   # pylint: disable=unnecessary-lambda
-  str_cont_labels = sorted(str_cont_labels, key=lambda x: str(x))
+  str_out_labels = sorted([label for label in str_labels if label[0] == '-'],
+                          key=lambda x: str(x))
   # pylint: disable=unnecessary-lambda
-  str_out_labels = sorted(str_out_labels, key=lambda x: str(x))
+  str_cont_labels = sorted([label for label in str_labels if label[0] != '-'],
+                           key=lambda x: str(x))
   # pylint: disable=line-too-long
   return int_cont_labels, str_cont_labels, int_out_labels, str_out_labels
 
@@ -224,7 +222,7 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
                        f"appear in `network_structure`.")
 
   # check if contracted dimensions are matching
-  mismatched_labels = []  
+  mismatched_labels = []
   for l in cont_labels:
     dims = {
         tensor_dimensions[m][n]
