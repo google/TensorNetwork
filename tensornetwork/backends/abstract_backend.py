@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #pylint: disable=line-too-long
-from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List, Text
+from typing import (Optional, Sequence, Tuple, Any, Union, Type, Callable, List,
+                    Text)
 import numpy as np
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
