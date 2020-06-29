@@ -180,7 +180,7 @@ def test_finite_DMRG_init(backend_dtype_values, N):
   np.testing.assert_allclose(energy, eta[0])
 
 
-def test_finite_DMRG_init_outstream(backend_dtype_values, capsys):
+def test_finite_DMRG_outstream(backend_dtype_values, capsys):
   np.random.seed(16)
   N = 6
   backend = backend_dtype_values[0]
