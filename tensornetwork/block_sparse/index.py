@@ -46,9 +46,7 @@ class Index:
   def __repr__(self) -> str:
     dense_shape = f"Dimension: {str(self.dim)} \n"
     charge_str = str(self._charges).replace('\n,', ',\n')
-    # print(charge_str)
     charge_str = charge_str.replace('\n', '\n            ')
-    # print(charge_str)
     charges = f"Charges:  {charge_str} \n"
     flow_info = f"Flows:  {str(self.flow)} \n"
     return f"Index:\n  {dense_shape}  {charges}  {flow_info} "
