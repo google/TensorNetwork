@@ -397,8 +397,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
     eigvals, u = np.linalg.eigh(A_tridiag)
     eigenvectors = []
-    if np.iscomplexobj(A_tridiag):
-      eigvals = np.array(eigvals).astype(A_tridiag.dtype)
+    eigvals = np.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.shape, initial_state.dtype)
