@@ -281,6 +281,12 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         tol=tol,
         maxiter=maxiter)
     if dtype:
+      example = np.zeros(1, dtype=dtype) # suppress "casting as real" warning
+      if not example.iscomplexobj():
+        if eta.iscomplexobj():
+          eta = eta.real
+        if U.iscomplexobj():
+          U = U.real
       eta = eta.astype(dtype)
       U = U.astype(dtype)
     return list(eta), [np.reshape(U[:, n], shape) for n in range(numeig)]
