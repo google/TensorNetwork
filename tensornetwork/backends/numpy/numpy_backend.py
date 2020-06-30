@@ -112,7 +112,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
   def diag(self, tensor: Tensor) -> Tensor:
     if len(tensor.shape) not in (1, 2):
-      raise TypeError("Only one and two dimensional tensors are allowed as input")
+      raise TypeError("Only one and two dimensional tensors"
+                      " are allowed as input")
     return np.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
