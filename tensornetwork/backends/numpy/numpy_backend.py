@@ -282,10 +282,10 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         maxiter=maxiter)
     if dtype:
       example = np.zeros(1, dtype=dtype) # suppress "casting as real" warning
-      if not example.iscomplexobj():
-        if eta.iscomplexobj():
+      if not np.iscomplexobj(example):
+        if np.iscomplexobj(eta):
           eta = eta.real
-        if U.iscomplexobj():
+        if np.iscomplexobj(U):
           U = U.real
       eta = eta.astype(dtype)
       U = U.astype(dtype)

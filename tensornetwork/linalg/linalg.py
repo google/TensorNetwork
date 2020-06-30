@@ -77,7 +77,7 @@ def svd(
                     max_truncation_error=max_truncation_error,
                     relative=relative)
   tensors = [Tensor(t, backend=backend) for t in out]
-  return tensors
+  return tuple(tensors)
 
 
 def qr(
@@ -88,7 +88,7 @@ def qr(
   backend = tensor.backend
   out = backend.qr(tensor.array, split_axis)
   tensors = [Tensor(t, backend=backend) for t in out]
-  return tensors
+  return tuple(tensors)
 
 
 def rq(
@@ -99,7 +99,7 @@ def rq(
   backend = tensor.backend
   out = backend.rq(tensor.array, split_axis)
   tensors = [Tensor(t, backend=backend) for t in out]
-  return tensors
+  return tuple(tensors)
 
 
 def eigh(matrix: Tensor) -> Tuple[Tensor, Tensor]:
@@ -114,7 +114,7 @@ def eigh(matrix: Tensor) -> Tuple[Tensor, Tensor]:
   backend = matrix.backend
   out = backend.eigh(matrix.array)
   tensors = [Tensor(t, backend=backend) for t in out]
-  return tensors
+  return tuple(tensors)
 
 
 def norm(tensor: Tensor) -> Tensor:
