@@ -24,7 +24,7 @@ from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, Char
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Type, Optional, Text
+from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
 Tensor = Any
 
 
@@ -116,10 +116,8 @@ def diag(tensor: ChargeArray) -> Any:
   return ChargeArray(data, newcharges, flows)
 
 
-def reshape(
-    tensor: ChargeArray, shape: Union[List[Index], Tuple[Index, ...], List[int],
-                                      Tuple[int, ...]]
-) -> ChargeArray:
+def reshape(tensor: ChargeArray, shape: Sequence[Union[Index,
+                                                       int]]) -> ChargeArray:
   """
   Reshape `tensor` into `shape.
   `ChargeArray.reshape` works the same as the dense 
@@ -171,8 +169,7 @@ def conj(tensor: ChargeArray) -> ChargeArray:
 
 
 def transpose(tensor: ChargeArray,
-              order: Optional[Union[List[int], np.ndarray]] = np.asarray([1,
-                                                                          0]),
+              order: Sequence[int] = np.asarray([1, 0]),
               shuffle: Optional[bool] = False) -> ChargeArray:
   """
   Transpose the tensor into the new order `order`. If `shuffle=False`
@@ -700,7 +697,7 @@ def pinv(matrix: BlockSparseTensor,
       check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
 
-def ones(indices: Union[Tuple[Index], List[Index]],
+def ones(indices: Sequence[Index],
          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a symmetric tensor with ones.
@@ -714,7 +711,7 @@ def ones(indices: Union[Tuple[Index], List[Index]],
   return BlockSparseTensor.ones(indices, dtype)
 
 
-def zeros(indices: Union[Tuple[Index], List[Index]],
+def zeros(indices: Sequence[Index],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a symmetric tensor with zeros.
@@ -728,7 +725,7 @@ def zeros(indices: Union[Tuple[Index], List[Index]],
   return BlockSparseTensor.zeros(indices, dtype)
 
 
-def randn(indices: Union[Tuple[Index], List[Index]],
+def randn(indices: Sequence[Index],
           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
   Initialize a random symmetric tensor from random normal distribution.
@@ -742,7 +739,7 @@ def randn(indices: Union[Tuple[Index], List[Index]],
   return BlockSparseTensor.randn(indices, dtype)
 
 
-def random(indices: Union[Tuple[Index], List[Index]],
+def random(indices: Sequence[Index],
            boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
            dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
   """
