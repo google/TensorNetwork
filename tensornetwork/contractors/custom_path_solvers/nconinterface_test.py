@@ -18,7 +18,8 @@ import pytest
 from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver, ncon_to_adj, ord_to_ncon, ncon_cost_check
 
 
-def test_ncon_solver():
+@pytest.mark.parametrize('chi', range(2, 6))
+def test_ncon_solver(chi):
   # test against network with known cost
   chi = np.random.randint(2, 10)
   u = np.random.rand(chi, chi, chi, chi)
@@ -37,19 +38,18 @@ def test_ncon_solver():
   assert np.array_equal(inds, np.sort(con_order))
 
 
-def test_ncon_solver2():
-  # test with random network
-  chi = np.random.randint(2, 5)
-  A = np.random.rand(chi, chi, chi, chi, chi, chi)
-  N = np.random.randint(2, 9)
+@pytest.mark.parametrize('num_closed', range(1, 20))
+def test_ncon_solver2(num_closed):
+  chi = 4
+  N = 10
+  A = np.zeros([chi, chi, chi, chi, chi, chi])
   tensors = [A] * N
-  num_closed = np.random.randint(0, 2 * N) + 1
   num_open = 4 * N - 2 * num_closed
   cl_inds = 1 + np.arange(num_closed)
   op_inds = -1 - np.arange(num_open)
   connects = [0] * N
-  rand_perm = np.argsort(np.random.rand(4 * N))
-  comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[rand_perm]
+  perm = np.argsort(np.sin(range(4 * N)))
+  comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[perm]
   for k in range(N):
     if k < (N - 1):
       connect_temp = np.concatenate((comb_inds[4 * k:4 * (k + 1)],
@@ -58,18 +58,17 @@ def test_ncon_solver2():
       connect_temp = np.concatenate(
           (comb_inds[4 * k:4 * (k + 1)], [num_closed + k + 1, num_closed + 1]))
     connects[k] = list(connect_temp[np.argsort(np.random.rand(6))])
-  max_branch = np.random.randint(1, 1000)
-  con_order, costs, _ = ncon_solver(
-      tensors, connects, max_branch=max_branch)
+  max_branch = 1000
+  con_order, costs, _ = ncon_solver(tensors, connects, max_branch=max_branch)
   ex_cost = ncon_cost_check(tensors, connects, con_order)
   assert np.allclose(costs, ex_cost)
   assert np.array_equal(np.arange(num_closed + N) + 1, np.sort(con_order))
 
 
-def test_ncon_to_adj():
-  chi = np.random.randint(2, 5)
-  N = np.random.randint(2, 9)
-  A = np.random.rand(chi, chi)
+@pytest.mark.parametrize('chi', range(2, 6))
+@pytest.mark.parametrize('N', range(2, 7))
+def test_ncon_to_adj(chi, N):
+  A = np.zeros([chi, chi])
   tensors = [A] * N
   connects = [0] * N
   for k in range(N):
@@ -88,16 +87,15 @@ def test_ncon_to_adj():
   assert np.allclose(log_adj, ex_log_adj)
 
 
-def test_ord_to_ncon():
-  # test with random network
-  N = np.random.randint(2, 8)
-  num_closed = np.random.randint(0, 2 * N) + 1
+@pytest.mark.parametrize('num_closed', range(1, 16))
+def test_ord_to_ncon(num_closed):
+  N = 8
   num_open = 4 * N - 2 * num_closed
   cl_inds = 1 + np.arange(num_closed)
   op_inds = -1 - np.arange(num_open)
   connects = [0] * N
-  rand_perm = np.argsort(np.random.rand(4 * N))
-  comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[rand_perm]
+  perm = np.argsort(np.random.rand(4 * N))
+  comb_inds = np.concatenate((op_inds, cl_inds, cl_inds))[perm]
   for k in range(N):
     if k < (N - 1):
       connect_temp = np.concatenate((comb_inds[4 * k:4 * (k + 1)],
@@ -115,9 +113,9 @@ def test_ord_to_ncon():
   assert np.array_equal(np.sort(con_order), np.arange(num_closed + N) + 1)
 
 
-def test_ncon_cost_check():
+@pytest.mark.parametrize('chi', range(2, 6))
+def test_ncon_cost_check(chi):
   # test against network with known cost
-  chi = np.random.randint(2, 10)
   u = np.random.rand(chi, chi, chi, chi)
   w = np.random.rand(chi, chi, chi)
   ham = np.random.rand(chi, chi, chi, chi, chi, chi)
@@ -131,13 +129,13 @@ def test_ncon_cost_check():
   assert np.allclose(cost, ex_cost)
 
 
-def test_ncon_cost_check2():
-  # test against network with known (includes traces and inner products)
-  chi = np.random.randint(2, 10)
-  A = np.random.rand(chi, chi, chi, chi)
-  B = np.random.rand(chi, chi, chi, chi, chi, chi)
-  C = np.random.rand(chi, chi, chi)
-  D = np.random.rand(chi, chi)
+@pytest.mark.parametrize('chi', range(2, 6))
+def test_ncon_cost_check2(chi):
+  # test against network with known (includes traces and inner products
+  A = np.zeros([chi, chi, chi, chi])
+  B = np.zeros([chi, chi, chi, chi, chi, chi])
+  C = np.zeros([chi, chi, chi])
+  D = np.zeros([chi, chi])
   tensors = [A, B, C, D]
   connects = [[1, 2, 3, 1], [2, 4, 4, 5, 6, 6], [3, 5, -1], [-2, -3]]
   con_order = [1, 2, 3, 4, 5, 6]

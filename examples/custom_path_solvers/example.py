@@ -26,7 +26,7 @@ networks defined in the `ncon` syntax. Note that there are essentially three
 ways to use the solver:
 
 (i) Unrestricted search: set 'max_branch=None' to search over all possible
-contraction paths in order to obtain the guranteed optimal path. The total
+contraction paths in order to obtain the guaranteed optimal path. The total
 search time required scales with number of tensors `N ` as: t ~ exp(N)
 
 (ii) Restricted search: set 'max_branch' as an integer to restrict the search
