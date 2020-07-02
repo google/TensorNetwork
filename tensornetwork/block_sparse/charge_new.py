@@ -57,10 +57,12 @@ def get_shifts(itemsizes: List[List[int]]):
   tmp = [sum(l) for l in itemsizes]
   return list(itertools.accumulate((tmp[1:]+[0])[::-1]))[::-1]
 
-def uncollapse_single(charge: np.ndarray, dtypes: List[Type[np.number]]):
+def expand_single(charge: np.ndarray, dtypes: List[Type[np.number]]):
   itemsizes = [d.itemsize * 8 for d in dtypes]
   res = [np.bitwise_and(charge, 2**itemsizes[-1] - 1).astype(dtypes[-1])]
   for n in reversed(range(1, len(dtypes))):
+    # itemsizes always coincide with a fundamental dtype, so no hacky
+    # solution neccesary
     tmp = np.right_shift(charge - res[-1], itemsizes[n])
     res.append(
         np.bitwise_and(tmp, 2**itemsizes[n - 1] - 1).astype(dtypes[n - 1]))
@@ -68,21 +70,30 @@ def uncollapse_single(charge: np.ndarray, dtypes: List[Type[np.number]]):
   return res[::-1]
 
 
-def uncollapse(charge: np.ndarray,
-               original_dtypes: List[List[Type[np.number]]]):
+def expand(charge: np.ndarray,
+               original_dtypes: List[List[Type[np.number]]])->List[np.ndarray]:
   itemsizes = [sum(v) for v in get_itemsizes(original_dtypes)]
   res = []
   for n in reversed(range(len(itemsizes))):
     dtype = get_dtype(itemsizes[n])
     shift = np.dtype(dtype).itemsize * 8 - itemsizes[n]
-    tmp = np.right_shift(np.left_shift(np.bitwise_and(charge, 2**itemsizes[n] - 1).astype(dtype),shift),shift)
-    res.append(tmp)
+    # a little hacky solution to fill 1s from the left side
+    # into the bitrep of the masked number if neccesary
+    # numpy uses two's complement representation of negative ints,
+    # this restores the representation of charges with itemsizes
+    # which don't match the itemsize of its fundamental dtype
+    # (e.g. itemsize 24 with fundamental itemsize 32 for int32)
+    res.append(
+        np.right_shift(
+            np.left_shift(
+                np.bitwise_and(charge, 2**itemsizes[n] - 1).astype(dtype),
+                shift), shift))
     charge = np.right_shift(charge - res[-1].astype(charge.dtype), itemsizes[n])
   return res[::-1]
 
 
 def collapse(charges: List[np.ndarray],
-             original_dtypes: List[List[Type[np.number]]]):
+             original_dtypes: List[List[Type[np.number]]])->np.ndarray:
   """
   Collapse all `charges` into a single np.ndarray. `original_dtypes`
   contains the original dtypes of each charge in `charges` (i.e. the
@@ -205,7 +216,7 @@ class BaseCharge:
             self.original_dtypes) + " \n  indices: " + str(
                 self.charge_indices
             ) + "\n  " + 'charges: ' + self.charges.__repr__().replace(
-                '\n', '\n          ') + '\n'
+                '\n', '\n          ').replace(', array', ',\n            array') + '\n'
     return out
 
   def __len__(self) -> int:
@@ -270,7 +281,7 @@ class BaseCharge:
       if len(unique) > 1:
         raise ValueError("some lists in charge_types do not"
                          " contain identical values. "
-                         "Call uncollapse all first.")
+                         "Call expand all first.")
 
     unique_charge_types = set(flatten(self.charge_types))
     check = []
@@ -318,19 +329,19 @@ class BaseCharge:
     self.stacked_charges = np.stack(self.charges, axis=0)
     return self
 
-  def uncollapse_charge_types(self):
+  def expand_charge_types(self):
     # for cts in self.charge_types:
     #   unique = set(cts)
     #   if len(cts) != len(unique):
     #     raise ValueError("some lists in charge_types do not"
     #                      " contain identical values. "
-    #                      "Call uncollapse all first.")
+    #                      "Call expand all first.")
 
     # unique_charge_types = set(flatten(self.charge_types))
     # if len(self.charge_types) == 1:
     #   if len(self.charge_types[0]) != len(unique_charge_types):
-    #     raise ValueError("Cannot uncollapse completely collapsed charges"
-    #                      " of different types. Use uncollapse_all_charges.")
+    #     raise ValueError("Cannot expand completely collapsed charges"
+    #                      " of different types. Use expand_all_charges.")
 
     if len(self.charges) == len(flatten(self.original_dtypes)):
       return self
@@ -338,12 +349,13 @@ class BaseCharge:
     original_dtypes = [None] * L
     charge_types = [None] * L
     charges = [None] * L
+    print(self.charge_types)
     for n, cts in enumerate(self.charge_types):
-      uncollapsed = uncollapse_single(self.charges[n], self.original_dtypes[n])
+      expanded = expand_single(self.charges[n], self.original_dtypes[n])
       for k, m in enumerate(self.charge_indices[n]):
-        charges[m] = uncollapsed[k]
+        charges[m] = expanded[k]
         original_dtypes[m] = [self.original_dtypes[n][k]]
-        charge_types[m] = cts[k]
+        charge_types[m] = [cts[k]]
     self.charges = charges
     self.original_dtypes = original_dtypes
     self.charge_types = charge_types
@@ -352,7 +364,7 @@ class BaseCharge:
 
     return self
 
-  def collapse_all_charges(self):
+  def collapse(self):
     """
     Collapse all charges into a single np.ndarray
     """
@@ -360,29 +372,11 @@ class BaseCharge:
       #nothing to collapse
       return self
     self.charges = [collapse(self.charges, self.original_dtypes)]
-    self.charge_types = [flatten(self.charge_types)]
-    self.original_dtypes = [flatten(self.original_dtypes)]
-    self.charge_indices = [flatten(self.charge_indices)]
 
-  def uncollapse_all_charges(self):
-    if len(self.charges) == len(flatten(self.original_dtypes)):
+  def expand(self):
+    if len(self.charges) == len(self.original_dtypes):
       return self
-    L = sum([len(dt) for dt in self.original_dtypes])
-    original_dtypes = [None] * L
-    charge_types = [None] * L
-    charges = [None] * L
-    for n, cts in enumerate(self.charge_types):
-      uncollapsed = uncollapse_single(self.charges[n], self.original_dtypes[n])
-      for k, m in enumerate(self.charge_indices[n]):
-        charges[m] = uncollapsed[k]
-        original_dtypes[m] = [self.original_dtypes[n][k]]
-        charge_types[m] = cts[k]
-    self.charges = charges
-    self.original_dtypes = original_dtypes
-    self.charge_types = charge_types
-    self.charge_indices = [[n] for n in range(len(self.charges))]
-    self.stacked_charges = np.stack(self.charges, axis=0)
-
+    self.charges = expand(self.charges[0], self.original_dtypes)
     return self
 
 
@@ -487,9 +481,9 @@ class BaseCharge:
         assume_unique=assume_unique,
         return_indices=return_indices)
     if return_indices:
-      final_charges = uncollapse_charges(tmp[0], dtypes, itemsizes)
+      final_charges = expand_charges(tmp[0], dtypes, itemsizes)
     else:
-      final_charges = uncollapse_charges(tmp, dtypes, itemsizes)
+      final_charges = expand_charges(tmp, dtypes, itemsizes)
     obj = self.__new__(type(self))
     obj.__init__(
         charges=final_charges,
@@ -497,8 +491,8 @@ class BaseCharge:
         num_symmetries=self.num_symmetries,
         original_dtypes=self.original_dtypes)
     if not collapsed:
-      obj.uncollapse_charge_types()
-      self.uncollapse_charge_types()
+      obj.expand_charge_types()
+      self.expand_charge_types()
 
     if return_indices:
       return obj, tmp[1], tmp[2]
@@ -546,7 +540,7 @@ class BaseCharge:
     else:
       unique_charges = tmp
     if collapsed:
-      final_charges = uncollapse_charges(unique_charges, dtypes, itemsizes)
+      final_charges = expand_charges(unique_charges, dtypes, itemsizes)
     else:
       final_charges = [unique_charges]
 
@@ -557,8 +551,8 @@ class BaseCharge:
         num_symmetries=self.num_symmetries,
         original_dtypes=self.original_dtypes)
     if collapsed_charge_types:
-      obj.uncollapse_charge_types()
-      self.uncollapse_charge_types()
+      obj.expand_charge_types()
+      self.expand_charge_types()
     if return_index or return_inverse or return_counts:
       out = list(tmp)
       out[0] = obj
