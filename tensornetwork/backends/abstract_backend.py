@@ -19,10 +19,10 @@ import numpy as np
 Tensor = Any
 
 
-class BaseBackend:
+class AbstractBackend:
 
-  def __init__(self):
-    self.name = 'base backend'
+  def __init__(self) -> None:
+    self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -213,7 +213,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self, expression: str, *tensors: Tensor, optimize: bool) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
@@ -342,13 +342,12 @@ class BaseBackend:
            numeig: int = 1,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: Optional[int] = None) -> List[Tensor]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs 
     of a linear operator `A`. `A` is a callable implementing the 
     matrix-vector product. If no `initial_state` is provided then 
     `shape` and `dtype` have to be passed so that a suitable initial 
     state can be randomly  generated.
-
     Args:
       A: A (sparse) implementation of a linear operator
       arsg: A list of arguments to `A`.  `A` will be called as
@@ -371,6 +370,7 @@ class BaseBackend:
             'SR' : smallest real part
             'LI' : largest imaginary part
             'SI' : smallest imaginary part
+        Note that not all of those might be supported by specialized backends.
       maxiter: The maximum number of iterations.
     Returns:
        `Tensor`: An array of `numeig` lowest eigenvalues
@@ -390,7 +390,7 @@ class BaseBackend:
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`.
@@ -607,3 +607,38 @@ class BaseBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    """
+    Sum elements of `tensor` along the specified `axis`. Results in a
+    new Tensor with the summed axis removed.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: The result of performing the summation. The order of the tensor 
+        will be reduced by 1.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `sum`.".format(
+        self.name))
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+    Perform a possibly batched matrix-matrix multiplication 
+    between `tensor1` and `tensor2`. The following behaviour 
+    is similar to `numpy.matmul`:
+    - If both arguments are 2-D they are multiplied like conventional
+      matrices.
+    - If either argument is N-D, N > 2, it is treated as a stack of
+      matrices residing in the last two indexes and broadcast accordingly.
+    Both arguments to `matmul` have to be tensors of order >= 2.
+    Args:
+      tensor1: An input tensor.
+      tensor2: An input tensor.
+    Returns:
+      tensor: The result of performing the matmul.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `matmul`.".format(self.name))

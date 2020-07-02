@@ -15,11 +15,11 @@
 
 import graphviz
 from typing import Optional, Text, Iterable
-from tensornetwork.network_components import BaseNode
+from tensornetwork.network_components import AbstractNode
 
 
 #pylint: disable=no-member
-def to_graphviz(nodes: Iterable[BaseNode],
+def to_graphviz(nodes: Iterable[AbstractNode],
                 graph: Optional[graphviz.Graph] = None,
                 include_all_names: bool = False,
                 engine: Text = "neato") -> graphviz.Graph:
