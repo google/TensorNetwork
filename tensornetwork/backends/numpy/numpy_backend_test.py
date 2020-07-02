@@ -419,6 +419,45 @@ def test_eigsh_lanczos_raises():
     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 
+def test_gmres_raises():
+  backend = numpy_backend.NumPyBackend()
+  dummy_mv = lambda x: x
+  N = 10
+  with pytest.raises(ValueError): # x0, b have different sizes
+    backend.gmres(dummy_mv, np.zeros((N,)), x0=np.zeros((N+1,)))
+  with pytest.raises(ValueError): # x0, b have different dtypes
+    backend.gmres(dummy_mv, np.zeros((N,), dtype=np.float32),
+                  x0=np.zeros(N, dtype=np.float64))
+  with pytest.raises(ValueError): # x0, b have different shapes
+    x0 = np.zeros(N)
+    b = np.zeros(N).reshape(2, N//2)
+    backend.gmres(dummy_mv, b, x0=x0)
+  with pytest.raises(ValueError): # num_krylov_vectors < 0
+    backend.gmres(dummy_mv, np.zeros((N,)), num_krylov_vectors=-1)
+  with pytest.raises(ValueError): # num_krylov_vectors <= 0
+    backend.gmres(dummy_mv, np.zeros((N,)), num_krylov_vectors=0)
+  with pytest.raises(ValueError): # num_krylov_vectors > b.size
+    backend.gmres(dummy_mv, np.zeros((N,)), num_krylov_vectors=N+1)
+  with pytest.raises(ValueError): # tol < 0
+    backend.gmres(dummy_mv, np.zeros((N,)), tol=-0.3)
+  with pytest.raises(ValueError): # atol < 0
+    backend.gmres(dummy_mv, np.zeros((N,)), atol=-0.3)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_gmres_on_small_known_problem(dtype):
+  backend = numpy_backend.NumPyBackend()
+  A = np.array(([[1, 1], [3, -4]]), dtype=dtype)
+  b = np.array([3, 2], dtype=dtype)
+  x0 = np.ones(2, dtype=dtype)
+  n_kry = 2
+  def A_mv(x):
+    return A @ x
+  x, _ = backend.gmres(A_mv, b, x0=x0, num_krylov_vectors=n_kry)
+  solution = np.array([2., 1.], dtype=dtype)
+  np.testing.assert_allclose(x, solution)
+
+
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(1, 1, 2),
     pytest.param(1., np.ones((1, 2, 3)), 2 * np.ones((1, 2, 3))),
