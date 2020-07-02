@@ -55,7 +55,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
   def transpose(self, tensor, perm=None):
-   return jnp.transpose(tensor, perm)
+    return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
