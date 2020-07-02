@@ -21,7 +21,6 @@ def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
 
-
 def get_dtype(nbits):
   final_dtype = np.int8
   if nbits > 8:
@@ -32,8 +31,9 @@ def get_dtype(nbits):
     final_dtype = np.int64
   return final_dtype
 
+
 def get_resulting_dtype_and_itemsizes(dtypes: List[List[Type[np.number]]]):
-  itemsizes =  get_itemsizes(dtypes)
+  itemsizes = get_itemsizes(dtypes)
 
   nbits = sum(flatten(itemsizes))
   if nbits > 64:
@@ -41,8 +41,9 @@ def get_resulting_dtype_and_itemsizes(dtypes: List[List[Type[np.number]]]):
                     f"has more than 64 bits")
   return get_dtype(nbits), itemsizes
 
+
 def get_resulting_dtype_and_shifts(dtypes: List[List[Type[np.number]]]):
-  itemsizes =  get_itemsizes(dtypes)
+  itemsizes = get_itemsizes(dtypes)
 
   nbits = sum(flatten(itemsizes))
   if nbits > 64:
@@ -50,12 +51,15 @@ def get_resulting_dtype_and_shifts(dtypes: List[List[Type[np.number]]]):
                     f"has more than 64 bits")
   return get_dtype(nbits), get_shifts(itemsizes)
 
+
 def get_itemsizes(dtypes: List[List[Type[np.number]]]):
-  return [[d.itemsize * 8  for d in sublist] for sublist in dtypes]
+  return [[d.itemsize * 8 for d in sublist] for sublist in dtypes]
+
 
 def get_shifts(itemsizes: List[List[int]]):
   tmp = [sum(l) for l in itemsizes]
-  return list(itertools.accumulate((tmp[1:]+[0])[::-1]))[::-1]
+  return list(itertools.accumulate((tmp[1:] + [0])[::-1]))[::-1]
+
 
 def expand_single(charge: np.ndarray, dtypes: List[Type[np.number]]):
   itemsizes = [d.itemsize * 8 for d in dtypes]
@@ -71,7 +75,7 @@ def expand_single(charge: np.ndarray, dtypes: List[Type[np.number]]):
 
 
 def expand(charge: np.ndarray,
-               original_dtypes: List[List[Type[np.number]]])->List[np.ndarray]:
+           original_dtypes: List[List[Type[np.number]]]) -> List[np.ndarray]:
   itemsizes = [sum(v) for v in get_itemsizes(original_dtypes)]
   res = []
   for n in reversed(range(len(itemsizes))):
@@ -93,7 +97,7 @@ def expand(charge: np.ndarray,
 
 
 def collapse(charges: List[np.ndarray],
-             original_dtypes: List[List[Type[np.number]]])->np.ndarray:
+             original_dtypes: List[List[Type[np.number]]]) -> np.ndarray:
   """
   Collapse all `charges` into a single np.ndarray. `original_dtypes`
   contains the original dtypes of each charge in `charges` (i.e. the
@@ -151,7 +155,6 @@ class BaseCharge:
     else:
       self.charge_indices = charge_indices
 
-
     # always collapse charge-types by default
     self.collapse_charge_types()
 
@@ -173,9 +176,11 @@ class BaseCharge:
   def random(cls, minval: int, maxval: int, dimension: int):
     raise NotImplementedError(
         "`random` has to be implemented in derived classes")
+
   @property
   def num_symmetries(self):
     return len(flatten(self.charge_types))
+
   @property
   def dim(self):
     return len(self.charges[0])
@@ -195,6 +200,7 @@ class BaseCharge:
   @property
   def dtypes(self):
     return [c.dtype for c in self.charges]
+
   @property
   def is_collapsed(self):
     return len(self.charges) == 1
@@ -215,8 +221,7 @@ class BaseCharge:
   def __len__(self) -> int:
     return self.dim
 
-  def __eq__(self,
-             other: "BaseCharge") -> np.ndarray:
+  def __eq__(self, other: "BaseCharge") -> np.ndarray:
     # collapse into a single nparray
     self_is_collapsed = self.is_collapsed
     if not self_is_collapsed:
@@ -235,19 +240,29 @@ class BaseCharge:
 
     return np.squeeze(res)
 
-  # @property
-  # def identity_charges(self) -> np.ndarray:
-  #   """
-  #   Returns the identity charge.
-  #   Returns:
-  #     BaseCharge: The identity charge.
-  #   """
-  #   ids = []
-  #   for n, ct in enumerate(self.charge_types):
-  #     ids.append(
-  #         collapse_charges([ct.identity_charge()] * len(self.original_dtypes[n]),
-  #                  self.original_dtypes[n]))
-  #   return np.expand_dims(np.stack(ids), 0)
+  @property
+  def identity_charges(self) -> "BaseCharge":
+    """
+    Returns the identity charge.
+    Returns:
+      BaseCharge: The identity charge.
+    """
+    charges = []
+    for n, cts in enumerate(self.charge_types):
+      tmpcharges = [ct.identity_charge() for ct in cts]
+      dtypes = [[dt] for dt in self.original_dtypes[n]]
+      charges.append(collapse(tmpcharges, dtypes))
+    is_collapsed = self.is_collapsed
+
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=charges,
+        charge_types=self.charge_types,
+        original_dtypes=self.original_dtypes,
+        charge_indices=self.charge_indices)
+    if is_collapsed:
+      obj.collapse()
+    return obj
 
   def collapse_charge_types(self):
     """
@@ -265,7 +280,7 @@ class BaseCharge:
     for u in unique_charge_types:
       # all values in `ct` are the same
       tmp = [u in ct for ct in self.charge_types]
-      check.append(tmp.count(True)==1)
+      check.append(tmp.count(True) == 1)
     if all(check):
       #nothing to collapse
       return self
@@ -367,7 +382,6 @@ class BaseCharge:
                      f"len(BaseCharge.charge_types) = "
                      f"{len(self.charge_types)}")
 
-
   def __add__(self, other: "BaseCharge") -> "BaseCharge":
     """
     Fuse `self` with `other`.
@@ -376,16 +390,20 @@ class BaseCharge:
     Returns:
       BaseCharge: The result of fusing `self` with `other`.
     """
-    # fuse the unique charges from each index, then compute new unique charges
-    # Note (mganahl): check if all cts are identical is performed below in __init__
+    # fuse the unique charges from each index,
+    # then compute new unique charges
+    # Note (mganahl): check if all cts are identical is
+    #                 performed below in __init__
     charge_types = [cts[0] for cts in self.charge_types]
-    fused_charges = fuse_ndarray_charges(self.charges, other.charges, charge_types)
+    fused_charges = fuse_ndarray_charges(self.charges, other.charges,
+                                         charge_types)
 
     obj = self.__new__(type(self))
-    obj.__init__(charges=fused_charges,
-                 charge_types=self.charge_types,
-                 original_dtypes= self.original_dtypes,
-                 charge_indices=self.charge_indices)
+    obj.__init__(
+        charges=fused_charges,
+        charge_types=self.charge_types,
+        original_dtypes=self.original_dtypes,
+        charge_indices=self.charge_indices)
 
     return obj
 
@@ -399,10 +417,15 @@ class BaseCharge:
       BaseCharge
     """
     if take_dual:
-
+      is_collapsed = self.is_collapsed
+      if is_collapsed:
+        self.expand()
+      # We can assume here that each list in self.charge_types
+      # contains identical elements (i.e. the value is a
+      # single charge-type)
       charges = [
-          ct.dual_charges(self._charges[n])
-          for n, ct in enumerate(self.charge_types)
+          self.charge_types[n][0].dual_charges(c)
+          for n, c in enumerate(self.charges)
       ]
       obj = self.__new__(type(self))
       obj.__init__(
@@ -410,6 +433,9 @@ class BaseCharge:
           charge_types=self.charge_types,
           original_dtypes=self.original_dtypes,
           charge_indices=self.charge_indices)
+      if is_collapsed:
+        self.collapse()
+        obj.collapse()
       return obj
     return self
 
@@ -422,7 +448,9 @@ class BaseCharge:
     charge_types = self.charge_types + other.charge_types
     original_dtypes = self.original_dtypes + other.original_dtypes
     R = len(flatten(self.charge_indices))
-    charge_indices = self.charge_indices + [[n + R for n in sublist] for sublist in other.charge_indices ]
+    charge_indices = self.charge_indices + [[n + R
+                                             for n in sublist]
+                                            for sublist in other.charge_indices]
     return BaseCharge(
         charges=charges,
         charge_types=charge_types,
@@ -445,45 +473,45 @@ class BaseCharge:
     Returns:
       If `return_indices=True`:
         BaseCharge
-        np.ndarray: The indices of the first occurrences of the common values in `self`.
-        np.ndarray: The indices of the first occurrences of the common values in `other`.
+        np.ndarray: The indices of the first occurrences 
+          of the common values in `self`.
+        np.ndarray: The indices of the first occurrences 
+          of the common values in `other`.
       If `return_indices=False`:
         BaseCharge
     """
-    #TODO: add checks
-    len_charges = len(self._charges)
-    self.collapse_charge_types()
-    collapsed = False
-    if len(self._charges) == len_charges:
-      collapsed = True
+    self_is_collapsed = self.is_collapsed
+    other_is_collapsed = other.is_collapsed
+    if not self_is_collapsed:
+      self.collapse()
+    if not other_is_collapsed:
+      other.collapse()
 
-    charge1, dtypes, itemsizes = collapse_charges(self._charges,
-                                                  self.original_dtypes)
-
-    other.collapse_charge_types()
-    charge2, _, _ = collapse_charges(other._charges, other.original_dtypes)
-
-    tmp = np.intersect1d(
-        charge1,
-        charge2,
+    res = np.intersect1d(
+        self.charges[0],
+        other.charges[0],
         assume_unique=assume_unique,
         return_indices=return_indices)
     if return_indices:
-      final_charges = expand_charges(tmp[0], dtypes, itemsizes)
+      charges = res[0]
     else:
-      final_charges = expand_charges(tmp, dtypes, itemsizes)
+      charges = res
     obj = self.__new__(type(self))
     obj.__init__(
-        charges=final_charges,
+        charges=[charges],
         charge_types=self.charge_types,
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
-    if not collapsed:
-      obj.expand_charge_types()
-      self.expand_charge_types()
+
+    if not self_is_collapsed:
+      self.expand()
+      obj.expand()
+
+    if not other_is_collapsed:
+      other.expand()
 
     if return_indices:
-      return obj, tmp[1], tmp[2]
+      return obj, res[1], res[2]
 
     return obj
 
@@ -497,16 +525,19 @@ class BaseCharge:
     does the same but instead of a np.ndarray, it returns the unique
     elements in a `BaseCharge` object.
     Args:
-      return_index: If `True`, also return the indices of `self.charges` (along the specified axis,
+      return_index: If `True`, also return the indices of 
+        `self.charges` (along the specified axis,
         if provided, or in the flattened array) that result in the unique array.
-      return_inverse: If `True`, also return the indices of the unique array (for the specified
-        axis, if provided) that can be used to reconstruct `self.charges`.
-      return_counts: If `True`, also return the number of times each unique item appears
-        in `self.charges`.
+      return_inverse: If `True`, also return the indices of the unique array 
+        (for the specified axis, if provided) that can be used to reconstruct 
+        `self.charges`.
+      return_counts: If `True`, also return the number of times each unique 
+        item appears in `self.charges`.
     Returns:
       BaseCharge: The sorted unique values.
-      np.ndarray: The indices of the first occurrences of the unique values in the
-        original array. Only provided if `return_index` is True.
+      np.ndarray: The indices of the first occurrences of the unique 
+        values in the original array. Only provided if `return_index` 
+        is True.
       np.ndarray: The indices to reconstruct the original array from the
         unique array. Only provided if `return_inverse` is True.
       np.ndarray: The number of times each of the unique values comes up in the
@@ -517,17 +548,34 @@ class BaseCharge:
       self.collapse()
     res = np.unique(self.charges[0], return_index, return_inverse,
                     return_counts)
+    if any([return_index, return_inverse, return_counts]):
+      charges = res[0]
+    else:
+      charges = res
+
+    obj = self.__new__(type(self))
+    obj.__init__(
+        charges=[charges],
+        charge_types=self.charge_types,
+        original_dtypes=self.original_dtypes,
+        charge_indices=self.charge_indices)
+
     if not is_collapsed:
       self.expand()
-    return res
+      obj.expand()
+      
+    if any([return_index, return_inverse, return_counts]):
+      return (obj,) + res[1:]
+    else:
+      return obj
 
   def reduce(self,
-             target_charges: np.ndarray,
+             targets: "BaseCharge",
              return_locations: bool = False,
              strides: Optional[int] = None) -> Any:
     """
-    Reduce the dimension of a
-    charge to keep only the charge values that intersect target_charges
+    Reduce the dimension of the charge to keep only the charge 
+    values that intersect with target_charges
     Args:
       target_charges: array of unique charges to keep.
       return_locations: If `True`, also return the locations of
@@ -538,15 +586,26 @@ class BaseCharge:
       np.ndarray: If `return_locations = True`; the index locations
         of target values.
     """
-    mask = self.isin(target_charges)
-    reduced_charges = [c[mask] for c in self._charges]
+    self_is_collapsed = self.is_collapsed
+    targets_is_collapsed = targets.is_collapsed
+    if not self_is_collapsed:
+      self.collapse()
+    if not targets_is_collapsed:
+      targets.collapse()
+    mask = np.isin(self.charges[0], targets.charges[0])
+    reduced = self.charges[0][mask]
     obj = self.__new__(type(self))
     obj.__init__(
-        charges=reduced_charges,
+        charges=[reduced],
         charge_types=self.charge_types,
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
 
+    if not self_is_collapsed:
+      self.expand()
+      obj.expand()
+    if not targets_is_collapsed:
+      targets.expand()
 
     if return_locations:
       if strides is not None:
@@ -565,14 +624,15 @@ class BaseCharge:
     if np.isscalar(n):
       n = np.asarray([n])
     obj = self.__new__(type(self))
-    obj.__init__(charges=[c[n] for c in self.charges],
-                 charge_types = self.charge_types,
-                 original_dtypes=self.original_dtypes,
-                 charge_indices=self.charge_indices)
+    obj.__init__(
+        charges=[c[n] for c in self.charges],
+        charge_types=self.charge_types,
+        original_dtypes=self.original_dtypes,
+        charge_indices=self.charge_indices)
 
     return obj
 
-  def isin(self, target_charges: np.ndarray) -> np.ndarray:
+  def isin(self, other: "BaseCharge") -> np.ndarray:
     """
     See also np.isin.
     Returns an np.ndarray of `dtype=bool`, with `True` at all linear positions
@@ -582,28 +642,19 @@ class BaseCharge:
     Returns:
       np.ndarray: An array of boolean values.
     """
-    if len(self._charges) == 1:
-      target_charges = np.squeeze(target_charges)
-      if target_charges.ndim > 1:
-        raise ValueError("target_charges.ndim = {} is incompatible with "
-                         "number of effective charges = 1".format(
-                             target_charges.ndim))
+    self_is_collapsed = self.is_collapsed
+    other_is_collapsed = other.is_collapsed
+    if not self_is_collapsed:
+      self.collapse()
+    if not other_is_collapsed:
+      other.collapse()
 
-      return np.isin(self._charges[0], target_charges)
-    if target_charges.ndim != 2:
-      raise ValueError("target_charges.ndim = {} is incompatible with "
-                       "number of effective charges = {}".format(
-                           target_charges.ndim, len(self._charges)))
-
-    if target_charges.shape[0] != len(self._charges):
-      raise ValueError(
-          "target_charges.shape[1] = {} is incompatible with len(self._charges) = {}"
-          .format(target_charges.shape[1], len(self._charges)))
-
-    tmp = np.expand_dims(np.stack(self._charges, axis=1), 2) == np.expand_dims(
-        target_charges, 0)
-    #pylint: disable=no-member
-    return np.logical_or.reduce(np.logical_and.reduce(tmp, axis=1), axis=1)
+    res = np.isin(self.charges[0], other.charges[0])
+    if not self_is_collapsed:
+      self.expand()
+    if not other_is_collapsed:
+      other.expand()
+    return res
 
 
 class U1Charge(BaseCharge):
@@ -617,7 +668,7 @@ class U1Charge(BaseCharge):
     if isinstance(charges, np.ndarray):
       charges = [charges]
     super().__init__(
-        charges = charges,
+        charges=charges,
         charge_types=[[type(self)]],
         original_dtypes=original_dtypes,
         charge_indices=charge_indices)
@@ -635,7 +686,7 @@ class U1Charge(BaseCharge):
     return np.int16(0)
 
   @classmethod
-  def random(cls, dimension: int,minval: int, maxval: int) -> BaseCharge:
+  def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
     charges = [np.random.randint(minval, maxval, dimension, dtype=np.int16)]
     return cls(charges=charges)
 
@@ -690,75 +741,6 @@ def fuse_ndarray_charges(charges_A: List[np.ndarray],
   return [
       ct.fuse(charges_A[n], charges_B[n]) for n, ct in enumerate(charge_types)
   ]
-
-
-def intersect(A: np.ndarray,
-              B: np.ndarray,
-              axis=0,
-              assume_unique=False,
-              return_indices=False) -> Any:
-  """
-  Extends numpy's intersect1d to find the row or column-wise intersection of
-  two 2d arrays. Takes identical input to numpy intersect1d.
-  Args:
-    A, B (np.ndarray): arrays of matching widths and datatypes
-  Returns:
-    ndarray: sorted 1D array of common rows/cols between the input arrays
-    ndarray: the indices of the first occurrences of the common values in A.
-      Only provided if return_indices is True.
-    ndarray: the indices of the first occurrences of the common values in B.
-      Only provided if return_indices is True.
-  """
-  #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
-  #pylint: disable=no-else-return
-  if A.dtype != B.dtype:
-    raise TypeError(
-        "dtypes of A and B have to match. Found A.dtype = {} and B.dtype = {}"
-        .format(A.dtype, B.dtype))
-  if A.ndim != B.ndim:
-    raise ValueError("array ndims must match to intersect")
-  if A.ndim == 1:
-    return np.intersect1d(
-        A, B, assume_unique=assume_unique, return_indices=return_indices)
-
-  elif A.ndim == 2:
-    if axis == 0:
-      ncols = A.shape[1]
-      if A.shape[1] != B.shape[1]:
-        raise ValueError("array widths must match to intersect")
-
-      dtype = {
-          'names': ['f{}'.format(i) for i in range(ncols)],
-          'formats': ncols * [A.dtype]
-      }
-      if return_indices:
-        C, A_locs, B_locs = np.intersect1d(
-            A.view(dtype),
-            B.view(dtype),
-            assume_unique=assume_unique,
-            return_indices=return_indices)
-        return C.view(A.dtype).reshape(-1, ncols), A_locs, B_locs
-      C = np.intersect1d(
-          A.view(dtype), B.view(dtype), assume_unique=assume_unique)
-      return C.view(A.dtype).reshape(-1, ncols)
-
-    elif axis == 1:
-      #NOTE: we have to copy here, otherwise intersect1d will be super confused
-
-      out = intersect(
-          A.T.copy(),
-          B.T.copy(),
-          axis=0,
-          assume_unique=assume_unique,
-          return_indices=return_indices)
-      if return_indices:
-        return out[0].T, out[1], out[2]
-      return out.T
-
-    raise NotImplementedError(
-        "intersection can only be performed on first or second axis")
-
-  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
 
 
 def fuse_charges(charges: List[BaseCharge], flows: List[bool]) -> BaseCharge:
@@ -822,17 +804,41 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
 
 
 def charge_equal(c1, c2):
+  res = True
   if c1.dim != c2.dim:
-    return False
-  if not np.all(c1.charges == c2.charges):
-    return False
-  if not np.all([t1 is t2 for t1, t2 in zip(c1.charge_types, c2.charge_types)]):
-    return False
-  if not np.all([
-      t1 is t2 for t1, t2 in zip(
-          flatten(c1.original_dtypes), flatten(c2.original_dtypes))
-  ]):
-    return False
-  if len(c1.original_dtypes) != len(c2.original_dtypes):
-    return False
-  return True
+    res = False
+  if res and len(c1.charges) != len(c2.charges):
+    res = False
+  if res:
+    for charge1, charge2 in zip(c1.charges, c2.charges):
+      if not np.all(charge1 == charge2):
+        res = False
+        break
+  if res and len(c1.charge_types) != len(c2.charge_types):
+    res = False
+  if res:
+    for ct1, ct2 in zip(c1.charge_types, c2.charge_types):
+      if len(ct1) != len(ct2):
+        res = False
+        break
+  if res:
+    if not all([
+        t1 is t2
+        for t1, t2 in zip(flatten(c1.charge_types), flatten(c2.charge_types))
+    ]):
+      res = False
+  if res and len(c1.original_dtypes) != len(c2.original_dtypes):
+    res = False
+  if res:
+    for dt1, dt2 in zip(c1.original_dtypes, c2.original_dtypes):
+      if len(dt1) != len(dt2):
+        res = False
+        break
+  if res:
+    if not all([
+        t1 is t2 for t1, t2 in zip(
+            flatten(c1.original_dtypes), flatten(c2.original_dtypes))
+    ]):
+      res = False
+
+  return res
