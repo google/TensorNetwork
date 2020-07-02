@@ -275,7 +275,7 @@ class InfiniteMPS(BaseMPS):
                      backend=self.backend.name)
 
     tmp = ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name)
-    U, singvals, V, _ = self.backend.svd_decomposition(
+    U, singvals, V, _ = self.backend.svd(
         tmp,
         split_axis=1,
         max_singular_values=D,

@@ -22,7 +22,7 @@ class DecompositionsTest(tf.test.TestCase):
 
   def test_expected_shapes(self):
     val = tf.zeros((2, 3, 4, 5))
-    u, s, vh, _ = decompositions.svd_decomposition(tf, val, 2)
+    u, s, vh, _ = decompositions.svd(tf, val, 2)
     self.assertEqual(u.shape, (2, 3, 6))
     self.assertEqual(s.shape, (6,))
     self.assertAllClose(s, np.zeros(6))
@@ -30,36 +30,36 @@ class DecompositionsTest(tf.test.TestCase):
 
   def test_expected_shapes_qr(self):
     val = tf.zeros((2, 3, 4, 5))
-    q, r = decompositions.qr_decomposition(tf, val, 2)
+    q, r = decompositions.qr(tf, val, 2)
     self.assertEqual(q.shape, (2, 3, 6))
     self.assertEqual(r.shape, (6, 4, 5))
 
   def test_expected_shapes_rq(self):
     val = tf.zeros((2, 3, 4, 5))
-    r, q = decompositions.rq_decomposition(tf, val, 2)
+    r, q = decompositions.rq(tf, val, 2)
     self.assertEqual(r.shape, (2, 3, 6))
     self.assertEqual(q.shape, (6, 4, 5))
 
-  def test_rq_decomposition(self):
+  def test_rq(self):
     random_matrix = np.random.rand(10, 10)
-    r, q = decompositions.rq_decomposition(tf, random_matrix, 1)
+    r, q = decompositions.rq(tf, random_matrix, 1)
     self.assertAllClose(tf.tensordot(r, q, ([1], [0])), random_matrix)
 
-  def test_qr_decomposition(self):
+  def test_qr(self):
     random_matrix = np.random.rand(10, 10)
-    q, r = decompositions.qr_decomposition(tf, random_matrix, 1)
+    q, r = decompositions.qr(tf, random_matrix, 1)
     self.assertAllClose(tf.tensordot(q, r, ([1], [0])), random_matrix)
 
   def test_rq_decomposition_defun(self):
     random_matrix = np.random.rand(10, 10)
-    rq_decomposition = tf.function(decompositions.rq_decomposition)
-    r, q = rq_decomposition(tf, random_matrix, 1)
+    rq = tf.function(decompositions.rq)
+    r, q = rq(tf, random_matrix, 1)
     self.assertAllClose(tf.tensordot(r, q, ([1], [0])), random_matrix)
 
   def test_qr_decomposition_defun(self):
     random_matrix = np.random.rand(10, 10)
-    qr_decomposition = tf.function(decompositions.qr_decomposition)
-    q, r = qr_decomposition(tf, random_matrix, 1)
+    qr = tf.function(decompositions.qr)
+    q, r = qr(tf, random_matrix, 1)
     self.assertAllClose(tf.tensordot(q, r, ([1], [0])), random_matrix)
 
   def test_max_singular_values(self):
@@ -67,7 +67,7 @@ class DecompositionsTest(tf.test.TestCase):
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-    u, s, vh, trun = decompositions.svd_decomposition(
+    u, s, vh, trun = decompositions.svd(
         tf, val, 1, max_singular_values=7)
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
@@ -80,8 +80,8 @@ class DecompositionsTest(tf.test.TestCase):
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-    svd_decomposition = tf.function(decompositions.svd_decomposition)
-    u, s, vh, trun = svd_decomposition(tf, val, 1, max_singular_values=7)
+    svd = tf.function(decompositions.svd)
+    u, s, vh, trun = svd(tf, val, 1, max_singular_values=7)
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
@@ -93,7 +93,7 @@ class DecompositionsTest(tf.test.TestCase):
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-    u, s, vh, trun = decompositions.svd_decomposition(
+    u, s, vh, trun = decompositions.svd(
         tf, val, 1, max_truncation_error=math.sqrt(5.1))
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
@@ -105,13 +105,13 @@ class DecompositionsTest(tf.test.TestCase):
     absolute = np.diag([2.0, 1.0, 0.2, 0.1])
     relative = np.diag([2.0, 1.0, 0.2, 0.1])
     max_truncation_err = 0.2
-    _, _, _, trunc_sv_absolute = decompositions.svd_decomposition(
+    _, _, _, trunc_sv_absolute = decompositions.svd(
         tf,
         absolute,
         1,
         max_truncation_error=max_truncation_err,
         relative=False)
-    _, _, _, trunc_sv_relative = decompositions.svd_decomposition(
+    _, _, _, trunc_sv_relative = decompositions.svd(
         tf, relative, 1, max_truncation_error=max_truncation_err, relative=True)
     np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
     np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])

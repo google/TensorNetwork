@@ -65,7 +65,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -92,9 +92,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
     s_rest = ShellTensor((dim_s0 - dim_s,))
     return u, s, vh, s_rest
 
-  def qr_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-
+  def qr(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
@@ -102,9 +100,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def rq_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-
+  def rq(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
