@@ -29,7 +29,7 @@ _CACHED_MATVECS = {}
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
-  def __init__(self, dtype: Optional[np.dtype] = None):
+  def __init__(self, dtype: Optional[np.dtype] = None) -> None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -47,14 +47,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return jnp.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
   def transpose(self, tensor, perm=None):
-    return jnp.transpose(tensor, perm)
+   return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
@@ -230,6 +231,107 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return libjax.random.uniform(
         key, shape, minval=boundaries[0], maxval=boundaries[1]).astype(dtype)
 
+  def eigs(self,
+           A: Callable,
+           args: Optional[List] = None,
+           initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[int, ...]] = None,
+           dtype: Optional[Type[np.number]] = None,
+           num_krylov_vecs: int = 50,
+           numeig: int = 6,
+           tol: float = 1E-8,
+           which: Text = 'LR',
+           maxiter: int = 20) -> Tuple[Tensor, List]:
+    """
+    Implicitly restarted Arnoldi method for finding the lowest 
+    eigenvector-eigenvalue pairs of a linear operator `A`. 
+    `A` is a function implementing the matrix-vector
+    product. 
+
+    WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
+    at the first invocation of `eigs`, and on any subsequent calls 
+    if the python `id` of `A` changes, even if the formal definition of `A` 
+    stays the same. 
+    Example: the following will jit once at the beginning, and then never again:
+
+    ```python
+    import jax
+    import numpy as np
+    def A(H,x):
+      return jax.np.dot(H,x)
+    for n in range(100):
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigs(A, [H],x) #jitting is triggerd only at `n=0`
+    ```
+
+    The following code triggers jitting at every iteration, which 
+    results in considerably reduced performance
+
+    ```python
+    import jax
+    import numpy as np
+    for n in range(100):
+      def A(H,x):
+        return jax.np.dot(H,x)
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigs(A, [H],x) #jitting is triggerd at every step `n`
+    ```
+    
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not 
+        guaranteed. This feature may be added at a later point. To increase
+        precision the caller can either increase `maxiter` or `num_krylov_vecs`.
+      which: Flag for targetting different types of eigenvalues. Currently 
+        supported are `which = 'LR'` (larges real part) and `which = 'LM'` 
+        (larges magnitude).
+      maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes 
+        equivalent to a simple Arnoldi method.
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` eigenvalues
+       eigvecs: A list of `numeig` eigenvectors
+    """
+
+    if args is None:
+      args = []
+    if which in ('SI', 'LI', 'SM', 'SR'):
+      raise ValueError(f'which = {which} is currently not supported.')
+
+    if numeig > num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
+
+    if not isinstance(initial_state, jnp.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
+    if not hasattr(self, '_iram'):
+      # pylint: disable=attribute-defined-outside-init
+      self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
+    return self._iram(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
+                      numeig, which, tol, maxiter)
+
   def eigsh_lanczos(
       self,
       A: Callable,
@@ -242,11 +344,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
       tol: float = 1E-8,
       delta: float = 1E-8,
       ndiag: int = 10,
-      reorthogonalize: Optional[bool] = False) -> Tuple[List, List]:
+      reorthogonalize: Optional[bool] = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` is a function implementing the matrix-vector
-    product. 
+    of a hermitian linear operator `A`. `A` is a function implementing 
+    the matrix-vector product. 
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
     at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
     if the python `id` of `A` changes, even if the formal definition of `A` 
@@ -287,14 +389,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
       initial_state: An initial vector for the Lanczos algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method
       shape: The shape of the input-dimension of `A`.
-      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+      dtype: The dtype of the input `A`. If no `initial_state` is provided,
         a random initial state with shape `shape` and dtype `dtype` is created.
       num_krylov_vecs: The number of iterations (number of krylov vectors).
-      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalues. For the jax backend
         this has currently no effect, and precision of eigenvalues is not 
         guaranteed. This feature may be added at a later point.
+        To increase precision the caller can increase `num_krylov_vecs`.
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector :math: `x_n` has an L2 norm
         :math:`\\lVert x_n\\rVert < delta`, the iteration
@@ -307,7 +410,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
     Returns:
       (eigvals, eigvecs)
-       eigvals: A list of `numeig` lowest eigenvalues
+       eigvals: A jax-array containing `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     if args is None:
@@ -365,13 +468,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return jnp.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -380,19 +485,19 @@ class JaxBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     return jnp.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     return jnp.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     return jnp.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     return jnp.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to numpy backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
@@ -405,3 +510,14 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return libjax.jit(fun, *args, **kwargs)
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return np.sum(tensor, axis=axis, keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
+    return jnp.matmul(tensor1, tensor2)
