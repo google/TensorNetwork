@@ -19,10 +19,10 @@ import numpy as np
 Tensor = Any
 
 
-class BaseBackend:
+class AbstractBackend:
 
   def __init__(self):
-    self.name = 'base backend'
+    self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Sequence[Sequence[int]]) -> Tensor:
@@ -74,7 +74,7 @@ class BaseBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -132,25 +132,25 @@ class BaseBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+        "Backend '{}' has not implemented qr.".format(self.name))
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
@@ -185,7 +185,8 @@ class BaseBackend:
         "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
 
   def shape_prod(self, values: Tensor) -> Tensor:
-    """Take the product of all of the elements in values"""
+    """Returns the product of the entries of values, which should be the
+       shape of one of the relevant backend arrays."""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))
 
@@ -214,7 +215,7 @@ class BaseBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self, expression: str, *tensors: Tensor, optimize: bool) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
@@ -349,7 +350,6 @@ class BaseBackend:
     matrix-vector product. If no `initial_state` is provided then 
     `shape` and `dtype` have to be passed so that a suitable initial 
     state can be randomly  generated.
-
     Args:
       A: A (sparse) implementation of a linear operator
       arsg: A list of arguments to `A`.  `A` will be called as
@@ -372,6 +372,7 @@ class BaseBackend:
             'SR' : smallest real part
             'LI' : largest imaginary part
             'SI' : smallest imaginary part
+        Note that not all of those might be supported by specialized backends.
       maxiter: The maximum number of iterations.
     Returns:
        `Tensor`: An array of `numeig` lowest eigenvalues
@@ -445,7 +446,7 @@ class BaseBackend:
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default substraction of `tensor`.
+      Return the default subtraction of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.

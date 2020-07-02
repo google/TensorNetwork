@@ -30,7 +30,7 @@ jax_dtypes = [
 #pylint: disable=line-too-long
 from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 
 
 def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):

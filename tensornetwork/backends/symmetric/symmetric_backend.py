@@ -13,7 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
@@ -25,7 +25,7 @@ Tensor = Any
 
 
 #pylint: disable=abstract-method
-class SymmetricBackend(base_backend.BaseBackend):
+class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -44,7 +44,7 @@ class SymmetricBackend(base_backend.BaseBackend):
       perm = tuple(range(tensor.ndim - 1, -1, -1))
     return self.bs.transpose(tensor, perm)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -52,23 +52,23 @@ class SymmetricBackend(base_backend.BaseBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.bs, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error, relative)
+    return decompositions.svd(self.bs, tensor, split_axis,
+                              max_singular_values,
+                              max_truncation_error, relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.bs, tensor, split_axis)
+    return decompositions.qr(self.bs, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.bs, tensor, split_axis)
+    return decompositions.rq(self.bs, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
@@ -109,7 +109,10 @@ class SymmetricBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.bs.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     raise NotImplementedError("`einsum` currently not implemented")
 
   def norm(self, tensor: Tensor) -> Tensor:

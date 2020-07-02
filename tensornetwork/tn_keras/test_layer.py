@@ -141,6 +141,82 @@ def test_output_shape(dummy_data, make_model):
   np.testing.assert_equal(expected_output_shape, actual_output_shape)
 
 
+@pytest.fixture(params=[(100, 10, 10, 512), (100, 512), (20, 10, 512)])
+def high_dim_data(request):
+  np.random.seed(42)
+  # Generate dummy data for use in tests
+  data = np.random.randint(10, size=request.param)
+  return data
+
+@pytest.fixture(params=[
+    'DenseDecomp', 'DenseMPO', 'DenseCondenser', 'DenseExpander',
+    'DenseEntangler'
+])
+def make_high_dim_model(high_dim_data, request):
+  # Disable the redefined-outer-name violation in this function
+  # pylint: disable=redefined-outer-name
+  data = high_dim_data
+
+  if request.param == 'DenseMPO':
+    model = Sequential()
+    model.add(
+        DenseMPO(data.shape[-1],
+                 num_nodes=int(math.log(int(data.shape[-1]), 8)),
+                 bond_dim=8,
+                 use_bias=True,
+                 activation='relu',
+                 input_shape=(data.shape[-1],)))
+  elif request.param == 'DenseDecomp':
+    model = Sequential()
+    model.add(
+        DenseDecomp(512,
+                    decomp_size=128,
+                    use_bias=True,
+                    activation='relu',
+                    input_shape=(data.shape[-1],)))
+  elif request.param == 'DenseCondenser':
+    model = Sequential()
+    model.add(
+        DenseCondenser(exp_base=2,
+                       num_nodes=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[-1],)))
+  elif request.param == 'DenseExpander':
+    model = Sequential()
+    model.add(
+        DenseExpander(exp_base=2,
+                      num_nodes=3,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(data.shape[-1],)))
+  elif request.param == 'DenseEntangler':
+    num_legs = 3
+    leg_dim = round(data.shape[-1]**(1. / num_legs))
+    assert leg_dim**num_legs == data.shape[-1]
+
+    model = Sequential()
+    model.add(
+        DenseEntangler(leg_dim**num_legs,
+                       num_legs=num_legs,
+                       num_levels=3,
+                       use_bias=True,
+                       activation='relu',
+                       input_shape=(data.shape[-1],)))
+
+  return data, model
+
+
+def test_decomp_higher_dim_input_output_shape(make_high_dim_model):
+  # pylint: disable=redefined-outer-name
+  data, model = make_high_dim_model
+
+  actual_output_shape = model(data).shape
+  expected_output_shape = model.compute_output_shape(data.shape)
+
+  np.testing.assert_equal(expected_output_shape, actual_output_shape)
+
+
 def test_decomp_num_parameters(dummy_data):
   # Disable the redefined-outer-name violation in this function
   # pylint: disable=redefined-outer-name

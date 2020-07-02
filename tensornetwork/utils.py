@@ -14,14 +14,14 @@
 
 import h5py
 from tensornetwork.component_factory import get_component
-from tensornetwork.network_components import Edge, BaseNode
+from tensornetwork.network_components import Edge, AbstractNode
 from tensornetwork.network_operations import reachable, get_all_edges
 from typing import List, Union, BinaryIO
 import numpy as np
 string_type = h5py.special_dtype(vlen=str)
 
 
-def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
+def save_nodes(nodes: List[AbstractNode], path: Union[str, BinaryIO]) -> None:
   """Save an iterable of nodes into hdf5 format.
 
   Args:
@@ -83,7 +83,7 @@ def save_nodes(nodes: List[BaseNode], path: Union[str, BinaryIO]) -> None:
     edges[n].set_name(old_edge_names[n])
 
 
-def load_nodes(path: str) -> List[BaseNode]:
+def load_nodes(path: str) -> List[AbstractNode]:
   """Load a set of nodes from disk.
 
   Args:

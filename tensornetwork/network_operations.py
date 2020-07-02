@@ -20,14 +20,14 @@ import numpy as np
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
-from tensornetwork.network_components import BaseNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
+from tensornetwork.network_components import AbstractNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
 from tensornetwork.backends import backend_factory
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, contract_parallel
 Tensor = Any
 
 
-def copy(nodes: Iterable[BaseNode],
+def copy(nodes: Iterable[AbstractNode],
          conjugate: bool = False) -> Tuple[dict, dict]:
   """Copy the given nodes and their edges.
 
@@ -79,8 +79,8 @@ def copy(nodes: Iterable[BaseNode],
   return node_dict, edge_dict
 
 
-def replicate_nodes(nodes: Iterable[BaseNode],
-                    conjugate: bool = False) -> List[BaseNode]:
+def replicate_nodes(nodes: Iterable[AbstractNode],
+                    conjugate: bool = False) -> List[AbstractNode]:
   """Copy the given nodes and their edges.
 
   If nodes A and B are connected but only A is passed in to be
@@ -99,7 +99,7 @@ def replicate_nodes(nodes: Iterable[BaseNode],
   return [new_nodes[node] for node in nodes]
 
 
-def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
+def remove_node(node: AbstractNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
   """Remove a node from the network.
 
   Args:
@@ -124,7 +124,7 @@ def remove_node(node: BaseNode) -> Tuple[Dict[Text, Edge], Dict[int, Edge]]:
 
 
 def split_node(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
@@ -133,14 +133,14 @@ def split_node(
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode, Tensor]:
+) -> Tuple[AbstractNode, AbstractNode, Tensor]:
   """Split a `node` using Singular Value Decomposition.
 
-  Let :math:`M` be the matrix created by flattening `left_edges` and 
-  `right_edges` into 2 axes. 
-  Let :math:`U S V^* = M` be the SVD of :math:`M`. 
-  This will split the network into 2 nodes. 
-  The left node's tensor will be :math:`U \\sqrt{S}` 
+  Let :math:`M` be the matrix created by flattening `left_edges` and
+  `right_edges` into 2 axes.
+  Let :math:`U S V^* = M` be the SVD of :math:`M`.
+  This will split the network into 2 nodes.
+  The left node's tensor will be :math:`U \\sqrt{S}`
   and the right node's tensor will be
   :math:`\\sqrt{S} V^*` where :math:`V^*` is the adjoint of :math:`V`.
 
@@ -169,7 +169,7 @@ def split_node(
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
     relative: Multiply `max_truncation_err` with the largest singular value.
-    left_name: The name of the new left node. If `None`, a name will be 
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
     right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
@@ -212,7 +212,7 @@ def split_node(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
@@ -249,17 +249,17 @@ def split_node(
 
 
 def split_node_qr(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode]:
+) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using QR decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
   Let :math:`QR = M` be the QR Decomposition of :math:`M`.
   This will split the network into 2 nodes.
   The `left node`'s tensor will be :math:`Q` (an orthonormal matrix)
@@ -309,7 +309,7 @@ def split_node_qr(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  q, r = backend.qr_decomposition(transp_tensor, len(left_edges))
+  q, r = backend.qr(transp_tensor, len(left_edges))
   left_node = Node(
       q, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -338,22 +338,22 @@ def split_node_qr(
 
 
 def split_node_rq(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     left_name: Optional[Text] = None,
     right_name: Optional[Text] = None,
     edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode]:
+) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using RQ (reversed QR) decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
 
-  Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`. 
-  This will split the network into 2 nodes. 
+  Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`.
+  This will split the network into 2 nodes.
 
-  The left node's tensor will be :math:`R^*` (a lower triangular matrix) 
+  The left node's tensor will be :math:`R^*` (a lower triangular matrix)
   and the right node's tensor will be :math:`Q^*` (an orthonormal matrix)
 
   Args:
@@ -400,7 +400,7 @@ def split_node_rq(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  r, q = backend.rq_decomposition(transp_tensor, len(left_edges))
+  r, q = backend.rq(transp_tensor, len(left_edges))
   left_node = Node(
       r, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -429,7 +429,7 @@ def split_node_rq(
 
 
 def split_node_full_svd(
-    node: BaseNode,
+    node: AbstractNode,
     left_edges: List[Edge],
     right_edges: List[Edge],
     max_singular_values: Optional[int] = None,
@@ -440,11 +440,11 @@ def split_node_full_svd(
     right_name: Optional[Text] = None,
     left_edge_name: Optional[Text] = None,
     right_edge_name: Optional[Text] = None,
-) -> Tuple[BaseNode, BaseNode, BaseNode, Tensor]:
+) -> Tuple[AbstractNode, AbstractNode, AbstractNode, Tensor]:
   """Split a node by doing a full singular value decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
   Let :math:`U S V^* = M` be the Singular Value Decomposition of :math:`M`.
 
   The left most node will be :math:`U` tensor of the SVD, the middle node is
@@ -476,7 +476,7 @@ def split_node_full_svd(
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
     relative: Multiply `max_truncation_err` with the largest singular value.
-    left_name: The name of the new left node. If None, a name will be 
+    left_name: The name of the new left node. If None, a name will be
       generated automatically.
     middle_name: The name of the new center node. If `None`, a name will be
       generated automatically.
@@ -530,7 +530,7 @@ def split_node_full_svd(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
@@ -569,7 +569,7 @@ def split_node_full_svd(
   return left_node, singular_values_node, right_node, trun_vals
 
 
-def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
+def _reachable(nodes: Set[AbstractNode]) -> Set[AbstractNode]:
   if not nodes:
     raise ValueError("Reachable requires at least 1 node.")
   node_que = collections.deque(nodes)
@@ -587,21 +587,21 @@ def _reachable(nodes: Set[BaseNode]) -> Set[BaseNode]:
 
 
 def reachable(
-    inputs: Union[BaseNode, Iterable[BaseNode], Edge, Iterable[Edge]]
-) -> Set[BaseNode]:
+    inputs: Union[AbstractNode, Iterable[AbstractNode], Edge, Iterable[Edge]]
+) -> Set[AbstractNode]:
   """Computes all nodes reachable from `node` or `edge.node1` by connected
   edges.
 
   Args:
-    inputs: A `BaseNode`/`Edge` or collection of `BaseNodes`/`Edges`
+    inputs: A `AbstractNode`/`Edge` or collection of `AbstractNodes`/`Edges`
   Returns:
-    A set of `BaseNode` objects that can be reached from `node`
+    A set of `AbstractNode` objects that can be reached from `node`
     via connected edges.
   Raises:
     ValueError: If an unknown value for `strategy` is passed.
   """
 
-  if isinstance(inputs, BaseNode):
+  if isinstance(inputs, AbstractNode):
     inputs = {inputs}
   elif isinstance(inputs, Edge):
     inputs = {inputs.node1}
@@ -610,13 +610,13 @@ def reachable(
   return _reachable(set(inputs))
 
 
-def check_correct(nodes: Iterable[BaseNode],
+def check_correct(nodes: Iterable[AbstractNode],
                   check_connections: Optional[bool] = True) -> None:
   """Check if the network defined by `nodes` fulfills necessary consistency
   relations.
 
   Args:
-    nodes: A list of `BaseNode` objects.
+    nodes: A list of `AbstractNode` objects.
     check_connections: Check if the network is connected.
 
   Returns:
@@ -649,12 +649,12 @@ def check_correct(nodes: Iterable[BaseNode],
     check_connected(nodes)
 
 
-def check_connected(nodes: Iterable[BaseNode]) -> None:
+def check_connected(nodes: Iterable[AbstractNode]) -> None:
   """Check if all nodes in `nodes` are connected.
 
   Args:
     nodes: A list of `nodes`.
-    
+
   Returns:
     `None`
 
@@ -666,7 +666,7 @@ def check_connected(nodes: Iterable[BaseNode]) -> None:
     raise ValueError("Non-connected graph")
 
 
-def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
+def get_all_nodes(edges: Iterable[Edge]) -> Set[AbstractNode]:
   """Return the set of nodes connected to edges."""
   nodes = set()
   for edge in edges:
@@ -678,7 +678,7 @@ def get_all_nodes(edges: Iterable[Edge]) -> Set[BaseNode]:
   return nodes
 
 
-def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_all_edges(nodes: Iterable[AbstractNode]) -> Set[Edge]:
   """Return the set of edges of all nodes."""
   edges = set()
   for node in nodes:
@@ -686,7 +686,7 @@ def get_all_edges(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return edges
 
 
-def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
+def get_subgraph_dangling(nodes: Iterable[AbstractNode]) -> Set[Edge]:
   """Get all of the edges that are "relatively dangling" to the given nodes.
 
   A "relatively dangling" edge is an edge that is either actually dangling
@@ -706,14 +706,14 @@ def get_subgraph_dangling(nodes: Iterable[BaseNode]) -> Set[Edge]:
   return output
 
 
-def contract_trace_edges(node: BaseNode) -> BaseNode:
+def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   """contract all trace edges of `node`.
 
   Args:
-    node: A `BaseNode` object.
+    node: A `AbstractNode` object.
 
   Returns:
-    A new `BaseNode` obtained from contracting all trace edges.
+    A new `AbstractNode` obtained from contracting all trace edges.
 
   Raises:
     ValueError: If `node` has no trace edges.
@@ -764,7 +764,7 @@ def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   return node_dict, edge_dict
 
 
-def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
+def switch_backend(nodes: Iterable[AbstractNode], new_backend: Text) -> None:
   """Change the backend of the nodes.
 
   This will convert all `node`'s tensors to the `new_backend`'s Tensor type.
@@ -793,7 +793,7 @@ def switch_backend(nodes: Iterable[BaseNode], new_backend: Text) -> None:
     node.backend = backend
 
 
-def get_neighbors(node: BaseNode) -> List[Node]:
+def get_neighbors(node: AbstractNode) -> List[Node]:
   """Get all of the neighbors that are directly connected to the given node.
 
   Note: `node` will never be in the returned list, even if `node` has a

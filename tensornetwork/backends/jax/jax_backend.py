@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Optional, Tuple, Callable, List, Text, Type, Sequence
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
@@ -26,8 +26,8 @@ Tensor = Any
 _CACHED_MATVECS = {}
 
 
-class JaxBackend(base_backend.BaseBackend):
-  """See base_backend.BaseBackend for documentation."""
+class JaxBackend(abstract_backend.AbstractBackend):
+  """See abstract_backend.AbstractBackend for documentation."""
 
   def __init__(self, dtype: Optional[np.dtype] = None):
     # pylint: disable=global-variable-undefined
@@ -66,7 +66,7 @@ class JaxBackend(base_backend.BaseBackend):
                        "identical.")
     return libjax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -74,7 +74,7 @@ class JaxBackend(base_backend.BaseBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         jnp,
         tensor,
         split_axis,
@@ -82,19 +82,19 @@ class JaxBackend(base_backend.BaseBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(jnp, tensor, split_axis)
+    return decompositions.qr(jnp, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(jnp, tensor, split_axis)
+    return decompositions.rq(jnp, tensor, split_axis)
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
@@ -130,8 +130,11 @@ class JaxBackend(base_backend.BaseBackend):
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return jnp.tensordot(tensor1, tensor2, 0)
 
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
-    return jnp.einsum(expression, *tensors)
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
+    return jnp.einsum(expression, *tensors, optimize=optimize)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return jnp.linalg.norm(tensor)

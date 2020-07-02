@@ -13,7 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
 
@@ -25,7 +25,7 @@ Tensor = Any
 #pylint: disable=abstract-method
 
 
-class TensorFlowBackend(base_backend.BaseBackend):
+class TensorFlowBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -57,7 +57,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
                        "identical.")
     return tf.slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -65,7 +65,7 @@ class TensorFlowBackend(base_backend.BaseBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         tf,
         tensor,
         split_axis,
@@ -73,13 +73,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(tf, tensor, split_axis)
+  def qr(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr(tf, tensor, split_axis)
 
-  def rq_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(tf, tensor, split_axis)
+  def rq(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq(tf, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return tf.concat(values, axis)
@@ -111,8 +109,11 @@ class TensorFlowBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensordot2.tensordot(tf, tensor1, tensor2, 0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  #pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return tf.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:

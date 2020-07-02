@@ -14,14 +14,14 @@
 """Network contractor which exploits copy tensors."""
 
 from typing import Sequence, Iterable
-from tensornetwork.network_components import BaseNode, contract_copy_node
+from tensornetwork.network_components import AbstractNode, contract_copy_node
 from tensornetwork import network_components
 
 
 def bucket(
-    nodes: Iterable[BaseNode],
+    nodes: Iterable[AbstractNode],
     contraction_order: Sequence[network_components.CopyNode]
-) -> Iterable[BaseNode]:
+) -> Iterable[AbstractNode]:
   """Contract given nodes exploiting copy tensors.
 
   This is based on the Bucket-Elimination-based algorithm described in

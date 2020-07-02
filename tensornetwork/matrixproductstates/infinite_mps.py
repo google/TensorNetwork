@@ -24,7 +24,7 @@ from tensornetwork.backends import backend_factory
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.ncon_interface import ncon
-from tensornetwork.backends.base_backend import BaseBackend
+from tensornetwork.backends.abstract_backend import AbstractBackend
 Tensor = Any
 #TODO (mganahl): add jit
 
@@ -46,7 +46,7 @@ class InfiniteMPS(BaseMPS):
                tensors: List[Tensor],
                center_position: Optional[int] = None,
                connector_matrix: Optional[Tensor] = None,
-               backend: Optional[Union[BaseBackend, Text]] = None) -> None:
+               backend: Optional[Union[AbstractBackend, Text]] = None) -> None:
     """Initialize a InfiniteMPS.
 
     Args:
@@ -72,7 +72,7 @@ class InfiniteMPS(BaseMPS):
       d: List[int],
       D: List[int],
       dtype: Type[np.number],
-      backend: Optional[Union[BaseBackend, Text]] = None) -> "InfiniteMPS":
+      backend: Optional[Union[AbstractBackend, Text]] = None) -> "InfiniteMPS":
     """Initialize a random `InfiniteMPS`. The resulting state is normalized.
     Its center-position is at 0.
 
@@ -275,7 +275,7 @@ class InfiniteMPS(BaseMPS):
                      backend=self.backend.name)
 
     tmp = ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name)
-    U, singvals, V, _ = self.backend.svd_decomposition(
+    U, singvals, V, _ = self.backend.svd(
         tmp,
         split_axis=1,
         max_singular_values=D,

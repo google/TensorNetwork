@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import annotations
 import math
 import copy
 import warnings
 from typing import Any, Union, Text, Optional, List, Sequence
 import numpy as np
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork import backends, backend_contextmanager
 
-BaseBackend = base_backend.BaseBackend
+BaseBackend = abstract_backend.AbstractBackend
 
 class Tensor():
   def __init__(self,
@@ -35,9 +34,6 @@ class Tensor():
     self.shape = array.shape
     self.size = np.prod(self.shape)
     self.ndim = len(self.shape)
-
-  #def __getitem__
-  #def __setitem__
 
   @property
   def dtype(self) -> Any: # To maintain backend independence
@@ -61,28 +57,6 @@ class Tensor():
     array_H = self.backend.transpose(star)
     return Tensor(array_H, backend=self.backend)
 
-  #  @property
-  #  def real(self) -> "Tensor":
-  #    """ Returns: The real part of the `Tensor`.
-  #    """
-  #    array_r = self.backend.real(self.array)
-  #    return Tensor(array_r, backend=self.backend)
-
-  #  @property
-  #  def imag(self) -> "Tensor":
-  #    """ Returns: The imaginary part of the `Tensor`.
-  #    """
-  #    array_i = self.backend.imag(self.array)
-  #    return Tensor(array_i, backend=self.backend)
-
-  # def all(self):
-
-  # def any(self):
-
-  # def argmax():
-
-  # def argmin():
-
   def conj(self) -> "Tensor":
     """ Returns: The complex-conjugated `Tensor`.
     """
@@ -98,12 +72,6 @@ class Tensor():
     """ Returns: A copy of the `Tensor`.
     """
     return copy.deepcopy(self)
-
-  # def cumprod():
-
-  # def cumsum():
-
-  # def diagonal(self, ): # ! need to discuss this function
 
   def flatten(self):
     """Return a new `Tensor` with the same number of elements but only one
@@ -140,16 +108,6 @@ class Tensor():
     dag = self.conj().transpose(perm=perm)
     return dag
 
-  # def max:
-
-  # def mean:
-
-  # def min:
-
-  # def mean:
-
-  # def prod:
-
   def ravel(self):
     """Return a new `Tensor` with the same number of elements but only one
     dimension.
@@ -157,7 +115,6 @@ class Tensor():
     size = self.size
     flat = self.reshape(shape=[size,])
     return flat
-
 
   def reshape(self, shape: Sequence[int]) -> "Tensor":
     """Return a new `Tensor` with the same data but a new shape `shape`.
@@ -169,34 +126,12 @@ class Tensor():
     reshaped = self.backend.reshape(self.array, shape)
     return Tensor(reshaped, backend=self.backend)
 
-  # def round:
-
-  # def searchsorted:
-
   def squeeze(self):
     """Return a new `Tensor` with all axes of size 1 eliminated.
     """
     shape = self.shape
     squeezed_shape = [d for d in shape if d != 1]
     return self.reshape(squeezed_shape)
-
-  # def std:
-
-  # def sum:
-
-  #  def trace(self, pivot: Optional[int] = None):
-  #    """
-  #    Return the trace of this tensor according to the matricization set
-  #    by `pivot`.
-
-
-  #    The integer argument `pivot`
-
-  #    TODO: Numpy allows one to specify which axes are to be traced along.
-  #    Should we also do so?
-  #    """
-  #    trace = self.backend.trace(self.array)
-  #    return trace
 
   def transpose(self, perm: Optional[Sequence[int]] = None) -> "Tensor":
     """ Return a new `Tensor` transposed according to the permutation set

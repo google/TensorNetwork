@@ -6,6 +6,6 @@ Nodes
 
      tensornetwork.Node
      tensornetwork.CopyNode
-     tensornetwork.BaseNode
+     tensornetwork.AbstractNode
      tensornetwork.NodeCollection
 

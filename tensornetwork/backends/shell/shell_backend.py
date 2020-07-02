@@ -14,7 +14,7 @@
 
 import functools
 import operator
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 #pylint: disable=line-too-long
 from typing import Optional, Sequence, Tuple, List, Any, Union, Type, Callable, Text
 import numpy as np
@@ -34,7 +34,7 @@ class ShellTensor:
 Tensor = Any
 
 
-class ShellBackend(base_backend.BaseBackend):
+class ShellBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self):
@@ -65,7 +65,7 @@ class ShellBackend(base_backend.BaseBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -92,9 +92,7 @@ class ShellBackend(base_backend.BaseBackend):
     s_rest = ShellTensor((dim_s0 - dim_s,))
     return u, s, vh, s_rest
 
-  def qr_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-
+  def qr(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
@@ -102,9 +100,7 @@ class ShellBackend(base_backend.BaseBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def rq_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-
+  def rq(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:split_axis]
     right_dims = tensor.shape[split_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
@@ -160,8 +156,11 @@ class ShellBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  #pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     expr_list = expression.split(",")
     expr_list[-1], res = expr_list[-1].split("->")
     shape = tuple(self._find_char(expr_list, char, tensors) for char in res)
