@@ -361,7 +361,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                  should be used only with caution, since especially for nearly
                  symmetric matrices and small `num_krylov_vectors` convergence
                  might well freeze at a value significantly larger than `tol`.
-                 Default: 1.
+                 Default: 1
       M        : Inverse of the preconditioner of A; see the docstring for
                  `scipy.sparse.linalg.gmres`. This is only supported in the
                  numpy backend. Supplying this argument to other backends will
@@ -381,27 +381,25 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     """
 
     if x0 is not None and x0.shape != b.shape:
-      errstring = "If x0 is supplied, its shape, " + str(x0.shape) + ", must \n"
-      errstring += "match that of b, " + str(b.shape) + "."
+      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                   f", {b.shape}.")
       raise ValueError(errstring)
     if x0 is not None and x0.dtype != b.dtype:
-      errstring = "If x0 is supplied, its dtype, " + str(x0.dtype) + ", must \n"
-      errstring += "match that of b, " + str(b.dtype) + "."
+      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+                   f", {b.dtype}.")
       raise ValueError(errstring)
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
     if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
-      errstring = "num_krylov_vectors must be in "
-      errstring += "0 < num_krylov_vectors <= b.size.\n"
-      errstring += "num_krylov_vectors = " + str(num_krylov_vectors) + ".\n"
-      errstring += "b.size = " + str(b.size) + "."
+      errstring = (f"num_krylov_vectors must be in "
+                   f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
     if tol < 0:
-      raise ValueError("tol = ", tol, " must be positive.")
+      raise ValueError(f"tol = {tol} must be positive.")
     if atol is None:
       atol = tol
     if atol < 0:
-      raise ValueError("atol = ", atol, " must be positive.")
+      raise ValueError(f"atol = {atol} must be positive.")
 
     if A_args is None:
       A_args = []

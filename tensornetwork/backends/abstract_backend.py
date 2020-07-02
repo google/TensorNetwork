@@ -469,12 +469,6 @@ class AbstractBackend:
     of whatever arbitrary, though identical, shape `b = A_mv(x0, ...)` expects.
     Reshaping to and from a matrix problem is handled internally.
 
-    This function is supported only with the NumPy and Jax backends.
-    The numpy backend version is simply an interface to
-    `scipy.sparse.linalg.gmres`, itself an interace to ARPACK.
-    SciPy 1.1.0 or newer (May 05 2018) is required. The Jax backend version
-    uses a homemade implementation that is suboptimal unless n_krylov << n.
-
     Args:
       A_mv     : A function `v0 = A_mv(v, *A_args, **A_kwargs)` where `v0` and
                  `v` have the same shape.
