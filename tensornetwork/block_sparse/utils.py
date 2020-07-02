@@ -42,10 +42,8 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   Returns:
     list: The flattened input.
   """
-  res = []
-  for l in list_of_list:
-    res.extend(l)
-  return np.array(res)
+  return [l for sublist in list_of_list for l in sublist]
+
 
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
