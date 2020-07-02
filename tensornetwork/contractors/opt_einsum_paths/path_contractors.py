@@ -20,7 +20,7 @@ import opt_einsum
 from tensornetwork.network_operations import check_connected, get_all_edges, get_subgraph_dangling
 # pylint: disable=line-too-long
 from tensornetwork.network_components import get_all_nondangling, contract_parallel, contract_between
-from tensornetwork.network_components import Edge, BaseNode
+from tensornetwork.network_components import Edge, AbstractNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable
 
@@ -29,10 +29,10 @@ from typing import Any, Optional, Sequence, Iterable
 #               _base_nodes -> base
 
 
-def base(nodes: Iterable[BaseNode],
+def base(nodes: Iterable[AbstractNode],
          algorithm: utils.Algorithm,
          output_edge_order: Optional[Sequence[Edge]] = None,
-         ignore_edge_order: bool = False) -> BaseNode:
+         ignore_edge_order: bool = False) -> AbstractNode:
   """Base method for all `opt_einsum` contractors.
 
   Args:
@@ -93,10 +93,10 @@ def base(nodes: Iterable[BaseNode],
   return final_node
 
 
-def optimal(nodes: Iterable[BaseNode],
+def optimal(nodes: Iterable[AbstractNode],
             output_edge_order: Optional[Sequence[Edge]] = None,
             memory_limit: Optional[int] = None,
-            ignore_edge_order: bool = False) -> BaseNode:
+            ignore_edge_order: bool = False) -> AbstractNode:
   """Optimal contraction order via `opt_einsum`.
 
   This method will find the truly optimal contraction order via
@@ -121,11 +121,11 @@ def optimal(nodes: Iterable[BaseNode],
   return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
-def branch(nodes: Iterable[BaseNode],
+def branch(nodes: Iterable[AbstractNode],
            output_edge_order: Optional[Sequence[Edge]] = None,
            memory_limit: Optional[int] = None,
            nbranch: Optional[int] = None,
-           ignore_edge_order: bool = False) -> BaseNode:
+           ignore_edge_order: bool = False) -> AbstractNode:
   """Branch contraction path via `opt_einsum`.
 
   This method uses the DFS approach of `optimal` while sorting potential
@@ -157,10 +157,10 @@ def branch(nodes: Iterable[BaseNode],
   return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
-def greedy(nodes: Iterable[BaseNode],
+def greedy(nodes: Iterable[AbstractNode],
            output_edge_order: Optional[Sequence[Edge]] = None,
            memory_limit: Optional[int] = None,
-           ignore_edge_order: bool = False) -> BaseNode:
+           ignore_edge_order: bool = False) -> AbstractNode:
   """Greedy contraction path via `opt_einsum`.
 
   This provides a more efficient strategy than `optimal` for finding
@@ -189,10 +189,10 @@ def greedy(nodes: Iterable[BaseNode],
 
 
 # pylint: disable=too-many-return-statements
-def auto(nodes: Iterable[BaseNode],
+def auto(nodes: Iterable[AbstractNode],
          output_edge_order: Optional[Sequence[Edge]] = None,
          memory_limit: Optional[int] = None,
-         ignore_edge_order: bool = False) -> BaseNode:
+         ignore_edge_order: bool = False) -> AbstractNode:
   """Chooses one of the above algorithms according to network size.
 
   Default behavior is based on `opt_einsum`'s `auto` contractor.
@@ -260,11 +260,11 @@ def auto(nodes: Iterable[BaseNode],
   return greedy(nodes, output_edge_order, memory_limit, ignore_edge_order)
 
 
-def custom(nodes: Iterable[BaseNode],
+def custom(nodes: Iterable[AbstractNode],
            optimizer: Any,
            output_edge_order: Sequence[Edge] = None,
            memory_limit: Optional[int] = None,
-           ignore_edge_order: bool = False) -> BaseNode:
+           ignore_edge_order: bool = False) -> AbstractNode:
   """Uses a custom path optimizer created by the user to calculate paths.
 
   The custom path optimizer should inherit `opt_einsum`'s `PathOptimizer`.

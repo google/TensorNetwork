@@ -13,7 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
-from tensornetwork.backends import base_backend
+from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
 
@@ -24,10 +24,10 @@ Tensor = Any
 #pylint: disable=abstract-method
 
 
-class PyTorchBackend(base_backend.BaseBackend):
+class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(PyTorchBackend, self).__init__()
     # pylint: disable=global-variable-undefined
     global torchlib
@@ -40,13 +40,14 @@ class PyTorchBackend(base_backend.BaseBackend):
     torchlib = torch
     self.name = "pytorch"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return torchlib.tensordot(a, b, dims=axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
-  def transpose(self, tensor, perm):
+  def transpose(self, tensor, perm) -> Tensor:
     return tensor.permute(perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -119,8 +120,11 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return torchlib.tensordot(tensor1, tensor2, dims=0)
-
-  def einsum(self, expression: str, *tensors: Tensor) -> Tensor:
+  # pylint: disable=unused-argument
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     return torchlib.einsum(expression, *tensors)
 
   def norm(self, tensor: Tensor) -> Tensor:
@@ -181,7 +185,7 @@ class PyTorchBackend(base_backend.BaseBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -256,11 +260,13 @@ class PyTorchBackend(base_backend.BaseBackend):
       #store the Lanczos vector for later
       if reorthogonalize:
         for v in krylov_vecs:
-          vector_n -= (v.view(-1).dot(vector_n.view(-1))) * torchlib.reshape(
-              v, vector_n.shape)
+          vector_n -= (v.contiguous().view(-1).dot(
+              vector_n.contiguous().view(-1))) * torchlib.reshape(
+                  v, vector_n.shape)
       krylov_vecs.append(vector_n)
       A_vector_n = A(vector_n, *args)
-      diag_elements.append(vector_n.view(-1).dot(A_vector_n.view(-1)))
+      diag_elements.append(vector_n.contiguous().view(-1).dot(
+          A_vector_n.contiguous().view(-1)))
 
       if ((it > 0) and (it % ndiag) == 0) and (len(diag_elements) >= numeig):
         #diagonalize the effective Hamiltonian
@@ -319,7 +325,8 @@ class PyTorchBackend(base_backend.BaseBackend):
           .format(matrix.shape))
     return matrix.inverse()
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -327,7 +334,8 @@ class PyTorchBackend(base_backend.BaseBackend):
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -338,3 +346,15 @@ class PyTorchBackend(base_backend.BaseBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return torchlib.sum(tensor, axis=axis, keepdim=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+
+    return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)

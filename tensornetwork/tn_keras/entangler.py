@@ -13,6 +13,10 @@ import math
 class DenseEntangler(Layer):
   """Entangler TN layer. Allows for very large hidden layers.
 
+  This layer can take an input shape of arbitrary dimension, with the first
+  dimension expected to be a batch dimension. The weight matrix will be
+  constructed from and applied to the last input dimension.
+
   Example:
 
   ```python
@@ -36,8 +40,10 @@ class DenseEntangler(Layer):
     output_dim: Positive integer, dimensionality of the output space.
       Note: output_dim must be equal to the dimensionality of the input.
     num_legs: Positive integer, number of legs the state node has.
-    num_levels: Positive integer, number of levels we want the entangler to
-      have. This is the only parameter that does not change input/output shape.
+    num_levels: Positive integer, number of complete levels we want the
+      entangler to have. A level consists of num_legs - 1 tensors, forming a
+      complete layer of tensors connecting accross all legs.
+      This is the only parameter that does not change input/output shape.
       It can be increased to increase the power of the layer, but inference
       time will also scale approximately linearly.
     activation: Activation function to use.
@@ -48,10 +54,10 @@ class DenseEntangler(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_shape[-1])`.
+    N-D tensor with shape: `(batch_size, ..., input_dim)`.
 
   Output shape:
-    2D tensor with shape: `(batch_size, output_dim)`.
+    N-D tensor with shape: `(batch_size, ..., output_dim)`.
   """
 
   def __init__(self,
@@ -68,7 +74,7 @@ class DenseEntangler(Layer):
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
     assert (
-        num_legs >
+        num_legs >=
         2), f'Need at least 2 legs to create Entangler but got {num_legs} legs'
     assert (
         num_levels >= 1
@@ -98,24 +104,33 @@ class DenseEntangler(Layer):
 
     super(DenseEntangler, self).build(input_shape)
 
-    # Ensure input dim and output dim match
-    assert (
-        input_shape[-1] == self.output_dim
-    ), f'Input dim {input_shape[-1]} not equal to output dim {self.output_dim}'
-
     # Ensure the Entangler dimensions will work
     assert (
         is_perfect_root(input_shape[-1], self.num_legs)
     ), f'Input dim {input_shape[-1]}**(1. / {self.num_legs}) must be round.'
 
+    assert (
+        is_perfect_root(self.output_dim, self.num_legs)
+    ), f'Output dim {self.output_dim}**(1. / {self.num_legs}) must be round.'
+
     self.leg_dim = round(input_shape[-1]**(1. / self.num_legs))
-    self.num_nodes = self.num_levels
+    self.out_leg_dim = round(self.output_dim**(1. / self.num_legs))
+    self.num_nodes = self.num_levels * (self.num_legs - 1)
 
     for i in range(self.num_nodes):
+      current_level = i // (self.num_legs - 1)
+      a = b = c = d = min(self.leg_dim, self.out_leg_dim)
+      if i == 0:
+        a = self.leg_dim
+      if i == self.num_nodes - 1:
+        d = self.out_leg_dim
+      if current_level == 0:
+        b = self.leg_dim
+      if current_level == self.num_levels - 1:
+        c = self.out_leg_dim
       self.nodes.append(
           self.add_weight(name=f'node_{i}',
-                          shape=(self.leg_dim, self.leg_dim, self.leg_dim,
-                                 self.leg_dim),
+                          shape=(a, b, c, d),
                           trainable=True,
                           initializer=self.kernel_initializer))
 
@@ -130,7 +145,6 @@ class DenseEntangler(Layer):
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, num_legs: int,
           leg_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:
 
-      orig_shape = x.shape
       l = [leg_dim] * num_legs
       input_reshaped = tf.reshape(x, tuple(l))
 
@@ -145,30 +159,33 @@ class DenseEntangler(Layer):
         x_node = tn.contract_between(x_node, node)
 
       # The TN will be connected in a "staircase" pattern, like this:
-      #    |  |   |  |
-      #    |  |   3333
-      #    |  |   |  |
-      #    |  22222  |
-      #    |  |   |  |
-      #    1111   |  |
-      #    |  |   |  |
-      #    xxxxxxxxxxx
+      #    |  |  |  |
+      #    |  |  3333
+      #    |  |  |  |
+      #    |  2222  |
+      #    |  |  |  |
+      #    1111  |  |
+      #    |  |  |  |
+      #    xxxxxxxxxx
 
-      result = tf.reshape(x_node.tensor, orig_shape)
+      result = tf.reshape(x_node.tensor, (self.output_dim,))
       if use_bias:
         result += bias_var
 
       return result
 
+    input_shape = list(inputs.shape)
+    inputs = tf.reshape(inputs, (-1, input_shape[-1]))
     result = tf.vectorized_map(
         lambda vec: f(vec, self.nodes, self.num_nodes, self.num_legs, self.
                       leg_dim, self.use_bias, self.bias_var), inputs)
     if self.activation is not None:
       result = self.activation(result)
-    return tf.reshape(result, (-1, self.output_dim))
+    result = tf.reshape(result, [-1] + input_shape[1:-1] + [self.output_dim,])
+    return result
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
-    return (input_shape[0], self.output_dim)
+    return tuple(input_shape[0:-1]) + (self.output_dim,)
 
   def get_config(self) -> dict:
     """Returns the config of the layer.

@@ -251,6 +251,22 @@ def test_conj():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_eigsh_lanczos_0():
+  #this test should just not crash
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  D = 4
+  init = backend.randn((2, 2, 2), dtype=dtype)
+  tmp = backend.randn((8, 8), dtype=dtype)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+  H = H.reshape([2, 2, 2, 2, 2, 2])
+
+  def mv(x, mat):
+    return torch.tensordot(mat, x, ([0, 3, 5], [2, 0, 1])).permute([2, 0, 1])
+
+  backend.eigsh_lanczos(mv, [H], init, num_krylov_vecs=D)
+
+
 def test_eigsh_lanczos_1():
   dtype = torch.float64
   backend = pytorch_backend.PyTorchBackend()
@@ -521,3 +537,25 @@ def test_sparse_shape():
   backend = pytorch_backend.PyTorchBackend()
   tensor = backend.randn((2, 3, 4), dtype=dtype, seed=10)
   np.testing.assert_allclose(backend.sparse_shape(tensor), tensor.shape)
+
+
+def test_sum():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = np.random.rand(2, 3, 4)
+  a = backend.convert_to_tensor(tensor)
+  actual = backend.sum(a, axis=(1, 2))
+  expected = np.sum(tensor, axis=(1, 2))
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_matmul():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 2, 3)
+  t2 = np.random.rand(10, 3, 4)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)

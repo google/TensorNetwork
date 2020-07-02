@@ -13,6 +13,10 @@ import math
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
+  This layer can take an input shape of arbitrary dimension, with the first
+  dimension expected to be a batch dimension. The weight matrix will be
+  constructed from and applied to the last input dimension.
+
   Example:
 
   ```python
@@ -42,10 +46,10 @@ class DenseMPO(Layer):
     bias_initializer: Initializer for the bias vector.
 
   Input shape:
-    2D tensor with shape: `(batch_size, input_shape[-1])`.
+    N-D tensor with shape: `(batch_size, ..., input_dim)`.
 
   Output shape:
-    2D tensor with shape: `(batch_size, output_dim)`.
+    N-D tensor with shape: `(batch_size, ..., output_dim)`.
   """
 
   def __init__(self,
@@ -63,7 +67,7 @@ class DenseMPO(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    assert num_nodes > 2, 'Need at least 2 nodes to create MPO'
+    assert num_nodes > 2, 'Need at least 3 nodes to create MPO.'
 
     super(DenseMPO, self).__init__(**kwargs)
 
@@ -82,15 +86,19 @@ class DenseMPO(Layer):
     if input_shape[-1] is None:
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
+    # Try to convert n to an integer. tensorflow.compat.v1 uses a partially
+    # integer compatible interface that does not implement the __pow__
+    # function. __int__ is implemented, so calling this first is necessary.
+    input_dim = int(input_shape[-1])
 
     def is_perfect_root(n, n_nodes):
       root = n**(1. / n_nodes)
       return round(root)**n_nodes == n
 
     # Ensure the MPO dimensions will work
-    assert is_perfect_root(input_shape[-1], self.num_nodes), \
+    assert is_perfect_root(input_dim, self.num_nodes), \
       f'Input dim incorrect.\
-      {input_shape[-1]}**(1. / {self.num_nodes}) must be round.'
+      {input_dim}**(1. / {self.num_nodes}) must be round.'
 
     assert is_perfect_root(self.output_dim, self.num_nodes), \
       f'Output dim incorrect. \
@@ -98,7 +106,7 @@ class DenseMPO(Layer):
 
     super(DenseMPO, self).build(input_shape)
 
-    self.in_leg_dim = math.ceil(input_shape[-1]**(1. / self.num_nodes))
+    self.in_leg_dim = math.ceil(input_dim**(1. / self.num_nodes))
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
 
     self.nodes.append(
@@ -165,15 +173,18 @@ class DenseMPO(Layer):
 
       return result
 
+    input_shape = list(inputs.shape)
+    inputs = tf.reshape(inputs, (-1, input_shape[-1]))
     result = tf.vectorized_map(
         lambda vec: f(vec, self.nodes, self.num_nodes, self.in_leg_dim, self.
                       output_dim, self.use_bias, self.bias_var), inputs)
     if self.activation is not None:
       result = self.activation(result)
-    return tf.reshape(result, (-1, self.output_dim))
+    result = tf.reshape(result, [-1] + input_shape[1:-1] + [self.output_dim,])
+    return result
 
   def compute_output_shape(self, input_shape: List[int]) -> Tuple[int, int]:
-    return (input_shape[0], self.output_dim)
+    return tuple(input_shape[0:-1]) + (self.output_dim,)
 
   def get_config(self) -> dict:
     """Returns the config of the layer.

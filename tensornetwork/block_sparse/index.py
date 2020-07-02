@@ -44,7 +44,12 @@ class Index:
     return self.dim
 
   def __repr__(self) -> str:
-    return str(self.dim)
+    dense_shape = f"Dimension: {str(self.dim)} \n"
+    charge_str = str(self._charges).replace('\n,', ',\n')
+    charge_str = charge_str.replace('\n', '\n            ')
+    charges = f"Charges:  {charge_str} \n"
+    flow_info = f"Flows:  {str(self.flow)} \n"
+    return f"Index:\n  {dense_shape}  {charges}  {flow_info} "
 
   @property
   def dim(self) -> int:
