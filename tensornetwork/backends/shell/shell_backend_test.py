@@ -434,3 +434,25 @@ def test_index_update():
   actual = backend.index_update(matrix, matrix, matrix)
   assert isinstance(actual, shell_backend.ShellTensor)
   assert actual.shape == (4, 4, 4)
+
+
+def test_sum():
+  np.random.seed(10)
+  backend = shell_backend.ShellBackend()
+  a = backend.randn((2, 3, 4), seed=10)
+  actual = backend.sum(a, axis=(1, 2))
+  np.testing.assert_allclose(actual.shape, [
+      2,
+  ])
+
+  actual = backend.sum(a, axis=(1, 2), keepdims=True)
+  np.testing.assert_allclose(actual.shape, [2, 1, 1])
+
+
+def test_matmul():
+  np.random.seed(10)
+  backend = shell_backend.ShellBackend()
+  a = backend.randn((10, 2, 3), seed=10)
+  b = backend.randn((10, 3, 4), seed=10)
+  actual = backend.matmul(a, b)
+  np.testing.assert_allclose(actual.shape, [10, 2, 4])

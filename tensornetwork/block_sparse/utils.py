@@ -20,7 +20,7 @@ from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Optional
+from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
@@ -48,7 +48,7 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   return np.array(res)
 
 
-def get_flat_meta_data(indices: List[Index]) -> Tuple[List, List]:
+def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """
   Return charges and flows of flattened `indices`.
   Args:
