@@ -131,13 +131,15 @@ class BaseCharge:
 
   def __init__(self,
                charges: List[np.ndarray],
-               charge_types: List[List[Type["BaseCharge"]]],
+               charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
     for n, cts in enumerate(charge_types):
       if not all([cts[0] is ct for ct in cts]):
         raise ValueError("Not all charge-types in `charge_types[{n}]` "
                          "are the same, found {cts}.")
+    if charge_types is None:
+      charge_types = [[type(self)] for _ in range(len(charges))]
     self.charge_types = charge_types
     self.stacked_charges = np.stack(charges, axis=0)
     self.charges = charges
@@ -207,15 +209,16 @@ class BaseCharge:
 
   def __iter__(self):
     return iter(self.charges)
+  
+  @property
+  def names(self):
+    return repr([[ct.__new__(ct).__class__.__name__ for ct in cts] for cts in self.charge_types])
 
   def __repr__(self):
-    out = "BaseCharge: \n  " + "charge-types: " + str(
-        self.charge_types) + "\n  dtypes: " + str(
-            self.original_dtypes) + " \n  indices: " + str(
+    dtype_names = repr([[np.dtype(dt).name for dt in dtypes] for dtypes in self.original_dtypes])
+    out = "BaseCharge: \n  " + "charge-types: " + self.names + "\n  dtypes: " + dtype_names + " \n  indices: " + str(
                 self.charge_indices
-            ) + "\n  " + 'charges: ' + self.charges.__repr__().replace(
-                '\n', '\n          ').replace(', array',
-                                              ',\n            array') + '\n'
+            ) + "\n  " + 'charges: ' + ''.join([str(c) + '\n ' for c in self.charges]).replace('\n','\n          ') + '\n'
     return out
 
   def __len__(self) -> int:
@@ -251,7 +254,7 @@ class BaseCharge:
     for n, cts in enumerate(self.charge_types):
       tmpcharges = [ct.identity_charge() for ct in cts]
       dtypes = [[dt] for dt in self.original_dtypes[n]]
-      charges.append(collapse(tmpcharges, dtypes))
+      charges.append(np.array([collapse(tmpcharges, dtypes)]))
     is_collapsed = self.is_collapsed
 
     obj = self.__new__(type(self))
@@ -394,9 +397,19 @@ class BaseCharge:
     # then compute new unique charges
     # Note (mganahl): check if all cts are identical is
     #                 performed below in __init__
+    # self.expand()
+    # other.expand()
+
+    if len(self.charges) == 1 and len(self.charge_types) > 1:
+      raise ValueError("self is collapsed: cannot add collapsed charges")
+    if len(other.charges) == 1 and len(other.charge_types) > 1:
+      raise ValueError("other is collapsed: cannot add collapsed charges")
     charge_types = [cts[0] for cts in self.charge_types]
     fused_charges = fuse_ndarray_charges(self.charges, other.charges,
                                          charge_types)
+    # self.collapse()
+    # other.collapse()
+
 
     obj = self.__new__(type(self))
     obj.__init__(
@@ -404,7 +417,7 @@ class BaseCharge:
         charge_types=self.charge_types,
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
-
+    # obj.collapse()
     return obj
 
   def dual(self, take_dual: Optional[bool] = False) -> "BaseCharge":
@@ -563,7 +576,7 @@ class BaseCharge:
     if not is_collapsed:
       self.expand()
       obj.expand()
-      
+
     if any([return_index, return_inverse, return_counts]):
       return (obj,) + res[1:]
     else:
