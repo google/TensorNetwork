@@ -136,8 +136,8 @@ class AbstractBackend:
   def qr(
       self,
       tensor: Tensor,
-      pivot: int = 1,
-      non_negative_diagonal: bool = True
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False 
   ) -> Tuple[Tensor, Tensor]:
     """
     QR reshapes tensor into a matrix and then decomposes that matrix into the
@@ -182,8 +182,8 @@ class AbstractBackend:
   def rq(
       self,
       tensor: Tensor,
-      pivot: int = 1,
-      non_negative_diagonal: bool = True
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """
     RQ reshapes tensor into a matrix and then decomposes that matrix into the

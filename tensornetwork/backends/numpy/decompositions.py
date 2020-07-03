@@ -91,7 +91,7 @@ def qr(
   if non_negative_diagonal:
     phases = np.sign(np.diagonal(r))
     q = q * phases
-    r = r @ np.diagflat(phases.conj())
+    r = phases.conj()[:, None] * r
   center_dim = q.shape[1]
   q = np.reshape(q, list(left_dims) + [center_dim])
   r = np.reshape(r, [center_dim] + list(right_dims))
@@ -112,13 +112,13 @@ def rq(
   right_dims = tensor.shape[pivot_axis:]
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
-  r, q = np.conj(np.transpose(r)), np.conj(
-      np.transpose(q))  #M=r*q at this point
-  center_dim = r.shape[1]
   if non_negative_diagonal:
     phases = np.sign(np.diagonal(r))
     q = q * phases
-    r = r @ np.diagflat(phases.conj())
+    r = phases.conj()[:, None] * r
+  r, q = np.conj(np.transpose(r)), np.conj(
+      np.transpose(q))  #M=r*q at this point
+  center_dim = r.shape[1]
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q

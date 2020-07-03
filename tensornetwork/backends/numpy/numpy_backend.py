@@ -82,7 +82,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
-      non_negative_diagonal: bool = True
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.qr(np, tensor, pivot_axis, non_negative_diagonal)
@@ -91,7 +91,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
-      non_negative_diagonal: bool = True
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)

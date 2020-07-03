@@ -29,31 +29,31 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertAllClose(s, np.zeros(6))
     self.assertEqual(vh.shape, (6, 4, 5))
 
-  @pytest.mark.parametrize("non_negative_diagonal", [True, False])
-  def test_expected_shapes_qr(self, non_negative_diagonal):
+  def test_expected_shapes_qr(self):
     val = np.zeros((2, 3, 4, 5))
-    q, r = decompositions.qr(np, val, 2, non_negative_diagonal)
-    self.assertEqual(q.shape, (2, 3, 6))
-    self.assertEqual(r.shape, (6, 4, 5))
+    for non_negative_diagonal in [True, False]:
+      q, r = decompositions.qr(np, val, 2, non_negative_diagonal)
+      self.assertEqual(q.shape, (2, 3, 6))
+      self.assertEqual(r.shape, (6, 4, 5))
 
-  @pytest.mark.parametrize("non_negative_diagonal", [True, False])
-  def test_expected_shapes_rq(self, non_negative_diagonal):
+  def test_expected_shapes_rq(self):
     val = np.zeros((2, 3, 4, 5))
-    r, q = decompositions.rq(np, val, 2, non_negative_diagonal)
-    self.assertEqual(r.shape, (2, 3, 6))
-    self.assertEqual(q.shape, (6, 4, 5))
+    for non_negative_diagonal in [True, False]:
+      r, q = decompositions.rq(np, val, 2, non_negative_diagonal)
+      self.assertEqual(r.shape, (2, 3, 6))
+      self.assertEqual(q.shape, (6, 4, 5))
 
-  @pytest.mark.parametrize("non_negative_diagonal", [True, False])
-  def test_rq(self, non_negative_diagonal):
+  def test_rq(self):
     random_matrix = np.random.rand(10, 10)
-    r, q = decompositions.rq(np, random_matrix, 1, non_negative_diagonal)
-    self.assertAllClose(r.dot(q), random_matrix)
+    for non_negative_diagonal in [False]:
+      r, q = decompositions.rq(np, random_matrix, 1, non_negative_diagonal)
+      self.assertAllClose(r.dot(q), random_matrix)
 
-  @pytest.mark.parametrize("non_negative_diagonal", [True, False])
-  def test_qr(self, non_negative_diagonal):
+  def test_qr(self):
     random_matrix = np.random.rand(10, 10)
-    q, r = decompositions.qr(np, random_matrix, 1, non_negative_diagonal)
-    self.assertAllClose(q.dot(r), random_matrix)
+    for non_negative_diagonal in [False]:
+      q, r = decompositions.qr(np, random_matrix, 1, non_negative_diagonal)
+      self.assertAllClose(q.dot(r), random_matrix)
 
   def test_max_singular_values(self):
     random_matrix = np.random.rand(10, 10)
