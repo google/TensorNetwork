@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Union, Text, Optional, List, Sequence, Tuple
+import tensornetwork as tn
 from tensornetwork.tensor import Tensor
 
 def svd(
@@ -82,24 +83,102 @@ def svd(
 
 def qr(
     tensor: Tensor,
-    split_axis: int,
+    split_axis: int = 1,
+    non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
-  """Computes the QR decomposition of a tensor."""
+  """
+  QR reshapes tensor into a matrix and then decomposes that matrix into the
+  product of unitary and upper triangular matrices Q and R. Q is reshaped
+  into a tensor depending on the input shape and the choice of split_axis.
+
+  Computes the reduced QR decomposition of the matrix formed by concatenating
+  tensor about split_axis, e.g.
+      ``` shape = tensor.shape
+          columns = np.prod(shape[:split_axis])
+          rows = np.prod(shape[split_axis:])
+          matrix = tensor.reshape((columns, rows))
+      ```
+  The output is then shaped as follows:
+     - Q has dimensions (*shape[:split_axis], np.prod(shape[split_axis:])).
+     - R is a square matrix with length np.prod(shape[split_axis:]).
+
+  The argument non_negative_diagonal, True by default, enforces a phase
+  convention such that R has strictly non-negative entries on its main diagonal.
+  This makes the QR decomposition unambiguous and unique, which allows
+  it to be used in fixed point iterations. If False, the phase convention is set
+  by the backend and thus undefined at the TN interface level, but this
+  routine will be slightly less expensive.
+
+  By default this split_axis is 1, which produces the usual behaviour in the
+  matrix case.
+  Args:
+    tensor: The Tensor to be decomposed.
+    split_axis: The axis of Tensor about which to concatenate.
+                Default: 1
+    non_negative_diagonal:
+
+
+  Returns:
+    Q, R : The decomposed Tensor with dimensions as specified above.
+  """
   backend = tensor.backend
   out = backend.qr(tensor.array, split_axis)
-  tensors = [Tensor(t, backend=backend) for t in out]
-  return tuple(tensors)
+  Q, R = [Tensor(t, backend=backend) for t in out]
+  if non_negative_diagonal:
+    phases = tn.sign(tn.diagonal(R))
+    Q = Q * phases
+    R = R @ tn.diagflat(phases.conj())
+  return Q, R
 
 
 def rq(
     tensor: Tensor,
-    split_axis: int,
+    split_axis: int = 1,
+    non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
-  """Computes the RQ (reversed QR) decomposition of a tensor."""
+  """
+  RQ reshapes tensor into a matrix and then decomposes that matrix into the
+  product of upper triangular and unitary matrices R and Q. Q is reshaped
+  into a tensor depending on the input shape and the choice of split_axis.
+
+  Computes the reduced RQ decomposition of the matrix formed by concatenating
+  tensor about split_axis, e.g.
+      ``` shape = tensor.shape
+          columns = np.prod(shape[:split_axis])
+          rows = np.prod(shape[split_axis:])
+          matrix = tensor.reshape((columns, rows))
+      ```
+  The output is then shaped as follows:
+     - R is a square matrix with length np.prod(shape[:split_axis]).
+     - Q has dimensions (np.prod(shape[:split_axis]), *shape[split_axis:]).
+
+  The argument non_negative_diagonal, True by default, enforces a phase
+  convention such that R has strictly non-negative entries on its main diagonal.
+  This makes the RQ decomposition unambiguous and unique, which allows
+  it to be used in fixed point iterations. If False, the phase convention is set
+  by the backend and thus undefined at the TN interface level, but this
+  routine will be slightly less expensive.
+
+  By default this split_axis is 1, which produces the usual behaviour in the
+  matrix case.
+  Args:
+    tensor: The Tensor to be decomposed.
+    split_axis: The axis of Tensor about which to concatenate.
+                Default: 1
+    non_negative_diagonal:
+
+
+  Returns:
+    R, Q : The decomposed Tensor with dimensions as specified above.
+  """
   backend = tensor.backend
   out = backend.rq(tensor.array, split_axis)
-  tensors = [Tensor(t, backend=backend) for t in out]
-  return tuple(tensors)
+  R, Q = [Tensor(t, backend=backend) for t in out]
+  if non_negative_diagonal:
+    phases = tn.sign(tn.diagonal(R))
+    Q = Q * phases
+    R = R @ tn.diagflat(phases.conj())
+  return (R, Q)
 
 
 def eigh(matrix: Tensor) -> Tuple[Tensor, Tensor]:
@@ -123,6 +202,8 @@ def norm(tensor: Tensor) -> Tensor:
   backend = tensor.backend
   out = backend.norm(tensor.array)
   return out
+
+
 
 
 def trace(tensor: Tensor) -> Tensor:

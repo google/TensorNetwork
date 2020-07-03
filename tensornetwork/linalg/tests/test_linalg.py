@@ -91,7 +91,7 @@ def test_qr_vs_backend(backend, dtype):
   dtype = np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   split_axis = 1
-  tn_result = linalg.qr(tensor, split_axis)
+  tn_result = linalg.qr(tensor, split_axis, non_negative_diagonal=False)
   if backend is None:
     backend = backend_contextmanager.get_default_backend()
   backend_obj = backends.backend_factory.get_backend(backend)
@@ -102,12 +102,23 @@ def test_qr_vs_backend(backend, dtype):
 
 
 @pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_qr_non_neg(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  _, R = linalg.qr(tensor, split_axis)
+  Rabs = tn.abs(R)
+  np.testing.assert_allclose(Rabs, R)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
 def test_rq_vs_backend(backend, dtype):
   shape = (3, 6, 4, 2)
   dtype = np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   split_axis = 1
-  tn_result = linalg.rq(tensor, split_axis)
+  tn_result = linalg.rq(tensor, split_axis, non_negative_diagonal=False)
   if backend is None:
     backend = backend_contextmanager.get_default_backend()
   backend_obj = backends.backend_factory.get_backend(backend)
@@ -115,6 +126,17 @@ def test_rq_vs_backend(backend, dtype):
   tn_arrays = [t.array for t in tn_result]
   for tn_arr, backend_arr in zip(tn_arrays, backend_result):
     np.testing.assert_allclose(tn_arr, backend_arr)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_rq_non_neg(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  R, _ = linalg.rq(tensor, split_axis)
+  Rabs = tn.abs(R)
+  np.testing.assert_allclose(Rabs, R)
 
 
 @pytest.mark.parametrize("dtype", np_float_dtypes)
