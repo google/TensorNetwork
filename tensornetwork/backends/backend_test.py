@@ -184,19 +184,19 @@ def test_abstract_backend_slice_not_implemented():
 def test_abstract_backend_svd_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.svd_decomposition(np.ones((2, 2)), 0)
+    backend.svd(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_qr_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.qr_decomposition(np.ones((2, 2)), 0)
+    backend.qr(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_rq_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.rq_decomposition(np.ones((2, 2)), 0)
+    backend.rq(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_shape_concat_not_implemented():
@@ -229,10 +229,16 @@ def test_abstract_backend_sqrt_not_implemented():
     backend.sqrt(np.ones((2, 2)))
 
 
-def test_abstract_backend_diag_not_implemented():
+def test_abstract_backend_diagonal_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.diag(np.ones((2, 2)))
+    backend.diagonal(np.ones((2, 2)))
+
+
+def test_abstract_backend_diagflat_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.diagflat(np.ones((2, 2)))
 
 
 def test_abstract_backend_convert_to_tensor_not_implemented():
@@ -378,6 +384,15 @@ def test_abstract_backend_log_not_implemented():
   with pytest.raises(NotImplementedError):
     backend.log(np.ones((2, 2)))
 
+def test_abstract_backend_sign_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sign(np.ones((2, 2)))
+
+def test_abstract_backend_abs_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.abs(np.ones((2, 2)))
 
 def test_abstract_backend_expm_not_implemented():
   backend = AbstractBackend()
@@ -407,3 +422,4 @@ def test_backend_instantiation(backend):
   backend1 = backend_factory.get_backend(backend)
   backend2 = backend_factory.get_backend(backend)
   assert backend1 is backend2
+

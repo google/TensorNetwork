@@ -18,10 +18,10 @@ import numpy
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     np,  # TODO: Typing
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -29,8 +29,8 @@ def svd_decomposition(
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
 
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   u, s, vh = np.linalg.svd(tensor, full_matrices=False)
@@ -74,41 +74,51 @@ def svd_decomposition(
   return u, s, vh, s_rest
 
 
-def qr_decomposition(
+def qr(
     np,  # TODO: Typing
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   q, r = np.linalg.qr(tensor)
+  if non_negative_diagonal:
+    phases = np.sign(np.diagonal(r))
+    q = q * phases
+    r = r @ np.diagflat(phases.conj())
   center_dim = q.shape[1]
   q = np.reshape(q, list(left_dims) + [center_dim])
   r = np.reshape(r, [center_dim] + list(right_dims))
   return q, r
 
 
-def rq_decomposition(
+def rq(
     np,  # TODO: Typing
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   q, r = np.linalg.qr(np.conj(np.transpose(tensor)))
   r, q = np.conj(np.transpose(r)), np.conj(
       np.transpose(q))  #M=r*q at this point
   center_dim = r.shape[1]
+  if non_negative_diagonal:
+    phases = np.sign(np.diagonal(r))
+    q = q * phases
+    r = r @ np.diagflat(phases.conj())
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q

@@ -73,10 +73,10 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -85,10 +85,10 @@ class AbstractBackend:
 
     The SVD is performed by treating the tensor as a matrix, with an effective
     left (row) index resulting from combining the axes
-    `tensor.shape[:split_axis]` and an effective right (column) index resulting
-    from combining the axes `tensor.shape[split_axis:]`.
+    `tensor.shape[:pivot_axis]` and an effective right (column) index resulting
+    from combining the axes `tensor.shape[pivot_axis:]`.
 
-    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+    For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
     then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh`
     would have shape (6, 4, 5).
 
@@ -115,7 +115,7 @@ class AbstractBackend:
 
     Args:
       tensor: A tensor to be decomposed.
-      split_axis: Where to split the tensor's axes before flattening into a
+      pivot_axis: Where to split the tensor's axes before flattening into a
         matrix.
       max_singular_values: The number of singular values to keep, or `None` to
         keep them all.
@@ -131,25 +131,99 @@ class AbstractBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot: int = 1,
+      non_negative_diagonal: bool = True
   ) -> Tuple[Tensor, Tensor]:
-    """Computes the QR decomposition of a tensor."""
-    raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+    """
+    QR reshapes tensor into a matrix and then decomposes that matrix into the
+    product of unitary and upper triangular matrices Q and R. Q is reshaped
+    into a tensor depending on the input shape and the choice of split_axis.
 
-  def rq_decomposition(
+    Computes the reduced QR decomposition of the matrix formed by concatenating
+    tensor about split_axis, e.g.
+        ``` shape = tensor.shape
+            columns = np.prod(shape[:split_axis])
+            rows = np.prod(shape[split_axis:])
+            matrix = tensor.reshape((columns, rows))
+        ```
+    The output is then shaped as follows:
+       - Q has dimensions (*shape[:split_axis], np.prod(shape[split_axis:])).
+       - R is a square matrix with length np.prod(shape[split_axis:]).
+
+    The argument non_negative_diagonal, True by default, enforces a phase
+    convention such that R has strictly non-negative entries on its main 
+    diagonal.
+    This makes the QR decomposition unambiguous and unique, which allows
+    it to be used in fixed point iterations. If False, the phase convention is 
+    set
+    by the backend and thus undefined at the TN interface level, but this
+    routine will be slightly less expensive.
+
+    By default this split_axis is 1, which produces the usual behaviour in the
+    matrix case.
+    Args:
+      tensor: The Tensor to be decomposed.
+      split_axis: The axis of Tensor about which to concatenate.
+                  Default: 1
+      non_negative_diagonal:
+
+
+    Returns:
+      Q, R : The decomposed Tensor with dimensions as specified above.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented qr.".format(self.name))
+
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot: int = 1,
+      non_negative_diagonal: bool = True
   ) -> Tuple[Tensor, Tensor]:
-    """Computes the RQ (reversed QR) decomposition of a tensor."""
+    """
+    RQ reshapes tensor into a matrix and then decomposes that matrix into the
+    product of upper triangular and unitary matrices R and Q. Q is reshaped
+    into a tensor depending on the input shape and the choice of split_axis.
+
+    Computes the reduced RQ decomposition of the matrix formed by concatenating
+    tensor about split_axis, e.g.
+        ``` shape = tensor.shape
+            columns = np.prod(shape[:split_axis])
+            rows = np.prod(shape[split_axis:])
+            matrix = tensor.reshape((columns, rows))
+        ```
+    The output is then shaped as follows:
+       - R is a square matrix with length np.prod(shape[:split_axis]).
+       - Q has dimensions (np.prod(shape[:split_axis]), *shape[split_axis:]).
+
+    The argument non_negative_diagonal, True by default, enforces a phase
+    convention such that R has strictly non-negative entries on its main 
+    diagonal.
+    This makes the RQ decomposition unambiguous and unique, which allows
+    it to be used in fixed point iterations. If False, the phase convention is 
+    set
+    by the backend and thus undefined at the TN interface level, but this
+    routine will be slightly less expensive.
+
+    By default this split_axis is 1, which produces the usual behaviour in the
+    matrix case.
+    Args:
+      tensor: The Tensor to be decomposed.
+      split_axis: The axis of Tensor about which to concatenate.
+                  Default: 1
+      non_negative_diagonal:
+
+
+    Returns:
+      R, Q : The decomposed Tensor with dimensions as specified above.
+    """
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
@@ -193,20 +267,60 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented sqrt.".format(
         self.name))
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    """Create a diagonal matrix from the given vector tensor."""
-    raise NotImplementedError("Backend '{}' has not implemented diag.".format(
-        self.name))
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented diagflat.".format(self.name))
+
+  def diagonal(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
+    """ Returns a 1D tensor storing the k'th diagonal of the matrix formed
+    by concatenating tensor into a matrix about pivot_axis.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      k: The diagonal to extract. Defaults to 0, the main diagonal.
+      pivot_axis: The tensor is concatenated into a matrix with dimensions
+                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
+                  Default: 1.
+    Returns:
+      tensor: The specified diagonal slice.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented diag.".format(self.name))
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     """Convert a np.array or a tensor to a tensor type for the backend."""
     raise NotImplementedError(
         "Backend '{}' has not implemented convert_to_tensor.".format(self.name))
 
-  def trace(self, tensor: Tensor) -> Tensor:
-    """Calculate the trace over the last two axes of the given tensor."""
-    raise NotImplementedError("Backend '{}' has not implemented trace.".format(
-        self.name))
+  def trace(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
+    """ Returns the summed elements of the k'th diagonal of the matrix formed
+    by concatenating tensor into a matrix about pivot_axis.
+
+    Unlike in e.g. numpy, this function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      k: The diagonal to sum. Defaults to 0, the main diagonal.
+      pivot_axis: The tensor is concatenated into a matrix with dimensions
+                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
+                  Default: 0.
+    Returns:
+      result: The summed elements.
+    """
+    diag = self.diagonal(tensor, k=k, pivot_axis=pivot_axis)
+    return self.sum(diag)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """Calculate the outer product of the two given tensors."""
@@ -505,6 +619,31 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
 
+  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+    """ Reshapes a tensor into a matrix, whose columns (rows) are the
+    vectorized dimensions to the left (right) of pivot_axis.
+
+    In other words, with tensor.shape = (1, 2, 4, 5) and pivot_axis=2,
+    this function returns an (8, 5) matrix.
+
+    Args:
+      tensor: The tensor to pivot.
+      pivot_axis: The axis about which to pivot.
+
+    Returns:
+      The pivoted tensor.
+    """
+    ndim = len(self.shape_tuple(tensor))
+    if pivot_axis < 1 or pivot_axis > ndim:
+      errstr = f"pivot_axis = {pivot_axis} was invalid given ndim={ndim} array."
+      raise ValueError(errstr)
+
+    left_dims = tensor.shape[:pivot_axis]
+    right_dims = tensor.shape[pivot_axis:]
+    tensor = self.reshape(tensor, [self.shape_prod(left_dims),
+                                   self.shape_prod(right_dims)])
+    return tensor
+
   def broadcast_right_multiplication(self, tensor1: Tensor,
                                      tensor2: Tensor) -> Tensor:
     """
@@ -526,7 +665,7 @@ class AbstractBackend:
                                     tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
-    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is a
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is 
     one-dimensional tensor. The broadcasting is applied to the first index of
     `tensor2`.
     Args:
@@ -642,3 +781,31 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `abs`.".format(self.name))
+
+  def sign(self, tensor: Tensor):
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+    Args:
+      tensor: The input tensor.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sign`.".format(self.name))
+
+

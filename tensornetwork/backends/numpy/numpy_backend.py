@@ -62,35 +62,39 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         np,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = True
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(np, tensor, split_axis)
+    #pylint: disable=too-many-function-args
+    return decompositions.qr(np, tensor, pivot_axis, non_negative_diagonal)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = True
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(np, tensor, split_axis)
+    #pylint: disable=too-many-function-args
+    return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
@@ -110,10 +114,35 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return np.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
-    return np.diag(tensor)
+  def diagonal(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
+    """ Returns a 1D tensor storing the k'th diagonal of the matrix formed
+    by concatenating tensor into a matrix about pivot_axis.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      k: The diagonal to extract. Defaults to 0, the main diagonal.
+      pivot_axis: The tensor is concatenated into a matrix with dimensions
+                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
+                  Default: 0.
+    Returns:
+      tensor: The specified diagonal slice.
+    """
+    matrix = self.pivot(tensor, pivot_axis=pivot_axis)
+    return np.diag(matrix, k=k)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return np.diagflat(tensor, k=k)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, np.ndarray) and not np.isscalar(tensor)):
@@ -121,10 +150,6 @@ class NumPyBackend(abstract_backend.AbstractBackend):
           type(tensor)))
     result = np.asarray(tensor)
     return result
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return np.trace(tensor, axis1=-2, axis2=-1)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return np.tensordot(tensor1, tensor2, 0)
@@ -165,12 +190,12 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     if seed:
       np.random.seed(seed)
-    dtype = dtype if dtype is not None else np.float64
-    if ((np.dtype(dtype) is np.dtype(np.complex128)) or
-        (np.dtype(dtype) is np.dtype(np.complex64))):
-      return np.random.randn(
-          *shape).astype(dtype) + 1j * np.random.randn(*shape).astype(dtype)
-    return np.random.randn(*shape).astype(dtype)
+    dtype = np.dtype(dtype) if dtype is not None else np.float64
+    out = np.random.randn(*shape).astype(dtype)
+    if np.iscomplexobj(out):
+      imag = 1j * np.random.randn(*shape).astype(dtype)
+      out += imag
+    return out
 
   def random_uniform(self,
                      shape: Tuple[int, ...],
@@ -180,14 +205,12 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     if seed:
       np.random.seed(seed)
-    dtype = dtype if dtype is not None else np.float64
-    if ((np.dtype(dtype) is np.dtype(np.complex128)) or
-        (np.dtype(dtype) is np.dtype(np.complex64))):
-      return np.random.uniform(
-          boundaries[0],
-          boundaries[1], shape).astype(dtype) + 1j * np.random.uniform(
-              boundaries[0], boundaries[1], shape).astype(dtype)
-    return np.random.uniform(boundaries[0], boundaries[1], shape).astype(dtype)
+    dtype = np.dtype(dtype) if dtype is not None else np.float64
+    out = np.random.uniform(*boundaries, shape).astype(dtype)
+    if np.iscomplexobj(out):
+      imag = 1.0j*np.random.uniform(*boundaries, shape).astype(dtype)
+      out += imag
+    return out
 
   def conj(self, tensor: Tensor) -> Tensor:
     return np.conj(tensor)
@@ -477,9 +500,38 @@ class NumPyBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=tuple(axis), keepdims=keepdims)
+    if axis is not None:
+      axis = tuple(axis)
+    return np.sum(tensor, axis=axis, keepdims=keepdims)
+
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
     return np.matmul(tensor1, tensor2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return np.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+
+    Args:
+      tensor: The input tensor.
+    """
+    out = np.sign(tensor)
+    return out

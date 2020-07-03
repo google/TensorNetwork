@@ -91,14 +91,25 @@ def test_sqrt():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_diag():
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("pivot_axis", range(1, 4))
+def test_diagonal(dtype, pivot_axis):
+  shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
-  with pytest.raises(TypeError):
-    assert backend.diag(a)
-  b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
-  actual = backend.diag(b)
-  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+  array = backend.randn(shape, dtype=dtype)
+  actual = backend.diagonal(array, pivot_axis=pivot_axis)
+  expected_mat = backend.pivot(array, pivot_axis=pivot_axis)
+  expected = np.diagonal(expected_mat)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("k", range(-2, 2))
+def test_diagflat(dtype, k):
+  backend = numpy_backend.NumPyBackend()
+  array = backend.randn((16,), dtype=dtype)
+  actual = backend.diagflat(array, k=k)
+  expected = np.diagflat(array, k=k)
   np.testing.assert_allclose(expected, actual)
 
 
@@ -111,11 +122,17 @@ def test_convert_to_tensor():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_trace():
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("pivot_axis", range(1, 4))
+def test_trace(dtype, pivot_axis):
+  shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 6)
+  array = backend.randn(shape, dtype=dtype)
+  actual = backend.trace(array, pivot_axis=pivot_axis)
+  cols = np.prod(shape[:pivot_axis])
+  rows = np.prod(shape[pivot_axis:])
+  expected = np.trace(array.reshape((cols, rows)))
+  np.testing.assert_allclose(actual, expected)
 
 
 def test_outer_product():
@@ -768,4 +785,36 @@ def test_matmul():
   b = backend.convert_to_tensor(t2)
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.abs(tensor)
+  expected = np.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.sign(tensor)
+  expected = np.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
   np.testing.assert_allclose(expected, actual)
