@@ -181,8 +181,6 @@ def compute_fused_charge_degeneracies(
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
     accumulated_charges = fused_charges.unique(sort=False)
-    accumulated_degeneracies = np.empty(len(accumulated_charges), dtype=SIZE_T)
-
     accumulated_degeneracies = np.array([
         np.sum(fused_degeneracies[fused_charges.charge_labels ==
                                   accumulated_charges.charge_labels[m]])
