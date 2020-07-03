@@ -49,10 +49,10 @@ def test_transpose():
   assertBackendsAgree("transpose", args)
 
 
-def test_svd_decomposition():
+def test_svd():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().svd_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().svd_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().svd(tensor, 3)
+  sh_res = shell_backend.ShellBackend().svd(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
@@ -60,32 +60,32 @@ def test_svd_decomposition():
 def test_svd_decomposition_raises_error():
   tensor = np.ones([2, 3, 4, 5, 6])
   with pytest.raises(NotImplementedError):
-    shell_backend.ShellBackend().svd_decomposition(
+    shell_backend.ShellBackend().svd(
         tensor, 3, max_truncation_error=.1)
 
 
 def test_svd_decomposition_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().svd_decomposition(
+  np_res = numpy_backend.NumPyBackend().svd(
       tensor, 3, max_singular_values=5)
-  sh_res = shell_backend.ShellBackend().svd_decomposition(
+  sh_res = shell_backend.ShellBackend().svd(
       tensor, 3, max_singular_values=5)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
 
-def test_qr_decomposition():
+def test_qr():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().qr_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().qr_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().qr(tensor, 3)
+  sh_res = shell_backend.ShellBackend().qr(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
 
-def test_rq_decomposition():
+def test_rq():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().rq_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().rq_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().rq(tensor, 3)
+  sh_res = shell_backend.ShellBackend().rq(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
@@ -434,3 +434,25 @@ def test_index_update():
   actual = backend.index_update(matrix, matrix, matrix)
   assert isinstance(actual, shell_backend.ShellTensor)
   assert actual.shape == (4, 4, 4)
+
+
+def test_sum():
+  np.random.seed(10)
+  backend = shell_backend.ShellBackend()
+  a = backend.randn((2, 3, 4), seed=10)
+  actual = backend.sum(a, axis=(1, 2))
+  np.testing.assert_allclose(actual.shape, [
+      2,
+  ])
+
+  actual = backend.sum(a, axis=(1, 2), keepdims=True)
+  np.testing.assert_allclose(actual.shape, [2, 1, 1])
+
+
+def test_matmul():
+  np.random.seed(10)
+  backend = shell_backend.ShellBackend()
+  a = backend.randn((10, 2, 3), seed=10)
+  b = backend.randn((10, 3, 4), seed=10)
+  actual = backend.matmul(a, b)
+  np.testing.assert_allclose(actual.shape, [10, 2, 4])

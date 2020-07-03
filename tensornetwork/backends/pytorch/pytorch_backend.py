@@ -27,7 +27,7 @@ Tensor = Any
 class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(PyTorchBackend, self).__init__()
     # pylint: disable=global-variable-undefined
     global torchlib
@@ -40,10 +40,11 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     torchlib = torch
     self.name = "pytorch"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     return torchlib.tensordot(a, b, dims=axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
   def transpose(self, tensor, perm=None):
@@ -61,7 +62,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -69,7 +70,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         torchlib,
         tensor,
         split_axis,
@@ -77,19 +78,19 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(torchlib, tensor, split_axis)
+    return decompositions.qr(torchlib, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(torchlib, tensor, split_axis)
+    return decompositions.rq(torchlib, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
@@ -104,7 +105,8 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> int:
-    return np.prod(np.array(values))
+    values = torchlib.as_tensor(values)
+    return torchlib.prod(values)
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return torchlib.sqrt(tensor)
@@ -186,7 +188,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a `LinearOperator` `A`.
@@ -326,7 +328,8 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
           .format(matrix.shape))
     return matrix.inverse()
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError(
           "only order-1 tensors are allowed for `tensor2`, found `tensor2.shape = {}`"
@@ -334,7 +337,8 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -345,3 +349,15 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return torchlib.sum(tensor, axis=axis, keepdim=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+
+    return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)

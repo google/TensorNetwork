@@ -191,10 +191,7 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def reshape(
-      self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...], List[int],
-                         Tuple[int, ...]]
-  ) -> "ChargeArray":
+  def reshape(self, shape: Sequence[Union[Index, int]]) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `ChargeArray.reshape` works the same as the dense 
@@ -299,7 +296,7 @@ class ChargeArray:
         check_consistency=False)
     return result
 
-  def transpose_data(self) -> "ChargeArray":
+  def contiguous(self) -> "ChargeArray":
     """
     Transpose the tensor data such that the linear order 
     of the elements in `ChargeArray.data` corresponds to the 
@@ -307,7 +304,7 @@ class ChargeArray:
     Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
     i.e. `data` was initialized according to order [0,1,2,3], and the tensor
     has since been reshaped and transposed. The linear order of `data` does not
-    match the desired order [1,2,3,0] of the tensor. `transpose_data` fixes this
+    match the desired order [1,2,3,0] of the tensor. `contiguous` fixes this
     by permuting `data` into this order, transposing `_charges` and `_flows`,
     and changing `_order` to `[[0,1],[2],[3]]`.
     """
@@ -330,8 +327,7 @@ class ChargeArray:
     return result
 
   def transpose(self,
-                order: Union[Tuple[int, ...], List[int],
-                             np.ndarray] = np.asarray([1, 0]),
+                order: Sequence[int] = np.asarray([1, 0]),
                 shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
@@ -356,7 +352,7 @@ class ChargeArray:
         order=order,
         check_consistency=False)
     if shuffle:
-      return tensor.transpose_data()
+      return tensor.contiguous()
     return tensor
 
   def conj(self) -> "ChargeArray":
@@ -531,7 +527,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def randn(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from a random normal distribution
@@ -554,7 +550,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def random(cls,
-             indices: Union[Tuple[Index], List[Index]],
+             indices: Sequence[Index],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
@@ -579,7 +575,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def ones(cls,
-           indices: Union[Tuple[Index], List[Index]],
+           indices: Sequence[Index],
            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with ones.
@@ -603,7 +599,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def zeros(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with zeros.
@@ -659,12 +655,12 @@ class BlockSparseTensor(ChargeArray):
       #bring other into the same storage layout as other
       perm = np.empty(len(other.flat_order), dtype=np.int32)
       perm[self.flat_order] = other.flat_order
-      other.transpose_data(perm, inplace=True)
+      other.contiguous(perm, inplace=True)
     elif ((not self_is_ordered) and other_is_ordered) or both_unordered:
       #bring self into the same storage layout as other
       perm = np.empty(len(self.flat_order), dtype=np.int32)
       perm[other.flat_order] = self.flat_order
-      self.transpose_data(perm, inplace=True)
+      self.contiguous(perm, inplace=True)
 
   def __sub__(self, other: "BlockSparseTensor") -> "BlockSparseTensor":
     self._sub_add_protection(other)  #perform checks
@@ -725,10 +721,9 @@ class BlockSparseTensor(ChargeArray):
         check_consistency=False)
 
   # pylint: disable=arguments-differ
-  def transpose_data(self,
-                     permutation: Optional[Union[Tuple, List,
-                                                 np.ndarray]] = None,
-                     inplace: Optional[bool] = False) -> Any:
+  def contiguous(self,
+                 permutation: Optional[Union[Tuple, List, np.ndarray]] = None,
+                 inplace: Optional[bool] = False) -> Any:
     """
     Transpose the tensor data in place such that the linear order 
     of the elements in `BlockSparseTensor.data` corresponds to the 
@@ -736,7 +731,7 @@ class BlockSparseTensor(ChargeArray):
     Consider a tensor with current order given by `_order=[[1,2],[3],[0]]`,
     i.e. `data` was initialized according to order [0,1,2,3], and the tensor
     has since been reshaped and transposed. The linear oder of `data` does not
-    match the desired order [1,2,3,0] of the tensor. `transpose_data` fixes this
+    match the desired order [1,2,3,0] of the tensor. `contiguous` fixes this
     by permuting `data` into this order, transposing `_charges` and `_flows`,
     and changing `_order` to `[[0,1],[2],[3]]`.
     Args:
@@ -788,11 +783,11 @@ class BlockSparseTensor(ChargeArray):
 
   def __matmul__(self, other):
 
-    if (self.ndim != 2) or (other.ndim != 2):
-      raise ValueError("__matmul__ only implemented for matrices."
-                       " Found ndims =  {} and {}".format(
+    if (self.ndim > 2) or (other.ndim > 2):
+      raise ValueError("__matmul__ is only implemented for vectors or matrices."
+                       " Found ndims = {} and {}".format(
                            self.ndim, other.ndim))
-    return tensordot(self, other, ([1], [0]))
+    return tensordot(self, other, ([self.ndim - 1], [0]))
 
   def conj(self) -> "BlockSparseTensor":
     """
@@ -952,8 +947,8 @@ def tensordot(
 
   #special case inner product (returns an ndim=0 tensor)
   if (len(axes1) == tensor1.ndim) and (len(axes2) == tensor2.ndim):
-    t1 = tensor1.transpose(axes1).transpose_data()
-    t2 = tensor2.transpose(axes2).transpose_data()
+    t1 = tensor1.transpose(axes1).contiguous()
+    t2 = tensor2.transpose(axes2).contiguous()
     return BlockSparseTensor(
         data=np.dot(t1.data, t2.data),
         charges=[],

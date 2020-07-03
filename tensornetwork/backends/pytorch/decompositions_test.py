@@ -20,7 +20,7 @@ from tensornetwork.backends.pytorch import decompositions
 
 def test_expected_shapes():
   val = torch.zeros((2, 3, 4, 5))
-  u, s, vh, _ = decompositions.svd_decomposition(torch, val, 2)
+  u, s, vh, _ = decompositions.svd(torch, val, 2)
   assert u.shape == (2, 3, 6)
   assert s.shape == (6,)
   np.testing.assert_allclose(s, np.zeros(6))
@@ -29,27 +29,27 @@ def test_expected_shapes():
 
 def test_expected_shapes_qr():
   val = torch.zeros((2, 3, 4, 5))
-  q, r = decompositions.qr_decomposition(torch, val, 2)
+  q, r = decompositions.qr(torch, val, 2)
   assert q.shape == (2, 3, 6)
   assert r.shape == (6, 4, 5)
 
 
 def test_expected_shapes_rq():
   val = torch.zeros((2, 3, 4, 5))
-  r, q = decompositions.rq_decomposition(torch, val, 2)
+  r, q = decompositions.rq(torch, val, 2)
   assert r.shape == (2, 3, 6)
   assert q.shape == (6, 4, 5)
 
 
-def test_rq_decomposition():
+def test_rq():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)
-  r, q = decompositions.rq_decomposition(torch, random_matrix, 1)
+  r, q = decompositions.rq(torch, random_matrix, 1)
   np.testing.assert_allclose(r.mm(q), random_matrix)
 
 
-def test_qr_decomposition():
+def test_qr():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)
-  q, r = decompositions.qr_decomposition(torch, random_matrix, 1)
+  q, r = decompositions.qr(torch, random_matrix, 1)
   np.testing.assert_allclose(q.mm(r), random_matrix)
 
 
@@ -59,7 +59,7 @@ def test_max_singular_values():
   unitary1, _, unitary2 = np.linalg.svd(random_matrix)
   singular_values = np.array(range(10))
   val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-  u, s, vh, trun = decompositions.svd_decomposition(
+  u, s, vh, trun = decompositions.svd(
       torch, torch.tensor(val), 1, max_singular_values=7)
   assert u.shape == (10, 7)
   assert s.shape == (7,)
@@ -74,7 +74,7 @@ def test_max_truncation_error():
   unitary1, _, unitary2 = np.linalg.svd(random_matrix)
   singular_values = np.array(range(10))
   val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-  u, s, vh, trun = decompositions.svd_decomposition(
+  u, s, vh, trun = decompositions.svd(
       torch, torch.Tensor(val), 1, max_truncation_error=math.sqrt(5.1))
   assert u.shape == (10, 7)
   assert s.shape == (7,)
@@ -87,13 +87,13 @@ def test_max_truncation_error_relative():
   absolute = np.diag([2.0, 1.0, 0.2, 0.1])
   relative = np.diag([2.0, 1.0, 0.2, 0.1])
   max_truncation_err = 0.2
-  _, _, _, trunc_sv_absolute = decompositions.svd_decomposition(
+  _, _, _, trunc_sv_absolute = decompositions.svd(
       torch,
       torch.Tensor(absolute),
       1,
       max_truncation_error=max_truncation_err,
       relative=False)
-  _, _, _, trunc_sv_relative = decompositions.svd_decomposition(
+  _, _, _, trunc_sv_relative = decompositions.svd(
       torch,
       torch.Tensor(relative),
       1,

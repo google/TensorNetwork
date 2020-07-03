@@ -21,7 +21,7 @@ Tensor = Any
 
 class AbstractBackend:
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
@@ -74,7 +74,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -132,25 +132,25 @@ class AbstractBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+        "Backend '{}' has not implemented qr.".format(self.name))
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
@@ -344,7 +344,7 @@ class AbstractBackend:
            numeig: int = 1,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: Optional[int] = None) -> List[Tensor]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs 
     of a linear operator `A`. `A` is a callable implementing the 
     matrix-vector product. If no `initial_state` is provided then 
@@ -392,7 +392,7 @@ class AbstractBackend:
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of `A`.
@@ -609,3 +609,38 @@ class AbstractBackend:
     """
     raise NotImplementedError("Backend '{}' has not implemented `jit`.".format(
         self.name))
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    """
+    Sum elements of `tensor` along the specified `axis`. Results in a
+    new Tensor with the summed axis removed.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: The result of performing the summation. The order of the tensor 
+        will be reduced by 1.
+    """
+    raise NotImplementedError("Backend '{}' has not implemented `sum`.".format(
+        self.name))
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    """
+    Perform a possibly batched matrix-matrix multiplication 
+    between `tensor1` and `tensor2`. The following behaviour 
+    is similar to `numpy.matmul`:
+    - If both arguments are 2-D they are multiplied like conventional
+      matrices.
+    - If either argument is N-D, N > 2, it is treated as a stack of
+      matrices residing in the last two indexes and broadcast accordingly.
+    Both arguments to `matmul` have to be tensors of order >= 2.
+    Args:
+      tensor1: An input tensor.
+      tensor2: An input tensor.
+    Returns:
+      tensor: The result of performing the matmul.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `matmul`.".format(self.name))

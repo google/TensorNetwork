@@ -23,17 +23,17 @@ int_to_string = np.array(list(map(chr, list(range(65, 91)))))
 class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super(NumPyBackend, self).__init__()
     self.name = "numpy"
 
-  def tensordot(self, a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]):
+  def tensordot(self, a: Tensor, b: Tensor,
+                axes: Sequence[Sequence[int]]) -> Tensor:
     # use einsum for scalar-like products, its much faster
     if not isinstance(axes, int):
       if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
         if not len(axes[0]) == len(axes[1]):
           raise ValueError("shape-mismatch for sum")
-
         u, pos1, _ = np.intersect1d(
             axes[0], axes[1], return_indices=True, assume_unique=True)
         labels = int_to_string[0:len(u)]
@@ -46,7 +46,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return np.tensordot(a, b, axes)
     return np.tensordot(a, b, axes)
 
-  def reshape(self, tensor: Tensor, shape: Tensor):
+  def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return np.reshape(tensor, np.asarray(shape).astype(np.int32))
 
   def transpose(self, tensor, perm=None):
@@ -62,7 +62,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -70,7 +70,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         np,
         tensor,
         split_axis,
@@ -78,19 +78,19 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(np, tensor, split_axis)
+    return decompositions.qr(np, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(np, tensor, split_axis)
+    return decompositions.rq(np, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
@@ -205,7 +205,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[List, List]:
+           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` can be either a
@@ -281,9 +281,15 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         tol=tol,
         maxiter=maxiter)
     if dtype:
+      example = np.zeros(1, dtype=dtype) # suppress "casting as real" warning
+      if not np.iscomplexobj(example):
+        if np.iscomplexobj(eta):
+          eta = eta.real
+        if np.iscomplexobj(U):
+          U = U.real
       eta = eta.astype(dtype)
       U = U.astype(dtype)
-    return list(eta), [np.reshape(U[:, n], shape) for n in range(numeig)]
+    return eta, [np.reshape(U[:, n], shape) for n in range(numeig)]
 
   def eigsh_lanczos(self,
                     A: Callable,
@@ -296,7 +302,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[List, List]:
+                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
@@ -397,8 +403,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         norms_vector_n[1:], 1) + np.diag(np.conj(norms_vector_n[1:]), -1)
     eigvals, u = np.linalg.eigh(A_tridiag)
     eigenvectors = []
-    if np.iscomplexobj(A_tridiag):
-      eigvals = np.array(eigvals).astype(A_tridiag.dtype)
+    eigvals = np.array(eigvals).astype(A_tridiag.dtype)
 
     for n2 in range(min(numeig, len(eigvals))):
       state = self.zeros(initial_state.shape, initial_state.dtype)
@@ -431,13 +436,15 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                        " Only matrices are supported.".format(matrix.shape))
     return np.linalg.inv(matrix)
 
-  def broadcast_right_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_right_multiplication(self, tensor1: Tensor,
+                                     tensor2: Tensor) -> Tensor:
     if len(tensor2.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
     return tensor1 * tensor2
 
-  def broadcast_left_multiplication(self, tensor1: Tensor, tensor2: Tensor):
+  def broadcast_left_multiplication(self, tensor1: Tensor,
+                                    tensor2: Tensor) -> Tensor:
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
@@ -446,19 +453,19 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         [self.shape_tensor(tensor1), [1] * (len(tensor2.shape) - 1)], axis=-1)
     return tensor2 * self.reshape(tensor1, t1_broadcast_shape)
 
-  def sin(self, tensor: Tensor):
+  def sin(self, tensor: Tensor) -> Tensor:
     return np.sin(tensor)
 
-  def cos(self, tensor: Tensor):
+  def cos(self, tensor: Tensor) -> Tensor:
     return np.cos(tensor)
 
-  def exp(self, tensor: Tensor):
+  def exp(self, tensor: Tensor) -> Tensor:
     return np.exp(tensor)
 
-  def log(self, tensor: Tensor):
+  def log(self, tensor: Tensor) -> Tensor:
     return np.log(tensor)
 
-  def expm(self, matrix: Tensor):
+  def expm(self, matrix: Tensor) -> Tensor:
     if len(matrix.shape) != 2:
       raise ValueError("input to numpy backend method `expm` has shape {}."
                        " Only matrices are supported.".format(matrix.shape))
@@ -471,3 +478,14 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def sum(self,
+          tensor: Tensor,
+          axis: Optional[Sequence[int]] = None,
+          keepdims: bool = False) -> Tensor:
+    return np.sum(tensor, axis=tuple(axis), keepdims=keepdims)
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
+    if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
+      raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
+    return np.matmul(tensor1, tensor2)
