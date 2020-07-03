@@ -4,9 +4,9 @@ import jax
 import jax.numpy as jnp
 
 def gmres_m(A_mv: Callable, A_args: Sequence, 
-            b: jnp.ShapedArray, x0: jnp.ShapedArray, tol: float, atol: float,
+            b: jax.ShapedArray, x0: jnp.ShapedArray, tol: float, atol: float,
             num_krylov_vectors: int,
-            maxiter: int) -> Tuple[jnp.ShapedArray, float, int, bool]:
+            maxiter: int) -> Tuple[jax.ShapedArray, float, int, bool]:
   """
   Solve A x = b for x using the m-restarted GMRES method. This is
   intended to be called via jax_backend.gmres.
@@ -39,7 +39,6 @@ def gmres_m(A_mv: Callable, A_args: Sequence,
   n_iter (int)    : Number of iterations at termination.
   converged (bool): Whether the desired tolerance was achieved.
   """
-  num_krylov_vectors += 1
   x = x0
   converged = False
   r, beta = gmres_residual(A_mv, A_args, b, x)
@@ -55,8 +54,8 @@ def gmres_m(A_mv: Callable, A_args: Sequence,
 
 
 @jax.jit
-def gmres_residual(A_mv: Callable, A_args: Sequence, b: jnp.ShapedArray,
-                   x: jnp.ShapedArray) -> Tuple[jnp.ShapedArray, float]:
+def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
+                   x: jax.ShapedArray) -> Tuple[jnp.ShapedArray, float]:
   """
   Computes the residual vector r and its norm, beta, which is minimized by
   GMRES.
@@ -68,8 +67,8 @@ def gmres_residual(A_mv: Callable, A_args: Sequence, b: jnp.ShapedArray,
 
 @partial(jax.jit, static_argnums=(2,))
 def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
-          x0: jnp.ShapedArray, r: jnp.ShapedArray,
-          beta: float) -> jnp.ShapedArray:
+          x0: jax.ShapedArray, r: jnp.ShapedArray,
+          beta: float) -> jax.ShapedArray:
   """
   Solve A x = b for x by the unrestarted GMRES method.
   Given A, a trial solution x, the residual r,
@@ -92,8 +91,8 @@ def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
 def gmres_arnoldi(A_mv: Callable,
                   A_args: Sequence,
                   n_kry: int,
-                  v0: jnp.ShapedArray) -> Tuple[jnp.ShapedArray,
-                                                jnp.ShapedArray]:
+                  v0: jax.ShapedArray) -> Tuple[jnp.ShapedArray,
+                                                jax.ShapedArray]:
   """
   Given an (m x m) matrix A, a vector v0, and a dimension n_kry, finds
   an orthonormal basis on the order-(n_kry+1) Krylov space defined by
@@ -184,8 +183,8 @@ def _arnoldi_scan_function(carry: Sequence, k: int, A_mv: Callable,
 
 
 @jax.jit
-def _gs_step(r: jnp.ShapedArray,
-             v_i: jnp.ShapedArray) -> Tuple[jnp.ShapedArray, jnp.ShapedArray]:
+def _gs_step(r: jax.ShapedArray,
+             v_i: jax.ShapedArray) -> Tuple[jnp.ShapedArray, jnp.ShapedArray]:
   """
   Performs one iteration of the stabilized Gram-Schmidt procedure, with
   r to be orthonormalized against {v} = {v_0, v_1, ...}.
@@ -196,9 +195,9 @@ def _gs_step(r: jnp.ShapedArray,
 
 
 @jax.jit
-def _gs_orthogonalize(V: jnp.ShapedArray,
-                      r: jnp.ShapedArray) -> Tuple[jnp.ShapedArray,
-                                                   jnp.ShapedArray]:
+def _gs_orthogonalize(V: jax.ShapedArray,
+                      r: jax.ShapedArray) -> Tuple[jnp.ShapedArray,
+                                                   jax.ShapedArray]:
   """
   Orthonormalize r against the vectors in the columns of V using
   the stablized Gram-Schmidt procedure. More specifically, given
