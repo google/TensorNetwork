@@ -296,7 +296,7 @@ class BaseDMRG:
       if verbose > 0:
         stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
                      (iteration, num_sweeps, site, len(
-                         self.mps) - 1, np.real(energy), np.imag(energy)))
+                         self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
       if verbose > 1:
         print("")
@@ -328,7 +328,7 @@ class BaseDMRG:
 
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
-      for site in reversed(range(len(self.mps))):
+      for site in reversed(range(len(self.mps) - 1)):
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='left',
