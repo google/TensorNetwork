@@ -497,6 +497,12 @@ def test_eigs_not_implemented():
     backend.eigs(np.ones((2, 2)))
 
 
+def test_gmres_not_implemented():
+  backend = pytorch_backend.PyTorchBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_broadcast_right_multiplication():
   backend = pytorch_backend.PyTorchBackend()
   tensor1 = backend.randn((2, 4, 3), dtype=torch.float64, seed=10)
