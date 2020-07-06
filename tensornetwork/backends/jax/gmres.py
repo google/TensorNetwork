@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 
 def gmres_m(A_mv: Callable, A_args: Sequence, 
-            b: jax.ShapedArray, x0: jnp.ShapedArray, tol: float, atol: float,
+            b: jax.ShapedArray, x0: jax.ShapedArray, tol: float, atol: float,
             num_krylov_vectors: int,
             maxiter: int) -> Tuple[jax.ShapedArray, float, int, bool]:
   """
@@ -55,7 +55,7 @@ def gmres_m(A_mv: Callable, A_args: Sequence,
 
 @jax.jit
 def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
-                   x: jax.ShapedArray) -> Tuple[jnp.ShapedArray, float]:
+                   x: jax.ShapedArray) -> Tuple[jax.ShapedArray, float]:
   """
   Computes the residual vector r and its norm, beta, which is minimized by
   GMRES.
@@ -67,7 +67,7 @@ def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
 
 @partial(jax.jit, static_argnums=(2,))
 def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
-          x0: jax.ShapedArray, r: jnp.ShapedArray,
+          x0: jax.ShapedArray, r: jax.ShapedArray,
           beta: float) -> jax.ShapedArray:
   """
   Solve A x = b for x by the unrestarted GMRES method.
@@ -91,7 +91,7 @@ def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
 def gmres_arnoldi(A_mv: Callable,
                   A_args: Sequence,
                   n_kry: int,
-                  v0: jax.ShapedArray) -> Tuple[jnp.ShapedArray,
+                  v0: jax.ShapedArray) -> Tuple[jax.ShapedArray,
                                                 jax.ShapedArray]:
   """
   Given an (m x m) matrix A, a vector v0, and a dimension n_kry, finds
@@ -184,7 +184,7 @@ def _arnoldi_scan_function(carry: Sequence, k: int, A_mv: Callable,
 
 @jax.jit
 def _gs_step(r: jax.ShapedArray,
-             v_i: jax.ShapedArray) -> Tuple[jnp.ShapedArray, jnp.ShapedArray]:
+             v_i: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
   """
   Performs one iteration of the stabilized Gram-Schmidt procedure, with
   r to be orthonormalized against {v} = {v_0, v_1, ...}.
@@ -196,7 +196,7 @@ def _gs_step(r: jax.ShapedArray,
 
 @jax.jit
 def _gs_orthogonalize(V: jax.ShapedArray,
-                      r: jax.ShapedArray) -> Tuple[jnp.ShapedArray,
+                      r: jax.ShapedArray) -> Tuple[jax.ShapedArray,
                                                    jax.ShapedArray]:
   """
   Orthonormalize r against the vectors in the columns of V using
