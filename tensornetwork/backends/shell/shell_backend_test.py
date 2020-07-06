@@ -64,6 +64,12 @@ def test_svd_decomposition_raises_error():
         tensor, 3, max_truncation_error=.1)
 
 
+def test_gmres_not_implemented():
+  backend = shell_backend.ShellBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_svd_decomposition_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().svd_decomposition(
