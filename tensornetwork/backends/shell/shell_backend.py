@@ -62,10 +62,10 @@ class ShellBackend(abstract_backend.AbstractBackend):
     tensor = tensor.reshape(tuple(shape))
     return tensor
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -73,8 +73,8 @@ class ShellBackend(abstract_backend.AbstractBackend):
     if max_truncation_error is not None:
       raise NotImplementedError("SVD with truncation shape cannot be "
                                 "calculated without explicit tensor values.")
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
+    left_dims = tensor.shape[:pivot_axis]
+    right_dims = tensor.shape[pivot_axis:]
     dim_s0 = min(
         functools.reduce(operator.mul, left_dims),
         functools.reduce(operator.mul, right_dims))
@@ -89,21 +89,21 @@ class ShellBackend(abstract_backend.AbstractBackend):
     s_rest = ShellTensor((dim_s0 - dim_s,))
     return u, s, vh, s_rest
 
-  def qr_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
+  def qr(self, tensor: Tensor, pivot_axis: int = 1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
 
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
+    left_dims = tensor.shape[:pivot_axis]
+    right_dims = tensor.shape[pivot_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def rq_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
+  def rq(self, tensor: Tensor, pivot_axis: int = 1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
 
-    left_dims = tensor.shape[:split_axis]
-    right_dims = tensor.shape[split_axis:]
+    left_dims = tensor.shape[:pivot_axis]
+    right_dims = tensor.shape[pivot_axis:]
     center_dim = min(np.prod(left_dims), np.prod(right_dims))
     q = ShellTensor(left_dims + (center_dim,))
     r = ShellTensor((center_dim,) + right_dims)
