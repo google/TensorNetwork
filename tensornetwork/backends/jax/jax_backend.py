@@ -17,7 +17,6 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
-from tensornetwork.backends.jax import gmres
 from functools import partial
 
 Tensor = Any
@@ -327,11 +326,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
-    if not hasattr(self, '_iram'):
-      # pylint: disable=attribute-defined-outside-init
-      self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
-    return self._iram(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
-                      numeig, which, tol, maxiter)
+    imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
+    return imp_arnoldi(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
+                       numeig, which, tol, maxiter)
 
   def eigsh_lanczos(
       self,
@@ -434,12 +431,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
-    if not hasattr(self, '_jaxlan'):
-      # pylint: disable=attribute-defined-outside-init
-      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
-
-    return self._jaxlan(_CACHED_MATVECS[A], args, initial_state,
-                        num_krylov_vecs, numeig, delta, reorthogonalize)
+    eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
+    return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
+                         num_krylov_vecs, numeig, delta, reorthogonalize)
 
   def gmres(self,
             A_mv: Callable,
@@ -579,11 +573,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if A_mv not in _CACHED_MATVECS:
       _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(A_mv)
-
-    x, _, n_iter, converged = gmres.gmres_m(_CACHED_MATVECS[A_mv], A_args, b,
-                                            x0,
-                                            tol, atol, num_krylov_vectors,
-                                            maxiter)
+    gmres_f = jitted_functions.gmres_wrapper(libjax)
+    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b,
+                                      x0, tol, atol, num_krylov_vectors,
+                                      maxiter)
     if converged:
       info = 0
     else:
