@@ -545,8 +545,9 @@ def gmres_wrapper(jax):
 
     Args:
 
-    A_mv     : A function `v0 = A_mv(v, *A_args, **A_kwargs)` where `v0` and
+    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
                `v` have the same shape.
+    A_args   : A list of positional arguments to A_mv.
     b        : The `b` in `A @ x = b`.
     x0       : Initial guess solution.
     tol, atol: Solution tolerance to achieve,
