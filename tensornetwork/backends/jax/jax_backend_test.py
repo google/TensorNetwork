@@ -102,13 +102,6 @@ def test_convert_to_tensor():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_trace():
-  backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 6)
-
-
 def test_outer_product():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(2 * np.ones((2, 1)))
@@ -694,8 +687,20 @@ def test_diagonal(dtype, offset, axis1, axis2):
       actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
   else:
     actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
-    expected = jax.numpy.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = jax.numpy.diagonal(array, offset=offset, axis1=axis1,
+                                  axis2=axis2)
     np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+def test_diagflat(dtype, offset):
+  shape = (5, 5, 5, 5)
+  backend = jax_backend.JaxBackend()
+  array = backend.randn(shape, dtype=dtype)
+  actual = backend.diagflat(array, k=offset)
+  expected = jax.numpy.diag(jax.numpy.ravel(array), k=offset)
+  np.testing.assert_allclose(actual, expected)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)

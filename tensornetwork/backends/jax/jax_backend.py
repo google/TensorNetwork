@@ -160,7 +160,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     Returns:
       tensor: A new tensor with all zeros save the specified diagonal.
     """
-    return jnp.diagflat(tensor, k=k)
+    return jnp.diag(jnp.ravel(tensor), k=k)
 
   def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
             axis2: int = -1) -> Tensor:

@@ -544,6 +544,16 @@ def test_diagonal(dtype, offset, axis1, axis2):
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
+@pytest.mark.parametrize("k", range(-2, 2))
+def test_diagflat(dtype, k):
+  backend = tensorflow_backend.TensorFlowBackend()
+  array = backend.randn((16,), dtype=dtype)
+  actual = backend.diagflat(array, k=k)
+  expected = tf.linalg.diag(array, k=k)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
 @pytest.mark.parametrize("offset", [0, 1])
 @pytest.mark.parametrize("axis1", [-2, 0])
 @pytest.mark.parametrize("axis2", [-1, 0])

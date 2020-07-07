@@ -80,6 +80,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.qr(torchlib, tensor, pivot_axis, non_negative_diagonal)
 
@@ -88,6 +89,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq(torchlib, tensor, pivot_axis, non_negative_diagonal)
 

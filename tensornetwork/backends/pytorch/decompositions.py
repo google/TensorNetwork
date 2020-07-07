@@ -19,7 +19,7 @@ import numpy as np
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
@@ -121,10 +121,11 @@ def svd_decomposition(
   return u, s, vh, s_rest
 
 
-def qr_decomposition(
+def qr(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
+    non_negative_diagonal = False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
@@ -159,16 +160,21 @@ def qr_decomposition(
 
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
   q, r = torch.qr(tensor)
+  if non_negative_diagonal:
+    phases = torch.sign(torch.diagonal(r))
+    q = q * phases
+    r = torch.diag_embed(phases) @ r
   center_dim = q.shape[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
   return q, r
 
 
-def rq_decomposition(
+def rq(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
+    non_negative_diagonal = False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
@@ -203,6 +209,10 @@ def rq_decomposition(
   tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
   #torch has currently no support for complex dtypes
   q, r = torch.qr(torch.transpose(tensor, 0, 1))
+  if non_negative_diagonal:
+    phases = torch.sign(torch.diagonal(r))
+    q = q * phases
+    r = torch.diag_embed(phases) @ r
   r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,
                                                    1)  #M=r*q at this point
   center_dim = r.shape[1]

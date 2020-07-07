@@ -216,15 +216,15 @@ def test_sqrt(R, dtype, num_charges):
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2])
-def test_diag(dtype, num_charges):
+def test_diagflat(dtype, num_charges):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(3, num_charges, dtype)
   with pytest.raises(ValueError):
-    backend.diag(a)
+    backend.diagflat(a)
   b = get_chargearray(num_charges, dtype)
   expected = diag(b)
-  actual = backend.diag(b)
+  actual = backend.diagflat(b)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
       charge_equal(expected._charges[n], actual._charges[n])

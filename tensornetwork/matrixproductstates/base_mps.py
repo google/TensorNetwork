@@ -98,15 +98,15 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    def qr_decomposition(tensor):
-      return self.backend.qr_decomposition(tensor, 2)
+    def qr(tensor):
+      return self.backend.qr(tensor, 2)
 
-    self.qr_decomposition = self.backend.jit(qr_decomposition)
+    self.qr_decomposition = self.backend.jit(qr)
 
-    def rq_decomposition(tensor):
-      return self.backend.rq_decomposition(tensor, 1)
+    def rq(tensor):
+      return self.backend.rq(tensor, 1)
 
-    self.rq_decomposition = self.backend.jit(rq_decomposition)
+    self.rq_decomposition = self.backend.jit(rq)
 
     def left_transfer_operator(A, l, Abar):
       return ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
