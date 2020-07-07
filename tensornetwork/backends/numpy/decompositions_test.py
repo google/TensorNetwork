@@ -45,13 +45,13 @@ class DecompositionsTest(tf.test.TestCase):
 
   def test_rq(self):
     random_matrix = np.random.rand(10, 10)
-    for non_negative_diagonal in [False]:
+    for non_negative_diagonal in [True, False]:
       r, q = decompositions.rq(np, random_matrix, 1, non_negative_diagonal)
       self.assertAllClose(r.dot(q), random_matrix)
 
   def test_qr(self):
     random_matrix = np.random.rand(10, 10)
-    for non_negative_diagonal in [False]:
+    for non_negative_diagonal in [True, False]:
       q, r = decompositions.qr(np, random_matrix, 1, non_negative_diagonal)
       self.assertAllClose(q.dot(r), random_matrix)
 

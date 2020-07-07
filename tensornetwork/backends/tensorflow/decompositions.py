@@ -166,6 +166,10 @@ def qr(
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tensor)
+  if non_negative_diagonal:
+    phases = tf.math.sign(tf.linalg.diag_part(r))
+    q = q * phases
+    r = tf.linalg.diag(phases) @ r
   center_dim = tf.shape(q)[1]
   q = tf.reshape(q, tf.concat([left_dims, [center_dim]], axis=-1))
   r = tf.reshape(r, tf.concat([[center_dim], right_dims], axis=-1))
@@ -212,6 +216,10 @@ def rq(
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tf.math.conj(tf.transpose(tensor)))
+  if non_negative_diagonal:
+    phases = tf.math.sign(tf.linalg.diag_part(r))
+    q = q * phases
+    r = tf.linalg.diag(phases) @ r
   r, q = tf.math.conj(tf.transpose(r)), tf.math.conj(
       tf.transpose(q))  #M=r*q at this point
   center_dim = tf.shape(r)[1]

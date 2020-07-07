@@ -90,19 +90,6 @@ def test_sqrt():
   expected = np.array([2, 3])
   np.testing.assert_allclose(expected, actual)
 
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize("pivot_axis", range(1, 4))
-def test_diagonal(dtype, pivot_axis):
-  shape = (4, 3, 2, 8)
-  backend = numpy_backend.NumPyBackend()
-  array = backend.randn(shape, dtype=dtype)
-  actual = backend.diagonal(array, pivot_axis=pivot_axis)
-  expected_mat = backend.pivot(array, pivot_axis=pivot_axis)
-  expected = np.diagonal(expected_mat)
-  np.testing.assert_allclose(expected, actual)
-
-
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("k", range(-2, 2))
 def test_diagflat(dtype, k):
@@ -123,16 +110,37 @@ def test_convert_to_tensor():
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-@pytest.mark.parametrize("pivot_axis", range(1, 4))
-def test_trace(dtype, pivot_axis):
-  shape = (4, 3, 2, 8)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", range(0, 3))
+@pytest.mark.parametrize("axis2", range(0, 3))
+def test_diagonal(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
   backend = numpy_backend.NumPyBackend()
   array = backend.randn(shape, dtype=dtype)
-  actual = backend.trace(array, pivot_axis=pivot_axis)
-  cols = np.prod(shape[:pivot_axis])
-  rows = np.prod(shape[pivot_axis:])
-  expected = np.trace(array.reshape((cols, rows)))
-  np.testing.assert_allclose(actual, expected)
+  if axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", range(0, 3))
+@pytest.mark.parametrize("axis2", range(0, 3))
+def test_trace(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = numpy_backend.NumPyBackend()
+  array = backend.randn(shape, dtype=dtype)
+  if axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
 
 
 def test_outer_product():

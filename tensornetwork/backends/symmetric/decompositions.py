@@ -23,7 +23,7 @@ import warnings
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     bt,
     tensor: BlockSparseTensor,
     split_axis: int,
@@ -193,8 +193,8 @@ def svd_decomposition(
       discarded_singvals > 0.0]
 
 
-def qr_decomposition(bt, tensor: BlockSparseTensor,
-                     split_axis: int) -> Tuple[Tensor, Tensor]:
+def qr(bt, tensor: BlockSparseTensor,
+       split_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -209,8 +209,7 @@ def qr_decomposition(bt, tensor: BlockSparseTensor,
   return q, r
 
 
-def rq_decomposition(bt, tensor: BlockSparseTensor,
-                     split_axis: int) -> Tuple[Tensor, Tensor]:
+def rq(bt, tensor: BlockSparseTensor, split_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.

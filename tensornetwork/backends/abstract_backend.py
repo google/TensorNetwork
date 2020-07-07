@@ -137,7 +137,7 @@ class AbstractBackend:
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
-      non_negative_diagonal: bool = False 
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """
     QR reshapes tensor into a matrix and then decomposes that matrix into the
@@ -156,10 +156,10 @@ class AbstractBackend:
        - R is a square matrix with length np.prod(shape[split_axis:]).
 
     The argument non_negative_diagonal, True by default, enforces a phase
-    convention such that R has strictly non-negative entries on its main 
+    convention such that R has strictly non-negative entries on its main
     diagonal.
     This makes the QR decomposition unambiguous and unique, which allows
-    it to be used in fixed point iterations. If False, the phase convention is 
+    it to be used in fixed point iterations. If False, the phase convention is
     set
     by the backend and thus undefined at the TN interface level, but this
     routine will be slightly less expensive.
@@ -202,10 +202,10 @@ class AbstractBackend:
        - Q has dimensions (np.prod(shape[:split_axis]), *shape[split_axis:]).
 
     The argument non_negative_diagonal, True by default, enforces a phase
-    convention such that R has strictly non-negative entries on its main 
+    convention such that R has strictly non-negative entries on its main
     diagonal.
     This makes the RQ decomposition unambiguous and unique, which allows
-    it to be used in fixed point iterations. If False, the phase convention is 
+    it to be used in fixed point iterations. If False, the phase convention is
     set
     by the backend and thus undefined at the TN interface level, but this
     routine will be slightly less expensive.
@@ -279,48 +279,61 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented diagflat.".format(self.name))
 
-  def diagonal(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
-    """ Returns a 1D tensor storing the k'th diagonal of the matrix formed
-    by concatenating tensor into a matrix about pivot_axis.
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
 
     This function only extracts diagonals. If you
     wish to create diagonal matrices from vectors, use diagflat.
 
     Args:
       tensor: A tensor.
-      k: The diagonal to extract. Defaults to 0, the main diagonal.
-      pivot_axis: The tensor is concatenated into a matrix with dimensions
-                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
-                  Default: 1.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
     Returns:
-      tensor: The specified diagonal slice.
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented diag.".format(self.name))
+        "Backend '{}' has not implemented diagonal.".format(self.name))
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     """Convert a np.array or a tensor to a tensor type for the backend."""
     raise NotImplementedError(
         "Backend '{}' has not implemented convert_to_tensor.".format(self.name))
 
-  def trace(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
-    """ Returns the summed elements of the k'th diagonal of the matrix formed
-    by concatenating tensor into a matrix about pivot_axis.
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+              axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
 
-    Unlike in e.g. numpy, this function only extracts diagonals. If you
-    wish to create diagonal matrices from vectors, use diagflat.
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
 
     Args:
       tensor: A tensor.
-      k: The diagonal to sum. Defaults to 0, the main diagonal.
-      pivot_axis: The tensor is concatenated into a matrix with dimensions
-                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
-                  Default: 0.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
     Returns:
-      result: The summed elements.
+      array_of_diagonals: The batched summed diagonals.
     """
-    diag = self.diagonal(tensor, k=k, pivot_axis=pivot_axis)
-    return self.sum(diag)
+    raise NotImplementedError(
+        "Backend '{}' has not implemented trace.".format(self.name))
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """Calculate the outer product of the two given tensors."""
@@ -457,10 +470,10 @@ class AbstractBackend:
            tol: float = 1E-8,
            which: Text = 'LR',
            maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
-    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs 
-    of a linear operator `A`. `A` is a callable implementing the 
-    matrix-vector product. If no `initial_state` is provided then 
-    `shape` and `dtype` have to be passed so that a suitable initial 
+    """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. `A` is a callable implementing the
+    matrix-vector product. If no `initial_state` is provided then
+    `shape` and `dtype` have to be passed so that a suitable initial
     state can be randomly  generated.
     Args:
       A: A (sparse) implementation of a linear operator
@@ -665,7 +678,7 @@ class AbstractBackend:
                                     tensor2: Tensor) -> Tensor:
     """
     Perform broadcasting for multiplication of `tensor1` onto `tensor2`, i.e.
-    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is 
+    `tensor1` * tensor2`, where `tensor2` is an arbitrary tensor and `tensor1` is
     one-dimensional tensor. The broadcasting is applied to the first index of
     `tensor2`.
     Args:
@@ -740,7 +753,7 @@ class AbstractBackend:
     Args:
       fun: Callable
       args: Arguments to `fun`.
-      kwargs: Keyword arguments to `fun`.  
+      kwargs: Keyword arguments to `fun`.
     Returns:
       Callable: jitted/graph-compiled version of `fun`, or just `fun`.
     """
@@ -757,7 +770,7 @@ class AbstractBackend:
     Args:
       tensor: An input tensor.
     Returns:
-      tensor: The result of performing the summation. The order of the tensor 
+      tensor: The result of performing the summation. The order of the tensor
         will be reduced by 1.
     """
     raise NotImplementedError("Backend '{}' has not implemented `sum`.".format(
@@ -765,8 +778,8 @@ class AbstractBackend:
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-    Perform a possibly batched matrix-matrix multiplication 
-    between `tensor1` and `tensor2`. The following behaviour 
+    Perform a possibly batched matrix-matrix multiplication
+    between `tensor1` and `tensor2`. The following behaviour
     is similar to `numpy.matmul`:
     - If both arguments are 2-D they are multiplied like conventional
       matrices.

@@ -51,23 +51,30 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd(self.bs, tensor, pivot_axis=pivot_axis,
-                                            max_singular_values,
-                                            max_truncation_error, relative)
+    return decompositions.svd(self.bs, tensor, pivot_axis, max_singular_values,
+                              max_truncation_error, relative)
 
   def qr(
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(self.bs, tensor, pivot_axis=pivot_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.qr(self.bs, tensor, pivot_axis)
 
   def rq(
       self,
       tensor: Tensor,
       pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(self.bs, tensor, pivot_axis=pivot_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.rq(self.bs, tensor, pivot_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)

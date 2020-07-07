@@ -114,24 +114,32 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return np.sqrt(tensor)
 
-  def diagonal(self, tensor: Tensor, k: int = 0, pivot_axis: int = 1) -> Tensor:
-    """ Returns a 1D tensor storing the k'th diagonal of the matrix formed
-    by concatenating tensor into a matrix about pivot_axis.
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
 
     This function only extracts diagonals. If you
     wish to create diagonal matrices from vectors, use diagflat.
 
     Args:
       tensor: A tensor.
-      k: The diagonal to extract. Defaults to 0, the main diagonal.
-      pivot_axis: The tensor is concatenated into a matrix with dimensions
-                  (tensor.shape[:pivot_axis], tensor.shape[pivot_axis:]).
-                  Default: 0.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
     Returns:
-      tensor: The specified diagonal slice.
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
     """
-    matrix = self.pivot(tensor, pivot_axis=pivot_axis)
-    return np.diag(matrix, k=k)
+    return np.diagonal(tensor, offset=offset, axis1=axis1, axis2=axis2)
 
   def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
     """ Flattens tensor and creates a new matrix of zeros with its elements
@@ -143,6 +151,28 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       tensor: A new tensor with all zeros save the specified diagonal.
     """
     return np.diagflat(tensor, k=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+              axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    return np.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, np.ndarray) and not np.isscalar(tensor)):

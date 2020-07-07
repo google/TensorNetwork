@@ -1013,3 +1013,21 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+def test_qr_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(16, -1, 1), True)
+  indices = [index, index.copy().flip_flow()]
+  dummy = BlockSparseTensor.random(indices)
+  with pytest.raises(NotImplementedError):
+    _ = backend.qr(dummy, non_negative_diagonal=True)
+
+
+def test_rq_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(16, -1, 1), True)
+  indices = [index, index.copy().flip_flow()]
+  dummy = BlockSparseTensor.random(indices)
+  with pytest.raises(NotImplementedError):
+    _ = backend.rq(dummy, non_negative_diagonal=True)

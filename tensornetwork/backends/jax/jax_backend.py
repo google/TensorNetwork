@@ -114,10 +114,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return jnp.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
-    return jnp.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, jnp.ndarray) and not jnp.isscalar(tensor)):
@@ -126,9 +122,95 @@ class JaxBackend(abstract_backend.AbstractBackend):
     result = jnp.asarray(tensor)
     return result
 
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return jnp.trace(tensor, axis1=-2, axis2=-1)
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.diagonal(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return jnp.diagflat(tensor, k=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return jnp.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+
+    Args:
+      tensor: The input tensor.
+    """
+    out = jnp.sign(tensor)
+    return out
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return jnp.tensordot(tensor1, tensor2, 0)
@@ -245,15 +327,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
            which: Text = 'LR',
            maxiter: int = 20) -> Tuple[Tensor, List]:
     """
-    Implicitly restarted Arnoldi method for finding the lowest 
-    eigenvector-eigenvalue pairs of a linear operator `A`. 
+    Implicitly restarted Arnoldi method for finding the lowest
+    eigenvector-eigenvalue pairs of a linear operator `A`.
     `A` is a function implementing the matrix-vector
-    product. 
+    product.
 
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
-    at the first invocation of `eigs`, and on any subsequent calls 
-    if the python `id` of `A` changes, even if the formal definition of `A` 
-    stays the same. 
+    at the first invocation of `eigs`, and on any subsequent calls
+    if the python `id` of `A` changes, even if the formal definition of `A`
+    stays the same.
     Example: the following will jit once at the beginning, and then never again:
 
     ```python
@@ -267,7 +349,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       res = eigs(A, [H],x) #jitting is triggerd only at `n=0`
     ```
 
-    The following code triggers jitting at every iteration, which 
+    The following code triggers jitting at every iteration, which
     results in considerably reduced performance
 
     ```python
@@ -280,7 +362,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       x = jax.np.array(np.random.rand(10,10))
       res = eigs(A, [H],x) #jitting is triggerd at every step `n`
     ```
-    
+
     Args:
       A: A (sparse) implementation of a linear operator.
          Call signature of `A` is `res = A(vector, *args)`, where `vector`
@@ -295,13 +377,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
       num_krylov_vecs: The number of iterations (number of krylov vectors).
       numeig: The number of eigenvector-eigenvalue pairs to be computed.
       tol: The desired precision of the eigenvalues. For the jax backend
-        this has currently no effect, and precision of eigenvalues is not 
+        this has currently no effect, and precision of eigenvalues is not
         guaranteed. This feature may be added at a later point. To increase
         precision the caller can either increase `maxiter` or `num_krylov_vecs`.
-      which: Flag for targetting different types of eigenvalues. Currently 
-        supported are `which = 'LR'` (larges real part) and `which = 'LM'` 
+      which: Flag for targetting different types of eigenvalues. Currently
+        supported are `which = 'LR'` (larges real part) and `which = 'LM'`
         (larges magnitude).
-      maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes 
+      maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
     Returns:
       (eigvals, eigvecs)
@@ -349,12 +431,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
       reorthogonalize: Optional[bool] = False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
-    of a hermitian linear operator `A`. `A` is a function implementing 
-    the matrix-vector product. 
+    of a hermitian linear operator `A`. `A` is a function implementing
+    the matrix-vector product.
     WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
-    at the first invocation of `eigsh_lanczos`, and on any subsequent calls 
-    if the python `id` of `A` changes, even if the formal definition of `A` 
-    stays the same. 
+    at the first invocation of `eigsh_lanczos`, and on any subsequent calls
+    if the python `id` of `A` changes, even if the formal definition of `A`
+    stays the same.
     Example: the following will jit once at the beginning, and then never again:
 
     ```python
@@ -368,7 +450,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       res = eigsh_lanczos(A, [H],x) #jitting is triggerd only at `n=0`
     ```
 
-    The following code triggers jitting at every iteration, which 
+    The following code triggers jitting at every iteration, which
     results in considerably reduced performance
 
     ```python
@@ -381,7 +463,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       x = jax.np.array(np.random.rand(10,10))
       res = eigsh_lanczos(A, [H],x) #jitting is triggerd at every step `n`
     ```
-    
+
     Args:
       A: A (sparse) implementation of a linear operator.
          Call signature of `A` is `res = A(vector, *args)`, where `vector`
@@ -397,7 +479,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       numeig: The number of eigenvector-eigenvalue pairs to be computed.
         If `numeig > 1`, `reorthogonalize` has to be `True`.
       tol: The desired precision of the eigenvalues. For the jax backend
-        this has currently no effect, and precision of eigenvalues is not 
+        this has currently no effect, and precision of eigenvalues is not
         guaranteed. This feature may be added at a later point.
         To increase precision the caller can increase `num_krylov_vecs`.
       delta: Stopping criterion for Lanczos iteration.
@@ -406,7 +488,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
         is stopped. It means that an (approximate) invariant subspace has
         been found.
       ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
-        to check convergence. This has currently no effect for the jax backend, 
+        to check convergence. This has currently no effect for the jax backend,
         but may be added at a later point.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
