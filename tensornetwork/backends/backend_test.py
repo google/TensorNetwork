@@ -325,6 +325,12 @@ def test_abstract_backend_eigs_lanczos_not_implemented():
     backend.eigsh_lanczos(lambda x: x, np.ones((2)))
 
 
+def test_abstract_backend_gmres_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_abstract_backend_addition_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):

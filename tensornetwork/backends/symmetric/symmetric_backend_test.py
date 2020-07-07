@@ -125,6 +125,12 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
   ])
 
 
+def test_gmres_not_implemented():
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("R", [2, 3, 4, 5, 6, 7])
 @pytest.mark.parametrize("num_charges", [1, 2])
