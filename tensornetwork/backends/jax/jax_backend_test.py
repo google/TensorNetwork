@@ -748,8 +748,7 @@ def test_gmres_raises():
     backend.gmres(dummy_mv, b, A_kwargs=A_kwargs)
 
 
-#jax_qr_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
-jax_qr_dtypes = [np.float32]
+jax_qr_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
 @pytest.mark.parametrize("dtype", jax_qr_dtypes)
 def test_gmres_on_small_known_problem(dtype):
   dummy = jax.numpy.zeros(1, dtype=dtype)
@@ -767,7 +766,6 @@ def test_gmres_on_small_known_problem(dtype):
   x, _ = backend.gmres(A_mv, b, x0=x0, num_krylov_vectors=n_kry, tol=tol)
   solution = jax.numpy.array([2., 1.], dtype=dtype)
   eps = jax.numpy.linalg.norm(jax.numpy.abs(solution) - jax.numpy.abs(x))
-  print(eps)
   assert eps < tol
 
 

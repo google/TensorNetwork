@@ -297,9 +297,7 @@ def _generate_arnoldi_factorization(jax):
                                         _, lambda x: norm_not_too_small)
 
       return continue_iteration
-    initial_norm_typecaster = np.zeros((1,)) + eps + 1.
-    initial_norm = initial_norm_typecaster.astype(v.real.dtype)[0]
-
+    initial_norm = v.real.dtype.type(1.0+eps)
     initial_values = [krylov_vectors, H, matvec, v, initial_norm, eps, start,
                       num_krylov_vecs]
     final_values = jax.lax.while_loop(cond_fun, body, initial_values)
@@ -542,7 +540,7 @@ def gmres_wrapper(jax):
     Given a linear mapping with (n x n) matrix representation
         A = A_mv(*A_args) gmres_m solves
         Ax = b          (1)
-    where x and b are length-b vectors, using the method of
+    where x and b are length-n vectors, using the method of
     Generalized Minimum RESiduals with M iterations per restart (GMRES_M).
 
     Args:
@@ -550,7 +548,6 @@ def gmres_wrapper(jax):
     A_mv     : A function `v0 = A_mv(v, *A_args, **A_kwargs)` where `v0` and
                `v` have the same shape.
     b        : The `b` in `A @ x = b`.
-    A_args   : Positional arguments to `A_mv`.
     x0       : Initial guess solution.
     tol, atol: Solution tolerance to achieve,
                norm(residual) <= max(tol*norm(b), atol).
@@ -594,7 +591,7 @@ def gmres_wrapper(jax):
     return r, beta
 
 
-  #@partial(jax.jit, static_argnums=(2,))
+  @partial(jax.jit, static_argnums=(2, 6))
   def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
             x0: jax.ShapedArray, r: jax.ShapedArray,
             beta: float, tol: float) -> jax.ShapedArray:
