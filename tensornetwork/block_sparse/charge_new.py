@@ -593,6 +593,7 @@ class BaseCharge:
   def reduce(self,
              targets: "BaseCharge",
              return_locations: bool = False,
+             return_type: str='labels',
              strides: Optional[int] = None) -> Any:
     """
     Reduce the dimension of the charge to keep only the charge 
@@ -613,25 +614,30 @@ class BaseCharge:
       self.collapse()
     if not targets_is_collapsed:
       targets.collapse()
-    mask = np.isin(self.charges[0], targets.charges[0])
-    reduced = self.charges[0][mask]
-    obj = self.__new__(type(self))
-    obj.__init__(
-        charges=[reduced],
-        charge_types=self.charge_types,
-        original_dtypes=self.original_dtypes,
-        charge_indices=self.charge_indices)
-
+    if return_type == 'charges':
+      mask = np.isin(self.charges[0], targets.charges[0])
+      reduced = self.charges[0][mask]
+      obj = self.__new__(type(self))
+      obj.__init__(
+          charges=[reduced],
+          charge_types=self.charge_types,
+          original_dtypes=self.original_dtypes,
+          charge_indices=self.charge_indices)
+      if return_locations:
+        if strides is not None:
+          return obj, np.nonzero(mask)[0] * strides
+        return obj, np.nonzero(mask)[0]
+      
+    if return_type =='labels':
+      unique, labels = self.unique(return_inverse=True)
+      _, labels_unique, _ = unique.intersect(targets, return_indices=True)
+      locations = np.nonzero(np.isin(labels, labels_unique))[0]
     # if not self_is_collapsed:
     #   self.expand()
     #   obj.expand()
     # if not targets_is_collapsed:
     #   targets.expand()
 
-    if return_locations:
-      if strides is not None:
-        return obj, np.nonzero(mask)[0] * strides
-      return obj, np.nonzero(mask)[0]
 
     return obj
 
