@@ -319,7 +319,7 @@ def reduce_charges(charges: List[BaseCharge],
     if strides is None:
       strides = np.array([1], dtype=SIZE_T)
     res = list(charges[0].dual(flows[0]).reduce(
-        target_charges, return_locations=return_locations, strides=strides[0]))
+        target_charges, return_locations=return_locations, return_type=return_type, strides=strides[0]))
     if return_unique:
       return res + [target_charges.unique()]
     return res
@@ -837,11 +837,6 @@ def _find_transposed_diagonal_sparse_blocks(
       unique_col_qnums,
       return_indices=True)
     
-    # block_qnums, new_row_map, new_col_map = intersect(
-    #     unique_row_qnums.unique_charges,
-    #     unique_col_qnums.unique_charges,
-    #     axis=1,
-    #     return_indices=True)
     block_dims = np.array(
         [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_T)
     num_blocks = len(new_row_map)
@@ -852,7 +847,6 @@ def _find_transposed_diagonal_sparse_blocks(
         return_type='labels',
         return_locations=True,
         strides=new_strides[:tr_partition])
-    print(row_charge_labels)
     col_charge_labels, col_locs = reduce_charges(
         new_col_charges,
         np.logical_not(new_col_flows),
@@ -860,8 +854,6 @@ def _find_transposed_diagonal_sparse_blocks(
         return_type='labels',
         return_locations=True,
         strides=new_strides[tr_partition:])
-
-    print(col_charge_labels)
 
     block_maps = [0] * num_blocks
     for n in range(num_blocks):

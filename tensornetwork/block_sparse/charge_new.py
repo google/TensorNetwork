@@ -17,6 +17,8 @@ import itertools
 from typing import List, Optional, Type, Any, Union
 
 LABEL_DTYPE = np.int16
+
+
 def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
@@ -209,16 +211,21 @@ class BaseCharge:
 
   def __iter__(self):
     return iter(self.charges)
-  
+
   @property
   def names(self):
-    return repr([[ct.__new__(ct).__class__.__name__ for ct in cts] for cts in self.charge_types])
+    return repr([[ct.__new__(ct).__class__.__name__
+                  for ct in cts]
+                 for cts in self.charge_types])
 
   def __repr__(self):
-    dtype_names = repr([[np.dtype(dt).name for dt in dtypes] for dtypes in self.original_dtypes])
+    dtype_names = repr([
+        [np.dtype(dt).name for dt in dtypes] for dtypes in self.original_dtypes
+    ])
     out = "BaseCharge: \n  " + "charge-types: " + self.names + "\n  dtypes: " + dtype_names + " \n  indices: " + str(
-                self.charge_indices
-            ) + "\n  " + 'charges: ' + ''.join([str(c) + '\n ' for c in self.charges]).replace('\n','\n          ') + '\n'
+        self.charge_indices) + "\n  " + 'charges: ' + ''.join([
+            str(c) + '\n ' for c in self.charges
+        ]).replace('\n', '\n          ') + '\n'
     return out
 
   def __len__(self) -> int:
@@ -243,7 +250,7 @@ class BaseCharge:
 
     return np.squeeze(res)
 
-  def identity_charges(self, dim: int=1) -> "BaseCharge":
+  def identity_charges(self, dim: int = 1) -> "BaseCharge":
     """
     Returns the identity charge.
     Returns:
@@ -251,10 +258,10 @@ class BaseCharge:
     """
     charges = []
     for n, cts in enumerate(self.charge_types):
-      tmpcharges=[]
+      tmpcharges = []
       for ct in cts:
         iden = ct.identity_charge()
-        tmpcharges.append(np.full(dim, fill_value=iden,dtype=iden.dtype))
+        tmpcharges.append(np.full(dim, fill_value=iden, dtype=iden.dtype))
       dtypes = [[dt] for dt in self.original_dtypes[n]]
       charges.append(collapse(tmpcharges, dtypes))
     is_collapsed = self.is_collapsed
@@ -412,7 +419,6 @@ class BaseCharge:
     # self.collapse()
     # other.collapse()
 
-
     obj = self.__new__(type(self))
     obj.__init__(
         charges=fused_charges,
@@ -565,7 +571,7 @@ class BaseCharge:
                     return_counts)
 
     if any([return_index, return_inverse, return_counts]):
-      res = list(res)      
+      res = list(res)
       charges = res[0]
     else:
       charges = res
@@ -577,15 +583,12 @@ class BaseCharge:
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
 
-    # if not is_collapsed:
-    #   self.expand()
-    #   obj.expand()
-    
     if return_inverse and not return_index:
       res[1] = res[1].astype(LABEL_DTYPE)
     if return_inverse and return_index:
-      res[2] = obj, res[2].astype(LABEL_DTYPE) #always use int16 dtypes for labels
-    if any([return_index, return_inverse, return_counts]):            
+      res[2] = obj, res[2].astype(
+          LABEL_DTYPE)  #always use int16 dtypes for labels
+    if any([return_index, return_inverse, return_counts]):
       return [obj] + res[1:]
     else:
       return obj
@@ -593,7 +596,7 @@ class BaseCharge:
   def reduce(self,
              targets: "BaseCharge",
              return_locations: bool = False,
-             return_type: str='labels',
+             return_type: str = 'labels',
              strides: Optional[int] = None) -> Any:
     """
     Reduce the dimension of the charge to keep only the charge 
@@ -614,32 +617,24 @@ class BaseCharge:
       self.collapse()
     if not targets_is_collapsed:
       targets.collapse()
+
     if return_type == 'charges':
       mask = np.isin(self.charges[0], targets.charges[0])
-      reduced = self.charges[0][mask]
-      obj = self.__new__(type(self))
-      obj.__init__(
-          charges=[reduced],
-          charge_types=self.charge_types,
-          original_dtypes=self.original_dtypes,
-          charge_indices=self.charge_indices)
+      reduced = self[mask]
       if return_locations:
         if strides is not None:
-          return obj, np.nonzero(mask)[0] * strides
-        return obj, np.nonzero(mask)[0]
-      
-    if return_type =='labels':
+          return reduced, np.nonzero(mask)[0] * strides
+        return reduced, np.nonzero(mask)[0]
+      return reduced
+    if return_type == 'labels':
       unique, labels = self.unique(return_inverse=True)
       _, labels_unique, _ = unique.intersect(targets, return_indices=True)
-      locations = np.nonzero(np.isin(labels, labels_unique))[0]
-    # if not self_is_collapsed:
-    #   self.expand()
-    #   obj.expand()
-    # if not targets_is_collapsed:
-    #   targets.expand()
-
-
-    return obj
+      if return_locations:
+        locations = np.nonzero(np.isin(labels, labels_unique))[0]
+        if strides is not None:
+          return labels, locations * strides
+        return labels, locations
+      return labels
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     """
