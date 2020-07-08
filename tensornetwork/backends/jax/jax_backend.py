@@ -24,6 +24,7 @@ Tensor = Any
 # pylint: disable=abstract-method
 
 _CACHED_MATVECS = {}
+_CACHED_FUNCTIONS = {}
 
 
 class JaxBackend(abstract_backend.AbstractBackend):
@@ -326,9 +327,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
-    imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
-    return imp_arnoldi(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
-                       numeig, which, tol, maxiter)
+    if "imp_arnoldi" not in _CACHED_FUNCTIONS:
+      imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
+      _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
+    return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
+                                            initial_state, num_krylov_vecs,
+                                            numeig, which, tol, maxiter)
 
   def eigsh_lanczos(
       self,
@@ -431,7 +435,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
-    eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
+    if "eigsh_lanczos" not in _CACHED_FUNCTIONS:
+      eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
+      _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
+    eigsh_lanczos = _CACHED_FUNCTIONS["eigsh_lanczos"]
     return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
                          num_krylov_vecs, numeig, delta, reorthogonalize)
 
@@ -573,7 +580,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if A_mv not in _CACHED_MATVECS:
       _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(A_mv)
-    gmres_f = jitted_functions.gmres_wrapper(libjax)
+    if "gmres_f" not in _CACHED_FUNCTIONS:
+      _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
+    gmres_f = _CACHED_FUNCTIONS["gmres_f"]
     x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b,
                                       x0, tol, atol, num_krylov_vectors,
                                       maxiter)
@@ -582,9 +591,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
     else:
       info = n_iter
     return x, info
-
-
-
 
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)
