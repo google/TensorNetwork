@@ -292,6 +292,12 @@ def index_update(dtype):
   np.testing.assert_allclose(tensor, out)
 
 
+def test_gmres_not_implemented():
+  backend = jax_backend.JaxBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_valid_init_operator_with_shape(dtype):
   backend = jax_backend.JaxBackend()
