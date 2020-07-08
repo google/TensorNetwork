@@ -19,7 +19,7 @@ import numpy as np
 import time
 from tensornetwork.backends import backend_factory
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
-from tensornetwork import ncon
+from tensornetwork.ncon_interface import ncon
 
 @pytest.fixture(
     name="backend_dtype_values",
