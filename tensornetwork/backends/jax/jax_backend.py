@@ -433,12 +433,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
-    if not hasattr(self, '_jaxlan'):
-      # pylint: disable=attribute-defined-outside-init
-      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
+    #if not hasattr(self, '_jaxlan'):
+    # pylint: disable=attribute-defined-outside-init
+    jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
 
-    return self._jaxlan(_CACHED_MATVECS[A], args, initial_state,
-                        num_krylov_vecs, numeig, delta, reorthogonalize)
+    return jaxlan(_CACHED_MATVECS[A], args, initial_state,
+                  num_krylov_vecs, numeig, delta, reorthogonalize)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)

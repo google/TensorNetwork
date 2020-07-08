@@ -19,7 +19,7 @@ import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge_new import (
     fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges,
-    charge_equal, fuse_ndarrays, flatten)
+    charge_equal, fuse_ndarrays, flatten, LABEL_DTYPE)
 
 from typing import (List, Union, Any, Tuple, Optional, Sequence)
 Tensor = Any
@@ -92,7 +92,7 @@ def compute_sparse_lookup(
   #Note (mganahl): check if target_charges can be permanently collapsed
   fused_charges = fuse_charges(charges, flows)
   # collapse now to avoid unneccesary expand in unique
-  fused_charges.collapse()
+  #fused_charges.collapse()
   unique_charges, labels = fused_charges.unique(return_inverse=True)
   _, labels_of_unique, _ = unique_charges.intersect(
       target_charges, return_indices=True)
@@ -140,6 +140,46 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   return min_ind + 1
 
 
+# def compute_fused_charge_degeneracies_2(
+#     charges: List[BaseCharge],
+#     flows: Union[np.ndarray, List[bool]]) -> Tuple[BaseCharge, np.ndarray]:
+#   """
+#   For a list of charges, computes all possible fused charges resulting
+#   from fusing `charges` and their respective degeneracies
+#   Args:
+#     charges: List of `BaseCharge`, one for each leg of a
+#       tensor.
+#     flows: A list of bool, one for each leg of a tensor.
+#       with values `False` or `True` denoting inflowing and
+#       outflowing charge direction, respectively.
+#   Returns:
+#     BaseCharge: The unique fused charges.
+#     np.ndarray: The degeneracies of each unqiue fused charge.
+#   """
+#   if len(charges) == 1:
+#     return (charges[0] * flows[0]).unique(return_counts=True)
+
+#   tensor_dims = [len(c) for c in charges]
+#   partition = _find_best_partition(tensor_dims)
+#   left_charges = fuse_charges(charges[:partition], flows[:partition])
+#   right_charges = fuse_charges(charges[partition:], flows[partition:])
+
+#   left_unique_charges, left_degens = left_charges.unique(return_counts=True)
+#   right_unique_charges, right_degens = right_charges.unique(return_counts=True)
+
+#   combined_charges = fuse_charges([left_unique_charges, right_unique_charges],
+#                                   [False, False])
+#   unique_combined_charges = combined_charges.unique()
+#   combined_degeneracies = fuse_degeneracies(left_degens, right_degens)
+#   mask = combined_charges == unique_combined_charges
+#   degeneracies = np.sum(
+#     combined_degeneracies[:, None] * np.ones(
+#       (1, unique_combined_charges.dim), dtype=combined_degeneracies.dtype),
+#     axis=0,
+#     where=mask)
+#   return unique_combined_charges, degeneracies
+
+
 def compute_fused_charge_degeneracies(
     charges: List[BaseCharge],
     flows: Union[np.ndarray, List[bool]]) -> Tuple[BaseCharge, np.ndarray]:
@@ -161,21 +201,16 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True)
+  accumulated_charges, accumulated_degeneracies = charges[0].dual(flows[0]).unique(
+    return_counts=True)
+
   for n in range(1, len(charges)):
-    leg_charges, leg_degeneracies = charges[n].unique(
-        return_counts=True)
-    fused_charges = accumulated_charges + leg_charges * flows[n]
+    leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
+    fused_charges = accumulated_charges + leg_charges.dual(flows[n])
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    #collapse now to avoid unneccesary expansion
-    fused_charges.collapse()
     accumulated_charges = fused_charges.unique()
     mask = fused_charges == accumulated_charges
-    #accumulated charges is collapsed, expand it
-    accumulated_charges.expand()
     accumulated_degeneracies = np.sum(
         fused_degeneracies[:, None] * np.ones(
             (1, accumulated_charges.dim), dtype=fused_degeneracies.dtype),
@@ -231,27 +266,32 @@ def compute_num_nonzero(charges: List[BaseCharge],
   #pylint: disable=line-too-long
   accumulated_charges, accumulated_degeneracies = compute_fused_charge_degeneracies(
       charges, flows)
-  res = accumulated_charges == accumulated_charges.identity_charges
+  res = accumulated_charges == accumulated_charges.identity_charges()
   nz_inds = np.nonzero(res)[0]
 
   if len(nz_inds) > 0:
     return np.squeeze(accumulated_degeneracies[nz_inds][0])
   return 0
-#########################################################
-#########################################################
-#########################################################
-#########################################################
+
 
 def reduce_charges(charges: List[BaseCharge],
                    flows: Union[np.ndarray, List[bool]],
-                   target_charges: np.ndarray,
+                   target_charges: BaseCharge,
                    return_locations: Optional[bool] = False,
+                   return_unique: bool = False,
+                   return_type: str = 'labels',
                    strides: Optional[np.ndarray] = None) -> Any:
   """
-  Add quantum numbers arising from combining two or more charges into a
-  single index, keeping only the quantum numbers that appear in `target_charges`.
-  Equilvalent to using "combine_charges" followed by "reduce", but is
-  generally much more efficient.
+  Add quantum numbers arising from combining two or more charges into 
+  a single index, keeping only the quantum numbers that appear in 
+  `target_charges`. If return_type == 'labels', function returns
+  charge-labels in an array `returned_labels` instead of the charges 
+  themselves. The labels are the integer numbers that indicate the 
+  charge in the an array of sorted unique charges.
+  For example, if `fused_charges` is an np.ndarray of single integer 
+  charges, and `unique, labels = np.unique(fused_charges, return_inverse=True)`, 
+  the values in the returned array correspond to charges in `unique`, i.e.
+  `actual_charges = unique[returned_labels]`
   Args:
     charges: List of `BaseCharge`, one for each leg of a 
       tensor. 
@@ -263,10 +303,12 @@ def reduce_charges(charges: List[BaseCharge],
     return_locations: If `True` return the location of the kept
       values of the fused charges
     strides: Index strides with which to compute the
-      retured locations of the kept elements. Defaults to trivial strides (based on
-      row major order).
+      retured locations of the kept elements. Defaults to trivial strides 
+      (based on row major order).
   Returns:
-    BaseCharge: the fused index after reduction.
+    Union[BaseCharge, np.ndarray]: If `return_type=='labels' 
+      the integer labels of the fused charges. If `return_type=='charges' 
+      the reduced charges.
     np.ndarray: Locations of the fused BaseCharge charges that were kept.
   """
 
@@ -276,65 +318,98 @@ def reduce_charges(charges: List[BaseCharge],
     # reduce single index
     if strides is None:
       strides = np.array([1], dtype=SIZE_T)
-    return charges[0].dual(flows[0]).reduce(
-        target_charges, return_locations=return_locations, strides=strides[0])
+    res = list(charges[0].dual(flows[0]).reduce(
+        target_charges, return_locations=return_locations, strides=strides[0]))
+    if return_unique:
+      return res + [target_charges.unique()]
+    return res
 
   # find size-balanced partition of charges
   partition = _find_best_partition(tensor_dims)
 
   # compute quantum numbers for each partition
-  left_ind = fuse_charges(charges[:partition], flows[:partition])
-  right_ind = fuse_charges(charges[partition:], flows[partition:])
+  left_charges = fuse_charges(charges[:partition], flows[:partition])
+  right_charges = fuse_charges(charges[partition:], flows[partition:])
+  left_unique_charges, left_charge_labels = left_charges.unique(
+      return_inverse=True)
+  right_unique_charges, right_charge_labels = right_charges.unique(
+      return_inverse=True)
+  combined_charges = fuse_charges([left_unique_charges, right_unique_charges],
+                                  [False, False])
 
-  # compute combined qnums
-  comb_qnums = fuse_ndarray_charges(left_ind.unique_charges,
-                                    right_ind.unique_charges,
-                                    charges[0].charge_types)
   #special case of empty charges
   #pylint: disable=unsubscriptable-object
-  if (comb_qnums.shape[1] == 0) or (len(left_ind.charge_labels) == 0) or (len(
-      right_ind.charge_labels) == 0):
-    obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(
-        np.empty((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
-        np.empty(0, dtype=charges[0].label_dtype), charges[0].charge_types)
+  if len(combined_charges) == 0 or len(left_charges) == 0 or len(
+      right_charges) == 0:
+
+    if return_type == 'labels':
+      res = np.empty(0, dtype=LABEL_DTYPE)
+    elif return_type == 'charges':
+      res = charges[0].__new__(type(charges[0]))
+      newcharges = [
+          np.empty(0, dtype=combined_charges.charges[n].dtype)
+          for n in range(len(combined_charges.charges))
+      ]
+      res.__init__(
+          charges=newcharges,
+          charge_types=combined_charges.charge_types,
+          original_dtypes=combined_charges.original_dtypes,
+          charge_indices=combined_charges.charge_indices)
+    else:
+      raise ValueError(f"unrecognized value {return_type} for return_type."
+                       f" Allowed values are 'labels' anbd 'charges'")
+
     if return_locations:
-      return obj, np.empty(0, dtype=SIZE_T)
-    return obj
+      if return_unique:
+        return res, np.empty(0, dtype=SIZE_T), res
+      return res, np.empty(0, dtype=SIZE_T)
 
-  unique_comb_qnums, comb_labels = np.unique(
-      comb_qnums, return_inverse=True, axis=1)
-  num_unique = unique_comb_qnums.shape[1]
+    if return_unique:
+      return res, res
+    return res
 
-  # intersect combined qnums and target_charges
-  reduced_qnums, label_to_unique, _ = intersect(
-      unique_comb_qnums, target_charges, axis=1, return_indices=True)
-  map_to_kept = -np.ones(num_unique, dtype=charges[0].label_dtype)
-  map_to_kept[label_to_unique] = np.arange(len(label_to_unique))
-  #new_comb_labels is a matrix of shape (left_ind.num_unique, right_ind.num_unique)
+  unique_combined_charges, comb_labels = combined_charges.unique(
+      return_inverse=True)
+
+  num_unique = len(unique_combined_charges)
+  num_left_unique = len(left_unique_charges)
+  num_right_unique = len(right_unique_charges)
+  # intersect combined charges and target charges
+  reduced_unique_charges, label_to_unique, _ = unique_combined_charges.intersect(
+      target_charges, return_indices=True)
+
+  map_to_kept = -np.ones(num_unique, dtype=LABEL_DTYPE)
+  map_to_kept[label_to_unique] = np.arange(
+      len(label_to_unique), dtype=LABEL_DTYPE)
+
+  #new_comb_labels is a matrix of shape (left_charges.num_unique, right_charges.num_unique)
   #each row new_comb_labels[n,:] contains integers values. Positions where values > 0
   #denote labels of right-charges that are kept.
-  new_comb_labels = map_to_kept[comb_labels].reshape(
-      [left_ind.num_unique, right_ind.num_unique])
-  reduced_rows = [0] * left_ind.num_unique
+  label_table = map_to_kept[comb_labels].reshape(
+      [num_left_unique, num_right_unique])
+  reduced_rows = [0] * num_left_unique
 
-  for n in range(left_ind.num_unique):
-    temp_label = new_comb_labels[n, right_ind.charge_labels]
+  for n in range(num_left_unique):
+    temp_label = label_table[n, right_charge_labels]
     reduced_rows[n] = temp_label[temp_label >= 0]
 
-  reduced_labels = np.concatenate(
-      [reduced_rows[n] for n in left_ind.charge_labels])
-  obj = charges[0].__new__(type(charges[0]))
-  obj.__init__(reduced_qnums, reduced_labels, charges[0].charge_types)
+  reduced_labels = np.concatenate([reduced_rows[n] for n in left_charge_labels])
+  if return_type == 'labels':
+    res = reduced_labels
+  elif return_type == 'charges':
+    res = reduced_unique_charges[reduced_labels]
+  else:
+    raise ValueError(f"unrecognized value {return_type} for return_type."
+                     f" Allowed values are 'labels' anbd 'charges'")
 
   if return_locations:
-    row_locs = [0] * left_ind.num_unique
+    row_locs = [0] * num_left_unique
     if strides is not None:
       # computed locations based on non-trivial strides
       row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
       col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
-    for n in range(left_ind.num_unique):
-      temp_label = new_comb_labels[n, right_ind.charge_labels]
+    for n in range(num_left_unique):
+      temp_label = label_table[n, right_charge_labels]
       temp_keep = temp_label >= 0
       if strides is not None:
         row_locs[n] = col_pos[temp_keep]
@@ -343,22 +418,188 @@ def reduce_charges(charges: List[BaseCharge],
 
     if strides is not None:
       reduced_locs = np.concatenate([
-          row_pos[n] + row_locs[left_ind.charge_labels[n]]
-          for n in range(left_ind.dim)
+          row_pos[n] + row_locs[left_charge_labels[n]]
+          for n in range(left_charges.dim)
       ])
     else:
       reduced_locs = np.concatenate([
-          n * right_ind.dim + row_locs[left_ind.charge_labels[n]]
-          for n in range(left_ind.dim)
+          n * right_charges.dim + row_locs[left_charge_labels[n]]
+          for n in range(left_charges.dim)
       ])
-    return obj, reduced_locs
+    if return_unique:
+      return res, reduced_locs, reduced_unique_charges
+    return res, reduced_locs
+  if return_unique:
+    return res, reduced_unique_charges
+  return res
 
-  return obj
+
+# def reduce_charges_2(charges: List[BaseCharge],
+#                      flows: Union[np.ndarray, List[bool]],
+#                      target_charges: BaseCharge,
+#                      return_locations: Optional[bool] = False,
+#                      return_unique: bool = False,
+#                      return_type: str = 'labels',
+#                      strides: Optional[np.ndarray] = None) -> Any:
+#   """
+#   Add quantum numbers arising from combining two or more charges into
+#   a single index, keeping only the quantum numbers that appear in
+#   `target_charges`. If return_type == 'labels', function returns
+#   charge-labels in an array `returned_labels` instead of the charges
+#   themselves. The labels are the integer numbers that indicate the
+#   charge in the an array of sorted unique charges.
+#   For example, if `fused_charges` is an np.ndarray of single integer
+#   charges, and `unique, labels = np.unique(fused_charges, return_inverse=True)`,
+#   the values in the returned array correspond to charges in `unique`, i.e.
+#   `actual_charges = unique[returned_labels]`
+#   Args:
+#     charges: List of `BaseCharge`, one for each leg of a
+#       tensor.
+#     flows: A list of bool, one for each leg of a tensor.
+#       with values `False` or `True` denoting inflowing and
+#       outflowing charge direction, respectively.
+#     target_charges: n-by-D array of charges which should be kept,
+#       with `n` the number of symmetries.
+#     return_locations: If `True` return the location of the kept
+#       values of the fused charges
+#     strides: Index strides with which to compute the
+#       retured locations of the kept elements. Defaults to trivial strides
+#       (based on row major order).
+#   Returns:
+#     Union[BaseCharge, np.ndarray]: If `return_type=='labels'
+#       the integer labels of the fused charges. If `return_type=='charges'
+#       the reduced charges.
+#     np.ndarray: Locations of the fused BaseCharge charges that were kept.
+#   """
+
+#   tensor_dims = [len(c) for c in charges]
+
+#   if len(charges) == 1:
+#     # reduce single index
+#     if strides is None:
+#       strides = np.array([1], dtype=SIZE_T)
+#     return charges[0].dual(flows[0]).reduce(
+#         target_charges, return_locations=return_locations, strides=strides[0])
+
+#   # find size-balanced partition of charges
+#   partition = _find_best_partition(tensor_dims)
+
+#   # compute quantum numbers for each partition
+#   left_charges = fuse_charges(charges[:partition], flows[:partition])
+#   right_charges = fuse_charges(charges[partition:], flows[partition:])
+#   left_unique_charges, left_charge_labels, left_degens = left_charges.unique(
+#       return_inverse=True, return_counts=True)
+#   right_unique_charges, right_charge_labels, right_degens = right_charges.unique(
+#       return_inverse=True, return_counts=True)
+#   combined_charges = fuse_charges([left_unique_charges, right_unique_charges],
+#                                   [False, False])
+
+#   #special case of empty charges
+#   #pylint: disable=unsubscriptable-object
+#   if len(combined_charges) == 0 or len(left_charges) == 0 or len(
+#       right_charges) == 0:
+#     if return_type == 'labels':
+#       res = np.empty(0, dtype=LABEL_DTYPE)
+#     elif return_type == 'charges':
+#       res = charges[0].__new__(type(charges[0]))
+#       newcharges = [
+#           np.empty(0, dtype=combined_charges.charges[n].dtype)
+#           for n in range(len(combined_charges.charges))
+#       ]
+#       res.__init__(
+#           charges=newcharges,
+#           charge_types=combined_charges.charge_types,
+#           original_dtypes=combined_charges.original_dtypes,
+#           charge_indices=combined_charges.charge_indices)
+#     else:
+#       raise ValueError(f"unrecognized value {return_type} for return_type."
+#                        f" Allowed values are 'labels' anbd 'charges'")
+
+#     if return_locations:
+#       if return_unique:
+#         return res, np.empty(0, dtype=SIZE_T), res, np.empty(0, dtype=np.int32)
+#       return res, np.empty(0, dtype=SIZE_T), np.empty(0, dtype=np.int32)
+
+#     if return_unique:
+#       return res, res, np.empty(0, dtype=np.int32)
+#     return res, np.empty(0, dtype=np.int32)
+
+#   unique_combined_charges, comb_labels = combined_charges.unique(
+#       return_inverse=True)
+#   combined_degeneracies = fuse_degeneracies(left_degens, right_degens)
+#   mask = combined_charges == unique_combined_charges
+#   degeneracies = np.sum(
+#       combined_degeneracies[:, None] * np.ones(
+#           (1, unique_combined_charges.dim), dtype=combined_degeneracies.dtype),
+#       axis=0,
+#       where=mask)
+
+#   num_unique = len(unique_combined_charges)
+#   num_left_unique = len(left_unique_charges)
+#   num_right_unique = len(right_unique_charges)
+#   # intersect combined charges and target charges
+#   reduced_unique_charges, label_to_unique, _ = unique_combined_charges.intersect(
+#       target_charges, return_indices=True)
+
+#   map_to_kept = -np.ones(num_unique, dtype=LABEL_DTYPE)
+#   map_to_kept[label_to_unique] = np.arange(
+#       len(label_to_unique), dtype=LABEL_DTYPE)
+
+#   #new_comb_labels is a matrix of shape (left_charges.num_unique, right_charges.num_unique)
+#   #each row new_comb_labels[n,:] contains integers values. Positions where values > 0
+#   #denote labels of right-charges that are kept.
+#   label_table = map_to_kept[comb_labels].reshape(
+#       [num_left_unique, num_right_unique])
+#   reduced_rows = [0] * num_left_unique
+
+#   for n in range(num_left_unique):
+#     temp_label = label_table[n, right_charge_labels]
+#     reduced_rows[n] = temp_label[temp_label >= 0]
+
+#   reduced_labels = np.concatenate([reduced_rows[n] for n in left_charge_labels])
+#   if return_type == 'labels':
+#     res = reduced_labels
+#   elif return_type == 'charges':
+#     res = reduced_unique_charges[reduced_labels]
+#   else:
+#     raise ValueError(f"unrecognized value {return_type} for return_type."
+#                      f" Allowed values are 'labels' anbd 'charges'")
+
+#   if return_locations:
+#     row_locs = [0] * num_left_unique
+#     if strides is not None:
+#       # computed locations based on non-trivial strides
+#       row_pos = fuse_stride_arrays(tensor_dims[:partition], strides[:partition])
+#       col_pos = fuse_stride_arrays(tensor_dims[partition:], strides[partition:])
+#     for n in range(num_left_unique):
+#       temp_label = label_table[n, right_charge_labels]
+#       temp_keep = temp_label >= 0
+#       if strides is not None:
+#         row_locs[n] = col_pos[temp_keep]
+#       else:
+#         row_locs[n] = np.where(temp_keep)[0]
+
+#     if strides is not None:
+#       reduced_locs = np.concatenate([
+#           row_pos[n] + row_locs[left_charge_labels[n]]
+#           for n in range(left_charges.dim)
+#       ])
+#     else:
+#       reduced_locs = np.concatenate([
+#           n * right_charges.dim + row_locs[left_charge_labels[n]]
+#           for n in range(left_charges.dim)
+#       ])
+#     if return_unique:
+#       return res, reduced_locs, reduced_unique_charges, degeneracies
+#     return res, reduced_locs, degeneracies
+#   if return_unique:
+#     return res, reduced_unique_charges, degeneracies
+#   return res, degeneracies
 
 
 def _find_diagonal_sparse_blocks(
     charges: List[BaseCharge], flows: Union[np.ndarray, List[bool]],
-    partition: int) -> Tuple[List, BaseCharge, np.ndarray]:
+    partition: int, data=None) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
@@ -378,77 +619,65 @@ def _find_diagonal_sparse_blocks(
       block, with 'n' the number of symmetries and 'm' the number of blocks.
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
-  num_inds = len(charges)
-  num_syms = charges[0].num_symmetries
-
-  if partition in (0, num_inds):
+  if partition in (0, len(charges)):
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = np.zeros([num_syms, 1], dtype=charges[0].dtype)
+    block_charges = charges[0].identity_charges(dim=num_nonzero)
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
       block_dims = np.flipud(block_dims)
 
-    obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(block_qnums, np.arange(0, dtype=charges[0].label_dtype),
-                 charges[0].charge_types)
-
-    return block_maps, obj, block_dims
-
-  unique_row_qnums, row_degen = compute_fused_charge_degeneracies(
+    return block_maps, block_charges, block_dims
+  if data is None:
+    unique_row_charges, row_degen = compute_fused_charge_degeneracies(
       charges[:partition], flows[:partition])
-  unique_col_qnums, col_degen = compute_fused_charge_degeneracies(
+    unique_col_charges, col_degen = compute_fused_charge_degeneracies(
       charges[partition:], np.logical_not(flows[partition:]))
-
-  block_qnums, row_to_block, col_to_block = intersect(
-      unique_row_qnums.unique_charges,
-      unique_col_qnums.unique_charges,
-      axis=1,
-      return_indices=True)
-  num_blocks = block_qnums.shape[1]
+  else:
+    unique_row_charges, row_degen, unique_col_charges, col_degen = data
+  block_charges, row_to_block, col_to_block = unique_row_charges.intersect(
+      unique_col_charges, return_indices=True)
+  num_blocks = len(block_charges)
   if num_blocks == 0:
-    obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(
-        np.zeros((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
-        np.arange(0, dtype=charges[0].label_dtype), charges[0].charge_types)
-
-    return [], obj, np.empty((2, 0), dtype=SIZE_T)
+    return [], charges[0][np.empty(0, dtype=SIZE_T)], np.empty((2, 0),
+                                                               dtype=SIZE_T)
 
   # calculate number of non-zero elements in each row of the matrix
-  row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
-  row_num_nz = col_degen[col_to_block[row_ind.charge_labels]]
-  cumulate_num_nz = np.insert(np.cumsum(row_num_nz[0:-1]), 0, 0).astype(SIZE_T)
+  row_charge_labels, block_charges = reduce_charges(
+      charges[:partition],
+      flows[:partition],
+      block_charges,
+      return_type='labels',
+      return_unique=True)
 
+  row_num_nz = col_degen[col_to_block[row_charge_labels]]
+  cumulate_num_nz = np.insert(np.cumsum(row_num_nz[0:-1]), 0, 0).astype(SIZE_T)
   # calculate mappings for the position in datavector of each block
   if num_blocks < 15:
     # faster method for small number of blocks
     row_locs = np.concatenate([
-        (row_ind.charge_labels == n) for n in range(num_blocks)
-    ]).reshape(num_blocks, row_ind.dim)
+        (row_charge_labels == n) for n in range(num_blocks)
+    ]).reshape(num_blocks, len(row_charge_labels))
   else:
     # faster method for large number of blocks
-    row_locs = np.zeros([num_blocks, row_ind.dim], dtype=bool)
-    row_locs[row_ind.charge_labels,
-             np.arange(row_ind.dim)] = np.ones(
-                 row_ind.dim, dtype=bool)
-
+    row_locs = np.zeros([num_blocks, len(row_charge_labels)], dtype=bool)
+    row_locs[row_charge_labels,
+             np.arange(len(row_charge_labels))] = np.ones(
+                 len(row_charge_labels), dtype=bool)
   block_dims = np.array(
       [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
        for n in range(num_blocks)],
       dtype=SIZE_T).T
+
   #pylint: disable=unsubscriptable-object
   block_maps = [
       np.ravel(cumulate_num_nz[row_locs[n, :]][:, None] +
                np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
   ]
-  obj = charges[0].__new__(type(charges[0]))
-  obj.__init__(block_qnums,
-               np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
-               charges[0].charge_types)
 
-  return block_maps, obj, block_dims
+  return block_maps, block_charges, block_dims
 
 
 def _find_transposed_diagonal_sparse_blocks(
@@ -492,44 +721,39 @@ def _find_transposed_diagonal_sparse_blocks(
 
   # compute qnums of row/cols in original tensor
   orig_partition = _find_best_partition(tensor_dims)
-  orig_width = np.prod(tensor_dims[orig_partition:])
+  orig_width = np.prod(tensor_dims[orig_partition:]
 
-  orig_unique_row_qnums = compute_unique_fused_charges(charges[:orig_partition],
-                                                       flows[:orig_partition])
-  orig_unique_col_qnums, orig_col_degen = compute_fused_charge_degeneracies(
-      charges[orig_partition:], np.logical_not(flows[orig_partition:]))
+  orig_row_charges = fuse_charges(charges[:orig_partition],
+                                  flows[:orig_partition])
+  orig_col_charges = fuse_charges(charges[orig_partition:],
+                                  np.logical_not(flows[orig_partition:]))
+  orig_unique_row_charges, row_labels = orig_row_charges.unique(return_inverse=True)
+  orig_unique_col_charges, col_labels, orig_col_degen = orig_col_charges.unique(return_inverse=True, return_counts=True)  
+  
+  # orig_unique_row_charges = compute_unique_fused_charges(
+  #     charges[:orig_partition], flows[:orig_partition])
+  0987n 6# orig_unique_col_charges, orig_col_degen = compute_fused_charge_degeneracies(
+  #     charges[orig_partition:], np.logical_not(flows[orig_partition:]))
 
-  orig_block_qnums, row_map, col_map = intersect(
-      orig_unique_row_qnums.unique_charges,
-      orig_unique_col_qnums.unique_charges,
-      axis=1,
-      return_indices=True)
-  orig_num_blocks = orig_block_qnums.shape[1]
+  orig_block_charges, common_row_labels, common_col_labels = orig_unique_row_charges.intersect(
+      orig_unique_col_charges, return_indices=True)
+  orig_num_blocks = len(orig_block_charges)
   if orig_num_blocks == 0:
     # special case: trivial number of non-zero elements
-    obj = charges[0].__new__(type(charges[0]))
-    obj.__init__(
-        np.empty((charges[0].num_symmetries, 0), dtype=charges[0].dtype),
-        np.arange(0, dtype=charges[0].label_dtype), charges[0].charge_types)
+    return [], charges[0][np.empty(0, dtype=np.int16)], np.empty((2, 0),
+                                                                 dtype=SIZE_T)
 
-    return [], obj, np.empty((2, 0), dtype=SIZE_T)
 
-  orig_row_ind = fuse_charges(charges[:orig_partition], flows[:orig_partition])
-  orig_col_ind = fuse_charges(charges[orig_partition:],
-                              np.logical_not(flows[orig_partition:]))
+  inv_row_map = -np.ones(len(orig_unique_row_charges), dtype=LABEL_DTYPE)
+  inv_row_map[common_row_labels] = np.arange(len(common_row_labels), dtype=LABEL_DTYPE)
 
-  inv_row_map = -np.ones(
-      orig_unique_row_qnums.unique_charges.shape[1],
-      dtype=charges[0].label_dtype)
-  inv_row_map[row_map] = np.arange(len(row_map), dtype=charges[0].label_dtype)
-
-  all_degens = np.append(orig_col_degen[col_map],
-                         0)[inv_row_map[orig_row_ind.charge_labels]]
+  all_degens = np.append(orig_col_degen[common_col_labels],
+                         0)[inv_row_map[row_labels]]
   all_cumul_degens = np.cumsum(np.insert(all_degens[:-1], 0, 0)).astype(SIZE_T)
   dense_to_sparse = np.zeros(orig_width, dtype=SIZE_T)
   for n in range(orig_num_blocks):
-    dense_to_sparse[orig_col_ind.charge_labels == col_map[n]] = np.arange(
-        orig_col_degen[col_map[n]], dtype=SIZE_T)
+    dense_to_sparse[col_labels == common_col_labels[n]] = np.arange(
+        orig_col_degen[common_col_labels[n]], dtype=SIZE_T)
 
   # define properties of new tensor resulting from transposition
   new_strides = strides[order]
@@ -544,7 +768,7 @@ def _find_transposed_diagonal_sparse_blocks(
     # compute qnums of row/cols in transposed tensor
     unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
         new_col_charges, np.logical_not(new_col_flows))
-    identity_charges = charges[0].identity_charges
+    identity_charges = charges[0].identity_charges(0)
     block_qnums, new_row_map, new_col_map = intersect(
         identity_charges.unique_charges,
         unique_col_qnums.unique_charges,
@@ -576,7 +800,7 @@ def _find_transposed_diagonal_sparse_blocks(
     # compute qnums of row/cols in transposed tensor
     unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
         new_row_charges, new_row_flows)
-    identity_charges = charges[0].identity_charges
+    identity_charges = charges[0].identity_charges(0)
     block_qnums, new_row_map, new_col_map = intersect(
         unique_row_qnums.unique_charges,
         identity_charges.unique_charges,

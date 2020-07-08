@@ -420,9 +420,9 @@ def _find_diagonal_sparse_blocks(
 
   # calculate number of non-zero elements in each row of the matrix
   row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
+
   row_num_nz = col_degen[col_to_block[row_ind.charge_labels]]
   cumulate_num_nz = np.insert(np.cumsum(row_num_nz[0:-1]), 0, 0).astype(SIZE_T)
-
   # calculate mappings for the position in datavector of each block
   if num_blocks < 15:
     # faster method for small number of blocks
@@ -435,16 +435,17 @@ def _find_diagonal_sparse_blocks(
     row_locs[row_ind.charge_labels,
              np.arange(row_ind.dim)] = np.ones(
                  row_ind.dim, dtype=bool)
-
   block_dims = np.array(
       [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
        for n in range(num_blocks)],
       dtype=SIZE_T).T
+
   #pylint: disable=unsubscriptable-object
   block_maps = [
       np.ravel(cumulate_num_nz[row_locs[n, :]][:, None] +
                np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
   ]
+
   obj = charges[0].__new__(type(charges[0]))
   obj.__init__(block_qnums,
                np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),

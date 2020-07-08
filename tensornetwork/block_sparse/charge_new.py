@@ -16,7 +16,7 @@ import numpy as np
 import itertools
 from typing import List, Optional, Type, Any, Union
 
-
+LABEL_DTYPE = np.int16
 def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
@@ -236,15 +236,14 @@ class BaseCharge:
     res = self.charges[0][:, None] == other.charges[0][None, :]
 
     # restore charges
-    if not self_is_collapsed:
-      self.expand()
-    if not other_is_collapsed:
-      other.expand()
+    # if not self_is_collapsed:
+    #   self.expand()
+    # if not other_is_collapsed:
+    #   other.expand()
 
     return np.squeeze(res)
 
-  @property
-  def identity_charges(self) -> "BaseCharge":
+  def identity_charges(self, dim: int=1) -> "BaseCharge":
     """
     Returns the identity charge.
     Returns:
@@ -252,9 +251,12 @@ class BaseCharge:
     """
     charges = []
     for n, cts in enumerate(self.charge_types):
-      tmpcharges = [ct.identity_charge() for ct in cts]
+      tmpcharges=[]
+      for ct in cts:
+        iden = ct.identity_charge()
+        tmpcharges.append(np.full(dim, fill_value=iden,dtype=iden.dtype))
       dtypes = [[dt] for dt in self.original_dtypes[n]]
-      charges.append(np.array([collapse(tmpcharges, dtypes)]))
+      charges.append(collapse(tmpcharges, dtypes))
     is_collapsed = self.is_collapsed
 
     obj = self.__new__(type(self))
@@ -397,8 +399,8 @@ class BaseCharge:
     # then compute new unique charges
     # Note (mganahl): check if all cts are identical is
     #                 performed below in __init__
-    # self.expand()
-    # other.expand()
+    self.expand()
+    other.expand()
 
     if len(self.charges) == 1 and len(self.charge_types) > 1:
       raise ValueError("self is collapsed: cannot add collapsed charges")
@@ -446,9 +448,9 @@ class BaseCharge:
           charge_types=self.charge_types,
           original_dtypes=self.original_dtypes,
           charge_indices=self.charge_indices)
-      if is_collapsed:
-        self.collapse()
-        obj.collapse()
+      # if is_collapsed:
+      #   self.collapse()
+      #   obj.collapse()
       return obj
     return self
 
@@ -516,12 +518,12 @@ class BaseCharge:
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
 
-    if not self_is_collapsed:
-      self.expand()
-      obj.expand()
+    # if not self_is_collapsed:
+    #   self.expand()
+    #   obj.expand()
 
-    if not other_is_collapsed:
-      other.expand()
+    # if not other_is_collapsed:
+    #   other.expand()
 
     if return_indices:
       return obj, res[1], res[2]
@@ -561,7 +563,9 @@ class BaseCharge:
       self.collapse()
     res = np.unique(self.charges[0], return_index, return_inverse,
                     return_counts)
+
     if any([return_index, return_inverse, return_counts]):
+      res = list(res)      
       charges = res[0]
     else:
       charges = res
@@ -573,12 +577,16 @@ class BaseCharge:
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
 
-    if not is_collapsed:
-      self.expand()
-      obj.expand()
-
-    if any([return_index, return_inverse, return_counts]):
-      return (obj,) + res[1:]
+    # if not is_collapsed:
+    #   self.expand()
+    #   obj.expand()
+    
+    if return_inverse and not return_index:
+      res[1] = res[1].astype(LABEL_DTYPE)
+    if return_inverse and return_index:
+      res[2] = obj, res[2].astype(LABEL_DTYPE) #always use int16 dtypes for labels
+    if any([return_index, return_inverse, return_counts]):            
+      return [obj] + res[1:]
     else:
       return obj
 
@@ -614,11 +622,11 @@ class BaseCharge:
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
 
-    if not self_is_collapsed:
-      self.expand()
-      obj.expand()
-    if not targets_is_collapsed:
-      targets.expand()
+    # if not self_is_collapsed:
+    #   self.expand()
+    #   obj.expand()
+    # if not targets_is_collapsed:
+    #   targets.expand()
 
     if return_locations:
       if strides is not None:
@@ -663,10 +671,10 @@ class BaseCharge:
       other.collapse()
 
     res = np.isin(self.charges[0], other.charges[0])
-    if not self_is_collapsed:
-      self.expand()
-    if not other_is_collapsed:
-      other.expand()
+    # if not self_is_collapsed:
+    #   self.expand()
+    # if not other_is_collapsed:
+    #   other.expand()
     return res
 
 
