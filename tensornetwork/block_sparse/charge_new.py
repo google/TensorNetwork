@@ -225,7 +225,7 @@ class BaseCharge:
     out = "BaseCharge: \n  " + "charge-types: " + self.names + "\n  dtypes: " + dtype_names + " \n  indices: " + str(
         self.charge_indices) + "\n  " + 'charges: ' + ''.join([
             str(c) + '\n ' for c in self.charges
-        ]).replace('\n', '\n          ') + '\n'
+        ]).replace('\n', '\n          ')
     return out
 
   def __len__(self) -> int:
@@ -597,6 +597,7 @@ class BaseCharge:
              targets: "BaseCharge",
              return_locations: bool = False,
              return_type: str = 'labels',
+             return_unique: bool = True,
              strides: Optional[int] = None) -> Any:
     """
     Reduce the dimension of the charge to keep only the charge 
@@ -611,30 +612,38 @@ class BaseCharge:
       np.ndarray: If `return_locations = True`; the index locations
         of target values.
     """
-    self_is_collapsed = self.is_collapsed
-    targets_is_collapsed = targets.is_collapsed
-    if not self_is_collapsed:
+    if not self.is_collapsed:
       self.collapse()
-    if not targets_is_collapsed:
+    if not targets.is_collapsed:
       targets.collapse()
 
-    if return_type == 'charges':
-      mask = np.isin(self.charges[0], targets.charges[0])
-      reduced = self[mask]
-      if return_locations:
-        if strides is not None:
-          return reduced, np.nonzero(mask)[0] * strides
-        return reduced, np.nonzero(mask)[0]
-      return reduced
+    unique, labels = self.unique(return_inverse=True)
+    reduced_unique_charges, reduced_unique_labels, _ = unique.intersect(
+        targets, return_indices=True)
+    mapping = np.full(len(unique), fill_value=-1, dtype=LABEL_DTYPE)
+    mapping[reduced_unique_labels] = np.arange(
+        len(reduced_unique_labels), dtype=LABEL_DTYPE)
+    tmp = mapping[labels]
+    reduced_labels = tmp[tmp >= 0]
     if return_type == 'labels':
-      unique, labels = self.unique(return_inverse=True)
-      _, labels_unique, _ = unique.intersect(targets, return_indices=True)
-      if return_locations:
-        locations = np.nonzero(np.isin(labels, labels_unique))[0]
-        if strides is not None:
-          return labels, locations * strides
-        return labels, locations
-      return labels
+      res = reduced_labels
+    elif return_type == 'charges':
+      res = reduced_unique_charges[reduced_labels]
+    else:
+      raise ValueError(f"unrecognized value {return_type} for return_type."
+                       f" Allowed values are 'labels' anbd 'charges'")
+
+    if return_locations:
+      locations = np.nonzero(np.isin(labels, reduced_unique_labels))[0]
+      if strides is not None:
+        locations *= strides
+      if return_unique:
+        return res, locations, reduced_unique_charges
+      return res, locations
+
+    if return_unique:
+      return res, reduced_unique_charges
+    return res
 
   def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
     """

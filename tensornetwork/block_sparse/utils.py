@@ -278,9 +278,9 @@ def reduce_charges(charges: List[BaseCharge],
     # reduce single index
     if strides is None:
       strides = np.array([1], dtype=SIZE_T)
-    return charges[0].dual(flows[0]).reduce(
+    res = charges[0].dual(flows[0]).reduce(
         target_charges, return_locations=return_locations, strides=strides[0])
-
+    return res
   # find size-balanced partition of charges
   partition = _find_best_partition(tensor_dims)
 
@@ -619,7 +619,6 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims = np.array(
         [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_T)
     num_blocks = len(new_row_map)
-
     row_ind, row_locs = reduce_charges(
         new_row_charges,
         new_row_flows,

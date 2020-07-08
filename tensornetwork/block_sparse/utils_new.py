@@ -201,8 +201,8 @@ def compute_fused_charge_degeneracies(
 
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = charges[0].dual(flows[0]).unique(
-    return_counts=True)
+  accumulated_charges, accumulated_degeneracies = charges[0].dual(
+      flows[0]).unique(return_counts=True)
 
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
@@ -311,19 +311,18 @@ def reduce_charges(charges: List[BaseCharge],
       the reduced charges.
     np.ndarray: Locations of the fused BaseCharge charges that were kept.
   """
-
   tensor_dims = [len(c) for c in charges]
 
   if len(charges) == 1:
     # reduce single index
     if strides is None:
       strides = np.array([1], dtype=SIZE_T)
-    res = list(charges[0].dual(flows[0]).reduce(
-        target_charges, return_locations=return_locations, return_type=return_type, strides=strides[0]))
-    if return_unique:
-      return res + [target_charges.unique()]
-    return res
-
+    return charges[0].dual(flows[0]).reduce(
+        target_charges,
+        return_locations=return_locations,
+        return_type=return_type,
+        return_unique=return_unique,
+        strides=strides[0])
   # find size-balanced partition of charges
   partition = _find_best_partition(tensor_dims)
 
@@ -341,7 +340,6 @@ def reduce_charges(charges: List[BaseCharge],
   #pylint: disable=unsubscriptable-object
   if len(combined_charges) == 0 or len(left_charges) == 0 or len(
       right_charges) == 0:
-
     if return_type == 'labels':
       res = np.empty(0, dtype=LABEL_DTYPE)
     elif return_type == 'charges':
@@ -431,6 +429,7 @@ def reduce_charges(charges: List[BaseCharge],
     return res, reduced_locs
   if return_unique:
     return res, reduced_unique_charges
+
   return res
 
 
@@ -598,8 +597,10 @@ def reduce_charges(charges: List[BaseCharge],
 
 
 def _find_diagonal_sparse_blocks(
-    charges: List[BaseCharge], flows: Union[np.ndarray, List[bool]],
-    partition: int, data=None) -> Tuple[List, BaseCharge, np.ndarray]:
+    charges: List[BaseCharge],
+    flows: Union[np.ndarray, List[bool]],
+    partition: int,
+    data=None) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
@@ -632,9 +633,9 @@ def _find_diagonal_sparse_blocks(
     return block_maps, block_charges, block_dims
   if data is None:
     unique_row_charges, row_degen = compute_fused_charge_degeneracies(
-      charges[:partition], flows[:partition])
+        charges[:partition], flows[:partition])
     unique_col_charges, col_degen = compute_fused_charge_degeneracies(
-      charges[partition:], np.logical_not(flows[partition:]))
+        charges[partition:], np.logical_not(flows[partition:]))
   else:
     unique_row_charges, row_degen, unique_col_charges, col_degen = data
   block_charges, row_to_block, col_to_block = unique_row_charges.intersect(
@@ -746,8 +747,10 @@ def _find_transposed_diagonal_sparse_blocks(
                                                                  dtype=SIZE_T)
   # inv_row_map is positive for the row labels that are kept, and -1 else.
   # the -1 is used to index the last value of an array below
-  inv_row_map = np.full(len(orig_unique_row_charges), fill_value=-1, dtype=LABEL_DTYPE)
-  inv_row_map[common_row_labels] = np.arange(len(common_row_labels), dtype=LABEL_DTYPE)
+  inv_row_map = np.full(
+      len(orig_unique_row_charges), fill_value=-1, dtype=LABEL_DTYPE)
+  inv_row_map[common_row_labels] = np.arange(
+      len(common_row_labels), dtype=LABEL_DTYPE)
 
   # all_degens is an array of len(row_labels) that holds the degeneracies
   # (i.e. the number of non-zero elements) in that row
@@ -791,8 +794,8 @@ def _find_transposed_diagonal_sparse_blocks(
     #return_unique=True)
     # find location of blocks in transposed tensor (w.r.t positions in original)
     #pylint: disable=no-member
-    orig_row_posR, orig_col_posR = np.divmod(
-        col_locs[col_charge_labels == 0], orig_width)
+    orig_row_posR, orig_col_posR = np.divmod(col_locs[col_charge_labels == 0],
+                                             orig_width)
     block_maps = [(all_cumul_degens[orig_row_posR] +
                    dense_to_sparse[orig_col_posR]).ravel()]
 
@@ -804,8 +807,7 @@ def _find_transposed_diagonal_sparse_blocks(
         new_row_charges, new_row_flows)
     identity_charges = charges[0].identity_charges(dim=1)
     block_charges, new_row_map, new_col_map = unique_row_qnums.intersect(
-      identity_charges,
-      return_indices=True)
+        identity_charges, return_indices=True)
     # block_qnums, new_row_map, new_col_map = intersect(
     #     unique_row_qnums.unique_charges,
     #     identity_charges.unique_charges,
@@ -822,30 +824,30 @@ def _find_transposed_diagonal_sparse_blocks(
 
     # find location of blocks in transposed tensor (w.r.t positions in original)
     #pylint: disable=no-member
-    orig_row_posL, orig_col_posL = np.divmod(
-        row_locs[row_charge_labels == 0], orig_width)
+    orig_row_posL, orig_col_posL = np.divmod(row_locs[row_charge_labels == 0],
+                                             orig_width)
     block_maps = [(all_cumul_degens[orig_row_posL] +
                    dense_to_sparse[orig_col_posL]).ravel()]
-    
+
   else:
-    
+
     unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
         new_row_charges, new_row_flows)
     unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
         new_col_charges, np.logical_not(new_col_flows))
     block_charges, new_row_map, new_col_map = unique_row_qnums.intersect(
-      unique_col_qnums,
-      return_indices=True)
-    
+        unique_col_qnums, return_indices=True)
+
     block_dims = np.array(
         [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_T)
     num_blocks = len(new_row_map)
-    row_charge_labels, row_locs = reduce_charges(
+    row_charge_labels, row_locs, row_unique = reduce_charges(
         new_row_charges,
         new_row_flows,
         block_charges,
         return_type='labels',
         return_locations=True,
+        return_unique=True,
         strides=new_strides[:tr_partition])
     col_charge_labels, col_locs = reduce_charges(
         new_col_charges,
@@ -858,11 +860,11 @@ def _find_transposed_diagonal_sparse_blocks(
     block_maps = [0] * num_blocks
     for n in range(num_blocks):
       #pylint: disable=no-member
-      orig_row_posL, orig_col_posL = np.divmod(
-          row_locs[row_charge_labels == n], orig_width)
+      orig_row_posL, orig_col_posL = np.divmod(row_locs[row_charge_labels == n],
+                                               orig_width)
       #pylint: disable=no-member
-      orig_row_posR, orig_col_posR = np.divmod(
-          col_locs[col_charge_labels == n], orig_width)
+      orig_row_posR, orig_col_posR = np.divmod(col_locs[col_charge_labels == n],
+                                               orig_width)
       block_maps[n] = (
           all_cumul_degens[np.add.outer(orig_row_posL, orig_row_posR)] +
           dense_to_sparse[np.add.outer(orig_col_posL, orig_col_posR)]).ravel()
