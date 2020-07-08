@@ -292,12 +292,6 @@ def index_update(dtype):
   np.testing.assert_allclose(tensor, out)
 
 
-def test_gmres_not_implemented():
-  backend = jax_backend.JaxBackend()
-  with pytest.raises(NotImplementedError):
-    backend.gmres(lambda x: x, np.ones((2)))
-
-
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_eigsh_valid_init_operator_with_shape(dtype):
   backend = jax_backend.JaxBackend()
@@ -696,3 +690,100 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+def test_gmres_raises():
+  backend = jax_backend.JaxBackend()
+  dummy_mv = lambda x: x
+  N = 10
+
+  b = jax.numpy.zeros((N,))
+  x0 = jax.numpy.zeros((N+1),)
+  diff = "If x0 is supplied, its shape"
+  with pytest.raises(ValueError, match=diff): # x0, b have different sizes
+    backend.gmres(dummy_mv, b, x0=x0)
+
+  x0 = jax.numpy.zeros((N,), dtype=jax.numpy.float32)
+  b = jax.numpy.zeros((N,), dtype=jax.numpy.float64)
+  diff = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+          f", {b.dtype}.")
+  with pytest.raises(ValueError, match=diff): # x0, b have different dtypes
+    backend.gmres(dummy_mv, b, x0=x0)
+
+  x0 = jax.numpy.zeros((N,))
+  b = jax.numpy.zeros((N,)).reshape(2, N//2)
+  diff = "If x0 is supplied, its shape"
+  with pytest.raises(ValueError, match=diff): # x0, b have different shapes
+    backend.gmres(dummy_mv, b, x0=x0)
+
+  num_krylov_vectors = 0
+  diff = (f"num_krylov_vectors must be in "
+          f"0 < {num_krylov_vectors} <= {b.size}")
+  with pytest.raises(ValueError, match=diff): # num_krylov_vectors <= 0
+    backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
+  num_krylov_vectors = N+1
+  diff = (f"num_krylov_vectors must be in "
+          f"0 < {num_krylov_vectors} <= {b.size}")
+  with pytest.raises(ValueError, match=diff): # num_krylov_vectors > b.size
+    backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
+
+  tol = -1.
+  diff = (f"tol = {tol} must be positive.")
+  with pytest.raises(ValueError, match=diff): # tol < 0
+    backend.gmres(dummy_mv, b, tol=tol)
+
+  atol = -1
+  diff = (f"atol = {atol} must be positive.")
+  with pytest.raises(ValueError, match=diff): # atol < 0
+    backend.gmres(dummy_mv, b, atol=atol)
+
+  M = lambda x: x
+  diff = "M is not supported by the Jax backend."
+  with pytest.raises(NotImplementedError, match=diff):
+    backend.gmres(dummy_mv, b, M=M)
+
+  A_kwargs = {"bee": "honey"}
+  diff = "A_kwargs is not supported by the Jax backend."
+  with pytest.raises(NotImplementedError, match=diff):
+    backend.gmres(dummy_mv, b, A_kwargs=A_kwargs)
+
+
+jax_qr_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
+@pytest.mark.parametrize("dtype", jax_qr_dtypes)
+def test_gmres_on_small_known_problem(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+
+  backend = jax_backend.JaxBackend()
+  A = jax.numpy.array(([[1, 1], [3, -4]]), dtype=dtype)
+  b = jax.numpy.array([3, 2], dtype=dtype)
+  x0 = jax.numpy.ones(2, dtype=dtype)
+  n_kry = 2
+
+  def A_mv(x):
+    return A @ x
+  tol = 100*jax.numpy.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, x0=x0, num_krylov_vectors=n_kry, tol=tol)
+  solution = jax.numpy.array([2., 1.], dtype=dtype)
+  eps = jax.numpy.linalg.norm(jax.numpy.abs(solution) - jax.numpy.abs(x))
+  assert eps < tol
+
+
+@pytest.mark.parametrize("dtype", jax_qr_dtypes)
+def test_gmres_on_larger_random_problem(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+  backend = jax_backend.JaxBackend()
+  matshape = (100, 100)
+  vecshape = (100,)
+  A = backend.randn(matshape, dtype=dtype)
+  solution = backend.randn(vecshape, dtype=dtype)
+  def A_mv(x):
+    return A @ x
+  b = A_mv(solution)
+  tol = b.size * jax.numpy.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  err = jax.numpy.linalg.norm(jax.numpy.abs(x)-jax.numpy.abs(solution))
+  rtol = tol*jax.numpy.linalg.norm(b)
+  atol = tol
+  assert err < max(rtol, atol)
