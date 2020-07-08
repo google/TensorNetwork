@@ -428,4 +428,3 @@ def test_backend_instantiation(backend):
   backend1 = backend_factory.get_backend(backend)
   backend2 = backend_factory.get_backend(backend)
   assert backend1 is backend2
-

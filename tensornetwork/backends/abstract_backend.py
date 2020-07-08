@@ -912,5 +912,3 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `sign`.".format(self.name))
-
-
