@@ -21,18 +21,18 @@ Tensor = Any
 def svd(
     tf: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
+  left (row) index resulting from combining the axes `tensor.shape[:pivot_axis]`
   and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2, then
   `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
   have shape (6, 4, 5).
 
@@ -60,7 +60,7 @@ def svd(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
     max_singular_values: The number of singular values to keep, or `None` to
       keep them all.
@@ -75,8 +75,8 @@ def svd(
     s_rest: Vector of discarded singular values (length zero if no
             truncation).
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape(tensor)[:pivot_axis]
+  right_dims = tf.shape(tensor)[pivot_axis:]
 
   tensor = tf.reshape(tensor,
                       [tf.reduce_prod(left_dims),
@@ -129,16 +129,17 @@ def svd(
 def qr(
     tf: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the
-  axes `tensor.shape[:split_axis]` and an effective right (column)
-  index resulting from combining the axes `tensor.shape[split_axis:]`.
+  axes `tensor.shape[:pivot_axis]` and an effective right (column)
+  index resulting from combining the axes `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `q` would have shape (2, 3, 6), and `r` would
   have shape (6, 4, 5).
 
@@ -151,20 +152,24 @@ def qr(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
 
   Returns:
     Q: Left tensor factor.
     R: Right tensor factor.
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape(tensor)[:pivot_axis]
+  right_dims = tf.shape(tensor)[pivot_axis:]
 
   tensor = tf.reshape(tensor,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tensor)
+  if non_negative_diagonal:
+    phases = tf.math.sign(tf.linalg.diag_part(r))
+    q = q * phases
+    r = tf.linalg.diag(phases) @ r
   center_dim = tf.shape(q)[1]
   q = tf.reshape(q, tf.concat([left_dims, [center_dim]], axis=-1))
   r = tf.reshape(r, tf.concat([[center_dim], right_dims], axis=-1))
@@ -174,16 +179,17 @@ def qr(
 def rq(
     tf: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the axes
-  `tensor.shape[:split_axis]` and an effective right (column) index
-  resulting from combining the axes `tensor.shape[split_axis:]`.
+  `tensor.shape[:pivot_axis]` and an effective right (column) index
+  resulting from combining the axes `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `r` would have shape (2, 3, 6), and `q` would
   have shape (6, 4, 5).
 
@@ -196,20 +202,24 @@ def rq(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
 
   Returns:
     Q: Left tensor factor.
     R: Right tensor factor.
   """
-  left_dims = tf.shape(tensor)[:split_axis]
-  right_dims = tf.shape(tensor)[split_axis:]
+  left_dims = tf.shape(tensor)[:pivot_axis]
+  right_dims = tf.shape(tensor)[pivot_axis:]
 
   tensor = tf.reshape(tensor,
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   q, r = tf.linalg.qr(tf.math.conj(tf.transpose(tensor)))
+  if non_negative_diagonal:
+    phases = tf.math.sign(tf.linalg.diag_part(r))
+    q = q * phases
+    r = tf.linalg.diag(phases) @ r
   r, q = tf.math.conj(tf.transpose(r)), tf.math.conj(
       tf.transpose(q))  #M=r*q at this point
   center_dim = tf.shape(r)[1]

@@ -26,7 +26,7 @@ np_dtypes = [np.float64, np.complex128]
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R, R1", [(2, 1), (3, 2), (3, 1)])
 @pytest.mark.parametrize("num_charges", [1, 2, 3])
-def test_svd_decompositions(dtype, R, R1, num_charges):
+def test_svds(dtype, R, R1, num_charges):
   np.random.seed(10)
   D = 30
   charges = [
@@ -154,7 +154,7 @@ def test_rq(dtype, R, R1, num_charges):
 
   r, q = decompositions.rq(bs, A, R1)
   res = bs.tensordot(r, q, 1)
-  r_dense, q_dense = np_decompositions.rq(np, A.todense(), R1)
+  r_dense, q_dense = np_decompositions.rq(np, A.todense(), R1, False)
   res2 = np.tensordot(r_dense, q_dense, 1)
   np.testing.assert_almost_equal(res.todense(), res2)
 
@@ -173,6 +173,6 @@ def test_qr(dtype, R, R1):
 
   q, r = decompositions.qr(bs, A, R1)
   res = bs.tensordot(q, r, 1)
-  q_dense, r_dense = np_decompositions.qr(np, A.todense(), R1)
+  q_dense, r_dense = np_decompositions.qr(np, A.todense(), R1, False)
   res2 = np.tensordot(q_dense, r_dense, 1)
   np.testing.assert_almost_equal(res.todense(), res2)

@@ -40,36 +40,41 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return self.bs.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
 
-  def transpose(self, tensor, perm=None):
-    if perm is None:
-      perm = tuple(range(tensor.ndim - 1, -1, -1))
+  def transpose(self, tensor, perm) -> Tensor:
     return self.bs.transpose(tensor, perm)
 
   def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd(self.bs, tensor, split_axis,
-                              max_singular_values,
+    return decompositions.svd(self.bs, tensor, pivot_axis, max_singular_values,
                               max_truncation_error, relative)
 
   def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(self.bs, tensor, split_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.qr(self.bs, tensor, pivot_axis)
 
   def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(self.bs, tensor, split_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.rq(self.bs, tensor, pivot_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
@@ -89,7 +94,16 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.bs.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    if k != 0:
+      raise NotImplementedError("Can't specify k with Symmetric backend")
+    return self.bs.diag(tensor)
+
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    if axis1 != -2 or axis2 != -1 or offset != 0:
+      errstr = "offset, axis1, axis2 unsupported by Symmetric backend."
+      raise NotImplementedError(errstr)
     return self.bs.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
@@ -103,8 +117,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
               type(tensor)))
     return tensor
 
-  def trace(self, tensor: Tensor) -> Tensor:
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
     # Default np.trace uses first two axes.
+    if axis1 != -2 or axis2 != -1 or offset != 0:
+      errstr = "offset, axis1, axis2 unsupported by Symmetric backend."
+      raise NotImplementedError(errstr)
     return self.bs.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
@@ -322,7 +340,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
-    return self.tensordot(tensor1, self.diag(tensor2),
+    return self.tensordot(tensor1, self.diagflat(tensor2),
                           ([len(tensor1.shape) - 1], [0]))
 
   def broadcast_left_multiplication(self, tensor1: Tensor,
@@ -330,7 +348,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
-    return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))
+    return self.tensordot(self.diagflat(tensor1), tensor2, ([1], [0]))
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun

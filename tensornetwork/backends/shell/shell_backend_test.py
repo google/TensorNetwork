@@ -57,7 +57,7 @@ def test_svd():
     assert x.shape == y.shape
 
 
-def test_svd_decomposition_raises_error():
+def test_svd_raises_error():
   tensor = np.ones([2, 3, 4, 5, 6])
   with pytest.raises(NotImplementedError):
     shell_backend.ShellBackend().svd(
@@ -138,20 +138,9 @@ def test_sqrt():
   assertBackendsAgree("sqrt", args)
 
 
-def test_diag():
-  args = {"tensor": np.ones(10)}
-  assertBackendsAgree("diag", args)
-
-
 def test_convert_to_tensor():
   args = {"tensor": np.ones([3, 5, 2])}
   assertBackendsAgree("convert_to_tensor", args)
-
-
-def test_trace():
-  args = {"tensor": np.ones([3, 5, 4, 4])}
-  assertBackendsAgree("trace", args)
-
 
 def test_outer_product():
   args = {"tensor1": np.ones([3, 5]), "tensor2": np.ones([4, 6])}

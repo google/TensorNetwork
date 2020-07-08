@@ -47,9 +47,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
-  def transpose(self, tensor, perm=None):
-    if perm is None:
-      perm = tuple(range(tensor.ndim - 1, -1, -1))
+  def transpose(self, tensor, perm) -> Tensor:
     return tensor.permute(perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -65,7 +63,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -73,7 +71,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return decompositions.svd(
         torchlib,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
@@ -81,16 +79,19 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(torchlib, tensor, split_axis)
+    return decompositions.qr(torchlib, tensor, pivot_axis, non_negative_diagonal)
+
 
   def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(torchlib, tensor, split_axis)
+    return decompositions.rq(torchlib, tensor, pivot_axis, non_negative_diagonal)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
@@ -105,21 +106,14 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return self.shape_tuple(tensor)
 
   def shape_prod(self, values: Tensor) -> int:
-    values = torchlib.as_tensor(values)
-    return torchlib.prod(values)
+    return np.prod(np.array(values))
 
   def sqrt(self, tensor: Tensor) -> Tensor:
     return torchlib.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    return torchlib.diag(tensor)
-
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = torchlib.as_tensor(tensor)
     return result
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    return torchlib.einsum('...jj', tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return torchlib.tensordot(tensor1, tensor2, dims=0)
@@ -361,3 +355,103 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)
+
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last and last axis (note this
+                    differs from the NumPy defaults).
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1 and axis2 must be different.")
+    return torchlib.diagonal(tensor, offset=offset, dim1=axis1, dim2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return torchlib.diag_embed(tensor, offset=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    In the PyTorch backend the trace is always over the main diagonal of the
+    last two entries.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+              This argument is not supported  by the PyTorch 
+              backend and an error will be raised if they are
+              specified.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to first/second axis.
+                    These arguments are not supported by the PyTorch
+                    backend and an error will be raised if they are
+                    specified.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    if axis1 != -2 or axis2 != -1 or offset != 0:
+      errstr = "offset, axis1, axis2 unsupported by TensorFlow backend."
+      raise NotImplementedError(errstr)
+    return torchlib.einsum('...jj', tensor)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return torchlib.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+
+    Args:
+      tensor: The input tensor.
+    """
+    return torchlib.sign(tensor)

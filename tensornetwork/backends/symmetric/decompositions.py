@@ -209,8 +209,7 @@ def qr(bt, tensor: BlockSparseTensor,
   return q, r
 
 
-def rq(bt, tensor: BlockSparseTensor,
-       split_axis: int) -> Tuple[Tensor, Tensor]:
+def rq(bt, tensor: BlockSparseTensor, split_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.

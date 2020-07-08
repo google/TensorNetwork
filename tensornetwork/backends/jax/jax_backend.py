@@ -54,7 +54,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm=None):
+  def transpose(self, tensor, perm) -> Tensor:
     return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
@@ -70,7 +70,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -78,7 +78,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return decompositions.svd(
         jnp,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
@@ -86,16 +86,18 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(jnp, tensor, split_axis)
+    return decompositions.qr(jnp, tensor, pivot_axis, non_negative_diagonal)
 
   def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(jnp, tensor, split_axis)
+    return decompositions.rq(jnp, tensor, pivot_axis, non_negative_diagonal)
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
@@ -112,10 +114,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return jnp.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
-    return jnp.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, jnp.ndarray) and not jnp.isscalar(tensor)):
@@ -124,9 +122,95 @@ class JaxBackend(abstract_backend.AbstractBackend):
     result = jnp.asarray(tensor)
     return result
 
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return jnp.trace(tensor, axis1=-2, axis2=-1)
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.diagonal(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return jnp.diag(jnp.ravel(tensor), k=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return jnp.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+
+    Args:
+      tensor: The input tensor.
+    """
+    out = jnp.sign(tensor)
+    return out
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return jnp.tensordot(tensor1, tensor2, 0)
@@ -326,9 +410,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
-    imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
-    return imp_arnoldi(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
-                       numeig, which, tol, maxiter)
+    if not hasattr(self, '_iram'):
+      # pylint: disable=attribute-defined-outside-init
+      self._iram = jitted_functions._implicitly_restarted_arnoldi(libjax)
+    return self._iram(_CACHED_MATVECS[A], args, initial_state, num_krylov_vecs,
+                      numeig, which, tol, maxiter)
 
   def eigsh_lanczos(
       self,
@@ -431,160 +517,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
-    eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
-    return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
-                         num_krylov_vecs, numeig, delta, reorthogonalize)
+    if not hasattr(self, '_jaxlan'):
+      # pylint: disable=attribute-defined-outside-init
+      self._jaxlan = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
 
-  def gmres(self,
-            A_mv: Callable,
-            b: Tensor,
-            A_args: Optional[List] = None,
-            A_kwargs: Optional[dict] = None,
-            x0: Optional[Tensor] = None,
-            tol: float = 1E-05,
-            atol: Optional[float] = None,
-            num_krylov_vectors: Optional[int] = None,
-            maxiter: Optional[int] = 1,
-            M: Optional[Callable] = None
-            ) -> Tuple[Tensor, int]:
-    """ GMRES solves the linear system A @ x = b for x given a vector `b` and
-    a general (not necessarily symmetric/Hermitian) linear operator `A`.
-
-    As a Krylov method, GMRES does not require a concrete matrix representation
-    of the n by n `A`, but only a function
-    `vector1 = A_mv(vector0, *A_args, **A_kwargs)`
-    prescribing a one-to-one linear map from vector0 to vector1 (that is,
-    A must be square, and thus vector0 and vector1 the same size). If `A` is a
-    dense matrix, or if it is a symmetric/Hermitian operator, a different
-    linear solver will usually be preferable.
-
-    GMRES works by first constructing the Krylov basis
-    K = (x0, A_mv@x0, A_mv@A_mv@x0, ..., (A_mv^num_krylov_vectors)@x_0) and then
-    solving a certain dense linear system K @ q0 = q1 from whose solution x can
-    be approximated. For `num_krylov_vectors = n` the solution is provably exact
-    in infinite precision, but the expense is cubic in `num_krylov_vectors` so
-    one is typically interested in the `num_krylov_vectors << n` case.
-    The solution can in this case be repeatedly
-    improved, to a point, by restarting the Arnoldi iterations each time
-    `num_krylov_vectors` is reached. Unfortunately the optimal parameter choices
-    balancing expense and accuracy are difficult to predict in advance, so
-    applying this function requires a degree of experimentation.
-
-    In a tensor network code one is typically interested in A_mv implementing
-    some tensor contraction. This implementation thus allows `b` and `x0` to be
-    of whatever arbitrary, though identical, shape `b = A_mv(x0, ...)` expects.
-    Reshaping to and from a matrix problem is handled internally.
-
-    The Jax backend version of GMRES uses a homemade implementation that, for
-    now, is suboptimal for num_krylov_vecs ~ b.size.
-
-    For the same reason as described in eigsh_lancsoz, the function A_mv
-    should be Jittable (or already Jitted) and, if at all possible, defined
-    only once at the global scope. A new compilation will be triggered each
-    time an A_mv with a new function signature is passed in, even if the
-    'new' function is identical to the old one (function identity is
-    undecidable).
-
-
-    Args:
-      A_mv     : A function `v0 = A_mv(v, *A_args, **A_kwargs)` where `v0` and
-                 `v` have the same shape.
-      b        : The `b` in `A @ x = b`; it should be of the shape `A_mv`
-                 operates on.
-      A_args   : Positional arguments to `A_mv`, supplied to this interface
-                 as a list.
-                 Default: None.
-      A_kwargs : In the other backends, keyword arguments to `A_mv`, supplied
-                 as a dictionary. However, the Jax backend does not support
-                 A_mv accepting
-                 keyword arguments since this causes problems with Jit.
-                 Therefore, an error is thrown if A_kwargs is specified.
-                 Default: None.
-      x0       : An optional guess solution. Zeros are used by default.
-                 If `x0` is supplied, its shape and dtype must match those of
-                 `b`, or an
-                 error will be thrown.
-                 Default: zeros.
-      tol, atol: Solution tolerance to achieve,
-                 norm(residual) <= max(tol*norm(b), atol).
-                 Default: tol=1E-05
-                          atol=tol
-      num_krylov_vectors
-               : Size of the Krylov space to build at each restart.
-                 Expense is cubic in this parameter. If supplied, it must be
-                 an integer in 0 < num_krylov_vectors <= b.size.
-                 Default: b.size.
-      maxiter  : The Krylov space will be repeatedly rebuilt up to this many
-                 times. Large values of this argument
-                 should be used only with caution, since especially for nearly
-                 symmetric matrices and small `num_krylov_vectors` convergence
-                 might well freeze at a value significantly larger than `tol`.
-                 Default: 1
-      M        : Inverse of the preconditioner of A; see the docstring for
-                 `scipy.sparse.linalg.gmres`. This is unsupported in the Jax
-                 backend, and NotImplementedError will be raised if it is
-                 supplied.
-                 Default: None.
-
-
-    Raises:
-      ValueError: -if `x0` is supplied but its shape differs from that of `b`.
-                  -if num_krylov_vectors is 0 or exceeds b.size.
-                  -if tol or atol was negative.
-      NotImplementedError: - If M is supplied.
-                           - If A_kwargs is supplied.
-
-    Returns:
-      x       : The converged solution. It has the same shape as `b`.
-      info    : 0 if convergence was achieved, the number of restarts otherwise.
-    """
-
-    if x0 is not None and x0.shape != b.shape:
-      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                   f", {b.shape}.")
-      raise ValueError(errstring)
-    if x0 is not None and x0.dtype != b.dtype:
-      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
-                   f", {b.dtype}.")
-      raise ValueError(errstring)
-    if num_krylov_vectors is None:
-      num_krylov_vectors = b.size
-    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
-      errstring = (f"num_krylov_vectors must be in "
-                   f"0 < {num_krylov_vectors} <= {b.size}.")
-      raise ValueError(errstring)
-    if tol < 0:
-      raise ValueError(f"tol = {tol} must be positive.")
-    if atol is None:
-      atol = tol
-    if atol < 0:
-      raise ValueError(f"atol = {atol} must be positive.")
-
-    if M is not None:
-      raise NotImplementedError("M is not supported by the Jax backend.")
-    if A_kwargs is not None:
-      raise NotImplementedError("A_kwargs is not supported by the Jax backend.")
-
-    if A_args is None:
-      A_args = []
-
-    if x0 is None:
-      x0 = self.zeros(b.shape, b.dtype)
-
-    if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(A_mv)
-    gmres_f = jitted_functions.gmres_wrapper(libjax)
-    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b,
-                                      x0, tol, atol, num_krylov_vectors,
-                                      maxiter)
-    if converged:
-      info = 0
-    else:
-      info = n_iter
-    return x, info
-
-
-
+    return self._jaxlan(_CACHED_MATVECS[A], args, initial_state,
+                        num_krylov_vecs, numeig, delta, reorthogonalize)
 
   def conj(self, tensor: Tensor) -> Tensor:
     return jnp.conj(tensor)
@@ -661,7 +599,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=axis, keepdims=keepdims)
+    if axis is not None:
+      axis = tuple(axis)
+    return jnp.sum(tensor, axis=axis, keepdims=keepdims)
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):

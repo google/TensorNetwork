@@ -222,15 +222,15 @@ def test_sqrt(R, dtype, num_charges):
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2])
-def test_diag(dtype, num_charges):
+def test_diagflat(dtype, num_charges):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
   a = get_tensor(3, num_charges, dtype)
   with pytest.raises(ValueError):
-    backend.diag(a)
+    backend.diagflat(a)
   b = get_chargearray(num_charges, dtype)
   expected = diag(b)
-  actual = backend.diag(b)
+  actual = backend.diagflat(b)
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
       charge_equal(expected._charges[n], actual._charges[n])
@@ -1019,3 +1019,21 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+def test_qr_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(16, -1, 1), True)
+  indices = [index, index.copy().flip_flow()]
+  dummy = BlockSparseTensor.random(indices)
+  with pytest.raises(NotImplementedError):
+    _ = backend.qr(dummy, non_negative_diagonal=True)
+
+
+def test_rq_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  index = Index(U1Charge.random(16, -1, 1), True)
+  indices = [index, index.copy().flip_flow()]
+  dummy = BlockSparseTensor.random(indices)
+  with pytest.raises(NotImplementedError):
+    _ = backend.rq(dummy, non_negative_diagonal=True)
