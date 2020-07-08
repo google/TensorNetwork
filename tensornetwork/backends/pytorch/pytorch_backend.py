@@ -354,7 +354,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
-    return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)
+    return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
 
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:

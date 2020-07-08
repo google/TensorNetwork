@@ -53,9 +53,7 @@ class Tensor():
   def H(self) -> "Tensor":
     """ The conjugate `Tensor` with reversed axes.
     """
-    star = self.backend.conj(self.array)
-    array_H = self.backend.transpose(star)
-    return Tensor(array_H, backend=self.backend)
+    return self.hconj()
 
   def conj(self) -> "Tensor":
     """ Returns: The complex-conjugated `Tensor`.
@@ -73,7 +71,7 @@ class Tensor():
     """
     return copy.deepcopy(self)
 
-  def flatten(self):
+  def flatten(self) -> "Tensor":
     """Return a new `Tensor` with the same number of elements but only one
     dimension. This function differs from ravel in some cases at the backend
     level. Notably, with the numpy backend, flatten always returns a copy,
@@ -83,7 +81,7 @@ class Tensor():
     flat = self.reshape([size,]).copy()
     return flat
 
-  def fill(self, val: float):
+  def fill(self, val: float) -> "Tensor":
     """ Returns a `Tensor` filled with the scalar value `val`.
     Args:
       val: The scalar value.
@@ -101,14 +99,14 @@ class Tensor():
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.
     Args:
-      axes: The permutation. If None (default) the index order is reversed.  
+      axes: The permutation. If None (default) the index order is reversed.
     Returns:
       The Hermitian conjugated `Tensor`.
     """
     dag = self.conj().transpose(perm=perm)
     return dag
 
-  def ravel(self):
+  def ravel(self) -> "Tensor":
     """Return a new `Tensor` with the same number of elements but only one
     dimension.
     """
@@ -126,7 +124,7 @@ class Tensor():
     reshaped = self.backend.reshape(self.array, shape)
     return Tensor(reshaped, backend=self.backend)
 
-  def squeeze(self):
+  def squeeze(self) -> "Tensor":
     """Return a new `Tensor` with all axes of size 1 eliminated.
     """
     shape = self.shape
@@ -141,5 +139,99 @@ class Tensor():
     Returns:
       The transposed `Tensor`.
     """
+    if perm is None:
+      perm = list(range(self.ndim))[::-1]
     array_T = self.backend.transpose(self.array, perm=perm)
     return Tensor(array_T, backend=self.backend)
+
+  def __mul__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.multiply(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  __rmul__ = __mul__
+
+  def __truediv__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.divide(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  def __sub__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.subtraction(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  def __rsub__(self, other: float) -> "Tensor":
+    array = self.backend.subtraction(other, self.array)
+    return Tensor(array, backend=self.backend)
+
+  def __add__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.addition(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  __radd__ = __add__
+
+  def __matmul__(self, other: "Tensor") -> "Tensor":
+    if self.backend.name != other.backend.name:
+      errstr = (f"Backends {self.backend.name} and {other.backend.name} did not"
+                f"agree.")
+      raise ValueError(errstr)
+    array = self.backend.matmul(self.array, other.array)
+    return Tensor(array, backend=self.backend)
+
+  def diagonal(self, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> "Tensor":
+    """
+    Extracts the offset'th diagonal from the matrix slice of tensor indexed
+    by (axis1, axis2).
+
+    Args:
+      tensor: A Tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Indices of the matrix slice to extract from.
+
+    Returns:
+      out  : A 1D Tensor storing the elements of the selected diagonal.
+    """
+    array = self.backend.diagonal(self.array, offset=offset, axis1=axis1,
+                                  axis2=axis2)
+    return Tensor(array, backend=self.backend)
+
+  def trace(self, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> "Tensor":
+    """
+    Extracts the offset'th diagonal from the matrix slice of tensor indexed
+    by (axis1, axis2).
+
+    Args:
+      tensor: A Tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Indices of the matrix slice to extract from.
+
+    Returns:
+      out  : A 1D Tensor storing the elements of the selected diagonal.
+    """
+    array = self.backend.trace(self.array, offset=offset, axis1=axis1,
+                               axis2=axis2)
+    return Tensor(array, backend=self.backend)

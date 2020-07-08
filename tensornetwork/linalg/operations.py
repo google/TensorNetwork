@@ -208,8 +208,8 @@ def log(tensor: Tensor) -> Tensor:
   return Tensor(out_array, backend=tensor.backend)
 
 
-def diagonal(tensor: Tensor, offset: Optional[int] = 0,
-             axis1=0, axis2=1) -> Tensor:
+def diagonal(tensor: Tensor, offset: int = 0, axis1: int = 0,
+             axis2: int = 1) -> Tensor:
   """
   Extracts the offset'th diagonal from the matrix slice of tensor indexed
   by (axis1, axis2).
@@ -222,10 +222,13 @@ def diagonal(tensor: Tensor, offset: Optional[int] = 0,
   Returns:
     out  : A 1D Tensor storing the elements of the selected diagonal.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.diagonal(tensor.array, offset=offset, axis1=axis1,
+                            axis2=axis2)
+  return Tensor(result, backend=backend)
 
 
-def diagflat(tensor: Tensor, k: Optional[int] = 0) -> Tensor:
+def diagflat(tensor: Tensor, k: int = 0) -> Tensor:
   """
   Flattens tensor and places its elements at the k'th diagonal of a new
   (tensor.size + k, tensor.size + k) `Tensor` of zeros.
@@ -237,10 +240,13 @@ def diagflat(tensor: Tensor, k: Optional[int] = 0) -> Tensor:
     out   : A (tensor.size + k, tensor.size + k) `Tensor` with the elements
             of tensor on its kth diagonal.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.diagflat(tensor.array, k=k)
+  return Tensor(result, backend=backend)
 
 
-def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
+def trace(tensor: Tensor, offset: int = 0, axis1: int = 0,
+          axis2: int = 1) -> Tensor:
   """Calculate the sum along diagonal entries of the given Tensor. The
      entries of the offset`th diagonal of the matrix slice of tensor indexed by
      (axis1, axis2) are summed.
@@ -253,4 +259,23 @@ def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
   Returns:
     out: The trace.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.trace(tensor.array, offset=offset, axis1=axis1,
+                         axis2=axis2)
+  return Tensor(result, backend=backend)
+
+
+def sign(tensor: Tensor) -> Tensor:
+  """ Returns the sign of the elements of Tensor.
+  """
+  backend = tensor.backend
+  result = backend.sign()
+  return Tensor(result, backend=backend)
+
+
+def abs(tensor: Tensor) -> Tensor:
+  """ Returns the absolute value of the elements of Tensor.
+  """
+  backend = tensor.backend
+  result = backend.abs()
+  return Tensor(result, backend=backend)
