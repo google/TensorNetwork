@@ -529,7 +529,7 @@ def _find_transposed_diagonal_sparse_blocks(
   all_degens = np.append(orig_col_degen[col_map],
                          0)[inv_row_map[orig_row_ind.charge_labels]]
   all_cumul_degens = np.cumsum(np.insert(all_degens[:-1], 0, 0)).astype(SIZE_T)
-  dense_to_sparse = np.zeros(orig_width, dtype=SIZE_T)
+  dense_to_sparse = np.empty(orig_width, dtype=SIZE_T)
   for n in range(orig_num_blocks):
     dense_to_sparse[orig_col_ind.charge_labels == col_map[n]] = np.arange(
         orig_col_degen[col_map[n]], dtype=SIZE_T)
