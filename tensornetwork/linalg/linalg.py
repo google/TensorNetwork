@@ -18,7 +18,7 @@ from tensornetwork.tensor import Tensor
 
 def svd(
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False
@@ -27,10 +27,10 @@ def svd(
 
   The SVD is performed by treating the tensor as a matrix, with an effective
   left (row) index resulting from combining the axes
-  `tensor.shape[:split_axis]` and an effective right (column) index resulting
-  from combining the axes `tensor.shape[split_axis:]`.
+  `tensor.shape[:pivot_axis]` and an effective right (column) index resulting
+  from combining the axes `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh`
   would have shape (6, 4, 5).
 
@@ -57,7 +57,7 @@ def svd(
 
   Args:
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
     max_singular_values: The number of singular values to keep, or `None` to
       keep them all.
@@ -73,7 +73,7 @@ def svd(
             truncation).
   """
   backend = tensor.backend
-  out = backend.svd(tensor.array, split_axis,
+  out = backend.svd(tensor.array, pivot_axis,
                     max_singular_values=max_singular_values,
                     max_truncation_error=max_truncation_error,
                     relative=relative)
@@ -83,24 +83,24 @@ def svd(
 
 def qr(
     tensor: Tensor,
-    split_axis: int = 1,
+    pivot_axis: int = 1,
     non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
   """
   QR reshapes tensor into a matrix and then decomposes that matrix into the
   product of unitary and upper triangular matrices Q and R. Q is reshaped
-  into a tensor depending on the input shape and the choice of split_axis.
+  into a tensor depending on the input shape and the choice of pivot_axis.
 
   Computes the reduced QR decomposition of the matrix formed by concatenating
-  tensor about split_axis, e.g.
+  tensor about pivot_axis, e.g.
       ``` shape = tensor.shape
-          columns = np.prod(shape[:split_axis])
-          rows = np.prod(shape[split_axis:])
+          columns = np.prod(shape[:pivot_axis])
+          rows = np.prod(shape[pivot_axis:])
           matrix = tensor.reshape((columns, rows))
       ```
   The output is then shaped as follows:
-     - Q has dimensions (*shape[:split_axis], np.prod(shape[split_axis:])).
-     - R is a square matrix with length np.prod(shape[split_axis:]).
+     - Q has dimensions (*shape[:pivot_axis], np.prod(shape[pivot_axis:])).
+     - R is a square matrix with length np.prod(shape[pivot_axis:]).
 
   The argument non_negative_diagonal, True by default, enforces a phase
   convention such that R has strictly non-negative entries on its main diagonal.
@@ -109,11 +109,11 @@ def qr(
   by the backend and thus undefined at the TN interface level, but this
   routine will be slightly less expensive.
 
-  By default this split_axis is 1, which produces the usual behaviour in the
+  By default this pivot_axis is 1, which produces the usual behaviour in the
   matrix case.
   Args:
     tensor: The Tensor to be decomposed.
-    split_axis: The axis of Tensor about which to concatenate.
+    pivot_axis: The axis of Tensor about which to concatenate.
                 Default: 1
     non_negative_diagonal:
 
@@ -122,35 +122,32 @@ def qr(
     Q, R : The decomposed Tensor with dimensions as specified above.
   """
   backend = tensor.backend
-  out = backend.qr(tensor.array, split_axis)
+  out = backend.qr(tensor.array, pivot_axis=pivot_axis,
+                   non_negative_diagonal=non_negative_diagonal)
   Q, R = [Tensor(t, backend=backend) for t in out]
-  if non_negative_diagonal:
-    phases = tn.sign(tn.diagonal(R))
-    Q = Q * phases
-    R = R @ tn.diagflat(phases.conj())
   return Q, R
 
 
 def rq(
     tensor: Tensor,
-    split_axis: int = 1,
+    pivot_axis: int = 1,
     non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
   """
   RQ reshapes tensor into a matrix and then decomposes that matrix into the
   product of upper triangular and unitary matrices R and Q. Q is reshaped
-  into a tensor depending on the input shape and the choice of split_axis.
+  into a tensor depending on the input shape and the choice of pivot_axis.
 
   Computes the reduced RQ decomposition of the matrix formed by concatenating
-  tensor about split_axis, e.g.
+  tensor about pivot_axis, e.g.
       ``` shape = tensor.shape
-          columns = np.prod(shape[:split_axis])
-          rows = np.prod(shape[split_axis:])
+          columns = np.prod(shape[:pivot_axis])
+          rows = np.prod(shape[pivot_axis:])
           matrix = tensor.reshape((columns, rows))
       ```
   The output is then shaped as follows:
-     - R is a square matrix with length np.prod(shape[:split_axis]).
-     - Q has dimensions (np.prod(shape[:split_axis]), *shape[split_axis:]).
+     - R is a square matrix with length np.prod(shape[:pivot_axis]).
+     - Q has dimensions (np.prod(shape[:pivot_axis]), *shape[pivot_axis:]).
 
   The argument non_negative_diagonal, True by default, enforces a phase
   convention such that R has strictly non-negative entries on its main diagonal.
@@ -159,11 +156,11 @@ def rq(
   by the backend and thus undefined at the TN interface level, but this
   routine will be slightly less expensive.
 
-  By default this split_axis is 1, which produces the usual behaviour in the
+  By default this pivot_axis is 1, which produces the usual behaviour in the
   matrix case.
   Args:
     tensor: The Tensor to be decomposed.
-    split_axis: The axis of Tensor about which to concatenate.
+    pivot_axis: The axis of Tensor about which to concatenate.
                 Default: 1
     non_negative_diagonal:
 
@@ -172,13 +169,10 @@ def rq(
     R, Q : The decomposed Tensor with dimensions as specified above.
   """
   backend = tensor.backend
-  out = backend.rq(tensor.array, split_axis)
+  out = backend.rq(tensor.array, pivot_axis=pivot_axis, 
+                   non_negative_diagonal=non_negative_diagonal)
   R, Q = [Tensor(t, backend=backend) for t in out]
-  if non_negative_diagonal:
-    phases = tn.sign(tn.diagonal(R))
-    Q = Q * phases
-    R = R @ tn.diagflat(phases.conj())
-  return (R, Q)
+  return R, Q
 
 
 def eigh(matrix: Tensor) -> Tuple[Tensor, Tensor]:
@@ -202,11 +196,6 @@ def norm(tensor: Tensor) -> Tensor:
   backend = tensor.backend
   out = backend.norm(tensor.array)
   return out
-
-
-def trace(tensor: Tensor) -> Tensor:
-  """Calculate the trace over the last two axes of the given tensor."""
-  raise NotImplementedError()
 
 
 def inv(matrix: Tensor) -> Tensor:

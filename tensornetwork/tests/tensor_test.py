@@ -269,6 +269,16 @@ def test_tensor_trace(backend, dtype):
     np.testing.assert_allclose(A.trace().array, A.backend.trace(A.array))
 
 
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_diagonal(backend, dtype):
+  """ Checks that Tensor.trace() works.
+  """
+  shape = (2, 3, 3)
+  A, _ = safe_randn(shape, backend, dtype)
+  if A is not None:
+    np.testing.assert_allclose(A.diagonal().array, A.backend.diagonal(A.array))
+
+
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_tensor_squeeze(backend, dtype):
   """ Checks that Tensor.squeeze() works.
@@ -364,7 +374,6 @@ def test_tensor_divide(backend, dtype):
   if A is not None:
     B = B + 1
     testA = A.backend.convert_to_tensor(initA)
-    testB = B.backend.convert_to_tensor(initB)
     result = A / B
     result2 = A.backend.divide(testA, B.array)
     np.testing.assert_allclose(result.array, result2)
@@ -475,7 +484,7 @@ def test_tensor_matmul(backend, dtype):
   shape = (3, 3)
   A, initA = safe_randn(shape, backend, dtype)
   B, initB = safe_randn(shape, backend, dtype)
-  if A is not None:
+  if A is not None and B is not None:
     testA = A.backend.convert_to_tensor(initA)
     testB = B.backend.convert_to_tensor(initB)
     result = A @ B

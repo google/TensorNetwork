@@ -208,8 +208,8 @@ def log(tensor: Tensor) -> Tensor:
   return Tensor(out_array, backend=tensor.backend)
 
 
-def diagonal(tensor: Tensor, offset: int = 0, axis1: int = 0,
-             axis2: int = 1) -> Tensor:
+def diagonal(tensor: Tensor, offset: int = 0, axis1: int = -2,
+             axis2: int = -1) -> Tensor:
   """
   Extracts the offset'th diagonal from the matrix slice of tensor indexed
   by (axis1, axis2).
@@ -245,8 +245,8 @@ def diagflat(tensor: Tensor, k: int = 0) -> Tensor:
   return Tensor(result, backend=backend)
 
 
-def trace(tensor: Tensor, offset: int = 0, axis1: int = 0,
-          axis2: int = 1) -> Tensor:
+def trace(tensor: Tensor, offset: int = 0, axis1: int = -2,
+          axis2: int = -1) -> Tensor:
   """Calculate the sum along diagonal entries of the given Tensor. The
      entries of the offset`th diagonal of the matrix slice of tensor indexed by
      (axis1, axis2) are summed.
@@ -269,7 +269,7 @@ def sign(tensor: Tensor) -> Tensor:
   """ Returns the sign of the elements of Tensor.
   """
   backend = tensor.backend
-  result = backend.sign()
+  result = backend.sign(tensor.array)
   return Tensor(result, backend=backend)
 
 
@@ -277,5 +277,5 @@ def abs(tensor: Tensor) -> Tensor:
   """ Returns the absolute value of the elements of Tensor.
   """
   backend = tensor.backend
-  result = backend.abs()
+  result = backend.abs(tensor.array)
   return Tensor(result, backend=backend)
