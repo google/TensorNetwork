@@ -289,7 +289,144 @@ class NumPyBackend(abstract_backend.AbstractBackend):
           U = U.real
       eta = eta.astype(dtype)
       U = U.astype(dtype)
-    return eta, [np.reshape(U[:, n], shape) for n in range(numeig)]
+    evs = list(eta)
+    eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
+    return evs, eVs
+
+  def gmres(self,
+            A_mv: Callable,
+            b: np.ndarray,
+            A_args: Optional[List] = None,
+            A_kwargs: Optional[dict] = None,
+            x0: Optional[np.ndarray] = None,
+            tol: float = 1E-05,
+            atol: Optional[float] = None,
+            num_krylov_vectors: Optional[int] = None,
+            maxiter: Optional[int] = 1,
+            M: Optional[Callable] = None
+            ) -> Tuple[np.ndarray, int]:
+    """ GMRES solves the linear system A @ x = b for x given a vector `b` and
+    a general (not necessarily symmetric/Hermitian) linear operator `A`.
+
+    As a Krylov method, GMRES does not require a concrete matrix representation
+    of the n by n `A`, but only a function
+    `vector1 = A_mv(vector0, *A_args, **A_kwargs)`
+    prescribing a one-to-one linear map from vector0 to vector1 (that is,
+    A must be square, and thus vector0 and vector1 the same size). If `A` is a
+    dense matrix, or if it is a symmetric/Hermitian operator, a different
+    linear solver will usually be preferable.
+
+    GMRES works by first constructing the Krylov basis
+    K = (x0, A_mv@x0, A_mv@A_mv@x0, ..., (A_mv^num_krylov_vectors)@x_0) and then
+    solving a certain dense linear system K @ q0 = q1 from whose solution x can
+    be approximated. For `num_krylov_vectors = n` the solution is provably exact
+    in infinite precision, but the expense is cubic in `num_krylov_vectors` so
+    one is typically interested in the `num_krylov_vectors << n` case.
+    The solution can in this case be repeatedly
+    improved, to a point, by restarting the Arnoldi iterations each time
+    `num_krylov_vectors` is reached. Unfortunately the optimal parameter choices
+    balancing expense and accuracy are difficult to predict in advance, so
+    applying this function requires a degree of experimentation.
+
+    In a tensor network code one is typically interested in A_mv implementing
+    some tensor contraction. This implementation thus allows `b` and `x0` to be
+    of whatever arbitrary, though identical, shape `b = A_mv(x0, ...)` expects.
+    Reshaping to and from a matrix problem is handled internally.
+
+    The numpy backend version of GMRES is simply an interface to
+    `scipy.sparse.linalg.gmres`, itself an interace to ARPACK.
+    SciPy 1.1.0 or newer (May 05 2018) is required.
+
+    Args:
+      A_mv     : A function `v0 = A_mv(v, *A_args, **A_kwargs)` where `v0` and
+                 `v` have the same shape.
+      b        : The `b` in `A @ x = b`; it should be of the shape `A_mv`
+                 operates on.
+      A_args   : Positional arguments to `A_mv`, supplied to this interface
+                 as a list.
+                 Default: None.
+      A_kwargs : Keyword arguments to `A_mv`, supplied to this interface
+                 as a dictionary.
+                 Default: None.
+      x0       : An optional guess solution. Zeros are used by default.
+                 If `x0` is supplied, its shape and dtype must match those of
+                 `b`, or an
+                 error will be thrown.
+                 Default: zeros.
+      tol, atol: Solution tolerance to achieve,
+                 norm(residual) <= max(tol*norm(b), atol).
+                 Default: tol=1E-05
+                          atol=tol
+      num_krylov_vectors
+               : Size of the Krylov space to build at each restart.
+                 Expense is cubic in this parameter. If supplied, it must be
+                 an integer in 0 < num_krylov_vectors <= b.size.
+                 Default: b.size.
+      maxiter  : The Krylov space will be repeatedly rebuilt up to this many
+                 times. Large values of this argument
+                 should be used only with caution, since especially for nearly
+                 symmetric matrices and small `num_krylov_vectors` convergence
+                 might well freeze at a value significantly larger than `tol`.
+                 Default: 1
+      M        : Inverse of the preconditioner of A; see the docstring for
+                 `scipy.sparse.linalg.gmres`. This is only supported in the
+                 numpy backend. Supplying this argument to other backends will
+                 trigger NotImplementedError.
+                 Default: None.
+
+    Raises:
+      ValueError: -if `x0` is supplied but its shape differs from that of `b`.
+                  -if the ARPACK solver reports a breakdown (which usually
+                   indicates some kind of floating point issue).
+                  -if num_krylov_vectors is 0 or exceeds b.size.
+                  -if tol was negative.
+
+    Returns:
+      x       : The converged solution. It has the same shape as `b`.
+      info    : 0 if convergence was achieved, the number of restarts otherwise.
+    """
+
+    if x0 is not None and x0.shape != b.shape:
+      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                   f", {b.shape}.")
+      raise ValueError(errstring)
+    if x0 is not None and x0.dtype != b.dtype:
+      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+                   f", {b.dtype}.")
+      raise ValueError(errstring)
+    if num_krylov_vectors is None:
+      num_krylov_vectors = b.size
+    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
+      errstring = (f"num_krylov_vectors must be in "
+                   f"0 < {num_krylov_vectors} <= {b.size}.")
+      raise ValueError(errstring)
+    if tol < 0:
+      raise ValueError(f"tol = {tol} must be positive.")
+    if atol is None:
+      atol = tol
+    if atol < 0:
+      raise ValueError(f"atol = {atol} must be positive.")
+
+    if A_args is None:
+      A_args = []
+    if A_kwargs is None:
+      A_kwargs = {}
+
+    def matvec(v):
+      v_tensor = v.reshape(b.shape)
+      Av = A_mv(v_tensor, *A_args, **A_kwargs)
+      Avec = Av.ravel()
+      return Avec
+
+    A_shape = (b.size, b.size)
+    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
+    x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
+                                     restart=num_krylov_vectors,
+                                     maxiter=maxiter, M=M)
+    if info < 0:
+      raise ValueError("ARPACK gmres received illegal input or broke down.")
+    x = x.reshape(b.shape)
+    return (x, info)
 
   def eigsh_lanczos(self,
                     A: Callable,
