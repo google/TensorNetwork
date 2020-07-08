@@ -113,11 +113,10 @@ def _generate_jitted_eigsh_lanczos(jax):
 
     norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
 
-    norms_dtype = jax.numpy.real(jax.numpy.empty((0, 0),
-                                                 dtype=init.dtype)).dtype
+    initial_norm = init.real.dtype.type(1.0+landelta)
     initvals = [
         init, krylov_vecs, norms, diag_elems, matvec, arguments,
-        norms_dtype.type(1.0), landelta, 1, ncv
+        initial_norm, landelta, 1, ncv
     ]
     output = jax.lax.while_loop(cond_fun, body_lanczos, initvals)
     final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = output
