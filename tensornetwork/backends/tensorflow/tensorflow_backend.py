@@ -295,6 +295,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     if axis1 != -2 or axis2 != -1:
       errstr = "axis1, axis2 unsupported by TensorFlow backend."
       raise NotImplementedError(errstr)
+    #pylint: disable=unexpected-keyword-arg
     return tf.linalg.diag_part(tensor, k=offset)
 
   def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
@@ -306,6 +307,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     Returns:
       tensor: A new tensor with all zeros save the specified diagonal.
     """
+    #pylint: disable=unexpected-keyword-arg
     return tf.linalg.diag(tensor, k=k)
 
   def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,

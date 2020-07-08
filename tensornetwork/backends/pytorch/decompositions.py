@@ -125,7 +125,7 @@ def qr(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
-    non_negative_diagonal = False
+    non_negative_diagonal=False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
@@ -174,7 +174,7 @@ def rq(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
-    non_negative_diagonal = False
+    non_negative_diagonal=False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 

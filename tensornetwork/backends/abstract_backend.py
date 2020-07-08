@@ -313,7 +313,7 @@ class AbstractBackend:
         "Backend '{}' has not implemented convert_to_tensor.".format(self.name))
 
   def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
-              axis2: int = -1) -> Tensor:
+            axis2: int = -1) -> Tensor:
     """Return summed entries along diagonals.
 
     If tensor is 2-D, the sum is over the

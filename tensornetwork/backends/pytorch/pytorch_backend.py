@@ -455,5 +455,3 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return torchlib.sign(tensor)
-
-

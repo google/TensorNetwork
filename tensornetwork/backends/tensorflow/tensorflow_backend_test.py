@@ -555,6 +555,7 @@ def test_diagflat(dtype, k):
   backend = tensorflow_backend.TensorFlowBackend()
   array = backend.randn((16,), dtype=dtype)
   actual = backend.diagflat(array, k=k)
+  #pylint: disable=unexpected-keyword-arg
   expected = tf.linalg.diag(array, k=k)
   np.testing.assert_allclose(expected, actual)
 
