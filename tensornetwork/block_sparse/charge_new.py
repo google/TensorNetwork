@@ -14,7 +14,7 @@
 
 import numpy as np
 import itertools
-from typing import List, Optional, Type, Any, Union
+from typing import List, Optional, Type, Any, Union, Callable
 
 LABEL_DTYPE = np.int16
 
@@ -132,7 +132,7 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: List[np.ndarray],
+               charges: Union[np.ndarray,List[np.ndarray]],
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
@@ -147,6 +147,8 @@ class BaseCharge:
     if charge_types is None:
       charge_types = [[type(self)] for _ in range(len(charges))]
     self.charge_types = charge_types
+    if not isinstance(charges, list):
+      charges = [np.array(charges)]
     self.charges = charges
     if original_dtypes is None:
       self.original_dtypes = [[c.dtype] for c in charges]
@@ -690,26 +692,12 @@ class BaseCharge:
 
 class U1Charge(BaseCharge):
 
-  def __init__(self,
-               charges: Union[List[np.ndarray], np.ndarray],
-               charge_types: Optional[List[Type["BaseCharge"]]] = None,
-               original_dtypes: Optional[List[List]] = None,
-               charge_indices: Optional[List[List]] = None) -> None:
-
-    if isinstance(charges, np.ndarray):
-      charges = [charges]
-    super().__init__(
-        charges=charges,
-        charge_types=[[type(self)]],
-        original_dtypes=original_dtypes,
-        charge_indices=charge_indices)
-
   @staticmethod
-  def fuse(charge1, charge2) -> np.ndarray:
+  def fuse(charge1:np.ndarray, charge2:np.ndarray) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges) -> np.ndarray:
+  def dual_charges(charges:np.ndarray) -> np.ndarray:
     return charges * charges.dtype.type(-1)
 
   @staticmethod
@@ -729,9 +717,10 @@ class Z2Charge(BaseCharge):
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
-    if isinstance(charges, np.ndarray):
-      charges = [charges]
-
+    unique = np.unique(np.ravel(charges))
+    if not np.all(np.isin(unique, [0, 1])):
+      raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
+    
     super().__init__(
         charges=charges,
         charge_types=[[type(self)]],
@@ -739,11 +728,11 @@ class Z2Charge(BaseCharge):
         charge_indices=charge_indices)
 
   @staticmethod
-  def fuse(charge1, charge2) -> np.ndarray:
+  def fuse(charge1:np.ndarray, charge2:np.ndarray) -> np.ndarray:
     return np.bitwise_xor.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges) -> np.ndarray:
+  def dual_charges(charges:np.ndarray) -> np.ndarray:
     return charges
 
   @staticmethod
@@ -755,6 +744,62 @@ class Z2Charge(BaseCharge):
     charges = [np.random.randint(0, 2, dimension, dtype=np.int8)]
     return cls(charges=charges)
 
+def ZNCharge(n: int) -> Callable:
+  """Constructor for charge classes of the ZN symmetry groups.
+
+  Args:
+    n: The module of the symmetry group.
+  Returns:
+    A charge class of your given ZN symmetry group.
+  """
+  if n < 2:
+    raise ValueError(f"n must be >= 2, found {n}")
+
+  class ModularCharge(BaseCharge):
+
+    def __init__(self,
+                 charges: Union[List[np.ndarray], np.ndarray],
+                 charge_types: Optional[List[Type["BaseCharge"]]] = None,
+                 original_dtypes: Optional[List[List]] = None,
+                 charge_indices: Optional[List[List]] = None) -> None:
+      unique = np.unique(np.ravel(charges))
+      if not np.all(np.isin(unique, list(range(n)))):
+        raise ValueError(f"Z{n} charges must be in range({n}), found: {unique}")
+      super().__init__(
+        charges=charges,
+        charge_types=[[type(self)]],        
+        original_dtypes=original_dtypes,
+        charge_indices=charge_indices)
+      
+    @staticmethod
+    def fuse(charge1, charge2) -> np.ndarray:
+      #pylint: disable=no-member
+      return np.outer(charge1, charge2).ravel() % n
+
+    @staticmethod
+    def dual_charges(charges) -> np.ndarray:
+      return (n - charges) % n
+
+    @staticmethod
+    def identity_charge() -> np.ndarray:
+      return np.int16(0)
+
+    @classmethod
+    def random(cls,
+               dimension: int,
+               minval: int = 0,
+               maxval: int = n-1) -> BaseCharge:
+      if maxval >= n:
+        raise ValueError(f"maxval must be less than n={n}, got {maxval}")
+      if minval < 0:
+        raise ValueError(f"minval must be greater than 0, found {minval}")
+      # No need for the mod due to the checks above.
+      charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)
+      print(charges)
+      return cls(charges=charges)
+
+  return ModularCharge
+  
 
 def fuse_ndarray_charges(charges_A: List[np.ndarray],
                          charges_B: List[np.ndarray],
@@ -873,3 +918,65 @@ def charge_equal(c1, c2):
       res = False
 
   return res
+
+def intersect(A: np.ndarray,
+              B: np.ndarray,
+              axis=0,
+              assume_unique=False,
+              return_indices=False) -> Any:
+  """
+  Extends numpy's intersect1d to find the row or column-wise intersection of
+  two 2d arrays. Takes identical input to numpy intersect1d.
+  Args:
+    A, B (np.ndarray): arrays of matching widths and datatypes
+  Returns:
+    ndarray: sorted 1D array of common rows/cols between the input arrays
+    ndarray: the indices of the first occurrences of the common values in A.
+      Only provided if return_indices is True.
+    ndarray: the indices of the first occurrences of the common values in B.
+      Only provided if return_indices is True.
+  """
+  #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
+  #pylint: disable=no-else-return
+  if A.ndim != B.ndim:
+    raise ValueError("array ndims must match to intersect")
+  if A.ndim == 1:
+    return np.intersect1d(
+        A, B, assume_unique=assume_unique, return_indices=return_indices)
+
+  elif A.ndim == 2:
+    if axis == 0:
+      ncols = A.shape[1]
+      if A.shape[1] != B.shape[1]:
+        raise ValueError("array widths must match to intersect")
+
+      dtype = {
+          'names': ['f{}'.format(i) for i in range(ncols)],
+          'formats': ncols * [A.dtype]
+      }
+      if return_indices:
+        C, A_locs, B_locs = np.intersect1d(
+            A.view(dtype),
+            B.view(dtype),
+            assume_unique=assume_unique,
+            return_indices=return_indices)
+        return C.view(A.dtype).reshape(-1, ncols), A_locs, B_locs
+      C = np.intersect1d(
+          A.view(dtype), B.view(dtype), assume_unique=assume_unique)
+      return C.view(A.dtype).reshape(-1, ncols)
+
+    elif axis == 1:
+      out = intersect(
+          A.T.copy(),
+          B.T.copy(),
+          axis=0,
+          assume_unique=assume_unique,
+          return_indices=return_indices)
+      if return_indices:
+        return out[0].T, out[1], out[2]
+      return out.T
+
+    raise NotImplementedError(
+        "intersection can only be performed on first or second axis")
+
+  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")

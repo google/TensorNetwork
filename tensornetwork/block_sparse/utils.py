@@ -42,7 +42,7 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   Returns:
     list: The flattened input.
   """
-  return [l for sublist in list_of_list for l in sublist]
+  return np.ndarray([l for sublist in list_of_list for l in sublist])
 
 
 
