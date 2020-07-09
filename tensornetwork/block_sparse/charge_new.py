@@ -136,14 +136,17 @@ class BaseCharge:
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
-    for n, cts in enumerate(charge_types):
-      if not all([cts[0] is ct for ct in cts]):
-        raise ValueError("Not all charge-types in `charge_types[{n}]` "
-                         "are the same, found {cts}.")
+
+    if charge_types is None:
+      self.charge_types = [[type(self)] for _ in range(len(charges))]
+    else:
+      for n, cts in enumerate(charge_types):
+        if not all([cts[0] is ct for ct in cts]):
+          raise ValueError("Not all charge-types in `charge_types[{n}]` "
+                           "are the same, found {cts}.")
     if charge_types is None:
       charge_types = [[type(self)] for _ in range(len(charges))]
     self.charge_types = charge_types
-    self.stacked_charges = np.stack(charges, axis=0)
     self.charges = charges
     if original_dtypes is None:
       self.original_dtypes = [[c.dtype] for c in charges]
@@ -330,7 +333,6 @@ class BaseCharge:
       self.original_dtypes.append(flatten(dtypes))
       self.charge_indices.append(flatten(charge_indices[ct]))
 
-    self.stacked_charges = np.stack(self.charges, axis=0)
     return self
 
   def expand_charge_types(self):
@@ -351,7 +353,6 @@ class BaseCharge:
     original_dtypes = [None] * L
     charge_types = [None] * L
     charges = [None] * L
-    print(self.charge_types)
     for n, cts in enumerate(self.charge_types):
       expanded = expand_single(self.charges[n], self.original_dtypes[n])
       for k, m in enumerate(self.charge_indices[n]):
@@ -362,7 +363,6 @@ class BaseCharge:
     self.original_dtypes = original_dtypes
     self.charge_types = charge_types
     self.charge_indices = [[n] for n in range(len(self.charges))]
-    self.stacked_charges = np.stack(self.charges, axis=0)
 
     return self
 
@@ -586,7 +586,7 @@ class BaseCharge:
     if return_inverse and not return_index:
       res[1] = res[1].astype(LABEL_DTYPE)
     if return_inverse and return_index:
-      res[2] = obj, res[2].astype(
+      res[2] = res[2].astype(
           LABEL_DTYPE)  #always use int16 dtypes for labels
     if any([return_index, return_inverse, return_counts]):
       return [obj] + res[1:]
