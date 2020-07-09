@@ -641,7 +641,7 @@ def ZNCharge(n: int) -> Callable:
     def random(cls,
                dimension: int,
                minval: int = 0,
-               maxval: int = n) -> BaseCharge:
+               maxval: int = n - 1) -> BaseCharge:
       if maxval >= n:
         raise ValueError(f"maxval must be less than n={n}, got {maxval}")
       if minval < 0:
