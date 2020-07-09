@@ -674,7 +674,6 @@ def test_matmul():
   np.testing.assert_allclose(expected, actual)
 
 
-<<<<<<< HEAD
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))

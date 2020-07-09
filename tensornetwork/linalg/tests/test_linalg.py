@@ -23,7 +23,7 @@ import pytest
 import tensornetwork
 from tensornetwork.linalg import linalg
 from tensornetwork import backends, backend_contextmanager
-import tensornetwork.linalg.krylov
+from tensornetwork.linalg import krylov
 
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
