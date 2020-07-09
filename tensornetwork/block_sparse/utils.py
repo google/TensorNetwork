@@ -387,7 +387,7 @@ def _find_diagonal_sparse_blocks(
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = np.zeros([num_syms, 1], dtype=charges[0].dtype)
+    block_qnums = charges[0].identity_charges.charges    
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
