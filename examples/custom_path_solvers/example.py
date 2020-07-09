@@ -15,8 +15,7 @@
 import time
 import numpy as np
 import tensornetwork as tn
-from tensornetwork import contractors
-from tensornetwork.ncon_interface import ncon
+from tensornetwork import ncon, contractors
 import opt_einsum as oe
 # pylint: disable=line-too-long
 from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver
