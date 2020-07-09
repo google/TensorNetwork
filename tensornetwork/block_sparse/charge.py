@@ -537,11 +537,11 @@ class U1Charge(BaseCharge):
   """Charge Class for the U1 symmetry group."""
 
   @staticmethod
-  def fuse(charge1, charge2) -> np.ndarray:
+  def fuse(charge1:np.ndarray, charge2:np.ndarray) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges) -> np.ndarray:
+  def dual_charges(charges:np.ndarray) -> np.ndarray:
     return charges * charges.dtype.type(-1)
 
   @staticmethod
@@ -573,12 +573,12 @@ class Z2Charge(BaseCharge):
         charge_dtype=charge_dtype)
 
   @staticmethod
-  def fuse(charge1, charge2) -> np.ndarray:
+  def fuse(charge1:np.ndarray, charge2:np.ndarray) -> np.ndarray:
     #pylint: disable=no-member
     return np.bitwise_xor.outer(charge1, charge2).ravel()
 
   @staticmethod
-  def dual_charges(charges) -> np.ndarray:
+  def dual_charges(charges:np.ndarray) -> np.ndarray:
     return charges
 
   @staticmethod
@@ -625,12 +625,12 @@ def ZNCharge(n: int) -> Callable:
           charge_dtype=charge_dtype)
 
     @staticmethod
-    def fuse(charge1, charge2) -> np.ndarray:
+    def fuse(charge1:np.ndarray, charge2:np.ndarray) -> np.ndarray:
       #pylint: disable=no-member
       return np.outer(charge1, charge2).ravel() % n
 
     @staticmethod
-    def dual_charges(charges) -> np.ndarray:
+    def dual_charges(charges:np.ndarray) -> np.ndarray:
       return (n - charges) % n
 
     @staticmethod
