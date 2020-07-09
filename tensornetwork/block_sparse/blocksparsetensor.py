@@ -992,7 +992,7 @@ def tensordot(
         list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
     s += len(tensor2._order[n])
     right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
-
+  print(flat_order_1)
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
 

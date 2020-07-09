@@ -33,7 +33,6 @@ def get_real_dtype(dtype):
     return np.float32
   return dtype
 
-
 def flatten(list_of_list: List[List]) -> np.ndarray:
   """
   Flatten a list of lists into a single list.
@@ -42,7 +41,7 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   Returns:
     list: The flattened input.
   """
-  return np.ndarray([l for sublist in list_of_list for l in sublist])
+  return np.array([l for sublist in list_of_list for l in sublist])
 
 
 
@@ -533,7 +532,7 @@ def _find_transposed_diagonal_sparse_blocks(
   for n in range(orig_num_blocks):
     dense_to_sparse[orig_col_ind.charge_labels == col_map[n]] = np.arange(
         orig_col_degen[col_map[n]], dtype=SIZE_T)
-
+  print(order)
   # define properties of new tensor resulting from transposition
   new_strides = strides[order]
   new_row_charges = [charges[n] for n in order[:tr_partition]]
