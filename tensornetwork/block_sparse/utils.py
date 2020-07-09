@@ -278,9 +278,9 @@ def reduce_charges(charges: List[BaseCharge],
     # reduce single index
     if strides is None:
       strides = np.array([1], dtype=SIZE_T)
-    res = charges[0].dual(flows[0]).reduce(
+    return charges[0].dual(flows[0]).reduce(
         target_charges, return_locations=return_locations, strides=strides[0])
-    return res
+
   # find size-balanced partition of charges
   partition = _find_best_partition(tensor_dims)
 
@@ -439,13 +439,11 @@ def _find_diagonal_sparse_blocks(
       [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
        for n in range(num_blocks)],
       dtype=SIZE_T).T
-
   #pylint: disable=unsubscriptable-object
   block_maps = [
       np.ravel(cumulate_num_nz[row_locs[n, :]][:, None] +
                np.arange(block_dims[1, n])[None, :]) for n in range(num_blocks)
   ]
-
   obj = charges[0].__new__(type(charges[0]))
   obj.__init__(block_qnums,
                np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
