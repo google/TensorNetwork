@@ -1,8 +1,9 @@
-Basic Operations with Matrix Product States
+Basic Introduction to Matrix Product States
 ===========================================
 
 
-In this tutorial we will set up a basic Matrix Product state with the use of the TensorNetwork library. We apply two very simple algorithms: retreving a selected component from the structure and calculating the inner product of two MPS.
+In this tutorial we will give a basic introduction to Matrix Product States (MPS), and show
+how to efficiently compute tensor-components of an MPS, and overlaps between two MPS.
 
 We'll be using the following libraries:
 
@@ -15,14 +16,22 @@ We'll be using the following libraries:
 The cost of high-dimensional tensors
 ------------------------------------
 
-We begin by observing the scaling of the cost of storing larger and larger tensors and retrieving a component, as the dimension increases. While the computational complexity of accessing an item in a multidimensional array is :math:`O(1)`, the main cost is the exponentially growing *memory* required to store the tensor.
+We begin by analyzing the scaling of the memory cost of storing and accessing elements of tensors with increasing rank and dimension.
+While the computational complexity of accessing an item in a multidimensional array is :math:`O(1)`,
+the main cost is the exponentially growing *memory* required to store the tensor.
 
-Let our tensor be :math:`T^{s_1 \cdots s_{\textsf{N}}}` , where each :math:`s_i \in \{1, \ldots d_i\}` and where :math:`d_i` is called a **physical dimension**. Here :math:`\textsf{N}` --called the **Rank** of the tensor-- usually represents the *system size*. For example, in many physical applications, :math:`d_i = 2 \hspace{5pt} \forall i`, and each :math:`s_i` is called a **qubit**.
+Let our tensor be :math:`T^{s_1 \cdots s_{\textsf{N}}}` , where each :math:`s_i \in \{1, \ldots d_i\}` and where :math:`d_i` is called a **physical dimension**
+and :math:`N` is **rank** of the tensor.
+In condensed matter or quantum computing applications, :math:`N` is usually the system size or number the number of qubits.
+The standard graphical representation of this tensor looks like this,
 
 .. figure:: _static/basic_mps/tensor_1.png
   :align: center
+	  
+where each line represents one index of the tensor.
 
-Now let's create a tensor with random entries, with ranks and physical dimensions that run over small ranges:
+Now let's create a tensor with random entries, with ranks and physical dimensions that run over small ranges,
+and analyze their memory requirements:
 
 .. code-block:: python3
 
@@ -53,31 +62,44 @@ This produces the following output:
 .. figure:: _static/basic_mps/mps_basic_1.png
   :align: center
 
-We see that the memory required to store this array scales as :math:`\sim d^{\textsf{N}}`. This is an *exponential* growth, which quickly saturates our computational resources.
+We see that the memory required to store a tensor scales as :math:`\sim d^{\textsf{N}}`.
+This is an *exponential* growth, which quickly saturates our computational resources.
 
 Introducing Matrix Product States
 ----------------------------------
 
-One way to work around this "dimensionality catastrophe" is to focus on a particular kind of tensors: Those that can be written as a **Matrix Product State** (the word *state* here is related to the quantum state formed from the coefficients of the tensor):
+One way to work around this "dimensionality catastrophe" is to focus on a particular kind of tensors:
+those that can be written as a **matrix product state** (the word *state* here is related to the quantum state formed from the coefficients of the tensor).
+Matrix product states are a special class of tensors that can be written as products over many rank-3 tensors.
+Here is a diagram of such an MPS:
 
 .. figure:: _static/basic_mps/tensor_2.png
   :align: center
 
-.. math::
-
-  T^{s_1 \ldots s_\textsf{N}}
-  =
-  \sum_{\{\alpha\}}
-  A^{s_1}_{\alpha_1} A^{s_2}_{\alpha_1 \alpha_2} A^{s_3}_{\alpha_2 \alpha_3}  \cdots A^{s_{\textsf{N}-1}}_{\alpha_{\textsf{N}-2}\alpha_{\textsf{N}-1}} A^{s_\textsf{N}}_{\alpha_{\textsf{N}-1}}
-
-where :math:`\{ \alpha \} = \{ \alpha_1, \ldots, \alpha_{\textsf{N}-1}\}`, and :math:`\alpha_i \in \{1 \cdots D_i \}`.
+Each square here represents a rank-3 tensor (rank-2 for the left and right boundaires)
+:math:`A_{\alpha_j\alpha_{j+1}}^{s_j}`:
 
 .. figure:: _static/basic_mps/tensor_3.png
   :align: center
 
-The figure above shows the graphical representation of each block of the MPS. The width of each leg represents the fact that each dimension can be different (their labels are in gray). The indices of each physical and bond dimension at each site :math:`j` are labelled :math:`s_j,\alpha_j` respectively. If an edge links two matrices, we say it is connected and a matrix product is understood.
+As before the vertical lines represent the physical indices. The new horizontal lines are called ancillary indices,
+with the physical and ancillary indices at each site :math:`j` labelled by :math:`s_j,\alpha_j` respectively.
+A connecting line between two tensors (squares) represents a contraction over the common index of the two tensors.
+A varying width of the ancillary legs represents the fact that each dimension can be different (their labels are in gray).
+With this convention, the MPS diagram above is a rigorous representation of the mathematical expression
 
-In this tutorial we will take all :math:`D_i` (also called **bond dimension**) equal to a single :math:`D` . Any tensor can be written as a MPS by using **Singular Value Decomposition** (although at the cost of very high bond dimensions --exponentially high as :math:`N\to \infty`)
+.. math::
+   
+  T^{s_1 \ldots s_\textsf{N}}
+  =
+  \sum_{\{\alpha\}}
+  A^{s_1}_{\alpha_1} A^{s_2}_{\alpha_1 \alpha_2} A^{s_3}_{\alpha_2 \alpha_3}  \cdots A^{s_{N-1}}_{\alpha_{N-2}\alpha_{N-1}} A^{s_N}_{\alpha_{N-1}}
+
+where :math:`\{ \alpha \} = \{ \alpha_1, \ldots, \alpha_{N-1}\}`, and :math:`\alpha_i \in \{1 \cdots D_i \}`.
+
+
+In this tutorial we will take all :math:`D_i` (also called **bond dimension**) equal to a single :math:`D` . Any tensor can be written as
+an MPS by means of the **Singular Value Decomposition** (although at the cost of very high bond dimensions --exponentially high as :math:`N\to \infty`)
 
 We begin by creating directly the node structure of the MPS. First we define functions to build each block of the MPS and then the MPS itself:
 
@@ -140,12 +162,12 @@ We obtain the following results:
 .. figure:: _static/basic_mps/mps_basic_2.png
   :align: center
 
-We see that memory requirements drop significantly: the scaling is now :math:`\sim \textsf{N}^{\textsf{const.}}` (which is polynomial). We can probe higher physical dimensions with less memory.
+We see that memory requirements drop significantly: the scaling is now :math:`\sim N` (which is polynomial). We can probe higher physical dimensions with less memory.
 
 Retrieving components of a MPS
 ------------------------------
 
-Let us now retrieve a component of a system of physical dimension 2 and rank :math:`N=20`. This is equivalent to quickly accessing the components of some wavefunction of a 1D quantum chain of 20 qubits! The main computational cost will be the contraction of the MPS bonds. Here we use a simple algorithm to perform the calculation: contract each bond successively until the entire MPS has collapsed to the desired component of the tensor.
+Let us now retrieve a component of a system of physical dimension :math:`2` and rank :math:`N=20`. This is equivalent to accessing the components of the wavefunction of a 1D quantum chain of :math:`20` qubits! The main computational cost will be the contraction of the MPS bonds. Here we use a simple algorithm to perform the calculation: contract each bond successively until the entire MPS has collapsed to the desired component of the tensor.
 
 With this scheme one can calculate a component of the tensor in a time linear in :math:`N`.
 
@@ -171,43 +193,9 @@ With this scheme one can calculate a component of the tensor in a time linear in
 Using the TensorNetwork library
 --------------------------------
 
-Now let's use the optimized built-in class from TensorNetwork. First we define a function that gives the byte cost of a given node in our tensor network:
-
-.. code-block:: python3
-
-  #from tensornetwork import matrixproductstates as mps
-  # Actually tn initializes with the FiniteMPS class directly!
-
-  dimensions = range(2,9,2)
-  ranks = range(2,250)
-
-  bond_dim = 2 # constant
-  for phys_dim in dimensions:
-      memory = []
-      for rank in ranks:
-          mps = tn.FiniteMPS.random(
-                  d = [phys_dim for _ in range(rank)],
-                  D = [bond_dim for _ in range(rank-1)],
-                  dtype = np.float32
-                  )
-          memory.append(np.sum([x.nbytes for x in mps.tensors]))
-      plt.loglog(ranks, memory, 'o',ls=':', label = f'd={phys_dim}')
-  plt.legend()
-  plt.xlabel('Tensor Rank')
-  plt.ylabel('MPS Memory')
-
-  plt.plot(MPS_ranks, MPS_memory)
-  plt.show()
-
-We obtain:
-
-.. figure:: _static/basic_mps/mps_basic_3.png
-  :align: center
-
-Here we show also the last line of the previous plot, which shows the improvements of the optimized class of the library.
-
-Retrieving a Component is now simple: Just contract over each connected edge
-and evaluate in the desired component. We'll write the entire algorithm for :math:`\textsf{N} = 24` and :math:`d = d_i = 2` (again to make reference to spins):
+TensorNetwork offers a simple built-in MPS class which can be used for tensor network calculations, which we will use in the following.
+Retrieving a component is again simply done by contracting over ancillary indices of the MPS.
+We'll write the entire algorithm for :math:`\textsf{N} = 24` and :math:`d = d_i = 2` (again to make reference to spins):
 
 .. code-block:: python3
 
@@ -218,11 +206,12 @@ and evaluate in the desired component. We'll write the entire algorithm for :mat
   bond_dim = 6
 
   # build the mps:
-  # Recall the state is canonically normalized when we define the class FiniteMPS
+  # the state is canonically normalized when we define the class FiniteMPS
   mpstate = tn.FiniteMPS.random(
     d = [phys_dim for _ in range(rank)],
     D = [bond_dim for _ in range(rank-1)],
-    dtype = np.float32
+    dtype = np.float32,
+    canonicalize=True
     )
 
   # connect the edges in the mps and contract over bond dimensions
@@ -239,14 +228,15 @@ and evaluate in the desired component. We'll write the entire algorithm for :mat
   print(f'Selected components of tensor: {component}')
   print(f'Corresponding coefficient of tensor: {contracted_node.tensor[component]}')
 
-Notice that the implementation still takes a lot of memory resources because we are beginning with a tensor of random components (so our tensor has no symmetries a priori) and then performing contraction on each of the edges.
-
-Even so, we take small bond_dimensions (this could be understood as analyzing *low entanglement* systems). This is not what a typical ground state of a quantum many-body state would look like, specially if it has nearest-neighbor interactions or some special symmetry. In that case the matrices of the MPS will be more sparse and more clever contraction algorithms can be used, besides the fact that we are usually interested in some expectation value rather than exact coefficients. This involves calculating the inner product of two states, which we will show now.
+MPS form a special class of 1-dimensional quantum wave functions which are only weakly entangled. In 1 spatial dimension, there is a rigorous proof
+that ground states of gapped local Hamiltonians can be approximated to arbitrary accuracy by an MPS with finite bond dimension :math:`D`. Conversely, for any
+MPS one can construct a local gapped Hamiltonian which has this MPS as its ground state (called a parent Hamiltonian).
 
 Inner Product of MPS
 --------------------
 
-Inner products appear all the time in calculations of expectation values and norms of quantum states. They are sometimes called *overlaps*. Notice that the MPS structure makes the inner product of tensors graphically intuitive, involving the contraction of all the connected edges and bonds:
+Inner products appear all when calculating expectation values and norms of quantum states.
+They are sometimes called *overlaps*. Notice that the MPS structure makes the inner product of tensors graphically intuitive, involving the contraction of all the connected edges and bonds:
 
 .. figure:: _static/basic_mps/tensor_4.png
   :align: center
@@ -256,39 +246,34 @@ An efficient algorithm takes advantage of the factorization properties of the re
 .. code-block:: python3
 
   np.random.seed(3) # fix seed to build the same tensors each time random is called
-
+  
   phys_dim = 2
   bond_dim = 2
-  ranks = range(2,60)
-
-  for phys_dim in range(2,11,2): # check how physical dim changes scaling
+  ranks = range(2, 60)
+  
+  for phys_dim in range(2, 11, 2): # check how physical dim changes scaling
     overlap = []
     for rank in ranks:
-
         mpstateA = tn.FiniteMPS.random(d = [phys_dim for _ in range(rank)], D = [bond_dim for _ in range(rank-1)], dtype = np.complex128)
         mpstateB = tn.FiniteMPS.random(d = [phys_dim for _ in range(rank)], D = [bond_dim for _ in range(rank-1)], dtype = np.complex128)
-        # mpstateB = mpstateA # Check that the random MPS are indeed normalized
-
-        nodesA = [tn.Node(np.conj(tensor),f'A{i}') for i,tensor in enumerate(mpstateA.tensors)]
-        nodesB = [tn.Node(tensor,f'B{i}') for i,tensor in enumerate(mpstateB.tensors)]
-
-        connected_bondsA = [nodesA[k].edges[2] ^ nodesA[k+1].edges[0] for k in range(-1,rank-1)]
-        connected_bondsB = [nodesB[k].edges[2] ^ nodesB[k+1].edges[0] for k in range(-1,rank-1)]
-        connected_edges = [nodesA[k].edges[1] ^ nodesB[k].edges[1] for k in range(rank)]
-
-        for i in range(len(connected_bondsA)):
-            contraction = tn.contract(connected_edges[i])
-            contraction = tn.contract(connected_bondsA[i])
-            contraction = tn.contract(connected_bondsB[i])
-
+        nodesA = [tn.Node(np.conj(tensor), f'A{i}') for i, tensor in enumerate(mpstateA.tensors)]
+        nodesB = [tn.Node(tensor, f'B{i}') for i, tensor in enumerate(mpstateB.tensors)]
+        nodesA[0][0] ^ nodesB[0][0]
+        nodesA[-1][2] ^ nodesB[-1][2]        
+        [nodesA[k][2] ^ nodesA[k+1][0] for k in range(rank-1)]
+        [nodesB[k][2] ^ nodesB[k+1][0] for k in range(rank-1)]
+        [nodesA[k][1] ^ nodesB[k][1] for k in range(rank)]
+        contraction = nodesA[0] @ nodesB[0]
+        for i in range(1, len(nodesA)):
+            contraction = contraction @ nodesA[i] @ nodesB[i]
         overlap.append(np.abs(contraction.tensor))
-
+  
     plt.loglog(ranks,overlap,'o',ls=':')
   plt.show()
 
 .. figure:: _static/basic_mps/mps_basic_4.png
   :align: center
 
-Notice how the overlap vanishes faster for higher physical dimensions as the rank of the tensor grows. This means the states become more "orthogonal" as we increase their dimension.
-
-If we took the inner product of the same MPS we would be obtaining the square of the norm. In the case of the FiniteMPS.random() constructor, since it is canonically given as a normalized vector, we would recover 1.
+Notice how the overlap vanishes as the rank of the tensor grows. 
+If we take the inner product of an MPS with itself we obtain the square of the norm, which is :math:`1` for
+a normalized state.
