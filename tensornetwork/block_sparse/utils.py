@@ -381,8 +381,6 @@ def _find_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   num_inds = len(charges)
-  num_syms = charges[0].num_symmetries
-
   if partition in (0, num_inds):
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
