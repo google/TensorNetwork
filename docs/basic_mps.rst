@@ -147,7 +147,7 @@ Retrieving components of a MPS
 
 Let us now retrieve a component of a system of physical dimension 2 and rank :math:`N=20`. This is equivalent to quickly accessing the components of some wavefunction of a 1D quantum chain of 20 qubits! The main computational cost will be the contraction of the MPS bonds. Here we use a simple algorithm to perform the calculation: contract each bond successively until the entire MPS has collapsed to the desired component of the tensor.
 
-With this scheme, one can expect to calculate the components of :math:`N \sim 30` systems in a moderate time.
+With this scheme one can calculate a component of the tensor in a time linear in :math:`N`.
 
 .. code-block:: python3
 
