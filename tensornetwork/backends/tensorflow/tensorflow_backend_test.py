@@ -359,6 +359,12 @@ def test_eigs_not_implemented():
     backend.eigs(np.ones((2, 2)))
 
 
+def test_gmres_not_implemented():
+  backend = tensorflow_backend.TensorFlowBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_eigsh_lanczos_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
