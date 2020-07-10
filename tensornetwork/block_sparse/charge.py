@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 
 # pylint: disable=line-too-long
@@ -70,7 +67,7 @@ class BaseCharge:
           "`len(charge_types) = {}` does not match `charges.shape[0]={}`"
           .format(len(charge_types), charges.shape[0]))
 
-    if charges.shape[0] <= 3:
+    if charges.shape[0] < 3:
       label_dtype = np.int16
     else:
       label_dtype = np.int32

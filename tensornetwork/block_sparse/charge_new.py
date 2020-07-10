@@ -166,10 +166,10 @@ class BaseCharge:
       ]
     else:
       self.charge_indices = charge_indices
-    if self.num_symmetries > 3:
-      self.label_dtype = np.uint32
+    if self.num_symmetries >= 3:
+      self.label_dtype = np.int32
     else:
-      self.label_dtype = np.uint16
+      self.label_dtype = np.int16
       
     # always collapse charge-types by default
     self.collapse_charge_types()

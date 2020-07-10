@@ -19,7 +19,7 @@ import numpy as np
 from tensornetwork.block_sparse.index_new import Index
 from tensornetwork.block_sparse.charge_new import (
     fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges,
-    charge_equal, fuse_ndarrays, flatten, LABEL_DTYPE)
+    charge_equal, fuse_ndarrays)
 
 from typing import (List, Union, Any, Tuple, Optional, Sequence)
 Tensor = Any
@@ -33,6 +33,16 @@ def get_real_dtype(dtype):
   if dtype == np.complex64:
     return np.float32
   return dtype
+
+def flatten(list_of_list: List[List]) -> np.ndarray:
+  """
+  Flatten a list of lists into a single list.
+  Args:
+    list_of_lists: A list of lists.
+  Returns:
+    list: The flattened input.
+  """
+  return np.array([l for sublist in list_of_list for l in sublist])
 
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
@@ -203,19 +213,30 @@ def compute_fused_charge_degeneracies(
   # We are fusing from "left" to "right".
   accumulated_charges, accumulated_degeneracies = charges[0].dual(
       flows[0]).unique(return_counts=True)
-
+  num_symmetries = charges[0].num_symmetries
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
     fused_charges = accumulated_charges + leg_charges.dual(flows[n])
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    accumulated_charges = fused_charges.unique()
-    mask = fused_charges == accumulated_charges
-    accumulated_degeneracies = np.sum(
-        fused_degeneracies[:, None] * np.ones(
-            (1, accumulated_charges.dim), dtype=fused_degeneracies.dtype),
-        axis=0,
-        where=mask)
+    if num_symmetries >= 2:
+      accumulated_charges, fused_charge_labels = fused_charges.unique(return_inverse=True)
+      accumulated_degeneracies = np.array([
+          np.sum(fused_degeneracies[fused_charge_labels == m])
+          for m in range(len(accumulated_charges))
+      ])
+    else:
+      accumulated_charges = fused_charges.unique()    
+      mask = fused_charges == accumulated_charges
+      # accumulated_degeneracies = np.sum(
+      #     fused_degeneracies[:, None] * np.ones(
+      #         (1, accumulated_charges.dim), dtype=fused_degeneracies.dtype),
+      #     axis=0,
+      #     where=mask)
+      accumulated_degeneracies = np.sum(np.repeat(
+        fused_degeneracies[:,None], accumulated_charges.dim, axis=1),
+                                      axis=0,
+                                      where=mask)
 
   return accumulated_charges, accumulated_degeneracies
 
@@ -341,7 +362,7 @@ def reduce_charges(charges: List[BaseCharge],
   if len(combined_charges) == 0 or len(left_charges) == 0 or len(
       right_charges) == 0:
     if return_type == 'labels':
-      res = np.empty(0, dtype=LABEL_DTYPE)
+      res = np.empty(0, dtype=charges[0].label_dtype)
     elif return_type == 'charges':
       res = charges[0].__new__(type(charges[0]))
       newcharges = [
@@ -376,9 +397,9 @@ def reduce_charges(charges: List[BaseCharge],
   reduced_unique_charges, label_to_unique, _ = unique_combined_charges.intersect(
       target_charges, return_indices=True)
 
-  map_to_kept = -np.ones(num_unique, dtype=LABEL_DTYPE)
+  map_to_kept = -np.ones(num_unique, dtype=charges[0].label_dtype)
   map_to_kept[label_to_unique] = np.arange(
-      len(label_to_unique), dtype=LABEL_DTYPE)
+      len(label_to_unique), dtype=charges[0].label_dtype)
 
   #new_comb_labels is a matrix of shape (left_charges.num_unique, right_charges.num_unique)
   #each row new_comb_labels[n,:] contains integers values. Positions where values > 0
@@ -564,15 +585,12 @@ def _find_transposed_diagonal_sparse_blocks(
                                   flows[:orig_partition])
   orig_col_charges = fuse_charges(charges[orig_partition:],
                                   np.logical_not(flows[orig_partition:]))
+
   orig_unique_row_charges, row_labels = orig_row_charges.unique(
       return_inverse=True)
   orig_unique_col_charges, col_labels, orig_col_degen = orig_col_charges.unique(
       return_inverse=True, return_counts=True)
 
-  # orig_unique_row_charges = compute_unique_fused_charges(
-  #     charges[:orig_partition], flows[:orig_partition])
-  # orig_unique_col_charges, orig_col_degen = compute_fused_charge_degeneracies(
-  #     charges[orig_partition:], np.logical_not(flows[orig_partition:]))
 
   orig_block_charges, common_row_labels, common_col_labels = orig_unique_row_charges.intersect(
       orig_unique_col_charges, return_indices=True)
@@ -584,9 +602,9 @@ def _find_transposed_diagonal_sparse_blocks(
   # inv_row_map is positive for the row labels that are kept, and -1 else.
   # the -1 is used to index the last value of an array below
   inv_row_map = np.full(
-      len(orig_unique_row_charges), fill_value=-1, dtype=LABEL_DTYPE)
+      len(orig_unique_row_charges), fill_value=-1, dtype=charges[0].label_dtype)
   inv_row_map[common_row_labels] = np.arange(
-      len(common_row_labels), dtype=LABEL_DTYPE)
+      len(common_row_labels), dtype=charges[0].label_dtype)
 
   # all_degens is an array of len(row_labels) that holds the degeneracies
   # (i.e. the number of non-zero elements) in that row
@@ -666,7 +684,6 @@ def _find_transposed_diagonal_sparse_blocks(
                    dense_to_sparse[orig_col_posL]).ravel()]
 
   else:
-
     unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
         new_row_charges, new_row_flows)
     unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
