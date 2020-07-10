@@ -159,6 +159,7 @@ def test_compute_envs(backend_dtype_values):
 
 @pytest.mark.parametrize("N", [4, 6, 7])
 def test_finite_DMRG_init(backend_dtype_values, N):
+  np.random.seed(16)
   backend = backend_dtype_values[0]
   dtype = backend_dtype_values[1]
   H = get_XXZ_Hamiltonian(N, 1, 1, 1)
@@ -175,3 +176,33 @@ def test_finite_DMRG_init(backend_dtype_values, N):
   dmrg = FiniteDMRG(mps, mpo)
   energy = dmrg.run_one_site(num_sweeps=4, num_krylov_vecs=10)
   np.testing.assert_allclose(energy, eta[0])
+
+
+def test_finite_DMRG_outstream(backend_dtype_values, capsys):
+  np.random.seed(16)
+  N = 6
+  backend = backend_dtype_values[0]
+  dtype = backend_dtype_values[1]
+  mpo = FiniteXXZ(
+      Jz=np.ones(N - 1),
+      Jxy=np.ones(N - 1),
+      Bz=np.zeros(N),
+      dtype=dtype,
+      backend=backend)
+  D = 32
+  mps = FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
+  dmrg = FiniteDMRG(mps, mpo)
+  num_sweeps = 2
+  dmrg.run_one_site(
+      num_sweeps=num_sweeps, num_krylov_vecs=10, verbose=2, precision=1E-100)
+  out, _ = capsys.readouterr()
+  out = out.split('\n')
+  act = [o[:28] + '\n' for o in out]
+  act = ''.join(act[0:num_sweeps * (2 * N - 2)])
+
+  exp = ''.join([
+      f"SS-DMRG sweep={n}/{num_sweeps}, site={m}/{N}:\n"
+      for n in range(1, num_sweeps + 1)
+      for m in [0, 1, 2, 3, 4, 5, 4, 3, 2, 1]
+  ])
+  assert act == exp
