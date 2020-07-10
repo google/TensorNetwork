@@ -70,7 +70,7 @@ class BaseCharge:
           "`len(charge_types) = {}` does not match `charges.shape[0]={}`"
           .format(len(charge_types), charges.shape[0]))
 
-    if charges.shape[0] <= 3:
+    if charges.shape[0] < 3:
       label_dtype = np.int16
     else:
       label_dtype = np.int32
