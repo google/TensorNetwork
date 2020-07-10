@@ -11,20 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
-from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.charge import intersect
+from tensornetwork.block_sparse.index_new import Index
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype
-# pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
+from tensornetwork.block_sparse.blocksparsetensor_new import (tensordot,
+                                                              BlockSparseTensor,
+                                                              ChargeArray)
+
+from tensornetwork.block_sparse.utils_new import (
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
+
+from typing import (List, Union, Any, Tuple, Type, Optional, Text, Sequence)
 Tensor = Any
 
 

@@ -12,13 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import numpy as np
-from tensornetwork.block_sparse.index import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition, reduce_charges
-from tensornetwork.block_sparse.charge import fuse_charges, BaseCharge, intersect, charge_equal
+from tensornetwork.block_sparse.index_new import Index
+
+from tensornetwork.block_sparse.utils_new import (
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition,
+    reduce_charges)
+from tensornetwork.block_sparse.charge_new import (fuse_charges, BaseCharge,
+                                                   charge_equal)
 import copy
-# pylint: disable=line-too-long
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
@@ -404,7 +410,18 @@ class ChargeArray:
         return self.data[0]
     raise ValueError("can only convert an array of size 1 to a Python scalar")
 
+  def collapse_charge_types(self):
+    [c.collapse_charge_types() for c in self._charges]
 
+  def collapse(self):
+    [c.collapse() for c in self._charges]
+
+  def expand_charge_types(self):
+    [c.expand_charge_types() for c in self._charges]
+
+  def expand(self):
+    [c.expand() for c in self._charges]
+    
 class BlockSparseTensor(ChargeArray):
   """
   A block-sparse tensor class. This class stores non-zero
@@ -495,7 +512,7 @@ class BlockSparseTensor(ChargeArray):
     _, locs = reduce_charges(
         charges=charges,
         flows=flows,
-        target_charges=charges[0].identity_charges.unique_charges,
+        target_charges=charges[0].identity_charges(dim=1),
         return_locations=True)
 
     ar = np.ravel(array)
@@ -515,9 +532,9 @@ class BlockSparseTensor(ChargeArray):
     if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
-    out[np.nonzero(
-        fuse_charges(self._charges, self._flows) ==
-        self._charges[0].identity_charges)[0]] = self.data
+    out[fuse_charges(self._charges, self._flows) ==
+        self._charges[0].identity_charges(dim=1)] = self.data
+    
     result = np.reshape(out, [c.dim for c in self._charges])
     flat_order = flatten(self._order)
     return result.transpose(flat_order).reshape(self.shape)
@@ -782,8 +799,7 @@ class BlockSparseTensor(ChargeArray):
 
     if (self.ndim > 2) or (other.ndim > 2):
       raise ValueError("__matmul__ is only implemented for vectors or matrices."
-                       " Found ndims = {} and {}".format(
-                           self.ndim, other.ndim))
+                       " Found ndims = {} and {}".format(self.ndim, other.ndim))
     return tensordot(self, other, ([self.ndim - 1], [0]))
 
   def conj(self) -> "BlockSparseTensor":
@@ -829,7 +845,8 @@ def outerproduct(tensor1: BlockSparseTensor,
     final_block_maps, final_block_charges, _ = _find_diagonal_sparse_blocks(
         final_charges, final_flows, len(tensor1._charges))
     index = np.nonzero(
-        final_block_charges == final_block_charges.identity_charges)[0][0]
+        final_block_charges == final_block_charges.identity_charges(
+            dim=1))[0][0]
     data[final_block_maps[index].ravel()] = np.outer(tensor1.data,
                                                      tensor2.data).ravel()
 
@@ -989,17 +1006,15 @@ def tensordot(
         list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
     s += len(tensor2._order[n])
     right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
+
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
 
   tr_sparse_blocks_2, charges2, shapes_2 = _find_transposed_diagonal_sparse_blocks(
       flat_charges_2, flat_flows_2, len(contr_charges_2), flat_order_2)
 
-  common_charges, label_to_common_1, label_to_common_2 = intersect(
-      charges1.unique_charges,
-      charges2.unique_charges,
-      axis=1,
-      return_indices=True)
+  common_charges, label_to_common_1, label_to_common_2 = charges1.intersect(
+      charges2, return_indices=True)
 
   #Note: `cs` may contain charges that are not present in `common_charges`
   charges = left_charges + right_charges
@@ -1013,10 +1028,11 @@ def tensordot(
   data = np.zeros(
       num_nonzero_elements, dtype=np.result_type(tensor1.dtype, tensor2.dtype))
 
-  label_to_common_final = intersect(
-      cs.unique_charges, common_charges, axis=1, return_indices=True)[1]
+  # label_to_common_final = intersect(
+  #     cs.unique_charges, common_charges, axis=1, return_indices=True)[1]
+  label_to_common_final = cs.intersect(common_charges, return_indices=True)[1]
 
-  for n in range(common_charges.shape[1]):
+  for n in range(len(common_charges)):
     n1 = label_to_common_1[n]
     n2 = label_to_common_2[n]
     nf = label_to_common_final[n]
