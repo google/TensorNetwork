@@ -228,11 +228,6 @@ def compute_fused_charge_degeneracies(
     else:
       accumulated_charges = fused_charges.unique()    
       mask = fused_charges == accumulated_charges
-      # accumulated_degeneracies = np.sum(
-      #     fused_degeneracies[:, None] * np.ones(
-      #         (1, accumulated_charges.dim), dtype=fused_degeneracies.dtype),
-      #     axis=0,
-      #     where=mask)
       accumulated_degeneracies = np.sum(np.repeat(
         fused_degeneracies[:,None], accumulated_charges.dim, axis=1),
                                       axis=0,
@@ -288,10 +283,8 @@ def compute_num_nonzero(charges: List[BaseCharge],
   accumulated_charges, accumulated_degeneracies = compute_fused_charge_degeneracies(
       charges, flows)
   res = accumulated_charges == accumulated_charges.identity_charges()
-  nz_inds = np.nonzero(res)[0]
-
-  if len(nz_inds) > 0:
-    return np.squeeze(accumulated_degeneracies[nz_inds][0])
+  if np.any(res) > 0:
+    return np.squeeze(accumulated_degeneracies[res][0])
   return 0
 
 
