@@ -555,7 +555,6 @@ class BaseCharge:
       self.collapse()
     res = np.unique(self.charges[0], return_index, return_inverse,
                     return_counts)
-
     if any([return_index, return_inverse, return_counts]):
       res = list(res)
       charges = res[0]
@@ -570,9 +569,9 @@ class BaseCharge:
         charge_indices=self.charge_indices)
 
     if return_inverse and not return_index:
-      res[1] = res[1].astype(self.label_dtype)
+      res[1] = res[1]#.astype(self.label_dtype)
     if return_inverse and return_index:
-      res[2] = res[2].astype(self.label_dtype)  
+      res[2] = res[2]#.astype(self.label_dtype)  
     if any([return_index, return_inverse, return_counts]):
       return [obj] + res[1:]
     return obj

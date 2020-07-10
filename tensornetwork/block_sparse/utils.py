@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import numpy as np
+from functools import reduce
+from operator import mul 
 from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays
