@@ -23,9 +23,12 @@ from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 def get_random(shape, num_charges, dtype=np.float64):
   R = len(shape)
   charges = [
-      BaseCharge(
-          np.random.randint(-5, 6, (num_charges, shape[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(R)
+      BaseCharge([
+          np.random.randint(-5, 6, shape[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+      for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
   indices = [Index(charges[n], flows[n]) for n in range(R)]
@@ -35,9 +38,12 @@ def get_random(shape, num_charges, dtype=np.float64):
 def get_zeros(shape, num_charges, dtype=np.float64):
   R = len(shape)
   charges = [
-      BaseCharge(
-          np.random.randint(-5, 6, (num_charges, shape[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(R)
+      BaseCharge([
+          np.random.randint(-5, 6, shape[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+    for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
   indices = [Index(charges[n], flows[n]) for n in range(R)]
@@ -49,7 +55,7 @@ def get_zeros(shape, num_charges, dtype=np.float64):
 def test_split_node(dtype, num_charges):
   np.random.seed(111)
   a = tn.Node(
-      get_zeros((2, 3, 4, 5, 6), num_charges, dtype), backend='symmetric')
+      get_zeros((5, 6, 7, 8, 9), num_charges, dtype), backend='symmetric')
 
   left_edges = []
   for i in range(3):
@@ -60,8 +66,8 @@ def test_split_node(dtype, num_charges):
   left, right, _ = tn.split_node(a, left_edges, right_edges)
   tn.check_correct({left, right})
   actual = left @ right
-  np.testing.assert_allclose(actual.tensor.shape, (2, 3, 4, 5, 6))
-  np.testing.assert_allclose(a.tensor.shape, (2, 3, 4, 5, 6))
+  np.testing.assert_allclose(actual.tensor.shape, (5, 6, 7, 8, 9))
+  np.testing.assert_allclose(a.tensor.shape, (5, 6, 7, 8, 9))
   np.testing.assert_allclose(left.tensor.data, 0)
   np.testing.assert_allclose(right.tensor.data, 0)
   assert np.all([
@@ -75,7 +81,7 @@ def test_split_node(dtype, num_charges):
 def test_split_node_mixed_order(dtype, num_charges):
   np.random.seed(111)
   a = tn.Node(
-      get_zeros((2, 3, 4, 5, 6), num_charges, dtype), backend='symmetric')
+      get_zeros((5, 6, 7, 8, 9), num_charges, dtype), backend='symmetric')
 
   left_edges = []
   for i in [0, 2, 4]:
@@ -87,13 +93,13 @@ def test_split_node_mixed_order(dtype, num_charges):
 
   tn.check_correct({left, right})
   actual = left @ right
-  np.testing.assert_allclose(actual.tensor.shape, (2, 4, 6, 3, 5))
-  np.testing.assert_allclose(a.tensor.shape, (2, 3, 4, 5, 6))
+  np.testing.assert_allclose(actual.tensor.shape, (5, 7, 9, 6, 8))
+  np.testing.assert_allclose(a.tensor.shape, (5, 6, 7, 8, 9))
 
   np.testing.assert_allclose(left.tensor.data, 0)
   np.testing.assert_allclose(right.tensor.data, 0)
-  np.testing.assert_allclose(left.tensor.shape[0:3], (2, 4, 6))
-  np.testing.assert_allclose(right.tensor.shape[1:], (3, 5))
+  np.testing.assert_allclose(left.tensor.shape[0:3], (5, 7, 9))
+  np.testing.assert_allclose(right.tensor.shape[1:], (6, 8))
   new_order = [0, 2, 4, 1, 3]
   assert np.all([
       charge_equal(a.tensor.charges[new_order[n]][0],

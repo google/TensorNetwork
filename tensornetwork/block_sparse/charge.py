@@ -628,7 +628,8 @@ class BaseCharge:
       return res, reduced_unique_charges
     return res
 
-  def __getitem__(self, n: Union[np.ndarray, int]) -> "BaseCharge":
+  def __getitem__(self, n: Union[Union[List[int], np.ndarray],
+                                 int]) -> "BaseCharge":
     """
     Args:
       n: An integer or `np.ndarray`.

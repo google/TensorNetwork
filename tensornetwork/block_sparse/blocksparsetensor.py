@@ -393,7 +393,7 @@ class ChargeArray:
 
   def __repr__(self):
     if len(self._charges) > 0:
-      charge_types = self._charges[0].names
+      charge_types = self._charges[0].names.replace('[','').replace(']','')
     else:
       charge_types = 'no charge types (scalar)'
     output = 'BlockSparseTensor\n   shape: ' + repr(
