@@ -20,7 +20,6 @@ from sys import stdout
 from typing import Any, Text, Union
 Tensor = Any
 
-
 class BaseDMRG:
   """
   A base class for DMRG (and possibly other) simulations.
