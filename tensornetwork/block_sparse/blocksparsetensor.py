@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
-from tensornetwork.block_sparse.index_new import Index
+from tensornetwork.block_sparse.index import Index
 
-from tensornetwork.block_sparse.utils_new import (
+from tensornetwork.block_sparse.utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition,
     reduce_charges)
-from tensornetwork.block_sparse.charge_new import (fuse_charges, BaseCharge,
-                                                   charge_equal)
+from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
+                                               charge_equal)
 import copy
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
@@ -50,7 +47,8 @@ class ChargeArray:
   * _flows: An np.ndarray of boolean dtype, storing the flow direction of each 
       leg.
   * data: A flat np.ndarray storing the actual tensor data.
-  * _order: A list of list, storing information on how tensor legs are transposed.
+  * _order: A list of list, storing information on how tensor 
+      legs are transposed.
   """
 
   #pylint: disable=unused-argument
@@ -97,7 +95,8 @@ class ChargeArray:
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "ChargeArray":
     """
-    Initialize a random ChargeArray object with data from a random uniform distribution.
+    Initialize a random ChargeArray object with data from a random uniform 
+    distribution.
     Args:
       indices: List of `Index` objects.
       boundaries: Tuple of interval boundaries for the random uniform 
@@ -140,7 +139,8 @@ class ChargeArray:
   def charges(self) -> List[List[BaseCharge]]:
     """
     A list of list of `BaseCharge`.
-    The charges, in the current shape and index order as determined by `ChargeArray._order`.
+    The charges, in the current shape and index order as determined 
+    by `ChargeArray._order`.
     Returns:
       List of List of BaseCharge
     """
@@ -150,7 +150,8 @@ class ChargeArray:
   def flows(self) -> List[List]:
     """
     A list of list of `bool`.
-    The flows, in the current shape and index order as determined by `ChargeArray._order`.
+    The flows, in the current shape and index order as determined by 
+    `ChargeArray._order`.
     Returns:
       List of List of bool
     """
@@ -411,17 +412,17 @@ class ChargeArray:
     raise ValueError("can only convert an array of size 1 to a Python scalar")
 
   def collapse_charge_types(self):
-    [c.collapse_charge_types() for c in self._charges]
+    _ = [c.collapse_charge_types() for c in self._charges]
 
   def collapse(self):
-    [c.collapse() for c in self._charges]
+    _ = [c.collapse() for c in self._charges]
 
   def expand_charge_types(self):
-    [c.expand_charge_types() for c in self._charges]
+    _ = [c.expand_charge_types() for c in self._charges]
 
   def expand(self):
-    [c.expand() for c in self._charges]
-    
+    _ = [c.expand() for c in self._charges]
+
 class BlockSparseTensor(ChargeArray):
   """
   A block-sparse tensor class. This class stores non-zero
@@ -534,7 +535,7 @@ class BlockSparseTensor(ChargeArray):
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
     out[fuse_charges(self._charges, self._flows) ==
         self._charges[0].identity_charges(dim=1)] = self.data
-    
+
     result = np.reshape(out, [c.dim for c in self._charges])
     flat_order = flatten(self._order)
     return result.transpose(flat_order).reshape(self.shape)
@@ -646,9 +647,9 @@ class BlockSparseTensor(ChargeArray):
           "cannot add or subtract tensors with shapes {} and {}".format(
               self.shape, other.shape))
     if len(self._charges) != len(other._charges):
-      raise ValueError(
-          "cannot add or subtract tensors with different charge lengths {} and {}"
-          .format(len(self._charges), len(other._charges)))
+      raise ValueError("cannot add or subtract tensors with different "
+                       "charge lengths {} and {}".format(
+                           len(self._charges), len(other._charges)))
     if not np.all([
         self.sparse_shape[n] == other.sparse_shape[n]
         for n in range(len(self.sparse_shape))
@@ -950,12 +951,13 @@ def tensordot(
   ]
   if not np.all(charge_check):
     inds = np.nonzero(np.logical_not(charge_check))[0]
-    raise ValueError(
-        "`axes = {}` of tensor1 and `axes = {}` of tensor2 have incompatible charges"
-        " {} and {}".format(
-            np.array(axes1)[inds],
-            np.array(axes2)[inds], [contr_charges_1[i] for i in inds],
-            [contr_charges_2[i] for i in inds]))
+    raise ValueError("`axes = {}` of tensor1 and `axes = {}` of tensor2 "
+                     "have incompatible charges"
+                     " {} and {}".format(
+                         np.array(axes1)[inds],
+                         np.array(axes2)[inds],
+                         [contr_charges_1[i] for i in inds],
+                         [contr_charges_2[i] for i in inds]))
 
   #checks finished
 
@@ -1007,10 +1009,10 @@ def tensordot(
     s += len(tensor2._order[n])
     right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
 
-  tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(
+  tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
 
-  tr_sparse_blocks_2, charges2, shapes_2 = _find_transposed_diagonal_sparse_blocks(
+  tr_sparse_blocks_2, charges2, shapes_2 = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
       flat_charges_2, flat_flows_2, len(contr_charges_2), flat_order_2)
 
   common_charges, label_to_common_1, label_to_common_2 = charges1.intersect(

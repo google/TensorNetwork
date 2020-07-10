@@ -1,9 +1,9 @@
 import numpy as np
-from tensornetwork.block_sparse.charge_new import (collapse, expand, BaseCharge,
-                                                   U1Charge, Z2Charge, ZNCharge,
-                                                   intersect, fuse_ndarrays,
-                                                   fuse_degeneracies,
-                                                   fuse_charges)
+from tensornetwork.block_sparse.charge import (collapse, expand, BaseCharge,
+                                               U1Charge, Z2Charge, ZNCharge,
+                                               intersect, fuse_ndarrays,
+                                               fuse_degeneracies,
+                                               fuse_charges)
 import pytest
 
 # pylint: disable=unbalanced-tuple-unpacking

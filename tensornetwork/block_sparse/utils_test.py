@@ -1,11 +1,16 @@
 import numpy as np
 import pytest
 import itertools
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge_new import U1Charge, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
-from tensornetwork.block_sparse.index_new import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils_new import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks
+from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
+                                               fuse_ndarrays,
+                                               fuse_ndarray_charges, BaseCharge)
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.utils import (
+    flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup,
+    _find_best_partition, compute_fused_charge_degeneracies,
+    compute_unique_fused_charges, compute_num_nonzero, reduce_charges,
+    _find_diagonal_sparse_blocks, _get_strides,
+    _find_transposed_diagonal_sparse_blocks)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -205,25 +210,36 @@ def test_reduce_charges_2():
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_reduce_charges_non_trivial(num_charges):
   np.random.seed(10)
-  left_charges = [np.random.randint(-5, 6, 200, dtype=np.int16)for _ in range(num_charges)]
-  right_charges = [np.random.randint(-5, 6, 200, dtype=np.int16)for _ in range(num_charges)]
+  left_charges = [
+      np.random.randint(-5, 6, 200, dtype=np.int16) for _ in range(num_charges)
+  ]
+  right_charges = [
+      np.random.randint(-5, 6, 200, dtype=np.int16) for _ in range(num_charges)
+  ]
 
-  target_charge = [np.random.randint(-2, 3, 3, dtype=np.int16) for _ in range(num_charges)]
-  charge_types = [[U1Charge]]*num_charges
-  fused_charges = fuse_ndarray_charges(left_charges, right_charges,[U1Charge] * num_charges)
+  target_charge = [
+      np.random.randint(-2, 3, 3, dtype=np.int16) for _ in range(num_charges)
+  ]
+  charge_types = [[U1Charge]] * num_charges
+  fused_charges = fuse_ndarray_charges(left_charges, right_charges,
+                                       [U1Charge] * num_charges)
 
   dense_positions = reduce_charges([
       BaseCharge(left_charges, charge_types=charge_types),
       BaseCharge(right_charges, charge_types=charge_types)
   ], [False, False],
-      BaseCharge(target_charge, charge_types=charge_types),                                   
-                                   return_locations=True, return_type='charges')
+                                   BaseCharge(
+                                       target_charge,
+                                       charge_types=charge_types),
+                                   return_locations=True,
+                                   return_type='charges')
   dense_positions[0].expand_charge_types()
   assert np.all(
       np.isin(
-          np.squeeze(np.stack(dense_positions[0].charges)), np.squeeze(np.stack(target_charge))))
+          np.squeeze(np.stack(dense_positions[0].charges)),
+          np.squeeze(np.stack(target_charge))))
   tmp = []
-  tmp_charge=np.stack(target_charge)
+  tmp_charge = np.stack(target_charge)
   #pylint: disable=unsubscriptable-object
   for n in range(tmp_charge.shape[1]):
     #pylint: disable=no-member
@@ -234,18 +250,18 @@ def test_reduce_charges_non_trivial(num_charges):
   mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
 
+
 @pytest.mark.parametrize('num_legs', [2, 3, 4])
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.random.seed(10)
-  np_charges = [
-      [np.random.randint(-5, 5, 60, dtype=np.int16) for _ in range(num_charges)]
-      for _ in range(num_legs)
-  ]
+  np_charges = [[
+      np.random.randint(-5, 5, 60, dtype=np.int16) for _ in range(num_charges)
+  ] for _ in range(num_legs)]
   fused = np.stack([
-    fuse_ndarrays([np_charges[n][c]
-                   for n in range(num_legs)])
-    for c in range(num_charges)
+      fuse_ndarrays([np_charges[n][c]
+                     for n in range(num_legs)])
+      for c in range(num_charges)
   ],
                    axis=0)
 
@@ -256,13 +272,12 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   ],
                           axis=0)
   right_charges = np.stack([
-      fuse_ndarrays(
-          [np_charges[n][c]
-           for n in range(num_legs // 2, num_legs)])
+      fuse_ndarrays([np_charges[n][c]
+                     for n in range(num_legs // 2, num_legs)])
       for c in range(num_charges)
   ],
                            axis=0)
-  
+
   #pylint: disable=no-member
   nz = np.nonzero(
       np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
@@ -279,8 +294,10 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
         np.logical_and.reduce(left.T == ul, axis=1))[0]])
 
   charges = [
-    BaseCharge([l for l in left_charges], charge_types=[[U1Charge]] * num_charges),
-    BaseCharge([r for r in right_charges], charge_types=[[U1Charge]] * num_charges)
+      BaseCharge([l for l in left_charges], # pylint: disable=unnecessary-comprehension
+                 charge_types=[[U1Charge]] * num_charges),
+      BaseCharge([r for r in right_charges], # pylint: disable=unnecessary-comprehension
+                 charge_types=[[U1Charge]] * num_charges)
   ]
   bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
   cs.expand_charge_types()
@@ -290,6 +307,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
 
   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
 
+
 orders = []
 bonddims = []
 for dim, nl in zip([60, 30, 20], [2, 3, 4]):
@@ -298,16 +316,16 @@ for dim, nl in zip([60, 30, 20], [2, 3, 4]):
   bonddims.extend([dim] * len(o))
 print(orders)
 
+
 @pytest.mark.parametrize('order,D', zip(orders, bonddims))
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   order = list(order)
   num_legs = len(order)
   np.random.seed(10)
-  np_charges = [
-      [np.random.randint(-5, 5, D, dtype=np.int16) for _ in range(num_charges)]
-      for _ in range(num_legs)
-  ]
+  np_charges = [[
+      np.random.randint(-5, 5, D, dtype=np.int16) for _ in range(num_charges)
+  ] for _ in range(num_legs)]
   tr_charge_list = []
   charge_list = []
   for c in range(num_charges):
@@ -369,4 +387,3 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
     assert np.all(b1 == b2)
 
   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
-

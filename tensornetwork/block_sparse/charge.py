@@ -137,7 +137,7 @@ class BaseCharge:
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
-    
+
     if not isinstance(charges, list):
       charges = [np.array(charges)]
 
@@ -170,7 +170,7 @@ class BaseCharge:
       self.label_dtype = np.int32
     else:
       self.label_dtype = np.int16
-      
+
     # always collapse charge-types by default
     self.collapse_charge_types()
 
@@ -347,7 +347,7 @@ class BaseCharge:
     for each charge. This is the reverse operation of 
     `collapse_charge_types`.
     """
-    flat_charge_types = flatten(self.charge_types)          
+    flat_charge_types = flatten(self.charge_types)
     if len(self.charges) == len(flat_charge_types):
       return self
     if len(self.charges) == 1 and len(self.charge_types) > 1:
@@ -571,7 +571,7 @@ class BaseCharge:
     if return_inverse and not return_index:
       res[1] = res[1]#.astype(self.label_dtype)
     if return_inverse and return_index:
-      res[2] = res[2]#.astype(self.label_dtype)  
+      res[2] = res[2]#.astype(self.label_dtype)
     if any([return_index, return_inverse, return_counts]):
       return [obj] + res[1:]
     return obj
@@ -777,15 +777,15 @@ def ZNCharge(n: int) -> Callable:
       # No need for the mod due to the checks above.
       charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int8)
       return cls(charges=charges)
-    
+
   if n not in _CACHED_ZNCHARGES:
     _CACHED_ZNCHARGES[n] = ModularCharge
   return _CACHED_ZNCHARGES[n]
 
 
-def fuse_ndarray_charges(charges_A: List[np.ndarray],
-                         charges_B: List[np.ndarray],
-                         charge_types: List[Type[BaseCharge]]) -> List[np.ndarray]:
+def fuse_ndarray_charges(
+    charges_A: List[np.ndarray], charges_B: List[np.ndarray],
+    charge_types: List[Type[BaseCharge]]) -> List[np.ndarray]:
   """
   Fuse the quantum numbers of two indices under their kronecker addition.
   Args:
@@ -866,7 +866,7 @@ def charge_equal(c1, c2):
   c1.expand_charge_types()
   c2.expand()
   c2.expand_charge_types()
-  
+
   res = True
   if c1.dim != c2.dim:
     res = False

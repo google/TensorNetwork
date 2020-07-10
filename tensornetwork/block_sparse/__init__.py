@@ -1,8 +1,6 @@
 from tensornetwork.block_sparse import index
 from tensornetwork.block_sparse import charge
-from tensornetwork.block_sparse import charge_new
 from tensornetwork.block_sparse import blocksparsetensor
-from tensornetwork.block_sparse import blocksparsetensor_new
 from tensornetwork.block_sparse import linalg
 #pylint: disable=line-too-long
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray, tensordot, outerproduct

@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
-from tensornetwork.block_sparse.index_new import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.blocksparsetensor_new import (tensordot,
-                                                              BlockSparseTensor,
-                                                              ChargeArray)
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
+                                                          BlockSparseTensor,
+                                                          ChargeArray)
 
-from tensornetwork.block_sparse.utils_new import (
-    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
+from tensornetwork.block_sparse.utils import (
+  _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+  flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
 
 from typing import (List, Union, Any, Tuple, Type, Optional, Text, Sequence)
 Tensor = Any
@@ -92,7 +91,7 @@ def diag(tensor: ChargeArray) -> Any:
   flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
-  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(# pylint: disable=line-too-long
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
@@ -534,7 +533,7 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
         np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
-
+  # pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,
@@ -637,6 +636,7 @@ def trace(tensor: BlockSparseTensor,
       identity = eye(
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
+      # pylint: disable=line-too-long
       out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
       a0ar = np.asarray(a0)
 
@@ -686,7 +686,7 @@ def pinv(matrix: BlockSparseTensor,
             np.reshape(matrix.data[block], shapes[:, n]),
             rcond=rcond,
             hermitian=hermitian).T)
-
+  # pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,
