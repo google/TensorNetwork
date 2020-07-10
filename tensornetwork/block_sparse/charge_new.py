@@ -16,7 +16,7 @@ import numpy as np
 import itertools
 from typing import List, Optional, Type, Any, Union, Callable
 _CACHED_ZNCHARGES = {}
-LABEL_DTYPE = np.int16
+
 
 
 def flatten(list_of_list: List[List]) -> List:
@@ -166,7 +166,11 @@ class BaseCharge:
       ]
     else:
       self.charge_indices = charge_indices
-
+    if self.num_symmetries > 3:
+      self.label_dtype = np.uint32
+    else:
+      self.label_dtype = np.uint16
+      
     # always collapse charge-types by default
     self.collapse_charge_types()
 
@@ -283,6 +287,8 @@ class BaseCharge:
     """
     Collapse charges of sames types into a single np.ndarray.
     """
+    if self.is_collapsed:
+      return self
     for cts in self.charge_types:
       unique = set(cts)
       if len(unique) > 1:
@@ -341,14 +347,11 @@ class BaseCharge:
     for each charge. This is the reverse operation of 
     `collapse_charge_types`.
     """
-    if len(self.charges) != len(self.charge_types):
-      raise ValueError("calling `expand_charge_types` on a "
-                       "collapsed BaseCharge with "
-                       "with more than one charge-types is "
-                       "not possible. Try calling `expand` first.")
-
-    if len(self.charges) == len(flatten(self.original_dtypes)):
+    flat_charge_types = flatten(self.charge_types)          
+    if len(self.charges) == len(flat_charge_types):
       return self
+    if len(self.charges) == 1 and len(self.charge_types) > 1:
+      self.expand()
     L = sum([len(dt) for dt in self.original_dtypes])
     original_dtypes = [None] * L
     charge_types = [None] * L
@@ -406,18 +409,11 @@ class BaseCharge:
     # then compute new unique charges
     # Note (mganahl): check if all cts are identical is
     #                 performed below in __init__
-    self.expand()
-    other.expand()
-
-    if len(self.charges) == 1 and len(self.charge_types) > 1:
-      raise ValueError("self is collapsed: cannot add collapsed charges")
-    if len(other.charges) == 1 and len(other.charge_types) > 1:
-      raise ValueError("other is collapsed: cannot add collapsed charges")
+    self.expand_charge_types()
+    other.expand_charge_types()
     charge_types = [cts[0] for cts in self.charge_types]
     fused_charges = fuse_ndarray_charges(self.charges, other.charges,
                                          charge_types)
-    # self.collapse()
-    # other.collapse()
 
     obj = self.__new__(type(self))
     obj.__init__(
@@ -425,7 +421,7 @@ class BaseCharge:
         charge_types=self.charge_types,
         original_dtypes=self.original_dtypes,
         charge_indices=self.charge_indices)
-    # obj.collapse()
+
     return obj
 
   def dual(self, take_dual: Optional[bool] = False) -> "BaseCharge":
@@ -574,9 +570,9 @@ class BaseCharge:
         charge_indices=self.charge_indices)
 
     if return_inverse and not return_index:
-      res[1] = res[1].astype(LABEL_DTYPE)
+      res[1] = res[1].astype(self.label_dtype)
     if return_inverse and return_index:
-      res[2] = res[2].astype(LABEL_DTYPE)  #always use int16 dtypes for labels
+      res[2] = res[2].astype(self.label_dtype)  
     if any([return_index, return_inverse, return_counts]):
       return [obj] + res[1:]
     return obj
@@ -585,7 +581,7 @@ class BaseCharge:
              targets: "BaseCharge",
              return_locations: bool = False,
              return_type: str = 'labels',
-             return_unique: bool = True,
+             return_unique: bool = False,
              strides: Optional[int] = None) -> Any:
     """
     Reduce the dimension of the charge to keep only the charge 
@@ -608,9 +604,9 @@ class BaseCharge:
     unique, labels = self.unique(return_inverse=True)
     reduced_unique_charges, reduced_unique_labels, _ = unique.intersect(
         targets, return_indices=True)
-    mapping = np.full(len(unique), fill_value=-1, dtype=LABEL_DTYPE)
+    mapping = np.full(len(unique), fill_value=-1, dtype=self.label_dtype)
     mapping[reduced_unique_labels] = np.arange(
-        len(reduced_unique_labels), dtype=LABEL_DTYPE)
+        len(reduced_unique_labels), dtype=self.label_dtype)
     tmp = mapping[labels]
     reduced_labels = tmp[tmp >= 0]
     if return_type == 'labels':
@@ -688,7 +684,7 @@ class U1Charge(BaseCharge):
 
   @classmethod
   def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
-    charges = [np.random.randint(minval, maxval, dimension, dtype=np.int16)]
+    charges = [np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)]
     return cls(charges=charges)
 
 
@@ -790,16 +786,16 @@ def ZNCharge(n: int) -> Callable:
 
 def fuse_ndarray_charges(charges_A: List[np.ndarray],
                          charges_B: List[np.ndarray],
-                         charge_types: List[Type[BaseCharge]]) -> np.ndarray:
+                         charge_types: List[Type[BaseCharge]]) -> List[np.ndarray]:
   """
   Fuse the quantum numbers of two indices under their kronecker addition.
   Args:
-    charges_A (np.ndarray): n-by-D1 dimensional array integers encoding charges,
+    charges_A: List of  D1-dimensional array integers encoding charges,
       with n the number of symmetries and D1 the index dimension.
-    charges__B (np.ndarray): n-by-D2 dimensional array of charges.
+    charges__B: List of D2-dimensional array of charges.
     charge_types: A list of types of the charges.
   Returns:
-    np.ndarray: n-by-(D1 * D2) dimensional array of the fused charges.
+    np.ndarray: List of D1*D2-dimensional arrays of the fused charges.
   """
   return [
       ct.fuse(charges_A[n], charges_B[n]) for n, ct in enumerate(charge_types)
@@ -867,6 +863,11 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
 
 
 def charge_equal(c1, c2):
+  c1.expand()
+  c1.expand_charge_types()
+  c2.expand()
+  c2.expand_charge_types()
+  
   res = True
   if c1.dim != c2.dim:
     res = False
