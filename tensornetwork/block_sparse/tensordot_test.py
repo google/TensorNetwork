@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import U1Charge, charge_equal, BaseCharge
+from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
+                                               BaseCharge)
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, tensordot, outerproduct
+from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
+                                                          tensordot,
+                                                          outerproduct)
 from tensornetwork import ncon
 
 np_dtypes = [np.float64, np.complex128]
@@ -15,19 +17,28 @@ def get_contractable_tensors(R1, R2, cont, dtype, num_charges, DsA, Dscomm,
   assert R1 >= cont
   assert R2 >= cont
   chargesA = [
-      BaseCharge(
-          np.random.randint(-5, 5, (num_charges, DsA[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(R1 - cont)
+      BaseCharge([
+          np.random.randint(-5, 5, DsA[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+      for n in range(R1 - cont)
   ]
   commoncharges = [
-      BaseCharge(
-          np.random.randint(-5, 5, (num_charges, Dscomm[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(cont)
+      BaseCharge([
+          np.random.randint(-5, 5, Dscomm[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+      for n in range(cont)
   ]
   chargesB = [
-      BaseCharge(
-          np.random.randint(-5, 5, (num_charges, DsB[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(R2 - cont)
+      BaseCharge([
+          np.random.randint(-5, 5, DsB[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+      for n in range(R2 - cont)
   ]
   #contracted indices
   indsA = np.random.choice(np.arange(R1), cont, replace=False)
@@ -68,16 +79,20 @@ def test_outerproduct(dtype, num_legs, num_charges):
   Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
   is1 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds1[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds1[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   is2 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds2[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds2[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   a = BlockSparseTensor.random(is1, dtype=dtype)
@@ -99,16 +114,20 @@ def test_outerproduct_transpose(dtype, num_legs, num_charges):
   Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
   is1 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds1[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds1[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   is2 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds2[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds2[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   o1 = np.arange(num_legs)
@@ -135,16 +154,20 @@ def test_outerproduct_transpose_reshape(dtype, num_legs, num_charges):
   Ds2 = np.arange(2 + num_legs, 2 + 2 * num_legs)
   is1 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds1[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds1[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   is2 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds2[n])),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 6, Ds2[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
       for n in range(num_legs)
   ]
   o1 = np.arange(num_legs)
@@ -254,12 +277,12 @@ def test_tensordot_reshape(dtype, num_charges):
   R1 = 4
   R2 = 4
 
-  q = np.random.randint(-5, 5, (num_charges, 10), dtype=np.int16)
+  q = [np.random.randint(-5, 5, 10, dtype=np.int16) for _ in range(num_charges)]
   charges1 = [
-      BaseCharge(q, charge_types=[U1Charge] * num_charges) for n in range(R1)
+      BaseCharge(q, charge_types=[[U1Charge]] * num_charges) for n in range(R1)
   ]
   charges2 = [
-      BaseCharge(q, charge_types=[U1Charge] * num_charges) for n in range(R2)
+      BaseCharge(q, charge_types=[[U1Charge]] * num_charges) for n in range(R2)
   ]
   flowsA = np.asarray([False] * R1)
   flowsB = np.asarray([True] * R2)

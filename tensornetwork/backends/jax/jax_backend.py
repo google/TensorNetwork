@@ -435,6 +435,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(A)
+      
     if "eigsh_lanczos" not in _CACHED_FUNCTIONS:
       eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
       _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
@@ -667,7 +668,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=axis, keepdims=keepdims)
+    return jnp.sum(tensor, axis=axis, keepdims=keepdims)
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):

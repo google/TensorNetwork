@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
-from tensornetwork.block_sparse.charge import BaseCharge, fuse_charges
+from tensornetwork.block_sparse.charge import (BaseCharge, fuse_charges,
+                                               charge_equal)
 import copy
 from typing import List, Union
 
@@ -58,12 +56,9 @@ class Index:
   def __eq__(self, other) -> bool:
     if len(other._charges) != len(self._charges):
       return False
+
     for n in range(len(self._charges)):
-      if not np.array_equal(self._charges[n].unique_charges,
-                            other._charges[n].unique_charges):
-        return False
-      if not np.array_equal(self._charges[n].charge_labels,
-                            other._charges[n].charge_labels):
+      if not charge_equal(self._charges[n], other._charges[n]):
         return False
     if not np.all(np.asarray(self.flow) == np.asarray(other.flow)):
       return False

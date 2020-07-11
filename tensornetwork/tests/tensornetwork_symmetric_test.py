@@ -27,9 +27,8 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
-#pylint: disable=line-too-long
-from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
-from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
+                                        BaseCharge)
 from tensornetwork.backends.abstract_backend import AbstractBackend
 
 
@@ -37,9 +36,11 @@ def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):
   assert np.all(np.asarray(shape) == shape[0])
   np.random.seed(seed)
   R = len(shape)
-  charge = BaseCharge(
-      np.random.randint(-5, 5, (num_charges, shape[0])),
-      charge_types=[U1Charge] * num_charges)
+  charge = BaseCharge([
+      np.random.randint(-5, 5, shape[0], dtype=np.int16)
+      for _ in range(num_charges)
+  ],
+                      charge_types=[[U1Charge]] * num_charges)
 
   indices = [Index(charge, flows[n]) for n in range(R)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)

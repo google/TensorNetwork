@@ -1,7 +1,8 @@
 import numpy as np
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.index import Index, fuse_index_pair, fuse_indices
-from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, fuse_charges
+from tensornetwork.block_sparse.index import (Index, fuse_index_pair,
+                                              fuse_indices)
+from tensornetwork.block_sparse.charge import (U1Charge, BaseCharge,
+                                               fuse_charges)
 
 
 def test_index():
@@ -72,7 +73,7 @@ def test_index_fusion_mul():
   i12 = i1 * i2
   for n in range(len(i12.charges.charges)):
     assert np.all(i12._charges[n].charges == charges[n].charges)
-  assert np.all(i12.charges.charges == (q1 + q2).charges)
+  assert np.all(np.stack(i12.charges.charges) == np.stack((q1 + q2).charges))
 
 
 def test_fuse_indices():
@@ -91,7 +92,7 @@ def test_fuse_indices():
   i12 = fuse_indices([i1, i2])
   for n in range(len(i12.charges.charges)):
     assert np.all(i12._charges[n].charges == charges[n].charges)
-  assert np.all(i12.charges.charges == (q1 + q2).charges)
+  assert np.all(np.stack(i12.charges.charges) == np.stack((q1 + q2).charges))
 
 
 def test_index_copy():

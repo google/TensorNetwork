@@ -15,8 +15,8 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-#pylint: disable=line-too-long
-from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
+from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
+                                        BaseCharge)
 from tensornetwork.block_sparse.charge import charge_equal
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 
@@ -24,9 +24,12 @@ from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 def get_random(shape, num_charges, dtype=np.float64):
   R = len(shape)
   charges = [
-      BaseCharge(
-          np.random.randint(-5, 5, (num_charges, shape[n])),
-          charge_types=[U1Charge] * num_charges) for n in range(R)
+      BaseCharge([
+          np.random.randint(-5, 5, shape[n], dtype=np.int16)
+          for _ in range(num_charges)
+      ],
+                 charge_types=[[U1Charge]] * num_charges)
+      for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
   indices = [Index(charges[n], flows[n]) for n in range(R)]
@@ -34,9 +37,11 @@ def get_random(shape, num_charges, dtype=np.float64):
 
 
 def get_square_matrix(shape, num_charges, dtype=np.float64):
-  charge = BaseCharge(
-      np.random.randint(-5, 5, (num_charges, shape)),
-      charge_types=[U1Charge] * num_charges)
+  charge = BaseCharge([
+      np.random.randint(-5, 5, shape, dtype=np.int16)
+      for _ in range(num_charges)
+  ],
+                      charge_types=[[U1Charge]] * num_charges)
   flows = [True, False]
   indices = [Index(charge, flows[n]) for n in range(2)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)

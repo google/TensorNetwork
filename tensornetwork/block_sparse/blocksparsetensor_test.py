@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge, Z2Charge
+
+from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
+                                               charge_equal, fuse_ndarrays,
+                                               fuse_ndarray_charges,
+                                               BaseCharge, Z2Charge)
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import ChargeArray, BlockSparseTensor
+from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
+                                                          BlockSparseTensor)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -11,22 +15,26 @@ np_tensordot_dtypes = [np.float64, np.complex128]
 
 def get_charge(chargetype, num_charges, D):
   if chargetype == "U1":
-    return BaseCharge(
-        np.random.randint(-5, 6, (num_charges, D)),
-        charge_types=[U1Charge] * num_charges)
+    return BaseCharge([
+        np.random.randint(-5, 6, D).astype(np.int16) for _ in range(num_charges)
+    ],
+                      charge_types=[[U1Charge]] * num_charges)
   if chargetype == "Z2":
-    return BaseCharge(
-        np.random.randint(0, 2, (num_charges, D)),
-        charge_types=[Z2Charge] * num_charges)
+    return BaseCharge([
+        np.random.randint(0, 2, D).astype(np.int8) for _ in range(num_charges)
+    ],
+                      charge_types=[[Z2Charge]] * num_charges)
   if chargetype == "mixed":
     n1 = num_charges // 2 if num_charges > 1 else 1
     c = BaseCharge(
-        np.random.randint(-5, 6, (n1, D)), charge_types=[U1Charge] * n1)
+        [np.random.randint(-5, 6, D).astype(np.int16) for _ in range(n1)],
+        charge_types=[[U1Charge]] * n1)
 
     if num_charges > 1:
       n2 = num_charges - n1
       c = c @ BaseCharge(
-          np.random.randint(0, 2, (n2, D)), charge_types=[Z2Charge] * n2)
+          [np.random.randint(0, 2, D).astype(np.int8) for _ in range(n2)],
+          charge_types=[[Z2Charge]] * n2)
 
     return c
   return None
@@ -267,7 +275,7 @@ def test_BlockSparseTensor_init():
   ]
   fused = fuse_charges(charges, flows)
   data = np.random.uniform(
-      0, 1, size=len(np.nonzero(fused == np.zeros((1, 1)))[0]))
+      0, 1, size=len(np.nonzero(fused == fused.identity_charges(1))[0]))
   order = [[n] for n in range(rank)]
   arr = BlockSparseTensor(data, charges, flows, order=order)
   np.testing.assert_allclose(data, arr.data)
@@ -276,7 +284,7 @@ def test_BlockSparseTensor_init():
   for c1, c2 in zip(charges, arr._charges):
     assert charge_equal(c1, c2)
   data = np.random.uniform(
-      0, 1, size=len(np.nonzero(fused == np.zeros((1, 1)))[0]) + 1)
+      0, 1, size=len(np.nonzero(fused == fused.identity_charges(1))[0]) + 1)
   with pytest.raises(ValueError):
     arr = BlockSparseTensor(
         data, charges, flows, order=order, check_consistency=True)
@@ -389,7 +397,7 @@ def test_todense(num_charges, chargetype):
   flows = np.random.choice([True, False], size=rank, replace=True)
   charges = [get_charge(chargetype, num_charges, Ds[n]) for n in range(rank)]
   fused = fuse_charges(charges, flows)
-  mask = fused == np.zeros((num_charges, 1))
+  mask = fused == fused.identity_charges(1)
   inds = np.nonzero(mask)[0]
   inds2 = np.nonzero(np.logical_not(mask))[0]
   indices = [Index(charges[n], flows[n]) for n in range(rank)]
@@ -408,7 +416,7 @@ def test_fromdense(num_charges, chargetype):
   flows = np.random.choice([True, False], size=rank, replace=True)
   charges = [get_charge(chargetype, num_charges, Ds[n]) for n in range(rank)]
   fused = fuse_charges(charges, flows)
-  mask = fused == np.zeros((num_charges, 1))
+  mask = fused == fused.identity_charges(1)
   inds = np.nonzero(mask)[0]
   inds2 = np.nonzero(np.logical_not(mask))[0]
   indices = [Index(charges[n], flows[n]) for n in range(rank)]
@@ -620,8 +628,8 @@ def test_matmul(dtype, num_charges, chargetype, rank1, rank2):
   tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
   result = tensor1 @ tensor2
   assert result.dtype == dtype
-
-  dense_result = tensor1.todense() @ tensor2.todense()  #pytype: disable=unsupported-operands
+  # pylint:disable=line-too-long
+  dense_result = tensor1.todense() @ tensor2.todense()  # pytype: disable=unsupported-operands
   np.testing.assert_allclose(dense_result, result.todense())
 
 
@@ -632,16 +640,21 @@ def test_matmul_raises():
   Ds1 = [100, 200, 20]
   is1 = [
       Index(
-          BaseCharge(
-              np.random.randint(-5, 5, (num_charges, Ds1[n]), dtype=np.int16),
-              charge_types=[U1Charge] * num_charges), False) for n in range(3)
+          BaseCharge([
+              np.random.randint(-5, 5, Ds1[n], dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
+      for n in range(3)
   ]
   is2 = [
       is1[1].copy().flip_flow(),
       Index(
-          BaseCharge(
-              np.random.randint(-5, 5, (num_charges, 150), dtype=np.int16),
-              charge_types=[U1Charge] * num_charges), False)
+          BaseCharge([
+              np.random.randint(-5, 5, 150, dtype=np.int16)
+              for _ in range(num_charges)
+          ],
+                     charge_types=[[U1Charge]] * num_charges), False)
   ]
   tensor1 = BlockSparseTensor.random(is1, dtype=dtype)
   tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
