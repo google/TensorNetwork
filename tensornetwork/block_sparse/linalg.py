@@ -18,8 +18,8 @@ from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
                                                           ChargeArray)
 
 from tensornetwork.block_sparse.utils import (
-  _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-  flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
 
 from typing import (List, Union, Any, Tuple, Type, Optional, Text, Sequence)
 Tensor = Any
@@ -91,7 +91,7 @@ def diag(tensor: ChargeArray) -> Any:
   flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
-  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(# pylint: disable=line-too-long
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(  # pylint: disable=line-too-long
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
