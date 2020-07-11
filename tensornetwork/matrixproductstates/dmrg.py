@@ -11,10 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
@@ -23,7 +19,6 @@ from tensornetwork.ncon_interface import ncon
 from sys import stdout
 from typing import Any, Text, Union
 Tensor = Any
-
 
 class BaseDMRG:
   """
@@ -76,35 +71,6 @@ class BaseDMRG:
           'right_boundary.dtype = {} is different from BaseDMRG.dtype = {}'
           .format(self.right_envs[0].dtype, self.dtype))
 
-    def _single_site_matvec(mpstensor, L, mpotensor, R):
-      return ncon([L, mpstensor, mpotensor, R],
-                  [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
-                  backend=self.backend.name)
-
-    #jitting happens inside eighs_lanczos
-    self.single_site_matvec = _single_site_matvec
-
-    ######################################################################
-    ###############  DEFINE JITTED FUNCTIONS   ###########################
-    ######################################################################
-
-    def _add_left_layer(L, mps_tensor, mpo_tensor):
-      return ncon([L, mps_tensor, mpo_tensor,
-                   self.backend.conj(mps_tensor)],
-                  [[2, 1, 5], [1, 3, -2], [2, -1, 4, 3], [5, 4, -3]],
-                  backend=self.backend.name)
-
-    self.add_left_layer = self.backend.jit(_add_left_layer)
-
-    def _add_right_layer(R, mps_tensor, mpo_tensor):
-      return ncon([R, mps_tensor, mpo_tensor,
-                   self.backend.conj(mps_tensor)],
-                  [[2, 1, 5], [-2, 3, 1], [-1, 2, 4, 3], [-3, 4, 5]],
-                  backend=self.backend.name)
-
-    self.add_left_layer = self.backend.jit(_add_left_layer)
-    self.add_right_layer = self.backend.jit(_add_right_layer)
-
     self.name = name
 
   @property
@@ -120,6 +86,23 @@ class BaseDMRG:
       raise TypeError('mps.dtype = {} is different from mpo.dtype = {}'.format(
           self.mps.dtype, self.mpo.dtype))
     return self.mps.dtype
+
+  def single_site_matvec(self, mpstensor, L, mpotensor, R):
+    return ncon([L, mpstensor, mpotensor, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=self.backend.name)
+
+  def add_left_layer(self, L, mps_tensor, mpo_tensor):
+    return ncon([L, mps_tensor, mpo_tensor,
+                 self.backend.conj(mps_tensor)],
+                [[2, 1, 5], [1, 3, -2], [2, -1, 4, 3], [5, 4, -3]],
+                backend=self.backend.name)
+
+  def add_right_layer(self, R, mps_tensor, mpo_tensor):
+    return ncon([R, mps_tensor, mpo_tensor,
+                 self.backend.conj(mps_tensor)],
+                [[2, 1, 5], [-2, 3, 1], [-1, 2, 4, 3], [-3, 4, 5]],
+                backend=self.backend.name)
 
   def position(self, site: int):
     """
@@ -198,7 +181,9 @@ class BaseDMRG:
                          delta=1E-6,
                          ndiag=10) -> np.number:
     """
-    Single-site optimization at the current position of the center site.
+    Single-site optimization at the current position of the center site. 
+    The method shifts the center position of the mps by one site 
+    to the left or to the right, depending on the value of `sweep_dir`.
     Args:
       sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
         'right' or 'r' for a sweep from left to right.
@@ -237,8 +222,9 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
-        self.mps.tensors[site + 1] = self.mps.lcontract(
-            R, self.mps.tensors[site + 1])
+        self.mps.tensors[site + 1] = ncon([R, self.mps.tensors[site + 1]],
+                                          [[-1, 1], [1, -2, -3]],
+                                          backend=self.backend.name)
         self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], Q,
                                                        self.mpo.tensors[site])
 
@@ -247,8 +233,9 @@ class BaseDMRG:
       self.mps.tensors[site] = Q
       if site > 0:
         self.mps.center_position -= 1
-        self.mps.tensors[site - 1] = self.mps.rcontract(
-            self.mps.tensors[site - 1], R)
+        self.mps.tensors[site - 1] = ncon([self.mps.tensors[site - 1], R],
+                                          [[-1, -2, 1], [1, -3]],
+                                          backend=self.backend.name)
         self.right_envs[site - 1] = self.add_right_layer(
             self.right_envs[site], Q, self.mpo.tensors[site])
 
@@ -285,21 +272,27 @@ class BaseDMRG:
     Returns:
       float: The energy upon termination of `run_one_site`.
     """
+    if num_sweeps == 0:
+      return self.compute_energy()
+
     converged = False
     final_energy = 1E100
-    iteration = 0
+    iteration = 1
     initial_site = 0
+
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
 
     def print_msg(site):
-      if verbose > 0:
-        stdout.write("\rSS-DMRG it=%i/%i, site=%i/%i: optimized E=%.16f+%.16f" %
-                     (iteration, num_sweeps, site, len(
-                         self.mps), np.real(energy), np.imag(energy)))
+      if verbose < 2:
+        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
+        stdout.write(text % (iteration, num_sweeps, site, len(
+            self.mps), np.real(energy), np.imag(energy)))
         stdout.flush()
-      if verbose > 1:
-        print("")
+
+      if verbose >= 2:
+        print(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
+              f"site={site}/{len(self.mps)}: optimized E={energy}")
 
     while not converged:
       if initial_site == 0:
@@ -314,8 +307,7 @@ class BaseDMRG:
 
         initial_site += 1
         print_msg(site=0)
-
-      for site in range(initial_site, len(self.mps) - 1):
+      while self.mps.center_position < len(self.mps) - 1:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='right',
@@ -324,11 +316,10 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=site)
-
+        print_msg(site=self.mps.center_position - 1)
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
-      for site in reversed(range(len(self.mps) - 1)):
+      while self.mps.center_position > 0:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_1s_local(
             sweep_dir='left',
@@ -337,7 +328,7 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=site)
+        print_msg(site=self.mps.center_position + 1)
 
       if np.abs(final_energy - energy) < precision:
         converged = True
@@ -350,6 +341,14 @@ class BaseDMRG:
                 "after {1} iterations".format(precision, num_sweeps))
         break
     return final_energy
+
+  def compute_energy(self):
+    self.mps.position(0)  #move center position to the left end
+    self.compute_right_envs()
+    return ncon([
+        self.add_right_layer(self.right_envs[0], self.mps.tensors[0],
+                             self.mpo.tensors[0])
+    ], [[1, 1, -1]])[0]
 
 
 class FiniteDMRG(BaseDMRG):

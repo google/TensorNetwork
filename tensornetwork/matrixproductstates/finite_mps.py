@@ -11,13 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 import functools
-# pylint: disable=line-too-long
+
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
 from tensornetwork.linalg.linalg import conj
@@ -55,10 +51,10 @@ class FiniteMPS(BaseMPS):
                center_position: Optional[int] = None,
                canonicalize: Optional[bool] = True,
                backend: Optional[Union[AbstractBackend, Text]] = None) -> None:
-    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state is brought
-       into canonical form, with `BaseMPS.center_position` at `center_position`.
-       if `center_position` is `None` and `canonicalize = True`, 
-       `BaseMPS.center_position` is set to 0.
+    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state 
+       is brought into canonical form, with `BaseMPS.center_position` 
+       at `center_position`. if `center_position` is `None` and 
+       `canonicalize = True`, `BaseMPS.center_position` is set to 0.
 
     Args:
       tensors: A list of `Tensor` objects.
@@ -74,13 +70,15 @@ class FiniteMPS(BaseMPS):
         center_position=center_position,
         connector_matrix=None,
         backend=backend)
+    if (center_position is not None) and (not canonicalize):
+      raise ValueError("can only set center_position of canonical mps")
     if canonicalize:
-      if (center_position is None) or (center_position == 0):
+      if center_position is None:
+        center_position = 0
+      if center_position == len(self) - 1:
         self.center_position = len(self) - 1
         self.position(0)
-      elif center_position == len(self) - 1:
-        self.center_position = 0
-        self.position(center_position)
+        self.position(len(self) - 1)
       else:
         self.center_position = 0
         self.position(len(self) - 1)
@@ -92,6 +90,7 @@ class FiniteMPS(BaseMPS):
       d: List[int],
       D: List[int],
       dtype: Type[np.number],
+      canonicalize: bool = True,
       backend: Optional[Union[AbstractBackend, Text]] = None) -> "FiniteMPS":
     """Initialize a random `FiniteMPS`. The resulting state is normalized. Its
     center-position is at 0.
@@ -114,7 +113,11 @@ class FiniteMPS(BaseMPS):
     tensors = [
         be.randn((D[n], d[n], D[n + 1]), dtype=dtype) for n in range(len(d))
     ]
-    return cls(tensors=tensors, center_position=0, backend=backend)
+    return cls(
+        tensors=tensors,
+        center_position=None,
+        canonicalize=canonicalize,
+        backend=backend)
 
   # pylint: disable=arguments-differ
   def canonicalize(self, normalize: bool = True) -> np.number:
