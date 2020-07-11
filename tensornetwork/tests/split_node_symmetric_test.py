@@ -43,7 +43,7 @@ def get_zeros(shape, num_charges, dtype=np.float64):
           for _ in range(num_charges)
       ],
                  charge_types=[[U1Charge]] * num_charges)
-    for n in range(R)
+      for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
   indices = [Index(charges[n], flows[n]) for n in range(R)]
