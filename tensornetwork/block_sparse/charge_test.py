@@ -591,4 +591,4 @@ def test_zncharge_raises():
     ZNCharge(7)([0, 4, 9])
     
 def test_zncharge_does_not_raise():
-  z = ZNCharge(2).random(4)
+  ZNCharge(2).random(4)
