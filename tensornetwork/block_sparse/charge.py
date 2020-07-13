@@ -18,7 +18,6 @@ from typing import List, Optional, Type, Any, Union, Callable
 _CACHED_ZNCHARGES = {}
 
 
-
 def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
@@ -133,15 +132,15 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: Union[np.ndarray, List[np.ndarray]],
+               charges: Union[np.ndarray, List[np.ndarray], List[int]],
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
 
-    if not isinstance(charges, list):
-      charges = [np.array(charges)]
-
-    self.charges = charges
+    if isinstance(charges, np.ndarray):
+      self.charges = [np.array(charges)]
+    else:
+      self.charges = charges
 
     if charge_types is None:
       self.charge_types = [[type(self)] for _ in range(len(self.charges))]
@@ -669,7 +668,13 @@ class BaseCharge:
 
 
 class U1Charge(BaseCharge):
-
+  def __init__(self,
+               charges: Union[np.ndarray, List[int]],
+               charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
+               original_dtypes: Optional[List[List]] = None,
+               charge_indices: Optional[List[List]] = None) -> None:
+    
+    super().__init__([np.asarray(charges, dtype=np.int16)])
   @staticmethod
   def fuse(charge1: np.ndarray, charge2: np.ndarray) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
@@ -691,7 +696,7 @@ class U1Charge(BaseCharge):
 class Z2Charge(BaseCharge):
 
   def __init__(self,
-               charges: Union[List[np.ndarray], np.ndarray],
+               charges: Union[np.ndarray, List],
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
@@ -700,7 +705,7 @@ class Z2Charge(BaseCharge):
       raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
 
     super().__init__(
-        charges=charges,
+        charges=[np.asarray(charges, dtype=np.int8)],
         charge_types=[[type(self)]],
         original_dtypes=original_dtypes,
         charge_indices=charge_indices)
