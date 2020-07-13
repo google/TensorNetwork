@@ -674,7 +674,7 @@ class U1Charge(BaseCharge):
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
     
-    super().__init__([np.asarray(charges, dtype=np.int16)])
+    super().__init__(np.asarray(charges, dtype=np.int16))
   @staticmethod
   def fuse(charge1: np.ndarray, charge2: np.ndarray) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
@@ -689,8 +689,7 @@ class U1Charge(BaseCharge):
 
   @classmethod
   def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
-    charges = [np.random.randint(minval, maxval + 1, dimension, dtype=np.int16)]
-    return cls(charges=charges)
+    return cls(charges=np.random.randint(minval, maxval + 1, dimension, dtype=np.int16))
 
 
 class Z2Charge(BaseCharge):
@@ -705,7 +704,7 @@ class Z2Charge(BaseCharge):
       raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
 
     super().__init__(
-        charges=[np.asarray(charges, dtype=np.int8)],
+        charges=np.asarray(charges, dtype=np.int8),
         charge_types=[[type(self)]],
         original_dtypes=original_dtypes,
         charge_indices=charge_indices)
@@ -727,8 +726,7 @@ class Z2Charge(BaseCharge):
              dimension: int,
              minval: int = 0,
              maxval: int = 1) -> BaseCharge:
-    charges = [np.random.randint(0, 2, dimension, dtype=np.int8)]
-    return cls(charges=charges)
+    return cls(charges=np.random.randint(0, 2, dimension, dtype=np.int8))
 
 
 def ZNCharge(n: int) -> Callable:
