@@ -21,6 +21,7 @@ _CACHED_ZNCHARGES = {}
 def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
+
 def get_dtype(nbits):
   final_dtype = np.int8
   if nbits > 8:
@@ -131,15 +132,20 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: Union[np.ndarray, List[np.ndarray], List[int]],
+               charges: List[np.ndarray],
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
-
     if isinstance(charges, np.ndarray):
-      self.charges = [np.array(charges)]
-    else:
-      self.charges = charges
+      #this case is initialization from a derived class via an np.ndarray
+      self.charges = [charges.astype(self.charge_dtype)]
+    elif isinstance(charges, list):
+      #this case is initialization from a derived class via a list of int
+      if len(charges) > 0 and isinstance(charges[0], int):
+        self.charges = np.asarray(charges, dtype=self.charge_dtype)
+      else:
+        #this is the case of initialization from base class attributes
+        self.charges = charges
 
     if charge_types is None:
       self.charge_types = [[type(self)] for _ in range(len(self.charges))]
@@ -412,7 +418,7 @@ class BaseCharge:
     charge_types = [cts[0] for cts in self.charge_types]
     fused_charges = fuse_ndarray_charges(self.charges, other.charges,
                                          charge_types)
-
+    print('fused:', fused_charges, type(fused_charges))
     obj = self.__new__(type(self))
     obj.__init__(
         charges=fused_charges,
@@ -667,13 +673,7 @@ class BaseCharge:
 
 
 class U1Charge(BaseCharge):
-  def __init__(self,
-               charges: Union[np.ndarray, List[int]],
-               charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
-               original_dtypes: Optional[List[List]] = None,
-               charge_indices: Optional[List[List]] = None) -> None:
-    
-    super().__init__(np.asarray(charges, dtype=np.int16))
+
   @staticmethod
   def fuse(charge1: np.ndarray, charge2: np.ndarray) -> np.ndarray:
     return np.add.outer(charge1, charge2).ravel()
@@ -690,6 +690,10 @@ class U1Charge(BaseCharge):
   def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
     return cls(charges=np.random.randint(minval, maxval + 1, dimension, dtype=np.int16))
 
+  @property
+  def charge_dtype(self):
+    return np.int16
+
 
 class Z2Charge(BaseCharge):
 
@@ -703,7 +707,7 @@ class Z2Charge(BaseCharge):
       raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
 
     super().__init__(
-        charges=np.asarray(charges, dtype=np.int8),
+        charges=charges,
         charge_types=[[type(self)]],
         original_dtypes=original_dtypes,
         charge_indices=charge_indices)
@@ -727,6 +731,10 @@ class Z2Charge(BaseCharge):
              maxval: int = 1) -> BaseCharge:
     return cls(charges=np.random.randint(0, 2, dimension, dtype=np.int8))
 
+  @property
+  def charge_dtype(self):
+    return np.int8
+
 
 def ZNCharge(n: int) -> Callable:
   """Constructor for charge classes of the ZN symmetry groups.
@@ -742,7 +750,7 @@ def ZNCharge(n: int) -> Callable:
   class ModularCharge(BaseCharge):
 
     def __init__(self,
-                 charges: Union[List[np.ndarray], np.ndarray],
+                 charges: Union[np.ndarray, List[int]],
                  charge_types: Optional[List[Type["BaseCharge"]]] = None,
                  original_dtypes: Optional[List[List]] = None,
                  charge_indices: Optional[List[List]] = None) -> None:
@@ -780,6 +788,10 @@ def ZNCharge(n: int) -> Callable:
       # No need for the mod due to the checks above.
       charges = np.random.randint(minval, maxval + 1, dimension, dtype=np.int8)
       return cls(charges=charges)
+
+    @property
+    def charge_dtype(self):
+      return np.int8
 
   if n not in _CACHED_ZNCHARGES:
     _CACHED_ZNCHARGES[n] = ModularCharge
