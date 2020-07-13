@@ -21,7 +21,6 @@ _CACHED_ZNCHARGES = {}
 def flatten(list_of_list: List[List]) -> List:
   return [l for sublist in list_of_list for l in sublist]
 
-
 def get_dtype(nbits):
   final_dtype = np.int8
   if nbits > 8:
