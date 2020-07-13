@@ -19,6 +19,7 @@ from tensornetwork import network_components
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
+import time
 Tensor = Any
 
 _CACHED_JITTED_NCONS = {}
@@ -243,7 +244,7 @@ def _partial_trace(
   """
   Perform the partial trace of `tensor`.
   All labels appearing twice in `labels` are traced out.
-  Args:
+  Argns:
     tensor: A tensor.
     labels: The ncon-style labels of `tensor`.
   Returns:
