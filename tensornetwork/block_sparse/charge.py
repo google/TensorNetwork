@@ -132,7 +132,7 @@ class BaseCharge:
   """
 
   def __init__(self,
-               charges: List[np.ndarray],
+               charges: Union[np.ndarray, List[int], List[np.ndarray]],
                charge_types: Optional[List[List[Type["BaseCharge"]]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
@@ -178,6 +178,10 @@ class BaseCharge:
     # always collapse charge-types by default
     self.collapse_charge_types()
 
+  @property
+  def charge_dtype(self):
+    raise NotImplementedError("charge_dtype is not implemented in BaseCharge")
+  
   @staticmethod
   def fuse(charge1, charge2):
     raise NotImplementedError("`fuse` has to be implemented in derived classes")
@@ -698,7 +702,7 @@ class U1Charge(BaseCharge):
 class Z2Charge(BaseCharge):
 
   def __init__(self,
-               charges: Union[np.ndarray, List],
+               charges: Union[np.ndarray, List[int], List[np.ndarray]],
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                original_dtypes: Optional[List[List]] = None,
                charge_indices: Optional[List[List]] = None) -> None:
@@ -750,7 +754,7 @@ def ZNCharge(n: int) -> Callable:
   class ModularCharge(BaseCharge):
 
     def __init__(self,
-                 charges: Union[np.ndarray, List[int]],
+                 charges: Union[np.ndarray, List[int], List[np.ndarray]],
                  charge_types: Optional[List[Type["BaseCharge"]]] = None,
                  original_dtypes: Optional[List[List]] = None,
                  charge_indices: Optional[List[List]] = None) -> None:
