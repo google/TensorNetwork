@@ -107,7 +107,7 @@ def compute_sparse_lookup(
       target_charges, return_indices=True)
   tmp = np.full(
       len(unique_charges), fill_value=-1, dtype=labels_of_unique.dtype)
-  
+
   tmp[labels_of_unique] = labels_of_unique
   lookup = tmp[labels]
   lookup = lookup[lookup >= 0]

@@ -523,7 +523,7 @@ def test_Charge_matmul(chargetype, B0, B1, dtype):
   Q_ = BaseCharge([C1, C2, C3], charge_types=[[chargetype] for _ in range(3)])
   np.testing.assert_allclose(np.stack(Q.charges), np.stack(Q_.charges))
 
-
+  
 def test_BaseCharge_matmul_raises():
   B = 5
   np.random.seed(10)
