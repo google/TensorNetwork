@@ -12,7 +12,7 @@ def test_charge_collapse_expand_1():
   a1 = np.random.randint(-10, 10, 100000).astype(np.int8)
   b1 = np.random.randint(-10, 10, 100000).astype(np.int8)
   a1b1 = collapse([a1, b1], [[a1.dtype], [b1.dtype]])
-  [a1f, b1f] = expand(a1b1, [[a1.dtype], [b1.dtype]]) 
+  [a1f, b1f] = expand(a1b1, [[a1.dtype], [b1.dtype]])
   np.testing.assert_allclose(a1f, a1)
   np.testing.assert_allclose(b1f, b1)
 
@@ -504,15 +504,16 @@ def test_BaseCharge_intersect_return_indices():
   np.testing.assert_allclose(i2, [1, 2])
 
 
-@pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
-                                                (Z2Charge, 0, 1),
-                                                (ZNCharge(3), 0, 2)])
-def test_Charge_matmul(chargetype, B0, B1):
+@pytest.mark.parametrize('chargetype, B0, B1, dtype',
+                         [(U1Charge, -5, 5, np.int16),
+                          (Z2Charge, 0, 1, np.int8),
+                          (ZNCharge(3), 0, 2, np.int8)])
+def test_Charge_matmul(chargetype, B0, B1, dtype):
   D = 1000
   np.random.seed(10)
-  C1 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
-  C2 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
-  C3 = np.random.randint(B0, B1 + 1, D).astype(np.int16)
+  C1 = np.random.randint(B0, B1 + 1, D).astype(dtype)
+  C2 = np.random.randint(B0, B1 + 1, D).astype(dtype)
+  C3 = np.random.randint(B0, B1 + 1, D).astype(dtype)
 
   q1 = chargetype(C1)
   q2 = chargetype(C2)
