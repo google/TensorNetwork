@@ -367,6 +367,21 @@ class ChargeArray:
         flows=np.logical_not(self._flows),
         order=self._order,
         check_consistency=False)
+  
+  @property
+  def H(self):
+    if self.ndim != 2:
+      raise ValueError("hermitian conjugate only works for 2d arrays")
+    order = [self._order[o] for o in [1, 0]]
+    tensor = self.__new__(type(self))
+    tensor.__init__(
+        data=np.conj(self.data),
+        charges=self._charges,
+        flows=self._flows,
+        order=order,
+        check_consistency=False)
+
+    return tensor
 
   @property
   def T(self) -> "ChargeArray":
