@@ -91,14 +91,6 @@ def test_sqrt():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_diag():
-  backend = pytorch_backend.PyTorchBackend()
-  b = backend.convert_to_tensor(np.array([1.0, 2.0, 3.0]))
-  actual = backend.diag(b)
-  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
-  np.testing.assert_allclose(expected, actual)
-
-
 def test_convert_to_tensor():
   backend = pytorch_backend.PyTorchBackend()
   array = np.ones((2, 3, 4))
@@ -106,19 +98,6 @@ def test_convert_to_tensor():
   expected = torch.ones((2, 3, 4))
   assert isinstance(actual, type(expected))
   np.testing.assert_allclose(expected, actual)
-
-
-def test_trace():
-  backend = pytorch_backend.PyTorchBackend()
-  a = backend.convert_to_tensor(
-      np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]],
-                [[9., 10.], [11., 12.]]]))
-  actual = backend.trace(a)
-  expected = np.array([5., 13., 21.])
-  np.testing.assert_allclose(expected, actual)
-  a = backend.convert_to_tensor(np.array([[1., 2.], [3., 4.]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 5)
 
 
 def test_outer_product():
@@ -565,3 +544,47 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", [-2, 0])
+@pytest.mark.parametrize("axis2", [-1, 0])
+def test_diagonal(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = pytorch_backend.PyTorchBackend()
+  array = backend.randn(shape, dtype=dtype)
+  if axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+@pytest.mark.parametrize("k", range(-2, 2))
+def test_diagflat(dtype, k):
+  backend = pytorch_backend.PyTorchBackend()
+  array = backend.randn((16,), dtype=dtype)
+  actual = backend.diagflat(array, k=k)
+  expected = torch.diag_embed(array, offset=k)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+@pytest.mark.parametrize("offset", [0, 1])
+@pytest.mark.parametrize("axis1", [-2, 0])
+@pytest.mark.parametrize("axis2", [-1, 0])
+def test_trace(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = pytorch_backend.PyTorchBackend()
+  array = backend.randn(shape, dtype=dtype)
+  if axis1 != -2 or axis2 != -1 or offset != 0:
+    with pytest.raises(NotImplementedError):
+      actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.trace(array, axis1=-2, axis2=-1)
+    np.testing.assert_allclose(actual, expected)

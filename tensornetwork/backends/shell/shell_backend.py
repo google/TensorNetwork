@@ -143,17 +143,9 @@ class ShellBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return tensor
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    shape = tensor.shape
-    new_tensor = ShellTensor((3 - len(shape)) * shape)
-    return new_tensor
-
   def convert_to_tensor(self, tensor: Any) -> Tensor:
     shell_tensor = ShellTensor(tuple(tensor.shape))
     return shell_tensor
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    return ShellTensor(tensor.shape[:-2])
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return ShellTensor(tensor1.shape + tensor2.shape)
