@@ -25,6 +25,7 @@ Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
 
+_CACHED_BLOCKS = {}
 
 def get_real_dtype(dtype):
   if dtype == np.complex128:
@@ -385,7 +386,7 @@ def _find_diagonal_sparse_blocks(
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = charges[0].identity_charges.charges    
+    block_qnums = charges[0].identity_charges.charges
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
@@ -449,6 +450,14 @@ def _find_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
+def compute_hash(charges, flows, tr_partition, order):
+  return hash(
+      tuple([c.charges.tostring() for c in charges] + [
+          np.array(flows).tostring(), tr_partition,
+          np.array(order, dtype=np.int16).tostring()
+      ]))
+
+
 def _find_transposed_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: Union[np.ndarray, List[bool]],
@@ -477,7 +486,12 @@ def _find_transposed_diagonal_sparse_blocks(
     block_qnums (BaseCharge): The charges of the corresponding blocks.
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
+
   flows = np.asarray(flows)
+  hash_val = compute_hash(charges, flows, tr_partition, order)
+  if hash_val in _CACHED_BLOCKS:
+    return _CACHED_BLOCKS[hash_val]
+  
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
     # no transpose order
@@ -643,5 +657,5 @@ def _find_transposed_diagonal_sparse_blocks(
     obj.__init__(block_qnums,
                  np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
-
-  return block_maps, obj, block_dims
+  _CACHED_BLOCKS[hash_val] = (block_maps, obj, block_dims)
+  return _CACHED_BLOCKS[hash_val]
