@@ -734,3 +734,29 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
+
+    def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `abs`.".format(self.name))
+
+  def sign(self, tensor: Tensor):
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
+    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
+    not implemented.
+    Args:
+      tensor: The input tensor.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sign`.".format(self.name))

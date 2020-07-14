@@ -847,3 +847,23 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.abs(tensor)
+  expected = np.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.sign(tensor)
+  expected = np.sign(tensor)
+  np.testing.assert_allclose(expected, actual)

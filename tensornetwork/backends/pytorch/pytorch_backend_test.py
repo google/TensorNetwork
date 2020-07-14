@@ -565,3 +565,23 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.abs(tensor)
+  expected = torch.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  actual = backend.sign(tensor)
+  expected = torch.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
