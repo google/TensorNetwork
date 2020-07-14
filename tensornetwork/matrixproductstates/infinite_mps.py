@@ -187,7 +187,7 @@ class InfiniteMPS(BaseMPS):
         boundaries of the mps.
       D: The maximum number of Schmidt values to be kept at the boundaries
         of the mps.
-      num_krylov_vecs: Number of Krylov vectors to diagonalize transfer_matrix
+      num_krylov_vecs: Number of Krylov vectors to diagflatonalize transfer_matrix
       maxiter: Maximum number of iterations in `eigs`
       pseudo_inverse_cutoff: A cutoff for taking the Moore-Penrose 
         pseudo-inverse of a matrix. Given the SVD of a matrix :math:`M=U S V`, 
@@ -228,11 +228,11 @@ class InfiniteMPS(BaseMPS):
       inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
 
     sqrtl = ncon(
-        [u_left, self.backend.diag(self.backend.sqrt(eigvals_left))],
+        [u_left, self.backend.diagflat(self.backend.sqrt(eigvals_left))],
         [[-2, 1], [1, -1]],
         backend=self.backend.name)
     inv_sqrtl = ncon([
-        self.backend.diag(self.backend.sqrt(inveigvals_left)),
+        self.backend.diagflat(self.backend.sqrt(inveigvals_left)),
         self.backend.conj(u_left)
     ], [[-2, 1], [-1, 1]],
                      backend=self.backend.name)
@@ -257,12 +257,12 @@ class InfiniteMPS(BaseMPS):
       inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
 
     sqrtr = ncon(
-        [u_right, self.backend.diag(self.backend.sqrt(eigvals_right))],
+        [u_right, self.backend.diagflat(self.backend.sqrt(eigvals_right))],
         [[-1, 1], [1, -2]],
         backend=self.backend.name)
 
     inv_sqrtr = ncon([
-        self.backend.diag(self.backend.sqrt(inveigvals_right)),
+        self.backend.diagflat(self.backend.sqrt(inveigvals_right)),
         self.backend.conj(u_right)
     ], [[-1, 1], [-2, 1]],
                      backend=self.backend.name)
@@ -274,7 +274,7 @@ class InfiniteMPS(BaseMPS):
         max_singular_values=D,
         max_truncation_error=truncation_threshold,
         relative=True)
-    lam = self.backend.diag(singvals)
+    lam = self.backend.diagflat(singvals)
     self.tensors[0] = ncon([lam, V, inv_sqrtr, self.tensors[0]],
                            [[-1, 1], [1, 2], [2, 3], [3, -2, -3]],
                            backend=self.backend.name)
