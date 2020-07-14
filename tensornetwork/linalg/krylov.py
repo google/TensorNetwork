@@ -238,8 +238,10 @@ def gmres(A_mv: Callable,
   """
   if A_args is not None:
     A_args = [a.array for a in A_args]
+  if x0 is not None:
+    x0 = x0.array
   out = b.backend.gmres(A_mv, b.array, A_args=A_args, 
-                        x0=x0.array, tol=tol, atol=atol,
+                        x0=x0, tol=tol, atol=atol,
                         num_krylov_vectors=num_krylov_vectors,
                         maxiter=maxiter, M=M)
   result, info = out
