@@ -24,7 +24,14 @@ from typing import (List, Union, Any, Tuple, Optional, Sequence)
 Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
+_CACHED_BLOCKS = {}
 
+def compute_hash(charges, flows, tr_partition, order):
+  return hash(
+      tuple([np.stack(c.charges).tostring() for c in charges] + [
+          np.array(flows).tostring(), tr_partition,
+          np.array(order, dtype=np.int16).tostring()
+      ]))
 
 def get_real_dtype(dtype):
   if dtype == np.complex128:
@@ -530,6 +537,10 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
+  hash_val = compute_hash(charges, flows, tr_partition, order)
+  if hash_val in _CACHED_BLOCKS:
+    return _CACHED_BLOCKS[hash_val]
+  
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
     # no transpose order
@@ -684,4 +695,6 @@ def _find_transposed_diagonal_sparse_blocks(
           all_cumul_degens[np.add.outer(orig_row_posL, orig_row_posR)] +
           dense_to_sparse[np.add.outer(orig_col_posL, orig_col_posR)]).ravel()
 
-  return block_maps, block_charges, block_dims
+  _CACHED_BLOCKS[hash_val] = (block_maps, block_charges, block_dims)
+  return _CACHED_BLOCKS[hash_val]
+
