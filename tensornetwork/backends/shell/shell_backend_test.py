@@ -464,10 +464,10 @@ def test_matmul():
   np.testing.assert_allclose(actual.shape, [10, 2, 4])
 
 
-def test_pivot(dtype):
+def test_pivot():
   shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=np.float64)
   cols = 12
   rows = 16
   actual = backend.pivot(tensor, pivot_axis=2)
