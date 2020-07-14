@@ -68,35 +68,38 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        "identical.")
     return libjax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         jnp,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(jnp, tensor, split_axis)
+    return decompositions.qr(jnp, tensor, pivot_axis, non_negative_diagonal)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = 1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(jnp, tensor, split_axis)
+    return decompositions.rq(jnp, tensor, pivot_axis, non_negative_diagonal)
+
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
