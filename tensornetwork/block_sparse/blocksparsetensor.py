@@ -397,7 +397,7 @@ class ChargeArray:
     ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
         self.dtype.name) + '\n   flat flows: ' + repr(
             self.flat_flows) + '\n   order: ' + repr(
-                self._order) + '\n   data:' + repr(self.data)
+                self._order)
 
     return output
 
