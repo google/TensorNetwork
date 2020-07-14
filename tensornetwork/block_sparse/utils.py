@@ -11,20 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays
-# pylint: disable=line-too-long
+from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
+                                               BaseCharge, fuse_ndarray_charges,
+                                               intersect, charge_equal,
+                                               fuse_ndarrays)
 from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
-
 SIZE_T = np.int64  #the size-type of index-arrays
-
 _CACHED_BLOCKS = {}
 
 def get_real_dtype(dtype):
@@ -462,7 +457,7 @@ def _find_transposed_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: Union[np.ndarray, List[bool]],
     tr_partition: int,
-    order: Optional[Union[List, np.ndarray]] = None
+    order: Optional[Union[List, np.ndarray]] = None,
 ) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the diagonal blocks of a transposed tensor with 
@@ -486,12 +481,11 @@ def _find_transposed_diagonal_sparse_blocks(
     block_qnums (BaseCharge): The charges of the corresponding blocks.
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
-
   flows = np.asarray(flows)
   hash_val = compute_hash(charges, flows, tr_partition, order)
   if hash_val in _CACHED_BLOCKS:
     return _CACHED_BLOCKS[hash_val]
-  
+
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
     # no transpose order
