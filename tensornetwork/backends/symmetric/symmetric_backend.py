@@ -313,7 +313,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
-    return self.tensordot(tensor1, self.diag(tensor2),
+    return self.tensordot(tensor1, self.diagflat(tensor2),
                           ([len(tensor1.shape) - 1], [0]))
 
   def broadcast_left_multiplication(self, tensor1: Tensor,
@@ -321,7 +321,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
-    return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))
+    return self.tensordot(self.diagflat(tensor1), tensor2, ([1], [0]))
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
