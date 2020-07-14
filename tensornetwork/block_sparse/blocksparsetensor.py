@@ -392,6 +392,9 @@ class ChargeArray:
 
   def __add__(self, other: "ChargeArray") -> "ChargeArray":
     raise NotImplementedError("__add__ not implemented for ChargeArray")
+  
+  def __neg__(self, other: "ChargeArray") -> "ChargeArray":
+    raise NotImplementedError("__neg__ not implemented for ChargeArray")
 
   def __mul__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__mul__ not implemented for ChargeArray")
@@ -698,6 +701,9 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
+  def __neg__(self) -> "BlockSparseTensor":
+    return (-1) * self
+    
   def __mul__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(
