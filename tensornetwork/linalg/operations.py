@@ -16,6 +16,7 @@ from typing import Any, Union, Text, Optional, List, Sequence, Tuple
 from tensornetwork.tensor import Tensor
 from tensornetwork import ncon_interface
 
+
 def _check_backends(tensors: Sequence[Tensor], fname: str) -> Tuple[bool, str]:
   """ Checks that each of tensors has the same backend, returning True and an
       empty string if so, or False and an error string if not.
@@ -256,7 +257,7 @@ def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
   """
   raise NotImplementedError()
 
-
+  
 def ncon(
     tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence[Union[str, int]]],

@@ -323,7 +323,6 @@ def test_outer_vs_backend(dtype, backend):
   backend_result = backend_obj.outer_product(*arrays)
   np.testing.assert_allclose(backend_result, result.array)
 
-
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_ncon_invalid_backends(dtype, backend):
   backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
