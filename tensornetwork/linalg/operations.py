@@ -14,6 +14,7 @@
 
 from typing import Any, Union, Text, Optional, List, Sequence, Tuple
 from tensornetwork.tensor import Tensor
+from tensornetwork import ncon_interface
 
 def _check_backends(tensors: Sequence[Tensor], fname: str) -> Tuple[bool, str]:
   """ Checks that each of tensors has the same backend, returning True and an
@@ -254,3 +255,91 @@ def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
     out: The trace.
   """
   raise NotImplementedError()
+
+
+def ncon(
+    tensors: Sequence[Tensor],
+    network_structure: Sequence[Sequence[Union[str, int]]],
+    con_order: Optional[Sequence] = None,
+    out_order: Optional[Sequence] = None,
+    check_network: bool = True,
+) -> Tensor:
+  r"""Contracts a list of tn.Tensor according to a tensor network
+    specification.
+
+    The network is provided as a list of lists, one for each
+    tensor, specifying the labels for the edges connected to that tensor.
+
+    Labels can be any numbers or strings. Negative number-type labels
+    and string-type labels with a prepended hyphen ('-') are open labels
+    and remain uncontracted.
+
+    Positive number-type labels and string-type labels with no prepended 
+    hyphen ('-') are closed labels and are contracted.
+
+    Any open label appearing more than once is treated as an open 
+    batch label. Any closed label appearing more than once is treated as 
+    a closed batch label.
+
+    Upon finishing the contraction, all open batch labels will have been 
+    collapsed into a single dimension, and all closed batch labels will 
+    have been summed over.
+
+    If `out_order = None`, output labels are ordered according to descending
+    number ordering and ascending ASCII ordering, with number labels always 
+    appearing before string labels. Example:
+    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] 
+    results in an output order of [-1, -2, '-morty', '-rick'].
+
+    If `out_order` is given, the indices of the resulting tensor will be
+    transposed into this order.
+
+    If `con_order = None`, `ncon` will first contract all number labels
+    in ascending order followed by all string labels in ascending ASCII
+    order.
+    If `con_order` is given, `ncon` will contract according to this order.
+
+    For example, matrix multiplication:
+
+    .. code-block:: python
+
+      A = np.array([[1.0, 2.0], [3.0, 4.0]])
+      B = np.array([[1.0, 1.0], [0.0, 1.0]])
+      ncon([A,B], [(-1, 1), (1, -2)])
+
+    Matrix trace:
+
+    .. code-block:: python
+
+      A = np.array([[1.0, 2.0], [3.0, 4.0]])
+      ncon([A], [(1, 1)]) # 5.0
+
+    Note:
+      Disallowing `0` as an edge label is legacy behaviour, see
+      `original NCON implementation`_.
+    .. _original NCON implementation:
+      https://arxiv.org/abs/1402.0939
+    Args:
+      tensors: List of `Tensors`.
+      network_structure: List of lists specifying the tensor network structure.
+      con_order: List of edge labels specifying the contraction order.
+      out_order: List of edge labels specifying the output order.
+      check_network: Boolean flag. If `True` check the network.
+      backend: String specifying the backend to use. Defaults to
+        `tensornetwork.backend_contextmanager.get_default_backend`.
+
+    Returns:
+      The result of the contraction. The result is returned as a `Node`
+      if all elements of `tensors` are `AbstractNode` objects, else
+      it is returned as a `Tensor` object.
+    """
+  all_backends_same, errstr = _check_backends(tensors, "ncon")
+  if not all_backends_same:
+    raise ValueError(errstr)
+  backend = tensors[0].backend
+  arrays = [tensor.array for tensor in tensors]
+  res = ncon_interface.ncon(arrays, network_structure, con_order=con_order,
+                            out_order=out_order, check_network=check_network,
+                            backend=backend)
+  output = Tensor(res, backend=backend)
+  return output

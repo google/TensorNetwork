@@ -322,3 +322,39 @@ def test_outer_vs_backend(dtype, backend):
   arrays = [t.array for t in [tensor1, tensor2]]
   backend_result = backend_obj.outer_product(*arrays)
   np.testing.assert_allclose(backend_result, result.array)
+
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_ncon_invalid_backends(dtype, backend):
+  backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
+  this_name = set([backend])
+  other_backend_names = list(backend_names - this_name)
+  shape = (4, 3)
+  dtype1 = np_dtype_to_backend(backend, dtype)
+  tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype1)
+  for other_backend in other_backend_names:
+    dtype2 = np_dtype_to_backend(other_backend, dtype)
+    tensor2 = tensornetwork.ones(shape, backend=other_backend, dtype=dtype2)
+    for other_other_backend in backend_names:
+      dtype3 = np_dtype_to_backend(other_other_backend, dtype)
+      tensor3 = tensornetwork.zeros(shape, backend=other_other_backend,
+                                    dtype=dtype3)
+      tensors = [tensor1, tensor2, tensor3]
+      idxs = [[1, -1], [1, 2], [-2, 2]]
+      with pytest.raises(ValueError):
+        _ = tensornetwork.linalg.operations.ncon(tensors, idxs)
+
+@pytest.mark.parametrize("dtype", np_not_bool)
+def test_ncon_vs_backend(dtype, backend):
+  shape = (4, 3)
+  dtype = np_dtype_to_backend(backend, dtype)
+  check_contraction_dtype(backend, dtype)
+  tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  tensor3 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  tensors = [tensor1, tensor2, tensor3]
+  arrays = [tensor1.array, tensor2.array, tensor3.array]
+  idxs = [[1, -1], [1, 2], [-2, 2]]
+  result = tensornetwork.linalg.operations.ncon(tensors, idxs)
+  old_result = tensornetwork.ncon(arrays, idxs, backend=backend)
+  np.testing.assert_allclose(old_result, result.array)
