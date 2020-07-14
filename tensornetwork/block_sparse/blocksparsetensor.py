@@ -393,7 +393,7 @@ class ChargeArray:
   def __add__(self, other: "ChargeArray") -> "ChargeArray":
     raise NotImplementedError("__add__ not implemented for ChargeArray")
   
-  def __neg__(self, other: "ChargeArray") -> "ChargeArray":
+  def __neg__(self) -> "ChargeArray":
     raise NotImplementedError("__neg__ not implemented for ChargeArray")
 
   def __mul__(self, number: np.number) -> "ChargeArray":
