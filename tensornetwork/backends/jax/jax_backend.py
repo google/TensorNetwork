@@ -55,7 +55,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
     return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
@@ -68,7 +68,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        "identical.")
     return libjax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -76,7 +76,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         jnp,
         tensor,
         split_axis,
@@ -84,19 +84,19 @@ class JaxBackend(abstract_backend.AbstractBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(jnp, tensor, split_axis)
+    return decompositions.qr(jnp, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(jnp, tensor, split_axis)
+    return decompositions.rq(jnp, tensor, split_axis)
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape

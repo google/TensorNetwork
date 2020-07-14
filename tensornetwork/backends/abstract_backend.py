@@ -50,7 +50,8 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented reshape.".format(self.name))
 
-  def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
+  def transpose(self, tensor: Tensor,
+                perm: Optional[Sequence[int]] = None) -> Tensor:
     """Transpose a tensor according to a given permutation
     Args:
       tensor: A tensor.
@@ -73,7 +74,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -131,25 +132,25 @@ class AbstractBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+        "Backend '{}' has not implemented qr.".format(self.name))
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
@@ -184,7 +185,8 @@ class AbstractBackend:
         "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
 
   def shape_prod(self, values: Tensor) -> Tensor:
-    """Take the product of all of the elements in values"""
+    """Returns the product of the entries of values, which should be the
+       shape of one of the relevant backend arrays."""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))
 
@@ -536,7 +538,7 @@ class AbstractBackend:
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default substraction of `tensor`.
+      Return the default subtraction of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.
