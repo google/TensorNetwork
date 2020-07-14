@@ -92,12 +92,12 @@ def test_sqrt():
   expected = np.array([2, 3])
   np.testing.assert_allclose(expected, actual)
 
-
+  
 def test_diag():
   backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
+  a = backend.convert_to_tensor(np.array([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]))
   with pytest.raises(TypeError):
-    assert backend.diag(a)
+    backend.diag(a)
   b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
   actual = backend.diag(b)
   expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
