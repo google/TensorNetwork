@@ -735,7 +735,7 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
 
-    def abs(self, tensor: Tensor) -> Tensor:
+  def abs(self, tensor: Tensor) -> Tensor:
     """
     Returns the elementwise absolute value of tensor.
     Args:
