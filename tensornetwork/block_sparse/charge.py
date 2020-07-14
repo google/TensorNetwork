@@ -181,7 +181,7 @@ class BaseCharge:
   @property
   def charge_dtype(self):
     raise NotImplementedError("charge_dtype is not implemented in BaseCharge")
-  
+
   @staticmethod
   def fuse(charge1, charge2):
     raise NotImplementedError("`fuse` has to be implemented in derived classes")
@@ -422,7 +422,6 @@ class BaseCharge:
     charge_types = [cts[0] for cts in self.charge_types]
     fused_charges = fuse_ndarray_charges(self.charges, other.charges,
                                          charge_types)
-    print('fused:', fused_charges, type(fused_charges))
     obj = self.__new__(type(self))
     obj.__init__(
         charges=fused_charges,
@@ -692,7 +691,9 @@ class U1Charge(BaseCharge):
 
   @classmethod
   def random(cls, dimension: int, minval: int, maxval: int) -> BaseCharge:
-    return cls(charges=np.random.randint(minval, maxval + 1, dimension, dtype=np.int16))
+    return cls(
+        charges=np.random.randint(
+            minval, maxval + 1, dimension, dtype=np.int16))
 
   @property
   def charge_dtype(self):
