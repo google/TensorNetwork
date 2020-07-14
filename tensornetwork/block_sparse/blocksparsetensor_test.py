@@ -770,9 +770,22 @@ def test_herm(chargetype, dtype):
   rank = 2
   charges = [get_charge(chargetype, 1, D) for _ in range(rank)]
   flows = np.random.choice([True, False], size=rank, replace=True)
-  inds = [Index(c, f) for c,f in zip(charges, flows)]
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
   T = BlockSparseTensor.random(inds, dtype=dtype)
   TH = T.H
   np.testing.assert_allclose(TH.todense(), T.todense().T.conj())
 
+@pytest.mark.parametrize('chargetype', ["U1", "Z2"])
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_neg(chargetype, dtype):
+  np.random.seed(10)
+  D = 10
+  rank = 2
+  charges = [get_charge(chargetype, 1, D) for _ in range(rank)]
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
+  T = BlockSparseTensor.random(inds, dtype=dtype)
+  T2 = -T
+  np.testing.assert_allclose(T.data, -T2.data)
+  
   
