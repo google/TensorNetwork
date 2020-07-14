@@ -114,8 +114,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return jnp.sqrt(tensor)
 
   def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
+    if len(tensor.shape) not in (1, 2):
+      raise TypeError(
+          "Only one and two dimensional tensors are allowed as input")
     return jnp.diag(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
