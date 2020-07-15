@@ -643,4 +643,4 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     Args:
       tensor: The input tensor.
     """
-    return = np.sign(tensor)
+    return np.sign(tensor)
