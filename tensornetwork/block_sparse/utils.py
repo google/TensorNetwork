@@ -192,6 +192,10 @@ def compute_fused_charge_degeneracies(
     if num_symmetries >= 2:
       accumulated_charges, fused_charge_labels = fused_charges.unique(
           return_inverse=True)
+      # new_order = np.argsort(fused_charge_labels)
+      # all_degens = np.cumsum(fused_degeneracies[new_order])
+      # cum_degens = all_degens[np.flatnonzero(np.diff(fused_charge_labels[new_order]))]
+      # accumulated_degeneracies = np.append(cum_degens,all_degens[-1]) - np.append(0,cum_degens)
       accumulated_degeneracies = np.array([
           np.sum(fused_degeneracies[fused_charge_labels == m])
           for m in range(len(accumulated_charges))
@@ -426,8 +430,7 @@ def reduce_charges(charges: List[BaseCharge],
 def _find_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: Union[np.ndarray, List[bool]],
-    partition: int,
-    data=None) -> Tuple[List, BaseCharge, np.ndarray]:
+    partition: int) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the location of all non-trivial symmetry blocks from the data vector of
   of BlockSparseTensor (when viewed as a matrix across some prescribed index 
@@ -458,13 +461,11 @@ def _find_diagonal_sparse_blocks(
       block_dims = np.flipud(block_dims)
 
     return block_maps, block_charges, block_dims
-  if data is None:
-    unique_row_charges, row_degen = compute_fused_charge_degeneracies(
-        charges[:partition], flows[:partition])
-    unique_col_charges, col_degen = compute_fused_charge_degeneracies(
-        charges[partition:], np.logical_not(flows[partition:]))
-  else:
-    unique_row_charges, row_degen, unique_col_charges, col_degen = data
+  unique_row_charges, row_degen = compute_fused_charge_degeneracies(
+      charges[:partition], flows[:partition])
+  unique_col_charges, col_degen = compute_fused_charge_degeneracies(
+      charges[partition:], np.logical_not(flows[partition:]))
+
   block_charges, row_to_block, col_to_block = unique_row_charges.intersect(
       unique_col_charges, return_indices=True)
   num_blocks = len(block_charges)
@@ -537,9 +538,9 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
-  hash_val = compute_hash(charges, flows, tr_partition, order)
-  if hash_val in _CACHED_BLOCKS:
-    return _CACHED_BLOCKS[hash_val]
+  # hash_val = compute_hash(charges, flows, tr_partition, order)
+  # if hash_val in _CACHED_BLOCKS:
+  #   return _CACHED_BLOCKS[hash_val]
   
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
@@ -694,7 +695,7 @@ def _find_transposed_diagonal_sparse_blocks(
       block_maps[n] = (
           all_cumul_degens[np.add.outer(orig_row_posL, orig_row_posR)] +
           dense_to_sparse[np.add.outer(orig_col_posL, orig_col_posR)]).ravel()
-
-  _CACHED_BLOCKS[hash_val] = (block_maps, block_charges, block_dims)
-  return _CACHED_BLOCKS[hash_val]
+  return block_maps, block_charges, block_dims
+  #_CACHED_BLOCKS[hash_val] = (block_maps, block_charges, block_dims)
+  #return _CACHED_BLOCKS[hash_val]
 
