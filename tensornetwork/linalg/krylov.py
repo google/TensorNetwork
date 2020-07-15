@@ -152,7 +152,6 @@ def eigs(A: Callable,
 
 def gmres(A_mv: Callable,
           b: Tensor,
-          backend: Optional[Union[Text, AbstractBackend]] = None,
           A_args: Optional[List] = None,
           x0: Optional[Tensor] = None,
           tol: float = 1E-05,
@@ -194,7 +193,6 @@ def gmres(A_mv: Callable,
                `v` have the same shape.
     b        : The `b` in `A @ x = b`; it should be of the shape `A_mv`
                operates on.
-    backend  : The backend.
     A_args   : Positional arguments to `A_mv`, supplied to this interface
                as a list.
                Default: None.
@@ -240,7 +238,7 @@ def gmres(A_mv: Callable,
     A_args = [a.array for a in A_args]
   if x0 is not None:
     x0 = x0.array
-  out = b.backend.gmres(A_mv, b.array, A_args=A_args, 
+  out = b.backend.gmres(A_mv, b.array, A_args=A_args,
                         x0=x0, tol=tol, atol=atol,
                         num_krylov_vectors=num_krylov_vectors,
                         maxiter=maxiter, M=M)
