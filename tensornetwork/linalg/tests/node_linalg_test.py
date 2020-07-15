@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import jax.config as config
 import torch
 import tensorflow as tf
-from tensornetwork.linalg import linalg
+from tensornetwork.linalg import node_linalg
 from tensornetwork.network_components import Node
 from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork import backends
@@ -67,7 +67,7 @@ dtypes = {
 
 def test_eye(backend):
   """
-  Tests linalg.eye against np.eye.
+  Tests node_linalg.eye against np.eye.
   """
   N = 4
   M = 6
@@ -75,7 +75,7 @@ def test_eye(backend):
   axis_names = ["Sam", "Blinkey"]
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = linalg.eye(
+    tnI = node_linalg.eye(
         N, dtype=dtype, M=M, name=name, axis_names=axis_names, backend=backend)
     npI = backend_obj.eye(N, dtype=dtype, M=M)
     np.testing.assert_allclose(tnI.tensor, npI)
@@ -88,14 +88,14 @@ def test_eye(backend):
 
 def test_zeros(backend):
   """
-  Tests linalg.zeros against np.zeros.
+  Tests node_linalg.zeros against np.zeros.
   """
   shape = (5, 10, 3)
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey", "Renaldo"]
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = linalg.zeros(
+    tnI = node_linalg.zeros(
         shape, dtype=dtype, name=name, axis_names=axis_names, backend=backend)
     npI = backend_obj.zeros(shape, dtype=dtype)
     np.testing.assert_allclose(tnI.tensor, npI)
@@ -108,14 +108,14 @@ def test_zeros(backend):
 
 def test_ones(backend):
   """
-  Tests linalg.ones against np.ones.
+  Tests node_linalg.ones against np.ones.
   """
   shape = (5, 10, 3)
   name = "Jeffrey"
   axis_names = ["Sam", "Blinkey", "Renaldo"]
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["all"]:
-    tnI = linalg.ones(
+    tnI = node_linalg.ones(
         shape, dtype=dtype, name=name, axis_names=axis_names, backend=backend)
     npI = backend_obj.ones(shape, dtype=dtype)
     np.testing.assert_allclose(tnI.tensor, npI)
@@ -128,7 +128,7 @@ def test_ones(backend):
 
 def test_randn(backend):
   """
-  Tests linalg.randn against the backend code.
+  Tests node_linalg.randn against the backend code.
   """
   shape = (5, 10, 3, 2)
   seed = int(time.time())
@@ -137,7 +137,7 @@ def test_randn(backend):
   axis_names = ["Sam", "Blinkey", "Renaldo", "Jarvis"]
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["rand"]:
-    tnI = linalg.randn(
+    tnI = node_linalg.randn(
         shape,
         dtype=dtype,
         name=name,
@@ -155,7 +155,7 @@ def test_randn(backend):
 
 def test_random_uniform(backend):
   """
-  Tests linalg.ones against np.ones.
+  Tests node_linalg.ones against np.ones.
   """
   shape = (5, 10, 3, 2)
   seed = int(time.time())
@@ -165,7 +165,7 @@ def test_random_uniform(backend):
   axis_names = ["Sam", "Blinkey", "Renaldo", "Jarvis"]
   backend_obj = backends.backend_factory.get_backend(backend)
   for dtype in dtypes[backend]["rand"]:
-    tnI = linalg.random_uniform(
+    tnI = node_linalg.random_uniform(
         shape,
         dtype=dtype,
         name=name,
@@ -186,16 +186,15 @@ def test_random_uniform(backend):
 def test_conj(backend):
   if backend == "pytorch":
     pytest.skip("Complex numbers currently not supported in PyTorch")
-
   a = Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
-  abar = linalg.conj(a)
+  abar = node_linalg.conj(a)
   np.testing.assert_allclose(abar.tensor, a.backend.conj(a.tensor))
 
 
 def test_transpose(backend):
   a = Node(np.random.rand(1, 2, 3, 4, 5), backend=backend)
   order = [a[n] for n in reversed(range(5))]
-  transpa = linalg.transpose(a, [4, 3, 2, 1, 0])
+  transpa = node_linalg.transpose(a, [4, 3, 2, 1, 0])
   a.reorder_edges(order)
   np.testing.assert_allclose(a.tensor, transpa.tensor)
 
@@ -205,7 +204,7 @@ def test_operator_kron(backend):
     X = np.array([[0, 1], [1, 0]], dtype=np.float32)
     Z = np.array([[1, 0], [0, -1]], dtype=np.float32)
     expected = np.kron(X, Z).reshape(2, 2, 2, 2)
-    result = linalg.kron([Node(X), Node(Z)])
+    result = node_linalg.kron([Node(X), Node(Z)])
     np.testing.assert_allclose(result.tensor, expected)
 
 
@@ -215,22 +214,22 @@ def test_kron_raises(backend):
     B = Node(np.ones((2, 2, 2)))
     with pytest.raises(
         ValueError, match="All operator tensors must have an even order."):
-      linalg.kron([A, B])
+      node_linalg.kron([A, B])
 
 
 def test_norm_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    linalg.norm(node)
+    node_linalg.norm(node)
 
 
 def test_conj_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    linalg.conj(node)
+    node_linalg.conj(node)
 
 
 def test_transpose_of_node_without_backend_raises_error():
   node = np.random.rand(3, 3, 3)
   with pytest.raises(AttributeError):
-    linalg.transpose(node, permutation=[])
+    node_linalg.transpose(node, permutation=[])

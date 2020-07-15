@@ -237,7 +237,6 @@ def _check_network(network_structure: Sequence[Sequence[Union[int, str]]],
     raise ValueError(
         f"tensor dimensions for labels {mismatched_labels} are mismatching")
 
-
 def _partial_trace(
     tensor: Tensor, labels: List,
     backend_obj: AbstractBackend) -> Tuple[Tensor, List, List]:
