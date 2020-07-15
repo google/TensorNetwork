@@ -351,7 +351,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
-    return torchlib.einsum('mab,mbc->mac', tensor1, tensor2)
+    return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
 
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
@@ -423,7 +423,25 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     Returns:
       array_of_diagonals: The batched summed diagonals.
     """
-    if axis1 != -2 or axis2 != -1 or offset != 0:
-      errstr = "offset, axis1, axis2 unsupported by TensorFlow backend."
+    if offset != 0:
+      errstr = (f"offset = {offset} must be 0 (the default)"
+                f"with PyTorch backend.")
       raise NotImplementedError(errstr)
-    return torchlib.einsum('...jj', tensor)
+    if axis1 == axis2:
+      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
+    N = len(tensor.shape)
+    if N > 25:
+      raise ValueError(f"Currently only tensors with ndim <= 25 can be traced"
+                       f"in the PyTorch backend (yours was {N})")
+
+    if axis1 < 0:
+      axis1 = N+axis1
+    if axis2 < 0:
+      axis2 = N+axis2
+
+    inds = list(map(chr, range(98, 98+N)))
+    indsout = [i for n, i in enumerate(inds) if n not in (axis1, axis2)]
+    inds[axis1] = 'a'
+    inds[axis2] = 'a'
+    print(inds)
+    return torchlib.einsum(''.join(inds) + '->' +''.join(indsout), tensor)

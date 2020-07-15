@@ -553,7 +553,7 @@ def test_matmul():
 def test_diagonal(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = pytorch_backend.PyTorchBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
@@ -567,7 +567,7 @@ def test_diagonal(dtype, offset, axis1, axis2):
 @pytest.mark.parametrize("k", range(-2, 2))
 def test_diagflat(dtype, k):
   backend = pytorch_backend.PyTorchBackend()
-  array = backend.randn((16,), dtype=dtype)
+  array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
   expected = torch.diag_embed(array, offset=k)
   np.testing.assert_allclose(expected, actual)
@@ -575,16 +575,40 @@ def test_diagflat(dtype, k):
 
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
 @pytest.mark.parametrize("offset", [0, 1])
-@pytest.mark.parametrize("axis1", [-2, 0])
-@pytest.mark.parametrize("axis2", [-1, 0])
+@pytest.mark.parametrize("axis1", range(0, 3))
+@pytest.mark.parametrize("axis2", range(0, 3))
 def test_trace(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = pytorch_backend.PyTorchBackend()
-  array = backend.randn(shape, dtype=dtype)
-  if axis1 != -2 or axis2 != -1 or offset != 0:
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  if offset != 0:
     with pytest.raises(NotImplementedError):
+      actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+
+  elif axis1==axis2:
+    with pytest.raises(ValueError):
       actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
   else:
     actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
-    expected = np.trace(array, axis1=-2, axis2=-1)
+    expected = np.trace(array, axis1=axis1, axis2=axis2)
     np.testing.assert_allclose(actual, expected)
+
+
+def test_trace_raises():
+  shape = [2]*30
+  backend = pytorch_backend.PyTorchBackend()
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  with pytest.raises(ValueError):
+    result = backend.trace(array)
+
+
+def test_matmul_rank2():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 4)
+  t2 = np.random.rand(4, 10)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)
