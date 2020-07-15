@@ -372,7 +372,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def sign(self, tensor: Tensor) -> Tensor:
     """
     Returns an elementwise tensor with entries
-    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively.
 
     For complex input the behaviour of this function may depend on the backend.
     The PyTorch version is not implemented in this case.

@@ -491,7 +491,7 @@ def test_jit_args():
 
 def test_sum():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   tensor = np.random.rand(2, 3, 4)
   a = backend.convert_to_tensor(tensor)
   actual = backend.sum(a, axis=(1, 2))
@@ -505,7 +505,7 @@ def test_sum():
 
 def test_matmul():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   t1 = np.random.rand(10, 2, 3)
   t2 = np.random.rand(10, 3, 4)
   a = backend.convert_to_tensor(t1)
@@ -519,7 +519,7 @@ def test_matmul():
 def test_abs(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.abs(tensor)
   expected = tf.math.abs(tensor)
   np.testing.assert_allclose(expected, actual)
@@ -529,7 +529,7 @@ def test_abs(dtype):
 def test_sign(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.sign(tensor)
   expected = tf.math.sign(tensor)
   np.testing.assert_allclose(expected, actual)

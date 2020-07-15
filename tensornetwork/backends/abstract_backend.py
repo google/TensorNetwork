@@ -749,7 +749,7 @@ class AbstractBackend:
   def sign(self, tensor: Tensor):
     """
     Returns an elementwise tensor with entries
-    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively. 
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively. 
 
     Args:
       tensor: The input tensor.

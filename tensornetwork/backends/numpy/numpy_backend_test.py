@@ -851,6 +851,7 @@ def test_matmul():
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_abs(dtype):
+  np.random.seed(10)
   shape = (4, 3, 2)
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn(shape, dtype=dtype)
@@ -861,6 +862,7 @@ def test_abs(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_sign(dtype):
+  np.random.seed(10)
   shape = (4, 3, 2)
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn(shape, dtype=dtype)

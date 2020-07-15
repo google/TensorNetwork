@@ -793,7 +793,7 @@ def test_gmres_on_larger_random_problem(dtype):
 def test_abs(dtype):
   shape = (4, 3, 2)
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.abs(tensor)
   expected = jax.numpy.abs(tensor)
   np.testing.assert_allclose(expected, actual)
@@ -803,7 +803,7 @@ def test_abs(dtype):
 def test_sign(dtype):
   shape = (4, 3, 2)
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.sign(tensor)
   expected = jax.numpy.sign(tensor)
   np.testing.assert_allclose(expected, actual)
