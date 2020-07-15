@@ -101,12 +101,13 @@ class Index:
 
   def flip_flow(self) -> "Index":
     """
-    Flip the flow if `Index` in place.
+    Flip the flow if `Index`.
     Returns:
       Index
     """
-    self.flow = list(np.logical_not(self.flow))
-    return self
+    return Index(
+        charges=[c.copy() for c in self._charges],
+        flow=list(np.logical_not(self.flow)))
 
   def __mul__(self, index: "Index") -> "Index":
     """
