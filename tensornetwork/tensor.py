@@ -101,7 +101,7 @@ class Tensor():
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.
     Args:
-      axes: The permutation. If None (default) the index order is reversed.  
+      axes: The permutation. If None (default) the index order is reversed.
     Returns:
       The Hermitian conjugated `Tensor`.
     """
@@ -143,3 +143,59 @@ class Tensor():
     """
     array_T = self.backend.transpose(self.array, perm=perm)
     return Tensor(array_T, backend=self.backend)
+
+  def __mul__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.multiply(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  __rmul__ = __mul__
+
+  def __truediv__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.divide(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  def __sub__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.subtraction(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  def __rsub__(self, other: float) -> "Tensor":
+    array = self.backend.subtraction(other, self.array)
+    return Tensor(array, backend=self.backend)
+
+  def __add__(self, other: Union["Tensor", float]) -> "Tensor":
+    if isinstance(other, Tensor):
+      if self.backend.name != other.backend.name:
+        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                  f"not agree.")
+        raise ValueError(errstr)
+      other = other.array
+    array = self.backend.addition(self.array, other)
+    return Tensor(array, backend=self.backend)
+
+  __radd__ = __add__
+
+  def __matmul__(self, other: "Tensor") -> "Tensor":
+    if self.backend.name != other.backend.name:
+      errstr = (f"Backends {self.backend.name} and {other.backend.name} did not"
+                f"agree.")
+      raise ValueError(errstr)
+    array = self.backend.matmul(self.array, other.array)
+    return Tensor(array, backend=self.backend)

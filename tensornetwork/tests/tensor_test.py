@@ -28,14 +28,13 @@ from tensornetwork import backends, backend_contextmanager
 config.update("jax_enable_x64", True)
 BaseBackend = abstract_backend.AbstractBackend
 
-np_real = [np.float32, np.float16, np.float64]
+np_real = [np.float32, np.float64]
 np_complex = [np.complex64, np.complex128]
-np_int = [np.int8, np.int16, np.int32, np.int64]
-np_uint = [np.uint8, np.uint16, np.uint32, np.uint64]
-np_all_dtypes = np_real + np_complex + np_int + np_uint + [np.bool, None]
+np_int = [np.int64]
+np_all_dtypes = np_real  + np_complex + np_int + [None]
+np_float_dtypes = np_real  + np_complex + [None]
 
-torch_supported_dtypes = np_real + np_int + [np.uint8, np.bool, None]
-
+torch_supported_dtypes = np_real + np_int + [None]
 
 def np_dtype_to_backend(backend, dtype):
   """
@@ -259,16 +258,6 @@ def test_tensor_transpose(backend, dtype):
     np.testing.assert_allclose(A.transpose(perm=permutation).array, test)
 
 
-#  @pytest.mark.parametrize("dtype", np_all_dtypes)
-#  def test_tensor_trace(backend, dtype):
-#    """ Checks that Tensor.trace() works.
-#    """
-#    shape = (2, 3, 1)
-#    A, init = safe_randn(shape, backend, dtype)
-#    if A is not None:
-#      np.testing.assert_allclose(A.trace().array, init.trace())
-
-
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_tensor_squeeze(backend, dtype):
   """ Checks that Tensor.squeeze() works.
@@ -310,3 +299,174 @@ def test_tensor_hconj(backend, dtype):
     test = A.backend.convert_to_tensor(init)
     test = A.backend.transpose(A.backend.conj(test), perm=permutation)
     np.testing.assert_allclose(A.hconj(perm=permutation).array, test)
+
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_tensor_multiply(backend, dtype):
+  """ Checks that Tensor*Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B, initB = safe_randn(shape, backend, dtype)
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    testB = B.backend.convert_to_tensor(initB)
+    result = A * B
+    result2 = A.backend.multiply(testA, testB)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_multiply(backend, dtype):
+  """ Checks that Tensor*scalar works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = A * B
+    result2 = A.backend.multiply(testA, B)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_rmultiply(backend, dtype):
+  """ Checks that scalar*Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = B * A
+    result2 = A.backend.multiply(B, testA)
+    np.testing.assert_allclose(result.array, result2)
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_tensor_divide(backend, dtype):
+  """ Checks that Tensor/Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B, _ = safe_zeros(shape, backend, dtype)
+  if A is not None:
+    B = B + 1
+    testA = A.backend.convert_to_tensor(initA)
+    result = A / B
+    result2 = A.backend.divide(testA, B.array)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_divide(backend, dtype):
+  """ Checks that Tensor/scalar works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = A / B
+    result2 = A.backend.divide(testA, B)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_tensor_addition(backend, dtype):
+  """ Checks that Tensor+Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B, initB = safe_randn(shape, backend, dtype)
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    testB = B.backend.convert_to_tensor(initB)
+    result = A + B
+    result2 = A.backend.addition(testA, testB)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_addition(backend, dtype):
+  """ Checks that Tensor+scalar works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = A + B
+    result2 = A.backend.addition(testA, B)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_raddition(backend, dtype):
+  """ Checks that scalar+Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = B + A
+    result2 = A.backend.addition(B, testA)
+    np.testing.assert_allclose(result.array, result2)
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_tensor_subtraction(backend, dtype):
+  """ Checks that Tensor-Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B, initB = safe_randn(shape, backend, dtype)
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    testB = B.backend.convert_to_tensor(initB)
+    result = A - B
+    result2 = A.backend.subtraction(testA, testB)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_subtraction(backend, dtype):
+  """ Checks that Tensor-scalar works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = A - B
+    result2 = A.backend.subtraction(testA, B)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_scalar_rsubtraction(backend, dtype):
+  """ Checks that scalar-Tensor works.
+  """
+  shape = (2, 3, 1)
+  A, initA = safe_randn(shape, backend, dtype)
+  B = 2.
+  if A is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    result = B - A
+    result2 = A.backend.subtraction(B, testA)
+    np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_all_dtypes)
+def test_tensor_matmul(backend, dtype):
+  """ Checks that Tensor@Tensor works.
+  """
+  shape = (3, 3)
+  A, initA = safe_randn(shape, backend, dtype)
+  B, initB = safe_randn(shape, backend, dtype)
+  if A is not None and B is not None:
+    testA = A.backend.convert_to_tensor(initA)
+    testB = B.backend.convert_to_tensor(initB)
+    result = A @ B
+    result2 = A.backend.matmul(testA, testB)
+    np.testing.assert_allclose(result.array, result2)
