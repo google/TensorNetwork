@@ -27,7 +27,7 @@ def jit(fun: Callable,
         backend: Union[Text, AbstractBackend] = None,
         backend_argnum: Optional[int] = None,
         static_argnums: Union[int, Iterable[int]] = (), device=None,
-        xla_backend: Optional[str] = None, donate_argnums=()) -> Callable:
+        xla_backend: Optional[str] = None) -> Callable:
   """
   Return a jitted or graph-compiled version of `fun`
   for JAX backend. For all other backends returns `fun`.
