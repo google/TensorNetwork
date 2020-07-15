@@ -527,12 +527,12 @@ def ncon(
     check_network: bool = True,
     backend: Optional[Union[Text, AbstractBackend]] = None
 ) -> Union[network_components.AbstractNode, Tensor]:
-  r"""Contracts a list of tensors or nodes according to a tensor network 
+  r"""Contracts a list of tensors or nodes according to a tensor network
     specification.
 
     The network is provided as a list of lists, one for each
     tensor, specifying the labels for the edges connected to that tensor.
-    
+
     Labels can be any numbers or strings. Negative number-type labels
     and string-type labels with a prepended hyphen ('-') are open labels
     and remain uncontracted.
