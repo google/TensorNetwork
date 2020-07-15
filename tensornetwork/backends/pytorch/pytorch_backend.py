@@ -427,4 +427,3 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       errstr = "offset, axis1, axis2 unsupported by TensorFlow backend."
       raise NotImplementedError(errstr)
     return torchlib.einsum('...jj', tensor)
-
