@@ -585,7 +585,7 @@ def test_trace(dtype, offset, axis1, axis2):
     with pytest.raises(NotImplementedError):
       actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
 
-  elif axis1==axis2:
+  elif axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
   else:
@@ -597,9 +597,9 @@ def test_trace(dtype, offset, axis1, axis2):
 def test_trace_raises():
   shape = [2]*30
   backend = pytorch_backend.PyTorchBackend()
-  array = backend.randn(shape, dtype=dtype, seed=10)
+  array = backend.randn(shape, seed=10)
   with pytest.raises(ValueError):
-    result = backend.trace(array)
+    _ = backend.trace(array)
 
 
 def test_matmul_rank2():
