@@ -169,7 +169,7 @@ def qr(
   if non_negative_diagonal:
     phases = tf.math.sign(tf.linalg.diag_part(r))
     q = q * phases
-    r = tf.linalg.diag(phases) @ r
+    r = phases[:, None] * r
   center_dim = tf.shape(q)[1]
   q = tf.reshape(q, tf.concat([left_dims, [center_dim]], axis=-1))
   r = tf.reshape(r, tf.concat([[center_dim], right_dims], axis=-1))
@@ -219,7 +219,7 @@ def rq(
   if non_negative_diagonal:
     phases = tf.math.sign(tf.linalg.diag_part(r))
     q = q * phases
-    r = tf.linalg.diag(phases) @ r
+    r = phases[:, None] * r
   r, q = tf.math.conj(tf.transpose(r)), tf.math.conj(
       tf.transpose(q))  #M=r*q at this point
   center_dim = tf.shape(r)[1]

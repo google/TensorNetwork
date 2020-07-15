@@ -595,7 +595,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -611,7 +611,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
@@ -620,7 +620,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def rq(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args

@@ -163,7 +163,8 @@ def qr(
   if non_negative_diagonal:
     phases = torch.sign(torch.diagonal(r))
     q = q * phases
-    r = torch.diag_embed(phases) @ r
+    r = phases[:, None] * r
+    #r = torch.diag_embed(phases) @ r
   center_dim = q.shape[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
@@ -212,7 +213,7 @@ def rq(
   if non_negative_diagonal:
     phases = torch.sign(torch.diagonal(r))
     q = q * phases
-    r = torch.diag_embed(phases) @ r
+    r = phases[:, None] * r
   r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,
                                                    1)  #M=r*q at this point
   center_dim = r.shape[1]

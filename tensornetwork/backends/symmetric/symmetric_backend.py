@@ -42,11 +42,11 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def transpose(self, tensor, perm) -> Tensor:
     return self.bs.transpose(tensor, perm)
-  
+
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -57,7 +57,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     if non_negative_diagonal:
@@ -68,7 +68,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def rq(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     if non_negative_diagonal:

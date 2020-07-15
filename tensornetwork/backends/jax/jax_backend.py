@@ -71,7 +71,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -87,7 +87,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.qr(jnp, tensor, pivot_axis, non_negative_diagonal)
@@ -95,7 +95,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def rq(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq(jnp, tensor, pivot_axis, non_negative_diagonal)

@@ -61,7 +61,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int = 1,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -74,11 +74,11 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr(self, tensor: Tensor, pivot_axis: int = 1,
+  def qr(self, tensor: Tensor, pivot_axis: int = -1,
          non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     return decompositions.qr(tf, tensor, pivot_axis, non_negative_diagonal)
 
-  def rq(self, tensor: Tensor, pivot_axis: int = 1,
+  def rq(self, tensor: Tensor, pivot_axis: int = -1,
          non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     return decompositions.rq(tf, tensor, pivot_axis, non_negative_diagonal)
 

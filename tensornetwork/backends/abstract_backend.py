@@ -76,7 +76,7 @@ class AbstractBackend:
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -136,7 +136,7 @@ class AbstractBackend:
   def qr(
       self,
       tensor: Tensor,
-      pivot_axis: int,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
@@ -146,7 +146,7 @@ class AbstractBackend:
   def rq(
       self,
       tensor: Tensor,
-      pivot_axis: int,
+      pivot_axis: int = -1,
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""

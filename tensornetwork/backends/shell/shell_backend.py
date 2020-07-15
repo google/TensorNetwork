@@ -65,7 +65,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      pivot_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -89,7 +89,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
     s_rest = ShellTensor((dim_s0 - dim_s,))
     return u, s, vh, s_rest
 
-  def qr(self, tensor: Tensor, pivot_axis: int = 1,
+  def qr(self, tensor: Tensor, pivot_axis: int = -1,
          non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:pivot_axis]
     right_dims = tensor.shape[pivot_axis:]
@@ -98,7 +98,7 @@ class ShellBackend(abstract_backend.AbstractBackend):
     r = ShellTensor((center_dim,) + right_dims)
     return q, r
 
-  def rq(self, tensor: Tensor, pivot_axis: int = 1,
+  def rq(self, tensor: Tensor, pivot_axis: int = -1,
          non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     left_dims = tensor.shape[:pivot_axis]
     right_dims = tensor.shape[pivot_axis:]
