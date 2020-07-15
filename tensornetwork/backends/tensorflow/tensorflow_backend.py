@@ -289,4 +289,4 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     Args:
       tensor: The input tensor.
     """
-    return = tf.math.sign(tensor)
+    return tf.math.sign(tensor)
