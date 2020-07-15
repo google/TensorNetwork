@@ -284,12 +284,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
 
     For complex input the behaviour of this function may depend on the backend.
-    With NumPy and Jax, it returns y[i] = x[i]/sqrt(x[i]^2). In
-    TensorFlow it returns y[i] = x[i] / abs(x[i]). In PyTorch it is
-    not implemented.
+    The TensorFlow version returns y[i] = x[i] / abs(x[i]).
 
     Args:
       tensor: The input tensor.
     """
-    out = tf.math.sign(tensor)
-    return out
+    return = tf.math.sign(tensor)
