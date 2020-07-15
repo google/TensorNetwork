@@ -180,10 +180,11 @@ def test_norm_vs_backend(backend, dtype):
   assert backend_result == tn_result
 
 
-@pytest.mark.parametrize("sparse_backend", sparse_backends)
+@pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
 @pytest.mark.parametrize("dtype", np_float_dtypes)
 def test_eigsh_lanczos(sparse_backend, dtype):
   shape = (4, 4)
+  dtype = np_dtype_to_backend(sparse_backend, dtype)
   tensor = tensornetwork.linalg.initialization.ones(shape,
                                                     backend=sparse_backend,
                                                     dtype=dtype)
