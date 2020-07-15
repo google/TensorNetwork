@@ -380,7 +380,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
                           the batched diagonals.
     """
     if axis1 == axis2:
-      raise ValueError("axis1 and axis2 must be different.")
+      raise ValueError("axis1={axis1} and axis2={axis2} must be different.")
     return torchlib.diagonal(tensor, offset=offset, dim1=axis1, dim2=axis2)
 
   def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:

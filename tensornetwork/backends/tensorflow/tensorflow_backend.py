@@ -294,7 +294,8 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
                           the batched diagonals.
     """
     if axis1 != -2 or axis2 != -1:
-      errstr = "axis1, axis2 unsupported by TensorFlow backend."
+      errstr = (f"axis1={axis1}, axis2={axis2} must be -2, -1 (the defaults)"
+                f"with TensorFlow backend.")
       raise NotImplementedError(errstr)
     #pylint: disable=unexpected-keyword-arg
     return tf.linalg.diag_part(tensor, k=offset)
