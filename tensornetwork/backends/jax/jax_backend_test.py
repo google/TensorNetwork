@@ -778,7 +778,7 @@ def test_gmres_on_larger_random_problem(dtype):
 def test_diagonal(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = jax_backend.JaxBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
@@ -794,7 +794,7 @@ def test_diagonal(dtype, offset, axis1, axis2):
 def test_diagflat(dtype, offset):
   shape = (5, 5, 5, 5)
   backend = jax_backend.JaxBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=offset)
   expected = jax.numpy.diag(jax.numpy.ravel(array), k=offset)
   np.testing.assert_allclose(actual, expected)
@@ -807,7 +807,7 @@ def test_diagflat(dtype, offset):
 def test_trace(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = jax_backend.JaxBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
