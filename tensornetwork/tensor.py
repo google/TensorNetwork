@@ -101,7 +101,7 @@ class Tensor():
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.
     Args:
-      axes: The permutation. If None (default) the index order is reversed.
+      perm: The permutation. If None (default) the index order is reversed.  
     Returns:
       The Hermitian conjugated `Tensor`.
     """

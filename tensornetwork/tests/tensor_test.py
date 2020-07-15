@@ -36,6 +36,7 @@ np_float_dtypes = np_real  + np_complex + [None]
 
 torch_supported_dtypes = np_real + np_int + [None]
 
+
 def np_dtype_to_backend(backend, dtype):
   """
   Converts a given np dtype to the equivalent in the given backend.
@@ -300,7 +301,7 @@ def test_tensor_hconj(backend, dtype):
     test = A.backend.transpose(A.backend.conj(test), perm=permutation)
     np.testing.assert_allclose(A.hconj(perm=permutation).array, test)
 
-
+    
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_tensor_multiply(backend, dtype):
   """ Checks that Tensor*Tensor works.
@@ -315,7 +316,7 @@ def test_tensor_multiply(backend, dtype):
     result2 = A.backend.multiply(testA, testB)
     np.testing.assert_allclose(result.array, result2)
 
-
+    
 @pytest.mark.parametrize("dtype", np_float_dtypes)
 def test_tensor_scalar_multiply(backend, dtype):
   """ Checks that Tensor*scalar works.
