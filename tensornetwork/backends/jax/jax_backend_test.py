@@ -776,8 +776,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = jax_backend.JaxBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, seed=10, dtype=dtype)
+  solution = backend.randn(vecshape, seed=10, dtype=dtype)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
