@@ -138,11 +138,6 @@ def test_sqrt():
   assertBackendsAgree("sqrt", args)
 
 
-def test_diagflat():
-  args = {"tensor": np.ones(10)}
-  assertBackendsAgree("diagflat", args)
-
-
 def test_convert_to_tensor():
   args = {"tensor": np.ones([3, 5, 2])}
   assertBackendsAgree("convert_to_tensor", args)
