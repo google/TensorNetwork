@@ -30,13 +30,13 @@ class DecompositionsTest(tf.test.TestCase):
 
   def test_expected_shapes_qr(self):
     val = np.zeros((2, 3, 4, 5))
-    q, r = decompositions.qr(np, val, 2)
+    q, r = decompositions.qr(np, val, 2, False)
     self.assertEqual(q.shape, (2, 3, 6))
     self.assertEqual(r.shape, (6, 4, 5))
 
   def test_expected_shapes_rq(self):
     val = np.zeros((2, 3, 4, 5))
-    r, q = decompositions.rq(np, val, 2)
+    r, q = decompositions.rq(np, val, 2, False)
     self.assertEqual(r.shape, (2, 3, 6))
     self.assertEqual(q.shape, (6, 4, 5))
 
