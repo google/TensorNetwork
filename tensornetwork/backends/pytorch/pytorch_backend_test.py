@@ -571,9 +571,21 @@ def test_matmul():
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = pytorch_backend.PyTorchBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   cols = 12
   rows = 16
   expected = torch.reshape(tensor, (cols, rows))
   actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_matmul_rank2():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 4)
+  t2 = np.random.rand(4, 10)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
