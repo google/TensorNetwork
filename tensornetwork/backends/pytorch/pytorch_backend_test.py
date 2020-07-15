@@ -584,4 +584,15 @@ def test_sign(dtype):
   tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.sign(tensor)
   expected = torch.sign(tensor)
+
+  
+def test_matmul_rank2():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 4)
+  t2 = np.random.rand(4, 10)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
