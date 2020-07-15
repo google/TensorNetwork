@@ -358,7 +358,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
-  
+
   def abs(self, tensor: Tensor) -> Tensor:
     """
     Returns the elementwise absolute value of tensor.
