@@ -23,6 +23,7 @@ import pytest
 import tensornetwork
 from tensornetwork.linalg import linalg
 import tensornetwork.linalg.krylov
+import tensornetwork.linalg.initialization
 from tensornetwork import backends, backend_contextmanager
 
 #pylint: disable=no-member
@@ -199,8 +200,7 @@ def test_eigsh_lanczos(sparse_backend, dtype):
   test_result = tensor.backend.eigsh_lanczos(matvec, initial_state=x0.array)
   tev, teV = test_result
 
-  for r, t in zip(rev, tev):
-    np.testing.assert_allclose(np.array(r), np.array(t))
+  np.testing.assert_allclose(np.array(rev), np.array(tev))
 
   for r, t in zip(reV, teV):
     np.testing.assert_allclose(r.array, t)
