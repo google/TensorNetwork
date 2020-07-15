@@ -325,7 +325,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
-  
+
   def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
     if k != 0:
       raise NotImplementedError("Can't specify k with Symmetric backend")
@@ -337,11 +337,13 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       errstr = "offset, axis1, axis2 unsupported by Symmetric backend."
       raise NotImplementedError(errstr)
     return self.bs.diag(tensor)
-  
+
   def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
             axis2: int = -1) -> Tensor:
     # Default np.trace uses first two axes.
-    if axis1 != -2 or axis2 != -1 or offset != 0:
-      errstr = "offset, axis1, axis2 unsupported by Symmetric backend."
+    if offset != 0:
+      errstr = f"offset = {offset} must be 0 with Symmetric backend."
       raise NotImplementedError(errstr)
-    return self.bs.trace(tensor)
+    if axis1 == axis2:
+      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
+    return self.bs.trace(tensor, [axis1, axis2])

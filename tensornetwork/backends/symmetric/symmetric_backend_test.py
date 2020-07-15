@@ -1012,10 +1012,21 @@ def test_diagflat(dtype, num_charges):
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2])
-def test_trace(dtype, num_charges):
+@pytest.mark.parametrize("offset", [0, 1])
+@pytest.mark.parametrize("axis1", range(0, 1))
+@pytest.mark.parametrize("axis2", range(0, 1))
+def test_trace(dtype, num_charges, offset, axis1, axis2):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
   a = get_square_matrix(num_charges, dtype)
-  actual = backend.trace(a)
-  expected = trace(a)
-  np.testing.assert_allclose(actual.data, expected.data)
+  if offset != 0:
+    with pytest.raises(NotImplementedError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  elif axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+    expected = trace(a, [axis1, axis2])
+    np.testing.assert_allclose(actual.data, expected.data)
+

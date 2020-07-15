@@ -443,5 +443,4 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     indsout = [i for n, i in enumerate(inds) if n not in (axis1, axis2)]
     inds[axis1] = 'a'
     inds[axis2] = 'a'
-    print(inds)
     return torchlib.einsum(''.join(inds) + '->' +''.join(indsout), tensor)
