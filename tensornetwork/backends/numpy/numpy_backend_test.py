@@ -838,7 +838,7 @@ def test_matmul():
 def test_diagonal(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = numpy_backend.NumPyBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
@@ -851,7 +851,7 @@ def test_diagonal(dtype, offset, axis1, axis2):
 @pytest.mark.parametrize("k", range(-2, 2))
 def test_diagflat(dtype, k):
   backend = numpy_backend.NumPyBackend()
-  array = backend.randn((16,), dtype=dtype)
+  array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
   expected = np.diagflat(array, k=k)
   np.testing.assert_allclose(expected, actual)
@@ -864,7 +864,7 @@ def test_diagflat(dtype, k):
 def test_trace(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = numpy_backend.NumPyBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 == axis2:
     with pytest.raises(ValueError):
       actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
