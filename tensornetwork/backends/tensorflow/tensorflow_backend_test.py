@@ -476,7 +476,7 @@ def test_jit_args():
 
 def test_sum():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   tensor = np.random.rand(2, 3, 4)
   a = backend.convert_to_tensor(tensor)
   actual = backend.sum(a, axis=(1, 2))
@@ -490,7 +490,7 @@ def test_sum():
 
 def test_matmul():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   t1 = np.random.rand(10, 2, 3)
   t2 = np.random.rand(10, 3, 4)
   a = backend.convert_to_tensor(t1)
@@ -507,7 +507,7 @@ def test_matmul():
 def test_diagonal(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = tensorflow_backend.TensorFlowBackend()
-  array = backend.randn(shape, dtype=dtype)
+  array = backend.randn(shape, dtype=dtype, seed=10)
   if axis1 != -2 or axis2 != -1:
     with pytest.raises(NotImplementedError):
       actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
@@ -521,7 +521,7 @@ def test_diagonal(dtype, offset, axis1, axis2):
 @pytest.mark.parametrize("k", range(-2, 2))
 def test_diagflat(dtype, k):
   backend = tensorflow_backend.TensorFlowBackend()
-  array = backend.randn((16,), dtype=dtype)
+  array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
   #pylint: disable=unexpected-keyword-arg
   expected = tf.linalg.diag(array, k=k)
@@ -535,11 +535,16 @@ def test_diagflat(dtype, k):
 def test_trace(dtype, offset, axis1, axis2):
   shape = (5, 5, 5, 5)
   backend = tensorflow_backend.TensorFlowBackend()
-  array = backend.randn(shape, dtype=dtype)
-  if axis1 != -2 or axis2 != -1 or offset != 0:
+  tf_array = backend.randn(shape, dtype=dtype, seed=10)
+  array = tf_array.numpy()
+  if offset != 0:
     with pytest.raises(NotImplementedError):
-      actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+      actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
+  elif axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
   else:
-    actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
-    expected = tf.linalg.trace(array)
-    np.testing.assert_allclose(actual, expected)
+    actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.trace(array, axis1=axis1, axis2=axis2)
+    tol = array.size * np.finfo(array.dtype).eps
+    np.testing.assert_allclose(actual, expected, rtol=tol, atol=tol)

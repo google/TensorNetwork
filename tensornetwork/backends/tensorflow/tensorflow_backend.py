@@ -337,7 +337,24 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     Returns:
       array_of_diagonals: The batched summed diagonals.
     """
-    if axis1 != -2 or axis2 != -1 or offset != 0:
-      errstr = "offset, axis1, axis2 unsupported by TensorFlow backend."
+    if offset != 0:
+      errstr = (f"offset = {offset} must be 0 (the default)"
+                f"with TensorFlow backend.")
       raise NotImplementedError(errstr)
-    return tf.linalg.trace(tensor)
+    if axis1 == axis2:
+      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
+    N = len(tensor.shape)
+    if N > 25:
+      raise ValueError(f"Currently only tensors with ndim <= 25 can be traced"
+                       f"in the TensorFlow backend (yours was {N})")
+
+    if axis1 < 0:
+      axis1 = N+axis1
+    if axis2 < 0:
+      axis2 = N+axis2
+
+    inds = list(map(chr, range(98, 98+N)))
+    indsout = [i for n, i in enumerate(inds) if n not in (axis1, axis2)]
+    inds[axis1] = 'a'
+    inds[axis2] = 'a'
+    return tf.einsum(''.join(inds) + '->' +''.join(indsout), tensor)
