@@ -347,6 +347,107 @@ class BaseDMRG:
         break
     return final_energy
 
+  def run_two_site(self,
+                   num_sweeps=4,
+                   precision=1E-6,
+                   num_krylov_vecs=10,
+                   verbose=0,
+                   delta=1E-6,
+                   tol=1E-6,
+                   ndiag=10) -> np.number:
+    """
+    Run a two-site DMRG optimization of the MPS.
+    Args:
+      num_sweeps: Number of DMRG sweeps. A sweep optimizes all sites
+        starting at the left side, moving to the right side, and back
+        to the left side.
+      precision: The desired precision of the energy. If `precision` is
+        reached, optimization is terminated.
+      num_krylov_vecs: Krylov space dimension used in the iterative
+        eigsh_lanczos method.
+      verbose: Verbosity flag. Us`verbose=0` to suppress any output.
+        Larger values produce increasingly more output.
+      delta: Convergence parameter of `eigsh_lanczos` to determine if
+        an invariant subspace has been found.
+      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in
+        `eigsh_lanczos` have converged within `tol`, `eighs_lanczos`
+        is terminted.
+      ndiag: Inverse frequency at which eigenvalues of the
+        tridiagonal Hamiltonian produced by `eigsh_lanczos` are tested
+        for convergence. `ndiag=10` tests at every tenth step.
+    Returns:
+      float: The energy upon termination of `run_two_site`.
+    """
+    if num_sweeps == 0:
+      return self.compute_energy()
+
+    converged = False
+    final_energy = 1E100
+    iteration = 1
+    initial_site = 0
+
+    self.mps.position(0)  #move center position to the left end
+    self.compute_right_envs()
+
+    def print_msg(site):
+      if verbose < 2:
+        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
+        stdout.write(text % (iteration, num_sweeps, site, len(
+            self.mps), np.real(energy), np.imag(energy)))
+        stdout.flush()
+
+      if verbose >= 2:
+        print(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
+              f"site={site}/{len(self.mps)}: optimized E={energy}")
+
+    while not converged:
+      if initial_site == 0:
+        self.position(0)
+        #the part outside the loop covers the len(self)==1 case
+        energy = self._optimize_1s_local(
+            sweep_dir='right',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        initial_site += 1
+        print_msg(site=0)
+      while self.mps.center_position < len(self.mps) - 1:
+        #_optimize_1site_local shifts the center site internally
+        energy = self._optimize_1s_local(
+            sweep_dir='right',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        print_msg(site=self.mps.center_position - 1)
+      #prepare for right sweep: move center all the way to the right
+      self.position(len(self.mps) - 1)
+      while self.mps.center_position > 0:
+        #_optimize_1site_local shifts the center site internally
+        energy = self._optimize_1s_local(
+            sweep_dir='left',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        print_msg(site=self.mps.center_position + 1)
+
+      if np.abs(final_energy - energy) < precision:
+        converged = True
+      final_energy = energy
+      iteration += 1
+      if iteration > num_sweeps:
+        if verbose > 0:
+          print()
+          print("dmrg did not converge to desired precision {0} "
+                "after {1} iterations".format(precision, num_sweeps))
+        break
+    return final_energy
+
   def compute_energy(self):
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
