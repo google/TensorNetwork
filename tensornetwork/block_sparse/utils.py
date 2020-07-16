@@ -22,15 +22,7 @@ from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
 
 from typing import (List, Union, Any, Tuple, Optional, Sequence)
 Tensor = Any
-
 SIZE_T = np.int64  #the size-type of index-arrays
-
-def compute_hash(charges, flows, tr_partition, order):
-  return hash(
-      tuple([np.stack(c.charges).tostring() for c in charges] + [
-          np.array(flows).tostring(), tr_partition,
-          np.array(order, dtype=np.int16).tostring()
-      ]))
 
 def get_real_dtype(dtype):
   if dtype == np.complex128:
