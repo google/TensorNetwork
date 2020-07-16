@@ -734,6 +734,28 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `abs`.".format(self.name))
+
+  def sign(self, tensor: Tensor):
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively. 
+
+    Args:
+      tensor: The input tensor.
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented `sign`.".format(self.name))
   
   def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
     """ Reshapes a tensor into a matrix, whose columns (rows) are the
