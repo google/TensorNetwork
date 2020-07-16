@@ -1029,4 +1029,3 @@ def test_trace(dtype, num_charges, offset, axis1, axis2):
     actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
     expected = trace(a, [axis1, axis2])
     np.testing.assert_allclose(actual.data, expected.data)
-
