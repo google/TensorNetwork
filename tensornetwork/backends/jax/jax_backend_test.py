@@ -772,7 +772,6 @@ def test_gmres_on_larger_random_problem(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-<<<<<<< HEAD
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))
 @pytest.mark.parametrize("axis2", range(0, 3))

@@ -724,7 +724,6 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
-<<<<<<< HEAD
 
   def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
     """ Flattens tensor and creates a new matrix of zeros with its elements

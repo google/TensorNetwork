@@ -528,6 +528,7 @@ def test_diagflat(dtype, k):
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_abs(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()
@@ -569,6 +570,7 @@ def test_trace(dtype, offset, axis1, axis2):
     np.testing.assert_allclose(actual, expected, rtol=tol, atol=tol)
 
 
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = tensorflow_backend.TensorFlowBackend()

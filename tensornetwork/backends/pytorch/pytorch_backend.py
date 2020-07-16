@@ -353,7 +353,6 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
 
-<<<<<<< HEAD
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.

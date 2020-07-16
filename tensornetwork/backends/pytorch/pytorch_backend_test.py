@@ -547,7 +547,6 @@ def test_matmul():
 
 
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
-<<<<<<< HEAD
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", [-2, 0])
 @pytest.mark.parametrize("axis2", [-1, 0])
