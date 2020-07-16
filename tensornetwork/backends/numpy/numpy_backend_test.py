@@ -870,6 +870,8 @@ def test_sign(dtype):
   expected = np.sign(tensor)
   np.testing.assert_allclose(expected, actual)
 
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()

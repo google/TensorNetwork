@@ -533,8 +533,9 @@ def test_sign(dtype):
   actual = backend.sign(tensor)
   expected = tf.math.sign(tensor)
   np.testing.assert_allclose(expected, actual)
-  
-  
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = tensorflow_backend.TensorFlowBackend()

@@ -806,7 +806,10 @@ def test_sign(dtype):
   tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.sign(tensor)
   expected = jax.numpy.sign(tensor)
-  
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = jax_backend.JaxBackend()
