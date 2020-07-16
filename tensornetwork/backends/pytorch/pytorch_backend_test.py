@@ -585,6 +585,17 @@ def test_sign(dtype):
   actual = backend.sign(tensor)
   expected = torch.sign(tensor)
   np.testing.assert_allclose(expected, actual)
+  
+  
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = torch.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
 
 
 def test_matmul_rank2():

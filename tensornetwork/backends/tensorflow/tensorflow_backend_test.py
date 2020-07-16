@@ -533,3 +533,14 @@ def test_sign(dtype):
   actual = backend.sign(tensor)
   expected = tf.math.sign(tensor)
   np.testing.assert_allclose(expected, actual)
+  
+  
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  cols = 12
+  rows = 16
+  expected = tf.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)

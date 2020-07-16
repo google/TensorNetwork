@@ -484,8 +484,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = numpy_backend.NumPyBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, dtype=dtype, seed=10)
+  solution = backend.randn(vecshape, dtype=dtype, seed=10)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
@@ -868,4 +868,14 @@ def test_sign(dtype):
   tensor = backend.randn(shape, dtype=dtype)
   actual = backend.sign(tensor)
   expected = np.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
   np.testing.assert_allclose(expected, actual)
