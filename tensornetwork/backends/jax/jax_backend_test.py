@@ -776,8 +776,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = jax_backend.JaxBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, seed=10, dtype=dtype)
+  solution = backend.randn(vecshape, seed=10, dtype=dtype)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
@@ -787,3 +787,15 @@ def test_gmres_on_larger_random_problem(dtype):
   rtol = tol*jax.numpy.linalg.norm(b)
   atol = tol
   assert err < max(rtol, atol)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
