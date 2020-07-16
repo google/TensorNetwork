@@ -790,10 +790,30 @@ def test_gmres_on_larger_random_problem(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = jax.numpy.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = jax.numpy.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   cols = 12
   rows = 16
   expected = tensor.reshape((cols, rows))
