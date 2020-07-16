@@ -353,7 +353,7 @@ def sign(tensor: Tensor) -> Tensor:
   result = backend.sign(tensor.array)
   return Tensor(result, backend=backend)
 
-
+# pylint: disable=redefined-builtin
 def abs(tensor: Tensor) -> Tensor:
   """ Returns the absolute value of the elements of Tensor.
   """
