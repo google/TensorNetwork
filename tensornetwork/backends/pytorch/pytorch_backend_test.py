@@ -567,6 +567,18 @@ def test_matmul():
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = torch.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_matmul_rank2():
   np.random.seed(10)
   backend = pytorch_backend.PyTorchBackend()

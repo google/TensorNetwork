@@ -1019,3 +1019,9 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+def test_pivot_not_implemented():
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(NotImplementedError):
+    backend.pivot(np.ones((2, 2)))

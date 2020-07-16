@@ -513,3 +513,15 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype)
+  cols = 12
+  rows = 16
+  expected = tf.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
