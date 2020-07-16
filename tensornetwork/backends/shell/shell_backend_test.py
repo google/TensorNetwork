@@ -64,6 +64,12 @@ def test_svd_decomposition_raises_error():
         tensor, 3, max_truncation_error=.1)
 
 
+def test_gmres_not_implemented():
+  backend = shell_backend.ShellBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_svd_decomposition_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().svd_decomposition(
@@ -456,3 +462,13 @@ def test_matmul():
   b = backend.randn((10, 3, 4), seed=10)
   actual = backend.matmul(a, b)
   np.testing.assert_allclose(actual.shape, [10, 2, 4])
+
+
+def test_pivot():
+  shape = (4, 3, 2, 8)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=np.float64)
+  cols = 12
+  rows = 16
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(actual.shape, (cols, rows))

@@ -359,6 +359,12 @@ def test_eigs_not_implemented():
     backend.eigs(np.ones((2, 2)))
 
 
+def test_gmres_not_implemented():
+  backend = tensorflow_backend.TensorFlowBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_eigsh_lanczos_not_implemented():
   backend = tensorflow_backend.TensorFlowBackend()
   with pytest.raises(NotImplementedError):
@@ -485,7 +491,7 @@ def test_jit_args():
 
 def test_sum():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   tensor = np.random.rand(2, 3, 4)
   a = backend.convert_to_tensor(tensor)
   actual = backend.sum(a, axis=(1, 2))
@@ -499,11 +505,43 @@ def test_sum():
 
 def test_matmul():
   np.random.seed(10)
-  backend = tensorflow_backend.TensorFlowBackend()  
+  backend = tensorflow_backend.TensorFlowBackend()
   t1 = np.random.rand(10, 2, 3)
   t2 = np.random.rand(10, 3, 4)
   a = backend.convert_to_tensor(t1)
   b = backend.convert_to_tensor(t2)
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = tf.math.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = tf.math.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = tf.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
   np.testing.assert_allclose(expected, actual)

@@ -191,10 +191,7 @@ class ChargeArray:
     """
     return np.reshape(self.data, self.shape)
 
-  def reshape(
-      self, shape: Union[np.ndarray, List[Index], Tuple[Index, ...], List[int],
-                         Tuple[int, ...]]
-  ) -> "ChargeArray":
+  def reshape(self, shape: Sequence[Union[Index, int]]) -> "ChargeArray":
     """
     Reshape `tensor` into `shape.
     `ChargeArray.reshape` works the same as the dense 
@@ -330,8 +327,7 @@ class ChargeArray:
     return result
 
   def transpose(self,
-                order: Union[Tuple[int, ...], List[int],
-                             np.ndarray] = np.asarray([1, 0]),
+                order: Sequence[int] = np.asarray([1, 0]),
                 shuffle: Optional[bool] = False) -> "ChargeArray":
     """
     Transpose the tensor into the new order `order`. If `shuffle=False`
@@ -371,6 +367,21 @@ class ChargeArray:
         flows=np.logical_not(self._flows),
         order=self._order,
         check_consistency=False)
+  
+  @property
+  def H(self):
+    if self.ndim != 2:
+      raise ValueError("hermitian conjugate only works for 2d arrays")
+    order = [self._order[o] for o in [1, 0]]
+    tensor = self.__new__(type(self))
+    tensor.__init__(
+        data=np.conj(self.data),
+        charges=self._charges,
+        flows=self._flows,
+        order=order,
+        check_consistency=False)
+
+    return tensor
 
   @property
   def T(self) -> "ChargeArray":
@@ -381,6 +392,9 @@ class ChargeArray:
 
   def __add__(self, other: "ChargeArray") -> "ChargeArray":
     raise NotImplementedError("__add__ not implemented for ChargeArray")
+  
+  def __neg__(self) -> "ChargeArray":
+    raise NotImplementedError("__neg__ not implemented for ChargeArray")
 
   def __mul__(self, number: np.number) -> "ChargeArray":
     raise NotImplementedError("__mul__ not implemented for ChargeArray")
@@ -401,7 +415,7 @@ class ChargeArray:
     ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
         self.dtype.name) + '\n   flat flows: ' + repr(
             self.flat_flows) + '\n   order: ' + repr(
-                self._order) + '\n   data:' + repr(self.data)
+                self._order)
 
     return output
 
@@ -531,7 +545,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def randn(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a random symmetric tensor from a random normal distribution
@@ -554,7 +568,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def random(cls,
-             indices: Union[Tuple[Index], List[Index]],
+             indices: Sequence[Index],
              boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
              dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
@@ -579,7 +593,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def ones(cls,
-           indices: Union[Tuple[Index], List[Index]],
+           indices: Sequence[Index],
            dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with ones.
@@ -603,7 +617,7 @@ class BlockSparseTensor(ChargeArray):
 
   @classmethod
   def zeros(cls,
-            indices: Union[Tuple[Index], List[Index]],
+            indices: Sequence[Index],
             dtype: Optional[Type[np.number]] = None) -> "BlockSparseTensor":
     """
     Initialize a symmetric tensor with zeros.
@@ -687,6 +701,9 @@ class BlockSparseTensor(ChargeArray):
         order=self._order,
         check_consistency=False)
 
+  def __neg__(self) -> "BlockSparseTensor":
+    return (-1) * self
+    
   def __mul__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(

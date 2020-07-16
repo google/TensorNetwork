@@ -20,7 +20,7 @@ from tensornetwork.block_sparse.index import Index
 # pylint: disable=line-too-long
 from tensornetwork.block_sparse.charge import fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays
 # pylint: disable=line-too-long
-from typing import List, Union, Any, Tuple, Optional
+from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
@@ -42,13 +42,11 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
   Returns:
     list: The flattened input.
   """
-  res = []
-  for l in list_of_list:
-    res.extend(l)
-  return np.array(res)
+  return np.array([l for sublist in list_of_list for l in sublist])
 
 
-def get_flat_meta_data(indices: List[Index]) -> Tuple[List, List]:
+
+def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """
   Return charges and flows of flattened `indices`.
   Args:
@@ -183,8 +181,6 @@ def compute_fused_charge_degeneracies(
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
     accumulated_charges = fused_charges.unique(sort=False)
-    accumulated_degeneracies = np.empty(len(accumulated_charges), dtype=SIZE_T)
-
     accumulated_degeneracies = np.array([
         np.sum(fused_degeneracies[fused_charges.charge_labels ==
                                   accumulated_charges.charge_labels[m]])
@@ -385,13 +381,11 @@ def _find_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   num_inds = len(charges)
-  num_syms = charges[0].num_symmetries
-
   if partition in (0, num_inds):
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = np.zeros([num_syms, 1], dtype=charges[0].dtype)
+    block_qnums = charges[0].identity_charges.charges    
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
@@ -426,7 +420,6 @@ def _find_diagonal_sparse_blocks(
   row_ind = reduce_charges(charges[:partition], flows[:partition], block_qnums)
   row_num_nz = col_degen[col_to_block[row_ind.charge_labels]]
   cumulate_num_nz = np.insert(np.cumsum(row_num_nz[0:-1]), 0, 0).astype(SIZE_T)
-
   # calculate mappings for the position in datavector of each block
   if num_blocks < 15:
     # faster method for small number of blocks
@@ -439,7 +432,6 @@ def _find_diagonal_sparse_blocks(
     row_locs[row_ind.charge_labels,
              np.arange(row_ind.dim)] = np.ones(
                  row_ind.dim, dtype=bool)
-
   block_dims = np.array(
       [[row_degen[row_to_block[n]], col_degen[col_to_block[n]]]
        for n in range(num_blocks)],
@@ -532,7 +524,7 @@ def _find_transposed_diagonal_sparse_blocks(
   all_degens = np.append(orig_col_degen[col_map],
                          0)[inv_row_map[orig_row_ind.charge_labels]]
   all_cumul_degens = np.cumsum(np.insert(all_degens[:-1], 0, 0)).astype(SIZE_T)
-  dense_to_sparse = np.zeros(orig_width, dtype=SIZE_T)
+  dense_to_sparse = np.empty(orig_width, dtype=SIZE_T)
   for n in range(orig_num_blocks):
     dense_to_sparse[orig_col_ind.charge_labels == col_map[n]] = np.arange(
         orig_col_degen[col_map[n]], dtype=SIZE_T)
@@ -622,7 +614,6 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims = np.array(
         [new_row_degen[new_row_map], new_col_degen[new_col_map]], dtype=SIZE_T)
     num_blocks = len(new_row_map)
-
     row_ind, row_locs = reduce_charges(
         new_row_charges,
         new_row_flows,

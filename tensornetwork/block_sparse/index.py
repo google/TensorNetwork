@@ -44,7 +44,12 @@ class Index:
     return self.dim
 
   def __repr__(self) -> str:
-    return str(self.dim)
+    dense_shape = f"Dimension: {str(self.dim)} \n"
+    charge_str = str(self._charges).replace('\n,', ',\n')
+    charge_str = charge_str.replace('\n', '\n            ')
+    charges = f"Charges:  {charge_str} \n"
+    flow_info = f"Flows:  {str(self.flow)} \n"
+    return f"Index:\n  {dense_shape}  {charges}  {flow_info} "
 
   @property
   def dim(self) -> int:
@@ -96,12 +101,13 @@ class Index:
 
   def flip_flow(self) -> "Index":
     """
-    Flip the flow if `Index` in place.
+    Flip the flow if `Index`.
     Returns:
       Index
     """
-    self.flow = list(np.logical_not(self.flow))
-    return self
+    return Index(
+        charges=[c.copy() for c in self._charges],
+        flow=list(np.logical_not(self.flow)))
 
   def __mul__(self, index: "Index") -> "Index":
     """

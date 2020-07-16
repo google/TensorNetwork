@@ -497,6 +497,12 @@ def test_eigs_not_implemented():
     backend.eigs(np.ones((2, 2)))
 
 
+def test_gmres_not_implemented():
+  backend = pytorch_backend.PyTorchBackend()
+  with pytest.raises(NotImplementedError):
+    backend.gmres(lambda x: x, np.ones((2)))
+
+
 def test_broadcast_right_multiplication():
   backend = pytorch_backend.PyTorchBackend()
   tensor1 = backend.randn((2, 4, 3), dtype=torch.float64, seed=10)
@@ -554,6 +560,50 @@ def test_matmul():
   backend = pytorch_backend.PyTorchBackend()
   t1 = np.random.rand(10, 2, 3)
   t2 = np.random.rand(10, 3, 4)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.matmul(a, b)
+  expected = np.matmul(t1, t2)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = torch.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = torch.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = torch.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
+
+
+def test_matmul_rank2():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 4)
+  t2 = np.random.rand(4, 10)
   a = backend.convert_to_tensor(t1)
   b = backend.convert_to_tensor(t2)
   actual = backend.matmul(a, b)

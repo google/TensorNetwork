@@ -1,39 +1,39 @@
 from functools import partial
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Callable, Sequence
 import numpy as np
 Tensor = Any
 
 def _generate_jitted_eigsh_lanczos(jax):
   """
-  Helper function to generate jitted lanczos function used 
-  in JaxBackend.eigsh_lanczos. The function `jax_lanczos` 
+  Helper function to generate jitted lanczos function used
+  in JaxBackend.eigsh_lanczos. The function `jax_lanczos`
   returned by this higher-order function has the following
   call signature:
   ```
-  eigenvalues, eigenvectors = jax_lanczos(matvec:Callable, 
+  eigenvalues, eigenvectors = jax_lanczos(matvec:Callable,
                                      arguments: List[Tensor],
-                                     init: Tensor, 
-                                     ncv: int,  
-                                     neig: int, 
-                                     landelta: float, 
+                                     init: Tensor,
+                                     ncv: int,
+                                     neig: int,
+                                     landelta: float,
                                      reortho: bool)
   ```
-  `matvec`: A callable implementing the matrix-vector product of a 
-  linear operator. `arguments`: Arguments to `matvec` additional to 
+  `matvec`: A callable implementing the matrix-vector product of a
+  linear operator. `arguments`: Arguments to `matvec` additional to
   an input vector. `matvec` will be called as `matvec(init, *args)`.
   `init`: An initial input state to `matvec`.
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
   `landelta`: Convergence parameter: if the norm of the current Lanczos vector
     falls below `landelta`, iteration is stopped.
-  `reortho`: If `True`, reorthogonalize all krylov vectors at each step. 
+  `reortho`: If `True`, reorthogonalize all krylov vectors at each step.
      This should be used if `neig>1`.
-  
+
   Args:
     jax: The `jax` module.
   Returns:
     Callable: A jitted function that does a lanczos iteration.
-  
+
   """
 
   @partial(jax.jit, static_argnums=(3, 4, 5, 6))
@@ -41,16 +41,16 @@ def _generate_jitted_eigsh_lanczos(jax):
     """
     Jitted lanczos routine.
     Args:
-      matvec: A callable implementing the matrix-vector product of a 
+      matvec: A callable implementing the matrix-vector product of a
         linear operator.
-      arguments: Arguments to `matvec` additional to an input vector. 
+      arguments: Arguments to `matvec` additional to an input vector.
         `matvec` will be called as `matvec(init, *args)`.
       init: An initial input state to `matvec`.
       ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
       neig: Number of eigenvalue-eigenvector pairs to be computed.
       landelta: Convergence parameter: if the norm of the current Lanczos vector
         falls below `landelta`, iteration is stopped.
-      reortho: If `True`, reorthogonalize all krylov vectors at each step. 
+      reortho: If `True`, reorthogonalize all krylov vectors at each step.
         This should be used if `neig>1`.
     Returns:
       jax.numpy.ndarray: Eigenvalues
@@ -152,29 +152,29 @@ def _generate_jitted_eigsh_lanczos(jax):
 
 def _generate_arnoldi_factorization(jax):
   """
-  Helper function to create a jitted arnoldi factorization. 
-  The function returns a function `_arnoldi_fact` which 
+  Helper function to create a jitted arnoldi factorization.
+  The function returns a function `_arnoldi_fact` which
   performs an m-step arnoldi factorization.
 
-  `_arnoldi_fact` computes an m-step arnoldi factorization 
-  of an input callable `matvec`, with m = min(`it`,`num_krylov_vecs`). 
-  `_arnoldi_fact` will do at most `num_krylov_vecs` steps. 
-  `_arnoldi_fact` returns arrays `kv` and `H` which satisfy 
+  `_arnoldi_fact` computes an m-step arnoldi factorization
+  of an input callable `matvec`, with m = min(`it`,`num_krylov_vecs`).
+  `_arnoldi_fact` will do at most `num_krylov_vecs` steps.
+  `_arnoldi_fact` returns arrays `kv` and `H` which satisfy
   the Arnoldi recurrence relation
   ```
   matrix @ Vm - Vm @ Hm - fm * em = 0
   ```
-  with `matrix` the matrix representation of `matvec` and 
-  `Vm =  jax.numpy.transpose(kv[:it, :])`, 
-  `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
-  and `em` a kartesian basis vector of shape `(1, kv.shape[1])` 
+  with `matrix` the matrix representation of `matvec` and
+  `Vm =  jax.numpy.transpose(kv[:it, :])`,
+  `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1)
+  and `em` a kartesian basis vector of shape `(1, kv.shape[1])`
   with `em[0, -1] == 1` and 0 elsewhere.
 
-  Note that the caller is responsible for dtype consistency between 
+  Note that the caller is responsible for dtype consistency between
   the inputs, i.e. dtypes between all input arrays have to match.
 
   Args:
-    matvec: The matrix vector product. This function has to be wrapped into 
+    matvec: The matrix vector product. This function has to be wrapped into
       `jax.tree_util.Partial`. `matvec` will be called as `matvec(x, *args)`
       for an input vector `x`.
     args: List of arguments to `matvec`.
@@ -182,19 +182,20 @@ def _generate_arnoldi_factorization(jax):
     krylov_vectors: An array for storing the krylov vectors. The individual
       vectors are stored as columns. The shape of `krylov_vecs` has to be
       (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
-    H: Matrix of overlaps. The shape has to be 
+    H: Matrix of overlaps. The shape has to be
       (num_krylov_vecs + 1,num_krylov_vecs + 1).
-    start: Integer denoting the start position where the first 
+    start: Integer denoting the start position where the first
       produced krylov_vector should be inserted into `krylov_vectors`
-    num_krylov_vecs: Number of krylov iterations, should be identical to 
+    num_krylov_vecs: Number of krylov iterations, should be identical to
       `krylov_vectors.shape[0] + 1`
     eps: Convergence parameter. Iteration is terminated if the norm of a
       krylov-vector falls below `eps`.
 
   Returns:
     kv: An array of krylov vectors
-    H: A matrix of overlaps 
+    H: A matrix of overlaps
     it: The number of performed iterations.
+    converged: Whether convergence was achieved.
 
   """
 
@@ -208,11 +209,11 @@ def _generate_arnoldi_factorization(jax):
         `vector`: The current vector to be orthogonalized
         to all previous ones
         `krylov_vectors`: jax.array of collected krylov vectors
-        `n`: integer denoting the column-position of the overlap 
+        `n`: integer denoting the column-position of the overlap
           <`krylov_vector`|`vector`> within `H`.
     Returns:
       updated vals.
-             
+
     """
     vector, krylov_vectors, n, H = vals
     v = krylov_vectors[j, :]
@@ -225,22 +226,22 @@ def _generate_arnoldi_factorization(jax):
   def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
                     eps):
     """
-    Compute an m-step arnoldi factorization of `matvec`, with 
-    m = min(`it`,`num_krylov_vecs`). The factorization will 
-    do at most `num_krylov_vecs` steps. The returned arrays 
+    Compute an m-step arnoldi factorization of `matvec`, with
+    m = min(`it`,`num_krylov_vecs`). The factorization will
+    do at most `num_krylov_vecs` steps. The returned arrays
     `kv` and `H` will satisfy the Arnoldi recurrence relation
     ```
     matrix @ Vm - Vm @ Hm - fm * em = 0
     ```
-    with `matrix` the matrix representation of `matvec` and 
-    `Vm =  jax.numpy.transpose(kv[:it, :])`, 
-    `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1) 
-    and `em` a cartesian basis vector of shape `(1, kv.shape[1])` 
+    with `matrix` the matrix representation of `matvec` and
+    `Vm =  jax.numpy.transpose(kv[:it, :])`,
+    `Hm = H[:it, :it]`, `fm = np.expand_dims(kv[it, :] * H[it, it - 1]`,1)
+    and `em` a cartesian basis vector of shape `(1, kv.shape[1])`
     with `em[0, -1] == 1` and 0 elsewhere.
-    
-    Note that the caller is responsible for dtype consistency between 
+
+    Note that the caller is responsible for dtype consistency between
     the inputs, i.e. dtypes between all input arrays have to match.
-    
+
     Args:
       matvec: The matrix vector product.
       args: List of arguments to `matvec`.
@@ -248,17 +249,17 @@ def _generate_arnoldi_factorization(jax):
       krylov_vectors: An array for storing the krylov vectors. The individual
         vectors are stored as columns. The shape of `krylov_vecs` has to be
         (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
-      H: Matrix of overlaps. The shape has to be 
+      H: Matrix of overlaps. The shape has to be
         (num_krylov_vecs + 1,num_krylov_vecs + 1).
-      start: Integer denoting the start position where the first 
+      start: Integer denoting the start position where the first
         produced krylov_vector should be inserted into `krylov_vectors`
-      num_krylov_vecs: Number of krylov iterations, should be identical to 
+      num_krylov_vecs: Number of krylov iterations, should be identical to
         `krylov_vectors.shape[0] + 1`
       eps: Convergence parameter. Iteration is terminated if the norm of a
         krylov-vector falls below `eps`.
     Returns:
       kv: An array of krylov vectors
-      H: A matrix of overlaps 
+      H: A matrix of overlaps
       it: The number of performed iterations.
     """
     Z = jax.numpy.linalg.norm(v0)
@@ -287,22 +288,20 @@ def _generate_arnoldi_factorization(jax):
       return [krylov_vectors, H, matvec, Av, norm, threshold, i + 1, maxiter]
 
     def cond_fun(vals):
-      _, _, _, _, norm, threshold, iteration, maxiter = vals
+      # Continue loop while iteration < num_krylov_vecs and norm > eps
+      _, _, _, _, norm, _, iteration, _ = vals
+      counter_done = (iteration >= num_krylov_vecs)
+      norm_not_too_small = norm > eps
+      continue_iteration = jax.lax.cond(counter_done,
+                                        _, lambda x: False,
+                                        _, lambda x: norm_not_too_small)
 
-      # check if an invariant subspace has been found
-      def check_thresh(check_vals):
-        val, thresh = check_vals
-        return jax.lax.cond(val < thresh, False, lambda x: x, True, lambda x: x)
-
-      return jax.lax.cond(iteration < maxiter, [norm, threshold], check_thresh,
-                          False, lambda x: x)
-
-    norms_dtype = np.real(v0.dtype).dtype
-    kvfinal, Hfinal, _, _, norm, _, it, _ = jax.lax.while_loop(
-        cond_fun, body, [
-            krylov_vectors, H, matvec, v,
-            norms_dtype.type(1E3), eps, start, num_krylov_vecs
-        ])
+      return continue_iteration
+    initial_norm = v.real.dtype.type(1.0+eps)
+    initial_values = [krylov_vectors, H, matvec, v, initial_norm, eps, start,
+                      num_krylov_vecs]
+    final_values = jax.lax.while_loop(cond_fun, body, initial_values)
+    kvfinal, Hfinal, _, _, norm, _, it, _ = final_values
     return kvfinal, Hfinal, it, norm < eps
 
   return _arnoldi_fact
@@ -311,21 +310,21 @@ def _generate_arnoldi_factorization(jax):
 def _implicitly_restarted_arnoldi(jax):
   """
   Helper function to generate a jitted function to do an
-  implicitly restarted arnoldi factorization of `matvec`. The 
-  returned routine finds the lowest `numeig` 
-  eigenvector-eigenvalue pairs of `matvec` 
-  by alternating between compression and re-expansion of an initial 
-  `num_krylov_vecs`-step Arnoldi factorization. 
+  implicitly restarted arnoldi factorization of `matvec`. The
+  returned routine finds the lowest `numeig`
+  eigenvector-eigenvalue pairs of `matvec`
+  by alternating between compression and re-expansion of an initial
+  `num_krylov_vecs`-step Arnoldi factorization.
 
-  Note: The caller has to ensure that the dtype of the return value 
+  Note: The caller has to ensure that the dtype of the return value
   of `matvec` matches the dtype of the initial state. Otherwise jax
   will raise a TypeError.
 
-  The function signature of the returned function is 
+  The function signature of the returned function is
     Args:
       matvec: A callable representing the linear operator.
-      args: Arguments to `matvec`.  `matvec` is called with 
-        `matvec(x, *args)` with `x` the input array on which 
+      args: Arguments to `matvec`.  `matvec` is called with
+        `matvec(x, *args)` with `x` the input array on which
         `matvec` should act.
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
@@ -337,11 +336,11 @@ def _implicitly_restarted_arnoldi(jax):
       maxiter: Maximum number of (outer) iteration steps.
     Returns:
       eta, U: Two lists containing eigenvalues and eigenvectors.
-  
+
   Args:
     jax: The jax module.
   Returns:
-    Callable: A function performing an implicitly restarted 
+    Callable: A function performing an implicitly restarted
       Arnoldi factorization
   """
 
@@ -423,19 +422,19 @@ def _implicitly_restarted_arnoldi(jax):
       matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
       maxiter) -> Tuple[List[Tensor], List[Tensor]]:
     """
-    Implicitly restarted arnoldi factorization of `matvec`. The routine 
-    finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec` 
-    by alternating between compression and re-expansion of an initial 
-    `num_krylov_vecs`-step Arnoldi factorization. 
+    Implicitly restarted arnoldi factorization of `matvec`. The routine
+    finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
+    by alternating between compression and re-expansion of an initial
+    `num_krylov_vecs`-step Arnoldi factorization.
 
-    Note: The caller has to ensure that the dtype of the return value 
+    Note: The caller has to ensure that the dtype of the return value
     of `matvec` matches the dtype of the initial state. Otherwise jax
     will raise a TypeError.
-    
+
     Args:
       matvec: A callable representing the linear operator.
-      args: Arguments to `matvec`.  `matvec` is called with 
-        `matvec(x, *args)` with `x` the input array on which 
+      args: Arguments to `matvec`.  `matvec` is called with
+        `matvec(x, *args)` with `x` the input array on which
         `matvec` should act.
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
@@ -517,3 +516,105 @@ def _implicitly_restarted_arnoldi(jax):
     ]
 
   return implicitly_restarted_arnoldi_method
+
+
+def gmres_wrapper(jax):
+  """
+  Allows Jax (the module) to be passed in as an argument rather than imported,
+  since doing the latter breaks the build.
+  Args:
+    jax: The imported Jax module.
+  Returns:
+    gmres: A function performing gmres_m as described below.
+  """
+  jnp = jax.numpy
+
+  def gmres_m(A_mv: Callable, A_args: Sequence,
+              b: jax.ShapedArray, x0: jax.ShapedArray, tol: float, atol: float,
+              num_krylov_vectors: int,
+              maxiter: int) -> Tuple[jax.ShapedArray, float, int, bool]:
+    """
+    Solve A x = b for x using the m-restarted GMRES method. This is
+    intended to be called via jax_backend.gmres.
+
+    Given a linear mapping with (n x n) matrix representation
+        A = A_mv(*A_args) gmres_m solves
+        Ax = b          (1)
+    where x and b are length-n vectors, using the method of
+    Generalized Minimum RESiduals with M iterations per restart (GMRES_M).
+
+    Args:
+
+    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
+               `v` have the same shape.
+    A_args   : A list of positional arguments to A_mv.
+    b        : The `b` in `A @ x = b`.
+    x0       : Initial guess solution.
+    tol, atol: Solution tolerance to achieve,
+               norm(residual) <= max(tol*norm(b), atol).
+               tol is also used to set the threshold at which the Arnoldi
+               factorization terminates.
+    num_krylov_vectors
+             : Size of the Krylov space to build at each restart.
+    maxiter  : The Krylov space will be repeatedly rebuilt up to this many
+               times.
+
+
+    RETURNS
+    -------
+    x (array, (n,)) : The approximate solution.
+    beta (float)    : Norm of the residual at termination.
+    n_iter (int)    : Number of iterations at termination.
+    converged (bool): Whether the desired tolerance was achieved.
+    """
+    x = x0
+    converged = False
+    r, beta = gmres_residual(A_mv, A_args, b, x)
+    b_norm = jnp.linalg.norm(b)
+    for n_iter in range(maxiter):
+      # pylint: disable=too-many-function-args
+      x = gmres(A_mv, A_args, num_krylov_vectors, x, r, beta, tol)
+      r, beta = gmres_residual(A_mv, A_args, b, x)
+      if beta <= max(tol*b_norm, atol):
+        converged = True
+        break
+    return (x, beta, n_iter, converged)
+
+  @jax.jit
+  def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
+                     x: jax.ShapedArray) -> Tuple[jax.ShapedArray, float]:
+    """
+    Computes the residual vector r and its norm, beta, which is minimized by
+    GMRES.
+    """
+    r = b - A_mv(x, *A_args)
+    beta = jnp.linalg.norm(r)
+    return r, beta
+
+
+  @partial(jax.jit, static_argnums=(2, 6))
+  def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
+            x0: jax.ShapedArray, r: jax.ShapedArray,
+            beta: float, tol: float) -> jax.ShapedArray:
+    """
+    Solve A x = b for x by the unrestarted GMRES method.
+    Given A, a trial solution x, the residual r,
+    and the size n_kry of the Krylov space, iterates x towards the solution,
+    by finding y in x = x_0 + V y minimizing ||beta - H y||.
+    """
+    v = r / beta
+    Vk_1 = jnp.zeros((n_kry + 1, v.size), dtype=v.dtype)
+    Htilde = jnp.zeros((n_kry + 1, n_kry + 1), dtype=v.dtype)
+    arnoldi_f = _generate_arnoldi_factorization(jax)
+    Vk_1, Htilde, _, _ = arnoldi_f(A_mv, A_args, v, Vk_1, Htilde, 0, n_kry, tol)
+    Vk_1 = Vk_1.T
+    Htilde = Htilde[:, :-1]
+    Q, Rtilde = jnp.linalg.qr(Htilde, mode="complete")
+    Q = Q.T.conj()
+    R = Rtilde[:-1, :]
+    g = beta*jnp.ravel(Q[:-1, 0])
+    y = jax.scipy.linalg.solve_triangular(R, g)
+    update = Vk_1[:, :-1] @ y
+    x = x0 + update
+    return x
+  return gmres_m
