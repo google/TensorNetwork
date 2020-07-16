@@ -14,6 +14,7 @@ from tensornetwork.linalg.initialization import (
     random_uniform,
     zeros
     )
+#pylint: disable=redefined-builtin
 from tensornetwork.linalg.operations import (
     tensordot,
     reshape,
@@ -31,7 +32,9 @@ from tensornetwork.linalg.operations import (
     log,
     diagonal,
     diagflat,
-    trace
+    trace,
+    sign,
+    abs
     )
 
 from tensornetwork.backends.decorators import jit
