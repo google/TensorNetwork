@@ -92,6 +92,11 @@ class BaseDMRG:
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend=self.backend.name)
 
+  def two_site_matvec(self, mps_bond_tensor, L, mpo_bond_tensor, R):
+    return ncon([L, mps_bond_tensor, mpo_bond_tensor, R],
+                [[3, 1, -1], [1, 2, 4, 5], [3, 6, -2, -3, 2, 4], [6, 5, -4]],
+                backend=self.backend.name)
+
   def add_left_layer(self, L, mps_tensor, mpo_tensor):
     return ncon([L, mps_tensor, mpo_tensor,
                  self.backend.conj(mps_tensor)],
