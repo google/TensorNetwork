@@ -813,7 +813,7 @@ def test_sign(dtype):
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = jax_backend.JaxBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   cols = 12
   rows = 16
   expected = tensor.reshape((cols, rows))

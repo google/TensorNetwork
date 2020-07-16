@@ -851,10 +851,9 @@ def test_matmul():
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_abs(dtype):
-  np.random.seed(10)
   shape = (4, 3, 2)
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.abs(tensor)
   expected = np.abs(tensor)
   np.testing.assert_allclose(expected, actual)
@@ -862,10 +861,9 @@ def test_abs(dtype):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 def test_sign(dtype):
-  np.random.seed(10)
   shape = (4, 3, 2)
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.sign(tensor)
   expected = np.sign(tensor)
   np.testing.assert_allclose(expected, actual)
@@ -875,7 +873,7 @@ def test_sign(dtype):
 def test_pivot(dtype):
   shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()
-  tensor = backend.randn(shape, dtype=dtype)
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
   cols = 12
   rows = 16
   expected = tensor.reshape((cols, rows))
