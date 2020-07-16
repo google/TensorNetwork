@@ -344,3 +344,19 @@ def ncon(
                             backend=backend)
   output = Tensor(res, backend=backend)
   return output
+
+
+def sign(tensor: Tensor) -> Tensor:
+  """ Returns the sign of the elements of Tensor.
+  """
+  backend = tensor.backend
+  result = backend.sign(tensor.array)
+  return Tensor(result, backend=backend)
+
+
+def abs(tensor: Tensor) -> Tensor:
+  """ Returns the absolute value of the elements of Tensor.
+  """
+  backend = tensor.backend
+  result = backend.abs(tensor.array)
+  return Tensor(result, backend=backend)

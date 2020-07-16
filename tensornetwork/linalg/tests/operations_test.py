@@ -32,6 +32,7 @@ np_complex = [np.complex64, np.complex128]
 np_int = [np.int8, np.int16, np.int32, np.int64]
 np_uint = [np.uint8, np.uint16, np.uint32, np.uint64]
 np_float_dtypes = np_real + np_complex
+np_not_half = [np.float32, np.float64] + np_complex
 np_not_bool = np_float_dtypes + np_int + np_uint + [None,]
 np_all_dtypes = np_not_bool + [np.bool,]
 
@@ -217,7 +218,7 @@ def test_take_slice_vs_backend(backend, dtype):
 
 
 @pytest.mark.parametrize("dtype", np_float_dtypes)
-@pytest.mark.parametrize("fname", ["sin", "cos", "exp", "log", "conj"])
+@pytest.mark.parametrize("fname", ["sin", "cos", "exp", "log", "conj", "sign"])
 def test_unary_ops_vs_backend(backend, dtype, fname):
   shape = (4, 5, 6)
   dtype_b = np_dtype_to_backend(backend, dtype)
@@ -233,6 +234,20 @@ def test_unary_ops_vs_backend(backend, dtype, fname):
   else:
     backend_result = backend_func(tensor.array)
     tn_result = tn_func(tensor).array
+    np.testing.assert_allclose(backend_result, tn_result)
+
+
+@pytest.mark.parametrize("dtype", np_not_half)
+def test_abs_vs_backend(backend, dtype):
+  shape = (4, 5, 6)
+  dtype_b = np_dtype_to_backend(backend, dtype)
+  backend_obj = backends.backend_factory.get_backend(backend)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype_b)
+  if (backend == "pytorch" and dtype == np.float16):
+    pytest.skip("Prod not supported with this dtype and backend.")
+  else:
+    backend_result = backend_obj.sqrt(tensor.array)
+    tn_result = tensornetwork.sqrt(tensor).array
     np.testing.assert_allclose(backend_result, tn_result)
 
 
