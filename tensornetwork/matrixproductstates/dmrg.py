@@ -389,9 +389,8 @@ class BaseDMRG:
 
     def print_msg(site):
       if verbose < 2:
-        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
-        stdout.write(text % (iteration, num_sweeps, site, len(
-            self.mps), np.real(energy), np.imag(energy)))
+        stdout.write(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
+                     f"site={site}/{len(self.mps)}: optimized E={energy}")
         stdout.flush()
 
       if verbose >= 2:
@@ -494,13 +493,12 @@ class BaseDMRG:
     # TODO (pedersor): print max truncation errors
     def print_msg(site):
       if verbose < 2:
-        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
-        stdout.write(text % (iteration, num_sweeps, site, len(
-            self.mps), np.real(energy), np.imag(energy)))
+        stdout.write(f"TS-DMRG sweep={iteration}/{num_sweeps}, "
+                   f"site={site}/{len(self.mps)}: optimized E={energy}")
         stdout.flush()
 
       if verbose >= 2:
-        print(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
+        print(f"TS-DMRG sweep={iteration}/{num_sweeps}, "
               f"site={site}/{len(self.mps)}: optimized E={energy}")
 
     while not converged:
