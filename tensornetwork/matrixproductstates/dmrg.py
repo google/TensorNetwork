@@ -271,45 +271,74 @@ class BaseDMRG:
     """
     site = self.mps.center_position
     #note: some backends will jit functions
-    self.left_envs[site]
-    self.right_envs[site]
-    energies, states = self.backend.eigsh_lanczos(
-        A=self.single_site_matvec,
+    if sweep_dir in ('r', 'right'):
+      bond_mps = ncon([self.mps.tensors[site], self.mps.tensors[site + 1]],
+                      [[-1, -2, 1], [1, -3, -4]],
+                      backend=self.backend.name)
+      bond_mpo = ncon([self.mpo.tensors[site], self.mpo.tensors[site + 1]],
+                      [[-1, 1, -3, -5], [1, -2, -4, -6]],
+                      backend=self.backend.name)
+      energies, states = self.backend.eigsh_lanczos(
+        A=self.two_site_matvec,
         args=[
-            self.left_envs[site], self.mpo.tensors[site], self.right_envs[site]
+          self.left_envs[site], bond_mpo, self.right_envs[site + 1]
         ],
-        initial_state=self.mps.tensors[site],
+        initial_state=bond_mps,
         num_krylov_vecs=num_krylov_vecs,
         numeig=1,
         tol=tol,
         delta=delta,
         ndiag=ndiag,
         reorthogonalize=False)
-    local_ground_state = states[0]
-    energy = energies[0]
-    local_ground_state /= self.backend.norm(local_ground_state)
+      local_ground_state = states[0]
+      energy = energies[0]
+      local_ground_state /= self.backend.norm(local_ground_state)
 
-    if sweep_dir in ('r', 'right'):
-      Q, R = self.mps.qr_decomposition(local_ground_state)
-      self.mps.tensors[site] = Q
+      u, s, vh, _ = self.mps.svd_decomposition(local_ground_state,
+                                               max_singular_values=32)
+      s = self.backend.diag(s)
+      self.mps.tensors[site] = u
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
-        self.mps.tensors[site + 1] = ncon([R, self.mps.tensors[site + 1]],
-                                          [[-1, 1], [1, -2, -3]],
+        self.mps.tensors[site + 1] = ncon([s, vh],[[-1, 1], [1, -2, -3]],
                                           backend=self.backend.name)
-        self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], Q,
+        self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], u,
                                                        self.mpo.tensors[site])
 
     elif sweep_dir in ('l', 'left'):
-      R, Q = self.mps.rq_decomposition(local_ground_state)
-      self.mps.tensors[site] = Q
+      bond_mps = ncon([self.mps.tensors[site - 1], self.mps.tensors[site]],
+                      [[-1, -2, 1], [1, -3, -4]],
+                      backend=self.backend.name)
+      bond_mpo = ncon([self.mpo.tensors[site - 1], self.mpo.tensors[site]],
+                      [[-1, 1, -3, -5], [1, -2, -4, -6]],
+                      backend=self.backend.name)
+      energies, states = self.backend.eigsh_lanczos(
+        A=self.two_site_matvec,
+        args=[
+          self.left_envs[site - 1], bond_mpo, self.right_envs[site]
+        ],
+        initial_state=bond_mps,
+        num_krylov_vecs=num_krylov_vecs,
+        numeig=1,
+        tol=tol,
+        delta=delta,
+        ndiag=ndiag,
+        reorthogonalize=False)
+      local_ground_state = states[0]
+      energy = energies[0]
+      local_ground_state /= self.backend.norm(local_ground_state)
+
+      u, s, vh, _ = self.mps.svd_decomposition(local_ground_state,
+                                               max_singular_values=32)
+      s = self.backend.diag(s)
+      self.mps.tensors[site] = vh
       if site > 0:
         self.mps.center_position -= 1
-        self.mps.tensors[site - 1] = ncon([self.mps.tensors[site - 1], R],
+        self.mps.tensors[site - 1] = ncon([u, s],
                                           [[-1, -2, 1], [1, -3]],
                                           backend=self.backend.name)
-        self.right_envs[site - 1] = self.add_right_layer(
-            self.right_envs[site], Q, self.mpo.tensors[site])
+        self.right_envs[site - 1] = self.add_right_layer(self.right_envs[site],
+                                                         vh, self.mpo.tensors[site])
 
     return energy
 
@@ -456,6 +485,7 @@ class BaseDMRG:
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
 
+    # TODO (pedersor): print max truncation errors
     def print_msg(site):
       if verbose < 2:
         text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
