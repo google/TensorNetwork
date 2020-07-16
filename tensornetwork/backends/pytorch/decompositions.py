@@ -19,7 +19,7 @@ import numpy as np
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
@@ -121,7 +121,7 @@ def svd_decomposition(
   return u, s, vh, s_rest
 
 
-def qr_decomposition(
+def qr(
     torch: Any,
     tensor: Tensor,
     split_axis: int,
@@ -165,7 +165,7 @@ def qr_decomposition(
   return q, r
 
 
-def rq_decomposition(
+def rq(
     torch: Any,
     tensor: Tensor,
     split_axis: int,

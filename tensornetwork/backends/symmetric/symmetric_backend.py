@@ -40,10 +40,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return self.bs.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
+    if perm is None:
+      perm = tuple(range(tensor.ndim - 1, -1, -1))
     return self.bs.transpose(tensor, perm)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -51,23 +53,23 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.bs, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error, relative)
+    return decompositions.svd(self.bs, tensor, split_axis,
+                              max_singular_values,
+                              max_truncation_error, relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.bs, tensor, split_axis)
+    return decompositions.qr(self.bs, tensor, split_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
       split_axis: int,
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.bs, tensor, split_axis)
+    return decompositions.rq(self.bs, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)

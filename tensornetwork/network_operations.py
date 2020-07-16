@@ -136,11 +136,11 @@ def split_node(
 ) -> Tuple[AbstractNode, AbstractNode, Tensor]:
   """Split a `node` using Singular Value Decomposition.
 
-  Let :math:`M` be the matrix created by flattening `left_edges` and 
-  `right_edges` into 2 axes. 
-  Let :math:`U S V^* = M` be the SVD of :math:`M`. 
-  This will split the network into 2 nodes. 
-  The left node's tensor will be :math:`U \\sqrt{S}` 
+  Let :math:`M` be the matrix created by flattening `left_edges` and
+  `right_edges` into 2 axes.
+  Let :math:`U S V^* = M` be the SVD of :math:`M`.
+  This will split the network into 2 nodes.
+  The left node's tensor will be :math:`U \\sqrt{S}`
   and the right node's tensor will be
   :math:`\\sqrt{S} V^*` where :math:`V^*` is the adjoint of :math:`V`.
 
@@ -169,7 +169,7 @@ def split_node(
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
     relative: Multiply `max_truncation_err` with the largest singular value.
-    left_name: The name of the new left node. If `None`, a name will be 
+    left_name: The name of the new left node. If `None`, a name will be
       generated automatically.
     right_name: The name of the new right node. If `None`, a name will be
       generated automatically.
@@ -212,7 +212,7 @@ def split_node(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
@@ -258,8 +258,8 @@ def split_node_qr(
 ) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using QR decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
   Let :math:`QR = M` be the QR Decomposition of :math:`M`.
   This will split the network into 2 nodes.
   The `left node`'s tensor will be :math:`Q` (an orthonormal matrix)
@@ -309,7 +309,7 @@ def split_node_qr(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  q, r = backend.qr_decomposition(transp_tensor, len(left_edges))
+  q, r = backend.qr(transp_tensor, len(left_edges))
   left_node = Node(
       q, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -347,13 +347,13 @@ def split_node_rq(
 ) -> Tuple[AbstractNode, AbstractNode]:
   """Split a `node` using RQ (reversed QR) decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
 
-  Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`. 
-  This will split the network into 2 nodes. 
+  Let :math:`QR = M^*` be the QR Decomposition of :math:`M^*`.
+  This will split the network into 2 nodes.
 
-  The left node's tensor will be :math:`R^*` (a lower triangular matrix) 
+  The left node's tensor will be :math:`R^*` (a lower triangular matrix)
   and the right node's tensor will be :math:`Q^*` (an orthonormal matrix)
 
   Args:
@@ -400,7 +400,7 @@ def split_node_rq(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  r, q = backend.rq_decomposition(transp_tensor, len(left_edges))
+  r, q = backend.rq(transp_tensor, len(left_edges))
   left_node = Node(
       r, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -443,8 +443,8 @@ def split_node_full_svd(
 ) -> Tuple[AbstractNode, AbstractNode, AbstractNode, Tensor]:
   """Split a node by doing a full singular value decomposition.
 
-  Let :math:`M` be the matrix created by 
-  flattening `left_edges` and `right_edges` into 2 axes. 
+  Let :math:`M` be the matrix created by
+  flattening `left_edges` and `right_edges` into 2 axes.
   Let :math:`U S V^* = M` be the Singular Value Decomposition of :math:`M`.
 
   The left most node will be :math:`U` tensor of the SVD, the middle node is
@@ -476,7 +476,7 @@ def split_node_full_svd(
     max_singular_values: The maximum number of singular values to keep.
     max_truncation_err: The maximum allowed truncation error.
     relative: Multiply `max_truncation_err` with the largest singular value.
-    left_name: The name of the new left node. If None, a name will be 
+    left_name: The name of the new left node. If None, a name will be
       generated automatically.
     middle_name: The name of the new center node. If `None`, a name will be
       generated automatically.
@@ -530,7 +530,7 @@ def split_node_full_svd(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
@@ -654,7 +654,7 @@ def check_connected(nodes: Iterable[AbstractNode]) -> None:
 
   Args:
     nodes: A list of `nodes`.
-    
+
   Returns:
     `None`
 
