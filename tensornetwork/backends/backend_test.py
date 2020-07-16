@@ -415,6 +415,16 @@ def test_backend_instantiation(backend):
   assert backend1 is backend2
 
 
+def test_abstract_backend_sign_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.sign(np.ones((2, 2)))
+
+def test_abstract_backend_abs_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.abs(np.ones((2, 2)))
+
 def test_pivot_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):

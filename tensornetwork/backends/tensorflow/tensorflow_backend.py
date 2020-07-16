@@ -267,3 +267,26 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return tf.matmul(tensor1, tensor2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return tf.math.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The TensorFlow version returns y[i] = x[i] / abs(x[i]).
+
+    Args:
+      tensor: The input tensor.
+    """
+    return tf.math.sign(tensor)

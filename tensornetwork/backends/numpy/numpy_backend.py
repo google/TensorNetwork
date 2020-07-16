@@ -591,6 +591,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
     return np.matmul(tensor1, tensor2)
+<<<<<<< HEAD
   
   def svd(
       self,
@@ -625,3 +626,26 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return np.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The NumPy version returns y[i] = x[i]/sqrt(x[i]^2).
+
+    Args:
+      tensor: The input tensor.
+    """
+    return np.sign(tensor)
