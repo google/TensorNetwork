@@ -247,6 +247,7 @@ class BaseDMRG:
     return energy
 
   def _optimize_2s_local(self,
+                         max_bond_dim,
                          sweep_dir,
                          num_krylov_vecs=10,
                          tol=1E-5,
@@ -257,6 +258,8 @@ class BaseDMRG:
     The method shifts the center position of the mps by one site
     to the left or to the right, depending on the value of `sweep_dir`.
     Args:
+      max_bond_dim: Maximum MPS bond dimension. During DMRG optimization,
+        an MPS exceeding this dimension is truncated via SVD.
       sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
         'right' or 'r' for a sweep from left to right.
       num_krylov_vecs: Dimension of the Krylov space used in `eighs_lanczos`.
@@ -295,7 +298,7 @@ class BaseDMRG:
       local_ground_state /= self.backend.norm(local_ground_state)
 
       u, s, vh, _ = self.mps.svd_decomposition(local_ground_state,
-                                               max_singular_values=32)
+                                               max_singular_values=max_bond_dim)
       s = self.backend.diag(s)
       self.mps.tensors[site] = u
       if site < len(self.mps.tensors) - 1:
@@ -444,6 +447,7 @@ class BaseDMRG:
     return final_energy
 
   def run_two_site(self,
+                   max_bond_dim,
                    num_sweeps=4,
                    precision=1E-6,
                    num_krylov_vecs=10,
@@ -454,6 +458,8 @@ class BaseDMRG:
     """
     Run a two-site DMRG optimization of the MPS.
     Args:
+      max_bond_dim: Maximum MPS bond dimension. During DMRG optimization,
+        an MPS exceeding this dimension is truncated via SVD.
       num_sweeps: Number of DMRG sweeps. A sweep optimizes all sites
         starting at the left side, moving to the right side, and back
         to the left side.
@@ -502,6 +508,7 @@ class BaseDMRG:
         self.position(0)
         #the part outside the loop covers the len(self)==1 case
         energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
             sweep_dir='right',
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
@@ -513,6 +520,7 @@ class BaseDMRG:
       while self.mps.center_position < len(self.mps) - 1:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
             sweep_dir='right',
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
@@ -525,6 +533,7 @@ class BaseDMRG:
       while self.mps.center_position > 0:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
             sweep_dir='left',
             num_krylov_vecs=num_krylov_vecs,
             tol=tol,
