@@ -528,6 +528,25 @@ def test_diagflat(dtype, k):
   np.testing.assert_allclose(expected, actual)
 
 
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = tf.math.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = tf.math.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
 @pytest.mark.parametrize("dtype", tf_dtypes)
 @pytest.mark.parametrize("offset", [0, 1])
 @pytest.mark.parametrize("axis1", [-2, 0])
@@ -548,3 +567,14 @@ def test_trace(dtype, offset, axis1, axis2):
     expected = np.trace(array, axis1=axis1, axis2=axis2)
     tol = array.size * np.finfo(array.dtype).eps
     np.testing.assert_allclose(actual, expected, rtol=tol, atol=tol)
+
+
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = tf.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)

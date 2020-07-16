@@ -665,6 +665,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
     return jnp.matmul(tensor1, tensor2)
   
+<<<<<<< HEAD
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
@@ -728,3 +729,26 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if axis1 == axis2:
       raise ValueError("axis1, axis2 cannot be equal.")
     return jnp.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return jnp.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The Jax backend version returns y[i] = x[i]/sqrt(x[i]^2).
+
+    Args:
+      tensor: The input tensor.
+    """
+    return jnp.sign(tensor)

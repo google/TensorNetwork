@@ -466,8 +466,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = numpy_backend.NumPyBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, dtype=dtype, seed=10)
+  solution = backend.randn(vecshape, dtype=dtype, seed=10)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
@@ -832,6 +832,7 @@ def test_matmul():
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+<<<<<<< HEAD
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))
 @pytest.mark.parametrize("axis2", range(0, 3))
@@ -847,6 +848,7 @@ def test_diagonal(dtype, offset, axis1, axis2):
     expected = np.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
     np.testing.assert_allclose(actual, expected)
 
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("k", range(-2, 2))
 def test_diagflat(dtype, k):
@@ -854,6 +856,26 @@ def test_diagflat(dtype, k):
   array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
   expected = np.diagflat(array, k=k)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = np.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = np.sign(tensor)
   np.testing.assert_allclose(expected, actual)
 
 
@@ -872,3 +894,15 @@ def test_trace(dtype, offset, axis1, axis2):
     actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     expected = np.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)

@@ -611,6 +611,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
     return np.matmul(tensor1, tensor2)
+<<<<<<< HEAD
   
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
@@ -671,3 +672,26 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       array_of_diagonals: The batched summed diagonals.
     """
     return np.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return np.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The NumPy version returns y[i] = x[i]/sqrt(x[i]^2).
+
+    Args:
+      tensor: The input tensor.
+    """
+    return np.sign(tensor)

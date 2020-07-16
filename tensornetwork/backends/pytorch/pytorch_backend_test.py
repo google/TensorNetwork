@@ -547,6 +547,7 @@ def test_matmul():
 
 
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
+<<<<<<< HEAD
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", [-2, 0])
 @pytest.mark.parametrize("axis2", [-1, 0])
@@ -570,6 +571,26 @@ def test_diagflat(dtype, k):
   array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
   expected = torch.diag_embed(array, offset=k)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = torch.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = torch.sign(tensor)
   np.testing.assert_allclose(expected, actual)
 
 
@@ -600,6 +621,18 @@ def test_trace_raises():
   array = backend.randn(shape, seed=10)
   with pytest.raises(ValueError):
     _ = backend.trace(array)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = pytorch_backend.PyTorchBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = torch.reshape(tensor, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)
 
 
 def test_matmul_rank2():

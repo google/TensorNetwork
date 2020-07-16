@@ -347,3 +347,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if axis1 == axis2:
       raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
     return self.bs.trace(tensor, (axis1, axis2))
+
+  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+    raise NotImplementedError("Symmetric backend doesn't support pivot.")

@@ -758,8 +758,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = jax_backend.JaxBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, seed=10, dtype=dtype)
+  solution = backend.randn(vecshape, seed=10, dtype=dtype)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
@@ -772,6 +772,7 @@ def test_gmres_on_larger_random_problem(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+<<<<<<< HEAD
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))
 @pytest.mark.parametrize("axis2", range(0, 3))
@@ -815,3 +816,35 @@ def test_trace(dtype, offset, axis1, axis2):
     actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     expected = jax.numpy.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = jax.numpy.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = jax.numpy.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)

@@ -353,6 +353,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
 
+<<<<<<< HEAD
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
@@ -444,3 +445,26 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     inds[axis1] = 'a'
     inds[axis2] = 'a'
     return torchlib.einsum(''.join(inds) + '->' +''.join(indsout), tensor)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return torchlib.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The PyTorch version is not implemented in this case.
+
+    Args:
+      tensor: The input tensor.
+    """
+    return torchlib.sign(tensor)
