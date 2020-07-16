@@ -339,3 +339,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+    raise NotImplementedError("Symmetric backend doesn't support pivot.")

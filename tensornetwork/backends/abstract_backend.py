@@ -736,3 +736,28 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented `matmul`.".format(self.name))
+  
+  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+    """ Reshapes a tensor into a matrix, whose columns (rows) are the
+    vectorized dimensions to the left (right) of pivot_axis.
+
+    In other words, with tensor.shape = (1, 2, 4, 5) and pivot_axis=2,
+    this function returns an (8, 5) matrix.
+
+    Args:
+      tensor: The tensor to pivot.
+      pivot_axis: The axis about which to pivot.
+
+    Returns:
+      The pivoted tensor.
+    """
+    ndim = len(self.shape_tuple(tensor))
+    if pivot_axis < 1 or pivot_axis > ndim:
+      errstr = f"pivot_axis = {pivot_axis} was invalid given ndim={ndim} array."
+      raise ValueError(errstr)
+
+    left_dims = tensor.shape[:pivot_axis]
+    right_dims = tensor.shape[pivot_axis:]
+    tensor = self.reshape(tensor, [self.shape_prod(left_dims),
+                                   self.shape_prod(right_dims)])
+    return tensor
