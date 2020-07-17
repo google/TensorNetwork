@@ -164,7 +164,6 @@ def qr(
     phases = torch.sign(torch.diagonal(r))
     q = q * phases
     r = phases[:, None] * r
-    #r = torch.diag_embed(phases) @ r
   center_dim = q.shape[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
