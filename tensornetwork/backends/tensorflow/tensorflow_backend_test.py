@@ -81,14 +81,6 @@ def test_sqrt():
   np.testing.assert_allclose(expected, actual)
 
 
-def test_diag():
-  backend = tensorflow_backend.TensorFlowBackend()
-  b = backend.convert_to_tensor(np.array([1.0, 2.0, 3.0]))
-  actual = backend.diag(b)
-  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
-  np.testing.assert_allclose(expected, actual)
-
-
 def test_convert_to_tensor():
   backend = tensorflow_backend.TensorFlowBackend()
   array = np.ones((2, 3, 4))
@@ -96,13 +88,6 @@ def test_convert_to_tensor():
   expected = tf.ones((2, 3, 4))
   assert isinstance(actual, type(expected))
   np.testing.assert_allclose(expected, actual)
-
-
-def test_trace():
-  backend = tensorflow_backend.TensorFlowBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 6)
 
 
 def test_outer_product():
@@ -516,6 +501,34 @@ def test_matmul():
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", [-2, 0])
+@pytest.mark.parametrize("axis2", [-1, 0])
+def test_diagonal(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = tensorflow_backend.TensorFlowBackend()
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  if axis1 != -2 or axis2 != -1:
+    with pytest.raises(NotImplementedError):
+      actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+@pytest.mark.parametrize("k", range(-2, 2))
+def test_diagflat(dtype, k):
+  backend = tensorflow_backend.TensorFlowBackend()
+  array = backend.randn((16,), dtype=dtype, seed=10)
+  actual = backend.diagflat(array, k=k)
+  #pylint: disable=unexpected-keyword-arg
+  expected = tf.linalg.diag(array, k=k)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_abs(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()
@@ -533,6 +546,28 @@ def test_sign(dtype):
   actual = backend.sign(tensor)
   expected = tf.math.sign(tensor)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+@pytest.mark.parametrize("offset", [0, 1])
+@pytest.mark.parametrize("axis1", [-2, 0])
+@pytest.mark.parametrize("axis2", [-1, 0])
+def test_trace(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = tensorflow_backend.TensorFlowBackend()
+  tf_array = backend.randn(shape, dtype=dtype, seed=10)
+  array = tf_array.numpy()
+  if offset != 0:
+    with pytest.raises(NotImplementedError):
+      actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
+  elif axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(tf_array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = np.trace(array, axis1=axis1, axis2=axis2)
+    tol = array.size * np.finfo(array.dtype).eps
+    np.testing.assert_allclose(actual, expected, rtol=tol, atol=tol)
 
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
