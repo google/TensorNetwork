@@ -399,7 +399,7 @@ def test_diagflat(backend, dtype):
                                A.backend.diagflat(A.array))
 
 
-@pytest.mark.parametrize("dtype", np_float_dtypes)
+@pytest.mark.parametrize("dtype", np_not_half)
 def test_trace(backend, dtype):
   """ Checks that Tensor.trace() works.
   """
