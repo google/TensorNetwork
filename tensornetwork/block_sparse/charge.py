@@ -159,8 +159,8 @@ class BaseCharge:
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
-    return 'BaseCharge object:' + '\n charge types: ' + self.names + '\n charges:' + str(
-        self.charges).replace('\n', '\n\t ') + '\n'
+    return 'BaseCharge object:' + '\n   charge types: ' + self.names + '\n   unique charges:' + str(
+        self.charges.T).replace('\n', '\n\t ') + '\n'
 
   def __iter__(self):
     return self.Iterator(self.unique_charges, self.charge_labels)
