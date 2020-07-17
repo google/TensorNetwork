@@ -125,11 +125,6 @@ def norm(tensor: Tensor) -> Tensor:
   return out
 
 
-def trace(tensor: Tensor) -> Tensor:
-  """Calculate the trace over the last two axes of the given tensor."""
-  raise NotImplementedError()
-
-
 def inv(matrix: Tensor) -> Tensor:
   """Compute the matrix inverse of `matrix`.
 
