@@ -97,9 +97,6 @@ def check_contraction_dtype(backend, dtype):
   dtype.
   """
   skip = False
-  #  backend_obj = backends.backend_factory.get_backend(backend)
-  #  dtype = backend_obj.zeros((1,), dtype=dtype).dtype # handles the string case
-
   if backend == "tensorflow":
     if dtype in [np.uint8, tf.uint8, np.uint16, tf.uint16, np.int8, tf.int8,
                  np.int16, tf.int16, np.uint32, tf.uint32, np.uint64,
