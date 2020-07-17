@@ -31,7 +31,7 @@ def test_svd_decompositions(dtype, R, R1, num_charges):
   D = 30
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -54,7 +54,7 @@ def test_singular_values(dtype, R, R1, num_charges):
   D = 30
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -75,7 +75,7 @@ def test_max_singular_values(dtype, R, R1, num_charges):
   max_singular_values = 12
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -94,7 +94,7 @@ def test_max_truncation_error(dtype, num_charges):
   D = 30
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
 
@@ -121,7 +121,7 @@ def test_max_singular_values_larger_than_bond_dimension(dtype, num_charges):
   D = 30
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
 
@@ -144,7 +144,7 @@ def test_rq_decomposition(dtype, R, R1, num_charges):
   D = 30
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D)),
+          np.random.randint(-5, 6, (D, num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
 
