@@ -13,7 +13,7 @@ def test_basic_graphmode():
   assert actual == 10.0
 
 
-def test_gradient_decent():
+def test_gradient_descent():
   a = Node(
       torch.autograd.Variable(torch.ones(10), requires_grad=True),
       backend="pytorch")

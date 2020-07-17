@@ -18,7 +18,7 @@ from typing import Optional, Tuple, Any
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     tf: Any,
     tensor: Tensor,
     split_axis: int,
@@ -126,7 +126,7 @@ def svd_decomposition(
   return u, s, vh, s_rest
 
 
-def qr_decomposition(
+def qr(
     tf: Any,
     tensor: Tensor,
     split_axis: int,
@@ -171,7 +171,7 @@ def qr_decomposition(
   return q, r
 
 
-def rq_decomposition(
+def rq(
     tf: Any,
     tensor: Tensor,
     split_axis: int,

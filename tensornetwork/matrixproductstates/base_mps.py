@@ -14,7 +14,7 @@
 import numpy as np
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.network_operations import split_node_full_svd
-from tensornetwork.linalg.linalg import conj
+from tensornetwork.linalg.node_linalg import conj
 from tensornetwork.backends import backend_factory
 import warnings
 from tensornetwork.ncon_interface import ncon
@@ -93,12 +93,12 @@ class BaseMPS:
     ##########       define functions for jitted operations       ##########
     ########################################################################
     def qr_decomposition(tensor):
-      return self.backend.qr_decomposition(tensor, 2)
+      return self.backend.qr(tensor, 2)
 
     self.qr_decomposition = self.backend.jit(qr_decomposition)
 
     def rq_decomposition(tensor):
-      return self.backend.rq_decomposition(tensor, 1)
+      return self.backend.rq(tensor, 1)
 
     self.rq_decomposition = self.backend.jit(rq_decomposition)
 

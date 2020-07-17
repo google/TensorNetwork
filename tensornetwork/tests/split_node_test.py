@@ -15,6 +15,7 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
+from tensornetwork.linalg import node_linalg
 
 
 def test_split_node(backend):
@@ -198,11 +199,11 @@ def test_split_node_rq_unitarity_complex(backend):
   a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   _, q = tn.split_node_rq(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n1[1] ^ n2[1]
   u1 = tn.contract_between(n1, n2)
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n2[0] ^ n1[0]
   u2 = tn.contract_between(n1, n2)
 
@@ -214,7 +215,7 @@ def test_split_node_rq_unitarity_float(backend):
   a = tn.Node(np.random.rand(3, 3), backend=backend)
   _, q = tn.split_node_rq(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n1[1] ^ n2[1]
   u1 = tn.contract_between(n1, n2)
   n1 = tn.Node(q.tensor, backend=backend)
@@ -235,12 +236,12 @@ def test_split_node_qr_unitarity_complex(backend):
   a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   q, _ = tn.split_node_qr(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n1[1] ^ n2[1]
   u1 = tn.contract_between(n1, n2)
 
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n2[0] ^ n1[0]
   u2 = tn.contract_between(n1, n2)
 
@@ -252,7 +253,7 @@ def test_split_node_qr_unitarity_float(backend):
   a = tn.Node(np.random.rand(3, 3), backend=backend)
   q, _ = tn.split_node_qr(a, [a[0]], [a[1]])
   n1 = tn.Node(q.tensor, backend=backend)
-  n2 = tn.conj(q)
+  n2 = node_linalg.conj(q)
   n1[1] ^ n2[1]
   u1 = tn.contract_between(n1, n2)
 

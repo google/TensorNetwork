@@ -48,7 +48,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return tf.reshape(tensor, shape)
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
     return tf.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -58,7 +58,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
                        "identical.")
     return tf.slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
       split_axis: int,
@@ -66,7 +66,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         tf,
         tensor,
         split_axis,
@@ -74,13 +74,11 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(tf, tensor, split_axis)
+  def qr(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr(tf, tensor, split_axis)
 
-  def rq_decomposition(self, tensor: Tensor,
-                       split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(tf, tensor, split_axis)
+  def rq(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq(tf, tensor, split_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return tf.concat(values, axis)
@@ -179,7 +177,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     return a
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return tf.math.conj(tensor)
+    if tensor.dtype != bool:
+      return tf.math.conj(tensor)
+    return tensor
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return tf.linalg.eigh(matrix)
