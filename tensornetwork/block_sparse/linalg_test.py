@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import U1Charge, fuse_charges, charge_equal, BaseCharge
+from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges, charge_equal, BaseCharge)
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import ChargeArray, BlockSparseTensor
+from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray, BlockSparseTensor)
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork import ncon
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.linalg import norm, diag, reshape, transpose, conj, svd, qr, eigh, eig, inv, sqrt, trace, eye, pinv, zeros, ones, randn, random
+from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose, conj, svd, qr, eigh, eig, inv, sqrt, trace, eye, pinv, zeros, ones, randn, random)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -38,16 +36,16 @@ def test_get_diag(dtype, num_charges, Ds, flow):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-2, 3, (num_charges, Ds[n])),
+              np.random.randint(-2, 3, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), flow) for n in range(2)
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
   fused = fuse_charges(arr.flat_charges, arr.flat_flows)
-  inds = np.nonzero(fused == np.zeros((num_charges, 1), dtype=np.int16))[0]
+  inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
   unique = np.unique(
-      np_flow * (indices[0]._charges[0].charges[:, left]), axis=1)
+      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
   diagonal = diag(arr)
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
       arr.flat_charges, arr.flat_flows, 1)
@@ -67,7 +65,7 @@ def test_get_empty_diag(dtype, num_charges, Ds):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-2, 3, (num_charges, Ds[n])),
+              np.random.randint(-2, 3, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False) for n in range(2)
   ]
   arr = BlockSparseTensor.random(indices, dtype=dtype)
@@ -85,7 +83,7 @@ def test_create_diag(dtype, num_charges, flow):
   D = 200
   index = Index(
       BaseCharge(
-          np.random.randint(-2, 3, (num_charges, D)),
+          np.random.randint(-2, 3, (D, num_charges)),
           charge_types=[U1Charge] * num_charges), flow)
 
   arr = ChargeArray.random([index], dtype=dtype)
@@ -112,7 +110,7 @@ def test_diag_raises():
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-2, 3, (1, Ds[n])), charge_types=[U1Charge]),
+              np.random.randint(-2, 3, (Ds[n],1)), charge_types=[U1Charge]),
           False) for n in range(rank)
   ]
   arr = BlockSparseTensor.random(indices)
@@ -214,7 +212,7 @@ def test_svd_prod(dtype, Ds, R1, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n],num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -242,7 +240,7 @@ def test_svd_singvals(dtype, Ds, R1, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -271,7 +269,7 @@ def test_qr_prod(dtype, Ds, R1, mode, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -297,7 +295,7 @@ def test_qr_raises():
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -318,7 +316,7 @@ def test_eigh_prod(dtype, Ds, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n]), dtype=np.int16),
+          np.random.randint(-5, 6, (Ds[n], num_charges), dtype=np.int16),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [False] * R
@@ -342,7 +340,7 @@ def test_eigh_raises():
   R = 3
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+          np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [False] * R
@@ -359,7 +357,7 @@ def test_inv(dtype, num_charges):
   R = 2
   D = 10
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   flows = [True, False]
   A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(R)],
@@ -388,7 +386,7 @@ def test_inv_raises():
   R = 3
   D = 10
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   A = BlockSparseTensor.random([Index(charge, False) for n in range(R)],
                                (-0.5, 0.5))
@@ -404,7 +402,7 @@ def test_eig_prod(dtype, Ds, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n]), dtype=np.int16),
+          np.random.randint(-5, 6, (Ds[n], num_charges), dtype=np.int16),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [False] * R
@@ -426,7 +424,7 @@ def test_eig_raises():
   R = 3
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+          np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [False] * R
@@ -447,7 +445,7 @@ def test_sqrt(dtype, num_charges, Ds):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n]), dtype=np.int16),
+              np.random.randint(-5, 6, (Ds[n], num_charges), dtype=np.int16),
               charge_types=[U1Charge] * num_charges), flows[n])
       for n in range(R)
   ]
@@ -461,7 +459,7 @@ def test_sqrt(dtype, num_charges, Ds):
 @pytest.mark.parametrize('D', [0, 10])
 def test_eye(dtype, num_charges, D):
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   flow = False
   index = Index(charge, flow)
@@ -480,7 +478,7 @@ def test_trace_matrix(dtype, num_charges, D):
   np.random.seed(10)
   R = 2
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   flows = [True, False]
   matrix = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(R)],
@@ -496,10 +494,10 @@ def test_trace_matrix(dtype, num_charges, D):
 def test_trace_tensor(dtype, num_charges, D1, D2):
   np.random.seed(10)
   charge1 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D1), dtype=np.int16),
+      np.random.randint(-5, 6, (D1, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D2), dtype=np.int16),
+      np.random.randint(-5, 6, (D2, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [Index(charge1, False), Index(charge2, False), Index(charge1, True)]
   tensor = BlockSparseTensor.random(indices, dtype=dtype)
@@ -514,14 +512,14 @@ def test_trace_raises(num_charges):
   np.random.seed(10)
   D = 20
   charge1 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   A1 = BlockSparseTensor.random([Index(charge1, False)])
   with pytest.raises(ValueError):
     trace(A1)
 
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D + 1), dtype=np.int16),
+      np.random.randint(-5, 6, (D + 1,num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [
       Index(charge1, False),
@@ -544,7 +542,7 @@ def test_pinv(dtype, num_charges):
   R = 2
   D = 10
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   flows = [True, False]
   A = BlockSparseTensor.random([Index(charge, flows[n]) for n in range(R)],
@@ -573,7 +571,7 @@ def test_pinv_raises():
   R = 3
   D = 10
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D), dtype=np.int16),
+      np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   A = BlockSparseTensor.random([Index(charge, False) for n in range(R)],
                                (-0.5, 0.5))
@@ -591,7 +589,7 @@ def test_tn_zeros(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), flows[n])
       for n in range(rank)
   ]
@@ -613,7 +611,7 @@ def test_tn_ones(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), flows[n])
       for n in range(rank)
   ]
@@ -636,7 +634,7 @@ def test_tn_random(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), flows[n])
       for n in range(rank)
   ]
@@ -658,7 +656,7 @@ def test_tn_randn(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), flows[n])
       for n in range(rank)
   ]
