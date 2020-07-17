@@ -540,7 +540,7 @@ def _find_transposed_diagonal_sparse_blocks(
     # compute qnums of row/cols in transposed tensor
     unique_col_qnums, new_col_degen = compute_fused_charge_degeneracies(
         new_col_charges, np.logical_not(new_col_flows))
-    identity_charges = charges[0].identity_charges
+    identity_charges = charges[0].identity_charges(dim=1)
     block_qnums, new_row_map, new_col_map = intersect(
         identity_charges.unique_charges,
         unique_col_qnums.unique_charges,
@@ -572,7 +572,7 @@ def _find_transposed_diagonal_sparse_blocks(
     # compute qnums of row/cols in transposed tensor
     unique_row_qnums, new_row_degen = compute_fused_charge_degeneracies(
         new_row_charges, new_row_flows)
-    identity_charges = charges[0].identity_charges
+    identity_charges = charges[0].identity_charges(dim=1)
     block_qnums, new_row_map, new_col_map = intersect(
         unique_row_qnums.unique_charges,
         identity_charges.unique_charges,
