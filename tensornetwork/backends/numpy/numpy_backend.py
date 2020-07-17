@@ -110,22 +110,12 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return np.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) not in (1, 2):
-      raise TypeError("Only one and two dimensional tensors"
-                      " are allowed as input")
-    return np.diag(tensor)
-
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, np.ndarray) and not np.isscalar(tensor)):
       raise TypeError("Expected a `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = np.asarray(tensor)
     return result
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return np.trace(tensor, axis1=-2, axis2=-1)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return np.tensordot(tensor1, tensor2, 0)
@@ -627,6 +617,66 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
     return np.matmul(tensor1, tensor2)
+
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    return np.diagonal(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return np.diagflat(tensor, k=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last/last axis.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    return np.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
 
   def abs(self, tensor: Tensor) -> Tensor:
     """

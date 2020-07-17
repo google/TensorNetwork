@@ -539,7 +539,7 @@ def split_node_full_svd(
   left_node = Node(
       u, name=left_name, axis_names=left_axis_names, backend=backend)
   singular_values_node = Node(
-      backend.diag(s),
+      backend.diagflat(s),
       name=middle_name,
       axis_names=center_axis_names,
       backend=backend)
