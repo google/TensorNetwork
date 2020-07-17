@@ -299,7 +299,7 @@ class BaseDMRG:
 
       u, s, vh, _ = self.mps.svd_decomposition(local_ground_state,
                                                max_singular_values=max_bond_dim)
-      s = self.backend.diag(s)
+      s = self.backend.diagflat(s)
       self.mps.tensors[site] = u
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
@@ -332,8 +332,8 @@ class BaseDMRG:
       local_ground_state /= self.backend.norm(local_ground_state)
 
       u, s, vh, _ = self.mps.svd_decomposition(local_ground_state,
-                                               max_singular_values=32)
-      s = self.backend.diag(s)
+                                               max_singular_values=max_bond_dim)
+      s = self.backend.diagflat(s)
       self.mps.tensors[site] = vh
       if site > 0:
         self.mps.center_position -= 1
