@@ -111,15 +111,9 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return torchlib.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    return torchlib.diag(tensor)
-
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     result = torchlib.as_tensor(tensor)
     return result
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    return torchlib.einsum('...jj', tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return torchlib.tensordot(tensor1, tensor2, dims=0)
@@ -362,6 +356,98 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
 
     return torchlib.einsum('...ab,...bc->...ac', tensor1, tensor2)
 
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second-last and last axis (note this
+                    differs from the NumPy defaults).
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1={axis1} and axis2={axis2} must be different.")
+    return torchlib.diagonal(tensor, offset=offset, dim1=axis1, dim2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return torchlib.diag_embed(tensor, offset=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    In the PyTorch backend the trace is always over the main diagonal of the
+    last two entries.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+              This argument is not supported  by the PyTorch 
+              backend and an error will be raised if they are
+              specified.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to first/second axis.
+                    These arguments are not supported by the PyTorch
+                    backend and an error will be raised if they are
+                    specified.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    if offset != 0:
+      errstr = (f"offset = {offset} must be 0 (the default)"
+                f"with PyTorch backend.")
+      raise NotImplementedError(errstr)
+    if axis1 == axis2:
+      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
+    N = len(tensor.shape)
+    if N > 25:
+      raise ValueError(f"Currently only tensors with ndim <= 25 can be traced"
+                       f"in the PyTorch backend (yours was {N})")
+
+    if axis1 < 0:
+      axis1 = N+axis1
+    if axis2 < 0:
+      axis2 = N+axis2
+
+    inds = list(map(chr, range(98, 98+N)))
+    indsout = [i for n, i in enumerate(inds) if n not in (axis1, axis2)]
+    inds[axis1] = 'a'
+    inds[axis2] = 'a'
+    return torchlib.einsum(''.join(inds) + '->' +''.join(indsout), tensor)
+
   def abs(self, tensor: Tensor) -> Tensor:
     """
     Returns the elementwise absolute value of tensor.
@@ -384,3 +470,4 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return torchlib.sign(tensor)
+

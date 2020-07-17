@@ -229,12 +229,6 @@ def test_abstract_backend_sqrt_not_implemented():
     backend.sqrt(np.ones((2, 2)))
 
 
-def test_abstract_backend_diag_not_implemented():
-  backend = AbstractBackend()
-  with pytest.raises(NotImplementedError):
-    backend.diag(np.ones((2, 2)))
-
-
 def test_abstract_backend_convert_to_tensor_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
@@ -415,10 +409,23 @@ def test_backend_instantiation(backend):
   assert backend1 is backend2
 
 
+def test_abstract_backend_diagonal_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.diagonal(np.ones((2, 2)))
+
+
+def test_abstract_backend_diagflat_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.diagflat(np.ones((2, 2)))
+
+
 def test_abstract_backend_sign_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
     backend.sign(np.ones((2, 2)))
+
 
 def test_abstract_backend_abs_not_implemented():
   backend = AbstractBackend()

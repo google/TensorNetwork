@@ -14,6 +14,7 @@ from tensornetwork.linalg.initialization import (
     random_uniform,
     zeros
     )
+
 #pylint: disable=redefined-builtin
 from tensornetwork.linalg.operations import (
     tensordot,
