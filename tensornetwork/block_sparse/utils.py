@@ -14,7 +14,10 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies, BaseCharge, fuse_ndarray_charges, intersect, charge_equal, fuse_ndarrays)
+from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
+                                               BaseCharge, fuse_ndarray_charges,
+                                               intersect, charge_equal,
+                                               fuse_ndarrays)
 from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
 
@@ -38,7 +41,6 @@ def flatten(list_of_list: List[List]) -> np.ndarray:
     list: The flattened input.
   """
   return np.array([l for sublist in list_of_list for l in sublist])
-
 
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
@@ -380,7 +382,7 @@ def _find_diagonal_sparse_blocks(
     # special cases (matrix of trivial height or width)
     num_nonzero = compute_num_nonzero(charges, flows)
     block_maps = [np.arange(0, num_nonzero, dtype=SIZE_T).ravel()]
-    block_qnums = charges[0].identity_charges(dim=1).charges    
+    block_qnums = charges[0].identity_charges(dim=1).charges
     block_dims = np.array([[1], [num_nonzero]])
 
     if partition == len(flows):
@@ -402,6 +404,7 @@ def _find_diagonal_sparse_blocks(
       unique_col_qnums.unique_charges,
       axis=0,
       return_indices=True)
+
   num_blocks = block_qnums.shape[0]
   if num_blocks == 0:
     obj = charges[0].__new__(type(charges[0]))
@@ -438,7 +441,7 @@ def _find_diagonal_sparse_blocks(
   ]
   obj = charges[0].__new__(type(charges[0]))
   obj.__init__(block_qnums,
-               np.arange(block_qnums.shape[1], dtype=charges[0].label_dtype),
+               np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                charges[0].charge_types)
 
   return block_maps, obj, block_dims
@@ -512,7 +515,7 @@ def _find_transposed_diagonal_sparse_blocks(
                               np.logical_not(flows[orig_partition:]))
 
   inv_row_map = -np.ones(
-      orig_unique_row_qnums.unique_charges.shape[1],
+      orig_unique_row_qnums.unique_charges.shape[0],
       dtype=charges[0].label_dtype)
   inv_row_map[row_map] = np.arange(len(row_map), dtype=charges[0].label_dtype)
 
