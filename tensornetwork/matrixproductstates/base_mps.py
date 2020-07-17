@@ -92,11 +92,12 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    def svd_decomposition(tensor, max_singular_values = None,
-                          max_truncation_error = None, relative = False):
-      return self.backend.svd_decomposition(tensor, 2)
+    def svd_decomposition(tensor, max_singular_values=None):
+      return self.backend.svd_decomposition(tensor=tensor, split_axis=2,
+                                            max_singular_values=
+                                            max_singular_values)
 
-    self.svd_decomposition = self.backend.jit(svd_decomposition)
+    self.svd_decomposition = svd_decomposition
 
     def qr_decomposition(tensor):
       return self.backend.qr_decomposition(tensor, 2)
