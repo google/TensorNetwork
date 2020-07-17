@@ -148,8 +148,7 @@ def test_compute_num_nonzero(num_charges):
   nz2 = len(
       np.nonzero(
           np.logical_and.reduce(
-              fused == np.zeros((1, num_charges), dtype=np.int16),
-              axis=1))[0])
+              fused == np.zeros((1, num_charges), dtype=np.int16), axis=1))[0])
   assert nz1 == nz2
 
 
@@ -188,8 +187,8 @@ def test_reduce_charges_2():
   #pylint: disable=no-member
   np.testing.assert_allclose(
       dense_positions[1],
-      np.nonzero(
-          np.logical_and.reduce(fused_charges == target_charge, axis=1))[0])
+      np.nonzero(np.logical_and.reduce(fused_charges == target_charge,
+                                       axis=1))[0])
 
 
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
@@ -218,7 +217,7 @@ def test_reduce_charges_non_trivial(num_charges):
     #pylint: disable=no-member
     tmp.append(
         np.logical_and.reduce(
-            fused_charges == target_charge[n,:][None, :], axis=1))
+            fused_charges == target_charge[n, :][None, :], axis=1))
   #pylint: disable=no-member
   mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
