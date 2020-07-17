@@ -282,83 +282,83 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.testing.assert_allclose(unique_left, cs.charges)
 
 
-# orders = []
-# bonddims = []
-# for dim, nl in zip([60, 30, 20], [2, 3, 4]):
-#   o = list(itertools.permutations(np.arange(nl)))
-#   orders.extend(o)
-#   bonddims.extend([dim] * len(o))
+orders = []
+bonddims = []
+for dim, nl in zip([60, 30, 20], [2, 3, 4]):
+  o = list(itertools.permutations(np.arange(nl)))
+  orders.extend(o)
+  bonddims.extend([dim] * len(o))
 
 
-# @pytest.mark.parametrize('order,D', zip(orders, bonddims))
-# @pytest.mark.parametrize('num_charges', [1, 2, 3])
-# def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
-#   order = list(order)
-#   num_legs = len(order)
-#   np.random.seed(10)
-#   np_charges = [
-#       np.random.randint(-5, 5, (D, num_charges), dtype=np.int16)
-#       for _ in range(num_legs)
-#   ]
-#   tr_charge_list = []
-#   charge_list = []
-#   for c in range(num_charges):
+@pytest.mark.parametrize('order,D', zip(orders, bonddims))
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
+  order = list(order)
+  num_legs = len(order)
+  np.random.seed(10)
+  np_charges = [
+      np.random.randint(-5, 5, (D, num_charges), dtype=np.int16)
+      for _ in range(num_legs)
+  ]
+  tr_charge_list = []
+  charge_list = []
+  for c in range(num_charges):
 
-#     tr_charge_list.append(
-#         fuse_ndarrays([np_charges[order[n]][c, :] for n in range(num_legs)]))
-#     charge_list.append(
-#         fuse_ndarrays([np_charges[n][c, :] for n in range(num_legs)]))
+    tr_charge_list.append(
+        fuse_ndarrays([np_charges[order[n]][:, c] for n in range(num_legs)]))
+    charge_list.append(
+        fuse_ndarrays([np_charges[n][:, c] for n in range(num_legs)]))
 
-#   tr_fused = np.stack(tr_charge_list, axis=0)
-#   fused = np.stack(charge_list, axis=0)
+  tr_fused = np.stack(tr_charge_list, axis=1)
+  fused = np.stack(charge_list, axis=1)
 
-#   dims = [c.shape[1] for c in np_charges]
-#   strides = _get_strides(dims)
-#   transposed_linear_positions = fuse_stride_arrays(dims,
-#                                                    [strides[o] for o in order])
-#   left_charges = np.stack([
-#       fuse_ndarrays([np_charges[order[n]][c, :]
-#                      for n in range(num_legs // 2)])
-#       for c in range(num_charges)
-#   ],
-#                           axis=0)
-#   right_charges = np.stack([
-#       fuse_ndarrays(
-#           [np_charges[order[n]][c, :]
-#            for n in range(num_legs // 2, num_legs)])
-#       for c in range(num_charges)
-#   ],
-#                            axis=0)
-#   #pylint: disable=no-member
-#   mask = np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1)
-#   nz = np.nonzero(mask)[0]
-#   dense_to_sparse = np.empty(len(mask), dtype=np.int64)
-#   dense_to_sparse[mask] = np.arange(len(nz))
-#   #pylint: disable=no-member
-#   tr_mask = np.logical_and.reduce(
-#       tr_fused.T == np.zeros((1, num_charges)), axis=1)
-#   tr_nz = np.nonzero(tr_mask)[0]
-#   tr_linear_locs = transposed_linear_positions[tr_nz]
-#   # pylint: disable=no-member
-#   left_inds, _ = np.divmod(tr_nz, right_charges.shape[1])
-#   left = left_charges[:, left_inds]
-#   unique_left = np.unique(left, axis=1)
-#   blocks = []
-#   for n in range(unique_left.shape[1]):
-#     ul = unique_left[:, n][None, :]
-#     #pylint: disable=no-member
-#     blocks.append(dense_to_sparse[tr_linear_locs[np.nonzero(
-#         np.logical_and.reduce(left.T == ul, axis=1))[0]]])
+  dims = [c.shape[0] for c in np_charges]
+  strides = _get_strides(dims)
+  transposed_linear_positions = fuse_stride_arrays(dims,
+                                                   [strides[o] for o in order])
+  left_charges = np.stack([
+      fuse_ndarrays([np_charges[order[n]][:, c]
+                     for n in range(num_legs // 2)])
+      for c in range(num_charges)
+  ],
+                          axis=1)
+  right_charges = np.stack([
+      fuse_ndarrays(
+          [np_charges[order[n]][:, c]
+           for n in range(num_legs // 2, num_legs)])
+      for c in range(num_charges)
+  ],
+                           axis=1)
+  #pylint: disable=no-member
+  mask = np.logical_and.reduce(fused == np.zeros((1, num_charges)), axis=1)
+  nz = np.nonzero(mask)[0]
+  dense_to_sparse = np.empty(len(mask), dtype=np.int64)
+  dense_to_sparse[mask] = np.arange(len(nz))
+  #pylint: disable=no-member
+  tr_mask = np.logical_and.reduce(
+      tr_fused == np.zeros((1, num_charges)), axis=1)
+  tr_nz = np.nonzero(tr_mask)[0]
+  tr_linear_locs = transposed_linear_positions[tr_nz]
+  # pylint: disable=no-member
+  left_inds, _ = np.divmod(tr_nz, right_charges.shape[0])
+  left = left_charges[left_inds, :]
+  unique_left = np.unique(left, axis=0)
+  blocks = []
+  for n in range(unique_left.shape[0]):
+    ul = unique_left[n, :][None, :]
+    #pylint: disable=no-member
+    blocks.append(dense_to_sparse[tr_linear_locs[np.nonzero(
+        np.logical_and.reduce(left == ul, axis=1))[0]]])
 
-#   charges = [
-#       BaseCharge(c, charge_types=[U1Charge] * num_charges) for c in np_charges
-#   ]
-#   flows = [False] * num_legs
-#   bs, cs, ss = _find_transposed_diagonal_sparse_blocks(
-#       charges, flows, tr_partition=num_legs // 2, order=order)
-#   np.testing.assert_allclose(cs.charges, unique_left)
-#   for b1, b2 in zip(blocks, bs):
-#     assert np.all(b1 == b2)
+  charges = [
+      BaseCharge(c, charge_types=[U1Charge] * num_charges) for c in np_charges
+  ]
+  flows = [False] * num_legs
+  bs, cs, ss = _find_transposed_diagonal_sparse_blocks(
+      charges, flows, tr_partition=num_legs // 2, order=order)
+  np.testing.assert_allclose(cs.charges, unique_left)
+  for b1, b2 in zip(blocks, bs):
+    assert np.all(b1 == b2)
 
-#   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
-#   np.testing.assert_allclose(unique_left, cs.charges)
+  assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
+  np.testing.assert_allclose(unique_left, cs.charges)
