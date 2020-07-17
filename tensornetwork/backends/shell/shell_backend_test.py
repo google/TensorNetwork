@@ -138,19 +138,9 @@ def test_sqrt():
   assertBackendsAgree("sqrt", args)
 
 
-def test_diag():
-  args = {"tensor": np.ones(10)}
-  assertBackendsAgree("diag", args)
-
-
 def test_convert_to_tensor():
   args = {"tensor": np.ones([3, 5, 2])}
   assertBackendsAgree("convert_to_tensor", args)
-
-
-def test_trace():
-  args = {"tensor": np.ones([3, 5, 4, 4])}
-  assertBackendsAgree("trace", args)
 
 
 def test_outer_product():
