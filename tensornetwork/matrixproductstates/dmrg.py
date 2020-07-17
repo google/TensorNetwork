@@ -282,17 +282,17 @@ class BaseDMRG:
                       [[-1, 1, -3, -5], [1, -2, -4, -6]],
                       backend=self.backend.name)
       energies, states = self.backend.eigsh_lanczos(
-        A=self.two_site_matvec,
-        args=[
-          self.left_envs[site], bond_mpo, self.right_envs[site + 1]
-        ],
-        initial_state=bond_mps,
-        num_krylov_vecs=num_krylov_vecs,
-        numeig=1,
-        tol=tol,
-        delta=delta,
-        ndiag=ndiag,
-        reorthogonalize=False)
+          A=self.two_site_matvec,
+          args=[
+              self.left_envs[site], bond_mpo, self.right_envs[site + 1]
+          ],
+          initial_state=bond_mps,
+          num_krylov_vecs=num_krylov_vecs,
+          numeig=1,
+          tol=tol,
+          delta=delta,
+          ndiag=ndiag,
+          reorthogonalize=False)
       local_ground_state = states[0]
       energy = energies[0]
       local_ground_state /= self.backend.norm(local_ground_state)
@@ -303,7 +303,7 @@ class BaseDMRG:
       self.mps.tensors[site] = u
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
-        self.mps.tensors[site + 1] = ncon([s, vh],[[-1, 1], [1, -2, -3]],
+        self.mps.tensors[site + 1] = ncon([s, vh], [[-1, 1], [1, -2, -3]],
                                           backend=self.backend.name)
         self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], u,
                                                        self.mpo.tensors[site])
@@ -316,17 +316,17 @@ class BaseDMRG:
                       [[-1, 1, -3, -5], [1, -2, -4, -6]],
                       backend=self.backend.name)
       energies, states = self.backend.eigsh_lanczos(
-        A=self.two_site_matvec,
-        args=[
-          self.left_envs[site - 1], bond_mpo, self.right_envs[site]
-        ],
-        initial_state=bond_mps,
-        num_krylov_vecs=num_krylov_vecs,
-        numeig=1,
-        tol=tol,
-        delta=delta,
-        ndiag=ndiag,
-        reorthogonalize=False)
+          A=self.two_site_matvec,
+          args=[
+              self.left_envs[site - 1], bond_mpo, self.right_envs[site]
+          ],
+          initial_state=bond_mps,
+          num_krylov_vecs=num_krylov_vecs,
+          numeig=1,
+          tol=tol,
+          delta=delta,
+          ndiag=ndiag,
+          reorthogonalize=False)
       local_ground_state = states[0]
       energy = energies[0]
       local_ground_state /= self.backend.norm(local_ground_state)
@@ -340,8 +340,9 @@ class BaseDMRG:
         self.mps.tensors[site - 1] = ncon([u, s],
                                           [[-1, -2, 1], [1, -3]],
                                           backend=self.backend.name)
-        self.right_envs[site - 1] = self.add_right_layer(self.right_envs[site],
-                                                         vh, self.mpo.tensors[site])
+        self.right_envs[site - 1] = \
+          self.add_right_layer(self.right_envs[site], vh,
+                               self.mpo.tensors[site])
 
     return energy
 
@@ -494,7 +495,7 @@ class BaseDMRG:
     def print_msg(site):
       if verbose < 2:
         stdout.write(f"\rTS-DMRG sweep={iteration}/{num_sweeps}, "
-              f"site={site}/{len(self.mps)}: optimized E={energy}")
+                     f"site={site}/{len(self.mps)}: optimized E={energy}")
         stdout.flush()
 
       if verbose >= 2:
