@@ -323,7 +323,7 @@ def test_Charge_identity(chargetype, B0, B1, identity):
   q3 = chargetype(C3)
 
   Q = q1 @ q2 @ q3
-  eye = Q.identity_charges
+  eye = Q.identity_charges()
   np.testing.assert_allclose(eye.unique_charges, identity)
   assert eye.num_symmetries == 3
 

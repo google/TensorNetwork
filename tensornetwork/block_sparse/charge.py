@@ -195,8 +195,7 @@ class BaseCharge:
 
     return self.charge_labels[:, None] == inds[None, :]
 
-  @property
-  def identity_charges(self) -> "BaseCharge":
+  def identity_charges(self, dim: int=1) -> "BaseCharge":
     """
     Returns the identity charge.
     Returns:
@@ -205,7 +204,7 @@ class BaseCharge:
     unique_charges = np.asarray(
         [ct.identity_charge() for ct in self.charge_types],
         dtype=self.dtype)[None, :]
-    charge_labels = np.zeros(1, dtype=self.label_dtype)
+    charge_labels = np.zeros(dim, dtype=self.label_dtype)
     obj = self.__new__(type(self))
     obj.__init__(unique_charges, charge_labels, self.charge_types)
     return obj
