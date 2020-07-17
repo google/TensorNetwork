@@ -210,8 +210,8 @@ def log(tensor: Tensor) -> Tensor:
   return Tensor(out_array, backend=tensor.backend)
 
 
-def diagonal(tensor: Tensor, offset: Optional[int] = 0,
-             axis1=0, axis2=1) -> Tensor:
+def diagonal(tensor: Tensor, offset: int = 0, axis1: int = -2,
+             axis2: int = -1) -> Tensor:
   """
   Extracts the offset'th diagonal from the matrix slice of tensor indexed
   by (axis1, axis2).
@@ -224,10 +224,13 @@ def diagonal(tensor: Tensor, offset: Optional[int] = 0,
   Returns:
     out  : A 1D Tensor storing the elements of the selected diagonal.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.diagonal(tensor.array, offset=offset, axis1=axis1,
+                            axis2=axis2)
+  return Tensor(result, backend=backend)
 
 
-def diagflat(tensor: Tensor, k: Optional[int] = 0) -> Tensor:
+def diagflat(tensor: Tensor, k: int = 0) -> Tensor:
   """
   Flattens tensor and places its elements at the k'th diagonal of a new
   (tensor.size + k, tensor.size + k) `Tensor` of zeros.
@@ -239,10 +242,13 @@ def diagflat(tensor: Tensor, k: Optional[int] = 0) -> Tensor:
     out   : A (tensor.size + k, tensor.size + k) `Tensor` with the elements
             of tensor on its kth diagonal.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.diagflat(tensor.array, k=k)
+  return Tensor(result, backend=backend)
 
 
-def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
+def trace(tensor: Tensor, offset: int = 0, axis1: int = -2,
+          axis2: int = -1) -> Tensor:
   """Calculate the sum along diagonal entries of the given Tensor. The
      entries of the offset`th diagonal of the matrix slice of tensor indexed by
      (axis1, axis2) are summed.
@@ -255,9 +261,12 @@ def trace(tensor: Tensor, offset=0, axis1=0, axis2=1) -> float:
   Returns:
     out: The trace.
   """
-  raise NotImplementedError()
+  backend = tensor.backend
+  result = backend.trace(tensor.array, offset=offset, axis1=axis1,
+                         axis2=axis2)
+  return Tensor(result, backend=backend)
 
-  
+
 def ncon(
     tensors: Sequence[Tensor],
     network_structure: Sequence[Sequence[Union[str, int]]],
@@ -275,21 +284,21 @@ def ncon(
     and string-type labels with a prepended hyphen ('-') are open labels
     and remain uncontracted.
 
-    Positive number-type labels and string-type labels with no prepended 
+    Positive number-type labels and string-type labels with no prepended
     hyphen ('-') are closed labels and are contracted.
 
-    Any open label appearing more than once is treated as an open 
-    batch label. Any closed label appearing more than once is treated as 
+    Any open label appearing more than once is treated as an open
+    batch label. Any closed label appearing more than once is treated as
     a closed batch label.
 
-    Upon finishing the contraction, all open batch labels will have been 
-    collapsed into a single dimension, and all closed batch labels will 
+    Upon finishing the contraction, all open batch labels will have been
+    collapsed into a single dimension, and all closed batch labels will
     have been summed over.
 
     If `out_order = None`, output labels are ordered according to descending
-    number ordering and ascending ASCII ordering, with number labels always 
+    number ordering and ascending ASCII ordering, with number labels always
     appearing before string labels. Example:
-    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']] 
+    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']]
     results in an output order of [-1, -2, '-morty', '-rick'].
 
     If `out_order` is given, the indices of the resulting tensor will be
