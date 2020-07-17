@@ -93,17 +93,6 @@ def test_sqrt():
   np.testing.assert_allclose(expected, actual)
 
   
-def test_diag():
-  backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]))
-  with pytest.raises(TypeError):
-    backend.diag(a)
-  b = backend.convert_to_tensor(np.array([1.0, 2, 3]))
-  actual = backend.diag(b)
-  expected = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
-  np.testing.assert_allclose(expected, actual)
-
-
 def test_convert_to_tensor():
   backend = jax_backend.JaxBackend()
   array = np.ones((2, 3, 4))
@@ -111,13 +100,6 @@ def test_convert_to_tensor():
   expected = jax.jit(lambda x: x)(array)
   assert isinstance(actual, type(expected))
   np.testing.assert_allclose(expected, actual)
-
-
-def test_trace():
-  backend = jax_backend.JaxBackend()
-  a = backend.convert_to_tensor(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
-  actual = backend.trace(a)
-  np.testing.assert_allclose(actual, 6)
 
 
 def test_outer_product():
@@ -776,8 +758,8 @@ def test_gmres_on_larger_random_problem(dtype):
   backend = jax_backend.JaxBackend()
   matshape = (100, 100)
   vecshape = (100,)
-  A = backend.randn(matshape, dtype=dtype)
-  solution = backend.randn(vecshape, dtype=dtype)
+  A = backend.randn(matshape, seed=10, dtype=dtype)
+  solution = backend.randn(vecshape, seed=10, dtype=dtype)
   def A_mv(x):
     return A @ x
   b = A_mv(solution)
@@ -787,3 +769,81 @@ def test_gmres_on_larger_random_problem(dtype):
   rtol = tol*jax.numpy.linalg.norm(b)
   atol = tol
   assert err < max(rtol, atol)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", range(0, 3))
+@pytest.mark.parametrize("axis2", range(0, 3))
+def test_diagonal(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = jax_backend.JaxBackend()
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  if axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.diagonal(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = jax.numpy.diagonal(array, offset=offset, axis1=axis1,
+                                  axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+def test_diagflat(dtype, offset):
+  shape = (5, 5, 5, 5)
+  backend = jax_backend.JaxBackend()
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.diagflat(array, k=offset)
+  expected = jax.numpy.diag(jax.numpy.ravel(array), k=offset)
+  np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("offset", range(-2, 2))
+@pytest.mark.parametrize("axis1", range(0, 3))
+@pytest.mark.parametrize("axis2", range(0, 3))
+def test_trace(dtype, offset, axis1, axis2):
+  shape = (5, 5, 5, 5)
+  backend = jax_backend.JaxBackend()
+  array = backend.randn(shape, dtype=dtype, seed=10)
+  if axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+    expected = jax.numpy.trace(array, offset=offset, axis1=axis1, axis2=axis2)
+    np.testing.assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_abs(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.abs(tensor)
+  expected = jax.numpy.abs(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_sign(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.sign(tensor)
+  expected = jax.numpy.sign(tensor)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_pivot(dtype):
+  shape = (4, 3, 2, 8)
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  cols = 12
+  rows = 16
+  expected = tensor.reshape((cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(expected, actual)

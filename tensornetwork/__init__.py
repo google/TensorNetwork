@@ -34,6 +34,8 @@ from tensornetwork.linalg.operations import (
     trace
     )
 
+from tensornetwork.backends.decorators import jit
+
 from tensornetwork.network_components import (
     contract, contract_between, contract_copy_node, contract_parallel,
     flatten_all_edges, flatten_edges, flatten_edges_between,

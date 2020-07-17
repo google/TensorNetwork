@@ -138,19 +138,9 @@ def test_sqrt():
   assertBackendsAgree("sqrt", args)
 
 
-def test_diag():
-  args = {"tensor": np.ones(10)}
-  assertBackendsAgree("diag", args)
-
-
 def test_convert_to_tensor():
   args = {"tensor": np.ones([3, 5, 2])}
   assertBackendsAgree("convert_to_tensor", args)
-
-
-def test_trace():
-  args = {"tensor": np.ones([3, 5, 4, 4])}
-  assertBackendsAgree("trace", args)
 
 
 def test_outer_product():
@@ -462,3 +452,13 @@ def test_matmul():
   b = backend.randn((10, 3, 4), seed=10)
   actual = backend.matmul(a, b)
   np.testing.assert_allclose(actual.shape, [10, 2, 4])
+
+
+def test_pivot():
+  shape = (4, 3, 2, 8)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=np.float64)
+  cols = 12
+  rows = 16
+  actual = backend.pivot(tensor, pivot_axis=2)
+  np.testing.assert_allclose(actual.shape, (cols, rows))
