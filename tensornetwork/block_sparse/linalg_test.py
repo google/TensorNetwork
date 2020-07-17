@@ -1,11 +1,16 @@
 import numpy as np
 import pytest
-from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges, charge_equal, BaseCharge)
+from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
+                                               charge_equal, BaseCharge)
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray, BlockSparseTensor)
+from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
+                                                          BlockSparseTensor)
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork import ncon
-from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose, conj, svd, qr, eigh, eig, inv, sqrt, trace, eye, pinv, zeros, ones, randn, random)
+from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
+                                               conj, svd, qr, eigh, eig, inv,
+                                               sqrt, trace, eye, pinv, zeros,
+                                               ones, randn, random)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -110,7 +115,7 @@ def test_diag_raises():
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-2, 3, (Ds[n],1)), charge_types=[U1Charge]),
+              np.random.randint(-2, 3, (Ds[n], 1)), charge_types=[U1Charge]),
           False) for n in range(rank)
   ]
   arr = BlockSparseTensor.random(indices)
@@ -212,7 +217,7 @@ def test_svd_prod(dtype, Ds, R1, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (Ds[n],num_charges)),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = [True] * R
@@ -519,7 +524,7 @@ def test_trace_raises(num_charges):
     trace(A1)
 
   charge2 = BaseCharge(
-      np.random.randint(-5, 6, (D + 1,num_charges), dtype=np.int16),
+      np.random.randint(-5, 6, (D + 1, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   indices = [
       Index(charge1, False),

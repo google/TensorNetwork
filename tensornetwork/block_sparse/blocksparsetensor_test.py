@@ -623,7 +623,7 @@ def test_matmul(dtype, num_charges, chargetype, rank1, rank2):
   tensor2 = BlockSparseTensor.random(is2, dtype=dtype)
   result = tensor1 @ tensor2
   assert result.dtype == dtype
-
+  #pylint:disable=line-too-long
   dense_result = tensor1.todense() @ tensor2.todense()  #pytype: disable=unsupported-operands
   np.testing.assert_allclose(dense_result, result.todense())
 
@@ -777,6 +777,7 @@ def test_herm(chargetype, dtype):
   T = BlockSparseTensor.random(inds, dtype=dtype)
   TH = T.H
   np.testing.assert_allclose(TH.todense(), T.todense().T.conj())
+
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2"])
 @pytest.mark.parametrize('dtype', np_dtypes)

@@ -24,7 +24,7 @@ def get_contractable_tensors(R1, R2, cont, dtype, num_charges, DsA, Dscomm,
   ]
   commoncharges = [
       BaseCharge(
-          np.random.randint(-5, 5, (Dscomm[n],num_charges)),
+          np.random.randint(-5, 5, (Dscomm[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(cont)
   ]
   chargesB = [
@@ -139,7 +139,7 @@ def test_outerproduct_transpose_reshape(dtype, num_legs, num_charges):
   is1 = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (Ds1[n],num_charges)),
+              np.random.randint(-5, 6, (Ds1[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False)
       for n in range(num_legs)
   ]

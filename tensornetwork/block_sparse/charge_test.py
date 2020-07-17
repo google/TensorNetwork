@@ -8,7 +8,7 @@ def test_BaseCharge_charges():
   D = 100
   B = 6
   np.random.seed(10)
-  charges = np.random.randint(-B // 2, B // 2 + 1, (D,2)).astype(np.int16)
+  charges = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
 
   q1 = BaseCharge(charges)
   np.testing.assert_allclose(q1.charges, charges)
@@ -18,7 +18,7 @@ def test_BaseCharge_generic():
   D = 300
   B = 5
   np.random.seed(10)
-  q = np.random.randint(-B // 2, B // 2 + 1, (D,2)).astype(np.int16)
+  q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   unique = np.unique(q, axis=0)
   Q = BaseCharge(charges=q)
   assert Q.dim == 300
@@ -30,7 +30,7 @@ def test_BaseCharge_len():
   D = 300
   B = 5
   np.random.seed(10)
-  q = np.random.randint(-B // 2, B // 2 + 1, (D,2)).astype(np.int16)
+  q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   Q = BaseCharge(charges=q)
   assert len(Q) == 300
 
@@ -39,7 +39,7 @@ def test_BaseCharge_copy():
   D = 300
   B = 5
   np.random.seed(10)
-  q = np.random.randint(-B // 2, B // 2 + 1, (D,2)).astype(np.int16)
+  q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   Q = BaseCharge(charges=q)
   Qcopy = Q.copy()
   assert Q.charge_labels is not Qcopy.charge_labels
@@ -418,7 +418,7 @@ def test_getitem():
   assert np.all([t1.charge_types[n] == U1Charge for n in range(2)])
   t2 = Q[[2, 5, 7]]
   assert np.all([t2.charge_types[n] == U1Charge for n in range(2)])
-  np.testing.assert_allclose(t2.charges, [[2,4], [1,3], [0,2]])
+  np.testing.assert_allclose(t2.charges, [[2, 4], [1, 3], [0, 2]])
   t3 = Q[[5, 2, 7]]
   assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
@@ -436,7 +436,7 @@ def test_isin():
     charges = c[m].charges
     #pylint: disable=unsubscriptable-object
     assert np.any(
-        [np.array_equal(charges[0, :], c3[k,:]) for k in range(c3.shape[0])])
+        [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
   for m in np.nonzero(np.logical_not(n))[0]:
     charges = c[m].charges
     #pylint: disable=unsubscriptable-object
@@ -589,6 +589,7 @@ def test_zncharge_raises():
     ZNCharge(0)
   with pytest.raises(ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
-    
+
+
 def test_zncharge_does_not_raise():
   ZNCharge(2).random(4)

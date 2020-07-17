@@ -141,7 +141,7 @@ class BaseCharge:
     """
     Return the actual charges of `BaseCharge` as np.ndarray.
     """
-    return self.unique_charges[self.charge_labels,:]
+    return self.unique_charges[self.charge_labels, :]
 
   @property
   def dtype(self):
@@ -159,8 +159,9 @@ class BaseCharge:
     return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
-    return 'BaseCharge object:' + '\n   charge types: ' + self.names + '\n   unique charges:' + str(
-        self.charges.T).replace('\n', '\n\t ') + '\n'
+    return 'BaseCharge object:' + '\n   charge types: ' + self.names + \
+        '\n   unique charges:' + str(self.charges.T).replace('\n', '\n\t ')\
+        + '\n'
 
   def __iter__(self):
     return self.Iterator(self.unique_charges, self.charge_labels)
@@ -170,8 +171,9 @@ class BaseCharge:
 
   def __eq__(self, target_charges: Union[np.ndarray,
                                          "BaseCharge"]) -> np.ndarray:
-    #FIXME (mganahl): calling np.unique can cause significant overhead in some cases
-    #fix code in block_tensor.py to work on np.ndarray instead
+    #FIXME (mganahl): calling np.unique can cause significant overhead
+    # in some cases. fix code in block_tensor.py to work on
+    # np.ndarray instead
     if isinstance(target_charges, type(self)):
       if len(target_charges) == 0:
         raise ValueError('input to __eq__ cannot be an empty charge')
@@ -185,17 +187,19 @@ class BaseCharge:
         raise ValueError('input to __eq__ cannot be an empty np.ndarray')
       if target_charges.shape[1] != self.num_symmetries:
         raise ValueError(
-            'shape of `target_charges = {}` is incompatible with `self.num_symmetries = {}'
+            "shape of `target_charges = {}` is incompatible with "
+            "`self.num_symmetries = {}"
             .format(target_charges.shape, self.num_symmetries))
       targets = np.unique(target_charges, axis=0)
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
-            self.unique_charges[:, :, None] == targets.T[None,:, :], axis=1))[0]
+            self.unique_charges[:, :, None] == targets.T[None, :, :],
+            axis=1))[0]
 
     return self.charge_labels[:, None] == inds[None, :]
 
-  def identity_charges(self, dim: int=1) -> "BaseCharge":
+  def identity_charges(self, dim: int = 1) -> "BaseCharge":
     """
     Returns the identity charge.
     Returns:
@@ -220,8 +224,8 @@ class BaseCharge:
     if len(self.charge_labels) == 0 or len(other.charge_labels) == 0:
       obj = self.__new__(type(self))
       obj.__init__(
-        np.empty((0, self.num_symmetries), dtype=self.dtype),
-        np.empty(0, dtype=self.label_dtype), self.charge_types)
+          np.empty((0, self.num_symmetries), dtype=self.dtype),
+          np.empty(0, dtype=self.label_dtype), self.charge_types)
       return obj
 
     # fuse the unique charges from each index, then compute new unique charges
@@ -231,8 +235,8 @@ class BaseCharge:
     if comb_charges.shape[0] == 0:
       obj = self.__new__(type(self))
       obj.__init__(
-        np.empty((0, self.num_symmetries), dtype=self.dtype),
-        np.empty(0, dtype=self.label_dtype), self.charge_types)
+          np.empty((0, self.num_symmetries), dtype=self.dtype),
+          np.empty(0, dtype=self.label_dtype), self.charge_types)
       return obj
 
     unique_charges, charge_labels = np.unique(
@@ -299,8 +303,10 @@ class BaseCharge:
     Returns:
       If `return_indices=True`:
         BaseCharge
-        np.ndarray: The indices of the first occurrences of the common values in `self`.
-        np.ndarray: The indices of the first occurrences of the common values in `other`.
+        np.ndarray: The indices of the first occurrences of the 
+          common values in `self`.
+        np.ndarray: The indices of the first occurrences of the 
+          common values in `other`.
       If `return_indices=False`:
         BaseCharge
     """
@@ -364,18 +370,21 @@ class BaseCharge:
     elements in a `BaseCharge` object.
 
     Args:
-      return_index: If `True`, also return the indices of `self.charges` (along the specified axis,
+      return_index: If `True`, also return the indices of `self.charges` 
+        (along the specified axis,
         if provided, or in the flattened array) that result in the unique array.
-      return_inverse: If `True`, also return the indices of the unique array (for the specified
+      return_inverse: If `True`, also return the indices of the unique array 
+        (for the specified
         axis, if provided) that can be used to reconstruct `self.charges`.
-      return_counts: If `True`, also return the number of times each unique item appears
-        in `self.charges`.
-      sort: If `True`, the returned `BaseCharge` object has sorted `unique_charges`.
-        If `False`, `unique_`charges` are in general not sorted.
+      return_counts: If `True`, also return the number of times each unique 
+        item appears in `self.charges`.
+      sort: If `True`, the returned `BaseCharge` object has sorted 
+        `unique_charges`. If `False`, `unique_`charges` are in general 
+        not sorted.
     Returns:
       BaseCharge: The sorted unique values.
-      np.ndarray: The indices of the first occurrences of the unique values in the
-        original array. Only provided if `return_index` is True.
+      np.ndarray: The indices of the first occurrences of the unique values 
+        in the original array. Only provided if `return_index` is True.
       np.ndarray: The indices to reconstruct the original array from the
         unique array. Only provided if `return_inverse` is True.
       np.ndarray: The number of times each of the unique values comes up in the
@@ -516,7 +525,8 @@ class BaseCharge:
             target_charges.ndim))
       if targets.shape[1] != self.num_symmetries:
         raise ValueError(
-            "target_charges.shape[0]={} is different from self.num_symmetries = {}"
+            "target_charges.shape[0]={} is different from "
+            "self.num_symmetries = {}"
             .format(targets.shape[0], self.num_symmetries))
 
     tmp = self.unique_charges[:, :, None] == targets.T[None, :, :]
@@ -686,10 +696,12 @@ def intersect(A: np.ndarray,
     ndarray: the indices of the first occurrences of the common values in B.
       Only provided if return_indices is True.
   """
-  #see https://stackoverflow.com/questions/8317022/get-intersecting-rows-across-two-2d-numpy-arrays
+  # see
+  # https://stackoverflow.com/questions/8317022/
+  # get-intersecting-rows-across-two-2d-numpy-arrays
   #pylint: disable=no-else-return
   A = np.ascontiguousarray(A)
-  B = np.ascontiguousarray(B)  
+  B = np.ascontiguousarray(B)
   if A.ndim != B.ndim:
     raise ValueError("array ndims must match to intersect")
   if A.ndim == 1:
