@@ -62,36 +62,6 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         for start, size in zip(start_indices, slice_sizes))
     return tensor[obj]
 
-  def svd(
-      self,
-      tensor: Tensor,
-      split_axis: int,
-      max_singular_values: Optional[int] = None,
-      max_truncation_error: Optional[float] = None,
-      relative: Optional[bool] = False
-  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd(
-        np,
-        tensor,
-        split_axis,
-        max_singular_values,
-        max_truncation_error,
-        relative=relative)
-
-  def qr(
-      self,
-      tensor: Tensor,
-      split_axis: int,
-  ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(np, tensor, split_axis)
-
-  def rq(
-      self,
-      tensor: Tensor,
-      split_axis: int,
-  ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(np, tensor, split_axis)
-
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)
 
@@ -618,6 +588,40 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
     return np.matmul(tensor1, tensor2)
 
+  def svd(
+      self,
+      tensor: Tensor,
+      pivot_axis: int = -1,
+      max_singular_values: Optional[int] = None,
+      max_truncation_error: Optional[float] = None,
+      relative: Optional[bool] = False
+  ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    return decompositions.svd(
+        np,
+        tensor,
+        pivot_axis,
+        max_singular_values,
+        max_truncation_error,
+        relative=relative)
+
+  def qr(
+      self,
+      tensor: Tensor,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
+  ) -> Tuple[Tensor, Tensor]:
+    #pylint: disable=too-many-function-args
+    return decompositions.qr(np, tensor, pivot_axis, non_negative_diagonal)
+
+  def rq(
+      self,
+      tensor: Tensor,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
+  ) -> Tuple[Tensor, Tensor]:
+    #pylint: disable=too-many-function-args
+    return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
+  
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.

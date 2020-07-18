@@ -65,7 +65,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -73,7 +73,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return decompositions.svd(
         torchlib,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
@@ -81,16 +81,18 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(torchlib, tensor, split_axis)
+    return decompositions.qr(torchlib, tensor, pivot_axis, non_negative_diagonal)
 
   def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(torchlib, tensor, split_axis)
+    return decompositions.rq(torchlib, tensor, pivot_axis, non_negative_diagonal)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return np.concatenate(values, axis)

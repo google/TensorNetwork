@@ -218,7 +218,7 @@ class BaseDMRG:
     local_ground_state /= self.backend.norm(local_ground_state)
 
     if sweep_dir in ('r', 'right'):
-      Q, R = self.mps.qr_decomposition(local_ground_state)
+      Q, R = self.mps.qr(local_ground_state)
       self.mps.tensors[site] = Q
       if site < len(self.mps.tensors) - 1:
         self.mps.center_position += 1
@@ -229,7 +229,7 @@ class BaseDMRG:
                                                        self.mpo.tensors[site])
 
     elif sweep_dir in ('l', 'left'):
-      R, Q = self.mps.rq_decomposition(local_ground_state)
+      R, Q = self.mps.rq(local_ground_state)
       self.mps.tensors[site] = Q
       if site > 0:
         self.mps.center_position -= 1

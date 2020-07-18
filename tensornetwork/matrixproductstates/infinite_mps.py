@@ -270,7 +270,7 @@ class InfiniteMPS(BaseMPS):
     tmp = ncon([sqrtl, sqrtr], [[-1, 1], [1, -2]], backend=self.backend.name)
     U, singvals, V, _ = self.backend.svd(
         tmp,
-        split_axis=1,
+        pivot_axis=1,
         max_singular_values=D,
         max_truncation_error=truncation_threshold,
         relative=True)

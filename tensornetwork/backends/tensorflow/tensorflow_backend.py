@@ -61,7 +61,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -69,16 +69,18 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     return decompositions.svd(
         tf,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
 
-  def qr(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr(tf, tensor, split_axis)
+  def qr(self, tensor: Tensor, pivot_axis: int = -1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
+    return decompositions.qr(tf, tensor, pivot_axis, non_negative_diagonal)
 
-  def rq(self, tensor: Tensor, split_axis: int) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq(tf, tensor, split_axis)
+  def rq(self, tensor: Tensor, pivot_axis: int = -1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
+    return decompositions.rq(tf, tensor, pivot_axis, non_negative_diagonal)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return tf.concat(values, axis)
@@ -262,7 +264,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return tf.matmul(tensor1, tensor2)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.

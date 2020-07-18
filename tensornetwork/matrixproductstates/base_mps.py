@@ -92,15 +92,15 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    def qr_decomposition(tensor):
+    def qr(tensor):
       return self.backend.qr(tensor, 2)
 
-    self.qr_decomposition = self.backend.jit(qr_decomposition)
+    self.qr = self.backend.jit(qr)
 
-    def rq_decomposition(tensor):
+    def rq(tensor):
       return self.backend.rq(tensor, 1)
 
-    self.rq_decomposition = self.backend.jit(rq_decomposition)
+    self.rq = self.backend.jit(rq)
 
 
     self.norm = self.backend.jit(self.backend.norm)
@@ -150,7 +150,7 @@ class BaseMPS:
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = self.qr_decomposition(self.tensors[n])
+        Q, R = self.qr(self.tensors[n])
         self.tensors[n] = Q
         self.tensors[n + 1] = ncon([R, self.tensors[n + 1]],
                                    [[-1, 1], [1, -2, -3]],
@@ -167,7 +167,7 @@ class BaseMPS:
     else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
-        R, Q = self.rq_decomposition(self.tensors[n])
+        R, Q = self.rq(self.tensors[n])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self.tensors[n] = Q  #Q is a right-isometric tensor of rank 3
