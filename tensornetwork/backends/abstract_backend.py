@@ -73,10 +73,10 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented slice.".format(
         self.name))
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
@@ -85,10 +85,10 @@ class AbstractBackend:
 
     The SVD is performed by treating the tensor as a matrix, with an effective
     left (row) index resulting from combining the axes
-    `tensor.shape[:split_axis]` and an effective right (column) index resulting
-    from combining the axes `tensor.shape[split_axis:]`.
+    `tensor.shape[:pivot_axis]` and an effective right (column) index resulting
+    from combining the axes `tensor.shape[pivot_axis:]`.
 
-    For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+    For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
     then `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh`
     would have shape (6, 4, 5).
 
@@ -115,7 +115,7 @@ class AbstractBackend:
 
     Args:
       tensor: A tensor to be decomposed.
-      split_axis: Where to split the tensor's axes before flattening into a
+      pivot_axis: Where to split the tensor's axes before flattening into a
         matrix.
       max_singular_values: The number of singular values to keep, or `None` to
         keep them all.
@@ -131,25 +131,27 @@ class AbstractBackend:
               truncation).
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented svd_decomposition.".format(self.name))
+        "Backend '{}' has not implemented svd.".format(self.name))
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented qr_decomposition.".format(self.name))
+        "Backend '{}' has not implemented qr.".format(self.name))
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
     raise NotImplementedError(
-        "Backend '{}' has not implemented rq_decomposition.".format(self.name))
+        "Backend '{}' has not implemented rq.".format(self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""

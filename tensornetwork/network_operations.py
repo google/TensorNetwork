@@ -212,7 +212,7 @@ def split_node(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
@@ -309,7 +309,7 @@ def split_node_qr(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  q, r = backend.qr_decomposition(transp_tensor, len(left_edges))
+  q, r = backend.qr(transp_tensor, len(left_edges))
   left_node = Node(
       q, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -400,7 +400,7 @@ def split_node_rq(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  r, q = backend.rq_decomposition(transp_tensor, len(left_edges))
+  r, q = backend.rq(transp_tensor, len(left_edges))
   left_node = Node(
       r, name=left_name, axis_names=left_axis_names, backend=backend)
 
@@ -530,7 +530,7 @@ def split_node_full_svd(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd_decomposition(
+  u, s, vh, trun_vals = backend.svd(
       transp_tensor,
       len(left_edges),
       max_singular_values,
