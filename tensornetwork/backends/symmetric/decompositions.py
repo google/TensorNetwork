@@ -193,12 +193,7 @@ def svd(
       discarded_singvals > 0.0]
 
 
-<<<<<<< HEAD
-def qr(bt, tensor: BlockSparseTensor,
-       split_axis: int) -> Tuple[Tensor, Tensor]:
-=======
 def qr(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
->>>>>>> upstream/master
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -213,12 +208,7 @@ def qr(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
   return q, r
 
 
-<<<<<<< HEAD
-def rq(bt, tensor: BlockSparseTensor,
-       split_axis: int) -> Tuple[Tensor, Tensor]:
-=======
 def rq(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
->>>>>>> upstream/master
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
