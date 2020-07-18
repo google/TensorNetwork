@@ -64,63 +64,6 @@ def np_dtype_to_backend(backend, dtype):
 
 
 @pytest.mark.parametrize("dtype", np_float_dtypes)
-def test_svd_vs_backend(backend, dtype):
-  shape = (3, 6, 4, 2)
-  dtype = np_dtype_to_backend(backend, dtype)
-  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
-  split_axis = 1
-  max_singular_values = 5
-  max_trunc_error = 0.1
-  relative = True
-  tn_result = linalg.svd(tensor, split_axis,
-                         max_singular_values=max_singular_values,
-                         max_truncation_error=max_trunc_error,
-                         relative=relative)
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend_obj = backends.backend_factory.get_backend(backend)
-  backend_result = backend_obj.svd(tensor.array, split_axis,
-                                   max_singular_values=max_singular_values,
-                                   max_truncation_error=max_trunc_error,
-                                   relative=relative)
-  tn_arrays = [t.array for t in tn_result]
-  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
-    np.testing.assert_allclose(tn_arr, backend_arr)
-
-
-@pytest.mark.parametrize("dtype", np_float_dtypes)
-def test_qr_vs_backend(backend, dtype):
-  shape = (3, 6, 4, 2)
-  dtype = np_dtype_to_backend(backend, dtype)
-  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
-  split_axis = 1
-  tn_result = linalg.qr(tensor, split_axis)
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend_obj = backends.backend_factory.get_backend(backend)
-  backend_result = backend_obj.qr(tensor.array, split_axis)
-  tn_arrays = [t.array for t in tn_result]
-  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
-    np.testing.assert_allclose(tn_arr, backend_arr)
-
-
-@pytest.mark.parametrize("dtype", np_float_dtypes)
-def test_rq_vs_backend(backend, dtype):
-  shape = (3, 6, 4, 2)
-  dtype = np_dtype_to_backend(backend, dtype)
-  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
-  split_axis = 1
-  tn_result = linalg.rq(tensor, split_axis)
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend_obj = backends.backend_factory.get_backend(backend)
-  backend_result = backend_obj.rq(tensor.array, split_axis)
-  tn_arrays = [t.array for t in tn_result]
-  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
-    np.testing.assert_allclose(tn_arr, backend_arr)
-
-
-@pytest.mark.parametrize("dtype", np_float_dtypes)
 def test_eigh_vs_backend(backend, dtype):
   shape = (3, 6, 4, 4)
   dtype = np_dtype_to_backend(backend, dtype)
@@ -249,3 +192,60 @@ def test_gmres(dtype, sparse_backend):
   xT, _ = tensornetwork.linalg.krylov.gmres(A_mv, b, x0=x0,
                                             num_krylov_vectors=n_kry)
   np.testing.assert_allclose(x, xT.array)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_svd_vs_backend(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  max_singular_values = 5
+  max_trunc_error = 0.1
+  relative = True
+  tn_result = linalg.svd(tensor, split_axis,
+                         max_singular_values=max_singular_values,
+                         max_truncation_error=max_trunc_error,
+                         relative=relative)
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  backend_obj = backends.backend_factory.get_backend(backend)
+  backend_result = backend_obj.svd(tensor.array, split_axis,
+                                   max_singular_values=max_singular_values,
+                                   max_truncation_error=max_trunc_error,
+                                   relative=relative)
+  tn_arrays = [t.array for t in tn_result]
+  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
+    np.testing.assert_allclose(tn_arr, backend_arr)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_qr_vs_backend(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  tn_result = linalg.qr(tensor, split_axis, non_negative_diagonal=False)
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  backend_obj = backends.backend_factory.get_backend(backend)
+  backend_result = backend_obj.qr(tensor.array, split_axis)
+  tn_arrays = [t.array for t in tn_result]
+  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
+    np.testing.assert_allclose(tn_arr, backend_arr)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_rq_vs_backend(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  tn_result = linalg.rq(tensor, split_axis, non_negative_diagonal=False)
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  backend_obj = backends.backend_factory.get_backend(backend)
+  backend_result = backend_obj.rq(tensor.array, split_axis)
+  tn_arrays = [t.array for t in tn_result]
+  for tn_arr, backend_arr in zip(tn_arrays, backend_result):
+    np.testing.assert_allclose(tn_arr, backend_arr)
