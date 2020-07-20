@@ -13,11 +13,10 @@
 # limitations under the License.
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, get_real_dtype, SIZE_T
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
-from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.utils import (
+    _find_transposed_diagonal_sparse_blocks, get_real_dtype, SIZE_T)
+from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
+                                                          ChargeArray)
 import numpy as np
 import warnings
 Tensor = Any
