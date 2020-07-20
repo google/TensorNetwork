@@ -16,7 +16,8 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, eigs
+from scipy.sparse.linalg import LinearOperator, eigs, gmres
+from scipy.linalg import expm
 import scipy as sp
 
 Tensor = Any
@@ -243,12 +244,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         ncv=num_krylov_vecs,
         tol=tol,
         maxiter=maxiter)
-    if dtype:
-      eta = eta.astype(dtype)
-      U = U.astype(dtype)
-    evs = list(eta)
     eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
-    return evs, eVs
+    return eta, eVs
 
   def gmres(self,
             A_mv: Callable,
@@ -376,8 +373,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return Avec
 
     A_shape = (b.size, b.size)
-    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
-    x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
+    A_op = LinearOperator(matvec=matvec, shape=A_shape)
+    x, info = gmres(A_op, b, x0=x0, tol=tol, atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
     if info < 0:
@@ -568,7 +565,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                        " N*N matrix, {x}*{y} matrix is given".format(
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
-    return sp.linalg.expm(matrix)
+    return expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
