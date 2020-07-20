@@ -210,6 +210,11 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
+    former_caching_status = self.bs.get_caching_status()
+    cache_was_empty = self.bs.get_cacher().is_empty
+    if not former_caching_status:
+      self.bs.enable_caching()
+
     if args is None:
       args = []
 
@@ -240,6 +245,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     krylov_vecs = []
     first = True
     eigvalsold = []
+
     for it in range(num_krylov_vecs):
       # normalize the current vector:
       norm_vector_n = self.norm(vector_n)
@@ -295,6 +301,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       for n1, vec in enumerate(krylov_vecs):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.norm(state))
+      
+    self.bs.set_caching_status(former_caching_status)
+    if cache_was_empty:
+      self.bs.clear_cache()
     return eigvals[0:numeig], eigenvectors
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
