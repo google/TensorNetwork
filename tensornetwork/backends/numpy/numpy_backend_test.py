@@ -589,6 +589,9 @@ def test_eigs(dtype, which):
   v1 = v1 / sum(v1)
   np.testing.assert_allclose(find(which, eta1)[0], val)
   np.testing.assert_allclose(v1, v2)
+  assert eta1.dtype == np.complex128
+  for u in U1:
+    assert u.dtype == np.complex128
 
 
 @pytest.mark.parametrize("which", ['SI', 'LI'])
