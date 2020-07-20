@@ -30,18 +30,40 @@ class Cacher:
   def clear_cache(self):
     self.cache = {}
   
-def cacher_factory():
+def get_cacher():
   if len(_INSTANTIATED_CACHERS) == 0:
     _INSTANTIATED_CACHERS.append(Cacher())
   return _INSTANTIATED_CACHERS[0]
     
 def enable_caching():
+    """
+    Enable caching of block-data for block-sparse contraction.
+    If enabled, all data that is needed to perform binary tensor contractions 
+    will be cached in a dictionary for later reuse. 
+    Enabling caching can significantly speed tensor contractions,
+    but can lead to substantially larger memory footprints.
+    In particular if the code uses tensor decompositions like QR, SVD
+    eig, eigh or any similar method, enabling caching can cause catastrophic memory 
+    clutter, so be careful when turning it on.
+
+    The user can at any point clear the cache by calling 
+    `tn.block_sparse.clear_cache()`.
+    """
   _INSTANTIATED_CACHERS[0].set_status(True)
   
 def disable_caching():
+  """
+  Disable caching of block-data for block-sparse tensor contractions. 
+  Note that the cache WILL NOT BE CLEARED. 
+  Clearing the cache can be achieved by calling
+  `tn.block_sparse.clear_cache()`.
+  """
   _INSTANTIATED_CACHERS[0].set_status(False)
 
 def clear_cache():
+  """
+  Clear the cache that stores block-data for block-sparse tensor contractions.
+  """
   _INSTANTIATED_CACHERS[0].clear_cache()
 
 
