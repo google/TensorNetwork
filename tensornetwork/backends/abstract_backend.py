@@ -366,7 +366,7 @@ class AbstractBackend:
       maxiter: The maximum number of iterations.
     Returns:
        `Tensor`: An array of `numeig` lowest eigenvalues
-       `Tensor`: An array of `numeig` lowest eigenvectors
+       `list`: An list of `numeig` lowest eigenvectors
     """
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
