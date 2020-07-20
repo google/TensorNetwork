@@ -171,7 +171,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`.  If no `initial_state` is provided then 
+    of a linear operator `A`. If no `initial_state` is provided then 
     `shape` and `dtype` are required so that a suitable initial state can be 
     randomly generated.
     This is a wrapper for scipy.sparse.linalg.eigs which only supports
@@ -201,7 +201,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       maxiter: The maximum number of iterations.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
-       `np.ndarray`: An array of `numeig` lowest eigenvectors
+       `list`: An list of `numeig` lowest eigenvectors
     """
     if args is None:
       args = []
