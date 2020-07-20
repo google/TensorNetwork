@@ -209,7 +209,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         explicit orthogonalization (more costly than `reorthogonalize=False`)
       enable_caching: If `True`, block-data during calls to `matvec` is cached
         for later reuse. Note: usually it is save to enable_caching, unless 
-        `matvec` uses matrix decompositions liek SVD, QR, eigh, eig or similar.
+        `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
         In this case, if one does a large number of krylov steps, this can lead 
         to memory clutter and/or overflow.
 
