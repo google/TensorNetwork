@@ -49,18 +49,18 @@ def test_transpose():
   assertBackendsAgree("transpose", args)
 
 
-def test_svd_decomposition():
+def test_svd():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().svd_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().svd_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().svd(tensor, 3)
+  sh_res = shell_backend.ShellBackend().svd(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
 
-def test_svd_decomposition_raises_error():
+def test_svd_raises_error():
   tensor = np.ones([2, 3, 4, 5, 6])
   with pytest.raises(NotImplementedError):
-    shell_backend.ShellBackend().svd_decomposition(
+    shell_backend.ShellBackend().svd(
         tensor, 3, max_truncation_error=.1)
 
 
@@ -70,28 +70,28 @@ def test_gmres_not_implemented():
     backend.gmres(lambda x: x, np.ones((2)))
 
 
-def test_svd_decomposition_with_max_values():
+def test_svd_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().svd_decomposition(
+  np_res = numpy_backend.NumPyBackend().svd(
       tensor, 3, max_singular_values=5)
-  sh_res = shell_backend.ShellBackend().svd_decomposition(
+  sh_res = shell_backend.ShellBackend().svd(
       tensor, 3, max_singular_values=5)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
 
-def test_qr_decomposition():
+def test_qr():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().qr_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().qr_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().qr(tensor, 3)
+  sh_res = shell_backend.ShellBackend().qr(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
 
-def test_rq_decomposition():
+def test_rq():
   tensor = np.ones([2, 3, 4, 5, 6])
-  np_res = numpy_backend.NumPyBackend().rq_decomposition(tensor, 3)
-  sh_res = shell_backend.ShellBackend().rq_decomposition(tensor, 3)
+  np_res = numpy_backend.NumPyBackend().rq(tensor, 3)
+  sh_res = shell_backend.ShellBackend().rq(tensor, 3)
   for x, y in zip(np_res, sh_res):
     assert x.shape == y.shape
 
@@ -138,19 +138,9 @@ def test_sqrt():
   assertBackendsAgree("sqrt", args)
 
 
-def test_diag():
-  args = {"tensor": np.ones(10)}
-  assertBackendsAgree("diag", args)
-
-
 def test_convert_to_tensor():
   args = {"tensor": np.ones([3, 5, 2])}
   assertBackendsAgree("convert_to_tensor", args)
-
-
-def test_trace():
-  args = {"tensor": np.ones([3, 5, 4, 4])}
-  assertBackendsAgree("trace", args)
 
 
 def test_outer_product():

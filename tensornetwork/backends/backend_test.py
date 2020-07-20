@@ -184,19 +184,19 @@ def test_abstract_backend_slice_not_implemented():
 def test_abstract_backend_svd_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.svd_decomposition(np.ones((2, 2)), 0)
+    backend.svd(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_qr_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.qr_decomposition(np.ones((2, 2)), 0)
+    backend.qr(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_rq_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.rq_decomposition(np.ones((2, 2)), 0)
+    backend.rq(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_shape_concat_not_implemented():
@@ -227,12 +227,6 @@ def test_abstract_backend_sqrt_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
     backend.sqrt(np.ones((2, 2)))
-
-
-def test_abstract_backend_diag_not_implemented():
-  backend = AbstractBackend()
-  with pytest.raises(NotImplementedError):
-    backend.diag(np.ones((2, 2)))
 
 
 def test_abstract_backend_convert_to_tensor_not_implemented():
@@ -415,10 +409,23 @@ def test_backend_instantiation(backend):
   assert backend1 is backend2
 
 
+def test_abstract_backend_diagonal_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.diagonal(np.ones((2, 2)))
+
+
+def test_abstract_backend_diagflat_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.diagflat(np.ones((2, 2)))
+
+
 def test_abstract_backend_sign_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
     backend.sign(np.ones((2, 2)))
+
 
 def test_abstract_backend_abs_not_implemented():
   backend = AbstractBackend()

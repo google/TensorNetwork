@@ -221,35 +221,6 @@ def test_sqrt(R, dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
-@pytest.mark.parametrize("num_charges", [1, 2])
-def test_diag(dtype, num_charges):
-  np.random.seed(10)
-  backend = symmetric_backend.SymmetricBackend()
-  a = get_tensor(3, num_charges, dtype)
-  with pytest.raises(ValueError):
-    backend.diag(a)
-  b = get_chargearray(num_charges, dtype)
-  expected = diag(b)
-  actual = backend.diag(b)
-  np.testing.assert_allclose(expected.data, actual.data)
-  assert np.all([
-      charge_equal(expected._charges[n], actual._charges[n])
-      for n in range(len(actual._charges))
-  ])
-
-
-@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
-@pytest.mark.parametrize("num_charges", [1, 2])
-def test_trace(dtype, num_charges):
-  np.random.seed(10)
-  backend = symmetric_backend.SymmetricBackend()
-  a = get_square_matrix(num_charges, dtype)
-  actual = backend.trace(a)
-  expected = trace(a)
-  np.testing.assert_allclose(actual.data, expected.data)
-
-
-@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (2, 3), (3, 3)])
 @pytest.mark.parametrize("num_charges", [1, 2])
 def test_outer_product(R1, R2, dtype, num_charges):
@@ -1019,6 +990,45 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_diagflat(dtype, num_charges):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(3, num_charges, dtype)
+  with pytest.raises(ValueError):
+    backend.diagflat(a)
+  b = get_chargearray(num_charges, dtype)
+  expected = diag(b)
+  actual = backend.diagflat(b)
+  np.testing.assert_allclose(expected.data, actual.data)
+  assert np.all([
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
+  ])
+
+
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+@pytest.mark.parametrize("offset", [0, 1])
+@pytest.mark.parametrize("axis1", range(0, 1))
+@pytest.mark.parametrize("axis2", range(0, 1))
+def test_trace(dtype, num_charges, offset, axis1, axis2):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_square_matrix(num_charges, dtype)
+  if offset != 0:
+    with pytest.raises(NotImplementedError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  elif axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+    expected = trace(a, [axis1, axis2])
+    np.testing.assert_allclose(actual.data, expected.data)
 
 
 def test_pivot_not_implemented():

@@ -43,31 +43,38 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def transpose(self, tensor, perm) -> Tensor:
     return self.bs.transpose(tensor, perm)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(self.bs, tensor, split_axis,
-                                            max_singular_values,
-                                            max_truncation_error, relative)
+    return decompositions.svd(self.bs, tensor, pivot_axis, max_singular_values,
+                              max_truncation_error, relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(self.bs, tensor, split_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.qr(self.bs, tensor, pivot_axis)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(self.bs, tensor, split_axis)
+    if non_negative_diagonal:
+      errstr = "Can't specify non_negative_diagonal with BlockSparse."
+      raise NotImplementedError(errstr)
+    return decompositions.rq(self.bs, tensor, pivot_axis)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
     return numpy.concatenate(values, axis)
@@ -87,9 +94,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return self.bs.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    return self.bs.diag(tensor)
-
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if numpy.isscalar(tensor):
       tensor = BlockSparseTensor(
@@ -100,10 +104,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           "cannot convert tensor of type `{}` to `BlockSparseTensor`".format(
               type(tensor)))
     return tensor
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return self.bs.trace(tensor)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return self.bs.tensordot(tensor1, tensor2, 0)
@@ -320,7 +320,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if tensor2.ndim != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor2`,"
                        " found `tensor2.shape = {}`".format(tensor2.shape))
-    return self.tensordot(tensor1, self.diag(tensor2),
+    return self.tensordot(tensor1, self.diagflat(tensor2),
                           ([len(tensor1.shape) - 1], [0]))
 
   def broadcast_left_multiplication(self, tensor1: Tensor,
@@ -328,10 +328,32 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if len(tensor1.shape) != 1:
       raise ValueError("only order-1 tensors are allowed for `tensor1`,"
                        " found `tensor1.shape = {}`".format(tensor1.shape))
-    return self.tensordot(self.diag(tensor1), tensor2, ([1], [0]))
+    return self.tensordot(self.diagflat(tensor1), tensor2, ([1], [0]))
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    if k != 0:
+      raise NotImplementedError("Can't specify k with Symmetric backend")
+    return self.bs.diag(tensor)
+
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    if axis1 != -2 or axis2 != -1 or offset != 0:
+      errstr = "offset, axis1, axis2 unsupported by Symmetric backend."
+      raise NotImplementedError(errstr)
+    return self.bs.diag(tensor)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    # Default np.trace uses first two axes.
+    if offset != 0:
+      errstr = f"offset = {offset} must be 0 with Symmetric backend."
+      raise NotImplementedError(errstr)
+    if axis1 == axis2:
+      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
+    return self.bs.trace(tensor, (axis1, axis2))
 
   def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
     raise NotImplementedError("Symmetric backend doesn't support pivot.")
