@@ -253,7 +253,9 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       
       def matvec(vector):
         tmp.data = vector
-        return A(tmp, *args).data
+        res = A(tmp, *args)
+        res.contiguous()
+        return res.data
       
       lop = sp.sparse.linalg.LinearOperator(
           dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
