@@ -17,10 +17,12 @@ from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
                                                BaseCharge, fuse_ndarray_charges,
                                                intersect, charge_equal,
                                                fuse_ndarrays)
+import caching
+
 from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
 SIZE_T = np.int64  #the size-type of index-arrays
-_CACHED_BLOCKS = {}
+
 
 def get_real_dtype(dtype):
   if dtype == np.complex128:
@@ -488,9 +490,11 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
-  hash_val = compute_hash(charges, flows, tr_partition, order)
-  if hash_val in _CACHED_BLOCKS:
-    return _CACHED_BLOCKS[hash_val]
+  cacher = caching.cacher_factory()
+  if cacher.do_caching:
+    hash_val = _compute_hash(charges, flows, tr_partition, order)
+    if hash_val in cacher.cache:
+      return cacher.cache[hash_val]
 
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
@@ -657,5 +661,7 @@ def _find_transposed_diagonal_sparse_blocks(
     obj.__init__(block_qnums,
                  np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
-  _CACHED_BLOCKS[hash_val] = (block_maps, obj, block_dims)
-  return _CACHED_BLOCKS[hash_val]
+  if cacher.do_caching:
+    cacher.cache[hash_val] = (block_maps, obj, block_dims)
+    return cacher.cache[hash_val]
+  return block_maps, obj, block_dims
