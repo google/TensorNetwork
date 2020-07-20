@@ -177,6 +177,47 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
            which: Text = 'LR',
            maxiter: Optional[int] = None,
            enable_caching: bool = True) -> Tuple[Tensor, List]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. 
+    If no `initial_state` is provided then `shape`  and `dtype` are required
+    so that a suitable initial state can be randomly generated.
+    This is a wrapper for scipy.sparse.linalg.eigs which only supports
+    a subset of the arguments of scipy.sparse.linalg.eigs.
+    Note: read notes for `enable_caching` carefully.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      args: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn`
+        method.
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+      maxiter: The maximum number of iterations.
+      enable_caching: If `True`, block-data during calls to `matvec` is cached
+        for later reuse. Note: usually it is save to enable_caching, unless 
+        `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
+        In this case, if one does a large number of krylov steps, this can lead 
+        to memory clutter and/or overflow.
+
+    Returns:
+       `np.ndarray`: An array of `numeig` lowest eigenvalues
+       `list`: A list of `numeig` lowest eigenvectors
+    """
 
     if args is None:
       args = []
