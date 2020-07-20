@@ -451,7 +451,7 @@ def _find_diagonal_sparse_blocks(
 
 
 def _compute_hash(charges: List[np.ndarray], flows: np.ndarray,
-                  tr_partition: int, order: List[int]) -> Tuple[str]:
+                  tr_partition: int, order: List[int]) -> str:
   """
   map the input arguments of _find_transposed_diagonal_sparse_blocks 
   to a string.
@@ -465,11 +465,12 @@ def _compute_hash(charges: List[np.ndarray], flows: np.ndarray,
     `charges[order[:partition]]` and `charges[order[partition:]]`).
     order: Order with which to permute the tensor axes. 
   Returns:
-    str: the string representation of the input
+    str: The string representation of the input
   """
-  return tuple([c.charges.tostring() for c in charges] + [
-      np.array(flows).tostring(), tr_partition,
-      np.array(order, dtype=np.int16).tostring()
+  return ''.join([str(c.charges.tostring()) for c in charges] + [
+      str(np.array(flows).tostring()),
+      str(tr_partition),
+      str(np.array(order, dtype=np.int16).tostring())
   ])
 
 

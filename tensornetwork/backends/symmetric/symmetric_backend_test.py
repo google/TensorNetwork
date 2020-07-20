@@ -975,7 +975,6 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   def mv(vec, mat):
     return mat @ vec
-
   init = BlockSparseTensor.random([index], dtype=dtype)
   # note: this will only find eigenvalues in the charge (0,0)
   # block of H because `init` only has non-zero values there.
