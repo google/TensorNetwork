@@ -419,7 +419,7 @@ class BaseDMRG:
             ndiag=ndiag)
 
         print_msg(site=self.mps.center_position - 1)
-      #prepare for right sweep: move center all the way to the right
+      #prepare for left sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
       while self.mps.center_position > 0:
         #_optimize_1site_local shifts the center site internally
@@ -517,7 +517,7 @@ class BaseDMRG:
         initial_site += 1
         print_msg(left_site=0, right_site=1)
       while self.mps.center_position < len(self.mps) - 1:
-        #_optimize_1site_local shifts the center site internally
+        #_optimize_2site_local shifts the center site internally
         energy = self._optimize_2s_local(
             max_bond_dim=max_bond_dim,
             sweep_dir='right',
@@ -527,10 +527,10 @@ class BaseDMRG:
             ndiag=ndiag)
 
         print_msg(self.mps.center_position - 1, self.mps.center_position)
-      #prepare for right sweep: move center all the way to the right
+      #prepare for left sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
       while self.mps.center_position > 0:
-        #_optimize_1site_local shifts the center site internally
+        #_optimize_2site_local shifts the center site internally
         energy = self._optimize_2s_local(
             max_bond_dim=max_bond_dim,
             sweep_dir='left',
