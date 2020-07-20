@@ -38,7 +38,7 @@ def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):
   np.random.seed(seed)
   R = len(shape)
   charge = BaseCharge(
-      np.random.randint(-5, 5, (num_charges, shape[0])),
+      np.random.randint(-5, 5, (shape[0], num_charges)),
       charge_types=[U1Charge] * num_charges)
 
   indices = [Index(charge, flows[n]) for n in range(R)]

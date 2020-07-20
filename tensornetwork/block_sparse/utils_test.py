@@ -1,11 +1,16 @@
 import numpy as np
 import pytest
 import itertools
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import U1Charge, charge_equal, fuse_ndarrays, fuse_ndarray_charges, BaseCharge
+from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
+                                               fuse_ndarrays,
+                                               fuse_ndarray_charges, BaseCharge)
 from tensornetwork.block_sparse.index import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup, _find_best_partition, compute_fused_charge_degeneracies, compute_unique_fused_charges, compute_num_nonzero, reduce_charges, _find_diagonal_sparse_blocks, _get_strides, _find_transposed_diagonal_sparse_blocks
+from tensornetwork.block_sparse.utils import (
+    flatten, get_flat_meta_data, fuse_stride_arrays, compute_sparse_lookup,
+    _find_best_partition, compute_fused_charge_degeneracies,
+    compute_unique_fused_charges, compute_num_nonzero, reduce_charges,
+    _find_diagonal_sparse_blocks, _get_strides,
+    _find_transposed_diagonal_sparse_blocks)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -88,7 +93,7 @@ def test_compute_sparse_lookup_non_ordered(flow):
   lookup, unique, labels = compute_sparse_lookup(charges, [flow], targets)
   np.testing.assert_allclose(labels, np.sort(labels))
   np.testing.assert_allclose(
-      np.squeeze(unique.charges[:, lookup]),
+      np.squeeze(unique.charges[lookup, :]),
       (np_flow * unique_charges)[charge_labels][inds])
 
 
@@ -132,7 +137,7 @@ def test_compute_unique_fused_charges():
 def test_compute_num_nonzero(num_charges):
   np.random.seed(12)
   D = 40
-  qs = [np.random.randint(-3, 3, (num_charges, D)) for _ in range(3)]
+  qs = [np.random.randint(-3, 3, (D, num_charges)) for _ in range(3)]
   charges = [BaseCharge(q, charge_types=[U1Charge] * num_charges) for q in qs]
   flows = [False, True, False]
   np_flows = [1, -1, 1]
@@ -143,8 +148,7 @@ def test_compute_num_nonzero(num_charges):
   nz2 = len(
       np.nonzero(
           np.logical_and.reduce(
-              fused.T == np.zeros((1, num_charges), dtype=np.int16),
-              axis=1))[0])
+              fused == np.zeros((1, num_charges), dtype=np.int16), axis=1))[0])
   assert nz1 == nz2
 
 
@@ -167,9 +171,9 @@ def test_reduce_charges():
 
 def test_reduce_charges_2():
   left_charges = np.asarray([[-2, 0, 1, 0, 0], [-3, 0, 2, 1,
-                                                0]]).astype(np.int16)
-  right_charges = np.asarray([[-1, 0, 2, 1], [-2, 2, 7, 0]]).astype(np.int16)
-  target_charge = np.zeros((2, 1), dtype=np.int16)
+                                                0]]).astype(np.int16).T
+  right_charges = np.asarray([[-1, 0, 2, 1], [-2, 2, 7, 0]]).astype(np.int16).T
+  target_charge = np.zeros((1, 2), dtype=np.int16)
   fused_charges = fuse_ndarray_charges(left_charges, right_charges,
                                        [U1Charge, U1Charge])
   dense_positions = reduce_charges([
@@ -183,17 +187,17 @@ def test_reduce_charges_2():
   #pylint: disable=no-member
   np.testing.assert_allclose(
       dense_positions[1],
-      np.nonzero(
-          np.logical_and.reduce(fused_charges.T == target_charge.T, axis=1))[0])
+      np.nonzero(np.logical_and.reduce(fused_charges == target_charge,
+                                       axis=1))[0])
 
 
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
 def test_reduce_charges_non_trivial(num_charges):
   np.random.seed(10)
-  left_charges = np.random.randint(-5, 6, (num_charges, 200), dtype=np.int16)
-  right_charges = np.random.randint(-5, 6, (num_charges, 200), dtype=np.int16)
+  left_charges = np.random.randint(-5, 6, (200, num_charges), dtype=np.int16)
+  right_charges = np.random.randint(-5, 6, (200, num_charges), dtype=np.int16)
 
-  target_charge = np.random.randint(-2, 3, (num_charges, 3), dtype=np.int16)
+  target_charge = np.random.randint(-2, 3, (3, num_charges), dtype=np.int16)
   charge_types = [U1Charge] * num_charges
   fused_charges = fuse_ndarray_charges(left_charges, right_charges,
                                        charge_types)
@@ -209,11 +213,11 @@ def test_reduce_charges_non_trivial(num_charges):
           np.squeeze(dense_positions[0].charges), np.squeeze(target_charge)))
   tmp = []
   #pylint: disable=unsubscriptable-object
-  for n in range(target_charge.shape[1]):
+  for n in range(target_charge.shape[0]):
     #pylint: disable=no-member
     tmp.append(
         np.logical_and.reduce(
-            fused_charges.T == target_charge[:, n][None, :], axis=1))
+            fused_charges == target_charge[n, :][None, :], axis=1))
   #pylint: disable=no-member
   mask = np.logical_or.reduce(tmp)
   np.testing.assert_allclose(dense_positions[1], np.nonzero(mask)[0])
@@ -224,48 +228,50 @@ def test_reduce_charges_non_trivial(num_charges):
 def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   np.random.seed(10)
   np_charges = [
-      np.random.randint(-5, 5, (num_charges, 60), dtype=np.int16)
+      np.random.randint(-5, 5, (60, num_charges), dtype=np.int16)
       for _ in range(num_legs)
   ]
   fused = np.stack([
-      fuse_ndarrays([np_charges[n][c, :]
+      fuse_ndarrays([np_charges[n][:, c]
                      for n in range(num_legs)])
       for c in range(num_charges)
   ],
-                   axis=0)
+                   axis=1)
 
   left_charges = np.stack([
-      fuse_ndarrays([np_charges[n][c, :]
+      fuse_ndarrays([np_charges[n][:, c]
                      for n in range(num_legs // 2)])
       for c in range(num_charges)
   ],
-                          axis=0)
+                          axis=1)
   right_charges = np.stack([
       fuse_ndarrays(
-          [np_charges[n][c, :]
+          [np_charges[n][:, c]
            for n in range(num_legs // 2, num_legs)])
       for c in range(num_charges)
   ],
-                           axis=0)
+                           axis=1)
   #pylint: disable=no-member
   nz = np.nonzero(
-      np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1))[0]
+      np.logical_and.reduce(fused == np.zeros((1, num_charges)), axis=1))[0]
   linear_locs = np.arange(len(nz))
   # pylint: disable=no-member
-  left_inds, _ = np.divmod(nz, right_charges.shape[1])
-  left = left_charges[:, left_inds]
-  unique_left = np.unique(left, axis=1)
+  left_inds, _ = np.divmod(nz, right_charges.shape[0])
+  left = left_charges[left_inds, :]
+  unique_left = np.unique(left, axis=0)
   blocks = []
-  for n in range(unique_left.shape[1]):
-    ul = unique_left[:, n][None, :]
+  for n in range(unique_left.shape[0]):
+    ul = unique_left[n, :][None, :]
     #pylint: disable=no-member
     blocks.append(linear_locs[np.nonzero(
-        np.logical_and.reduce(left.T == ul, axis=1))[0]])
+        np.logical_and.reduce(left == ul, axis=1))[0]])
 
   charges = [
       BaseCharge(left_charges, charge_types=[U1Charge] * num_charges),
       BaseCharge(right_charges, charge_types=[U1Charge] * num_charges)
   ]
+  print(left_charges)
+  print(right_charges)
   bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
   np.testing.assert_allclose(cs.charges, unique_left)
   for b1, b2 in zip(blocks, bs):
@@ -290,7 +296,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   num_legs = len(order)
   np.random.seed(10)
   np_charges = [
-      np.random.randint(-5, 5, (num_charges, D), dtype=np.int16)
+      np.random.randint(-5, 5, (D, num_charges), dtype=np.int16)
       for _ in range(num_legs)
   ]
   tr_charge_list = []
@@ -298,50 +304,50 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   for c in range(num_charges):
 
     tr_charge_list.append(
-        fuse_ndarrays([np_charges[order[n]][c, :] for n in range(num_legs)]))
+        fuse_ndarrays([np_charges[order[n]][:, c] for n in range(num_legs)]))
     charge_list.append(
-        fuse_ndarrays([np_charges[n][c, :] for n in range(num_legs)]))
+        fuse_ndarrays([np_charges[n][:, c] for n in range(num_legs)]))
 
-  tr_fused = np.stack(tr_charge_list, axis=0)
-  fused = np.stack(charge_list, axis=0)
+  tr_fused = np.stack(tr_charge_list, axis=1)
+  fused = np.stack(charge_list, axis=1)
 
-  dims = [c.shape[1] for c in np_charges]
+  dims = [c.shape[0] for c in np_charges]
   strides = _get_strides(dims)
   transposed_linear_positions = fuse_stride_arrays(dims,
                                                    [strides[o] for o in order])
   left_charges = np.stack([
-      fuse_ndarrays([np_charges[order[n]][c, :]
+      fuse_ndarrays([np_charges[order[n]][:, c]
                      for n in range(num_legs // 2)])
       for c in range(num_charges)
   ],
-                          axis=0)
+                          axis=1)
   right_charges = np.stack([
       fuse_ndarrays(
-          [np_charges[order[n]][c, :]
+          [np_charges[order[n]][:, c]
            for n in range(num_legs // 2, num_legs)])
       for c in range(num_charges)
   ],
-                           axis=0)
+                           axis=1)
   #pylint: disable=no-member
-  mask = np.logical_and.reduce(fused.T == np.zeros((1, num_charges)), axis=1)
+  mask = np.logical_and.reduce(fused == np.zeros((1, num_charges)), axis=1)
   nz = np.nonzero(mask)[0]
   dense_to_sparse = np.empty(len(mask), dtype=np.int64)
   dense_to_sparse[mask] = np.arange(len(nz))
   #pylint: disable=no-member
   tr_mask = np.logical_and.reduce(
-      tr_fused.T == np.zeros((1, num_charges)), axis=1)
+      tr_fused == np.zeros((1, num_charges)), axis=1)
   tr_nz = np.nonzero(tr_mask)[0]
   tr_linear_locs = transposed_linear_positions[tr_nz]
   # pylint: disable=no-member
-  left_inds, _ = np.divmod(tr_nz, right_charges.shape[1])
-  left = left_charges[:, left_inds]
-  unique_left = np.unique(left, axis=1)
+  left_inds, _ = np.divmod(tr_nz, right_charges.shape[0])
+  left = left_charges[left_inds, :]
+  unique_left = np.unique(left, axis=0)
   blocks = []
-  for n in range(unique_left.shape[1]):
-    ul = unique_left[:, n][None, :]
+  for n in range(unique_left.shape[0]):
+    ul = unique_left[n, :][None, :]
     #pylint: disable=no-member
     blocks.append(dense_to_sparse[tr_linear_locs[np.nonzero(
-        np.logical_and.reduce(left.T == ul, axis=1))[0]]])
+        np.logical_and.reduce(left == ul, axis=1))[0]]])
 
   charges = [
       BaseCharge(c, charge_types=[U1Charge] * num_charges) for c in np_charges
