@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
@@ -449,16 +450,27 @@ def _find_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
-def _compute_hash(charges, flows, tr_partition, order):
+def _compute_hash(charges: List[np.ndarray], flows: np.ndarray,
+                  tr_partition: int, order: List[int]) -> Tuple[str]:
   """
-  hash the input arguments of _find_transposed_diagonal_sparse_blocks 
-  and return the value
+  map the input arguments of _find_transposed_diagonal_sparse_blocks 
+  to a string.
+  Args:
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    tr_partition: Location of the transposed tensor partition 
+    (i.e. such that the tensor is viewed as a matrix between 
+    `charges[order[:partition]]` and `charges[order[partition:]]`).
+    order: Order with which to permute the tensor axes. 
+  Returns:
+    str: the string representation of the input
   """
-  return hash(
-      tuple([c.charges.tostring() for c in charges] + [
-          np.array(flows).tostring(), tr_partition,
-          np.array(order, dtype=np.int16).tostring()
-      ]))
+  return tuple([c.charges.tostring() for c in charges] + [
+      np.array(flows).tostring(), tr_partition,
+      np.array(order, dtype=np.int16).tostring()
+  ])
 
 
 def _find_transposed_diagonal_sparse_blocks(

@@ -10,6 +10,7 @@ from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         inv)
 from tensornetwork.block_sparse.caching import get_cacher
 from tensornetwork.ncon_interface import ncon
+
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
@@ -1041,9 +1042,12 @@ def test_pivot_not_implemented():
 
 
 def test_eigsh_caching():
+
   def matvec(mps, A, B, C):
-    return ncon([A, mps,B, C], [[3,1,-1],[1,2,4],[3,5,-2,2],[5,4,-3]], backend='symmetric')
-  
+    return ncon([A, mps, B, C],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
   backend = symmetric_backend.SymmetricBackend()
   D = 100
   M = 5
