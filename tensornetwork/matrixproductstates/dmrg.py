@@ -92,8 +92,9 @@ class BaseDMRG:
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend=self.backend.name)
 
-  def two_site_matvec(self, mps_bond_tensor, L, mpotensor_L, mpotensor_R, R):
-    return ncon([L, mps_bond_tensor, mpotensor_L, mpotensor_R, R],
+  def two_site_matvec(self, mps_bond_tensor, L, left_mpotensor,
+                      right_mpotensor, R):
+    return ncon([L, mps_bond_tensor, left_mpotensor, right_mpotensor, R],
                 [[3, 1, -1], [1, 2, 5, 6], [3, 4, -2, 2], [4, 7, -3, 5],
                  [7, 6, -4]],
                 backend=self.backend.name)
@@ -489,15 +490,17 @@ class BaseDMRG:
     self.compute_right_envs()
 
     # TODO (pedersor): print max truncation errors
-    def print_msg(site):
+    def print_msg(left_site, right_site):
       if verbose < 2:
         stdout.write(f"\rTS-DMRG sweep={iteration}/{num_sweeps}, "
-                     f"site={site}/{len(self.mps)}: optimized E={energy}")
+                     f"sites=({left_site},{right_site})/{len(self.mps)}: "
+                     f"optimized E={energy}")
         stdout.flush()
 
       if verbose >= 2:
         print(f"TS-DMRG sweep={iteration}/{num_sweeps}, "
-              f"site={site}/{len(self.mps)}: optimized E={energy}")
+              f"sites=({left_site},{right_site})/{len(self.mps)}: "
+              f"optimized E={energy}")
 
     while not converged:
       if initial_site == 0:
@@ -512,7 +515,7 @@ class BaseDMRG:
             ndiag=ndiag)
 
         initial_site += 1
-        print_msg(site=0)
+        print_msg(left_site=0, right_site=1)
       while self.mps.center_position < len(self.mps) - 1:
         #_optimize_1site_local shifts the center site internally
         energy = self._optimize_2s_local(
@@ -523,7 +526,7 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=self.mps.center_position - 1)
+        print_msg(self.mps.center_position - 1, self.mps.center_position)
       #prepare for right sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
       while self.mps.center_position > 0:
@@ -536,7 +539,7 @@ class BaseDMRG:
             delta=delta,
             ndiag=ndiag)
 
-        print_msg(site=self.mps.center_position + 1)
+        print_msg(self.mps.center_position, self.mps.center_position + 1)
 
       if np.abs(final_energy - energy) < precision:
         converged = True
