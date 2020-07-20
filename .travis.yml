@@ -11,10 +11,14 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install -r requirements_travis.txt
-  - pip install pylint
+  - pip install pylint pytest-cov codecov
+  - pip install 
 # command to run tests
 script:
   - pylint ./tensornetwork/
   - pytype ./tensornetwork -x **/*_test.py
-  - pytest
+  - pytest --cov=./
   - python3 setup.py build
+
+after_success:
+  - codecov
