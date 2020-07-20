@@ -1104,5 +1104,3 @@ def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
 
   compare_eigvals_and_eigvecs(
       np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
-
-
