@@ -242,36 +242,43 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
       cache_was_empty = self.bs.get_cacher().is_empty
-
-    initial_state.contiguous()
-    dim = len(initial_state.data)
-    tmp = BlockSparseTensor(
-        numpy.empty(0, dtype=initial_state.dtype),
-        initial_state._charges,
-        initial_state._flows,
-        check_consistency=False)
-
-    def matvec(vector):
-      tmp.data = vector
-      return A(tmp, *args).data
-
-    lop = sp.sparse.linalg.LinearOperator(
-        dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
-    eta, U = sp.sparse.linalg.eigs(
-        A=lop,
-        k=numeig,
-        which=which,
-        v0=initial_state.data,
-        ncv=num_krylov_vecs,
-        tol=tol,
-        maxiter=maxiter)
-    eVs = [
-        BlockSparseTensor(
-            U[:, n],
-            initial_state._charges,
-            initial_state._flows,
-            check_consistency=False) for n in range(numeig)
-    ]
+    try:
+      initial_state.contiguous()
+      dim = len(initial_state.data)
+      tmp = BlockSparseTensor(
+          numpy.empty(0, dtype=initial_state.dtype),
+          initial_state._charges,
+          initial_state._flows,
+          check_consistency=False)
+      
+      def matvec(vector):
+        tmp.data = vector
+        return A(tmp, *args).data
+      
+      lop = sp.sparse.linalg.LinearOperator(
+          dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
+      eta, U = sp.sparse.linalg.eigs(
+          A=lop,
+          k=numeig,
+          which=which,
+          v0=initial_state.data,
+          ncv=num_krylov_vecs,
+          tol=tol,
+          maxiter=maxiter)
+      eVs = [
+          BlockSparseTensor(
+              U[:, n],
+              initial_state._charges,
+              initial_state._flows,
+              check_consistency=False) for n in range(numeig)
+      ]
+    except Exception as e:
+      #set caching status back to what it was
+      self.bs.set_caching_status(former_caching_status)
+      if enable_caching and cache_was_empty:
+        self.bs.clear_cache()
+      raise e
+      
     self.bs.set_caching_status(former_caching_status)
     if enable_caching and cache_was_empty:
       self.bs.clear_cache()
