@@ -92,9 +92,10 @@ class BaseDMRG:
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend=self.backend.name)
 
-  def two_site_matvec(self, mps_bond_tensor, L, mpo_bond_tensor, R):
-    return ncon([L, mps_bond_tensor, mpo_bond_tensor, R],
-                [[3, 1, -1], [1, 2, 4, 5], [3, 6, -2, -3, 2, 4], [6, 5, -4]],
+  def two_site_matvec(self, mps_bond_tensor, L, mpotensor_L, mpotensor_R, R):
+    return ncon([L, mps_bond_tensor, mpotensor_L, mpotensor_R, R],
+                [[3, 1, -1], [1, 2, 5, 6], [3, 4, -2, 2], [4, 7, -3, 5],
+                 [7, 6, -4]],
                 backend=self.backend.name)
 
   def add_left_layer(self, L, mps_tensor, mpo_tensor):
@@ -278,13 +279,11 @@ class BaseDMRG:
       bond_mps = ncon([self.mps.tensors[site], self.mps.tensors[site + 1]],
                       [[-1, -2, 1], [1, -3, -4]],
                       backend=self.backend.name)
-      bond_mpo = ncon([self.mpo.tensors[site], self.mpo.tensors[site + 1]],
-                      [[-1, 1, -3, -5], [1, -2, -4, -6]],
-                      backend=self.backend.name)
       energies, states = self.backend.eigsh_lanczos(
           A=self.two_site_matvec,
           args=[
-              self.left_envs[site], bond_mpo, self.right_envs[site + 1]
+              self.left_envs[site], self.mpo.tensors[site],
+              self.mpo.tensors[site + 1], self.right_envs[site + 1]
           ],
           initial_state=bond_mps,
           num_krylov_vecs=num_krylov_vecs,
@@ -312,13 +311,11 @@ class BaseDMRG:
       bond_mps = ncon([self.mps.tensors[site - 1], self.mps.tensors[site]],
                       [[-1, -2, 1], [1, -3, -4]],
                       backend=self.backend.name)
-      bond_mpo = ncon([self.mpo.tensors[site - 1], self.mpo.tensors[site]],
-                      [[-1, 1, -3, -5], [1, -2, -4, -6]],
-                      backend=self.backend.name)
       energies, states = self.backend.eigsh_lanczos(
           A=self.two_site_matvec,
           args=[
-              self.left_envs[site - 1], bond_mpo, self.right_envs[site]
+              self.left_envs[site - 1], self.mpo.tensors[site - 1],
+              self.mpo.tensors[site], self.right_envs[site]
           ],
           initial_state=bond_mps,
           num_krylov_vecs=num_krylov_vecs,
