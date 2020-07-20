@@ -452,14 +452,13 @@ def _find_diagonal_sparse_blocks(
 
 def _compute_hash(charges, flows, tr_partition, order):
   """
-  hash the input arguments of _find_transposed_diagonal_sparse_blocks 
-  and return the value
+  map the input arguments of _find_transposed_diagonal_sparse_blocks 
+  to a string
   """
-  return hash(
-      tuple([c.charges.tostring() for c in charges] + [
-          np.array(flows).tostring(), tr_partition,
-          np.array(order, dtype=np.int16).tostring()
-      ]))
+  return tuple([c.charges.tostring() for c in charges] + [
+      np.array(flows).tostring(), tr_partition,
+      np.array(order, dtype=np.int16).tostring()
+  ])
 
 
 def _find_transposed_diagonal_sparse_blocks(
