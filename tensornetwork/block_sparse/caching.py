@@ -31,6 +31,10 @@ class Cacher:
     self.cache = {}
   
 def get_cacher():
+  """
+  Return a `Cacher` object which can be used to perform 
+  caching of block-data for block-sparse tensor contractions.
+  """
   if len(_INSTANTIATED_CACHERS) == 0:
     _INSTANTIATED_CACHERS.append(Cacher())
   return _INSTANTIATED_CACHERS[0]
