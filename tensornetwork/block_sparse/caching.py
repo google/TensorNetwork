@@ -18,6 +18,9 @@ from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
                                                intersect, charge_equal,
                                                fuse_ndarrays)
 from typing import List, Union, Any, Tuple, Optional, Sequence
+# currently there is only one global cacher that does caching.
+# this could be changed later on to having stacks of cachers,
+# i.e. different cache levesl
 _INSTANTIATED_CACHERS = []
 class Cacher:
   def __init__(self):
@@ -29,6 +32,10 @@ class Cacher:
     
   def clear_cache(self):
     self.cache = {}
+    
+  @property
+  def is_empty(self):
+    return len(self.cache) == 0
   
 def get_cacher():
   """
@@ -47,13 +54,13 @@ def enable_caching():
   Enabling caching can significantly speed tensor contractions,
   but can lead to substantially larger memory footprints.
   In particular if the code uses tensor decompositions like QR, SVD
-  eig, eigh or any similar method, enabling caching can cause catastrophic memory 
-  clutter, so be careful when turning it on.
+  eig, eigh or any similar method, enabling caching can cause 
+  catastrophic memory clutter, so use caching with great care.
 
   The user can at any point clear the cache by calling 
   `tn.block_sparse.clear_cache()`.
   """
-  _INSTANTIATED_CACHERS[0].set_status(True)
+  get_cacher().set_status(True)
   
 def disable_caching():
   """
@@ -62,13 +69,17 @@ def disable_caching():
   Clearing the cache can be achieved by calling
   `tn.block_sparse.clear_cache()`.
   """
-  _INSTANTIATED_CACHERS[0].set_status(False)
+  get_cacher().set_status(False)
+  
 
 def clear_cache():
   """
   Clear the cache that stores block-data for block-sparse tensor contractions.
   """
-  _INSTANTIATED_CACHERS[0].clear_cache()
-
-
+  get_cacher().clear_cache()
   
+def get_caching_status():
+  return get_cacher().do_caching
+
+def set_caching_status(status):
+  get_cacher().set_status(status)  
