@@ -16,7 +16,9 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
+from scipy.sparse.linalg import LinearOperator, eigs
 import scipy as sp
+
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
@@ -229,11 +231,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
-    lop = sp.sparse.linalg.LinearOperator(
+    lop = LinearOperator(
         dtype=initial_state.dtype,
         shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
         matvec=matvec)
-    eta, U = sp.sparse.linalg.eigs(
+    eta, U = eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -615,7 +617,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
