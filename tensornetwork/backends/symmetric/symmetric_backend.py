@@ -174,7 +174,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                     tol: float = 1E-8,
                     delta: float = 1E-8,
                     ndiag: int = 20,
-                    reorthogonalize: bool = False) -> Tuple[Tensor, List]:
+                    reorthogonalize: bool = False, enable_caching: bool=False) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
@@ -211,9 +211,9 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
        eigvecs: A list of `numeig` lowest eigenvectors
     """
     former_caching_status = self.bs.get_caching_status()
-    cache_was_empty = self.bs.get_cacher().is_empty
-    if not former_caching_status:
-      self.bs.enable_caching()
+    self.bs.set_caching_status(enable_caching)
+    if enable_caching:
+      cache_was_empty = self.bs.get_cacher().is_empty
 
     if args is None:
       args = []
@@ -302,9 +302,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         state += vec * u[n1, n2]
       eigenvectors.append(state / self.norm(state))
       
-    self.bs.set_caching_status(former_caching_status)
-    if cache_was_empty:
+    self.bs.set_caching_status(former_caching_status)      
+    if enable_caching and cache_was_empty:
       self.bs.clear_cache()
+        
     return eigvals[0:numeig], eigenvectors
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
