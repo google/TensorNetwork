@@ -17,6 +17,8 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 import scipy as sp
+import scipy.sparse.linalg
+import scipy.linalg
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
@@ -229,11 +231,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
-    lop = sp.sparse.linalg.LinearOperator(
+    lop = scipy.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype,
         shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
         matvec=matvec)
-    eta, U = sp.sparse.linalg.eigs(
+    eta, U = scipy.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -241,12 +243,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         ncv=num_krylov_vecs,
         tol=tol,
         maxiter=maxiter)
-    if dtype:
-      eta = eta.astype(dtype)
-      U = U.astype(dtype)
-    evs = list(eta)
     eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
-    return evs, eVs
+    return eta, eVs
 
   def gmres(self,
             A_mv: Callable,
@@ -374,7 +372,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return Avec
 
     A_shape = (b.size, b.size)
-    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
+    A_op = scipy.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
     x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
@@ -615,7 +613,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
