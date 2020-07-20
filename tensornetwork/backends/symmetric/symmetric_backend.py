@@ -218,14 +218,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
        eigvals: A list of `numeig` lowest eigenvalues
        eigvecs: A list of `numeig` lowest eigenvectors
     """
-    former_caching_status = self.bs.get_caching_status()
-    self.bs.set_caching_status(enable_caching)
-    if enable_caching:
-      cache_was_empty = self.bs.get_cacher().is_empty
+
 
     if args is None:
       args = []
-
     if num_krylov_vecs < numeig:
       raise ValueError('`num_krylov_vecs` >= `numeig` required!')
 
@@ -242,7 +238,11 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
-
+    former_caching_status = self.bs.get_caching_status()    
+    self.bs.set_caching_status(enable_caching)
+    if enable_caching:
+      cache_was_empty = self.bs.get_cacher().is_empty
+      
     vector_n = initial_state
     vector_n.contiguous() # bring into contiguous memory layout
 
