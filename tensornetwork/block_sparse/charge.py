@@ -696,9 +696,9 @@ def intersect(A: np.ndarray,
     ndarray: the indices of the first occurrences of the common values in B.
       Only provided if return_indices is True.
   """
+  # pylint: disable=line-too-long
   # see
-  # https://stackoverflow.com/questions/8317022/
-  # get-intersecting-rows-across-two-2d-numpy-arrays
+  # https://stackoverflow.com/questions/8317022/ get-intersecting-rows-across-two-2d-numpy-arrays
   #pylint: disable=no-else-return
   A = np.ascontiguousarray(A)
   B = np.ascontiguousarray(B)
