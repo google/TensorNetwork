@@ -17,7 +17,7 @@ from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
                                                BaseCharge, fuse_ndarray_charges,
                                                intersect, charge_equal,
                                                fuse_ndarrays)
-import caching
+from tensornetwork.block_sparse.caching import get_cacher
 
 from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
@@ -490,7 +490,7 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
-  cacher = caching.cacher_factory()
+  cacher = get_cacher()
   if cacher.do_caching:
     hash_val = _compute_hash(charges, flows, tr_partition, order)
     if hash_val in cacher.cache:
