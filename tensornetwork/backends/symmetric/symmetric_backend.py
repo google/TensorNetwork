@@ -237,6 +237,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+    
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
@@ -319,6 +320,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
       raise e
+    
+    self.bs.set_caching_status(former_caching_status)
+    if enable_caching and cache_was_empty:
+      self.bs.clear_cache()
 
     return eigvals[0:numeig], eigenvectors
 
