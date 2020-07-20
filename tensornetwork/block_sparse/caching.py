@@ -26,18 +26,18 @@ _INSTANTIATED_CACHERS = []
 
 class Cacher:
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.cache = {}
     self.do_caching = False
 
-  def set_status(self, value):
+  def set_status(self, value) -> None:
     self.do_caching = value
 
-  def clear_cache(self):
+  def clear_cache(self) -> None:
     self.cache = {}
 
   @property
-  def is_empty(self):
+  def is_empty(self) -> bool:
     return len(self.cache) == 0
 
 
