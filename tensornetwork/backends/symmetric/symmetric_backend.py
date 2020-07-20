@@ -163,7 +163,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return self.bs.eigh(matrix)
 
-  def eigsh_lanczos(self,
+  def eigsh_lanczos(self, #pylint: disable=arguments-differ
                     A: Callable,
                     args: Optional[List[Tensor]] = None,
                     initial_state: Optional[Tensor] = None,
@@ -175,7 +175,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                     delta: float = 1E-8,
                     ndiag: int = 20,
                     reorthogonalize: bool = False,
-                    enable_caching: bool=True) -> Tuple[Tensor, List]:
+                    enable_caching: bool = True) -> Tuple[Tensor, List]:
     """
     Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`.
@@ -210,8 +210,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       enable_caching: If `True`, block-data during calls to `matvec` is cached
         for later reuse. Note: usually it is save to enable_caching, unless 
         `matvec` uses matrix decompositions liek SVD, QR, eigh, eig or similar.
-        In this case, if one does a large number of krylov steps, this can lead to 
-        memory clutter and/or overflow.
+        In this case, if one does a large number of krylov steps, this can lead 
+        to memory clutter and/or overflow.
 
     Returns:
       (eigvals, eigvecs)
