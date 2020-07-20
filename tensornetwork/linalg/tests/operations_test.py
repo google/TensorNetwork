@@ -45,6 +45,7 @@ def safe_randn(shape, backend, dtype):
   dtype is not supported by the backend. Returns the Tensor and the backend
   array, which are both None if the dtype and backend did not match.
   """
+  np.random.seed(seed=10)
   init = np.random.randn(*shape)
   if dtype == np.bool:
     init = np.round(init)
@@ -96,9 +97,6 @@ def check_contraction_dtype(backend, dtype):
   dtype.
   """
   skip = False
-  #  backend_obj = backends.backend_factory.get_backend(backend)
-  #  dtype = backend_obj.zeros((1,), dtype=dtype).dtype # handles the string case
-
   if backend == "tensorflow":
     if dtype in [np.uint8, tf.uint8, np.uint16, tf.uint16, np.int8, tf.int8,
                  np.int16, tf.int16, np.uint32, tf.uint32, np.uint64,
@@ -338,7 +336,7 @@ def test_outer_vs_backend(dtype, backend):
   backend_result = backend_obj.outer_product(*arrays)
   np.testing.assert_allclose(backend_result, result.array)
 
-  
+
 @pytest.mark.parametrize("dtype", np_all_dtypes)
 def test_ncon_invalid_backends(dtype, backend):
   backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
@@ -359,7 +357,7 @@ def test_ncon_invalid_backends(dtype, backend):
       with pytest.raises(ValueError):
         _ = tensornetwork.linalg.operations.ncon(tensors, idxs)
 
-        
+
 @pytest.mark.parametrize("dtype", np_not_bool)
 def test_ncon_vs_backend(dtype, backend):
   shape = (4, 3)
@@ -374,3 +372,36 @@ def test_ncon_vs_backend(dtype, backend):
   result = tensornetwork.linalg.operations.ncon(tensors, idxs)
   old_result = tensornetwork.ncon(arrays, idxs, backend=backend)
   np.testing.assert_allclose(old_result, result.array)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_diagonal(backend, dtype):
+  """ Checks that Tensor.diagonal() works.
+  """
+  shape = (2, 3, 3)
+  A, _ = safe_randn(shape, backend, dtype)
+  if A is not None:
+    np.testing.assert_allclose(tensornetwork.diagonal(A).array,
+                               A.backend.diagonal(A.array))
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_diagflat(backend, dtype):
+  """ Checks that Tensor.diagflat() works.
+  """
+  shape = (2, 3, 3)
+  A, _ = safe_randn(shape, backend, dtype)
+  if A is not None:
+    np.testing.assert_allclose(tensornetwork.diagflat(A).array,
+                               A.backend.diagflat(A.array))
+
+
+@pytest.mark.parametrize("dtype", np_not_half)
+def test_trace(backend, dtype):
+  """ Checks that Tensor.trace() works.
+  """
+  shape = (2, 3, 3)
+  A, _ = safe_randn(shape, backend, dtype)
+  if A is not None:
+    np.testing.assert_allclose(tensornetwork.trace(A).array,
+                               A.backend.trace(A.array))

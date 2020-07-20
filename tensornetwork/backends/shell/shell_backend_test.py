@@ -57,7 +57,7 @@ def test_svd():
     assert x.shape == y.shape
 
 
-def test_svd_decomposition_raises_error():
+def test_svd_raises_error():
   tensor = np.ones([2, 3, 4, 5, 6])
   with pytest.raises(NotImplementedError):
     shell_backend.ShellBackend().svd(
@@ -70,7 +70,7 @@ def test_gmres_not_implemented():
     backend.gmres(lambda x: x, np.ones((2)))
 
 
-def test_svd_decomposition_with_max_values():
+def test_svd_with_max_values():
   tensor = np.ones([2, 3, 4, 5, 6])
   np_res = numpy_backend.NumPyBackend().svd(
       tensor, 3, max_singular_values=5)

@@ -29,28 +29,32 @@ def test_expected_shapes():
 
 def test_expected_shapes_qr():
   val = torch.zeros((2, 3, 4, 5))
-  q, r = decompositions.qr(torch, val, 2)
-  assert q.shape == (2, 3, 6)
-  assert r.shape == (6, 4, 5)
+  for non_negative_diagonal in [True, False]:
+    q, r = decompositions.qr(torch, val, 2, non_negative_diagonal)
+    assert q.shape == (2, 3, 6)
+    assert r.shape == (6, 4, 5)
 
 
 def test_expected_shapes_rq():
   val = torch.zeros((2, 3, 4, 5))
-  r, q = decompositions.rq(torch, val, 2)
-  assert r.shape == (2, 3, 6)
-  assert q.shape == (6, 4, 5)
+  for non_negative_diagonal in [True, False]:
+    r, q = decompositions.rq(torch, val, 2, non_negative_diagonal)
+    assert r.shape == (2, 3, 6)
+    assert q.shape == (6, 4, 5)
 
 
 def test_rq():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)
-  r, q = decompositions.rq(torch, random_matrix, 1)
-  np.testing.assert_allclose(r.mm(q), random_matrix)
+  for non_negative_diagonal in [True, False]:
+    r, q = decompositions.rq(torch, random_matrix, 1, non_negative_diagonal)
+    np.testing.assert_allclose(r.mm(q), random_matrix)
 
 
 def test_qr():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)
-  q, r = decompositions.qr(torch, random_matrix, 1)
-  np.testing.assert_allclose(q.mm(r), random_matrix)
+  for non_negative_diagonal in [True, False]:
+    q, r = decompositions.rq(torch, random_matrix, 1, non_negative_diagonal)
+    np.testing.assert_allclose(q.mm(r), random_matrix)
 
 
 def test_max_singular_values():

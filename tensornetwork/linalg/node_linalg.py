@@ -299,12 +299,12 @@ def kron(nodes: Sequence[AbstractNode]) -> AbstractNode:
   appear first half of edges in the resulting node, and the second half ot the
   edges in each node will be in the second half of the resulting node.
 
-  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and 
-  :math:`Z_{gh}`, then the resulting node would have the edges ordered 
+  For example, if I had two nodes  :math:`X_{ab}`,  :math:`Y_{cdef}`, and
+  :math:`Z_{gh}`, then the resulting node would have the edges ordered
   :math:`R_{acdgbefh}`.
-   
+
   The kronecker product is designed such that the kron of many operators is
-  itself an operator. 
+  itself an operator.
 
   Args:
     nodes: A sequence of `AbstractNode` objects.
