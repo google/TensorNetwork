@@ -17,6 +17,7 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 import scipy as sp
+import scipy.sparse.linalg
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
