@@ -17,7 +17,8 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
-from scipy.sparse.linalg import LinearOperator, eigs
+import scipy as sp
+import scipy.sparse.linalg
 import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
@@ -211,10 +212,10 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     def matvec(vector):
       tmp.data = vector
       return A(tmp, *args).data
-    
-    lop = LinearOperator(
+
+    lop = sp.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
-    eta, U = eigs(
+    eta, U = sp.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -232,7 +233,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     self.bs.set_caching_status(former_caching_status)
     if enable_caching and cache_was_empty:
       self.bs.clear_cache()
-    
+
     return eta, eVs
 
   def eigsh_lanczos(self, #pylint: disable=arguments-differ
