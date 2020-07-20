@@ -1070,3 +1070,39 @@ def test_eigsh_caching():
   backend.eigsh_lanczos(
       matvec, [L, mpo, R], initial_state=mps, num_krylov_vecs=ncv)
   assert get_cacher().cache == {}
+
+def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
+  _, iy = np.nonzero(np.abs(eta[:, None] - eta_exact[None, :]) < thresh)
+  U_exact_perm = U_exact[:, iy]
+  U_exact_perm = U_exact_perm / np.expand_dims(np.sum(U_exact_perm, axis=0), 0)
+  U = U / np.expand_dims(np.sum(U, axis=0), 0)
+  np.testing.assert_allclose(U_exact_perm, U)
+  np.testing.assert_allclose(eta, eta_exact[iy])
+
+
+#################################################################
+# the following is a sanity check for eigs which does not
+# really use block sparsity (all charges are identity charges)
+#################################################################
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
+
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+
+  def mv(vec, mat):
+    return mat @ vec
+
+  init = BlockSparseTensor.random([index], dtype=dtype)
+  eta1, U1 = backend.eigs(mv, [H], init)
+
+  eta2, U2 = np.linalg.eig(H.todense())
+
+  compare_eigvals_and_eigvecs(
+      np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
+
+
