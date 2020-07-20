@@ -233,8 +233,9 @@ def test_finite_DMRG_two_site_outstream(backend_dtype_values, capsys):
   act = ''.join(act[0:num_sweeps * (2 * N - 2)])
 
   exp = ''.join([
-    f"TS-DMRG sweep={n}/{num_sweeps}, sites=({left_site},{left_site + 1})/{N}:\n"
-    for n in range(1, num_sweeps + 1)
-    for left_site in [0, 1, 2, 3, 4, 4, 3, 2, 1, 0]
+      f"TS-DMRG sweep={n}/{num_sweeps}, sites=({left_site},{left_site + 1})"
+      f"/{N}:\n"
+      for n in range(1, num_sweeps + 1)
+      for left_site in [0, 1, 2, 3, 4, 4, 3, 2, 1, 0]
   ])
   assert act == exp
