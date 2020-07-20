@@ -22,22 +22,26 @@ from typing import List, Union, Any, Tuple, Optional, Sequence
 # this could be changed later on to having stacks of cachers,
 # i.e. different cache levesl
 _INSTANTIATED_CACHERS = []
+
+
 class Cacher:
+
   def __init__(self):
     self.cache = {}
     self.do_caching = False
-    
+
   def set_status(self, value):
     self.do_caching = value
-    
+
   def clear_cache(self):
     self.cache = {}
-    
+
   @property
   def is_empty(self):
     return len(self.cache) == 0
-  
-def get_cacher():
+
+
+def get_cacher() -> Cacher:
   """
   Return a `Cacher` object which can be used to perform 
   caching of block-data for block-sparse tensor contractions.
@@ -45,8 +49,9 @@ def get_cacher():
   if len(_INSTANTIATED_CACHERS) == 0:
     _INSTANTIATED_CACHERS.append(Cacher())
   return _INSTANTIATED_CACHERS[0]
-    
-def enable_caching():
+
+
+def enable_caching() -> None:
   """
   Enable caching of block-data for block-sparse contraction.
   If enabled, all data that is needed to perform binary tensor contractions 
@@ -61,8 +66,9 @@ def enable_caching():
   `tn.block_sparse.clear_cache()`.
   """
   get_cacher().set_status(True)
-  
-def disable_caching():
+
+
+def disable_caching() -> None:
   """
   Disable caching of block-data for block-sparse tensor contractions. 
   Note that the cache WILL NOT BE CLEARED. 
@@ -70,16 +76,18 @@ def disable_caching():
   `tn.block_sparse.clear_cache()`.
   """
   get_cacher().set_status(False)
-  
 
-def clear_cache():
+
+def clear_cache() -> None:
   """
   Clear the cache that stores block-data for block-sparse tensor contractions.
   """
   get_cacher().clear_cache()
-  
-def get_caching_status():
+
+
+def get_caching_status() -> bool:
   return get_cacher().do_caching
 
-def set_caching_status(status):
-  get_cacher().set_status(status)  
+
+def set_caching_status(status) -> None:
+  get_cacher().set_status(status)
