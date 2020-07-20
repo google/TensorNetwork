@@ -178,10 +178,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
            maxiter: Optional[int] = None,
            enable_caching: bool = True) -> Tuple[Tensor, List]:
 
-    former_caching_status = self.bs.get_caching_status()
-    self.bs.set_caching_status(enable_caching)
-    if enable_caching:
-      cache_was_empty = self.bs.get_cacher().is_empty
     if args is None:
       args = []
 
@@ -200,6 +196,11 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+    
+    former_caching_status = self.bs.get_caching_status()
+    self.bs.set_caching_status(enable_caching)
+    if enable_caching:
+      cache_was_empty = self.bs.get_cacher().is_empty
 
     initial_state.contiguous()
     dim = len(initial_state.data)
