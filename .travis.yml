@@ -12,7 +12,6 @@ install:
   - pip install -r requirements.txt
   - pip install -r requirements_travis.txt
   - pip install pylint pytest-cov codecov
-  - pip install 
 # command to run tests
 script:
   - pylint ./tensornetwork/
