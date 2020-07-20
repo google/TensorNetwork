@@ -20,20 +20,20 @@ def test_set_caching_status():
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
-  assert cacher.do_caching == True
+  assert cacher.do_caching
 
   set_caching_status(False)
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
-  assert cacher.do_caching == False
+  assert not cacher.do_caching
 
 
 def test_get_caching_status():
   set_caching_status(True)
-  assert get_caching_status() == True
+  assert get_caching_status()
   set_caching_status(False)
-  assert get_caching_status() == False
+  assert not get_caching_status()
 
 
 def test_enable_caching():
@@ -41,7 +41,7 @@ def test_enable_caching():
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
-  assert cacher.do_caching == True
+  assert cacher.do_caching
 
 
 def test_disable_caching():
@@ -49,7 +49,7 @@ def test_disable_caching():
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
-  assert cacher.do_caching == False
+  assert not cacher.do_caching
 
 
 def test_clear_cache():
