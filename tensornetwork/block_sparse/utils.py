@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
