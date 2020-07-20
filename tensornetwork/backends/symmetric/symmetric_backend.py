@@ -286,8 +286,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       enable_caching: If `True`, block-data during calls to `matvec` is cached
         for later reuse. Note: usually it is save to enable_caching, unless 
         `matvec` uses matrix decompositions liek SVD, QR, eigh, eig or similar.
-        In this case, if one does a large number of krylov steps, this can 
-        lead to memory clutter and/or overflow.
+        In this case, if one does a large number of krylov steps, this can lead 
+        to memory clutter and/or overflow.
 
     Returns:
       (eigvals, eigvecs)
