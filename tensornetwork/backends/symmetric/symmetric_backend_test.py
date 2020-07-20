@@ -8,7 +8,8 @@ from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         sqrt, ChargeArray, diag, trace, norm,
                                         eye, ones, zeros, randn, random, eigh,
                                         inv)
-
+from tensornetwork.block_sparse.caching import get_cacher
+from tensornetwork.ncon_interface import ncon
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
@@ -1037,3 +1038,32 @@ def test_pivot_not_implemented():
   backend = symmetric_backend.SymmetricBackend()
   with pytest.raises(NotImplementedError):
     backend.pivot(np.ones((2, 2)))
+
+
+def test_eigsh_caching():
+  def matvec(mps, A, B, C):
+    return ncon([A, mps,B, C], [[3,1,-1],[1,2,4],[3,5,-2,2],[5,4,-3]], backend='symmetric')
+  
+  backend = symmetric_backend.SymmetricBackend()
+  D = 100
+  M = 5
+  mpsinds = [
+      Index(U1Charge(np.random.randint(5, 15, D, dtype=np.int16)), False),
+      Index(U1Charge(np.array([0, 1, 2, 3], dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(5, 18, D, dtype=np.int16)), True)
+  ]
+  mpoinds = [
+      Index(U1Charge(np.random.randint(0, 5, M)), False),
+      Index(U1Charge(np.random.randint(0, 10, M)), True), mpsinds[1],
+      mpsinds[1].flip_flow()
+  ]
+  Linds = [mpoinds[0].flip_flow(), mpsinds[0].flip_flow(), mpsinds[0]]
+  Rinds = [mpoinds[1].flip_flow(), mpsinds[2].flip_flow(), mpsinds[2]]
+  mps = BlockSparseTensor.random(mpsinds)
+  mpo = BlockSparseTensor.random(mpoinds)
+  L = BlockSparseTensor.random(Linds)
+  R = BlockSparseTensor.random(Rinds)
+  ncv = 20
+  backend.eigsh_lanczos(
+      matvec, [L, mpo, R], initial_state=mps, num_krylov_vecs=ncv)
+  assert get_cacher().cache == {}
