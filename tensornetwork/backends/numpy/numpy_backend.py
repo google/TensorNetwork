@@ -16,10 +16,9 @@ from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, eigs, gmres
-from scipy.linalg import expm
 import scipy as sp
-
+import scipy.sparse.linalg
+import scipy.linalg
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
@@ -232,11 +231,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
-    lop = LinearOperator(
+    lop = scipy.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype,
         shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
         matvec=matvec)
-    eta, U = eigs(
+    eta, U = scipy.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -373,8 +372,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return Avec
 
     A_shape = (b.size, b.size)
-    A_op = LinearOperator(matvec=matvec, shape=A_shape)
-    x, info = gmres(A_op, b, x0=x0, tol=tol, atol=atol,
+    A_op = scipy.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
+    x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
     if info < 0:
@@ -565,7 +564,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                        " N*N matrix, {x}*{y} matrix is given".format(
                            x=matrix.shape[0], y=matrix.shape[1]))
     # pylint: disable=no-member
-    return expm(matrix)
+    return sp.linalg.expm(matrix)
 
   def jit(self, fun: Callable, *args: List, **kwargs: dict) -> Callable:
     return fun
