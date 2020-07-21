@@ -68,35 +68,38 @@ class JaxBackend(abstract_backend.AbstractBackend):
                        "identical.")
     return libjax.lax.dynamic_slice(tensor, start_indices, slice_sizes)
 
-  def svd_decomposition(
+  def svd(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
       max_singular_values: Optional[int] = None,
       max_truncation_error: Optional[float] = None,
       relative: Optional[bool] = False
   ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    return decompositions.svd_decomposition(
+    return decompositions.svd(
         jnp,
         tensor,
-        split_axis,
+        pivot_axis,
         max_singular_values,
         max_truncation_error,
         relative=relative)
 
-  def qr_decomposition(
+  def qr(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.qr_decomposition(jnp, tensor, split_axis)
+    return decompositions.qr(jnp, tensor, pivot_axis, non_negative_diagonal)
 
-  def rq_decomposition(
+  def rq(
       self,
       tensor: Tensor,
-      split_axis: int,
+      pivot_axis: int = -1,
+      non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
-    return decompositions.rq_decomposition(jnp, tensor, split_axis)
+    return decompositions.rq(jnp, tensor, pivot_axis, non_negative_diagonal)
+
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
@@ -113,21 +116,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def sqrt(self, tensor: Tensor) -> Tensor:
     return jnp.sqrt(tensor)
 
-  def diag(self, tensor: Tensor) -> Tensor:
-    if len(tensor.shape) != 1:
-      raise TypeError("Only one dimensional tensors are allowed as input")
-    return jnp.diag(tensor)
-
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
     if (not isinstance(tensor, jnp.ndarray) and not jnp.isscalar(tensor)):
       raise TypeError("Expected a `jnp.array` or scalar. Got {}".format(
           type(tensor)))
     result = jnp.asarray(tensor)
     return result
-
-  def trace(self, tensor: Tensor) -> Tensor:
-    # Default np.trace uses first two axes.
-    return jnp.trace(tensor, axis1=-2, axis2=-1)
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return jnp.tensordot(tensor1, tensor2, 0)
@@ -673,3 +667,90 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
     return jnp.matmul(tensor1, tensor2)
+
+  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+               axis2: int = -1) -> Tensor:
+    """Return specified diagonals.
+
+    If tensor is 2-D, returns the diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    returned. The shape of the resulting array can be determined by removing
+    axis1 and axis2 and appending an index to the right equal to the size of the
+    resulting diagonals.
+
+    This function only extracts diagonals. If you
+    wish to create diagonal matrices from vectors, use diagflat.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: A dim = min(1, tensor.ndim - 2) tensor storing
+                          the batched diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.diagonal(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def diagflat(self, tensor: Tensor, k: int = 0) -> Tensor:
+    """ Flattens tensor and creates a new matrix of zeros with its elements
+    on the k'th diagonal.
+    Args:
+      tensor: A tensor.
+      k     : The diagonal upon which to place its elements.
+    Returns:
+      tensor: A new tensor with all zeros save the specified diagonal.
+    """
+    return jnp.diag(jnp.ravel(tensor), k=k)
+
+  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+            axis2: int = -1) -> Tensor:
+    """Return summed entries along diagonals.
+
+    If tensor is 2-D, the sum is over the
+    diagonal of tensor with the given offset,
+    i.e., the collection of elements of the form a[i, i+offset].
+    If a has more than two dimensions, then the axes specified by
+    axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
+    summed.
+
+    Args:
+      tensor: A tensor.
+      offset: Offset of the diagonal from the main diagonal.
+      axis1, axis2: Axis to be used as the first/second axis of the 2D
+                    sub-arrays from which the diagonals should be taken.
+                    Defaults to second last/last axis.
+    Returns:
+      array_of_diagonals: The batched summed diagonals.
+    """
+    if axis1 == axis2:
+      raise ValueError("axis1, axis2 cannot be equal.")
+    return jnp.trace(tensor, offset=offset, axis1=axis1, axis2=axis2)
+
+  def abs(self, tensor: Tensor) -> Tensor:
+    """
+    Returns the elementwise absolute value of tensor.
+    Args:
+      tensor: An input tensor.
+    Returns:
+      tensor: Its elementwise absolute value.
+    """
+    return jnp.abs(tensor)
+
+  def sign(self, tensor: Tensor) -> Tensor:
+    """
+    Returns an elementwise tensor with entries
+    y[i] = 1, 0, -1 where tensor[i] > 0, == 0, and < 0 respectively.
+
+    For complex input the behaviour of this function may depend on the backend.
+    The Jax backend version returns y[i] = x[i]/sqrt(x[i]^2).
+
+    Args:
+      tensor: The input tensor.
+    """
+    return jnp.sign(tensor)

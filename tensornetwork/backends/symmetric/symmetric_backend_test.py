@@ -4,8 +4,10 @@ from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal, BaseCharge
 from tensornetwork.block_sparse.index import Index
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse import tensordot, BlockSparseTensor, transpose, sqrt, ChargeArray, diag, trace, norm, eye, ones, zeros, randn, random, eigh, inv
+from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
+                                        sqrt, ChargeArray, diag, trace, norm,
+                                        eye, ones, zeros, randn, random, eigh,
+                                        inv)
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
@@ -16,7 +18,7 @@ def get_tensor(R, num_charges, dtype=np.float64):
   Ds = np.random.randint(8, 12, R)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
@@ -27,7 +29,7 @@ def get_tensor(R, num_charges, dtype=np.float64):
 def get_square_matrix(num_charges, dtype=np.float64):
   D = np.random.randint(40, 60)
   charges = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D)),
+      np.random.randint(-5, 6, (D, num_charges)),
       charge_types=[U1Charge] * num_charges)
 
   flows = [False, True]
@@ -38,7 +40,7 @@ def get_square_matrix(num_charges, dtype=np.float64):
 def get_hermitian_matrix(num_charges, dtype=np.float64):
   D = np.random.randint(40, 60)
   charges = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D)),
+      np.random.randint(-5, 6, (D, num_charges)),
       charge_types=[U1Charge] * num_charges)
 
   flows = [False, True]
@@ -50,7 +52,7 @@ def get_hermitian_matrix(num_charges, dtype=np.float64):
 def get_chargearray(num_charges, dtype=np.float64):
   D = np.random.randint(8, 12)
   charge = BaseCharge(
-      np.random.randint(-5, 6, (num_charges, D)),
+      np.random.randint(-5, 6, (D, num_charges)),
       charge_types=[U1Charge] * num_charges)
   flow = False
   index = Index(charge, flow)
@@ -64,17 +66,17 @@ def get_contractable_tensors(R1, R2, cont, dtype, num_charges):
   assert R2 >= cont
   chargesA = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, DsA[n])),
+          np.random.randint(-5, 6, (DsA[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R1 - cont)
   ]
   commoncharges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, DsA[n + R1 - cont])),
+          np.random.randint(-5, 6, (DsA[n + R1 - cont], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(cont)
   ]
   chargesB = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, DsB[n])),
+          np.random.randint(-5, 6, (DsB[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R2 - cont)
   ]
   #contracted indices
@@ -221,35 +223,6 @@ def test_sqrt(R, dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
-@pytest.mark.parametrize("num_charges", [1, 2])
-def test_diag(dtype, num_charges):
-  np.random.seed(10)
-  backend = symmetric_backend.SymmetricBackend()
-  a = get_tensor(3, num_charges, dtype)
-  with pytest.raises(ValueError):
-    backend.diag(a)
-  b = get_chargearray(num_charges, dtype)
-  expected = diag(b)
-  actual = backend.diag(b)
-  np.testing.assert_allclose(expected.data, actual.data)
-  assert np.all([
-      charge_equal(expected._charges[n], actual._charges[n])
-      for n in range(len(actual._charges))
-  ])
-
-
-@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
-@pytest.mark.parametrize("num_charges", [1, 2])
-def test_trace(dtype, num_charges):
-  np.random.seed(10)
-  backend = symmetric_backend.SymmetricBackend()
-  a = get_square_matrix(num_charges, dtype)
-  actual = backend.trace(a)
-  expected = trace(a)
-  np.testing.assert_allclose(actual.data, expected.data)
-
-
-@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("R1, R2", [(2, 2), (2, 3), (3, 3)])
 @pytest.mark.parametrize("num_charges", [1, 2])
 def test_outer_product(R1, R2, dtype, num_charges):
@@ -283,7 +256,7 @@ def test_eye(dtype, num_charges):
   backend = symmetric_backend.SymmetricBackend()
   index = Index(
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, 100)),
+          np.random.randint(-5, 6, (100, num_charges)),
           charge_types=[U1Charge] * num_charges), False)
   actual = backend.eye(index, dtype=dtype)
   expected = eye(index, dtype=dtype)
@@ -301,7 +274,7 @@ def test_eye_dtype(dtype, num_charges):
   backend = symmetric_backend.SymmetricBackend()
   index = Index(
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, 100)),
+          np.random.randint(-5, 6, (100, num_charges)),
           charge_types=[U1Charge] * num_charges), False)
   actual = backend.eye(index, dtype=dtype)
   assert actual.dtype == dtype
@@ -316,7 +289,7 @@ def test_ones(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.ones(indices, dtype=dtype)
@@ -337,7 +310,7 @@ def test_ones_dtype(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.ones(indices, dtype=dtype)
@@ -353,7 +326,7 @@ def test_zeros(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.zeros(indices, dtype=dtype)
@@ -374,7 +347,7 @@ def test_zeros_dtype(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.zeros(indices, dtype=dtype)
@@ -390,7 +363,7 @@ def test_randn(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.randn(indices, dtype=dtype, seed=10)
@@ -412,7 +385,7 @@ def test_randn_dtype(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.randn(indices, dtype=dtype, seed=10)
@@ -428,7 +401,7 @@ def test_random_uniform(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.random_uniform(indices, dtype=dtype, seed=10)
@@ -450,7 +423,7 @@ def test_random_uniform_dtype(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.random_uniform(indices, dtype=dtype, seed=10)
@@ -466,7 +439,7 @@ def test_randn_non_zero_imag(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.randn(indices, dtype=dtype, seed=10)
@@ -482,7 +455,7 @@ def test_random_uniform_non_zero_imag(R, dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   actual = backend.random_uniform(indices, dtype=dtype, seed=10)
@@ -498,7 +471,7 @@ def test_randn_seed(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   a = backend.randn(indices, dtype=dtype, seed=10)
@@ -519,7 +492,7 @@ def test_random_uniform_seed(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   a = backend.random_uniform(indices, dtype=dtype, seed=10)
@@ -542,7 +515,7 @@ def test_random_uniform_boundaries(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, 10)),
+              np.random.randint(-5, 6, (10, num_charges)),
               charge_types=[U1Charge] * num_charges), False) for _ in range(R)
   ]
   a = backend.random_uniform(indices, seed=10, dtype=dtype)
@@ -717,7 +690,7 @@ def test_broadcast_right_multiplication(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False) for n in range(R)
   ]
   tensor1 = backend.randn(indices, dtype=dtype)
@@ -739,7 +712,7 @@ def test_broadcast_right_multiplication_raises():
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False) for n in range(R)
   ]
   tensor1 = backend.randn(indices)
@@ -758,7 +731,7 @@ def test_broadcast_left_multiplication(dtype, num_charges):
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False) for n in range(R)
   ]
 
@@ -780,7 +753,7 @@ def test_broadcast_left_multiplication_raises():
   indices = [
       Index(
           BaseCharge(
-              np.random.randint(-5, 6, (num_charges, Ds[n])),
+              np.random.randint(-5, 6, (Ds[n], num_charges)),
               charge_types=[U1Charge] * num_charges), False) for n in range(R)
   ]
 
@@ -798,7 +771,7 @@ def test_sparse_shape(dtype, num_charges):
   R = len(Ds)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 6, (num_charges, Ds[n])),
+          np.random.randint(-5, 6, (Ds[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
@@ -1019,3 +992,48 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   np.testing.assert_allclose(eta1[0], min(eta2))
   np.testing.assert_allclose(v1, v2)
+
+
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_diagflat(dtype, num_charges):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(3, num_charges, dtype)
+  with pytest.raises(ValueError):
+    backend.diagflat(a)
+  b = get_chargearray(num_charges, dtype)
+  expected = diag(b)
+  actual = backend.diagflat(b)
+  np.testing.assert_allclose(expected.data, actual.data)
+  assert np.all([
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
+  ])
+
+
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+@pytest.mark.parametrize("offset", [0, 1])
+@pytest.mark.parametrize("axis1", range(0, 1))
+@pytest.mark.parametrize("axis2", range(0, 1))
+def test_trace(dtype, num_charges, offset, axis1, axis2):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_square_matrix(num_charges, dtype)
+  if offset != 0:
+    with pytest.raises(NotImplementedError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  elif axis1 == axis2:
+    with pytest.raises(ValueError):
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+  else:
+    actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+    expected = trace(a, [axis1, axis2])
+    np.testing.assert_allclose(actual.data, expected.data)
+
+
+def test_pivot_not_implemented():
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(NotImplementedError):
+    backend.pivot(np.ones((2, 2)))

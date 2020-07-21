@@ -13,20 +13,19 @@
 # limitations under the License.
 """Tensor Decomposition Implementations."""
 from typing import Optional, Any, Tuple
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, get_real_dtype, SIZE_T
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
-from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.utils import (
+    _find_transposed_diagonal_sparse_blocks, get_real_dtype, SIZE_T)
+from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
+                                                          ChargeArray)
 import numpy as np
 import warnings
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     bt,
     tensor: BlockSparseTensor,
-    split_axis: int,
+    pivot_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -35,8 +34,8 @@ def svd_decomposition(
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
 
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
 
   matrix = bt.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
 
@@ -193,14 +192,13 @@ def svd_decomposition(
       discarded_singvals > 0.0]
 
 
-def qr_decomposition(bt, tensor: BlockSparseTensor,
-                     split_axis: int) -> Tuple[Tensor, Tensor]:
+def qr(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
   tensor = bt.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
   q, r = bt.qr(tensor)
   center_dim = q.shape[1]
@@ -209,14 +207,13 @@ def qr_decomposition(bt, tensor: BlockSparseTensor,
   return q, r
 
 
-def rq_decomposition(bt, tensor: BlockSparseTensor,
-                     split_axis: int) -> Tuple[Tensor, Tensor]:
+def rq(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
   tensor = bt.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
   q, r = bt.qr(bt.conj(bt.transpose(tensor, (1, 0))))
   r, q = bt.conj(bt.transpose(r, (1, 0))), bt.conj(bt.transpose(

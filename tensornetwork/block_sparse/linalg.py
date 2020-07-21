@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import tensordot
 from tensornetwork.block_sparse.charge import intersect
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.utils import _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks, flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype
-# pylint: disable=line-too-long
+from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
+                                                          ChargeArray)
+from tensornetwork.block_sparse.utils import (
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
 from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
 Tensor = Any
 
@@ -94,7 +91,7 @@ def diag(tensor: ChargeArray) -> Any:
   flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
-  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
@@ -542,7 +539,7 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
 
 
 def sqrt(
@@ -639,7 +636,8 @@ def trace(tensor: BlockSparseTensor,
       identity = eye(
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
-      out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
+      #pylint: disable=line-too-long
+      out = tensordot(out, identity, ([i, j], [0, 1]))# pytype: disable=wrong-arg-types
       a0ar = np.asarray(a0)
 
       mask_min = a0ar > np.min([i, j])
@@ -694,7 +692,7 @@ def pinv(matrix: BlockSparseTensor,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
 
 
 def ones(indices: Sequence[Index],

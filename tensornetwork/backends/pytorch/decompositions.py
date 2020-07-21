@@ -19,21 +19,21 @@ import numpy as np
 Tensor = Any
 
 
-def svd_decomposition(
+def svd(
     torch: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
 
   The SVD is performed by treating the tensor as a matrix, with an effective
-  left (row) index resulting from combining the axes `tensor.shape[:split_axis]`
+  left (row) index resulting from combining the axes `tensor.shape[:pivot_axis]`
   and an effective right (column) index resulting from combining the axes
-  `tensor.shape[split_axis:]`.
+  `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2, then
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2, then
   `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
   have shape (6, 4, 5).
 
@@ -61,7 +61,7 @@ def svd_decomposition(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
     max_singular_values: The number of singular values to keep, or `None` to
       keep them all.
@@ -76,8 +76,8 @@ def svd_decomposition(
     s_rest: Vector of discarded singular values (length zero if no
             truncation).
   """
-  left_dims = list(tensor.shape)[:split_axis]
-  right_dims = list(tensor.shape)[split_axis:]
+  left_dims = list(tensor.shape)[:pivot_axis]
+  right_dims = list(tensor.shape)[pivot_axis:]
 
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
   u, s, v = torch.svd(tensor)
@@ -121,19 +121,20 @@ def svd_decomposition(
   return u, s, vh, s_rest
 
 
-def qr_decomposition(
+def qr(
     torch: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool = False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the axes
-  `tensor.shape[:split_axis]` and an effective right (column) index
-  resulting from combining the axes `tensor.shape[split_axis:]`.
+  `tensor.shape[:pivot_axis]` and an effective right (column) index
+  resulting from combining the axes `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `q` would have shape (2, 3, 6), and `r` would have shape (6, 4, 5).
 
   The output consists of two tensors `Q, R` such that:
@@ -146,7 +147,7 @@ def qr_decomposition(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
 
   Returns:
@@ -154,30 +155,35 @@ def qr_decomposition(
     R: Right tensor factor.
   """
 
-  left_dims = list(tensor.shape)[:split_axis]
-  right_dims = list(tensor.shape)[split_axis:]
+  left_dims = list(tensor.shape)[:pivot_axis]
+  right_dims = list(tensor.shape)[pivot_axis:]
 
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
   q, r = torch.qr(tensor)
+  if non_negative_diagonal:
+    phases = torch.sign(torch.diagonal(r))
+    q = q * phases
+    r = phases[:, None] * r
   center_dim = q.shape[1]
   q = torch.reshape(q, list(left_dims) + [center_dim])
   r = torch.reshape(r, [center_dim] + list(right_dims))
   return q, r
 
 
-def rq_decomposition(
+def rq(
     torch: Any,
     tensor: Tensor,
-    split_axis: int,
+    pivot_axis: int,
+    non_negative_diagonal: bool = False
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The RQ decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the axes
-  `tensor.shape[:split_axis]` and an effective right (column) index
-  resulting from combining the axes `tensor.shape[split_axis:]`.
+  `tensor.shape[:pivot_axis]` and an effective right (column) index
+  resulting from combining the axes `tensor.shape[pivot_axis:]`.
 
-  For example, if `tensor` had a shape (2, 3, 4, 5) and `split_axis` was 2,
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `r` would have shape (2, 3, 6), and `q` would have shape (6, 4, 5).
 
   The output consists of two tensors `R, Q` such that:
@@ -190,7 +196,7 @@ def rq_decomposition(
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
-    split_axis: Where to split the tensor's axes before flattening into a
+    pivot_axis: Where to split the tensor's axes before flattening into a
      p matrix.
 
   Returns:
@@ -198,11 +204,15 @@ def rq_decomposition(
     Q: Right tensor factor.
   """
 
-  left_dims = tensor.shape[:split_axis]
-  right_dims = tensor.shape[split_axis:]
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
   tensor = torch.reshape(tensor, [np.prod(left_dims), np.prod(right_dims)])
   #torch has currently no support for complex dtypes
   q, r = torch.qr(torch.transpose(tensor, 0, 1))
+  if non_negative_diagonal:
+    phases = torch.sign(torch.diagonal(r))
+    q = q * phases
+    r = phases[:, None] * r
   r, q = torch.transpose(r, 0, 1), torch.transpose(q, 0,
                                                    1)  #M=r*q at this point
   center_dim = r.shape[1]

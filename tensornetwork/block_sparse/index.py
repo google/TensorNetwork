@@ -11,10 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from tensornetwork.block_sparse.charge import BaseCharge, fuse_charges
 import copy
@@ -101,12 +97,13 @@ class Index:
 
   def flip_flow(self) -> "Index":
     """
-    Flip the flow if `Index` in place.
+    Flip the flow if `Index`.
     Returns:
       Index
     """
-    self.flow = list(np.logical_not(self.flow))
-    return self
+    return Index(
+        charges=[c.copy() for c in self._charges],
+        flow=list(np.logical_not(self.flow)))
 
   def __mul__(self, index: "Index") -> "Index":
     """
