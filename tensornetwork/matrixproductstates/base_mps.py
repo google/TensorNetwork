@@ -92,22 +92,21 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    def svd_decomposition(tensor, max_singular_values=None):
-      return self.backend.svd_decomposition(tensor=tensor, split_axis=2,
-                                            max_singular_values=
-                                            max_singular_values)
+    def svd(tensor, max_singular_values=None):
+      return self.backend.svd(tensor=tensor, pivot_axis=2,
+                              max_singular_values=max_singular_values)
 
-    self.svd_decomposition = svd_decomposition
+    self.svd = svd
 
-    def qr_decomposition(tensor):
-      return self.backend.qr_decomposition(tensor, 2)
+    def qr(tensor):
+      return self.backend.qr(tensor, 2)
 
-    self.qr_decomposition = self.backend.jit(qr_decomposition)
+    self.qr = self.backend.jit(qr)
 
-    def rq_decomposition(tensor):
-      return self.backend.rq_decomposition(tensor, 1)
+    def rq(tensor):
+      return self.backend.rq(tensor, 1)
 
-    self.rq_decomposition = self.backend.jit(rq_decomposition)
+    self.rq = self.backend.jit(rq)
 
 
     self.norm = self.backend.jit(self.backend.norm)
@@ -157,7 +156,7 @@ class BaseMPS:
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = self.qr_decomposition(self.tensors[n])
+        Q, R = self.qr(self.tensors[n])
         self.tensors[n] = Q
         self.tensors[n + 1] = ncon([R, self.tensors[n + 1]],
                                    [[-1, 1], [1, -2, -3]],
@@ -174,7 +173,7 @@ class BaseMPS:
     else:
       for n in reversed(range(site + 1, self.center_position + 1)):
 
-        R, Q = self.rq_decomposition(self.tensors[n])
+        R, Q = self.rq(self.tensors[n])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
         self.tensors[n] = Q  #Q is a right-isometric tensor of rank 3
