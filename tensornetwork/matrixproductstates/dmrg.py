@@ -559,7 +559,7 @@ class BaseDMRG:
     return ncon([
         self.add_right_layer(self.right_envs[0], self.mps.tensors[0],
                              self.mpo.tensors[0])
-    ], [[1, 1, -1]])[0]
+    ], [[1, 1, -1]], backend=self.backend.name)[0]
 
 
 class FiniteDMRG(BaseDMRG):

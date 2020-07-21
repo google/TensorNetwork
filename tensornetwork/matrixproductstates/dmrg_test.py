@@ -172,13 +172,23 @@ def test_finite_DMRG_init(backend_dtype_values, N):
       dtype=dtype,
       backend=backend)
   D = 32
+  # test one-site DMRG
   mps = FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
   dmrg = FiniteDMRG(mps, mpo)
   one_site_energy = dmrg.run_one_site(num_sweeps=4, num_krylov_vecs=10)
   np.testing.assert_allclose(one_site_energy, eta[0])
+  one_site_energy_no_sweeps = dmrg.run_one_site(num_sweeps=0,
+                                                num_krylov_vecs=10)
+  np.testing.assert_allclose(one_site_energy_no_sweeps, one_site_energy)
+  # test two-site DMRG
+  mps = FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
+  dmrg = FiniteDMRG(mps, mpo)
   two_site_energy = dmrg.run_two_site(max_bond_dim=D, num_sweeps=4,
                                       num_krylov_vecs=10)
   np.testing.assert_allclose(two_site_energy, eta[0])
+  two_site_energy_no_sweeps = dmrg.run_two_site(max_bond_dim=D, num_sweeps=0,
+                                                num_krylov_vecs=10)
+  np.testing.assert_allclose(two_site_energy_no_sweeps, two_site_energy)
 
 
 def test_finite_DMRG_one_site_outstream(backend_dtype_values, capsys):
