@@ -450,7 +450,7 @@ def _find_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
-def _compute_hash(charges: List[np.ndarray], flows: np.ndarray,
+def _compute_hash(charges: List[BaseCharge], flows: np.ndarray,
                   tr_partition: int, order: List[int]) -> str:
   """
   map the input arguments of _find_transposed_diagonal_sparse_blocks 
