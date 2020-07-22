@@ -388,14 +388,15 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return Avec
 
     A_shape = (b.size, b.size)
-    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
+    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape,
+                                           dtype=b.dtype)
     x, info = sp.sparse.linalg.gmres(A_op, b.ravel(), x0, tol=tol,
                                      atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
     if info < 0:
       raise ValueError("ARPACK gmres received illegal input or broke down.")
-    x = x.reshape(b.shape)
+    x = x.reshape(b.shape).astype(b.dtype)
     return (x, info)
 
   def eigsh_lanczos(self,
