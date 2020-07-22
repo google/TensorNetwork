@@ -50,7 +50,8 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented reshape.".format(self.name))
 
-  def transpose(self, tensor: Tensor, perm: Sequence[int]) -> Tensor:
+  def transpose(self, tensor: Tensor,
+                perm: Optional[Sequence[int]] = None) -> Tensor:
     """Transpose a tensor according to a given permutation
     Args:
       tensor: A tensor.
@@ -186,7 +187,8 @@ class AbstractBackend:
         "Backend '{}' has not implemented `sparse_shape`.".format(self.name))
 
   def shape_prod(self, values: Tensor) -> Tensor:
-    """Take the product of all of the elements in values"""
+    """Returns the product of the entries of values, which should be the
+       shape of one of the relevant backend arrays."""
     raise NotImplementedError("Backend '{}' has not implemented prod.".format(
         self.name))
 
@@ -528,7 +530,7 @@ class AbstractBackend:
 
   def subtraction(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
-      Return the default substraction of `tensor`.
+      Return the default subtraction of `tensor`.
       A backend can override such implementation.
       Args:
         tensor1: A tensor.

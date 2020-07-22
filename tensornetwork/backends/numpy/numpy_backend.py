@@ -50,7 +50,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return np.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
     return np.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -243,6 +243,12 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         tol=tol,
         maxiter=maxiter)
     if dtype:
+      example = np.zeros(1, dtype=dtype) # suppress "casting as real" warning
+      if not np.iscomplexobj(example):
+        if np.iscomplexobj(eta):
+          eta = eta.real
+        if np.iscomplexobj(U):
+          U = U.real
       eta = eta.astype(dtype)
       U = U.astype(dtype)
     evs = list(eta)

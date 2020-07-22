@@ -48,7 +48,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return tf.reshape(tensor, shape)
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
     return tf.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
@@ -179,7 +179,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     return a
 
   def conj(self, tensor: Tensor) -> Tensor:
-    return tf.math.conj(tensor)
+    if tensor.dtype != bool:
+      return tf.math.conj(tensor)
+    return tensor
 
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return tf.linalg.eigh(matrix)
@@ -262,7 +264,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return tf.matmul(tensor1, tensor2)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.

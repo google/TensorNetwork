@@ -55,7 +55,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None):
     return jnp.transpose(tensor, perm)
 
   def shape_concat(self, values: Tensor, axis: int) -> Tensor:
@@ -99,7 +99,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
       non_negative_diagonal: bool = False
   ) -> Tuple[Tensor, Tensor]:
     return decompositions.rq(jnp, tensor, pivot_axis, non_negative_diagonal)
-
 
   def shape_tensor(self, tensor: Tensor) -> Tensor:
     return tensor.shape
