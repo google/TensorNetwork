@@ -117,7 +117,8 @@ def optimal(nodes: Iterable[AbstractNode],
   Returns:
     The final node after full contraction.
   """
-  alg = functools.partial(opt_einsum.paths.optimal, memory_limit=memory_limit)
+  alg = functools.partial(
+      opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order, ignore_edge_order)
 
 
