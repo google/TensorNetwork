@@ -914,14 +914,13 @@ def test_trace(dtype, offset, axis1, axis2):
     expected = np.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     np.testing.assert_allclose(actual, expected)
 
-
+@pytest.mark.parametrize("pivot_axis", [-1, 1, 2])
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_pivot(dtype):
+def test_pivot(dtype, pivot_axis):
   shape = (4, 3, 2, 8)
+  pivot_shape = (np.prod(shape[:pivot_axis]), np.prod(shape[pivot_axis:]))
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn(shape, dtype=dtype, seed=10)
-  cols = 12
-  rows = 16
-  expected = tensor.reshape((cols, rows))
-  actual = backend.pivot(tensor, pivot_axis=2)
+  expected = tensor.reshape(pivot_shape)
+  actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
