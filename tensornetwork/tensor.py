@@ -57,6 +57,32 @@ class Tensor():
     array_H = self.backend.transpose(star)
     return Tensor(array_H, backend=self.backend)
 
+  @property
+  def real(self) -> "Tensor":
+    """ Real part of the `Tensor`.
+        TODO: Add real to the backend and replace this with the appropriate
+              call.
+    """
+    if self.backend.name == "numpy" or self.backend.name == "jax":
+      out = self.array.real
+    else:
+      raise NotImplementedError((f"'real' not implemented for backend: "
+                                 f"{self.backend}"))
+    return Tensor(out, backend=self.backend)
+
+  @property
+  def imag(self) -> "Tensor":
+    """ Imaginary part of the `Tensor`.
+        TODO: Add imag to the backend and replace this with the appropriate
+              call.
+    """
+    if self.backend.name == "numpy" or self.backend.name == "jax":
+      out = self.array.imag
+    else:
+      raise NotImplementedError((f"'imag' not implemented for backend: "
+                                 f"{self.backend}"))
+    return Tensor(out, backend=self.backend)
+
   def conj(self) -> "Tensor":
     """ Returns: The complex-conjugated `Tensor`.
     """

@@ -38,6 +38,16 @@ from tensornetwork.linalg.operations import (
     abs
     )
 
+from tensornetwork.linalg.linalg import (
+    svd,
+    qr,
+    rq,
+    eigh,
+    norm,
+    inv,
+    expm
+    )
+
 from tensornetwork.backends.decorators import jit
 
 from tensornetwork.network_components import (

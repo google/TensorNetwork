@@ -83,6 +83,7 @@ def safe_randn(shape, backend, dtype):
   dtype is not supported by the backend. Returns the Tensor and the backend
   array, which are both None if the dtype and backend did not match.
   """
+  np.random.seed(seed=10)
   init = np.random.randn(*shape)
   if dtype == np.bool:
     init = np.round(init)
@@ -471,3 +472,31 @@ def test_tensor_matmul(backend, dtype):
     result = A @ B
     result2 = A.backend.matmul(testA, testB)
     np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_real(backend, dtype):
+  shape = (4, 3, 2)
+  A, initA = safe_randn(shape, backend, dtype)
+  if A is not None:
+    if backend not in ("jax", "numpy"):
+      with pytest.raises(NotImplementedError):
+        Ar = A.real
+    else:
+      Ar = A.real
+      arrayr = initA.real
+      np.testing.assert_allclose(Ar.array, arrayr)
+
+
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_tensor_imag(backend, dtype):
+  shape = (4, 3, 2)
+  A, initA = safe_randn(shape, backend, dtype)
+  if A is not None:
+    if backend not in ("jax", "numpy"):
+      with pytest.raises(NotImplementedError):
+        Ai = A.imag
+    else:
+      Ai = A.imag
+      arrayi = initA.imag
+      np.testing.assert_allclose(Ai.array, arrayi)

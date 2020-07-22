@@ -17,7 +17,7 @@ from tensornetwork.tensor import Tensor
 
 def svd(
     tensor: Tensor,
-    pivot_axis: int,
+    pivot_axis: int = -1,
     max_singular_values: Optional[int] = None,
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False
@@ -82,7 +82,7 @@ def svd(
 
 def qr(
     tensor: Tensor,
-    pivot_axis: int = 1,
+    pivot_axis: int = -1,
     non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
   """
@@ -129,7 +129,7 @@ def qr(
 
 def rq(
     tensor: Tensor,
-    pivot_axis: int = 1,
+    pivot_axis: int = -1,
     non_negative_diagonal: bool = True
 ) -> Tuple[Tensor, Tensor]:
   """
@@ -168,7 +168,7 @@ def rq(
     R, Q : The decomposed Tensor with dimensions as specified above.
   """
   backend = tensor.backend
-  out = backend.rq(tensor.array, pivot_axis=pivot_axis, 
+  out = backend.rq(tensor.array, pivot_axis=pivot_axis,
                    non_negative_diagonal=non_negative_diagonal)
   R, Q = [Tensor(t, backend=backend) for t in out]
   return R, Q
