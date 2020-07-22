@@ -9,6 +9,8 @@ import jax.config as config
 config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+np_not_half = [np.float32, np.float64, np.complex64, np.complex128]
+
 
 
 def test_tensordot():
@@ -92,7 +94,7 @@ def test_sqrt():
   expected = np.array([2, 3])
   np.testing.assert_allclose(expected, actual)
 
-  
+
 def test_convert_to_tensor():
   backend = jax_backend.JaxBackend()
   array = np.ones((2, 3, 4))
@@ -764,6 +766,28 @@ def test_gmres_on_larger_random_problem(dtype):
     return A @ x
   b = A_mv(solution)
   tol = b.size * jax.numpy.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  err = jax.numpy.linalg.norm(jax.numpy.abs(x)-jax.numpy.abs(solution))
+  rtol = tol*jax.numpy.linalg.norm(b)
+  atol = tol
+  assert err < max(rtol, atol)
+
+
+@pytest.mark.parametrize("dtype", np_not_half)
+def test_gmres_not_matrix(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+  backend = jax_backend.JaxBackend()
+  matshape = (100, 100)
+  vecshape = (100,)
+  A = backend.randn(matshape, dtype=dtype, seed=10)
+  A = backend.reshape(A, (2, 50, 2, 50))
+  solution = backend.randn(vecshape, dtype=dtype, seed=10)
+  solution = backend.reshape(solution, (2, 50))
+  def A_mv(x):
+    return backend.einsum('ijkl,kl', A, x)
+  b = A_mv(solution)
+  tol = b.size * np.finfo(dtype).eps
   x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
   err = jax.numpy.linalg.norm(jax.numpy.abs(x)-jax.numpy.abs(solution))
   rtol = tol*jax.numpy.linalg.norm(b)
