@@ -342,25 +342,32 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
 
-    if x0 is not None and x0.shape != b.shape:
-      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                   f", {b.shape}.")
-      raise ValueError(errstring)
-    if x0 is not None and x0.dtype != b.dtype:
-      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
-                   f", {b.dtype}.")
-      raise ValueError(errstring)
+
+    if x0 is not None:
+      if x0.shape != b.shape:
+        errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                     f", {b.shape}.")
+        raise ValueError(errstring)
+      if x0.dtype != b.dtype:
+        errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+                     f", {b.dtype}.")
+        raise ValueError(errstring)
+      x0 = x0.ravel()
+
+
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
-    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
+    elif num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
+
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
+
     if atol is None:
       atol = tol
-    if atol < 0:
+    elif atol < 0:
       raise ValueError(f"atol = {atol} must be positive.")
 
     if A_args is None:
@@ -376,7 +383,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     A_shape = (b.size, b.size)
     A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
-    x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
+    x, info = sp.sparse.linalg.gmres(A_op, b.ravel(), x0, tol=tol,
+                                     atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
     if info < 0:
