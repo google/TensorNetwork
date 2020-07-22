@@ -812,7 +812,7 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented `sign`.".format(self.name))
 
-  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+  def pivot(self, tensor: Tensor, pivot_axis: int = -1) -> Tensor:
     """ Reshapes a tensor into a matrix, whose columns (rows) are the
     vectorized dimensions to the left (right) of pivot_axis.
 
@@ -827,7 +827,7 @@ class AbstractBackend:
       The pivoted tensor.
     """
     ndim = len(self.shape_tuple(tensor))
-    if pivot_axis < 1 or pivot_axis > ndim:
+    if pivot_axis > ndim:
       errstr = f"pivot_axis = {pivot_axis} was invalid given ndim={ndim} array."
       raise ValueError(errstr)
 

@@ -454,11 +454,13 @@ def test_matmul():
   np.testing.assert_allclose(actual.shape, [10, 2, 4])
 
 
-def test_pivot():
+@pytest.mark.parametrize("pivot_axis", [-1, 1, 2])
+def test_pivot(pivot_axis):
   shape = (4, 3, 2, 8)
   backend = numpy_backend.NumPyBackend()
+  pivot_shape = (np.prod(shape[:pivot_axis]), np.prod(shape[pivot_axis:]))
   tensor = backend.randn(shape, dtype=np.float64)
   cols = 12
   rows = 16
-  actual = backend.pivot(tensor, pivot_axis=2)
-  np.testing.assert_allclose(actual.shape, (cols, rows))
+  actual = backend.pivot(tensor, pivot_axis=pivot_axis)
+  np.testing.assert_allclose(actual.shape, pivot_shape)

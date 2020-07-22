@@ -837,13 +837,13 @@ def test_sign(dtype):
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.parametrize("pivot_axis", [-1, 1, 2])
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_pivot(dtype):
+def test_pivot(dtype, pivot_axis):
   shape = (4, 3, 2, 8)
+  pivot_shape = (np.prod(shape[:pivot_axis]), np.prod(shape[pivot_axis:]))
   backend = jax_backend.JaxBackend()
   tensor = backend.randn(shape, dtype=dtype, seed=10)
-  cols = 12
-  rows = 16
-  expected = tensor.reshape((cols, rows))
-  actual = backend.pivot(tensor, pivot_axis=2)
+  expected = tensor.reshape(pivot_shape)
+  actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
