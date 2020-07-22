@@ -540,25 +540,32 @@ class JaxBackend(abstract_backend.AbstractBackend):
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
 
-    if x0 is not None and x0.shape != b.shape:
-      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                   f", {b.shape}.")
-      raise ValueError(errstring)
-    if x0 is not None and x0.dtype != b.dtype:
-      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
-                   f", {b.dtype}.")
-      raise ValueError(errstring)
+    if x0 is not None:
+      if x0.shape != b.shape:
+        errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                     f", {b.shape}.")
+        raise ValueError(errstring)
+      if x0.dtype != b.dtype:
+        errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+                     f", {b.dtype}.")
+        raise ValueError(errstring)
+      x0 = x0.ravel()
+    else:
+      x0 = self.zeros(b.shape, b.dtype).ravel()
+
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
     if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
+
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
+
     if atol is None:
       atol = tol
-    if atol < 0:
+    elif atol < 0:
       raise ValueError(f"atol = {atol} must be positive.")
 
     if M is not None:
@@ -569,21 +576,25 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if A_args is None:
       A_args = []
 
-    if x0 is None:
-      x0 = self.zeros(b.shape, b.dtype)
+
+    def matrix_matvec(x, *args):
+      x = x.reshape(b.shape)
+      result = A_mv(x, *args)
+      return result.ravel()
 
     if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(A_mv)
+      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(matrix_matvec)
     if "gmres_f" not in _CACHED_FUNCTIONS:
       _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
     gmres_f = _CACHED_FUNCTIONS["gmres_f"]
-    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b,
+    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
                                       maxiter)
     if converged:
       info = 0
     else:
       info = n_iter
+    x = self.reshape(x, b.shape)
     return x, info
 
   def conj(self, tensor: Tensor) -> Tensor:
