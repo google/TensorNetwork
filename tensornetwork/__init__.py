@@ -35,7 +35,9 @@ from tensornetwork.linalg.operations import (
     diagflat,
     trace,
     sign,
-    abs
+    abs,
+    kron,
+    pivot
     )
 
 from tensornetwork.linalg.linalg import (
