@@ -10,7 +10,7 @@ from tensornetwork.block_sparse.utils import (
     _find_best_partition, compute_fused_charge_degeneracies,
     compute_unique_fused_charges, compute_num_nonzero, reduce_charges,
     _find_diagonal_sparse_blocks, _get_strides,
-    _find_transposed_diagonal_sparse_blocks)
+    _find_transposed_diagonal_sparse_blocks, _to_string)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -361,3 +361,20 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
 
   assert np.sum(np.prod(ss, axis=0)) == np.sum([len(b) for b in bs])
   np.testing.assert_allclose(unique_left, cs.charges)
+
+
+def test_to_string():
+  R = 5
+  D = 100
+  np.random.seed(10)
+  cs = [U1Charge.random(D, -5, 5) for _ in range(R)]
+  flows = np.random.choice([True, False], size=R, replace=True)
+  tr_partition = 3
+  order = list(np.random.choice(np.arange(R), size=R, replace=False))
+  actual = _to_string(cs, flows, tr_partition, order)
+  expected = ''.join([str(c.charges.tostring()) for c in cs] + [
+      str(np.array(flows).tostring()),
+      str(tr_partition),
+      str(np.array(order, dtype=np.int16).tostring())
+  ])
+  assert actual == expected
