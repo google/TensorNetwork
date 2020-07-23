@@ -208,7 +208,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             'SR' : smallest real part
             'LI' : largest imaginary part
       maxiter: The maximum number of iterations.
-      enable_caching: If `True`, block-data during calls to `matvec` is cached
+      enable_caching: If `True`, block-data during calls to `matvec` are cached
         for later reuse. Note: usually it is save to enable_caching, unless 
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
         In this case, if one does a large number of krylov steps, this can lead 
@@ -331,7 +331,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
-      enable_caching: If `True`, block-data during calls to `matvec` is cached
+      enable_caching: If `True`, block-data during calls to `matvec` are cached
         for later reuse. Note: usually it is safe to enable_caching, unless 
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
         In this case, if one does a large number of krylov steps, this can lead 
