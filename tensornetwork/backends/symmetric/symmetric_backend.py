@@ -244,20 +244,19 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       res = A(tmp, *args)
       res.contiguous()
       return res.data
+    tmp = BlockSparseTensor(
+        numpy.empty(0, dtype=initial_state.dtype),
+        initial_state._charges,
+        initial_state._flows,
+        check_consistency=False)
+    lop = sp.sparse.linalg.LinearOperator(
+        dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
     
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
       cache_was_empty = self.bs.get_cacher().is_empty
     try:
-      tmp = BlockSparseTensor(
-          numpy.empty(0, dtype=initial_state.dtype),
-          initial_state._charges,
-          initial_state._flows,
-          check_consistency=False)
-      
-      lop = sp.sparse.linalg.LinearOperator(
-          dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
       eta, U = sp.sparse.linalg.eigs(
           A=lop,
           k=numeig,
@@ -266,19 +265,20 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           ncv=num_krylov_vecs,
           tol=tol,
           maxiter=maxiter)
-      eVs = [
-          BlockSparseTensor(
-              U[:, n],
-              initial_state._charges,
-              initial_state._flows,
-              check_consistency=False) for n in range(numeig)
-      ]
     except Exception as e:
       #set caching status back to what it was
       self.bs.set_caching_status(former_caching_status)
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
       raise e
+    
+    eVs = [
+        BlockSparseTensor(
+            U[:, n],
+            initial_state._charges,
+            initial_state._flows,
+            check_consistency=False) for n in range(numeig)
+    ]
       
     self.bs.set_caching_status(former_caching_status)
     if enable_caching and cache_was_empty:
