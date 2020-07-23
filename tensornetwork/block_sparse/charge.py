@@ -39,15 +39,13 @@ class BaseCharge:
   """
 
   class Iterator:
-
-    def __init__(self, unique: np.ndarray, labels: np.ndarray):
+    def __init__(self, charges: np.ndarray):
       self.n = 0
-      self.unique = unique
-      self.labels = labels
+      self.charges = charges
 
     def __next__(self):
-      if self.n < len(self.labels):
-        out = self.unique[self.labels[self.n], :]
+      if self.n < self.charges.shape[0]:
+        out = self.charges[self.n, :]
         self.n += 1
         return out
       raise StopIteration
@@ -67,26 +65,43 @@ class BaseCharge:
           .format(len(charge_types), charges.shape[1]))
 
     if charges.shape[1] < 3:
-      label_dtype = np.int16
+      self.label_dtype = np.int16
     else:
-      label_dtype = np.int32
+      self.label_dtype = np.int32
     if charge_types is None:
       charge_types = [type(self)] * charges.shape[1]
     self.charge_types = charge_types
     if charge_labels is None:
-      if charges.shape[0] > 0:
-        self.unique_charges, self.charge_labels = unique(
-            charges.astype(charge_dtype), return_inverse=True, axis=0)
-        self.charge_labels = self.charge_labels.astype(label_dtype)
-      else:
-        self.unique_charges = np.empty((0, charges.shape[1]),
-                                       dtype=charge_dtype)
-        self.charge_labels = np.empty(0, dtype=label_dtype)
-    else:
-      self.charge_labels = np.asarray(charge_labels, dtype=label_dtype)
+      self._unique_charges = None
+      self._charge_labels = None
+      self._charges = charges.astype(charge_dtype)
+      self.num_symmetries = self._charges.shape[1]
 
-      self.unique_charges = charges.astype(charge_dtype)
-      self.charge_labels = charge_labels.astype(label_dtype)
+    else:
+      self._charge_labels = np.asarray(charge_labels, dtype=self.label_dtype)
+      self._unique_charges = charges.astype(charge_dtype)
+      self._charges = None
+      self.num_symmetries = self._unique_charges.shape[1]
+
+  @property
+  def unique_charges(self):
+    if self._unique_charges is None:
+      self._unique_charges, self._charge_labels = unique(self.charges, return_inverse=True)
+      self._charges = None
+    return self._unique_charges
+
+  @property
+  def charge_labels(self):
+    if self._charge_labels is None:
+      self._unique_charges, self._charge_labels = unique(self.charges, return_inverse=True)
+      self._charges = None
+    return self._charge_labels
+
+  @property
+  def charges(self):
+    if self._charges is not None:
+      return self._charges
+    return self._unique_charges[self._charge_labels, :]
 
   @staticmethod
   def fuse(charge1, charge2):
@@ -112,13 +127,6 @@ class BaseCharge:
     return len(self.charge_labels)
 
   @property
-  def num_symmetries(self) -> int:
-    """
-    Return the number of different charges in `ChargeCollection`.
-    """
-    return self.unique_charges.shape[1]
-
-  @property
   def num_unique(self) -> int:
     """
     Return the number of different charges in `ChargeCollection`.
@@ -129,35 +137,26 @@ class BaseCharge:
     """
     Return a copy of `BaseCharge`.
     """
+    if self._unique_charges is not None:
+      charges = self._unique_charges.copy()
+      labels = self._charge_labels.copy()
+    else:
+      charges = self._charges.copy()
+      labels = None
+
     obj = self.__new__(type(self))
     obj.__init__(
-        charges=self.unique_charges.copy(),
-        charge_labels=self.charge_labels.copy(),
+        charges=charges,
+        charge_labels=labels,
         charge_types=self.charge_types,
         charge_dtype=self.dtype)
     return obj
 
   @property
-  def charges(self):
-    """
-    Return the actual charges of `BaseCharge` as np.ndarray.
-    """
-    return self.unique_charges[self.charge_labels, :]
-
-  @property
   def dtype(self):
-    return self.unique_charges.dtype
-
-  @property
-  def label_dtype(self):
-    return self.charge_labels.dtype
-
-  @property
-  def degeneracies(self):
-    exp1 = self.charge_labels[:, None]
-    exp2 = np.arange(
-        self.unique_charges.shape[0], dtype=self.label_dtype)[None, :]
-    return np.sum(exp1 == exp2, axis=0)
+    if self._unique_charges is not None:
+      return self._unique_charges.dtype
+    return self._charges.dtype
 
   def __repr__(self):
     return 'BaseCharge object:' + '\n   charge types: ' + self.names + \
@@ -165,10 +164,12 @@ class BaseCharge:
         + '\n'
 
   def __iter__(self):
-    return self.Iterator(self.unique_charges, self.charge_labels)
+    return self.Iterator(self.charges)
 
   def __len__(self):
-    return len(self.charge_labels)
+    if self._charges is not None:
+      return self.charges.shape[0]
+    return self._charge_labels.shape[0]
 
   def __eq__(self, target_charges: Union[np.ndarray,
                                          "BaseCharge"]) -> np.ndarray:
@@ -178,27 +179,28 @@ class BaseCharge:
     if isinstance(target_charges, type(self)):
       if len(target_charges) == 0:
         raise ValueError('input to __eq__ cannot be an empty charge')
-      targets = unique(
-          target_charges.unique_charges[target_charges.charge_labels, :],
-          axis=0)
+      targets = unique(target_charges.charges, axis=0)
     else:
       if target_charges.ndim == 1:
         target_charges = target_charges[:, None]
       if target_charges.shape[0] == 0:
         raise ValueError('input to __eq__ cannot be an empty np.ndarray')
       if target_charges.shape[1] != self.num_symmetries:
-        raise ValueError(
-            "shape of `target_charges = {}` is incompatible with "
-            "`self.num_symmetries = {}"
-            .format(target_charges.shape, self.num_symmetries))
+        raise ValueError("shape of `target_charges = {}` is incompatible with "
+                         "`self.num_symmetries = {}".format(
+                             target_charges.shape, self.num_symmetries))
       targets = unique(target_charges, axis=0)
-    #pylint: disable=no-member
-    inds = np.nonzero(
+      #pylint: disable=no-member
+    if self._charges is None:
+      inds = np.nonzero(
+          np.logical_and.reduce(
+              self._unique_charges[:, :, None] == targets.T[None, :, :],
+              axis=1))[0]
+      return self._charge_labels[:, None] == inds[None, :]
+    return np.logical_or.reduce(
         np.logical_and.reduce(
-            self.unique_charges[:, :, None] == targets.T[None, :, :],
-            axis=1))[0]
-
-    return self.charge_labels[:, None] == inds[None, :]
+            self._charges[:, :, None] == targets.T[None, :, :], axis=1),
+        axis=1)
 
   def identity_charges(self, dim: int = 1) -> "BaseCharge":
     """
@@ -206,12 +208,15 @@ class BaseCharge:
     Returns:
       BaseCharge: The identity charge.
     """
-    unique_charges = np.asarray(
-        [ct.identity_charge() for ct in self.charge_types],
-        dtype=self.dtype)[None, :]
-    charge_labels = np.zeros(dim, dtype=self.label_dtype)
+    charges = np.concatenate(
+        [
+            np.asarray([ct.identity_charge() for ct in self.charge_types],
+                       dtype=self.dtype)[None, :]
+        ] * dim,
+        axis=0)
     obj = self.__new__(type(self))
-    obj.__init__(unique_charges, charge_labels, self.charge_types)
+    obj.__init__(
+        charges=charges, charge_labels=None, charge_types=self.charge_types)
     return obj
 
   def __add__(self, other: "BaseCharge") -> "BaseCharge":
@@ -222,39 +227,11 @@ class BaseCharge:
     Returns:
       BaseCharge: The result of fusing `self` with `other`.
     """
-    if len(self.charge_labels) == 0 or len(other.charge_labels) == 0:
-      obj = self.__new__(type(self))
-      obj.__init__(
-          np.empty((0, self.num_symmetries), dtype=self.dtype),
-          np.empty(0, dtype=self.label_dtype), self.charge_types)
-      return obj
-
     # fuse the unique charges from each index, then compute new unique charges
-    comb_charges = fuse_ndarray_charges(self.unique_charges,
-                                        other.unique_charges, self.charge_types)
-    #pylint: disable=unsubscriptable-object
-    if comb_charges.shape[0] == 0:
-      obj = self.__new__(type(self))
-      obj.__init__(
-          np.empty((0, self.num_symmetries), dtype=self.dtype),
-          np.empty(0, dtype=self.label_dtype), self.charge_types)
-      return obj
-
-    unique_charges, charge_labels = unique(
-        comb_charges, return_inverse=True, axis=0)
-    charge_labels = charge_labels.reshape(self.unique_charges.shape[0],
-                                          other.unique_charges.shape[0]).astype(
-                                              self.label_dtype)
-    # find new labels using broadcasting
-    left_labels = self.charge_labels[:, None] + np.zeros([1, len(other)],
-                                                         dtype=self.label_dtype)
-    right_labels = other.charge_labels[None, :] + np.zeros(
-        [len(self), 1], dtype=self.label_dtype)
-    charge_labels = charge_labels[np.ravel(left_labels), np.ravel(right_labels)]
-
+    fused_charges = fuse_ndarray_charges(self.charges, other.charges,
+                                         self.charge_types)
     obj = self.__new__(type(self))
-    obj.__init__(unique_charges, charge_labels, self.charge_types)
-
+    obj.__init__(fused_charges, charge_types=self.charge_types)
     return obj
 
   def dual(self, take_dual: Optional[bool] = False) -> "BaseCharge":
@@ -267,15 +244,31 @@ class BaseCharge:
       BaseCharge
     """
     if take_dual:
-      unique_dual_charges = np.stack([
-          self.charge_types[n].dual_charges(self.unique_charges[:, n])
-          for n in range(len(self.charge_types))
-      ],
-                                     axis=1)
+      if self._unique_charges is not None:
+        unique_dual_charges = np.stack([
+            self.charge_types[n].dual_charges(self._unique_charges[:, n])
+            for n in range(len(self.charge_types))
+        ],
+                                       axis=1)
 
-      obj = self.__new__(type(self))
-      obj.__init__(unique_dual_charges, self.charge_labels, self.charge_types)
-      return obj
+        obj = self.__new__(type(self))
+        obj.__init__(
+            unique_dual_charges,
+            charge_labels=self.charge_labels,
+            charge_types = self.charge_types)
+        return obj
+      else:
+        dual_charges = np.stack([
+            self.charge_types[n].dual_charges(self._charges[:, n])
+            for n in range(len(self.charge_types))
+        ],
+                                axis=1)
+
+        obj = self.__new__(type(self))
+        obj.__init__(
+            dual_charges, charge_labels=None, charge_types=self.charge_types)
+        return obj
+
     return self
 
   def __matmul__(self, other):
@@ -342,90 +335,91 @@ class BaseCharge:
     )
     return obj
 
-  def sort_unique_charges(self) -> "BaseCharge":
-    """
-    Sort the `unique_charges` of BaseCharge` according to standard order 
-    used by numpy.
-    Returns:
-      BaseCharge
-    """
-    unique_charges, inverse = unique(
-        self.unique_charges, return_inverse=True, axis=0)
-    charge_labels = inverse[self.charge_labels]
-    obj = self.__new__(type(self))
-    obj.__init__(
-        charges=unique_charges,
-        charge_labels=charge_labels,
-        charge_types=self.charge_types)
-    return obj
+  # def sort_unique_charges(self) -> "BaseCharge":
+  #   """
+  #   Sort the `unique_charges` of BaseCharge` according to standard order.
+  #   Returns:
+  #     BaseCharge
+  #   """
+  #   if self._unique_charges is not None:
+  #     unique_charges, inverse = unique(
+  #         self._unique_charges, return_inverse=True, axis=0)
+  #     charge_labels = inverse[self._charge_labels]
+  #     obj = self.__new__(type(self))
+  #     obj.__init__(
+  #         charges=unique_charges,
+  #         charge_labels=charge_labels,
+  #         charge_types=self.charge_types)
+  #     return obj
+  #   return self
 
-  def unique(self,
-             return_index: bool = False,
-             return_inverse: bool = False,
-             return_counts: bool = False,
-             sort: bool = True) -> Any:
-    """
-    Compute the unique charges in `BaseCharge`.
-    See unique for a more detailed explanation. This function
-    does the same but instead of a np.ndarray, it returns the unique
-    elements in a `BaseCharge` object.
+  # def unique(self,
+  #            return_index: bool = False,
+  #            return_inverse: bool = False,
+  #            return_counts: bool = False,
+  #            sort: bool = True) -> Any:
+  #   """
+  #   Compute the unique charges in `BaseCharge`.
+  #   See unique for a more detailed explanation. This function
+  #   does the same but instead of a np.ndarray, it returns the unique
+  #   elements in a `BaseCharge` object.
 
-    Args:
-      return_index: If `True`, also return the indices of `self.charges` 
-        (along the specified axis,
-        if provided, or in the flattened array) that result in the unique array.
-      return_inverse: If `True`, also return the indices of the unique array 
-        (for the specified
-        axis, if provided) that can be used to reconstruct `self.charges`.
-      return_counts: If `True`, also return the number of times each unique 
-        item appears in `self.charges`.
-      sort: If `True`, the returned `BaseCharge` object has sorted 
-        `unique_charges`. If `False`, `unique_`charges` are in general 
-        not sorted.
-    Returns:
-      BaseCharge: The sorted unique values.
-      np.ndarray: The indices of the first occurrences of the unique values 
-        in the original array. Only provided if `return_index` is True.
-      np.ndarray: The indices to reconstruct the original array from the
-        unique array. Only provided if `return_inverse` is True.
-      np.ndarray: The number of times each of the unique values comes up in the
-        original array. Only provided if `return_counts` is True.      
-    """
+  #   Args:
+  #     return_index: If `True`, also return the indices of `self.charges` 
+  #       (along the specified axis,
+  #       if provided, or in the flattened array) that result in the unique array.
+  #     return_inverse: If `True`, also return the indices of the unique array 
+  #       (for the specified
+  #       axis, if provided) that can be used to reconstruct `self.charges`.
+  #     return_counts: If `True`, also return the number of times each unique 
+  #       item appears in `self.charges`.
+  #     sort: If `True`, the returned `BaseCharge` object has sorted 
+  #       `unique_charges`. If `False`, `unique_`charges` are in general 
+  #       not sorted.
+  #   Returns:
+  #     BaseCharge: The sorted unique values.
+  #     np.ndarray: The indices of the first occurrences of the unique values 
+  #       in the original array. Only provided if `return_index` is True.
+  #     np.ndarray: The indices to reconstruct the original array from the
+  #       unique array. Only provided if `return_inverse` is True.
+  #     np.ndarray: The number of times each of the unique values comes up in the
+  #       original array. Only provided if `return_counts` is True.      
+  #   """
 
-    if sort:
-      #make sure that unique_charges are sorted
-      tmp_charge = self.sort_unique_charges()
-    else:
-      tmp_charge = self
-    obj = tmp_charge.__new__(type(tmp_charge))
-    tmp = unique(
-        tmp_charge.charge_labels,
-        return_index=return_index,
-        return_inverse=return_inverse,
-        return_counts=return_counts)
-    if return_index or return_inverse or return_counts:
-      if tmp[0].ndim == 0:  #only a single entry
-        index = np.asarray([tmp[0]])
-        unique_charges = tmp_charge.unique_charges[index, :]
-      else:
-        unique_charges = tmp_charge.unique_charges[tmp[0], :]
-    else:
-      if tmp.ndim == 0:
-        tmp = np.asarray([tmp])
-      unique_charges = tmp_charge.unique_charges[tmp, :]
-    obj.__init__(
-        charges=unique_charges,
-        charge_labels=np.arange(
-            unique_charges.shape[0], dtype=self.label_dtype),
-        charge_types=self.charge_types)
-    out = [obj]
-    if return_index or return_inverse or return_counts:
-      for n in range(1, len(tmp)):
-        out.append(tmp[n])
-    #for a single return value we don't want to return a list or tuple
-    if len(out) == 1:
-      return out[0]
-    return tuple(out)
+  #   if sort:
+  #     #make sure that unique_charges are sorted
+  #     tmp_charge = self.sort_unique_charges()
+  #   else:
+  #     tmp_charge = self
+  #   obj = tmp_charge.__new__(type(tmp_charge))
+  #   tmp = unique(
+  #       tmp_charge.charge_labels,
+  #       return_index=return_index,
+  #       return_inverse=return_inverse,
+  #       return_counts=return_counts)
+  #   if return_index or return_inverse or return_counts:
+  #     if tmp[0].ndim == 0:  #only a single entry
+  #       index = np.asarray([tmp[0]])
+  #       unique_charges = tmp_charge.unique_charges[index, :]
+  #     else:
+  #       unique_charges = tmp_charge.unique_charges[tmp[0], :]
+  #   else:
+  #     if tmp.ndim == 0:
+  #       tmp = np.asarray([tmp])
+  #     unique_charges = tmp_charge.unique_charges[tmp, :]
+  #   obj.__init__(
+  #       charges=unique_charges,
+  #       charge_labels=np.arange(
+  #           unique_charges.shape[0], dtype=self.label_dtype),
+  #       charge_types=self.charge_types)
+  #   out = [obj]
+  #   if return_index or return_inverse or return_counts:
+  #     for n in range(1, len(tmp)):
+  #       out.append(tmp[n])
+  #   #for a single return value we don't want to return a list or tuple
+  #   if len(out) == 1:
+  #     return out[0]
+  #   return tuple(out)
 
   def reduce(self,
              target_charges: np.ndarray,

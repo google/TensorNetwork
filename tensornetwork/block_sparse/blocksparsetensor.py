@@ -785,7 +785,7 @@ class BlockSparseTensor(ChargeArray):
       perm = tr_sparse_blocks[ind]
       data[sparse_block] = self.data[perm]
 
-    _, inds = unique(permutation, return_index=True)
+    _, inds = np.unique(permutation, return_index=True)
     new_flat_order = inds[self.flat_order]
     tmp = np.append(0, np.cumsum([len(o) for o in self._order]))
     order = [
@@ -911,10 +911,10 @@ def tensordot(
         "`axes2 = {}` is incompatible with `tensor2.shape = {}. ".format(
             axes2, tensor2.shape))
 
-  if not np.all(unique(axes1) == np.sort(axes1)):
+  if not np.all(np.unique(axes1) == np.sort(axes1)):
     raise ValueError(
         "Some values in axes[0] = {} appear more than once!".format(axes1))
-  if not np.all(unique(axes2) == np.sort(axes2)):
+  if not np.all(np.unique(axes2) == np.sort(axes2)):
     raise ValueError(
         "Some values in axes[1] = {} appear more than once!".format(axes2))
 
