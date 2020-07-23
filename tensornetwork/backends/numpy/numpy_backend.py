@@ -229,7 +229,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     #savely deduce the shape from it
     lop = scipy.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype,
-        shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
+        shape=(initial_state.size, initial_state.size),
         matvec=matvec)
     eta, U = scipy.sparse.linalg.eigs(
         A=lop,
