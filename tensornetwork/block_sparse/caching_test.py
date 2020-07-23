@@ -3,8 +3,9 @@ from tensornetwork.block_sparse.caching import (get_cacher, set_caching_status,
                                                 enable_caching, disable_caching,
                                                 _INSTANTIATED_CACHERS)
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import U1Charge
-from tensornetwork.block_sparse.utils import _to_string
+from tensornetwork.block_sparse.charge import U1Charge, charge_equal
+from tensornetwork.block_sparse.utils import (
+    _to_string, _find_transposed_diagonal_sparse_blocks)
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 from tensornetwork.ncon_interface import ncon
 import numpy as np
@@ -63,15 +64,43 @@ def test_cache():
   ]
   A = BlockSparseTensor.random(mpsinds)
   B = A.conj()
+  res_charges = [
+      A.flat_charges[2], A.flat_charges[3], B.flat_charges[2], B.flat_charges[3]
+  ]
+  res_flows = [
+      A.flat_flows[2], A.flat_flows[3], B.flat_flows[2], B.flat_flows[3]
+  ]
+
   enable_caching()
   ncon([A, B], [[1, 2, -1, -2], [1, 2, -3, -4]], backend='symmetric')
   cacher = get_cacher()
-  s1 = _to_string(A.flat_charges, np.array(A.flat_flows), 2,
-                  np.array([2, 3, 0, 1]))
-  s2 = _to_string(B.flat_charges, np.array(B.flat_flows), 2,
-                  np.array([0, 1, 2, 3]))
-  assert s1 in cacher.cache
-  assert s2 in cacher.cache
+  sA = _to_string(A.flat_charges, A.flat_flows, 2, [2, 3, 0, 1])
+  sB = _to_string(B.flat_charges, B.flat_flows, 2, [0, 1, 2, 3])
+  sC = _to_string(res_charges, res_flows, 2, [0, 1, 2, 3])
+  blocksA, chargesA, dimsA = _find_transposed_diagonal_sparse_blocks(
+      A.flat_charges, A.flat_flows, 2, [2, 3, 0, 1])
+  blocksB, chargesB, dimsB = _find_transposed_diagonal_sparse_blocks(
+      B.flat_charges, B.flat_flows, 2, [0, 1, 2, 3])
+  blocksC, chargesC, dimsC = _find_transposed_diagonal_sparse_blocks(
+      res_charges, res_flows, 2, [0, 1, 2, 3])
+
+  assert sA in cacher.cache
+  assert sB in cacher.cache
+  assert sC in cacher.cache
+
+  for b1, b2 in zip(cacher.cache[sA][0], blocksA):
+    np.testing.assert_allclose(b1, b2)
+  for b1, b2 in zip(cacher.cache[sB][0], blocksB):
+    np.testing.assert_allclose(b1, b2)
+  for b1, b2 in zip(cacher.cache[sC][0], blocksC):
+    np.testing.assert_allclose(b1, b2)
+  assert charge_equal(cacher.cache[sA][1], chargesA)
+  assert charge_equal(cacher.cache[sB][1], chargesB)
+  assert charge_equal(cacher.cache[sC][1], chargesC)
+
+  np.testing.assert_allclose(cacher.cache[sA][2], dimsA)
+  np.testing.assert_allclose(cacher.cache[sB][2], dimsB)
+  np.testing.assert_allclose(cacher.cache[sC][2], dimsC)
 
 
 def test_clear_cache():
