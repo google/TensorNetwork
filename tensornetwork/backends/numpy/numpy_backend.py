@@ -200,7 +200,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       maxiter: The maximum number of iterations.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
-       `list`: An list of `numeig` lowest eigenvectors
+       `list`: A list of `numeig` lowest eigenvectors
     """
     if args is None:
       args = []
