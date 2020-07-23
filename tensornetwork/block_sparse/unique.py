@@ -28,19 +28,25 @@ def get_dtype(itemsize):
 
 def collapse(array: np.ndarray):
   array = np.ascontiguousarray(array)
+  if array.ndim == 1:
+    return array
+
+  if array.dtype.itemsize * array.shape[1] > 8:
+    return array
   newdtype = get_dtype(array.dtype.itemsize * array.shape[1])
-  if array.shape[1] < 5:
-    if array.shape[1] in (1, 2, 4):
-      tmparray = array.view(newdtype)
-    elif array.shape[1] == 3:
-      tmparray = np.squeeze(
-          np.concatenate([
-              array,
-              np.full((array.shape[0], 1), fill_value=0, dtype=array.dtype)
-          ],
-                         axis=1).view(newdtype))
-    return np.squeeze(tmparray)
-  return array
+  if array.shape[1] in (1, 2, 4, 8):
+    tmparray = array.view(newdtype)
+  else:
+    if array.shape[1] == 3:
+      width = 1
+    else:
+      width = 8 - array.shape[1]
+
+    tmparray = np.squeeze(
+        np.concatenate(
+            [array, np.zeros((array.shape[0], width), dtype=array.dtype)],
+            axis=1).view(newdtype))
+  return np.squeeze(tmparray)
 
 
 def expand(array: np.ndarray, original_dtype):
@@ -54,9 +60,9 @@ def unique(array: np.ndarray,
            return_inverse: bool = False,
            return_counts: bool = False,
            label_dtype: Type[np.number] = np.int16):
-
+  
   collapsed_array = collapse(array)
-  if array.shape[1] < 5:
+  if collapsed_array.ndim == 1:
     axis = None
   else:
     axis = 0
@@ -68,30 +74,32 @@ def unique(array: np.ndarray,
       return_inverse=return_inverse,
       return_counts=return_counts,
       axis=axis)
-  
+
   if any([return_index, return_inverse, return_counts]):
-    out = list(res)      
+    out = list(res)
     if _return_index and not return_index:
       del out[1]
     out[0] = expand(out[0], array.dtype)
-    if array.shape[1] == 3:
-      out[0] = out[0][:, 0:3]
+    if array.ndim > 1:
+      out[0] = out[0][:, 0:array.shape[1]]
+    if array.ndim == 1:
+      out[0] = np.squeeze(out[0])
     if return_inverse and not return_index:
       out[1] = out[1].astype(label_dtype)
     elif return_inverse and return_index:
       out[2] = out[2].astype(label_dtype)
     out[0] = np.ascontiguousarray(out[0])
-    
+
   else:
     if _return_index:
       out = expand(res[0], array.dtype)
-      if array.shape[1] == 3:
-        out = np.ascontiguousarray(out[:, 0:3])
     else:
       out = expand(res, array.dtype)
-      if array.shape[1] == 3:
-        out = out[:, 0:3]
-      out = np.ascontiguousarray(out)
+    if array.ndim > 1:
+      out = np.ascontiguousarray(out[:, 0:array.shape[1]])
+    if array.ndim == 1:
+      out = np.squeeze(out)
+
 
   return out
 
@@ -113,71 +121,81 @@ def intersect(A: np.ndarray,
     ndarray: the indices of the first occurrences of the common values in B.
       Only provided if return_indices is True.
   """
+  if A.dtype != B.dtype:
+    raise ValueError(f"array dtypes must macht to intersect, "
+                     "found `A.dtype = {A.dtype}`, `B.dtype = {B.dtype}`")
+  if axis not in (0, 1):
+    raise NotImplementedError(
+        "intersection can only be performed on first or second axis")
 
   if A.ndim != B.ndim:
     raise ValueError("array ndims must match to intersect")
 
-  if A.ndim == 1:
-    if A.dtype in (np.int8, np.int16) and B.dtype in (np.int8, np.int16):
-      out = np.intersect1d(
-          A, B, assume_unique=assume_unique, return_indices=True)
-      if return_indices:
-        result = out
-      else:
-        result = out[0]
+  if axis == 1:
+    if A.shape[0] != B.shape[0]:
+      raise ValueError("array heights must match to intersect on second axis")
+
+    out = intersect(
+        A.T,
+        B.T,
+        axis=0,
+        assume_unique=assume_unique,
+        return_indices=return_indices)
+    if return_indices:
+      return np.ascontiguousarray(out[0].T), out[1], out[2]
+    return np.ascontiguousarray(out.T)
+
+  if A.ndim > 1 and A.shape[1] != B.shape[1]:
+    raise ValueError("array widths must match to intersect on first axis")
+  collapsed_A = collapse(A)
+  collapsed_B = collapse(B)
+
+  if collapsed_A.ndim > 1:
+    # arrays were not callapsable
+    return _intersect_ndarray(collapsed_A, collapsed_B, axis, assume_unique,
+                              return_indices)
+
+  if collapsed_A.dtype in (np.int8,
+                           np.int16) and collapsed_B.dtype in (np.int8,
+                                                               np.int16):
+    C, A_locs, B_locs = np.intersect1d(
+        collapsed_A,
+        collapsed_B,
+        assume_unique=assume_unique,
+        return_indices=True)
+    C = expand(C, A.dtype)
+    if A.ndim == 1:
+      C = np.squeeze(C)
+    if return_indices:
+      result = C, A_locs, B_locs
     else:
-      result = np.intersect1d(
-          A, B, assume_unique=assume_unique, return_indices=return_indices)
-    return result
+      result = C
 
-  if A.shape[1] > 4:
-    return _intersect_ndarray(A, B, axis, assume_unique, return_indices)
-
-  if A.ndim == 2:
-    if axis == 0:
-      if A.shape[1] != B.shape[1]:
-        raise ValueError("array widths must match to intersect")
-      collapsed_A = collapse(A)
-      collapsed_B = collapse(B)
-      if collapsed_A.dtype in (np.int8,
-                               np.int16) and collapsed_B.dtype in (np.int8,
-                                                                   np.int16):
-        C, A_locs, B_locs = np.intersect1d(
-            collapsed_A,
-            collapsed_B,
-            assume_unique=assume_unique,
-            return_indices=True)
-        C = expand(C, A.dtype)
-        if return_indices:
-          result = C, A_locs, B_locs
-        else:
-          result = C
-        return result
-
+  else:
+    if return_indices:
       C, A_locs, B_locs = np.intersect1d(
           collapsed_A,
           collapsed_B,
           assume_unique=assume_unique,
           return_indices=return_indices)
-      C = expand(C, A.dtype)
-      if A.shape[1] == 3:
-        C = np.ascontiguousarray(C[:, 0:3])
-      return C, A_locs, B_locs
-
-    if axis == 1:
-      out = intersect(
-          A.T,
-          B.T,
-          axis=0,
+    else:
+      C = np.intersect1d(
+          collapsed_A,
+          collapsed_B,
           assume_unique=assume_unique,
           return_indices=return_indices)
-      if return_indices:
-        return np.ascontiguousarray(out[0].T), out[1], out[2]
-      return np.ascontiguousarray(out.T)
-    raise NotImplementedError(
-        "intersection can only be performed on first or second axis")
+    C = expand(C, A.dtype)
+    if A.ndim > 1:
+      C = np.ascontiguousarray(C[:, 0:A.shape[1]])
+    else:
+      C = np.squeeze(C)
+      
+    if return_indices:
+      result = C, A_locs, B_locs
+    else:
+      result = C
 
-  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
+  return result
 
 
 def _intersect_ndarray(A: np.ndarray,
