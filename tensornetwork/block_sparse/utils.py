@@ -529,7 +529,6 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
-  hash_val = compute_hash(charges, flows, tr_partition, order)
 
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
