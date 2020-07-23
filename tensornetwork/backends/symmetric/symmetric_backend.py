@@ -360,23 +360,24 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+
+    
+    vector_n = initial_state
+    vector_n.contiguous()  # bring into contiguous memory layout
+
+    Z = self.norm(vector_n)
+    vector_n /= Z
+    norms_vector_n = []
+    diag_elements = []
+    krylov_vecs = []
+    first = True
+    eigvalsold = []
     
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
       cache_was_empty = self.bs.get_cacher().is_empty
     try:
-      vector_n = initial_state
-      vector_n.contiguous()  # bring into contiguous memory layout
-
-      Z = self.norm(vector_n)
-      vector_n /= Z
-      norms_vector_n = []
-      diag_elements = []
-      krylov_vecs = []
-      first = True
-      eigvalsold = []
-
       for it in range(num_krylov_vecs):
         # normalize the current vector:
         norm_vector_n = self.norm(vector_n)
