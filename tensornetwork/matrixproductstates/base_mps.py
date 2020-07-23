@@ -92,6 +92,12 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
+    def svd(tensor, max_singular_values=None):
+      return self.backend.svd(tensor=tensor, pivot_axis=2,
+                              max_singular_values=max_singular_values)
+
+    self.svd = svd
+
     def qr(tensor):
       return self.backend.qr(tensor, 2)
 
