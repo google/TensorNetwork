@@ -4,6 +4,7 @@ from tensornetwork.block_sparse.caching import (get_cacher, set_caching_status,
                                                 _INSTANTIATED_CACHERS)
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge
+from tensornetwork.block_sparse.utils import _to_string
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 from tensornetwork.ncon_interface import ncon
 import numpy as np
@@ -50,6 +51,27 @@ def test_disable_caching():
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
   assert not cacher.do_caching
+
+
+def test_cache():
+  D = 10
+  mpsinds = [
+      Index(U1Charge(np.random.randint(-5, 5, D, dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(-5, 5, D, dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(-5, 5, D, dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(-5, 5, D, dtype=np.int16)), True)
+  ]
+  A = BlockSparseTensor.random(mpsinds)
+  B = A.conj()
+  enable_caching()
+  ncon([A, B], [[1, 2, -1, -2], [1, 2, -3, -4]], backend='symmetric')
+  cacher = get_cacher()
+  s1 = _to_string(A.flat_charges, np.array(A.flat_flows), 2,
+                  np.array([2, 3, 0, 1]))
+  s2 = _to_string(B.flat_charges, np.array(B.flat_flows), 2,
+                  np.array([0, 1, 2, 3]))
+  assert s1 in cacher.cache
+  assert s2 in cacher.cache
 
 
 def test_clear_cache():
