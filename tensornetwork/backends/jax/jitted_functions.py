@@ -528,6 +528,7 @@ def gmres_wrapper(jax):
     gmres: A function performing gmres_m as described below.
   """
   jnp = jax.numpy
+  arnoldi_f = _generate_arnoldi_factorization(jax)
 
   def gmres_m(A_mv: Callable, A_args: Sequence,
               b: jax.ShapedArray, x0: jax.ShapedArray, tol: float, atol: float,
@@ -566,8 +567,8 @@ def gmres_wrapper(jax):
     beta (float)    : Norm of the residual at termination.
     n_iter (int)    : Number of iterations at termination.
     converged (bool): Whether the desired tolerance was achieved.
-    """
-    x = x0
+    """ 
+    x = x0 
     converged = False
     r, beta = gmres_residual(A_mv, A_args, b, x)
     b_norm = jnp.linalg.norm(b)
@@ -605,7 +606,6 @@ def gmres_wrapper(jax):
     v = r / beta
     Vk_1 = jnp.zeros((n_kry + 1, v.size), dtype=v.dtype)
     Htilde = jnp.zeros((n_kry + 1, n_kry + 1), dtype=v.dtype)
-    arnoldi_f = _generate_arnoldi_factorization(jax)
     Vk_1, Htilde, _, _ = arnoldi_f(A_mv, A_args, v, Vk_1, Htilde, 0, n_kry, tol)
     Vk_1 = Vk_1.T
     Htilde = Htilde[:, :-1]

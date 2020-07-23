@@ -577,13 +577,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
       A_args = []
 
 
-    def matrix_matvec(x, *args):
-      x = x.reshape(b.shape)
-      result = A_mv(x, *args)
-      return result.ravel()
 
     if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(matrix_matvec)
+      @libjax.tree_util.Partial
+      def matrix_matvec(x, *args):
+        x = x.reshape(b.shape)
+        result = A_mv(x, *args)
+        return result.ravel()
+      _CACHED_MATVECS[A_mv] = matrix_matvec
+
     if "gmres_f" not in _CACHED_FUNCTIONS:
       _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
     gmres_f = _CACHED_FUNCTIONS["gmres_f"]
