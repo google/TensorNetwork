@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+from tensornetwork.block_sparse.unique import intersect, unique
 from typing import (List, Optional, Type, Any, Union, Callable)
 
 #TODO (mganahl): switch from column to row order for unique labels
@@ -74,7 +75,7 @@ class BaseCharge:
     self.charge_types = charge_types
     if charge_labels is None:
       if charges.shape[0] > 0:
-        self.unique_charges, self.charge_labels = np.unique(
+        self.unique_charges, self.charge_labels = unique(
             charges.astype(charge_dtype), return_inverse=True, axis=0)
         self.charge_labels = self.charge_labels.astype(label_dtype)
       else:
@@ -177,7 +178,7 @@ class BaseCharge:
     if isinstance(target_charges, type(self)):
       if len(target_charges) == 0:
         raise ValueError('input to __eq__ cannot be an empty charge')
-      targets = np.unique(
+      targets = unique(
           target_charges.unique_charges[target_charges.charge_labels, :],
           axis=0)
     else:
@@ -190,7 +191,7 @@ class BaseCharge:
             "shape of `target_charges = {}` is incompatible with "
             "`self.num_symmetries = {}"
             .format(target_charges.shape, self.num_symmetries))
-      targets = np.unique(target_charges, axis=0)
+      targets = unique(target_charges, axis=0)
     #pylint: disable=no-member
     inds = np.nonzero(
         np.logical_and.reduce(
@@ -239,7 +240,7 @@ class BaseCharge:
           np.empty(0, dtype=self.label_dtype), self.charge_types)
       return obj
 
-    unique_charges, charge_labels = np.unique(
+    unique_charges, charge_labels = unique(
         comb_charges, return_inverse=True, axis=0)
     charge_labels = charge_labels.reshape(self.unique_charges.shape[0],
                                           other.unique_charges.shape[0]).astype(
@@ -348,7 +349,7 @@ class BaseCharge:
     Returns:
       BaseCharge
     """
-    unique_charges, inverse = np.unique(
+    unique_charges, inverse = unique(
         self.unique_charges, return_inverse=True, axis=0)
     charge_labels = inverse[self.charge_labels]
     obj = self.__new__(type(self))
@@ -365,7 +366,7 @@ class BaseCharge:
              sort: bool = True) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
-    See np.unique for a more detailed explanation. This function
+    See unique for a more detailed explanation. This function
     does the same but instead of a np.ndarray, it returns the unique
     elements in a `BaseCharge` object.
 
@@ -397,7 +398,7 @@ class BaseCharge:
     else:
       tmp_charge = self
     obj = tmp_charge.__new__(type(tmp_charge))
-    tmp = np.unique(
+    tmp = unique(
         tmp_charge.charge_labels,
         return_index=return_index,
         return_inverse=return_inverse,
@@ -484,7 +485,7 @@ class BaseCharge:
     n = np.asarray(n)
     obj = self.__new__(type(self))
     labels = self.charge_labels[n]
-    unique_labels, new_labels = np.unique(labels, return_inverse=True)
+    unique_labels, new_labels = unique(labels, return_inverse=True)
     if unique_labels.ndim == 0:
       unique_labels = np.asarray(unique_labels)
     unique_charges = self.unique_charges[unique_labels, :]
@@ -514,12 +515,12 @@ class BaseCharge:
       if target_charges.ndim == 1:
         if target_charges.shape[0] == 0:
           raise ValueError("input to `isin` cannot be an empty np.ndarray")
-        targets = np.unique(target_charges, axis=0)[:, None]
+        targets = unique(target_charges, axis=0)[:, None]
       elif target_charges.ndim == 2:
         if target_charges.shape[0] == 0:
           raise ValueError("input to `isin` cannot be an empty np.ndarray")
 
-        targets = np.unique(target_charges, axis=0)
+        targets = unique(target_charges, axis=0)
       else:
         raise ValueError("targets.ndim has to be 1 or 2, found {}".format(
             target_charges.ndim))
@@ -571,7 +572,7 @@ class Z2Charge(BaseCharge):
                charge_types: Optional[List[Type["BaseCharge"]]] = None,
                charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
     #do some checks before calling the base class constructor
-    unique = np.unique(np.ravel(charges))
+    unique = unique(np.ravel(charges))
     if not np.all(np.isin(unique, [0, 1])):
       raise ValueError("Z2 charges can only be 0 or 1, found {}".format(unique))
     super().__init__(
@@ -623,7 +624,7 @@ def ZNCharge(n: int) -> Callable:
                  charge_labels: Optional[np.ndarray] = None,
                  charge_types: Optional[List[Type["BaseCharge"]]] = None,
                  charge_dtype: Optional[Type[np.number]] = np.int16) -> None:
-      unique = np.unique(np.ravel(charges))
+      unique = unique(np.ravel(charges))
       if not np.all(np.isin(unique, list(range(n)))):
         raise ValueError(f"Z{n} charges must be in range({n}), found: {unique}")
       super().__init__(
@@ -677,73 +678,6 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
   for n, ct in enumerate(charge_types):
     comb_charges[n] = ct.fuse(charges_A[:, n], charges_B[:, n])
   return np.stack(comb_charges, axis=1)
-
-
-def intersect(A: np.ndarray,
-              B: np.ndarray,
-              axis=0,
-              assume_unique=False,
-              return_indices=False) -> Any:
-  """
-  Extends numpy's intersect1d to find the row or column-wise intersection of
-  two 2d arrays. Takes identical input to numpy intersect1d.
-  Args:
-    A, B (np.ndarray): arrays of matching widths and datatypes
-  Returns:
-    ndarray: sorted 1D array of common rows/cols between the input arrays
-    ndarray: the indices of the first occurrences of the common values in A.
-      Only provided if return_indices is True.
-    ndarray: the indices of the first occurrences of the common values in B.
-      Only provided if return_indices is True.
-  """
-  # pylint: disable=line-too-long
-  # see
-  # https://stackoverflow.com/questions/8317022/ get-intersecting-rows-across-two-2d-numpy-arrays
-  #pylint: disable=no-else-return
-  A = np.ascontiguousarray(A)
-  B = np.ascontiguousarray(B)
-  if A.ndim != B.ndim:
-    raise ValueError("array ndims must match to intersect")
-  if A.ndim == 1:
-    return np.intersect1d(
-        A, B, assume_unique=assume_unique, return_indices=return_indices)
-
-  elif A.ndim == 2:
-    if axis == 0:
-      ncols = A.shape[1]
-      if A.shape[1] != B.shape[1]:
-        raise ValueError("array widths must match to intersect")
-
-      dtype = {
-          'names': ['f{}'.format(i) for i in range(ncols)],
-          'formats': ncols * [A.dtype]
-      }
-      if return_indices:
-        C, A_locs, B_locs = np.intersect1d(
-            A.view(dtype),
-            B.view(dtype),
-            assume_unique=assume_unique,
-            return_indices=return_indices)
-        return C.view(A.dtype).reshape(-1, ncols), A_locs, B_locs
-      C = np.intersect1d(
-          A.view(dtype), B.view(dtype), assume_unique=assume_unique)
-      return C.view(A.dtype).reshape(-1, ncols)
-
-    elif axis == 1:
-      out = intersect(
-          A.T.copy(),
-          B.T.copy(),
-          axis=0,
-          assume_unique=assume_unique,
-          return_indices=return_indices)
-      if return_indices:
-        return out[0].T, out[1], out[2]
-      return out.T
-
-    raise NotImplementedError(
-        "intersection can only be performed on first or second axis")
-
-  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
 
 
 def fuse_charges(charges: List[BaseCharge], flows: List[bool]) -> BaseCharge:

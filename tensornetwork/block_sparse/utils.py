@@ -16,8 +16,9 @@ import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
                                                BaseCharge, fuse_ndarray_charges,
-                                               intersect, charge_equal,
+                                               charge_equal,
                                                fuse_ndarrays)
+from tensornetwork.block_sparse.unique import unique, intersect
 from typing import List, Union, Any, Tuple, Optional, Sequence
 Tensor = Any
 
@@ -301,7 +302,7 @@ def reduce_charges(charges: List[BaseCharge],
       return obj, np.empty(0, dtype=SIZE_T)
     return obj
 
-  unique_comb_qnums, comb_labels = np.unique(
+  unique_comb_qnums, comb_labels = unique(
       comb_qnums, return_inverse=True, axis=0)
   num_unique = unique_comb_qnums.shape[0]
 

@@ -15,7 +15,7 @@
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.charge import intersect
+from tensornetwork.block_sparse.unique import intersect
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray)
 from tensornetwork.block_sparse.utils import (
