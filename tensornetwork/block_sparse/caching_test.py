@@ -129,5 +129,6 @@ def test_clear_cache():
        backend='symmetric')
   cacher = get_cacher()
   assert len(cacher.cache) > 0
+  disable_caching()  
   clear_cache()
   assert len(cacher.cache) == 0
