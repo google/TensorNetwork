@@ -237,25 +237,24 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+    initial_state.contiguous()
+    dim = len(initial_state.data)
+    def matvec(vector):
+      tmp.data = vector
+      res = A(tmp, *args)
+      res.contiguous()
+      return res.data
     
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
       cache_was_empty = self.bs.get_cacher().is_empty
     try:
-      initial_state.contiguous()
-      dim = len(initial_state.data)
       tmp = BlockSparseTensor(
           numpy.empty(0, dtype=initial_state.dtype),
           initial_state._charges,
           initial_state._flows,
           check_consistency=False)
-      
-      def matvec(vector):
-        tmp.data = vector
-        res = A(tmp, *args)
-        res.contiguous()
-        return res.data
       
       lop = sp.sparse.linalg.LinearOperator(
           dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
