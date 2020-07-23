@@ -476,10 +476,6 @@ def _to_string(charges: List[BaseCharge], flows: np.ndarray,
   Returns:
     str: The string representation of the input
   """
-  print('order:', order, type(order))
-  print('tr_partition:', tr_partition)
-  print('flows:', flows, type(flows))
-  
   return ''.join([str(c.charges.tostring()) for c in charges] + [
       str(np.array(flows).tostring()),
       str(tr_partition),
