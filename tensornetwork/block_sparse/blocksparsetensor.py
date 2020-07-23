@@ -539,6 +539,7 @@ class BlockSparseTensor(ChargeArray):
     if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
+
     out[np.nonzero(
         fuse_charges(self._charges, self._flows) ==
         self._charges[0].identity_charges(dim=1))[0]] = self.data
@@ -772,7 +773,6 @@ class BlockSparseTensor(ChargeArray):
       return self
     tr_partition = _find_best_partition(
         [flat_charges[n].dim for n in permutation])
-
     tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
         flat_charges, flat_flows, tr_partition, permutation)
 
@@ -1017,7 +1017,6 @@ def tensordot(
         list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
     s += len(tensor2._order[n])
     right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
-  
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
 

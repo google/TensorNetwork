@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 # pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge, ZNCharge
-
+from tensornetwork.block_sparse.charge import BaseCharge, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge, ZNCharge
+from tensornetwork.block_sparse.unique import unique, intersect
 
 def test_BaseCharge_charges():
   D = 100
@@ -54,7 +54,7 @@ def test_BaseCharge_unique():
   np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
-  expected = np.unique(
+  expected = unique(
       q, return_index=True, return_inverse=True, return_counts=True, axis=0)
   actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   assert np.all(actual[0].charges == expected[0])
@@ -69,7 +69,7 @@ def test_BaseCharge_unique_sort():
   labels = np.random.randint(0, 3, 100)
   Q = U1Charge(charges=unique, charge_labels=labels)
   actual = Q.unique(
-      return_index=True, return_inverse=True, return_counts=True, sort=False)
+      return_index=True, return_inverse=True, return_counts=True)
   np.testing.assert_allclose(actual[0].unique_charges, [[1], [0], [-1]])
 
 
@@ -424,84 +424,84 @@ def test_getitem():
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
 
 
-def test_isin():
-  np.random.seed(10)
-  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+# def test_isin():
+#   np.random.seed(10)
+#   c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+#   c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
 
-  c = c1 @ c2
-  c3 = np.array([[-1, -1], [0, 0], [1, 1]])
-  n = c.isin(c3)
-  for m in np.nonzero(n)[0]:
-    charges = c[m].charges
-    #pylint: disable=unsubscriptable-object
-    assert np.any(
-        [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
-  for m in np.nonzero(np.logical_not(n))[0]:
-    charges = c[m].charges
-    #pylint: disable=unsubscriptable-object
-    assert not np.any(
-        [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
-
-
-def test_isin_2():
-  np.random.seed(10)
-  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c = c1 @ c2
-  c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
-  n = c.isin(c3)
-  for m in np.nonzero(n)[0]:
-    charges = c[m].charges
-    assert np.any([
-        np.array_equal(charges[0, :], c3.charges[k, :])
-        for k in range(c3.charges.shape[0])
-    ])
-  for m in np.nonzero(np.logical_not(n))[0]:
-    charges = c[m].charges
-    assert not np.any([
-        np.array_equal(charges[0, :], c3.charges[k, :])
-        for k in range(c3.charges.shape[0])
-    ])
+#   c = c1 @ c2
+#   c3 = np.array([[-1, -1], [0, 0], [1, 1]])
+#   n = c.isin(c3)
+#   for m in np.nonzero(n)[0]:
+#     charges = c[m].charges
+#     #pylint: disable=unsubscriptable-object
+#     assert np.any(
+#         [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
+#   for m in np.nonzero(np.logical_not(n))[0]:
+#     charges = c[m].charges
+#     #pylint: disable=unsubscriptable-object
+#     assert not np.any(
+#         [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
 
 
-def test_isin_raises():
+# def test_isin_2():
+#   np.random.seed(10)
+#   c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+#   c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
+#   c = c1 @ c2
+#   c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+#   n = c.isin(c3)
+#   for m in np.nonzero(n)[0]:
+#     charges = c[m].charges
+#     assert np.any([
+#         np.array_equal(charges[0, :], c3.charges[k, :])
+#         for k in range(c3.charges.shape[0])
+#     ])
+#   for m in np.nonzero(np.logical_not(n))[0]:
+#     charges = c[m].charges
+#     assert not np.any([
+#         np.array_equal(charges[0, :], c3.charges[k, :])
+#         for k in range(c3.charges.shape[0])
+#     ])
 
-  class FakeCharge(BaseCharge):
 
-    def __init__(self, charges, charge_labels=None, charge_types=None):
-      super().__init__(charges, charge_labels, charge_types=[type(self)])
+# def test_isin_raises():
 
-    @staticmethod
-    def fuse(charge1, charge2) -> np.ndarray:
-      return np.add.outer(charge1, charge2).ravel()
+#   class FakeCharge(BaseCharge):
 
-    @staticmethod
-    def dual_charges(charges) -> np.ndarray:
-      return charges * charges.dtype.type(-1)
+#     def __init__(self, charges, charge_labels=None, charge_types=None):
+#       super().__init__(charges, charge_labels, charge_types=[type(self)])
 
-    @staticmethod
-    def identity_charge() -> np.ndarray:
-      return np.int16(0)
+#     @staticmethod
+#     def fuse(charge1, charge2) -> np.ndarray:
+#       return np.add.outer(charge1, charge2).ravel()
 
-    @classmethod
-    def random(cls, dimension: int, minval: int, maxval: int) -> np.ndarray:
-      charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
-      return cls(charges=charges)
+#     @staticmethod
+#     def dual_charges(charges) -> np.ndarray:
+#       return charges * charges.dtype.type(-1)
 
-  np.random.seed(10)
-  c1 = BaseCharge(
-      np.random.randint(-5, 5, (1000, 2), dtype=np.int16),
-      charge_labels=None,
-      charge_types=[FakeCharge, FakeCharge])
-  c2 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
-  with pytest.raises(TypeError):
-    c1.isin(c2)
-  with pytest.raises(ValueError):
-    c1.isin(np.random.randint(-2, 2, (2, 2, 2)))
+#     @staticmethod
+#     def identity_charge() -> np.ndarray:
+#       return np.int16(0)
 
-  with pytest.raises(ValueError):
-    c1.isin(np.random.randint(-2, 2, (2, 3)))
+#     @classmethod
+#     def random(cls, dimension: int, minval: int, maxval: int) -> np.ndarray:
+#       charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
+#       return cls(charges=charges)
+
+#   np.random.seed(10)
+#   c1 = BaseCharge(
+#       np.random.randint(-5, 5, (1000, 2), dtype=np.int16),
+#       charge_labels=None,
+#       charge_types=[FakeCharge, FakeCharge])
+#   c2 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
+#   with pytest.raises(TypeError):
+#     c1.isin(c2)
+#   with pytest.raises(ValueError):
+#     c1.isin(np.random.randint(-2, 2, (2, 2, 2)))
+
+#   with pytest.raises(ValueError):
+#     c1.isin(np.random.randint(-2, 2, (2, 3)))
 
 
 def test_eq_1():
@@ -522,13 +522,8 @@ def test_eq_2():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6, 2], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1, 0], [1, 2]])
-  inds = np.nonzero(c == c3)
-
-  np.testing.assert_allclose(inds[0][inds[1] == 0], [1, 4])
-  np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
-  for i, j in zip(inds[0], inds[1]):
-    np.array_equal(c[i].charges, c3[j, :])
-
+  inds = np.nonzero(c == c3)[0]
+  np.testing.assert_allclose(inds, [1, 3, 4, 8])
 
 def test_eq__raises():
   np.random.seed(10)

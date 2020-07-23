@@ -60,8 +60,8 @@ def unique(array: np.ndarray,
            return_inverse: bool = False,
            return_counts: bool = False,
            axis=None,
-           label_dtype: Type[np.number] = np.int16):
-  
+           label_dtype: Type[np.number] = np.int16) -> List:
+
   collapsed_array = collapse(array)
   if collapsed_array.ndim <= 1:
     axis = None
@@ -100,7 +100,6 @@ def unique(array: np.ndarray,
       out = np.ascontiguousarray(out[:, 0:array.shape[1]])
     if array.ndim == 1:
       out = np.squeeze(out)
-
 
   return out
 
@@ -190,7 +189,7 @@ def intersect(A: np.ndarray,
       C = np.ascontiguousarray(C[:, 0:A.shape[1]])
     else:
       C = np.squeeze(C)
-      
+
     if return_indices:
       result = C, A_locs, B_locs
     else:

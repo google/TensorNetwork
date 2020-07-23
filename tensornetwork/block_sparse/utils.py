@@ -20,6 +20,9 @@ from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
                                                fuse_ndarrays)
 from tensornetwork.block_sparse.unique import unique, intersect
 from typing import List, Union, Any, Tuple, Optional, Sequence
+from functools import reduce
+from operator import mul
+
 Tensor = Any
 
 SIZE_T = np.int64  #the size-type of index-arrays
@@ -99,18 +102,24 @@ def compute_sparse_lookup(
   """
 
   fused_charges = fuse_charges(charges, flows)
-  unique_charges, inverse = fused_charges.unique(
-      return_inverse=True, sort=False)
-  _, label_to_unique, _ = unique_charges.intersect(
-      target_charges, return_indices=True)
+  unique_charges, inverse = unique(fused_charges.charges,  return_inverse=True)
+  _, label_to_unique, _ = intersect(unique_charges, target_charges.charges, return_indices=True)
+  # _, label_to_unique, _ = unique_charges.intersect(
+  #     target_charges, return_indices=True)
   tmp = np.full(
-      len(unique_charges), fill_value=-1, dtype=charges[0].label_dtype)
+      unique_charges.shape[0], fill_value=-1, dtype=charges[0].label_dtype)
+  obj = charges[0].__new__(type(charges[0]))
+  obj.__init__(
+      charges=unique_charges,
+      charge_labels=None,
+      charge_types=charges[0].charge_types)
+
 
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
 
-  return lookup, unique_charges, np.sort(label_to_unique)
+  return lookup, obj, np.sort(label_to_unique)
 
 
 def _get_strides(dims: Union[List[int], np.ndarray]) -> np.ndarray:
@@ -164,21 +173,25 @@ def compute_fused_charge_degeneracies(
     np.ndarray: The degeneracies of each unqiue fused charge.
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique(return_counts=True, sort=False)
-
+    return (charges[0] * flows[0]).unique(return_counts=True)
+  dims = [c.dim for c in charges]
+  # for small dims is faster to fuse all and use unique
+  # directly
+  if reduce(mul, dims, 1) < 20000:
+    fused = fuse_charges(charges, flows)
+    return fused.unique(return_counts=True)
   # get unique charges and their degeneracies on the first leg.
   # We are fusing from "left" to "right".
   accumulated_charges, accumulated_degeneracies = (charges[0] *
                                                    flows[0]).unique(
-                                                       return_counts=True,
-                                                       sort=False)
+                                                       return_counts=True)
   for n in range(1, len(charges)):
     leg_charges, leg_degeneracies = charges[n].unique(
-        return_counts=True, sort=False)
+        return_counts=True)
     fused_charges = accumulated_charges + leg_charges * flows[n]
     fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
                                            leg_degeneracies)
-    accumulated_charges = fused_charges.unique(sort=False)
+    accumulated_charges = fused_charges.unique()
     accumulated_degeneracies = np.array([
         np.sum(fused_degeneracies[fused_charges.charge_labels ==
                                   accumulated_charges.charge_labels[m]])
@@ -205,13 +218,13 @@ def compute_unique_fused_charges(
 
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique(sort=False)
+    return (charges[0] * flows[0]).unique()
 
-  accumulated_charges = (charges[0] * flows[0]).unique(sort=False)
+  accumulated_charges = (charges[0] * flows[0]).unique()
   for n in range(1, len(charges)):
-    leg_charges = charges[n].unique(sort=False)
+    leg_charges = charges[n].unique()
     fused_charges = accumulated_charges + leg_charges * flows[n]
-    accumulated_charges = fused_charges.unique(sort=False)
+    accumulated_charges = fused_charges.unique()
   return accumulated_charges
 
 
@@ -492,7 +505,6 @@ def _find_transposed_diagonal_sparse_blocks(
   # compute qnums of row/cols in original tensor
   orig_partition = _find_best_partition(tensor_dims)
   orig_width = np.prod(tensor_dims[orig_partition:])
-
   orig_unique_row_qnums = compute_unique_fused_charges(charges[:orig_partition],
                                                        flows[:orig_partition])
   orig_unique_col_qnums, orig_col_degen = compute_fused_charge_degeneracies(
