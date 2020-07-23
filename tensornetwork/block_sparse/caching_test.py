@@ -23,7 +23,7 @@ def test_set_caching_status():
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
   assert cacher.do_caching
-
+  
   set_caching_status(False)
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
@@ -44,7 +44,7 @@ def test_enable_caching():
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
   assert cacher.do_caching
-
+  disable_caching()
 
 def test_disable_caching():
   disable_caching()
@@ -101,8 +101,9 @@ def test_cache():
   np.testing.assert_allclose(cacher.cache[sA][2], dimsA)
   np.testing.assert_allclose(cacher.cache[sB][2], dimsB)
   np.testing.assert_allclose(cacher.cache[sC][2], dimsC)
-
-
+  disable_caching()
+  clear_cache()
+  
 def test_clear_cache():
   D = 100
   M = 5
@@ -128,5 +129,6 @@ def test_clear_cache():
        backend='symmetric')
   cacher = get_cacher()
   assert len(cacher.cache) > 0
+  disable_caching()  
   clear_cache()
   assert len(cacher.cache) == 0
