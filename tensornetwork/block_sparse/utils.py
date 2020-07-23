@@ -380,6 +380,12 @@ def _find_diagonal_sparse_blocks(
       block, with 'n' the number of symmetries and 'm' the number of blocks.
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
+  cacher = get_cacher()
+  if cacher.do_caching:
+    hash_val = _to_string(charges, flows, partition, list(range(len(charges))))
+    if hash_val in cacher.cache:
+      return cacher.cache[hash_val]
+  
   num_inds = len(charges)
   if partition in (0, num_inds):
     # special cases (matrix of trivial height or width)
@@ -446,12 +452,15 @@ def _find_diagonal_sparse_blocks(
   obj.__init__(block_qnums,
                np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                charges[0].charge_types)
-
+  if cacher.do_caching:
+    cacher.cache[hash_val] = (block_maps, obj, block_dims)
+    return cacher.cache[hash_val]
   return block_maps, obj, block_dims
 
 
-def _compute_hash(charges: List[BaseCharge], flows: np.ndarray,
-                  tr_partition: int, order: List[int]) -> str:
+
+def _to_string(charges: List[BaseCharge], flows: np.ndarray,
+               tr_partition: int, order: List[int]) -> str:
   """
   map the input arguments of _find_transposed_diagonal_sparse_blocks 
   to a string.
@@ -467,6 +476,10 @@ def _compute_hash(charges: List[BaseCharge], flows: np.ndarray,
   Returns:
     str: The string representation of the input
   """
+  print('order:', order, type(order))
+  print('tr_partition:', tr_partition)
+  print('flows:', flows, type(flows))
+  
   return ''.join([str(c.charges.tostring()) for c in charges] + [
       str(np.array(flows).tostring()),
       str(tr_partition),
@@ -505,7 +518,7 @@ def _find_transposed_diagonal_sparse_blocks(
   flows = np.asarray(flows)
   cacher = get_cacher()
   if cacher.do_caching:
-    hash_val = _compute_hash(charges, flows, tr_partition, order)
+    hash_val = _to_string(charges, flows, tr_partition, order)
     if hash_val in cacher.cache:
       return cacher.cache[hash_val]
 
