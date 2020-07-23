@@ -1016,7 +1016,7 @@ def tensordot(
         list(len(left_charges) + np.arange(s, s + len(tensor2._order[n]))))
     s += len(tensor2._order[n])
     right_flows.extend([tensor2._flows[o] for o in tensor2._order[n]])
-  
+
   tr_sparse_blocks_1, charges1, shapes_1 = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
       flat_charges_1, flat_flows_1, len(left_charges), flat_order_1)
 
@@ -1033,8 +1033,8 @@ def tensordot(
   charges = left_charges + right_charges
   flows = left_flows + right_flows
 
-  sparse_blocks, cs, _ = _find_diagonal_sparse_blocks(charges, flows,
-                                                      len(left_charges))
+  sparse_blocks, cs, _ = _find_transposed_diagonal_sparse_blocks(
+      charges, flows, len(left_charges), list(range(len(charges))))
   num_nonzero_elements = np.int64(np.sum([len(v) for v in sparse_blocks]))
 
   #Note that empty is not a viable choice here.
