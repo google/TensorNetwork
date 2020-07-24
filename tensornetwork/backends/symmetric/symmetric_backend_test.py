@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends.numpy import numpy_backend
-from tensornetwork.block_sparse.charge import (U1Charge, charge_equal, BaseCharge, fuse_charges)
-from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks #pylint: disable=line-too-long
+from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
+                                               BaseCharge, fuse_charges)
+from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         sqrt, ChargeArray, diag, trace, norm,
@@ -976,6 +977,7 @@ def test_eigsh_valid_init_operator_with_shape(dtype):
 
   def mv(vec, mat):
     return mat @ vec
+
   init = BlockSparseTensor.random([index], dtype=dtype)
   # note: this will only find eigenvalues in the charge (0,0)
   # block of H because `init` only has non-zero values there.
@@ -1023,7 +1025,7 @@ def test_diagflat(dtype, num_charges):
 @pytest.mark.parametrize('flow', [False, True])
 def test_diagonal(Ds, dtype, num_charges, flow):
   np.random.seed(10)
-  backend = symmetric_backend.SymmetricBackend()  
+  backend = symmetric_backend.SymmetricBackend()
   np_flow = -np.int((np.int(flow) - 0.5) * 2)
   indices = [
       Index(
@@ -1039,7 +1041,7 @@ def test_diagonal(Ds, dtype, num_charges, flow):
   unique = np.unique(
       np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
   diagonal = backend.diagonal(arr)
-  
+
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
       arr.flat_charges, arr.flat_flows, 1)
   data = np.concatenate([
@@ -1114,14 +1116,17 @@ def test_eigsh_lanczos_caching():
       matvec, [L, mpo, R], initial_state=mps, num_krylov_vecs=ncv)
   assert get_cacher().cache == {}
 
+
 def test_eigsh_lanczos_cache_exception():
   dtype = np.float64
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
   D = 16
   index = Index(U1Charge.random(D, 0, 0), True)
+
   def mv(vec):
     raise ValueError()
+
   init = BlockSparseTensor.random([index], dtype=dtype)
   with pytest.raises(ValueError):
     backend.eigsh_lanczos(mv, [], init)
@@ -1165,6 +1170,7 @@ def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
   compare_eigvals_and_eigvecs(
       np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
 
+
 def test_eigs_cache_exception():
   dtype = np.float64
   np.random.seed(10)
@@ -1183,6 +1189,38 @@ def test_eigs_cache_exception():
   assert not get_caching_status()
   assert cacher.cache == {}
 
+
+def test_eigs_raises():
+  np.random.seed(10)
+  dtype = np.float64
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  index = Index(U1Charge.random(D, 0, 0), True)
+  indices = [index, index.copy().flip_flow()]
+
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  init = BlockSparseTensor.random([index], dtype=dtype)
+
+  def mv(vec, mat):
+    return mat @ vec
+
+  with pytest.raises(
+      ValueError, match='which = SI is currently not supported.'):
+    backend.eigs(mv, [H], initial_state=init, which='SI')
+  with pytest.raises(
+      ValueError, match='which = LI is currently not supported.'):
+    backend.eigs(mv, [H], initial_state=init, which='LI')
+  with pytest.raises(
+      ValueError,
+      match="if no `initial_state` is passed, then `shape` and"
+      "`dtype` have to be provided"):
+    backend.eigs(mv, [H])
+  with pytest.raises(ValueError, match="`num_krylov_vecs`"):
+    backend.eigs(mv, [H], numeig=3, num_krylov_vecs=3)
+  with pytest.raises(TypeError, match="Expected a"):
+    backend.eigs(mv, [H], initial_state=[])
+
+
 def test_decomps_raise():
   np.random.seed(10)
   dtype = np.float64
@@ -1200,15 +1238,16 @@ def test_decomps_raise():
       match="Can't specify non_negative_diagonal with BlockSparse."):
     backend.rq(H, non_negative_diagonal=True)
 
+
 def test_convert_to_tensor_raises():
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
-  with pytest.raises(TypeError, match = "cannot convert tensor of type"):
-    backend.convert_to_tensor(np.random.rand(3,3))
+  with pytest.raises(TypeError, match="cannot convert tensor of type"):
+    backend.convert_to_tensor(np.random.rand(3, 3))
+
 
 def test_einsum_raises():
   backend = symmetric_backend.SymmetricBackend()
   with pytest.raises(
-      NotImplementedError,
-      match="`einsum` currently not implemented"):
-    backend.einsum('',[])
+      NotImplementedError, match="`einsum` currently not implemented"):
+    backend.einsum('', [])
