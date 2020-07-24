@@ -255,17 +255,16 @@ class BaseCharge:
             charge_labels=self.charge_labels,
             charge_types=self.charge_types)
         return obj
-      else:
-        dual_charges = np.stack([
-            self.charge_types[n].dual_charges(self._charges[:, n])
-            for n in range(len(self.charge_types))
-        ],
-                                axis=1)
+      dual_charges = np.stack([
+          self.charge_types[n].dual_charges(self._charges[:, n])
+          for n in range(len(self.charge_types))
+      ],
+                              axis=1)
 
-        obj = self.__new__(type(self))
-        obj.__init__(
-            dual_charges, charge_labels=None, charge_types=self.charge_types)
-        return obj
+      obj = self.__new__(type(self))
+      obj.__init__(
+          dual_charges, charge_labels=None, charge_types=self.charge_types)
+      return obj
 
     return self
 
