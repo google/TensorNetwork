@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends.numpy import numpy_backend
-from tensornetwork.block_sparse.charge import U1Charge, charge_equal, BaseCharge
+from tensornetwork.block_sparse.charge import (U1Charge, charge_equal, BaseCharge, fuse_charges)
+from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks #pylint: disable=line-too-long
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         sqrt, ChargeArray, diag, trace, norm,
@@ -1011,6 +1012,48 @@ def test_diagflat(dtype, num_charges):
       charge_equal(expected._charges[n], actual._charges[n])
       for n in range(len(actual._charges))
   ])
+  with pytest.raises(
+      NotImplementedError, match="Can't specify k with Symmetric backend"):
+    actual = backend.diagflat(b, k=1)
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+@pytest.mark.parametrize('Ds', [[200, 100], [100, 200]])
+@pytest.mark.parametrize('flow', [False, True])
+def test_diagonal(Ds, dtype, num_charges, flow):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()  
+  np_flow = -np.int((np.int(flow) - 0.5) * 2)
+  indices = [
+      Index(
+          BaseCharge(
+              np.random.randint(-2, 3, (Ds[n], num_charges)),
+              charge_types=[U1Charge] * num_charges), flow) for n in range(2)
+  ]
+  arr = BlockSparseTensor.random(indices, dtype=dtype)
+  fused = fuse_charges(arr.flat_charges, arr.flat_flows)
+  inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
+  # pylint: disable=no-member
+  left, _ = np.divmod(inds, Ds[1])
+  unique = np.unique(
+      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
+  diagonal = backend.diagonal(arr)
+  
+  sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
+      arr.flat_charges, arr.flat_flows, 1)
+  data = np.concatenate([
+      np.diag(np.reshape(arr.data[sparse_blocks[n]], block_shapes[:, n]))
+      for n in range(len(sparse_blocks))
+  ])
+  np.testing.assert_allclose(data, diagonal.data)
+  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+  with pytest.raises(NotImplementedError):
+    diagonal = backend.diagonal(arr, axis1=0)
+  with pytest.raises(NotImplementedError):
+    diagonal = backend.diagonal(arr, axis2=1)
+  with pytest.raises(NotImplementedError):
+    diagonal = backend.diagonal(arr, offset=1)
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
@@ -1086,7 +1129,7 @@ def test_eigsh_lanczos_cache_exception():
   assert not cacher.do_caching
   assert not get_caching_status()
   assert cacher.cache == {}
-  
+
 
 def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
   _, iy = np.nonzero(np.abs(eta[:, None] - eta_exact[None, :]) < thresh)
