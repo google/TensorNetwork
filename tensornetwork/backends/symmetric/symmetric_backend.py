@@ -330,7 +330,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
-      enable_caching: If `True`, block-data during calls to `matvec` are cached
+      enable_caching: If `True`, block-data during calls to `matvec` is cached
         for later reuse. Note: usually it is safe to enable_caching, unless 
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
         In this case, if one does a large number of krylov steps, this can lead 
@@ -377,93 +377,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       first = True
       eigvalsold = []
 
-      for it in range(num_krylov_vecs):
-        # normalize the current vector:
-        norm_vector_n = self.norm(vector_n)
-        if abs(norm_vector_n) < delta:
-          # we found an invariant subspace, time to stop
-          break
-        norms_vector_n.append(norm_vector_n)
-        vector_n = vector_n / norms_vector_n[-1]
-        # store the Lanczos vector for later
-        if reorthogonalize:
-          # vector_n is always in contiguous memory layout at this point
-          for v in krylov_vecs:
-            v.contiguous()  # make sure storage layouts are matching
-            # it's save to operate on the tensor data now (pybass some checks)
-            vector_n.data -= numpy.dot(numpy.conj(v.data),
-                                       vector_n.data) * v.data
-        krylov_vecs.append(vector_n)
-        A_vector_n = A(vector_n, *args)
-        A_vector_n.contiguous()  # contiguous memory layout
-
-        # operate on tensor-data for scalar products
-        # this can be potentially problematic if vector_n and A_vector_n
-        # have non-matching shapes due to an erroneous matvec.
-        # If this is the case though an error will be thrown at line 281
-        diag_elements.append(
-            numpy.dot(numpy.conj(vector_n.data), A_vector_n.data))
-
-        if (it > 0) and (it % ndiag == 0) and (len(diag_elements) >= numeig):
-          # diagonalize the effective Hamiltonian
-          A_tridiag = numpy.diag(diag_elements) + numpy.diag(
-              norms_vector_n[1:], 1) + numpy.diag(
-                  numpy.conj(norms_vector_n[1:]), -1)
-          eigvals, u = numpy.linalg.eigh(A_tridiag)
-          if not first:
-            if numpy.linalg.norm(eigvals[0:numeig] -
-                                 eigvalsold[0:numeig]) < tol:
-              break
-          first = False
-          eigvalsold = eigvals[0:numeig]
-        if it > 0:
-          A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
-          A_vector_n -= (krylov_vecs[-2] * norms_vector_n[-1])
-        else:
-          A_vector_n -= (krylov_vecs[-1] * diag_elements[-1])
-        vector_n = A_vector_n
-
-      A_tridiag = numpy.diag(diag_elements) + numpy.diag(
-          norms_vector_n[1:], 1) + numpy.diag(
-              numpy.conj(norms_vector_n[1:]), -1)
-      eigvals, u = numpy.linalg.eigh(A_tridiag)
-      eigenvectors = []
-      eigvals = numpy.array(eigvals).astype(A_tridiag.dtype)
-
-      for n2 in range(min(numeig, len(eigvals))):
-        state = self.zeros(initial_state.sparse_shape, initial_state.dtype)
-        for n1, vec in enumerate(krylov_vecs):
-          state += vec * u[n1, n2]
-        eigenvectors.append(state / self.norm(state))
-
-    except Exception as e:
-      # reset caching status to what it was in case of
-      # and exception
-      self.bs.set_caching_status(former_caching_status)
-      if enable_caching and cache_was_empty:
-        self.bs.clear_cache()
-      raise e
-    
-    self.bs.set_caching_status(former_caching_status)
-    if enable_caching and cache_was_empty:
-      self.bs.clear_cache()
-
-    vector_n = initial_state
-    vector_n.contiguous()  # bring into contiguous memory layout
-
-    Z = self.norm(vector_n)
-    vector_n /= Z
-    norms_vector_n = []
-    diag_elements = []
-    krylov_vecs = []
-    first = True
-    eigvalsold = []
-    
-    former_caching_status = self.bs.get_caching_status()
-    self.bs.set_caching_status(enable_caching)
-    if enable_caching:
-      cache_was_empty = self.bs.get_cacher().is_empty
-    try:
       for it in range(num_krylov_vecs):
         # normalize the current vector:
         norm_vector_n = self.norm(vector_n)
