@@ -8,7 +8,7 @@ from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         sqrt, ChargeArray, diag, trace, norm,
                                         eye, ones, zeros, randn, random, eigh,
                                         inv)
-from tensornetwork.block_sparse.caching import get_cacher
+from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
@@ -1040,7 +1040,7 @@ def test_pivot_not_implemented():
     backend.pivot(np.ones((2, 2)))
 
 
-def test_eigsh_caching():
+def test_eigsh_lanczos_caching():
 
   def matvec(mps, A, B, C):
     return ncon([A, mps, B, C],
@@ -1070,6 +1070,23 @@ def test_eigsh_caching():
   backend.eigsh_lanczos(
       matvec, [L, mpo, R], initial_state=mps, num_krylov_vecs=ncv)
   assert get_cacher().cache == {}
+
+def test_eigsh_lanczos_cache_exception():
+  dtype = np.float64
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  index = Index(U1Charge.random(D, 0, 0), True)
+  def mv(vec):
+    raise ValueError()
+  init = BlockSparseTensor.random([index], dtype=dtype)
+  with pytest.raises(ValueError):
+    backend.eigsh_lanczos(mv, [], init)
+  cacher = get_cacher()
+  assert not cacher.do_caching
+  assert not get_caching_status()
+  assert cacher.cache == {}
+  
 
 def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
   _, iy = np.nonzero(np.abs(eta[:, None] - eta_exact[None, :]) < thresh)
@@ -1105,3 +1122,50 @@ def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
   compare_eigvals_and_eigvecs(
       np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
 
+def test_eigs_cache_exception():
+  dtype = np.float64
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  index = Index(U1Charge.random(D, 0, 0), True)
+
+  def mv(vec):
+    raise ValueError()
+
+  init = BlockSparseTensor.random([index], dtype=dtype)
+  with pytest.raises(ValueError):
+    backend.eigs(mv, [], init)
+  cacher = get_cacher()
+  assert not cacher.do_caching
+  assert not get_caching_status()
+  assert cacher.cache == {}
+
+def test_decomps_raise():
+  np.random.seed(10)
+  dtype = np.float64
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  R = 3
+  indices = [Index(U1Charge.random(D, -5, 5), True) for _ in range(R)]
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  with pytest.raises(
+      NotImplementedError,
+      match="Can't specify non_negative_diagonal with BlockSparse."):
+    backend.qr(H, non_negative_diagonal=True)
+  with pytest.raises(
+      NotImplementedError,
+      match="Can't specify non_negative_diagonal with BlockSparse."):
+    backend.rq(H, non_negative_diagonal=True)
+
+def test_convert_to_tensor_raises():
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(TypeError, match = "cannot convert tensor of type"):
+    backend.convert_to_tensor(np.random.rand(3,3))
+
+def test_einsum_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  with pytest.raises(
+      NotImplementedError,
+      match="`einsum` currently not implemented"):
+    backend.einsum('',[])
