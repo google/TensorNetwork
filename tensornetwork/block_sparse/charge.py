@@ -18,19 +18,6 @@ from typing import (List, Optional, Type, Any, Union, Callable)
 
 #TODO (mganahl): clean up implementation of identity charges
 
-
-def maybe_pad(charges):
-  if charges.shape[1] == 3:
-    charges = np.concatenate(
-        [charges, np.zeros((charges.shape[0], 1), dtype=charges.dtype)], axis=1)
-  if charges.shape[1] in (5, 6, 7):
-    charges = np.concatenate([
-        charges,
-        np.zeros((charges.shape[0], 8 - charges.shape[1]), dtype=charges.dtype)
-    ],
-                             axis=1)
-  return charges
-
 class BaseCharge:
   """
   Base class for charges of BlockSparseTensor. All user defined charges 
@@ -67,10 +54,10 @@ class BaseCharge:
     charges = np.asarray(charges)
     if charges.ndim == 1:
       charges = charges[:, None]
-    # if (charge_types is not None) and (len(charge_types) != charges.shape[1]):
-    #   raise ValueError(
-    #       "`len(charge_types) = {}` does not match `charges.shape[1]={}`"
-    #       .format(len(charge_types), charges.shape[1]))
+    if (charge_types is not None) and (len(charge_types) != charges.shape[1]):
+      raise ValueError(
+          "`len(charge_types) = {}` does not match `charges.shape[1]={}`"
+          .format(len(charge_types), charges.shape[1]))
     self.num_symmetries = charges.shape[1]
     if charges.shape[1] < 3:
       self.label_dtype = np.int16
@@ -79,7 +66,6 @@ class BaseCharge:
     if charge_types is None:
       charge_types = [type(self)] * self.num_symmetries
     self.charge_types = charge_types
-    charges = maybe_pad(charges)
 
     if charge_labels is None:
       self._unique_charges = None
@@ -199,7 +185,6 @@ class BaseCharge:
         raise ValueError("shape of `target_charges = {}` is incompatible with "
                          "`self.num_symmetries = {}".format(
                              target_charges.shape, self.num_symmetries))
-      target_charges = maybe_pad(target_charges)
       targets = unique(target_charges, axis=0)
       #pylint: disable=no-member
     if self._charges is None:
@@ -642,15 +627,6 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
   comb_charges = [0] * len(charge_types)
   for n, ct in enumerate(charge_types):
     comb_charges[n] = ct.fuse(charges_A[:, n], charges_B[:, n])[:,None]
-
-  #pad with zeros if neccessary
-  if len(charge_types) == 3:
-    comb_charges.append(
-        np.zeros((comb_charges[0].shape[0], 1), dtype=comb_charges[0].dtype))
-  if len(charge_types) in (5, 6, 7):
-    comb_charges.append(
-        np.zeros((comb_charges[0].shape[0], 8 - len(charge_types)),
-                 dtype=comb_charges[0].dtype))
   return np.concatenate(comb_charges, axis=1)
 
 
