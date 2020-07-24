@@ -16,7 +16,7 @@ from typing import Optional, Any, Tuple
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks)
 from tensornetwork.block_sparse.utils import get_real_dtype
-from tensornetwork.block_sparse.utils.sizetypes import SIZE_T
+from tensornetwork.block_sparse.sizetypes import SIZE_T
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray)
 import numpy as np
