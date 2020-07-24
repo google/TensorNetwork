@@ -266,7 +266,7 @@ def reduce_charges(charges: List[BaseCharge],
   unique_comb_qnums, comb_labels = unique(
       comb_qnums, return_inverse=True, axis=0)
   num_unique = unique_comb_qnums.shape[0]
-
+  
   # intersect combined qnums and target_charges
   reduced_qnums, label_to_unique, _ = intersect(
       unique_comb_qnums, target_charges, axis=0, return_indices=True)
