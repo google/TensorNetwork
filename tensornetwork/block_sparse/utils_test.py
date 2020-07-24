@@ -5,8 +5,7 @@ from tensornetwork.block_sparse.utils import (flatten, fuse_stride_arrays,
                                               fuse_ndarrays, fuse_degeneracies,
                                               _find_best_partition,
                                               _get_strides, unique, get_dtype,
-                                              intersect, collapse, expand)
-
+                                              intersect, collapse, expand, _to_string)
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
 
@@ -257,3 +256,20 @@ def test_intersect_raises():
   e = np.random.randint(0, 10, (3, 7, 3))
   with pytest.raises(NotImplementedError):
     intersect(d, e, axis=1)
+
+def test_to_string():
+  R = 5
+  D = 100
+  np.random.seed(10)
+  cs = [U1Charge.random(D, -5, 5) for _ in range(R)]
+  flows = np.random.choice([True, False], size=R, replace=True)
+  tr_partition = 3
+  order = list(np.random.choice(np.arange(R), size=R, replace=False))
+  actual = _to_string(cs, flows, tr_partition, order)
+  expected = ''.join([str(c.charges.tostring()) for c in cs] + [
+      str(np.array(flows).tostring()),
+      str(tr_partition),
+      str(np.array(order, dtype=np.int16).tostring())
+  ])
+  assert actual == expected
+

@@ -17,7 +17,8 @@ from tensornetwork.block_sparse.sizetypes import SIZE_T
 from typing import List, Union, Any, Type
 from functools import reduce
 from operator import mul
-
+from tensornetwork.block_sparse.caching import get_cacher
+from typing import List, Union, Any, Tuple, Optional, Sequence
 
 def get_real_dtype(dtype: Type[np.number]):
   if dtype == np.complex128:
@@ -165,6 +166,7 @@ def expand(array: np.ndarray, original_dtype):
   return array
 
 
+
 def unique(array: np.ndarray,
            return_index: bool = False,
            return_inverse: bool = False,
@@ -219,6 +221,8 @@ def intersect(A: np.ndarray,
               axis=0,
               assume_unique=False,
               return_indices=False) -> Any:
+
+
   """
   Extends numpy's intersect1d to find the row or column-wise intersection of
   two 2d arrays. Takes identical input to numpy intersect1d.

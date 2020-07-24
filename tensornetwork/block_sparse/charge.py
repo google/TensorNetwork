@@ -34,7 +34,6 @@ class BaseCharge:
   """
 
   class Iterator:
-
     def __init__(self, charges: np.ndarray):
       self.n = 0
       self.charges = charges
