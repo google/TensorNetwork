@@ -17,8 +17,8 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
-# import scipy as sp
-# import scipy.sparse.linalg
+import scipy as sp
+import scipy.sparse.linalg
 import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
