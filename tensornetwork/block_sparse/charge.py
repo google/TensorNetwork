@@ -18,6 +18,7 @@ from typing import (List, Optional, Type, Any, Union, Callable)
 
 #TODO (mganahl): clean up implementation of identity charges
 
+
 class BaseCharge:
   """
   Base class for charges of BlockSparseTensor. All user defined charges 
@@ -34,6 +35,7 @@ class BaseCharge:
   """
 
   class Iterator:
+
     def __init__(self, charges: np.ndarray):
       self.n = 0
       self.charges = charges
@@ -81,14 +83,16 @@ class BaseCharge:
   @property
   def unique_charges(self):
     if self._unique_charges is None:
-      self._unique_charges, self._charge_labels = unique(self.charges, return_inverse=True)
+      self._unique_charges, self._charge_labels = unique(
+          self.charges, return_inverse=True)
       self._charges = None
     return self._unique_charges
 
   @property
   def charge_labels(self):
     if self._charge_labels is None:
-      self._unique_charges, self._charge_labels = unique(self.charges, return_inverse=True)
+      self._unique_charges, self._charge_labels = unique(
+          self.charges, return_inverse=True)
       self._charges = None
     return self._charge_labels
 
@@ -249,7 +253,7 @@ class BaseCharge:
         obj.__init__(
             unique_dual_charges,
             charge_labels=self.charge_labels,
-            charge_types = self.charge_types)
+            charge_types=self.charge_types)
         return obj
       else:
         dual_charges = np.stack([
@@ -332,8 +336,7 @@ class BaseCharge:
   def unique(self,
              return_index: bool = False,
              return_inverse: bool = False,
-             return_counts: bool = False)->Any:
-
+             return_counts: bool = False) -> Any:
     """
     Compute the unique charges in `BaseCharge`.
     See unique for a more detailed explanation. This function
@@ -379,8 +382,7 @@ class BaseCharge:
       else:
         obj.__init__(
             charges=tmp,
-            charge_labels=np.arange(
-                tmp.shape[0], dtype=self.label_dtype),
+            charge_labels=np.arange(tmp.shape[0], dtype=self.label_dtype),
             charge_types=self.charge_types)
         tmp = obj
       return tmp
@@ -418,7 +420,6 @@ class BaseCharge:
       tmp[0] = obj
       return tmp
     return None
-
 
   def reduce(self,
              target_charges: np.ndarray,
@@ -485,53 +486,9 @@ class BaseCharge:
       unique_charges = self.unique_charges[unique_labels, :]
       obj.__init__(unique_charges, new_labels, self.charge_types)
       return obj
-    obj.__init__(self._charges[n, :], charge_labels=None, charge_types=self.charge_types)
+    obj.__init__(
+        self._charges[n, :], charge_labels=None, charge_types=self.charge_types)
     return obj
-  
-  # def isin(self, target_charges: Union[np.ndarray, "BaseCharge"]) -> np.ndarray:
-  #   """
-  #   See also np.isin. 
-  #   Returns an np.ndarray of `dtype=bool`, with `True` at all linear positions
-  #   where `self` is in `target_charges`, and `False` everywhere else.
-  #   Args:
-  #     target_charges: A `BaseCharge` object.
-  #   Returns:
-  #     np.ndarray: An array of boolean values.
-  #   """
-  #   if isinstance(target_charges, type(self)):
-  #     if not np.all([
-  #         a == b for a, b in zip(self.charge_types, target_charges.charge_types)
-  #     ]):
-  #       raise TypeError(
-  #           "isin only callable for equal charge types, found {} and {}".format(
-  #               self.charge_types, target_charges.charge_types))
-
-  #     targets = target_charges.unique_charges
-  #   else:
-  #     if target_charges.ndim == 1:
-  #       if target_charges.shape[0] == 0:
-  #         raise ValueError("input to `isin` cannot be an empty np.ndarray")
-  #       targets = unique(target_charges, axis=0)[:, None]
-  #     elif target_charges.ndim == 2:
-  #       if target_charges.shape[0] == 0:
-  #         raise ValueError("input to `isin` cannot be an empty np.ndarray")
-
-  #       targets = unique(target_charges, axis=0)
-  #     else:
-  #       raise ValueError("targets.ndim has to be 1 or 2, found {}".format(
-  #           target_charges.ndim))
-  #     if targets.shape[1] != self.num_symmetries:
-  #       raise ValueError(
-  #           "target_charges.shape[0]={} is different from "
-  #           "self.num_symmetries = {}"
-  #           .format(targets.shape[0], self.num_symmetries))
-
-  #   tmp = self.unique_charges[:, :, None] == targets.T[None, :, :]
-  #   #pylint: disable=no-member
-  #   inds = np.nonzero(
-  #       np.logical_or.reduce(np.logical_and.reduce(tmp, axis=1), axis=1))[0]
-
-  #   return np.isin(self.charge_labels, inds)
 
   @property
   def names(self):
@@ -696,8 +653,6 @@ def fuse_charges(charges: List[BaseCharge], flows: List[bool]) -> BaseCharge:
   for n in range(1, len(charges)):
     fused_charges = fused_charges + charges[n] * flows[n]
   return fused_charges
-
-
 
 
 def charge_equal(c1: BaseCharge, c2: BaseCharge) -> bool:
