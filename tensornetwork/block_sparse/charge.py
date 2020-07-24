@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-from tensornetwork.block_sparse.unique import intersect, unique
+from tensornetwork.block_sparse.utils import intersect, unique
 from typing import (List, Optional, Type, Any, Union, Callable)
 
 #TODO (mganahl): switch from column to row order for unique labels
