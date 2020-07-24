@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge, ZNCharge
-from tensornetwork.block_sparse.unique import unique, intersect
+from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
+                                               fuse_charges, Z2Charge, ZNCharge)
+from tensornetwork.block_sparse.utils import (unique, intersect, fuse_ndarrays,
+                                              fuse_degeneracies)
+
 
 def test_BaseCharge_charges():
   D = 100
@@ -68,8 +70,7 @@ def test_BaseCharge_unique_sort():
   unique = np.array([1, 0, -1])
   labels = np.random.randint(0, 3, 100)
   Q = U1Charge(charges=unique, charge_labels=labels)
-  actual = Q.unique(
-      return_index=True, return_inverse=True, return_counts=True)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   np.testing.assert_allclose(actual[0].unique_charges, [[1], [0], [-1]])
 
 
@@ -120,20 +121,6 @@ def test_intersect_raises():
   e = np.random.randint(0, 10, (3, 7, 3))
   with pytest.raises(NotImplementedError):
     intersect(d, e, axis=1)
-
-
-def test_fuse_ndarrays():
-  d1 = np.asarray([0, 1])
-  d2 = np.asarray([2, 3, 4])
-  fused = fuse_ndarrays([d1, d2])
-  np.testing.assert_allclose(fused, [2, 3, 4, 3, 4, 5])
-
-
-def test_fuse_degeneracies():
-  d1 = np.asarray([0, 1])
-  d2 = np.asarray([2, 3, 4])
-  fused_degeneracies = fuse_degeneracies(d1, d2)
-  np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
 
 
 @pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
@@ -443,7 +430,6 @@ def test_getitem():
 #     assert not np.any(
 #         [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
 
-
 # def test_isin_2():
 #   np.random.seed(10)
 #   c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
@@ -463,7 +449,6 @@ def test_getitem():
 #         np.array_equal(charges[0, :], c3.charges[k, :])
 #         for k in range(c3.charges.shape[0])
 #     ])
-
 
 # def test_isin_raises():
 
@@ -524,6 +509,7 @@ def test_eq_2():
   c3 = np.array([[-1, 0], [1, 2]])
   inds = np.nonzero(c == c3)[0]
   np.testing.assert_allclose(inds, [1, 3, 4, 8])
+
 
 def test_eq__raises():
   np.random.seed(10)

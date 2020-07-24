@@ -16,12 +16,13 @@ import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    compute_num_nonzero, reduce_charges)
+    compute_num_nonzero, reduce_charges, get_flat_meta_data)
 from tensornetwork.block_sparse.utils import (
-    flatten, get_flat_meta_data, find_best_partition, intersect, unique)
+    flatten, _find_best_partition, intersect, unique)
 
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                charge_equal)
+import copy
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 

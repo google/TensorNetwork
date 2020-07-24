@@ -14,11 +14,13 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
-                                               BaseCharge, fuse_ndarray_charges,
-                                               charge_equal, fuse_ndarrays)
+from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
+                                               fuse_ndarray_charges,
+                                               charge_equal)
 from tensornetwork.block_sparse.utils import (fuse_stride_arrays, unique,
-                                              intersect, _find_best_partition)
+                                              fuse_degeneracies, intersect,
+                                              _find_best_partition,
+                                              fuse_ndarrays)
 from typing import List, Union, Any, Tuple, Optional, Sequence
 from functools import reduce
 from operator import mul

@@ -71,6 +71,25 @@ def fuse_ndarrays(arrays: List[Union[List, np.ndarray]]) -> np.ndarray:
     fused_arrays = np.ravel(np.add.outer(fused_arrays, arrays[n]))
   return fused_arrays
 
+def fuse_degeneracies(degen1: Union[List, np.ndarray],
+                      degen2: Union[List, np.ndarray]) -> np.ndarray:
+  """
+  Fuse degeneracies `degen1` and `degen2` of two leg-charges
+  by simple kronecker product. `degen1` and `degen2` typically belong to two
+  consecutive legs of `BlockSparseTensor`.
+  Given `degen1 = [1, 2, 3]` and `degen2 = [10, 100]`, this returns
+  `[10, 100, 20, 200, 30, 300]`.
+  When using row-major ordering of indices in `BlockSparseTensor`,
+  the position of `degen1` should be "to the left" of the position of `degen2`.
+  Args:
+    degen1: Iterable of integers
+    degen2: Iterable of integers
+  Returns:
+    np.ndarray: The result of fusing `dege1` with `degen2`.
+  """
+  return np.reshape(
+      np.array(degen1)[:, None] * np.array(degen2)[None, :],
+      len(degen1) * len(degen2))
 
 def _get_strides(dims: Union[List[int], np.ndarray]) -> np.ndarray:
   """
