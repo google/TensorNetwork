@@ -1108,3 +1108,16 @@ def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
   compare_eigvals_and_eigvecs(
       np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
 
+
+def test_qr_raises():
+  np.random.seed(10)
+  dtype = np.float64
+  backend = symmetric_backend.SymmetricBackend()
+  D = 16
+  R=3
+  indices = [Index(U1Charge.random(D, -5, 5), True) for _ in range(R)]
+  H = BlockSparseTensor.random(indices, dtype=dtype)
+  with pytest.raises(
+      NotImplementedError,
+      match="Can't specify non_negative_diagonal with BlockSparse."):
+    backend.qr(H, non_negative_diagonal=True)
