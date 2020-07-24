@@ -15,14 +15,13 @@
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.unique import intersect
+from tensornetwork.block_sparse.utils import intersect, flatten, get_real_dtype
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray)
-from tensornetwork.block_sparse.utils import (
+from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
+    compute_num_nonzero, compute_sparse_lookup)
 from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
-Tensor = Any
 
 
 def norm(tensor: BlockSparseTensor) -> float:
@@ -91,7 +90,7 @@ def diag(tensor: ChargeArray) -> Any:
   flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
-  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(  #pylint: disable=line-too-long
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
@@ -539,7 +538,7 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
 
 def sqrt(
@@ -637,7 +636,7 @@ def trace(tensor: BlockSparseTensor,
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
       #pylint: disable=line-too-long
-      out = tensordot(out, identity, ([i, j], [0, 1]))# pytype: disable=wrong-arg-types
+      out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
       a0ar = np.asarray(a0)
 
       mask_min = a0ar > np.min([i, j])
@@ -692,7 +691,7 @@ def pinv(matrix: BlockSparseTensor,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
 
 def ones(indices: Sequence[Index],
