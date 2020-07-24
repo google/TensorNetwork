@@ -17,6 +17,8 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
+import scipy as sp
+import scipy.sparse.linalg
 import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
@@ -163,6 +165,127 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return self.bs.eigh(matrix)
 
+  def eigs(self,#pylint: disable=arguments-differ
+           A: Callable,
+           args: Optional[List] = None,
+           initial_state: Optional[Tensor] = None,
+           shape: Optional[Tuple[Index, ...]] = None,
+           dtype: Optional[Type[numpy.number]] = None,
+           num_krylov_vecs: int = 50,
+           numeig: int = 6,
+           tol: float = 1E-8,
+           which: Text = 'LR',
+           maxiter: Optional[int] = None,
+           enable_caching: bool = True) -> Tuple[Tensor, List]:
+    """
+    Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
+    of a linear operator `A`. 
+    If no `initial_state` is provided then `shape`  and `dtype` are required
+    so that a suitable initial state can be randomly generated.
+    This is a wrapper for scipy.sparse.linalg.eigs which only supports
+    a subset of the arguments of scipy.sparse.linalg.eigs.
+    Note: read notes for `enable_caching` carefully.
+
+    Args:
+      A: A (sparse) implementation of a linear operator
+      args: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn`
+        method.
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+      maxiter: The maximum number of iterations.
+      enable_caching: If `True`, block-data during calls to `matvec` are cached
+        for later reuse. Note: usually it is save to enable_caching, unless 
+        `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
+        In this case, if one does a large number of krylov steps, this can lead 
+        to memory clutter and/or overflow.
+
+    Returns:
+       `np.ndarray`: An array of `numeig` lowest eigenvalues
+       `list`: A list of `numeig` lowest eigenvectors
+    """
+
+    if args is None:
+      args = []
+
+    if which in ('SI', 'LI'):
+      raise ValueError(f'which = {which} is currently not supported.')
+
+    if numeig + 1 >= num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
+
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
+
+    if not isinstance(initial_state, BlockSparseTensor):
+      raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
+          type(initial_state)))
+    initial_state.contiguous()
+    dim = len(initial_state.data)
+    def matvec(vector):
+      tmp.data = vector
+      res = A(tmp, *args)
+      res.contiguous()
+      return res.data
+    tmp = BlockSparseTensor(
+        numpy.empty(0, dtype=initial_state.dtype),
+        initial_state._charges,
+        initial_state._flows,
+        check_consistency=False)
+    lop = sp.sparse.linalg.LinearOperator(
+        dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
+    
+    former_caching_status = self.bs.get_caching_status()
+    self.bs.set_caching_status(enable_caching)
+    if enable_caching:
+      cache_was_empty = self.bs.get_cacher().is_empty
+    try:
+      eta, U = sp.sparse.linalg.eigs(
+          A=lop,
+          k=numeig,
+          which=which,
+          v0=initial_state.data,
+          ncv=num_krylov_vecs,
+          tol=tol,
+          maxiter=maxiter)
+    except Exception as e:
+      #set caching status back to what it was
+      self.bs.set_caching_status(former_caching_status)
+      if enable_caching and cache_was_empty:
+        self.bs.clear_cache()
+      raise e
+    
+    eVs = [
+        BlockSparseTensor(
+            U[:, n],
+            initial_state._charges,
+            initial_state._flows,
+            check_consistency=False) for n in range(numeig)
+    ]
+      
+    self.bs.set_caching_status(former_caching_status)
+    if enable_caching and cache_was_empty:
+      self.bs.clear_cache()
+
+    return eta, eVs
+
   def eigsh_lanczos(self, #pylint: disable=arguments-differ
                     A: Callable,
                     args: Optional[List[Tensor]] = None,
@@ -207,7 +330,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         to check convergence.
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
-      enable_caching: If `True`, block-data during calls to `matvec` is cached
+      enable_caching: If `True`, block-data during calls to `matvec` are cached
         for later reuse. Note: usually it is safe to enable_caching, unless 
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
         In this case, if one does a large number of krylov steps, this can lead 
@@ -237,23 +360,24 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+
+    
+    vector_n = initial_state
+    vector_n.contiguous()  # bring into contiguous memory layout
+
+    Z = self.norm(vector_n)
+    vector_n /= Z
+    norms_vector_n = []
+    diag_elements = []
+    krylov_vecs = []
+    first = True
+    eigvalsold = []
     
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
       cache_was_empty = self.bs.get_cacher().is_empty
     try:
-      vector_n = initial_state
-      vector_n.contiguous()  # bring into contiguous memory layout
-
-      Z = self.norm(vector_n)
-      vector_n /= Z
-      norms_vector_n = []
-      diag_elements = []
-      krylov_vecs = []
-      first = True
-      eigvalsold = []
-
       for it in range(num_krylov_vecs):
         # normalize the current vector:
         norm_vector_n = self.norm(vector_n)
