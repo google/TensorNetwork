@@ -532,7 +532,7 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
         np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
-
+  #pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,
@@ -685,7 +685,7 @@ def pinv(matrix: BlockSparseTensor,
             np.reshape(matrix.data[block], shapes[:, n]),
             rcond=rcond,
             hermitian=hermitian).T)
-
+  #pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,

@@ -18,7 +18,7 @@ import numpy as np
 from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
                                         BaseCharge)
 from tensornetwork.block_sparse.charge import charge_equal
-from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks
 
 
 def get_random(shape, num_charges, dtype=np.float64):

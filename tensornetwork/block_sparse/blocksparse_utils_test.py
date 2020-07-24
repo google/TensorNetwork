@@ -3,7 +3,8 @@ import pytest
 import itertools
 from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
                                                fuse_ndarray_charges, BaseCharge)
-from tensornetwork.block_sparse.utils import fuse_ndarrays
+from tensornetwork.block_sparse.utils import (fuse_ndarrays, _get_strides,
+                                              fuse_stride_arrays)
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     compute_sparse_lookup, compute_fused_charge_degeneracies,
@@ -42,6 +43,7 @@ def test_flat_meta_data():
   np.testing.assert_allclose(flows, expected_flows)
   for n, c in enumerate(charges):
     assert charge_equal(c, expected_charges[n])
+
 
 def test_compute_sparse_lookup():
   q1 = np.array([-2, 0, -5, 7])
