@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+<<<<<<< HEAD
+=======
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.charge import (fuse_charges, fuse_degeneracies,
+                                               BaseCharge, fuse_ndarray_charges,
+                                               intersect, charge_equal,
+                                               fuse_ndarrays)
+>>>>>>> upstream/master
 from typing import List, Union, Any, Tuple, Optional, Sequence
 # currently there is only one global cacher that does caching.
 # this could be changed later on to having stacks of cachers,
