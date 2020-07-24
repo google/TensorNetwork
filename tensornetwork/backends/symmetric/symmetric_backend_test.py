@@ -4,10 +4,13 @@ from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal, BaseCharge
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
-                                        sqrt, ChargeArray, diag, trace, norm,
-                                        eye, ones, zeros, randn, random, eigh,
-                                        inv)
+from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
+                                                          BlockSparseTensor,
+                                                          ChargeArray)
+
+from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
+                                               norm, eye, ones, zeros, randn,
+                                               random, eigh, inv)
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
