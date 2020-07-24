@@ -107,9 +107,9 @@ def compute_fused_charge_degeneracies(
   dims = [c.dim for c in charges]
   # for small dims is faster to fuse all and use unique
   # directly
-  # if reduce(mul, dims, 1) < 20000:
-  #   fused = fuse_charges(charges, flows)
-  #   return fused.unique(return_counts=True)
+  if reduce(mul, dims, 1) < 20000:
+    fused = fuse_charges(charges, flows)
+    return fused.unique(return_counts=True)
 
   partition = _find_best_partition(dims)
   fused_left = fuse_charges(charges[:partition], flows[:partition])
