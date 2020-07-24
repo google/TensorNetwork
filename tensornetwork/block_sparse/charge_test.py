@@ -592,4 +592,4 @@ def test_zncharge_raises():
 
 
 def test_zncharge_does_not_raise():
-  ZNCharge(2).random(4)
+  ZNCharge(2).random(4) #pytype: disable=attribute-error
