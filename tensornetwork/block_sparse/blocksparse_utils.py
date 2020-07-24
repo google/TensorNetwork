@@ -107,27 +107,46 @@ def compute_fused_charge_degeneracies(
   dims = [c.dim for c in charges]
   # for small dims is faster to fuse all and use unique
   # directly
-  if reduce(mul, dims, 1) < 20000:
-    fused = fuse_charges(charges, flows)
-    return fused.unique(return_counts=True)
-  # get unique charges and their degeneracies on the first leg.
-  # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True)
-  for n in range(1, len(charges)):
-    leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
-    fused_charges = accumulated_charges + leg_charges * flows[n]
-    fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
-                                           leg_degeneracies)
-    accumulated_charges = fused_charges.unique()
-    accumulated_degeneracies = np.array([
-        np.sum(fused_degeneracies[fused_charges.charge_labels ==
-                                  accumulated_charges.charge_labels[m]])
-        for m in range(len(accumulated_charges))
-    ])
+  # if reduce(mul, dims, 1) < 20000:
+  #   fused = fuse_charges(charges, flows)
+  #   return fused.unique(return_counts=True)
 
-  return accumulated_charges, accumulated_degeneracies
+  partition = _find_best_partition(dims)
+  fused_left = fuse_charges(charges[:partition], flows[:partition])
+  fused_right = fuse_charges(charges[partition:], flows[partition:])
+  left_unique, left_degens = fused_left.unique(return_counts=True)
+  right_unique, right_degens = fused_right.unique(return_counts=True)
+  fused = left_unique + right_unique
+  unique_charges, charge_labels = fused.unique(return_inverse=True)
+  fused_degeneracies = fuse_degeneracies(left_degens, right_degens)
+  new_ord = np.argsort(charge_labels)
+  all_degens = np.cumsum(fused_degeneracies[new_ord])
+  cum_degens = all_degens[np.flatnonzero(np.diff(charge_labels[new_ord]))]
+  final_degeneracies = np.append(cum_degens, all_degens[-1]) - np.append(
+      0, cum_degens)
+  return unique_charges, final_degeneracies
+  #unique_charges, charge_labels = fused_unique.unique_charges,fused_unique.charge_labels
+
+
+
+  # # get unique charges and their degeneracies on the first leg.
+  # # We are fusing from "left" to "right".
+  # accumulated_charges, accumulated_degeneracies = (charges[0] *
+  #                                                  flows[0]).unique(
+  #                                                      return_counts=True)
+  # for n in range(1, len(charges)):
+  #   leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
+  #   fused_charges = accumulated_charges + leg_charges * flows[n]
+  #   fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
+  #                                          leg_degeneracies)
+  #   accumulated_charges = fused_charges.unique()
+  #   accumulated_degeneracies = np.array([
+  #       np.sum(fused_degeneracies[fused_charges.charge_labels ==
+  #                                 accumulated_charges.charge_labels[m]])
+  #       for m in range(len(accumulated_charges))
+  #   ])
+
+  # return accumulated_charges, accumulated_degeneracies
 
 
 def compute_unique_fused_charges(
