@@ -4,7 +4,7 @@ import itertools
 from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
                                                fuse_ndarray_charges, BaseCharge)
 from tensornetwork.block_sparse.utils import (fuse_ndarrays, _get_strides,
-                                              fuse_stride_arrays)
+                                              fuse_stride_arrays, unique)
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     compute_sparse_lookup, compute_fused_charge_degeneracies,
@@ -57,9 +57,9 @@ def test_compute_sparse_lookup():
   charges = [U1Charge(q1), U1Charge(q2)]
   targets = U1Charge(np.array([-1, 0, 1]))
   flows = [False, True]
-  lookup, unique, labels = compute_sparse_lookup(charges, flows, targets)
+  lookup, unique_, labels = compute_sparse_lookup(charges, flows, targets)
   np.testing.assert_allclose(lookup, expected_lookup)
-  np.testing.assert_allclose(expected_unique, np.squeeze(unique.charges))
+  np.testing.assert_allclose(expected_unique, np.squeeze(unique_.charges))
   np.testing.assert_allclose(labels, expected_labels_to_unique)
 
 
@@ -73,10 +73,10 @@ def test_compute_sparse_lookup_non_ordered(flow):
   inds = np.nonzero(
       np.isin((np_flow * unique_charges)[charge_labels], np_targets))[0]
   targets = U1Charge(np_targets)
-  lookup, unique, labels = compute_sparse_lookup(charges, [flow], targets)
+  lookup, unique_, labels = compute_sparse_lookup(charges, [flow], targets)
   np.testing.assert_allclose(labels, np.sort(labels))
   np.testing.assert_allclose(
-      np.squeeze(unique.charges[lookup, :]),
+      np.squeeze(unique_.charges[lookup, :]),
       (np_flow * unique_charges)[charge_labels][inds])
 
 
@@ -86,10 +86,10 @@ def test_compute_fused_charge_degeneracies():
   charges = [U1Charge(q) for q in qs]
   flows = [False, True, False]
   np_flows = [1, -1, 1]
-  unique, degens = compute_fused_charge_degeneracies(charges, flows)
+  unique_, degens = compute_fused_charge_degeneracies(charges, flows)
   fused = fuse_ndarrays([qs[n] * np_flows[n] for n in range(3)])
-  exp_unique, exp_degens = np.unique(fused, return_counts=True)
-  np.testing.assert_allclose(np.squeeze(unique.charges), exp_unique)
+  exp_unique, exp_degens = unique(fused, return_counts=True)
+  np.testing.assert_allclose(np.squeeze(unique_.charges), exp_unique)
   np.testing.assert_allclose(degens, exp_degens)
 
 
@@ -99,10 +99,10 @@ def test_compute_unique_fused_charges():
   charges = [U1Charge(q) for q in qs]
   flows = [False, True, False]
   np_flows = [1, -1, 1]
-  unique = compute_unique_fused_charges(charges, flows)
+  unique_ = compute_unique_fused_charges(charges, flows)
   fused = fuse_ndarrays([qs[n] * np_flows[n] for n in range(3)])
-  exp_unique = np.unique(fused)
-  np.testing.assert_allclose(np.squeeze(unique.charges), exp_unique)
+  exp_unique = unique(fused)
+  np.testing.assert_allclose(np.squeeze(unique_.charges), exp_unique)
 
 
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
@@ -230,7 +230,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   # pylint: disable=no-member
   left_inds, _ = np.divmod(nz, right_charges.shape[0])
   left = left_charges[left_inds, :]
-  unique_left = np.unique(left, axis=0)
+  unique_left = unique(left, axis=0)
   blocks = []
   for n in range(unique_left.shape[0]):
     ul = unique_left[n, :][None, :]
@@ -311,7 +311,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   # pylint: disable=no-member
   left_inds, _ = np.divmod(tr_nz, right_charges.shape[0])
   left = left_charges[left_inds, :]
-  unique_left = np.unique(left, axis=0)
+  unique_left = unique(left, axis=0)
   blocks = []
   for n in range(unique_left.shape[0]):
     ul = unique_left[n, :][None, :]
