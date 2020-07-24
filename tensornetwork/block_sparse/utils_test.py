@@ -5,7 +5,7 @@ from tensornetwork.block_sparse.utils import (flatten, fuse_stride_arrays,
                                               fuse_ndarrays, fuse_degeneracies,
                                               _find_best_partition,
                                               _get_strides, unique, get_dtype,
-                                              intersect, collapse, expand, _to_string)
+                                              intersect, collapse, expand)
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
 
@@ -185,14 +185,6 @@ def test_unique_2(return_index, return_inverse, return_counts):
     for n, e in enumerate(expected):
       np.testing.assert_allclose(e, actual[n])
 
-
-# def test_intersect(return_indices, dtype, N, D):
-#   a = np.random.randint(-10, 10, (D, N), dtype=dtype)
-#   b = np.random.randint(-10, 10, (D, N), dtype=dtype)
-#   expected = np.intersect1d(a, b, return_indices)
-#   actual = intersect(a, b, return_indices)
-
-
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
@@ -257,19 +249,4 @@ def test_intersect_raises():
   with pytest.raises(NotImplementedError):
     intersect(d, e, axis=1)
 
-def test_to_string():
-  R = 5
-  D = 100
-  np.random.seed(10)
-  cs = [U1Charge.random(D, -5, 5) for _ in range(R)]
-  flows = np.random.choice([True, False], size=R, replace=True)
-  tr_partition = 3
-  order = list(np.random.choice(np.arange(R), size=R, replace=False))
-  actual = _to_string(cs, flows, tr_partition, order)
-  expected = ''.join([str(c.charges.tostring()) for c in cs] + [
-      str(np.array(flows).tostring()),
-      str(tr_partition),
-      str(np.array(order, dtype=np.int16).tostring())
-  ])
-  assert actual == expected
 

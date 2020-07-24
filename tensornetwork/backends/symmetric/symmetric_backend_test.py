@@ -7,7 +7,6 @@ from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
                                                           BlockSparseTensor,
                                                           ChargeArray)
-
 from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
                                                norm, eye, ones, zeros, randn,
                                                random, eigh, inv)

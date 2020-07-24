@@ -4,8 +4,9 @@ from tensornetwork.block_sparse.caching import (get_cacher, set_caching_status,
                                                 _INSTANTIATED_CACHERS)
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal
-from tensornetwork.block_sparse.utils import (
-    _to_string, _find_transposed_diagonal_sparse_blocks)
+from tensornetwork.block_sparse.blocksparse_utils import (
+  _to_string, _find_transposed_diagonal_sparse_blocks)
+
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 from tensornetwork.ncon_interface import ncon
 import numpy as np

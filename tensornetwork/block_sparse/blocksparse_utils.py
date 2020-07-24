@@ -21,6 +21,7 @@ from tensornetwork.block_sparse.utils import (fuse_stride_arrays, unique,
                                               fuse_degeneracies, intersect,
                                               _find_best_partition,
                                               fuse_ndarrays)
+from tensornetwork.block_sparse.caching import get_cacher
 from typing import List, Union, Any, Tuple, Optional, Sequence
 from functools import reduce
 from operator import mul
@@ -341,6 +342,12 @@ def _find_diagonal_sparse_blocks(
       block, with 'n' the number of symmetries and 'm' the number of blocks.
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
+  cacher = get_cacher()
+  if cacher.do_caching:
+    hash_val = _to_string(charges, flows, partition, list(range(len(charges))))
+    if hash_val in cacher.cache:
+      return cacher.cache[hash_val]
+  
   num_inds = len(charges)
   if partition in (0, num_inds):
     # special cases (matrix of trivial height or width)
@@ -407,8 +414,11 @@ def _find_diagonal_sparse_blocks(
   obj.__init__(block_qnums,
                np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                charges[0].charge_types)
-
+  if cacher.do_caching:
+    cacher.cache[hash_val] = (block_maps, obj, block_dims)
+    return cacher.cache[hash_val]
   return block_maps, obj, block_dims
+
 
 
 def _find_transposed_diagonal_sparse_blocks(
@@ -440,6 +450,12 @@ def _find_transposed_diagonal_sparse_blocks(
     block_dims (np.ndarray): 2-by-m array of matrix dimensions of each block.
   """
   flows = np.asarray(flows)
+  cacher = get_cacher()
+  if cacher.do_caching:
+    hash_val = _to_string(charges, flows, tr_partition, order)
+    if hash_val in cacher.cache:
+      return cacher.cache[hash_val]
+  
   if np.array_equal(order, None) or (np.array_equal(
       np.array(order), np.arange(len(charges)))):
     # no transpose order
@@ -604,5 +620,31 @@ def _find_transposed_diagonal_sparse_blocks(
     obj.__init__(block_qnums,
                  np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
-
+    
+  if cacher.do_caching:
+    cacher.cache[hash_val] = (block_maps, obj, block_dims)
+    return cacher.cache[hash_val]
   return block_maps, obj, block_dims
+
+def _to_string(charges: List[BaseCharge], flows: np.ndarray,
+               tr_partition: int, order: List[int]) -> str:
+  """
+  map the input arguments of _find_transposed_diagonal_sparse_blocks 
+  to a string.
+  Args:
+    charges: List of `BaseCharge`, one for each leg of a tensor. 
+    flows: A list of bool, one for each leg of a tensor.
+      with values `False` or `True` denoting inflowing and 
+      outflowing charge direction, respectively.
+    tr_partition: Location of the transposed tensor partition 
+    (i.e. such that the tensor is viewed as a matrix between 
+    `charges[order[:partition]]` and `charges[order[partition:]]`).
+    order: Order with which to permute the tensor axes. 
+  Returns:
+    str: The string representation of the input
+  """
+  return ''.join([str(c.charges.tostring()) for c in charges] + [
+      str(np.array(flows).tostring()),
+      str(tr_partition),
+      str(np.array(order, dtype=np.int16).tostring())
+  ])
