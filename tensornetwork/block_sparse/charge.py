@@ -16,12 +16,7 @@ import numpy as np
 from tensornetwork.block_sparse.utils import intersect, unique
 from typing import (List, Optional, Type, Any, Union, Callable)
 
-#TODO (mganahl): switch from column to row order for unique labels
-#TODO (mganahl): implement more efficient unique function
 #TODO (mganahl): clean up implementation of identity charges
-#TODO (mganahl): for rank-3 tensors with small bond dimensions, finding
-#                blocks brute force is much faster. Implement this.
-
 
 class BaseCharge:
   """
