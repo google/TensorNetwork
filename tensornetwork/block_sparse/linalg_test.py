@@ -5,7 +5,7 @@ from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
                                                           BlockSparseTensor)
-from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
 from tensornetwork.block_sparse.utils import unique
 from tensornetwork import ncon
 from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
@@ -60,7 +60,8 @@ def test_get_diag(dtype, num_charges, Ds, flow):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique_charges, diagonal.flat_charges[0].unique_charges)
+  np.testing.assert_allclose(unique_charges,
+                             diagonal.flat_charges[0].unique_charges)
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
