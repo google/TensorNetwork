@@ -15,8 +15,6 @@
 import numpy as np
 from tensornetwork.block_sparse.sizetypes import SIZE_T
 from typing import List, Union, Any, Type
-from functools import reduce
-from operator import mul
 from tensornetwork.block_sparse.caching import get_cacher
 from typing import List, Union, Any, Tuple, Optional, Sequence
 
