@@ -1201,24 +1201,21 @@ def test_eigs_raises():
   H = BlockSparseTensor.random(indices, dtype=dtype)
   init = BlockSparseTensor.random([index], dtype=dtype)
 
-  def mv(vec, mat):
-    pass
-  
   with pytest.raises(
       ValueError, match='which = SI is currently not supported.'):
-    backend.eigs(mv, [H], initial_state=init, which='SI')
+    backend.eigs(lambda x: x [H], initial_state=init, which='SI')
   with pytest.raises(
       ValueError, match='which = LI is currently not supported.'):
-    backend.eigs(mv, [H], initial_state=init, which='LI')
+    backend.eigs(lambda x: x, [H], initial_state=init, which='LI')
   with pytest.raises(
       ValueError,
       match="if no `initial_state` is passed, then `shape` and"
       "`dtype` have to be provided"):
-    backend.eigs(mv, [H])
+    backend.eigs(lambda x: x, [H])
   with pytest.raises(ValueError, match="`num_krylov_vecs`"):
-    backend.eigs(mv, [H], numeig=3, num_krylov_vecs=3)
+    backend.eigs(lambda x: x, [H], numeig=3, num_krylov_vecs=3)
   with pytest.raises(TypeError, match="Expected a"):
-    backend.eigs(mv, [H], initial_state=[])
+    backend.eigs(lambda x: x, [H], initial_state=[])
 
 
 def test_decomps_raise():
