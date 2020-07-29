@@ -1202,8 +1202,8 @@ def test_eigs_raises():
   init = BlockSparseTensor.random([index], dtype=dtype)
 
   def mv(vec, mat):
-    return mat @ vec
-
+    pass
+  
   with pytest.raises(
       ValueError, match='which = SI is currently not supported.'):
     backend.eigs(mv, [H], initial_state=init, which='SI')
