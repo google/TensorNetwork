@@ -1070,14 +1070,14 @@ def test_trace(dtype, num_charges, offset, axis1, axis2):
   if offset != 0:
     with pytest.raises(NotImplementedError):
       actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
-  elif axis1 == axis2:
-    with pytest.raises(ValueError):
-      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
   else:
-    actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
-    expected = trace(a, [axis1, axis2])
-    np.testing.assert_allclose(actual.data, expected.data)
-
+    if axis1 == axis2:
+      with pytest.raises(ValueError):
+        actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+    else:
+      actual = backend.trace(a, offset=offset, axis1=axis1, axis2=axis2)
+      expected = trace(a, [axis1, axis2])
+      np.testing.assert_allclose(actual.data, expected.data)
 
 def test_pivot_not_implemented():
   backend = symmetric_backend.SymmetricBackend()
