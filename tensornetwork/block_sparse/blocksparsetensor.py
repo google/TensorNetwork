@@ -22,6 +22,8 @@ from tensornetwork.block_sparse.utils import (
 
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                charge_equal)
+from functools import reduce
+from operator import mul
 import copy
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
@@ -108,8 +110,9 @@ class ChargeArray:
     """
     data, charges, flows, order = _data_initializer(
         lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
-        lambda charges, flows: np.prod([c.dim for c in charges]), indices,
-        dtype)
+        lambda charges, flows: reduce(mul, [c.dim for c in charges], 1), indices, dtype)
+    #np.prod([c.dim for c in charges])
+    #dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
@@ -133,8 +136,10 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `int`.
     """
+    # return tuple(
+    #     [np.prod([self._charges[n].dim for n in s]) for s in self._order])
     return tuple(
-        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+        [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
 
   @property
   def charges(self) -> List[List[BaseCharge]]:

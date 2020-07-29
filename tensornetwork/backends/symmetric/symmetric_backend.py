@@ -226,7 +226,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig + 1 >= num_krylov_vecs:
-      raise ValueError('`num_krylov_vecs` > `numeig + 1` required!')
+      raise ValueError("`num_krylov_vecs` > `numeig + 1` required")
 
     if initial_state is None:
       if (shape is None) or (dtype is None):
