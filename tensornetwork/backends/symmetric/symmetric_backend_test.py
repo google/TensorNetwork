@@ -1203,7 +1203,7 @@ def test_eigs_raises():
 
   with pytest.raises(
       ValueError, match='which = SI is currently not supported.'):
-    backend.eigs(lambda x: x [H], initial_state=init, which='SI')
+    backend.eigs(lambda x: x, [H], initial_state=init, which='SI')
   with pytest.raises(
       ValueError, match='which = LI is currently not supported.'):
     backend.eigs(lambda x: x, [H], initial_state=init, which='LI')
