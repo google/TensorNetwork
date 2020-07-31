@@ -593,3 +593,19 @@ def test_zncharge_raises():
 
 def test_zncharge_does_not_raise():
   ZNCharge(2).random(4) #pytype: disable=attribute-error
+
+
+def test_BaseCharge_raises():
+  D = 100
+  B = 6
+  np.random.seed(10)
+  charges = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
+  q = BaseCharge(charges)
+  with pytest.raises(NotImplementedError):
+    q.fuse([], [])
+  with pytest.raises(NotImplementedError):
+    q.dual_charges([])
+  with pytest.raises(NotImplementedError):
+    q.identity_charge()
+  with pytest.raises(NotImplementedError):
+    BaseCharge.random(0, 0, 0)
