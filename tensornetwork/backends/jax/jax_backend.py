@@ -575,19 +575,19 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if A_args is None:
       A_args = []
 
-
-    def matrix_matvec(x, *args):
-      x = x.reshape(b.shape)
-      result = A_mv(x, *args)
-      return result.ravel()
-
     if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(matrix_matvec)
-    if "gmres_f" not in _CACHED_FUNCTIONS:
-      _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
-    gmres_f = _CACHED_FUNCTIONS["gmres_f"]
-    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
-                                      x0, tol, atol, num_krylov_vectors,
+      @libjax.tree_util.Partial
+      def matrix_matvec(x, *args):
+        x = x.reshape(b.shape)
+        result = A_mv(x, *args)
+        return result.ravel()
+      _CACHED_MATVECS[A_mv] = matrix_matvec
+
+    if "gmres" not in _CACHED_FUNCTIONS:
+      _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
+    gmres_m = _CACHED_FUNCTIONS["gmres"]["gmres_m"]
+    x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
+                                      x0, tol, num_krylov_vectors,
                                       maxiter)
     if converged:
       info = 0
