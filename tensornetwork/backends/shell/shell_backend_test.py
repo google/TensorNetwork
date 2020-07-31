@@ -460,7 +460,5 @@ def test_pivot(pivot_axis):
   backend = numpy_backend.NumPyBackend()
   pivot_shape = (np.prod(shape[:pivot_axis]), np.prod(shape[pivot_axis:]))
   tensor = backend.randn(shape, dtype=np.float64)
-  cols = 12
-  rows = 16
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(actual.shape, pivot_shape)
