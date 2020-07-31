@@ -633,7 +633,7 @@ def gmres_wrapper(jax):
     # The variable data for the carry call. Each iteration modifies these
     # values and feeds the results to the next iteration.
     gmres_variables = (k, V, R, beta_vec, err,  # The actual output we need.
-                       givens)                     # Modified between iterations.
+                       givens)                     # Modified with iterations.
 
     gmres_constants = (tol, A_mv, A_args, b_norm)
     gmres_carry = (gmres_variables, gmres_constants)
@@ -641,7 +641,7 @@ def gmres_wrapper(jax):
     # loop index (from the jnp.arange) along with the constant data
     # in gmres_constants.
     gmres_carry, _ = jax.lax.scan(gmres_scan,  # Called at each step.
-                                  gmres_carry, # Changed, `carried` to next step.
+                                  gmres_carry, # Changed, `carried` to next.
                                   xs=None,
                                   length=n_kry)# Redundant number of iterations.
     gmres_variables, gmres_constants = gmres_carry
@@ -657,8 +657,8 @@ def gmres_wrapper(jax):
   def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
             x0: jax.ShapedArray, r: jax.ShapedArray,
             beta: float, tol: float, b_norm: float) -> jax.ShapedArray:
-    done, k, V, R, beta_vec = gmres_krylov(A_mv, A_args, n_kry, x0, r, beta, 
-                                           tol, 
+    done, k, V, R, beta_vec = gmres_krylov(A_mv, A_args, n_kry, x0, r, beta,
+                                           tol,
                                            b_norm)
     x = gmres_update(k, V, R, beta_vec, x0)
     return x, done
@@ -675,14 +675,15 @@ def gmres_wrapper(jax):
 
     Args
     ----
-    gmres_carry: The `carry` argument to jax.lax.scan. 
+    gmres_carry: The `carry` argument to jax.lax.scan.
      A nested tuple (gmres_variables, gmres_constants), themselves containing:
-     gmres_variables = (final_k, V, R, beta_vec, err, givens): 
-      -final_k: The integer loop index. It is incremented until err has converged
+     gmres_variables = (final_k, V, R, beta_vec, err, givens):
+      -final_k: The integer loop index. It is incremented until err has
+                converged
                 beneath tol and then held constant.
       -V      : An (n, n_kry + 1) array that will be used to store Krylov
                 vectors during the internal Arnoldi process. It should be
-                initialized as zeroes apart from V[0, :], the initial normalized 
+                initialized as zeroes apart from V[0, :], the initial normalized
                 Krylov vector.
       -R      : An (n_kry + 1, n_kry) array that will be used to store the R
                 factor in the QR decomposition of the matrix of overlaps
@@ -783,7 +784,7 @@ def gmres_wrapper(jax):
     """
     v = A_mv(*A_args, V[:, k])
     #ks = itertools.repeat(k, V.shape[1])
-    v_new, H_k = jax.lax.scan(gs_step, v, xs=V.T) # TODO: only nonzero steps 
+    v_new, H_k = jax.lax.scan(gs_step, v, xs=V.T) # TODO: only nonzero steps
     v_norm = jnp.linalg.norm(v_new)
     r_new = v_new / v_norm
     #  Normalize v unless it is the zero vector.
@@ -812,7 +813,8 @@ def gmres_wrapper(jax):
     Args
     ----
     i     : The index of the rotation to be applied.
-    givens: A vector of Givens rotation coefficients. The zeroth (first) component
+    givens: A vector of Givens rotation coefficients. The zeroth (first)
+            component
             stores cos \theta (sin \theta).
     H_col : The vector to be rotated.
 
@@ -845,9 +847,10 @@ def gmres_wrapper(jax):
     H_col_index: The `carry' argument to jax.lax.scan. A tuple H_col, i, k
                  where H_col is the vector to be rotated at the i'th iteration,
                  and k is the number of rotations to apply.
-    givens      : The `xs` argument to jax.lax.scan. A (n_kry x 2) matrix of 
-                  Givens rotations, of which those in the  subblock givens[:k, :] 
-                  are to be successively applied to H_col. Note givens is 
+    givens      : The `xs` argument to jax.lax.scan. A (n_kry x 2) matrix of
+                  Givens rotations, of which those in the  subblock
+                  givens[:k, :]
+                  are to be successively applied to H_col. Note givens is
                   transposed relative to its initialization in GMRES.
 
     Returns

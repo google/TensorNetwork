@@ -795,47 +795,6 @@ def test_gmres_not_matrix(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_gmres_arnoldi_step(dtype):
-  dummy = jax.numpy.zeros(1, dtype=dtype)
-  dtype = dummy.dtype
-  n = 4
-  n_kry = n
-  np.random.seed(10)
-  A = jax.numpy.array(np.random.rand(n, n).astype(dtype))
-  x0 = jax.numpy.array(np.random.rand(n).astype(dtype))
-  Q = np.zeros((n, n_kry + 1), dtype=x0.dtype)
-  Q[:, 0] = x0/jax.numpy.linalg.norm(x0)
-  Q = jax.numpy.array(Q)
-  H = jax.numpy.zeros((n_kry + 1, n_kry), dtype=x0.dtype)
-  tol = A.size*jax.numpy.finfo(dtype).eps
-  @jax.tree_util.Partial
-  def A_mv(x):
-    return A @ x
-  kth_arnoldi_step = jitted_functions.gmres_wrapper(jax)["kth_arnoldi_step"]
-  for k in range(n_kry):
-    Q, H = kth_arnoldi_step(k, A_mv, [], Q, H, tol)
-  QAQ = Q[:, :n_kry].conj().T @ A @ Q[:, :n_kry]
-  np.testing.assert_allclose(H[:n_kry, :], QAQ, atol=tol)
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_givens(dtype):
-  np.random.seed(10)
-  v = jax.numpy.array(np.random.rand(2).astype(dtype))
-  givens_rotation = jitted_functions.gmres_wrapper(jax)["givens_rotation"]
-  cs, sn = givens_rotation(*v)
-  rot = np.zeros((2, 2), dtype=dtype)
-  rot[0, 0] = cs
-  rot[1, 1] = cs
-  rot[0, 1] = -sn
-  rot[1, 0] = sn
-  rot = jax.numpy.array(rot)
-  result = rot @ v
-  tol = 4*jax.numpy.finfo(dtype).eps
-  np.testing.assert_allclose(result[-1], 0., atol=tol)
-
-
-@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))
 @pytest.mark.parametrize("axis2", range(0, 3))
