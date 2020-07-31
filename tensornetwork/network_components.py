@@ -557,8 +557,8 @@ class Node(AbstractNode):
         backend=backend_obj,
         shape=backend_obj.shape_tuple(self._tensor))
 
-  def op_protection(self, other: Union[int, float, "Node"]) -> "Node":
-    if not isinstance(other, (int, float, Node)):
+  def op_protection(self, other: Union[int, float, complex, "Node"]) -> Tensor:
+    if not isinstance(other, (int, float, complex, Node)):
       raise TypeError("Operand should be one of int, float, Node type")
     if not hasattr(self, '_tensor'):
       raise AttributeError("Please provide a valid tensor for this Node.")
@@ -569,61 +569,43 @@ class Node(AbstractNode):
                             self.backend.name, other.backend.name))
       if not hasattr(other, '_tensor'):
         raise AttributeError("Please provide a valid tensor for this Node.")
-    else:
-      other_tensor = self.backend.convert_to_tensor(other)
-      other = Node(tensor=other_tensor, backend=self.backend.name)
+      return other._tensor
     return other
 
   def __add__(self, other: Union[int, float, "Node"]) -> "Node":
-    other = self.op_protection(other)
-    new_tensor = self.backend.addition(self.tensor, other.tensor)
-    if len(self.axis_names) > len(other.axis_names):
-      axis_names = self.axis_names
-    else:
-      axis_names = other.axis_names
+    other_tensor = self.op_protection(other)
+    new_tensor = self.backend.addition(self.tensor, other_tensor)
     return Node(
         tensor=new_tensor,
         name=self.name,
-        axis_names=axis_names,
+        axis_names=None,
         backend=self.backend.name)
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
-    other = self.op_protection(other)
-    new_tensor = self.backend.subtraction(self.tensor, other.tensor)
-    if len(self.axis_names) > len(other.axis_names):
-      axis_names = self.axis_names
-    else:
-      axis_names = other.axis_names
+    other_tensor = self.op_protection(other)
+    new_tensor = self.backend.subtraction(self.tensor, other_tensor)
     return Node(
         tensor=new_tensor,
         name=self.name,
-        axis_names=axis_names,
+        axis_names=None,
         backend=self.backend.name)
 
   def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
-    other = self.op_protection(other)
-    new_tensor = self.backend.multiply(self.tensor, other.tensor)
-    if len(self.axis_names) > len(other.axis_names):
-      axis_names = self.axis_names
-    else:
-      axis_names = other.axis_names
+    other_tensor = self.op_protection(other)
+    new_tensor = self.backend.multiply(self.tensor, other_tensor)
     return Node(
         tensor=new_tensor,
         name=self.name,
-        axis_names=axis_names,
+        axis_names=None,
         backend=self.backend.name)
 
   def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
-    other = self.op_protection(other)
-    new_tensor = self.backend.divide(self.tensor, other.tensor)
-    if len(self.axis_names) > len(other.axis_names):
-      axis_names = self.axis_names
-    else:
-      axis_names = other.axis_names
+    other_tensor = self.op_protection(other)
+    new_tensor = self.backend.divide(self.tensor, other_tensor)
     return Node(
         tensor=new_tensor,
         name=self.name,
-        axis_names=axis_names,
+        axis_names=None,
         backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
