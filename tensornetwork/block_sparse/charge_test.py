@@ -61,7 +61,25 @@ def test_BaseCharge_unique():
   assert np.all(actual[1] == expected[1])
   assert np.all(actual[2] == expected[2])
   assert np.all(actual[3] == expected[3])
+  
+def test_BaseCharge_single_unique():
+  D = 30
+  np.random.seed(10)
+  q = np.ones((D, 2), dtype=np.int16)
+  Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  expected = np.unique(
+      q, return_index=True, return_inverse=True, return_counts=True, axis=0)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
 
+
+  expected = np.unique(q, axis=0)
+  actual = Q.unique()
+  assert np.all(actual.charges == expected)
+  
 
 def test_BaseCharge_unique_sort():
   np.random.seed(10)
