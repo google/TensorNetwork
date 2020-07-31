@@ -352,6 +352,16 @@ def test_Charge_mul(chargetype, B0, B1, sign):
   res = q * True
   np.testing.assert_allclose(res.charges, sign * np.stack([C1, C2], axis=1))
 
+def test_Charge_mul_raises():
+  D = 100
+  np.random.seed(10)
+  C = np.random.randint(-5, 6, D).astype(np.int16)
+  q = U1Charge(C)
+  with pytest.raises(
+      ValueError, match="can only multiply by `True` or `False`"):
+    q * 10
+
+
 
 @pytest.mark.parametrize('n', list(range(2, 12)))
 def test_Charge_mul_zncharge(n):
