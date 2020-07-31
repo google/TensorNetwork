@@ -458,6 +458,7 @@ def test_gmres_on_small_known_problem(dtype):
     return A @ x
   x, _ = backend.gmres(A_mv, b, x0=x0, num_krylov_vectors=n_kry)
   solution = np.array([2., 1.], dtype=dtype)
+  assert x.dtype == solution.dtype
   np.testing.assert_allclose(x, solution)
 
 
@@ -470,6 +471,26 @@ def test_gmres_on_larger_random_problem(dtype):
   solution = backend.randn(vecshape, dtype=dtype, seed=10)
   def A_mv(x):
     return A @ x
+  b = A_mv(solution)
+  tol = b.size * np.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  err = np.linalg.norm(np.abs(x)-np.abs(solution))
+  rtol = tol*np.linalg.norm(b)
+  atol = tol
+  assert err < max(rtol, atol)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_gmres_not_matrix(dtype):
+  backend = numpy_backend.NumPyBackend()
+  matshape = (100, 100)
+  vecshape = (100,)
+  A = backend.randn(matshape, dtype=dtype, seed=10)
+  A = backend.reshape(A, (2, 50, 2, 50))
+  solution = backend.randn(vecshape, dtype=dtype, seed=10)
+  solution = backend.reshape(solution, (2, 50))
+  def A_mv(x):
+    return backend.einsum('ijkl,kl', A, x)
   b = A_mv(solution)
   tol = b.size * np.finfo(dtype).eps
   x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
