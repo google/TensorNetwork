@@ -6,8 +6,9 @@ from unittest.mock import patch
 from collections import namedtuple
 import h5py
 import re
-#pylint: disable=line-too-long
-from tensornetwork.network_components import Node, CopyNode, Edge, NodeCollection, AbstractNode, _remove_trace_edge, _remove_edges
+from tensornetwork.network_components import (Node, CopyNode, Edge,
+                                              NodeCollection, AbstractNode,
+                                              _remove_trace_edge, _remove_edges)
 import tensornetwork as tn
 from tensornetwork.backends.abstract_backend import AbstractBackend
 
@@ -16,6 +17,23 @@ string_type = h5py.special_dtype(vlen=str)
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
+
+op_backend_dtype_values = [('numpy', np.float32, np.float32),
+                           ('numpy', np.float64, np.float64),
+                           ('numpy', np.complex64, np.complex64),
+                           ('numpy', np.complex128, np.complex128),
+                           ('pytorch', np.float32, torch.float32),
+                           ('pytorch', np.float64, torch.float64),
+                           ('pytorch', np.complex64, torch.complex64),
+                           ('pytorch', np.complex128, torch.complex128),
+                           ('tensorflow', np.float32, tf.float32),
+                           ('tensorflow', np.float64, tf.float64),
+                           ('tensorflow', np.complex64, tf.complex64),
+                           ('tensorflow', np.complex128, tf.complex128),
+                           ('jax', np.float32, np.float32),
+                           ('jax', np.float64, np.float64),
+                           ('jax', np.complex64, np.complex64),
+                           ('jax', np.complex128, np.complex128)]
 
 
 class TestNode(AbstractNode):
@@ -429,20 +447,14 @@ def test_node_and_scalar_add_op(backend):
   expected = np.array([[3, 4], [5, 6]])
   result = (node + 2).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'int64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert node.tensor.dtype == result.dtype
 
   node = Node(
       tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[3.5, 4.5], [5.5, 6.5]])
   result = (node + 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'float64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert node.tensor.dtype == result.dtype
 
 
 def test_between_node_sub_op(backend):
@@ -482,20 +494,13 @@ def test_node_and_scalar_sub_op(backend):
   expected = np.array([[-1, 0], [1, 2]])
   result = (node - 2).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'int64'
-  else:
-    assert node.tensor.dtype == result.dtype
-
+  assert node.tensor.dtype == result.dtype
   node = Node(
       tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[-1.5, -0.5], [0.5, 1.5]])
   result = (node - 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'float64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert node.tensor.dtype == result.dtype
 
 
 def test_between_node_mul_op(backend):
@@ -532,26 +537,36 @@ def test_node_and_scalar_mul_op(backend):
   expected = np.array([[2, 4], [6, 8]])
   result = (node * 2).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'int64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert node.tensor.dtype == result.dtype
 
   node = Node(
       tensor=np.array([[1, 2], [3, 4]], dtype=np.float32), backend=backend)
   expected = np.array([[2.5, 5], [7.5, 10]])
   result = (node * 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'float64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert node.tensor.dtype == result.dtype
+
+
+@pytest.mark.parametrize("backend, npdtype, dtype", op_backend_dtype_values)
+def test_between_node_truediv_op(backend, npdtype, dtype):
+  node1 = Node(
+      tensor=np.array([[1., 2.], [3., 4.]], dtype=npdtype), backend=backend)
+  node2 = Node(
+      tensor=np.array([[10., 10.], [10., 10.]], dtype=npdtype), backend=backend)
+  expected = np.array([[0.1, 0.2], [0.3, 0.4]], dtype=npdtype)
+  result = (node1 / node2).tensor
+  np.testing.assert_almost_equal(result, expected)
+  assert node1.tensor.dtype == node2.tensor.dtype == result.dtype == dtype
 
 
 def test_between_node_div_op(backend):
+  if backend == 'pytorch':
+    pytest.skip("pytorch integer division no longer supported")
+
   node1 = Node(tensor=np.array([[1., 2.], [3., 4.]]), backend=backend)
   node2 = Node(tensor=np.array([[10., 10.], [10., 10.]]), backend=backend)
-  node3 = Node(tensor=np.array([[1, 2], [3, 4]]), backend=backend)
+  node3 = Node(
+      tensor=np.array([[1, 2], [3, 4]], dtype=np.int64), backend=backend)
   int_node = Node(tensor=np.array(2, dtype=np.int64), backend=backend)
   float_node = Node(tensor=np.array(2.5, dtype=np.float64), backend=backend)
 
@@ -559,28 +574,17 @@ def test_between_node_div_op(backend):
   result = (node1 / node2).tensor
   np.testing.assert_almost_equal(result, expected)
   assert node1.tensor.dtype == node2.tensor.dtype == result.dtype
-
   expected = np.array([[0.5, 1.], [1.5, 2.]])
-  expected_pytorch = np.array([[0, 1], [1, 2]])
   result = (node3 / int_node).tensor
-  if backend == 'pytorch':
-    np.testing.assert_almost_equal(result, expected_pytorch)
-    assert node3.tensor.dtype == result.dtype == torch.int64
-  else:
-    np.testing.assert_almost_equal(result, expected)
-    assert node3.tensor.dtype == 'int64'
-    assert result.dtype == 'float64'
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.tensor.dtype == 'int64'
+  assert result.dtype == 'float64'
 
   expected = np.array([[2., 1.], [2 / 3, 0.5]])
-  expected_pytorch = np.array([[2, 1], [0, 0]])
   result = (int_node / node3).tensor
-  if backend == 'pytorch':
-    np.testing.assert_almost_equal(result, expected_pytorch)
-    assert node3.tensor.dtype == result.dtype == torch.int64
-  else:
-    np.testing.assert_almost_equal(result, expected)
-    assert node3.tensor.dtype == 'int64'
-    assert result.dtype == 'float64'
+  np.testing.assert_almost_equal(result, expected)
+  assert node3.tensor.dtype == 'int64'
+  assert result.dtype == 'float64'
 
   expected = np.array([[4., 4.], [4., 4.]])
   result = (node2 / float_node).tensor
@@ -592,30 +596,15 @@ def test_between_node_div_op(backend):
   assert node2.dtype == float_node.dtype == result.dtype
 
 
-def test_node_and_scalar_div_op(backend):
+@pytest.mark.parametrize("backend, npdtype, dtype", op_backend_dtype_values)
+def test_node_and_scalar_div_op(backend, npdtype, dtype):
   node = Node(
-      tensor=np.array([[5, 10], [15, 20]], dtype=np.int32), backend=backend)
-  expected = np.array([[0.5, 1.], [1.5, 2.]])
-  expected_pytorch = np.array([[0, 1], [1, 2]])
+      tensor=np.array([[5, 10], [15, 20]], dtype=npdtype), backend=backend)
+  expected = np.array([[0.5, 1.0], [1.5, 2.0]], dtype=npdtype)
   result = (node / 10).tensor
-  if backend == 'pytorch':
-    np.testing.assert_almost_equal(result, expected_pytorch)
-    assert node.tensor.dtype == result.dtype == torch.int32
-  else:
-    np.testing.assert_almost_equal(result, expected)
-    assert result.dtype == 'float64'
-    assert node.tensor.dtype == 'int32'
-
-  node = Node(
-      tensor=np.array([[5., 10.], [15., 20.]], dtype=np.float32),
-      backend=backend)
-  expected = np.array([[2., 4.], [6., 8.]])
-  result = (node / 2.5).tensor
   np.testing.assert_almost_equal(result, expected)
-  if backend == 'jax':
-    assert result.dtype == 'float64'
-  else:
-    assert node.tensor.dtype == result.dtype
+  assert result.dtype == dtype
+  assert node.tensor.dtype == dtype
 
 
 def test_node_add_input_error():
@@ -1295,6 +1284,7 @@ def test_repr_for_Nodes_and_Edges(double_node_edge):
 
 def test_base_node_name_list_throws_error():
   with pytest.raises(TypeError,):
+    #pylint: disable=line-too-long
     TestNode(name=["A"], axis_names=['a', 'b'])  # pytype: disable=wrong-arg-types
 
 
