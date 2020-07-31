@@ -231,8 +231,8 @@ def fuse_many_charges(num_charges,
 
 @pytest.mark.parametrize('use_flows', [True, False])
 @pytest.mark.parametrize('num_charges, num_charge_types, D, B',
-                         [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
-                          (3, 2, 100, 6), (3, 3, 100, 6)])
+                         [(1, 1, 0, 5), (2, 1, 1000, 6), (2, 2, 1000, 6),
+                          (3, 1, 100, 6), (3, 2, 100, 6), (3, 3, 100, 6)])
 def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
   nz_1, nz_2 = fuse_many_charges(
       num_charges=num_charges,
@@ -241,8 +241,9 @@ def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
       D=D,
       B=B,
       use_flows=use_flows)
-  assert len(nz_1) > 0
-  assert len(nz_2) > 0
+  if D > 0:
+    assert len(nz_1) > 0
+    assert len(nz_2) > 0
   assert np.all(nz_1 == nz_2)
 
 
