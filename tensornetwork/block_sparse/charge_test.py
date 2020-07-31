@@ -504,6 +504,16 @@ def test_isin_raises():
     c1.isin(np.random.randint(-2, 2, (2, 3)))
 
 
+def test_eq_0():
+  np.random.seed(10)
+  arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
+  c1 = U1Charge(arr)
+  targets = np.array([-1, 0])
+  m1 = c1 == targets
+  m2 = arr[:, None] == targets[None, :]
+  np.testing.assert_allclose(m1, m2)
+
+
 def test_eq_1():
   np.random.seed(10)
   c1 = U1Charge(np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16))
