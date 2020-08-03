@@ -48,7 +48,7 @@ def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
 
 def compute_sparse_lookup(
     charges: List[BaseCharge], flows: Union[np.ndarray, List[bool]],
-    target_charges: BaseCharge) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    target_charges: BaseCharge) -> Tuple[np.ndarray, BaseCharge, np.ndarray]:
   """
   Compute lookup table for how dense index positions map 
   to sparse index positions, treating only those elements as non-zero
@@ -126,29 +126,6 @@ def compute_fused_charge_degeneracies(
   final_degeneracies = np.append(cum_degens, all_degens[-1]) - np.append(
       0, cum_degens)
   return unique_charges, final_degeneracies
-  #unique_charges, charge_labels = fused_unique.unique_charges,fused_unique.charge_labels
-
-
-
-  # # get unique charges and their degeneracies on the first leg.
-  # # We are fusing from "left" to "right".
-  # accumulated_charges, accumulated_degeneracies = (charges[0] *
-  #                                                  flows[0]).unique(
-  #                                                      return_counts=True)
-  # for n in range(1, len(charges)):
-  #   leg_charges, leg_degeneracies = charges[n].unique(return_counts=True)
-  #   fused_charges = accumulated_charges + leg_charges * flows[n]
-  #   fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
-  #                                          leg_degeneracies)
-  #   accumulated_charges = fused_charges.unique()
-  #   accumulated_degeneracies = np.array([
-  #       np.sum(fused_degeneracies[fused_charges.charge_labels ==
-  #                                 accumulated_charges.charge_labels[m]])
-  #       for m in range(len(accumulated_charges))
-  #   ])
-
-  # return accumulated_charges, accumulated_degeneracies
-
 
 def compute_unique_fused_charges(
     charges: List[BaseCharge], flows: Union[np.ndarray,
@@ -626,7 +603,7 @@ def _find_transposed_diagonal_sparse_blocks(
     return cacher.cache[hash_val]
   return block_maps, obj, block_dims
 
-def _to_string(charges: List[BaseCharge], flows: np.ndarray,
+def _to_string(charges: List[BaseCharge], flows: Union[List, np.ndarray],
                tr_partition: int, order: List[int]) -> str:
   """
   map the input arguments of _find_transposed_diagonal_sparse_blocks 
