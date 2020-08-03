@@ -1114,7 +1114,7 @@ def test_qr_raises():
   dtype = np.float64
   backend = symmetric_backend.SymmetricBackend()
   D = 16
-  R=3
+  R = 3
   indices = [Index(U1Charge.random(D, -5, 5), True) for _ in range(R)]
   H = BlockSparseTensor.random(indices, dtype=dtype)
   with pytest.raises(
