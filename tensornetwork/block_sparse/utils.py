@@ -14,9 +14,8 @@
 
 import numpy as np
 from tensornetwork.block_sparse.sizetypes import SIZE_T
-from typing import List, Union, Any, Type
 from tensornetwork.block_sparse.caching import get_cacher
-from typing import List, Union, Any, Tuple, Optional, Sequence
+from typing import List, Union, Any, Type
 
 def get_real_dtype(dtype: Type[np.number]):
   if dtype == np.complex128:
