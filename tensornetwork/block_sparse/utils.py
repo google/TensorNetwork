@@ -170,7 +170,7 @@ def unique(array: np.ndarray,
            return_inverse: bool = False,
            return_counts: bool = False,
            axis=None,
-           label_dtype: Type[np.number] = np.int16) -> List:
+           label_dtype: Type[np.number] = np.int16) -> Any:
 
   collapsed_array = collapse(array)
   if collapsed_array.ndim <= 1:
