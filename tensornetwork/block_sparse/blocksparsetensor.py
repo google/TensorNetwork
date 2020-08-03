@@ -136,10 +136,17 @@ class ChargeArray:
     Returns:
       Tuple: A tuple of `int`.
     """
-    # return tuple(
-    #     [np.prod([self._charges[n].dim for n in s]) for s in self._order])
     return tuple(
         [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def size(self) -> Tuple:
+    """
+    The dense shape of the tensor.
+    Returns:
+      Tuple: A tuple of `int`.
+    """
+    return reduce(mul, [self._charges[n].dim for s in self._order for n in s])
 
   @property
   def charges(self) -> List[List[BaseCharge]]:
