@@ -55,6 +55,16 @@ class TestNode(AbstractNode):
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
 
+  def _load_node(self, node_data):  # pylint: disable=useless-super-delegation
+    return super()._load_node(node_data)
+
+  def _save_node(self, node_group):  #pylint: disable=useless-super-delegation
+    return super()._save_node(node_group)
+
+  def copy(self, conjugate: bool = False) -> "TestNode":
+    return TestNode()
+
+
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):
   tensor = np.ones((1, 2, 2))
@@ -592,6 +602,7 @@ def test_node_add_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 + node2
+  with pytest.raises(AttributeError):    
     result = node2 + node1
 
   node1.tensor = 1
@@ -599,6 +610,7 @@ def test_node_add_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 + node2
+  with pytest.raises(TypeError):    
     result = node1 + copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -623,6 +635,7 @@ def test_node_sub_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 - node2
+  with pytest.raises(TypeError):    
     result = node1 - copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -647,6 +660,7 @@ def test_node_mul_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 * node2
+  with pytest.raises(TypeError):    
     result = node1 * copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -665,6 +679,7 @@ def test_node_div_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 / node2
+  with pytest.raises(AttributeError):    
     result = node2 / node1
 
   node1.tensor = 1
@@ -672,6 +687,7 @@ def test_node_div_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 / node2
+  with pytest.raises(TypeError):    
     result = node1 / copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
