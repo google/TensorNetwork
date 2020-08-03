@@ -572,7 +572,6 @@ class Node(AbstractNode):
       return other._tensor
     return other
 
-  
   def __add__(self, other: Union[int, float, "Node"]) -> "Node":
     other_tensor = self.op_protection(other)
     new_tensor = self.backend.addition(self.tensor, other_tensor)
