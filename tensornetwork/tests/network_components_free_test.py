@@ -42,18 +42,6 @@ class TestNode(AbstractNode):
   def set_tensor(self, tensor):  #pylint: disable=useless-super-delegation
     return super().set_tensor(tensor)
 
-  def __add__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__add__(other)
-
-  def __sub__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__sub__(other)
-
-  def __mul__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__mul__(other)
-
-  def __truediv__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__truediv__(other)
-
   @property
   def shape(self):
     return super().shape
