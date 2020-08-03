@@ -55,16 +55,6 @@ class TestNode(AbstractNode):
   def tensor(self, tensor):
     return super(TestNode, type(self)).tensor.fset(self, tensor)
 
-  def _load_node(self, node_data):  # pylint: disable=useless-super-delegation
-    return super()._load_node(node_data)
-
-  def _save_node(self, node_group):  #pylint: disable=useless-super-delegation
-    return super()._save_node(node_group)
-
-  def copy(self, conjugate: bool = False) -> "TestNode":
-    return TestNode()
-
-
 @pytest.fixture(name='single_node_edge')
 def fixture_single_node_edge(backend):
   tensor = np.ones((1, 2, 2))
