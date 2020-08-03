@@ -110,7 +110,8 @@ class ChargeArray:
     """
     data, charges, flows, order = _data_initializer(
         lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
-        lambda charges, flows: reduce(mul, [c.dim for c in charges], 1), indices, dtype)
+        lambda charges, flows: reduce(mul, [c.dim for c in charges], 1),
+        indices, dtype)
     #np.prod([c.dim for c in charges])
     #dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
