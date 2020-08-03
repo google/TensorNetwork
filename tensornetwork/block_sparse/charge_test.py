@@ -21,11 +21,11 @@ def test_BaseCharge_generic():
   B = 5
   np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
-  unique = np.unique(q, axis=0)
+  unique_charges = np.unique(q, axis=0)
   Q = BaseCharge(charges=q)
   assert Q.dim == 300
   assert Q.num_symmetries == 2
-  assert Q.num_unique == unique.shape[0]
+  assert Q.num_unique == unique_charges.shape[0]
 
 
 def test_BaseCharge_len():
@@ -67,9 +67,9 @@ def test_BaseCharge_unique():
 
 def test_BaseCharge_unique_sort():
   np.random.seed(10)
-  unique = np.array([1, 0, -1])
+  unique_charges = np.array([1, 0, -1])
   labels = np.random.randint(0, 3, 100)
-  Q = U1Charge(charges=unique, charge_labels=labels)
+  Q = U1Charge(charges=unique_charges, charge_labels=labels)
   actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   np.testing.assert_allclose(actual[0].unique_charges, [[1], [0], [-1]])
 
