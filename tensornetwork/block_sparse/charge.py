@@ -625,7 +625,7 @@ def fuse_ndarray_charges(charges_A: np.ndarray, charges_B: np.ndarray,
   """
   comb_charges = [0] * len(charge_types)
   for n, ct in enumerate(charge_types):
-    comb_charges[n] = ct.fuse(charges_A[:, n], charges_B[:, n])[:,None]
+    comb_charges[n] = ct.fuse(charges_A[:, n], charges_B[:, n])[:, None]
   return np.concatenate(comb_charges, axis=1)
 
 
