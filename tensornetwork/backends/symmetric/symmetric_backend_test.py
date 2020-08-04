@@ -4,7 +4,7 @@ from tensornetwork.backends.symmetric import symmetric_backend
 from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
                                                BaseCharge, fuse_charges)
-from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
                                                           BlockSparseTensor,
