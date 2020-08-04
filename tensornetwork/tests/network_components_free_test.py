@@ -42,18 +42,6 @@ class TestNode(AbstractNode):
   def set_tensor(self, tensor):  #pylint: disable=useless-super-delegation
     return super().set_tensor(tensor)
 
-  def __add__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__add__(other)
-
-  def __sub__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__sub__(other)
-
-  def __mul__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__mul__(other)
-
-  def __truediv__(self, other):  #pylint: disable=useless-super-delegation
-    return super().__truediv__(other)
-
   @property
   def shape(self):
     return super().shape
@@ -614,6 +602,7 @@ def test_node_add_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 + node2
+  with pytest.raises(AttributeError):    
     result = node2 + node1
 
   node1.tensor = 1
@@ -621,6 +610,7 @@ def test_node_add_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 + node2
+  with pytest.raises(TypeError):    
     result = node1 + copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -645,6 +635,7 @@ def test_node_sub_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 - node2
+  with pytest.raises(TypeError):    
     result = node1 - copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -669,6 +660,7 @@ def test_node_mul_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 * node2
+  with pytest.raises(TypeError):    
     result = node1 * copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -687,6 +679,7 @@ def test_node_div_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 / node2
+  with pytest.raises(AttributeError):    
     result = node2 / node1
 
   node1.tensor = 1
@@ -694,6 +687,7 @@ def test_node_div_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 / node2
+  with pytest.raises(TypeError):    
     result = node1 / copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
