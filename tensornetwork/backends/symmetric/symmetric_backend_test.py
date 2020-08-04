@@ -1174,9 +1174,6 @@ def test_eigs_valid_init_operator_with_shape_sanity_check(dtype):
       np.stack([u.todense() for u in U1], axis=1), eta1, U2, eta2, thresh=1E-8)
 
 
-<<<<<<< HEAD
-def test_qr_raises():
-=======
 def test_eigs_cache_exception():
   dtype = np.float64
   np.random.seed(10)
@@ -1225,7 +1222,6 @@ def test_eigs_raises():
 
 
 def test_decomps_raise():
->>>>>>> blocksparse_eigs
   np.random.seed(10)
   dtype = np.float64
   backend = symmetric_backend.SymmetricBackend()
@@ -1237,8 +1233,6 @@ def test_decomps_raise():
       NotImplementedError,
       match="Can't specify non_negative_diagonal with BlockSparse."):
     backend.qr(H, non_negative_diagonal=True)
-<<<<<<< HEAD
-=======
   with pytest.raises(
       NotImplementedError,
       match="Can't specify non_negative_diagonal with BlockSparse."):
@@ -1257,4 +1251,3 @@ def test_einsum_raises():
   with pytest.raises(
       NotImplementedError, match="`einsum` currently not implemented"):
     backend.einsum('', [])
->>>>>>> blocksparse_eigs
