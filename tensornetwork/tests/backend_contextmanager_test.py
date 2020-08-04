@@ -40,8 +40,8 @@ def test_contextmanager_nested():
 def test_contextmanager_wrong_item():
   a = tn.Node(np.ones((10,)))
   with pytest.raises(ValueError):
-    with tn.DefaultBackend(a):  # pytype: disable=wrong-arg-types
-      pass
+    tn.DefaultBackend(a)  # pytype: disable=wrong-arg-types
+
 
 
 def test_contextmanager_BaseBackend():

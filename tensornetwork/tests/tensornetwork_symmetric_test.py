@@ -44,7 +44,6 @@ def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):
   indices = [Index(charge, flows[n]) for n in range(R)]
   return BlockSparseTensor.random(indices=indices, dtype=dtype)
 
-
 def get_square_matrix(shape, dtype=np.float64):
   charge = U1Charge(np.random.randint(-5, 5, shape))
   flows = [True, False]
@@ -66,7 +65,6 @@ def get_ones(shape, dtype=np.float64):
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
   indices = [Index(charges[n], flows[n]) for n in range(R)]
   return BlockSparseTensor.ones(indices=indices, dtype=dtype)
-
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 @pytest.mark.parametrize("num_charges", [1, 2, 3])

@@ -397,7 +397,7 @@ def test_config(make_model):
 
   # Serialize model and use config to create new layer
   model_config = model.get_config()
-  layer_config = model_config['layers'][0]['config']
+  layer_config = model_config['layers'][1]['config']
   if 'mpo' in model.layers[0].name:
     new_model = DenseMPO.from_config(layer_config)
   elif 'decomp' in model.layers[0].name:
