@@ -663,7 +663,7 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     return x
 
 
-  @functools.partial(jax.jit, static_argnums=(2, 6))
+  @functools.partial(jax.jit, static_argnums=(2,))
   def gmres_krylov(A_mv: Callable, A_args: Sequence, n_kry: int,
                    x0: jax.ShapedArray, r: jax.ShapedArray, beta: float,
                    tol: float,
@@ -730,6 +730,7 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
                   float, jax.ShapedArray]
   ConstType = Tuple[float, Callable, Sequence, jax.ShapedArray, int]
   GmresCarryType = Tuple[VarType, ConstType]
+
   @jax.jit
   def gmres_krylov_loop_condition(gmres_carry: GmresCarryType) -> bool:
     """
@@ -809,7 +810,7 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     return r_i, h_i
 
 
-  @functools.partial(jax.jit, static_argnums=(5,))
+  @jax.jit
   def kth_arnoldi_step(k: int, A_mv: Callable, A_args: Sequence,
                        V: jax.ShapedArray, H: jax.ShapedArray,
                        tol: float) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
@@ -847,7 +848,7 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
 # GIVENS ROTATIONS
 ################################################################################
 
-  @functools.partial(jax.jit, static_argnums=(2,))
+  @jax.jit
   def apply_rotations(H_col: jax.ShapedArray, givens: jax.ShapedArray,
                       k: int) -> jax.ShapedArray:
     """
