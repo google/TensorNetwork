@@ -531,11 +531,11 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
   The important function here is functions["gmres_m"], which implements
   GMRES. The other functions are exposed only for testing.
 
-  ARGS
+  Args:
   ----
   jax: The imported Jax module.
 
-  RETURNS
+  Returns:
   -------
   functions: A dictionary of functions:
     functions["gmres_m"] = gmres_m
@@ -562,34 +562,28 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     where x and b are length-n vectors, using the method of
     Generalized Minimum RESiduals with M iterations per restart (GMRES_M).
 
-    ARGS
-    ----
-    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
-               `v` have the same shape.
-    A_args   : A list of positional arguments to A_mv.
-    b        : The `b` in `A @ x = b`.
-    x0       : Initial guess solution.
-    tol, atol: Solution tolerance to achieve,
-               norm(residual) <= max(tol*norm(b), atol).
-               tol is also used to set the threshold at which the Arnoldi
-               factorization terminates.
-    num_krylov_vectors
-             : Size of the Krylov space to build at each restart.
-    maxiter  : The Krylov space will be repeatedly rebuilt up to this many
-               times.
-
-
-    RETURNS
-    -------
-    x (array, (n,)) : The approximate solution.
-    beta (float)    : Norm of the residual at termination.
-    n_iter (int)    : Number of iterations at termination.
-    converged (bool): Whether the desired tolerance was achieved.
+    Args:
+      A_mv: A function v0 = A_mv(v, *A_args) where v0 and v have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The b in A @ x = b.
+      x0: Initial guess solution.
+      tol, atol: Solution tolerance to achieve,
+        norm(residual) <= max(tol * norm(b), atol).
+        tol is also used to set the threshold at which the Arnoldi factorization
+        terminates.
+      num_krylov_vectors: Size of the Krylov space to build at each restart.
+      maxiter: The Krylov space will be repeatedly rebuilt up to this many
+        times.
+    Returns:
+      x: The approximate solution.
+      beta: Norm of the residual at termination.
+      n_iter: Number of iterations at termination.
+      converged: Whether the desired tolerance was achieved.
     """
     num_krylov_vectors = min(num_krylov_vectors, b.size)
     x = x0
     b_norm = jnp.linalg.norm(b)
-    tol = max(tol*b_norm, atol)
+    tol = max(tol * b_norm, atol)
     for n_iter in range(maxiter):
       done, beta, x = gmres(A_mv, A_args, b, x, num_krylov_vectors, x0, tol,
                             b_norm)
@@ -604,21 +598,18 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     """
     A single restart of GMRES.
 
-    ARGS
-    ----
-    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
-               `v` have the same shape.
-    A_args   : A list of positional arguments to A_mv.
-    b        : The `b` in `A @ x = b`.
-    x        : Initial guess solution.
-    tol      : Solution tolerance to achieve,
-    num_krylov_vectors : Size of the Krylov space to build.
-
-    RETURNS
-    -------
-    done     : Whether convergence was achieved.
-    beta     : Magnitude of residual (i.e. the error estimate).
-    x        : The approximate solution.
+    Args:
+      A_mv: A function `v0 = A_mv(v, *A_args)` where `v0` and
+                 `v` have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The `b` in `A @ x = b`.
+      x: Initial guess solution.
+      tol: Solution tolerance to achieve,
+      num_krylov_vectors : Size of the Krylov space to build.
+    Returns:
+      done: Whether convergence was achieved.
+      beta: Magnitude of residual (i.e. the error estimate).
+      x: The approximate solution.
     """
     r, beta = gmres_residual(A_mv, A_args, b, x)
     k, V, R, beta_vec = gmres_krylov(A_mv, A_args, num_krylov_vectors,
@@ -635,18 +626,15 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Computes the residual vector r and its norm, beta, which is minimized by
     GMRES.
 
-    ARGS
-    ----
-    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
-               `v` have the same shape.
-    A_args   : A list of positional arguments to A_mv.
-    b        : The `b` in `A @ x = b`.
-    x        : Initial guess solution.
-
-    RETURNS
-    -------
-    r        : The residual vector.
-    beta     : Its magnitude.
+    Args:
+      A_mv: A function v0 = A_mv(v, *A_args) where v0 and
+        v have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The b in A @ x = b.
+      x: Initial guess solution.
+    Returns:
+      r: The residual vector.
+      beta: Its magnitude.
     """
     r = b - A_mv(x, *A_args)
     beta = jnp.linalg.norm(r)
@@ -660,17 +648,14 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Updates the solution in response to the information computed by the
     main GMRES loop.
 
-    ARGS
-    ----
-    k    : The final iteration which was reached by GMRES before convergence.
-    V    : The Arnoldi matrix of Krylov vectors.
-    R    : The R factor in H = QR where H is the Arnoldi overlap matrix.
-    beta_vec : Stores the Givens factors used to map H into QR.
-    x0   : The initial guess solution.
-
-    RETURNS
-    -------
-    x    : The updated solution.
+    Args:
+      k: The final iteration which was reached by GMRES before convergence.
+      V: The Arnoldi matrix of Krylov vectors.
+      R: The R factor in H = QR where H is the Arnoldi overlap matrix.
+      beta_vec: Stores the Givens factors used to map H into QR.
+      x0: The initial guess solution.
+    Returns:
+      x: The updated solution.
     """
     q = min(k, R.shape[1])
     y = jax.scipy.linalg.solve_triangular(R[:q, :q], beta_vec[:q])
@@ -688,28 +673,25 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Builds the Arnoldi decomposition of (A, v), where v is the normalized
     residual of the current solution estimate. The decomposition is
     returned as V, R, where V is the usual matrix of Krylov vectors and
-    R is the upper triangular matrix in H = QR, where H is the usual matrix
+    R is the upper triangular matrix in H = QR, with H the usual matrix
     of overlaps.
 
-    ARGS
-    ----
-    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
-               `v` have the same shape.
-    A_args   : A list of positional arguments to A_mv.
-    n_kry    : Size of the Krylov space to build; this is called
-               num_krylov_vectors in higher level code.
-    x0       : Guess solution.
-    r        : Residual vector.
-    beta     : Magnitude of r.
-    tol      : Solution tolerance to achieve.
-    b_norm   : Magnitude of b in Ax = b.
-
-    RETURNS
-    -------
-    k     : Counts the number of iterations before convergence.
-    V     : The Arnoldi matrix of Krylov vectors.
-    R     : From H = QR where H is the Arnoldi matrix of overlaps.
-    beta_vec : Stores Q implicitly as Givens factors.
+    Args:
+      A_mv: A function `v0 = A_mv(v, *A_args)` where `v0` and
+        `v` have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      n_kry: Size of the Krylov space to build; this is called
+        num_krylov_vectors in higher level code.
+      x0: Guess solution.
+      r: Residual vector.
+      beta: Magnitude of r.
+      tol: Solution tolerance to achieve.
+      b_norm: Magnitude of b in Ax = b.
+    Returns:
+      k: Counts the number of iterations before convergence.
+      V: The Arnoldi matrix of Krylov vectors.
+      R: From H = QR where H is the Arnoldi matrix of overlaps.
+      beta_vec: Stores Q implicitly as Givens factors.
     """
     n = r.size
     err = beta
@@ -748,7 +730,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
                   float, jax.ShapedArray]
   ConstType = Tuple[float, Callable, Sequence, jax.ShapedArray, int]
   GmresCarryType = Tuple[VarType, ConstType]
-
   @jax.jit
   def gmres_krylov_loop_condition(gmres_carry: GmresCarryType) -> bool:
     """
@@ -760,13 +741,10 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
         return False
     where k, n_kry, err, and tol are unpacked from gmres_carry.
 
-    ARGS
-    ----
-    gmres_carry: The gmres_carry from gmres_krylov.
-
-    RETURNS
-    ------
-    (bool)     : Whether to continue iterating.
+    Args:
+      gmres_carry: The gmres_carry from gmres_krylov.
+    Returns:
+      (bool): Whether to continue iterating.
     """
     gmres_constants, gmres_variables = gmres_carry
     tol = gmres_constants[0]
@@ -790,13 +768,10 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Performs a single iteration of gmres_krylov. See that function for a more
     detailed description.
 
-    ARGS
-    ----
-    gmres_carry: The gmres_carry from gmres_krylov.
-
-    RETURNS
-    -------
-    gmres_carry: The updated gmres_carry.
+    Args:
+      gmres_carry: The gmres_carry from gmres_krylov.
+    Returns:
+      gmres_carry: The updated gmres_carry.
     """
     gmres_variables, gmres_constants = gmres_carry
     k, V, R, beta_vec, err, givens = gmres_variables
@@ -822,15 +797,12 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Performs one iteration of the stabilized Gram-Schmidt procedure, with
     r to be orthonormalized against {v} = {v_0, v_1, ...}.
 
-    ARGS
-    ----
-    r   : The new vector which is not in the initially orthonormal set.
-    v_i : The i'th vector in that set.
-
-    RETURNS
-    -------
-    r_i : The updated r which is now orthonormal with v_i.
-    h_i : The overlap of r with v_i.
+    Args:
+      r: The new vector which is not in the initially orthonormal set.
+      v_i: The i'th vector in that set.
+    Returns:
+      r_i: The updated r which is now orthonormal with v_i.
+      h_i: The overlap of r with v_i.
     """
     h_i = jnp.vdot(v_i, r)
     r_i = r - h_i * v_i
@@ -843,19 +815,16 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
                        tol: float) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     """
     Performs the kth iteration of the Arnoldi reduction procedure.
-    ARGS
-    ---------
-    k           : The current iteration.
-    A_mv, A_args: A function A_mv(v, *A_args) performing a linear
-                  transformation on v.
-    V           : A matrix of size (n, K + 1), K > k such that each column in
-                  V[n, :k+1] stores a Krylov vector and V[:, k+1] is all zeroes.
-    H           : A matrix of size (K, K), K > k with H[:, k] all zeroes.
-
-    RETURNS
-    -------
-    V, H        : With their k'th columns filled in with a new orthogonalized
-                  Krylov vector and new overlaps respectively.
+    Args:
+      k: The current iteration.
+      A_mv, A_args: A function A_mv(v, *A_args) performing a linear
+        transformation on v.
+      V: A matrix of size (n, K + 1), K > k such that each column in
+        V[n, :k+1] stores a Krylov vector and V[:, k+1] is all zeroes.
+      H: A matrix of size (K, K), K > k with H[:, k] all zeroes.
+    Returns:
+      V, H: With their k'th columns respectively filled in by a new
+        orthogonalized Krylov vector and new overlaps.
     """
     v = A_mv(V[:, k], *A_args)
     #ks = itertools.repeat(k, V.shape[1])
@@ -882,18 +851,14 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
   def apply_rotations(H_col: jax.ShapedArray, givens: jax.ShapedArray,
                       k: int) -> jax.ShapedArray:
     """
-    Successively applies each of the rotations stored in givens
-    to H_col.
+    Successively applies each of the rotations stored in givens to H_col.
 
-    ARGS
-    ----
-    H_col : The vector to be rotated.
-    givens: 2 x K, K > k matrix of rotation factors.
-    k     : Iteration number.
-
-    RETURNS
-    -------
-    H_col : The rotated vector.
+    Args:
+      H_col : The vector to be rotated.
+      givens: 2 x K, K > k matrix of rotation factors.
+      k     : Iteration number.
+    Returns:
+      H_col : The rotated vector.
     """
     rotation_carry = (H_col, 0, k, givens)
     def loop_condition(carry):
@@ -928,19 +893,16 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     decomposition. Returns the new column of R along with the new Givens
     factors.
 
-    ARGS
-    ----
-    H_col : The column of H to be rotated.
-    givens: A matrix representing the cosine and sine factors of the
-            previous GMRES Givens rotations, in that order
-            (i.e. givens[0, :] -> the cos factor).
-    k     : Iteration number.
-
-    RETURNS
-    -------
-    R_col : The column of R obtained by transforming H_col.
-    givens_k: The new elements of Givens that zeroed out the k+1'th element of
-              H_col.
+    Args:
+      H_col : The column of H to be rotated.
+      givens: A matrix representing the cosine and sine factors of the
+        previous GMRES Givens rotations, in that order
+        (i.e. givens[0, :] -> the cos factor).
+      k     : Iteration number.
+    Returns:
+      R_col : The column of R obtained by transforming H_col.
+      givens_k: The new elements of givens that zeroed out the k+1'th element
+        of H_col.
     """
     # This call successively applies each of the
     # Givens rotations stored in givens[:, :k] to H_col.
@@ -962,13 +924,10 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     Given scalars v1 and v2, computes cs = cos(theta) and sn = sin(theta)
     so that   [cs  -sn]  @ [v1] = [r]
               [sn   cs]    [v2]   [0]
-    ARGS
-    ----
-    v1, v2: The scalars.
-
-    RETURNS
-    -------
-    cs, sn: The rotation factors.
+    Args:
+      v1, v2: The scalars.
+    Returns:
+      cs, sn: The rotation factors.
     """
     t = jnp.sqrt(v1**2 + v2**2)
     cs = v1 / t
