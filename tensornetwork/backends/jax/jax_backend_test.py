@@ -753,6 +753,29 @@ def test_gmres_on_small_known_problem(dtype):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+def test_gmres_with_args(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+
+  backend = jax_backend.JaxBackend()
+  A = jax.numpy.zeros((2, 2), dtype=dtype)
+  B = jax.numpy.array(([[0, 1], [3, 0]]), dtype=dtype)
+  C = jax.numpy.array(([[1, 0], [0, -4]]), dtype=dtype)
+  b = jax.numpy.array([3, 2], dtype=dtype)
+  x0 = jax.numpy.ones(2, dtype=dtype)
+  n_kry = 2
+
+  def A_mv(x, B, C):
+    return (A + B + C) @ x
+  tol = 100*jax.numpy.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, A_args=[B, C], x0=x0, num_krylov_vectors=n_kry,
+                       tol=tol)
+  solution = jax.numpy.array([2., 1.], dtype=dtype)
+  eps = jax.numpy.linalg.norm(jax.numpy.abs(solution) - jax.numpy.abs(x))
+  assert eps < tol
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_gmres_on_larger_random_problem(dtype):
   dummy = jax.numpy.zeros(1, dtype=dtype)
   dtype = dummy.dtype

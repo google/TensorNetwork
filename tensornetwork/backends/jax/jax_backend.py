@@ -588,7 +588,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
     gmres_m = _CACHED_FUNCTIONS["gmres"]["gmres_m"]
     x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
-                                      x0, tol, num_krylov_vectors,
+                                      x0, tol, atol, num_krylov_vectors,
                                       maxiter)
     if converged:
       info = 0
