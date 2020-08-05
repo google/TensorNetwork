@@ -158,7 +158,7 @@ class BaseCharge:
 
   def __repr__(self):
     return 'BaseCharge object:' + '\n   charge types: ' + self.names + \
-        '\n   unique charges:' + str(self.charges.T).replace('\n', '\n\t ')\
+        '\n   unique charges:' + str(self.charges.T).replace('\n', '\n\t\t  ')\
         + '\n'
 
   def __iter__(self):
@@ -174,7 +174,7 @@ class BaseCharge:
     if isinstance(target_charges, type(self)):
       if len(target_charges) == 0:
         raise ValueError('input to __eq__ cannot be an empty charge')
-      targets = unique(target_charges.charges, axis=0)
+      targets = target_charges.charges
     else:
       if target_charges.ndim == 1:
         target_charges = target_charges[:, None]
@@ -184,18 +184,9 @@ class BaseCharge:
         raise ValueError("shape of `target_charges = {}` is incompatible with "
                          "`self.num_symmetries = {}".format(
                              target_charges.shape, self.num_symmetries))
-      targets = unique(target_charges, axis=0)
-      #pylint: disable=no-member
-    if self._charges is None:
-      inds = np.nonzero(
-          np.logical_and.reduce(
-              self._unique_charges[:, :, None] == targets.T[None, :, :],
-              axis=1))[0]
-      return self._charge_labels[:, None] == inds[None, :]
-    return np.logical_or.reduce(
-        np.logical_and.reduce(
-            self._charges[:, :, None] == targets.T[None, :, :], axis=1),
-        axis=1)
+      targets = target_charges
+    return np.logical_and.reduce(
+        self.charges[:, :, None] == targets.T[None, :, :], axis=1)
 
   def identity_charges(self, dim: int = 1) -> "BaseCharge":
     """
