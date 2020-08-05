@@ -61,7 +61,25 @@ def test_BaseCharge_unique():
   assert np.all(actual[1] == expected[1])
   assert np.all(actual[2] == expected[2])
   assert np.all(actual[3] == expected[3])
+  
+def test_BaseCharge_single_unique():
+  D = 30
+  np.random.seed(10)
+  q = np.ones((D, 2), dtype=np.int16)
+  Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  expected = np.unique(
+      q, return_index=True, return_inverse=True, return_counts=True, axis=0)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
 
+
+  expected = np.unique(q, axis=0)
+  actual = Q.unique()
+  assert np.all(actual.charges == expected)
+  
 
 def test_BaseCharge_unique_sort():
   np.random.seed(10)
@@ -231,8 +249,8 @@ def fuse_many_charges(num_charges,
 
 @pytest.mark.parametrize('use_flows', [True, False])
 @pytest.mark.parametrize('num_charges, num_charge_types, D, B',
-                         [(2, 1, 1000, 6), (2, 2, 1000, 6), (3, 1, 100, 6),
-                          (3, 2, 100, 6), (3, 3, 100, 6)])
+                         [(1, 1, 0, 5), (2, 1, 1000, 6), (2, 2, 1000, 6),
+                          (3, 1, 100, 6), (3, 2, 100, 6), (3, 3, 100, 6)])
 def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
   nz_1, nz_2 = fuse_many_charges(
       num_charges=num_charges,
@@ -241,8 +259,9 @@ def test_U1Charge_fusion(num_charges, num_charge_types, D, B, use_flows):
       D=D,
       B=B,
       use_flows=use_flows)
-  assert len(nz_1) > 0
-  assert len(nz_2) > 0
+  if D > 0:
+    assert len(nz_1) > 0
+    assert len(nz_2) > 0
   assert np.all(nz_1 == nz_2)
 
 
@@ -258,6 +277,13 @@ def test_BaseCharge_intersect():
 def test_BaseCharge_intersect_2():
   c1 = U1Charge(np.array([1, 0, -1]), charge_labels=np.array([2, 0, 1]))
   c2 = U1Charge(np.array([-1, 0, 1]))
+  res = c1.intersect(c2)
+  np.testing.assert_allclose(res.charges, [[-1], [0], [1]])
+
+
+def test_BaseCharge_intersect_3():
+  c1 = U1Charge(np.array([1, 0, -1]), charge_labels=np.array([2, 0, 1]))
+  c2 = np.array([-1, 0, 1])
   res = c1.intersect(c2)
   np.testing.assert_allclose(res.charges, [[-1], [0], [1]])
 
@@ -350,6 +376,16 @@ def test_Charge_mul(chargetype, B0, B1, sign):
   q = q1 @ q2
   res = q * True
   np.testing.assert_allclose(res.charges, sign * np.stack([C1, C2], axis=1))
+
+def test_Charge_mul_raises():
+  D = 100
+  np.random.seed(10)
+  C = np.random.randint(-5, 6, D).astype(np.int16)
+  q = U1Charge(C)
+  with pytest.raises(
+      ValueError, match="can only multiply by `True` or `False`"):
+    q * 10
+
 
 
 @pytest.mark.parametrize('n', list(range(2, 12)))
@@ -504,6 +540,16 @@ def test_isin_raises():
     c1.isin(np.random.randint(-2, 2, (2, 3)))
 
 
+def test_eq_0():
+  np.random.seed(10)
+  arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
+  c1 = U1Charge(arr)
+  targets = np.array([-1, 0])
+  m1 = c1 == targets
+  m2 = arr[:, None] == targets[None, :]
+  np.testing.assert_allclose(m1, m2)
+
+
 def test_eq_1():
   np.random.seed(10)
   c1 = U1Charge(np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16))
@@ -593,3 +639,19 @@ def test_zncharge_raises():
 
 def test_zncharge_does_not_raise():
   ZNCharge(2).random(4) #pytype: disable=attribute-error
+
+
+def test_BaseCharge_raises():
+  D = 100
+  B = 6
+  np.random.seed(10)
+  charges = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
+  q = BaseCharge(charges)
+  with pytest.raises(NotImplementedError):
+    q.fuse([], [])
+  with pytest.raises(NotImplementedError):
+    q.dual_charges([])
+  with pytest.raises(NotImplementedError):
+    q.identity_charge()
+  with pytest.raises(NotImplementedError):
+    BaseCharge.random(0, 0, 0)

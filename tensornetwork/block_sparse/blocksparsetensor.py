@@ -1052,7 +1052,6 @@ def tensordot(
         np.matmul(tensor1.data[tr_sparse_blocks_1[n1].reshape(shapes_1[:, n1])],
                   tensor2.data[tr_sparse_blocks_2[n2].reshape(shapes_2[:,
                                                                        n2])]))
-
   res = BlockSparseTensor(
       data=data,
       charges=charges,

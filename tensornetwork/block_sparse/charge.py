@@ -148,13 +148,6 @@ class BaseCharge:
   def label_dtype(self):
     return self.charge_labels.dtype
 
-  @property
-  def degeneracies(self):
-    exp1 = self.charge_labels[:, None]
-    exp2 = np.arange(
-        self.unique_charges.shape[0], dtype=self.label_dtype)[None, :]
-    return np.sum(exp1 == exp2, axis=0)
-
   def __repr__(self):
     return 'BaseCharge object:' + '\n   charge types: ' + self.names + \
         '\n   unique charges:' + str(self.charges.T).replace('\n', '\n\t ')\

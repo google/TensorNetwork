@@ -170,10 +170,9 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a
-    scipy.sparse.linalg.LinearOperator object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute
-    `shape` so that a suitable initial state can be randomly generated.
+    of a linear operator `A`. If no `initial_state` is provided then 
+    `shape` and `dtype` are required so that a suitable initial state can be 
+    randomly generated.
     This is a wrapper for scipy.sparse.linalg.eigs which only supports
     a subset of the arguments of scipy.sparse.linalg.eigs.
 
@@ -199,11 +198,9 @@ class NumPyBackend(abstract_backend.AbstractBackend):
             'SR' : smallest real part
             'LI' : largest imaginary part
       maxiter: The maximum number of iterations.
-      dtype: An optional numpy-dtype. If provided, the
-        return type will be cast to `dtype`.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
-       `np.ndarray`: An array of `numeig` lowest eigenvectors
+       `list`: A list of `numeig` lowest eigenvectors
     """
     if args is None:
       args = []
@@ -230,11 +227,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
-    lop = sp.sparse.linalg.LinearOperator(
+    lop = scipy.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype,
-        shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
+        shape=(initial_state.size, initial_state.size),
         matvec=matvec)
-    eta, U = sp.sparse.linalg.eigs(
+    eta, U = scipy.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -242,12 +239,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         ncv=num_krylov_vecs,
         tol=tol,
         maxiter=maxiter)
-    if dtype:
-      eta = eta.astype(dtype)
-      U = U.astype(dtype)
-    evs = list(eta)
     eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
-    return evs, eVs
+    return eta, eVs
 
   def gmres(self,
             A_mv: Callable,
@@ -625,7 +618,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
