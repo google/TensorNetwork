@@ -672,8 +672,9 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     -------
     x    : The updated solution.
     """
-    y = jax.scipy.linalg.solve_triangular(R[:k, :k], beta_vec[:k])
-    x = x0 + V[:, :k] @ y
+    q = min(k, R.shape[1])
+    y = jax.scipy.linalg.solve_triangular(R[:q, :q], beta_vec[:q])
+    x = x0 + V[:, :q] @ y
     return x
 
 
