@@ -5,6 +5,7 @@ from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
                                                BaseCharge, fuse_charges)
 from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
+from tensornetwork.block_sparse.utils import unique
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
                                                           BlockSparseTensor,
@@ -12,7 +13,7 @@ from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
 from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
                                                norm, eye, ones, zeros, randn,
                                                random, eigh, inv)
-from tensornetwork.block_sparse.caching import get_cacher
+from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 
 
@@ -1041,7 +1042,7 @@ def test_diagonal(Ds, dtype, num_charges, flow):
   inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique = np.unique(
+  unique_charges = unique(
       np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
   diagonal = backend.diagonal(arr)
 
@@ -1052,7 +1053,8 @@ def test_diagonal(Ds, dtype, num_charges, flow):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+  np.testing.assert_allclose(unique_charges,
+                             diagonal.flat_charges[0].unique_charges)
   with pytest.raises(NotImplementedError):
     diagonal = backend.diagonal(arr, axis1=0)
   with pytest.raises(NotImplementedError):
