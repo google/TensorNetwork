@@ -76,7 +76,25 @@ def test_BaseCharge_single_unique():
   assert np.all(actual[1] == expected[1])
   assert np.all(actual[2] == expected[2])
   assert np.all(actual[3] == expected[3])
+  
+def test_BaseCharge_single_unique():
+  D = 30
+  np.random.seed(10)
+  q = np.ones((D, 2), dtype=np.int16)
+  Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  expected = np.unique(
+      q, return_index=True, return_inverse=True, return_counts=True, axis=0)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
 
+
+  expected = np.unique(q, axis=0)
+  actual = Q.unique()
+  assert np.all(actual.charges == expected)
+  
 
   expected = np.unique(q, axis=0)
   actual = Q.unique()
@@ -445,6 +463,16 @@ def test_getitem():
   t3 = Q[[5, 2, 7]]
   assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
+
+
+def test_eq_0():
+  np.random.seed(10)
+  arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
+  c1 = U1Charge(arr)
+  targets = np.array([-1, 0])
+  m1 = c1 == targets
+  m2 = arr[:, None] == targets[None, :]
+  np.testing.assert_allclose(m1, m2)
 
 
 def test_eq_0():
