@@ -10,6 +10,7 @@ TensorNetwork reference documentation
    quantum_circuit
    block_sparse_tutorial
    node_spliting
+   basic_mps
    
 .. toctree::
    :maxdepth: 1

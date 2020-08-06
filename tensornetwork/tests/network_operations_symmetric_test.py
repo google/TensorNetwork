@@ -15,8 +15,8 @@
 import tensornetwork as tn
 import pytest
 import numpy as np
-#pylint: disable=line-too-long
-from tensornetwork.block_sparse import U1Charge, BlockSparseTensor, Index, BaseCharge
+from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
+                                        BaseCharge)
 from tensornetwork.block_sparse.charge import charge_equal
 from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
 from tensornetwork.linalg import node_linalg
@@ -26,7 +26,7 @@ def get_random(shape, num_charges, dtype=np.float64):
   R = len(shape)
   charges = [
       BaseCharge(
-          np.random.randint(-5, 5, (num_charges, shape[n])),
+          np.random.randint(-5, 5, (shape[n], num_charges)),
           charge_types=[U1Charge] * num_charges) for n in range(R)
   ]
   flows = list(np.full(R, fill_value=False, dtype=np.bool))
@@ -36,7 +36,7 @@ def get_random(shape, num_charges, dtype=np.float64):
 
 def get_square_matrix(shape, num_charges, dtype=np.float64):
   charge = BaseCharge(
-      np.random.randint(-5, 5, (num_charges, shape)),
+      np.random.randint(-5, 5, (shape, num_charges)),
       charge_types=[U1Charge] * num_charges)
   flows = [True, False]
   indices = [Index(charge, flows[n]) for n in range(2)]
@@ -70,7 +70,7 @@ def test_split_node_full_svd_names(num_charges):
 def test_split_node_rq_names(num_charges):
   np.random.seed(10)
   a = tn.Node(
-      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
+      get_random((5, 5, 5, 5, 5), num_charges=num_charges), backend='symmetric')
 
   left_edges = []
   for i in range(3):
@@ -95,7 +95,7 @@ def test_split_node_rq_names(num_charges):
 def test_split_node_qr_names(num_charges):
   np.random.seed(10)
   a = tn.Node(
-      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
+      get_random((5, 5, 5, 5, 5), num_charges=num_charges), backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])
@@ -119,7 +119,7 @@ def test_split_node_qr_names(num_charges):
 def test_split_node_names(num_charges):
   np.random.seed(10)
   a = tn.Node(
-      get_random((2, 3, 4, 5, 6), num_charges=num_charges), backend='symmetric')
+      get_random((5, 5, 5, 5, 5), num_charges=num_charges), backend='symmetric')
   left_edges = []
   for i in range(3):
     left_edges.append(a[i])

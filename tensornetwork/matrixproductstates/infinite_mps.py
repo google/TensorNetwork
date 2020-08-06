@@ -210,7 +210,7 @@ class InfiniteMPS(BaseMPS):
         precision=precision,
         num_krylov_vecs=num_krylov_vecs,
         maxiter=maxiter)
-    sqrteta = self.backend.sqrt(eta)
+    sqrteta = self.backend.sqrt(self.backend.abs(eta))
     self.tensors[0] /= sqrteta
 
     # TODO: would be nice to do the algebra directly on the nodes here

@@ -17,6 +17,7 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 import scipy as sp
+import scipy.sparse.linalg
 Tensor = Any
 
 int_to_string = np.array(list(map(chr, list(range(65, 91)))))
@@ -169,10 +170,9 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. `A` can be either a
-    scipy.sparse.linalg.LinearOperator object or a regular callable.
-    If no `initial_state` is provided then `A` has to have an attribute
-    `shape` so that a suitable initial state can be randomly generated.
+    of a linear operator `A`. If no `initial_state` is provided then 
+    `shape` and `dtype` are required so that a suitable initial state can be 
+    randomly generated.
     This is a wrapper for scipy.sparse.linalg.eigs which only supports
     a subset of the arguments of scipy.sparse.linalg.eigs.
 
@@ -198,11 +198,9 @@ class NumPyBackend(abstract_backend.AbstractBackend):
             'SR' : smallest real part
             'LI' : largest imaginary part
       maxiter: The maximum number of iterations.
-      dtype: An optional numpy-dtype. If provided, the
-        return type will be cast to `dtype`.
     Returns:
        `np.ndarray`: An array of `numeig` lowest eigenvalues
-       `np.ndarray`: An array of `numeig` lowest eigenvectors
+       `list`: A list of `numeig` lowest eigenvectors
     """
     if args is None:
       args = []
@@ -229,11 +227,11 @@ class NumPyBackend(abstract_backend.AbstractBackend):
 
     #initial_state is an np.ndarray of rank 1, so we can
     #savely deduce the shape from it
-    lop = sp.sparse.linalg.LinearOperator(
+    lop = scipy.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype,
-        shape=(np.prod(initial_state.shape), np.prod(initial_state.shape)),
+        shape=(initial_state.size, initial_state.size),
         matvec=matvec)
-    eta, U = sp.sparse.linalg.eigs(
+    eta, U = scipy.sparse.linalg.eigs(
         A=lop,
         k=numeig,
         which=which,
@@ -252,7 +250,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       U = U.astype(dtype)
     evs = list(eta)
     eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
-    return evs, eVs
+    return eta, eVs
 
   def gmres(self,
             A_mv: Callable,
@@ -347,25 +345,32 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
 
-    if x0 is not None and x0.shape != b.shape:
-      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                   f", {b.shape}.")
-      raise ValueError(errstring)
-    if x0 is not None and x0.dtype != b.dtype:
-      errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
-                   f", {b.dtype}.")
-      raise ValueError(errstring)
+
+    if x0 is not None:
+      if x0.shape != b.shape:
+        errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                     f", {b.shape}.")
+        raise ValueError(errstring)
+      if x0.dtype != b.dtype:
+        errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
+                     f", {b.dtype}.")
+        raise ValueError(errstring)
+      x0 = x0.ravel()
+
+
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
-    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
+    elif num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
+
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
+
     if atol is None:
       atol = tol
-    if atol < 0:
+    elif atol < 0:
       raise ValueError(f"atol = {atol} must be positive.")
 
     if A_args is None:
@@ -380,13 +385,15 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       return Avec
 
     A_shape = (b.size, b.size)
-    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape)
-    x, info = sp.sparse.linalg.gmres(A_op, b, x0=x0, tol=tol, atol=atol,
+    A_op = sp.sparse.linalg.LinearOperator(matvec=matvec, shape=A_shape,
+                                           dtype=b.dtype)
+    x, info = sp.sparse.linalg.gmres(A_op, b.ravel(), x0, tol=tol,
+                                     atol=atol,
                                      restart=num_krylov_vectors,
                                      maxiter=maxiter, M=M)
     if info < 0:
       raise ValueError("ARPACK gmres received illegal input or broke down.")
-    x = x.reshape(b.shape)
+    x = x.reshape(b.shape).astype(b.dtype)
     return (x, info)
 
   def eigsh_lanczos(self,
@@ -621,7 +628,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   ) -> Tuple[Tensor, Tensor]:
     #pylint: disable=too-many-function-args
     return decompositions.rq(np, tensor, pivot_axis, non_negative_diagonal)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.

@@ -9,6 +9,8 @@ import jax.config as config
 config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
+np_not_half = [np.float32, np.float64, np.complex64, np.complex128]
+
 
 
 def test_tensordot():
@@ -92,7 +94,7 @@ def test_sqrt():
   expected = np.array([2, 3])
   np.testing.assert_allclose(expected, actual)
 
-  
+
 def test_convert_to_tensor():
   backend = jax_backend.JaxBackend()
   array = np.ones((2, 3, 4))
@@ -771,6 +773,28 @@ def test_gmres_on_larger_random_problem(dtype):
   assert err < max(rtol, atol)
 
 
+@pytest.mark.parametrize("dtype", np_not_half)
+def test_gmres_not_matrix(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+  backend = jax_backend.JaxBackend()
+  matshape = (100, 100)
+  vecshape = (100,)
+  A = backend.randn(matshape, dtype=dtype, seed=10)
+  A = backend.reshape(A, (2, 50, 2, 50))
+  solution = backend.randn(vecshape, dtype=dtype, seed=10)
+  solution = backend.reshape(solution, (2, 50))
+  def A_mv(x):
+    return backend.einsum('ijkl,kl', A, x)
+  b = A_mv(solution)
+  tol = b.size * np.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  err = jax.numpy.linalg.norm(jax.numpy.abs(x)-jax.numpy.abs(solution))
+  rtol = tol*jax.numpy.linalg.norm(b)
+  atol = tol
+  assert err < max(rtol, atol)
+
+
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", range(0, 3))
@@ -837,13 +861,13 @@ def test_sign(dtype):
   np.testing.assert_allclose(expected, actual)
 
 
+@pytest.mark.parametrize("pivot_axis", [-1, 1, 2])
 @pytest.mark.parametrize("dtype", np_dtypes)
-def test_pivot(dtype):
+def test_pivot(dtype, pivot_axis):
   shape = (4, 3, 2, 8)
+  pivot_shape = (np.prod(shape[:pivot_axis]), np.prod(shape[pivot_axis:]))
   backend = jax_backend.JaxBackend()
   tensor = backend.randn(shape, dtype=dtype, seed=10)
-  cols = 12
-  rows = 16
-  expected = tensor.reshape((cols, rows))
-  actual = backend.pivot(tensor, pivot_axis=2)
+  expected = tensor.reshape(pivot_shape)
+  actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)

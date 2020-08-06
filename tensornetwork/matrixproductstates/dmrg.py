@@ -92,6 +92,13 @@ class BaseDMRG:
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend=self.backend.name)
 
+  def two_site_matvec(self, mps_bond_tensor, L, left_mpotensor,
+                      right_mpotensor, R):
+    return ncon([L, mps_bond_tensor, left_mpotensor, right_mpotensor, R],
+                [[3, 1, -1], [1, 2, 5, 6], [3, 4, -2, 2], [4, 7, -3, 5],
+                 [7, 6, -4]],
+                backend=self.backend.name)
+
   def add_left_layer(self, L, mps_tensor, mpo_tensor):
     return ncon([L, mps_tensor, mpo_tensor,
                  self.backend.conj(mps_tensor)],
@@ -241,6 +248,102 @@ class BaseDMRG:
 
     return energy
 
+  def _optimize_2s_local(self,
+                         max_bond_dim,
+                         sweep_dir,
+                         num_krylov_vecs=10,
+                         tol=1E-5,
+                         delta=1E-6,
+                         ndiag=10) -> np.number:
+    """
+    Two-site optimization at the current position of the center site.
+    The method shifts the center position of the mps by one site
+    to the left or to the right, depending on the value of `sweep_dir`.
+    Args:
+      max_bond_dim: Maximum MPS bond dimension. During DMRG optimization,
+        an MPS exceeding this dimension is truncated via SVD.
+      sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
+        'right' or 'r' for a sweep from left to right.
+      num_krylov_vecs: Dimension of the Krylov space used in `eighs_lanczos`.
+      tol: The desired precision of the eigenvalues in `eigsh_lanczos'.
+      delta: Stopping criterion for Lanczos iteration.
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped.
+      ndiag: Inverse frequencey of tridiagonalizations in `eighs_lanczos`.
+    Returns:
+      float/complex: The local energy after optimization.
+    """
+    site = self.mps.center_position
+    #note: some backends will jit functions
+    if sweep_dir in ('r', 'right'):
+      bond_mps = ncon([self.mps.tensors[site], self.mps.tensors[site + 1]],
+                      [[-1, -2, 1], [1, -3, -4]],
+                      backend=self.backend.name)
+      energies, states = self.backend.eigsh_lanczos(
+          A=self.two_site_matvec,
+          args=[
+              self.left_envs[site], self.mpo.tensors[site],
+              self.mpo.tensors[site + 1], self.right_envs[site + 1]
+          ],
+          initial_state=bond_mps,
+          num_krylov_vecs=num_krylov_vecs,
+          numeig=1,
+          tol=tol,
+          delta=delta,
+          ndiag=ndiag,
+          reorthogonalize=False)
+      local_ground_state = states[0]
+      energy = energies[0]
+      local_ground_state /= self.backend.norm(local_ground_state)
+
+      u, s, vh, _ = self.mps.svd(local_ground_state,
+                                 max_singular_values=max_bond_dim)
+      s = self.backend.diagflat(s)
+      self.mps.tensors[site] = u
+      if site < len(self.mps.tensors) - 1:
+        self.mps.center_position += 1
+        self.mps.tensors[site + 1] = ncon([s, vh], [[-1, 1], [1, -2, -3]],
+                                          backend=self.backend.name)
+        self.left_envs[site + 1] = self.add_left_layer(self.left_envs[site], u,
+                                                       self.mpo.tensors[site])
+
+    elif sweep_dir in ('l', 'left'):
+      bond_mps = ncon([self.mps.tensors[site - 1], self.mps.tensors[site]],
+                      [[-1, -2, 1], [1, -3, -4]],
+                      backend=self.backend.name)
+      energies, states = self.backend.eigsh_lanczos(
+          A=self.two_site_matvec,
+          args=[
+              self.left_envs[site - 1], self.mpo.tensors[site - 1],
+              self.mpo.tensors[site], self.right_envs[site]
+          ],
+          initial_state=bond_mps,
+          num_krylov_vecs=num_krylov_vecs,
+          numeig=1,
+          tol=tol,
+          delta=delta,
+          ndiag=ndiag,
+          reorthogonalize=False)
+      local_ground_state = states[0]
+      energy = energies[0]
+      local_ground_state /= self.backend.norm(local_ground_state)
+
+      u, s, vh, _ = self.mps.svd(local_ground_state,
+                                 max_singular_values=max_bond_dim)
+      s = self.backend.diagflat(s)
+      self.mps.tensors[site] = vh
+      if site > 0:
+        self.mps.center_position -= 1
+        self.mps.tensors[site - 1] = ncon([u, s],
+                                          [[-1, -2, 1], [1, -3]],
+                                          backend=self.backend.name)
+        self.right_envs[site - 1] = \
+          self.add_right_layer(self.right_envs[site], vh,
+                               self.mpo.tensors[site])
+
+    return energy
+
   def run_one_site(self,
                    num_sweeps=4,
                    precision=1E-6,
@@ -285,9 +388,8 @@ class BaseDMRG:
 
     def print_msg(site):
       if verbose < 2:
-        text = "\rSS-DMRG sweep=%i/%i, site=%i/%i: optimized E=%.16f+%.16f"
-        stdout.write(text % (iteration, num_sweeps, site, len(
-            self.mps), np.real(energy), np.imag(energy)))
+        stdout.write(f"\rSS-DMRG sweep={iteration}/{num_sweeps}, "
+                     f"site={site}/{len(self.mps)}: optimized E={energy}")
         stdout.flush()
 
       if verbose >= 2:
@@ -317,7 +419,7 @@ class BaseDMRG:
             ndiag=ndiag)
 
         print_msg(site=self.mps.center_position - 1)
-      #prepare for right sweep: move center all the way to the right
+      #prepare for left sweep: move center all the way to the right
       self.position(len(self.mps) - 1)
       while self.mps.center_position > 0:
         #_optimize_1site_local shifts the center site internally
@@ -342,13 +444,122 @@ class BaseDMRG:
         break
     return final_energy
 
+  def run_two_site(self,
+                   max_bond_dim,
+                   num_sweeps=4,
+                   precision=1E-6,
+                   num_krylov_vecs=10,
+                   verbose=0,
+                   delta=1E-6,
+                   tol=1E-6,
+                   ndiag=10) -> np.number:
+    """
+    Run a two-site DMRG optimization of the MPS.
+    Args:
+      max_bond_dim: Maximum MPS bond dimension. During DMRG optimization,
+        an MPS exceeding this dimension is truncated via SVD.
+      num_sweeps: Number of DMRG sweeps. A sweep optimizes all sites
+        starting at the left side, moving to the right side, and back
+        to the left side.
+      precision: The desired precision of the energy. If `precision` is
+        reached, optimization is terminated.
+      num_krylov_vecs: Krylov space dimension used in the iterative
+        eigsh_lanczos method.
+      verbose: Verbosity flag. Us`verbose=0` to suppress any output.
+        Larger values produce increasingly more output.
+      delta: Convergence parameter of `eigsh_lanczos` to determine if
+        an invariant subspace has been found.
+      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in
+        `eigsh_lanczos` have converged within `tol`, `eighs_lanczos`
+        is terminted.
+      ndiag: Inverse frequency at which eigenvalues of the
+        tridiagonal Hamiltonian produced by `eigsh_lanczos` are tested
+        for convergence. `ndiag=10` tests at every tenth step.
+    Returns:
+      float: The energy upon termination of `run_two_site`.
+    """
+    if num_sweeps == 0:
+      return self.compute_energy()
+
+    converged = False
+    final_energy = 1E100
+    iteration = 1
+    initial_site = 0
+
+    self.mps.position(0)  #move center position to the left end
+    self.compute_right_envs()
+
+    # TODO (pedersor): print max truncation errors
+    def print_msg(left_site, right_site):
+      if verbose < 2:
+        stdout.write(f"\rTS-DMRG sweep={iteration}/{num_sweeps}, "
+                     f"sites=({left_site},{right_site})/{len(self.mps)}: "
+                     f"optimized E={energy}")
+        stdout.flush()
+
+      if verbose >= 2:
+        print(f"TS-DMRG sweep={iteration}/{num_sweeps}, "
+              f"sites=({left_site},{right_site})/{len(self.mps)}: "
+              f"optimized E={energy}")
+
+    while not converged:
+      if initial_site == 0:
+        self.position(0)
+        #the part outside the loop covers the len(self)==1 case
+        energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
+            sweep_dir='right',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        initial_site += 1
+        print_msg(left_site=0, right_site=1)
+      while self.mps.center_position < len(self.mps) - 1:
+        #_optimize_2site_local shifts the center site internally
+        energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
+            sweep_dir='right',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        print_msg(self.mps.center_position - 1, self.mps.center_position)
+      #prepare for left sweep: move center all the way to the right
+      self.position(len(self.mps) - 1)
+      while self.mps.center_position > 0:
+        #_optimize_2site_local shifts the center site internally
+        energy = self._optimize_2s_local(
+            max_bond_dim=max_bond_dim,
+            sweep_dir='left',
+            num_krylov_vecs=num_krylov_vecs,
+            tol=tol,
+            delta=delta,
+            ndiag=ndiag)
+
+        print_msg(self.mps.center_position, self.mps.center_position + 1)
+
+      if np.abs(final_energy - energy) < precision:
+        converged = True
+      final_energy = energy
+      iteration += 1
+      if iteration > num_sweeps:
+        if verbose > 0:
+          print()
+          print("dmrg did not converge to desired precision {0} "
+                "after {1} iterations".format(precision, num_sweeps))
+        break
+    return final_energy
+
   def compute_energy(self):
     self.mps.position(0)  #move center position to the left end
     self.compute_right_envs()
     return ncon([
         self.add_right_layer(self.right_envs[0], self.mps.tensors[0],
                              self.mpo.tensors[0])
-    ], [[1, 1, -1]])[0]
+    ], [[1, 1, -1]], backend=self.backend.name)[0]
 
 
 class FiniteDMRG(BaseDMRG):
