@@ -126,26 +126,67 @@ def test_norm_vs_backend(backend, dtype):
 @pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
 @pytest.mark.parametrize("dtype", np_float_dtypes)
 def test_eigsh_lanczos(sparse_backend, dtype):
+  """
+  Compares linalg.krylov.eigsh_lanczos with backend.eigsh_lanczos.
+  """
   shape = (4, 4)
   dtype = np_dtype_to_backend(sparse_backend, dtype)
   tensor = tensornetwork.linalg.initialization.ones(shape,
                                                     backend=sparse_backend,
                                                     dtype=dtype)
+  x0 = tensornetwork.linalg.initialization.ones(shape, backend=sparse_backend,
+                                                dtype=dtype)
+
   def matvec(B):
+    return tensor @ B
+  result = tensornetwork.linalg.krylov.eigsh_lanczos(matvec,
+                                                     backend=tensor.backend,
+                                                     initial_state=x0)
+  def array_matvec(B):
     return tensor.array @ B
+  rev, reV = result
+  test_result = tensor.backend.eigsh_lanczos(array_matvec,
+                                             initial_state=x0.array)
+  tev, teV = test_result
+
+  np.testing.assert_allclose(np.array(rev), np.array(tev))
+
+  for r, t in zip(reV, teV):
+    np.testing.assert_allclose(r.array, t)
+
+
+@pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
+@pytest.mark.parametrize("dtype", np_float_dtypes)
+def test_eigsh_lanczos_with_args(sparse_backend, dtype):
+  """
+  Compares linalg.krylov.eigsh_lanczos with itself with extra arguments
+  supplied or not.
+  """
+  shape = (4, 4)
+  dtype = np_dtype_to_backend(sparse_backend, dtype)
+  tensor = tensornetwork.linalg.initialization.ones(shape,
+                                                    backend=sparse_backend,
+                                                    dtype=dtype)
+  def matvec(B, A):
+    return A @ B
+
+  def matvec_noargs(B):
+    return tensor @ B
 
   x0 = tensornetwork.linalg.initialization.ones(shape, backend=sparse_backend,
                                                 dtype=dtype)
 
   result = tensornetwork.linalg.krylov.eigsh_lanczos(matvec,
                                                      backend=tensor.backend,
-                                                     initial_state=x0)
+                                                     initial_state=x0,
+                                                     args=[tensor,])
+
+  test = tensornetwork.linalg.krylov.eigsh_lanczos(matvec_noargs,
+                                                   backend=tensor.backend,
+                                                   initial_state=x0)
   rev, reV = result
-  test_result = tensor.backend.eigsh_lanczos(matvec, initial_state=x0.array)
-  tev, teV = test_result
-
+  tev, teV = test
   np.testing.assert_allclose(np.array(rev), np.array(tev))
-
   for r, t in zip(reV, teV):
     np.testing.assert_allclose(r.array, t)
 
