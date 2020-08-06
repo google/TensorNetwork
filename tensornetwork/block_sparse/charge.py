@@ -38,7 +38,6 @@ class BaseCharge:
   """
 
   class Iterator:
-
     def __init__(self, unique: np.ndarray, labels: np.ndarray):
       self.n = 0
       self.unique = unique
@@ -83,10 +82,8 @@ class BaseCharge:
         self.charge_labels = np.empty(0, dtype=label_dtype)
     else:
       self.charge_labels = np.asarray(charge_labels, dtype=label_dtype)
-
       self.unique_charges = charges.astype(charge_dtype)
-      self.charge_labels = charge_labels.astype(label_dtype)
-
+      
   @staticmethod
   def fuse(charge1, charge2):
     raise NotImplementedError("`fuse` has to be implemented in derived classes")
@@ -150,13 +147,6 @@ class BaseCharge:
   @property
   def label_dtype(self):
     return self.charge_labels.dtype
-
-  @property
-  def degeneracies(self):
-    exp1 = self.charge_labels[:, None]
-    exp2 = np.arange(
-        self.unique_charges.shape[0], dtype=self.label_dtype)[None, :]
-    return np.sum(exp1 == exp2, axis=0)
 
   def __repr__(self):
     return 'BaseCharge object:' + '\n   charge types: ' + self.names + \
