@@ -370,3 +370,36 @@ def abs(tensor: Tensor) -> Tensor:
   backend = tensor.backend
   result = backend.abs(tensor.array)
   return Tensor(result, backend=backend)
+
+
+def pivot(tensor: Tensor, pivot_axis: int = -1) -> Tensor:
+  """ Reshapes tensor into a matrix about the pivot_axis. Equivalent to
+      tensor.reshape(prod(tensor.shape[:pivot_axis]),
+                     prod(tensor.shape[pivot_axis:])).
+    Args:
+      tensor: The input tensor.
+      pivot_axis: Axis to pivot around.
+  """
+  backend = tensor.backend
+  result = backend.pivot(tensor.array, pivot_axis=pivot_axis)
+  return Tensor(result, backend=backend)
+
+
+def kron(tensorA: Tensor, tensorB: Tensor, pivot_axisA: int = -1,
+         pivot_axisB: int = -1):
+  """
+  Reshape tensorA and tensorB into matrices respectively about pivot_axisA and
+  pivot_axisB, computes the Kronecker product of those matrices, and
+  reshapes to the concatenated shape of tensorA and tensorB
+  (e.g. tensorA -> (2, 2); tensorB -> (2, 2); result -> (2, 2, 2, 2)).
+  """
+  tensors = [tensorA, tensorA]
+  all_backends_same, errstr = _check_backends(tensors, "kron")
+  if not all_backends_same:
+    raise ValueError(errstr)
+  backend = tensorA.backend
+  matrixA = pivot(tensorA, pivot_axis=pivot_axisA)
+  matrixB = pivot(tensorB, pivot_axis=pivot_axisB)
+  arr = backend.einsum("ij,kl->ikjl", matrixA.array, matrixB.array)
+  full_shape = tuple(list(tensorA.shape) + list(tensorB.shape))
+  return Tensor(arr, backend=backend).reshape(full_shape)
