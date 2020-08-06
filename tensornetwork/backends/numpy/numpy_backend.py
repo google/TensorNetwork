@@ -250,7 +250,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       U = U.astype(dtype)
     evs = list(eta)
     eVs = [np.reshape(U[:, n], shape) for n in range(numeig)]
-    return eta, eVs
+    return evs, eVs
 
   def gmres(self,
             A_mv: Callable,
