@@ -13,14 +13,18 @@
 # limitations under the License.
 
 import numpy as np
-from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.utils import (
-    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition,
-    reduce_charges)
-from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
-                                               intersect, charge_equal)
 import copy
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.blocksparse_utils import (
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    get_flat_meta_data, compute_num_nonzero, _find_best_partition,
+    reduce_charges)
+from tensornetwork.block_sparse.utils import (flatten, _find_best_partition,
+                                              intersect)
+
+from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
+                                               charge_equal)
+
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 

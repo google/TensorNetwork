@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
-                                               charge_equal, fuse_ndarrays,
+                                               charge_equal,
                                                fuse_ndarray_charges, BaseCharge,
                                                Z2Charge)
+from tensornetwork.block_sparse.utils import fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
                                                           BlockSparseTensor)

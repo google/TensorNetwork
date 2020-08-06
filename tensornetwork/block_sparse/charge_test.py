@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.charge import BaseCharge, intersect, fuse_ndarrays, U1Charge, fuse_degeneracies, fuse_charges, Z2Charge, ZNCharge
+from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
+                                               fuse_charges, Z2Charge, ZNCharge)
+from tensornetwork.block_sparse.utils import (intersect, fuse_ndarrays,
+                                              fuse_degeneracies)
 
 
 def test_BaseCharge_charges():
@@ -73,53 +75,6 @@ def test_BaseCharge_unique_sort():
   np.testing.assert_allclose(actual[0].unique_charges, [[1], [0], [-1]])
 
 
-def test_intersect_1():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6], [2, 3, 4]])
-  out = intersect(a, b, axis=1)
-  np.testing.assert_allclose(np.array([[0], [2]]), out)
-
-
-def test_intersect_2():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]])
-  out, la, lb = intersect(a, b, axis=1, return_indices=True)
-  np.testing.assert_allclose(np.array([[0, 2], [2, 4]]), out)
-  np.testing.assert_allclose(la, [0, 2])
-  np.testing.assert_allclose(lb, [0, 3])
-
-
-def test_intersect_3():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
-  out = intersect(a, b)
-  np.testing.assert_allclose([0, 4], out)
-
-
-def test_intersect_4():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
-  out, la, lb = intersect(a, b, return_indices=True)
-  np.testing.assert_allclose([0, 4], out)
-  np.testing.assert_allclose(la, [0, 4])
-  np.testing.assert_allclose(lb, [0, 2])
-
-
-def test_intersect_raises():
-  np.random.seed(10)
-  a = np.random.randint(0, 10, (4, 5))
-  b = np.random.randint(0, 10, (4, 6))
-  with pytest.raises(ValueError):
-    intersect(a, b, axis=0)
-  c = np.random.randint(0, 10, (3, 7))
-  with pytest.raises(ValueError):
-    intersect(a, c, axis=1)
-  with pytest.raises(NotImplementedError):
-    intersect(a, c, axis=2)
-  d = np.random.randint(0, 10, (3, 7, 3))
-  e = np.random.randint(0, 10, (3, 7, 3))
-  with pytest.raises(NotImplementedError):
-    intersect(d, e, axis=1)
 
 
 def test_fuse_ndarrays():

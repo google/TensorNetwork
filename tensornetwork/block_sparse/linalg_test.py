@@ -5,7 +5,7 @@ from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
                                                           BlockSparseTensor)
-from tensornetwork.block_sparse.utils import _find_diagonal_sparse_blocks
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks
 from tensornetwork import ncon
 from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
                                                conj, svd, qr, eigh, eig, inv,
