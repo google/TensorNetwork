@@ -596,7 +596,7 @@ def eye(column_index: Index,
 
 
 def trace(tensor: BlockSparseTensor,
-          axes: Optional[Tuple[int, ...]] = None) -> BlockSparseTensor:
+          axes: Optional[Sequence[int]] = None) -> BlockSparseTensor:
   """
   Compute the trace of a matrix or tensor. If input has `ndim>2`, take
   the trace over the last two dimensions.
