@@ -793,3 +793,17 @@ def test_neg(chargetype, dtype):
   T = BlockSparseTensor.random(inds, dtype=dtype)
   T2 = -T
   np.testing.assert_allclose(T.data, -T2.data)
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_size(chargetype, num_charges):
+  np.random.seed(10)
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [
+      Index(get_charge(chargetype, num_charges, Ds[n]), flows[n])
+      for n in range(4)
+  ]
+  arr = BlockSparseTensor.random(indices)
+  assert arr.size == np.prod(Ds)
+  
