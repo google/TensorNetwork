@@ -141,11 +141,12 @@ class ChargeArray:
         [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
 
   @property
-  def size(self) -> Tuple:
+  def size(self) -> int:
     """
-    The dense shape of the tensor.
+    The dense size of the tensor, i.e. the total number of elements, including 
+    those which are zero by conservation of charge.
     Returns:
-      Tuple: A tuple of `int`.
+      int: The total number of elements.
     """
     return reduce(mul, [self._charges[n].dim for s in self._order for n in s])
 
