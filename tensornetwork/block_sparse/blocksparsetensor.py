@@ -417,7 +417,8 @@ class ChargeArray:
       charge_types = self._charges[0].names
     else:
       charge_types = 'no charge types (scalar)'
-    output = 'BlockSparseTensor\n   shape: ' + repr(
+      
+    output = self.__class__.__name__ +'\n   shape: ' + repr(
         self.shape
     ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
         self.dtype.name) + '\n   flat flows: ' + repr(
