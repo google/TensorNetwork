@@ -581,7 +581,7 @@ def test_trace_raises(num_charges):
     trace(A2, axes=(0, 1))
   with pytest.raises(ValueError, match="non-matching flows"):
     trace(A2, axes=(0, 2))
-  with pytest.raises(ValueError,match="has to be 2"):
+  with pytest.raises(ValueError, match="has to be 2"):
     trace(A2, axes=(0, 1, 2))
 
 
