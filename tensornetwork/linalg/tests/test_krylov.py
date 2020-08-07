@@ -10,16 +10,16 @@ from tensornetwork.linalg import linalg
 import tensornetwork.linalg.krylov
 import tensornetwork.linalg.initialization
 from tensornetwork import backends, backend_contextmanager
-from tensornetwork.linalg.tests import utils
+from tensornetwork.tests import testing_utils
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
 sparse_backends = ["numpy", "jax"]
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_matvec_cache(sparse_backend, dtype):
   shape = (4, 4)
-  dtype = utils.np_dtype_to_backend(sparse_backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(sparse_backend, dtype)
   A = tensornetwork.linalg.initialization.ones(shape,
                                                backend=sparse_backend,
                                                dtype=dtype)
@@ -70,14 +70,14 @@ def test_eigsh_lanczos_raises():
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_eigsh_lanczos(sparse_backend, dtype):
   """
   Compares linalg.krylov.eigsh_lanczos with backend.eigsh_lanczos.
   """
   n = 2
   shape = (n, n)
-  dtype = utils.np_dtype_to_backend(sparse_backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(sparse_backend, dtype)
   A = tensornetwork.linalg.initialization.ones(shape,
                                                backend=sparse_backend,
                                                dtype=dtype)
@@ -103,14 +103,14 @@ def test_eigsh_lanczos(sparse_backend, dtype):
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends + ["pytorch",])
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_eigsh_lanczos_with_args(sparse_backend, dtype):
   """
   Compares linalg.krylov.eigsh_lanczos with backend.eigsh_lanczos.
   """
   n = 2
   shape = (n, n)
-  dtype = utils.np_dtype_to_backend(sparse_backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(sparse_backend, dtype)
   A = tensornetwork.linalg.initialization.ones(shape,
                                                backend=sparse_backend,
                                                dtype=dtype)
@@ -167,7 +167,7 @@ def test_eigs_raises():
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends)
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_eigs(sparse_backend, dtype):
   shape = (4, 4)
   tensor = tensornetwork.linalg.initialization.ones(shape,
@@ -196,7 +196,7 @@ def test_eigs(sparse_backend, dtype):
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends)
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_eigs_with_args(sparse_backend, dtype):
   shape = (4, 4)
   tensor = tensornetwork.linalg.initialization.ones(shape,
@@ -250,7 +250,7 @@ def test_gmres_raises():
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends)
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_gmres(dtype, sparse_backend):
   Adat = np.array(([[1, 1], [3, -4]]), dtype=dtype)
   A = tensornetwork.tensor.Tensor(Adat, backend=sparse_backend)
@@ -271,7 +271,7 @@ def test_gmres(dtype, sparse_backend):
 
 
 @pytest.mark.parametrize("sparse_backend", sparse_backends)
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_gmres_with_args(dtype, sparse_backend):
   Adat = np.array(([[1, 1], [3, -4]]), dtype=dtype)
   A = tensornetwork.tensor.Tensor(Adat, backend=sparse_backend)

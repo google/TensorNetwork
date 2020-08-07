@@ -24,16 +24,16 @@ import tensornetwork
 from tensornetwork.linalg import linalg
 import tensornetwork.linalg.initialization
 from tensornetwork import backends, backend_contextmanager
-from tensornetwork.linalg.tests import utils
+from tensornetwork.tests import testing_utils
 
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_eigh_vs_backend(backend, dtype):
   shape = (3, 6, 4, 4)
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tn_result = linalg.eigh(tensor)
   if backend is None:
@@ -45,10 +45,10 @@ def test_eigh_vs_backend(backend, dtype):
     np.testing.assert_allclose(tn_arr, backend_arr)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_expm_vs_backend(backend, dtype):
   shape = 6
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.eye(shape, backend=backend, dtype=dtype)
   if backend in ["pytorch"]:
     with pytest.raises(NotImplementedError):
@@ -64,10 +64,10 @@ def test_expm_vs_backend(backend, dtype):
     np.testing.assert_allclose(tn_result.array, backend_result)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_inv_vs_backend(backend, dtype):
   shape = 6
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.eye(shape, backend=backend, dtype=dtype)
   tn_result = linalg.inv(tensor)
   if backend is None:
@@ -77,10 +77,10 @@ def test_inv_vs_backend(backend, dtype):
   np.testing.assert_allclose(tn_result.array, backend_result)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_norm_vs_backend(backend, dtype):
   shape = (6, 2, 6)
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tn_result = linalg.norm(tensor)
   if backend is None:
@@ -90,10 +90,10 @@ def test_norm_vs_backend(backend, dtype):
   assert backend_result == tn_result
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_svd_vs_backend(backend, dtype):
   shape = (3, 6, 4, 2)
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   split_axis = 1
   max_singular_values = 5
@@ -115,10 +115,10 @@ def test_svd_vs_backend(backend, dtype):
     np.testing.assert_allclose(tn_arr, backend_arr)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_qr_vs_backend(backend, dtype):
   shape = (3, 6, 4, 2)
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   split_axis = 1
   tn_result = linalg.qr(tensor, split_axis, non_negative_diagonal=False)
@@ -131,10 +131,10 @@ def test_qr_vs_backend(backend, dtype):
     np.testing.assert_allclose(tn_arr, backend_arr)
 
 
-@pytest.mark.parametrize("dtype", utils.np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_rq_vs_backend(backend, dtype):
   shape = (3, 6, 4, 2)
-  dtype = utils.np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   split_axis = 1
   tn_result = linalg.rq(tensor, split_axis, non_negative_diagonal=False)
