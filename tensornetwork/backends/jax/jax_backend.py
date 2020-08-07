@@ -25,6 +25,13 @@ Tensor = Any
 
 _CACHED_MATVECS = {}
 _CACHED_FUNCTIONS = {}
+_MIN_RES_THRESHS = {
+    np.float16: 1E-3,
+    np.float32: 1E-6,
+    np.float64: 1E-12,
+    np.complex128: 1E-12,
+    np.complex64: 1E-6
+}
 
 
 class JaxBackend(abstract_backend.AbstractBackend):
@@ -237,7 +244,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            tol: float = 1E-8,
            which: Text = 'LR',
            maxiter: int = 20,
-           res_thresh: float = 1E-12) -> Tuple[Tensor, List]:
+           res_thresh: Optional[float] = None) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest
     eigenvector-eigenvalue pairs of a linear operator `A`.
@@ -299,7 +306,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
         equivalent to a simple Arnoldi method.
       QR_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
         if the norm of the residual `fk` of the shifted arnoldi factorization 
-        falls below `res_thresh` (see
+        falls below `res_thresh`. If `None` a default value dependent on the 
+        dtype of the operator is chosen.
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -323,8 +331,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, jnp.ndarray):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
+
+    if res_thresh is None:
+      res_thresh = _MIN_RES_THRESHS.get(initial_state.dtype, None)
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
+
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
