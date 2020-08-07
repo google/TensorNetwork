@@ -46,6 +46,23 @@ def safe_randn(shape, backend, dtype):
   return (A, init)
 
 
+def safe_zeros(shape, backend, dtype):
+  """
+  Creates a tensor of zeros, catching errors that occur when the
+  dtype is
+  not supported by the backend. Returns both the Tensor and the backend array,
+  which are both None if the dtype and backend did not match.
+  """
+  init = np.zeros(shape, dtype=dtype)
+  if backend == "pytorch" and dtype not in torch_supported_dtypes:
+    pytest.skip("dtype unsupported by PyTorch")
+    A = None
+    init = None
+  else:
+    A = tensornetwork.Tensor(init, backend=backend)
+  return (A, init)
+
+
 def np_dtype_to_backend(backend, dtype):
   """
   Converts a given np dtype to the equivalent in the given backend. Skips
