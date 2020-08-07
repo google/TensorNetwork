@@ -70,6 +70,8 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
     x0_array: x0.array if x0 was supplied, or None.
     args_arr: Each array in the list of args if it was supplied, or None.
   """
+  # If the backend wasn't specified, infer it from x0. If neither was specified
+  # raise ValueError.
   if backend is None:
     if x0 is None:
       raise ValueError("One of backend or x0 must be specified.")
@@ -77,10 +79,13 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
   else:
     backend = backends.backend_factory.get_backend(backend)
 
+  # If x0 was specified, return the enclosed array. If attempting to do so
+  # raises AttributeError, instead raise TypeError. If backend was also
+  # specified, but was different than x0.backend, raise ValueError.
   if x0 is not None:
     try:
       x0_array = x0.array
-    except AttributeError():
+    except AttributeError:
       raise TypeError("x0 must be a tn.Tensor.")
 
     if x0.backend.name != backend.name:
@@ -89,16 +94,19 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
                 f"x0 backend: {x0.backend.name} \n"
                 f"backend: {backend.name} \n")
       raise ValueError(errstr)
-  else:
+  else: # If x0 was not specified, set x0_array (the returned value) to None.
     x0_array = None
 
+  # If args were specified, set the returned args_array to be all the enclosed
+  # arrays. If any of them raise AttributeError during the attempt, raise
+  # TypeError. If args was not specified, set args_array to None.
   if args is not None:
     try:
       args_array = [a.array for a in args]
-    except AttributeError():
+    except AttributeError:
       raise TypeError("Every element of args must be a tn.Tensor.")
   else:
-    args_array = args
+    args_array = None
   return (backend, x0_array, args_array)
 
 def eigsh_lanczos(A: Callable,
