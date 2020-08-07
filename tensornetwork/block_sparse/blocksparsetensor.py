@@ -915,13 +915,6 @@ def tensordot(
         "`axes2 = {}` is incompatible with `tensor2.shape = {}. ".format(
             axes2, tensor2.shape))
 
-  if not np.all(np.unique(axes1) == np.sort(axes1)):
-    raise ValueError(
-        "Some values in axes[0] = {} appear more than once!".format(axes1))
-  if not np.all(np.unique(axes2) == np.sort(axes2)):
-    raise ValueError(
-        "Some values in axes[1] = {} appear more than once!".format(axes2))
-
   #special case outer product
   if len(axes1) == 0:
     return outerproduct(tensor1, tensor2)
