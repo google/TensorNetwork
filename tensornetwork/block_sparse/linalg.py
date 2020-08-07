@@ -296,7 +296,7 @@ def svd(matrix: BlockSparseTensor,
   return S
 
 
-def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
+def qr(matrix: BlockSparseTensor, mode: Text = 'reduced') -> Any:
   """
   Compute the qr decomposition of an `M` by `N` matrix `matrix`.
   The matrix is factorized into `q*r`, with 
@@ -314,10 +314,12 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     (BlockSparseTensor,BlockSparseTensor): If mode = `reduced` or `complete`
     BlockSparseTensor: If mode = `r`.
   """
-  if mode == 'raw':
-    raise NotImplementedError('mode `raw` currenntly not supported')
   if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
+  if mode not in ('reduced', 'complete', 'raw', 'r'):
+    raise ValueError('unknown value {} for input `mode`'.format(mode))
+  if mode == 'raw':
+    raise NotImplementedError('mode `raw` currenntly not supported')
 
   flat_charges = matrix._charges
   flat_flows = matrix._flows
@@ -333,10 +335,9 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     if mode in ('reduced', 'complete'):
       q_blocks.append(out[0])
       r_blocks.append(out[1])
-    elif mode == 'r':
-      r_blocks.append(out)
     else:
-      raise ValueError('unknown value {} for input `mode`'.format(mode))
+      r_blocks.append(out)
+
 
   tmp_r_charge_labels = [
       np.full(r_blocks[n].shape[0], fill_value=n, dtype=np.int16)
@@ -388,9 +389,7 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
         flows=flows_q,
         order=order_q,
         check_consistency=False).transpose((1, 0)), R
-
   return R
-
 
 def eigh(matrix: BlockSparseTensor,
          UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
