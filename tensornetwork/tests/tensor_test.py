@@ -114,24 +114,6 @@ def test_tensor_H(backend, dtype):
     np.testing.assert_allclose(A.H.array, init.conj().T)
 
 
-#  @pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
-#  def test_tensor_real(backend, dtype):
-#    """ Checks that Tensor.real works.
-#    """
-#    shape = (2, 3, 1)
-#    A, init = testing_utils.safe_randn(shape, backend, dtype)
-#    np.testing.assert_allclose(A.real.array, init.real)
-
-
-#  @pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
-#  def test_tensor_imag(backend, dtype):
-#    """ Checks that Tensor.imag works.
-#    """
-#    shape = (2, 3, 1)
-#    A, init = testing_utils.safe_randn(shape, backend, dtype)
-#    np.testing.assert_allclose(A.imag.array, init.imag)
-
-
 @pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_tensor_conj(backend, dtype):
   """ Checks that Tensor.conj() works.
@@ -399,3 +381,31 @@ def test_tensor_matmul(backend, dtype):
     result = A @ B
     result2 = A.backend.matmul(testA, testB)
     np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_tensor_real(backend, dtype):
+  shape = (4, 3, 2)
+  A, initA = testing_utils.safe_randn(shape, backend, dtype)
+  if A is not None:
+    if backend not in ("jax", "numpy"):
+      with pytest.raises(NotImplementedError):
+        Ar = A.real
+    else:
+      Ar = A.real
+      arrayr = initA.real
+      np.testing.assert_allclose(Ar.array, arrayr)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_tensor_imag(backend, dtype):
+  shape = (4, 3, 2)
+  A, initA = testing_utils.safe_randn(shape, backend, dtype)
+  if A is not None:
+    if backend not in ("jax", "numpy"):
+      with pytest.raises(NotImplementedError):
+        Ai = A.imag
+    else:
+      Ai = A.imag
+      arrayi = initA.imag
+      np.testing.assert_allclose(Ai.array, arrayi)
