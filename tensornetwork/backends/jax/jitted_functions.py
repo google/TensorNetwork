@@ -393,9 +393,7 @@ def _implicitly_restarted_arnoldi(jax):
     Z = jax.numpy.linalg.norm(fk)
     #if fk is a zero-vector then arnoldi has exactly converged.
     #use small threshold to check this
-    converged = jax.lax.cond(Z < res_thresh, lambda x: True, lambda x: False,
-                             None)
-    return krylov_vectors, H, fk, converged
+    return krylov_vectors, H, fk, Z < res_thresh
 
   @partial(jax.jit, static_argnums=(2,))
   def update_data(Vm_tmp, Hm_tmp, numits):
@@ -499,10 +497,9 @@ def _implicitly_restarted_arnoldi(jax):
     converged = False
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
-      krylov_vectors, H, fk, _converged = shifted_QR(Vm, Hm, fm, evals, numeig,
-                                                     p, _which, res_thresh)
-      if _converged:
-        converged = True
+      krylov_vectors, H, fk, converged = shifted_QR(Vm, Hm, fm, evals, numeig,
+                                                    p, _which, res_thresh)
+      if converged:
         break
       v0 = jax.numpy.reshape(fk, initial_state.shape)
       # restart
