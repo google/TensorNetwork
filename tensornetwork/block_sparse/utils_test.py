@@ -4,7 +4,8 @@ import itertools
 from tensornetwork.block_sparse.utils import (flatten, fuse_stride_arrays,
                                               fuse_ndarrays, fuse_degeneracies,
                                               _find_best_partition,
-                                              _get_strides, intersect)
+                                              _get_strides, intersect,
+                                              get_real_dtype, get_dtype)
 
 
 np_dtypes = [np.float64, np.complex128]
@@ -27,7 +28,7 @@ def test_fuse_stride_arrays():
   ])
   np.testing.assert_allclose(actual, expected)
 
-  
+
 def test_fuse_ndarrays():
   d1 = np.asarray([0, 1])
   d2 = np.asarray([2, 3, 4])
@@ -41,7 +42,7 @@ def test_fuse_degeneracies():
   fused_degeneracies = fuse_degeneracies(d1, d2)
   np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
 
-  
+
 def test_find_best_partition():
   with pytest.raises(ValueError):
     _find_best_partition([5])
@@ -86,10 +87,15 @@ def test_intersect_4():
 
 def test_intersect_raises():
   np.random.seed(10)
+  a = np.random.randint(0, 10, (4, 5, 1))
+  b = np.random.randint(0, 10, (4, 6))
+  with pytest.raises(ValueError, match="array ndims"):
+    intersect(a, b, axis=0)
   a = np.random.randint(0, 10, (4, 5))
   b = np.random.randint(0, 10, (4, 6))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="array widths"):
     intersect(a, b, axis=0)
+    
   c = np.random.randint(0, 10, (3, 7))
   with pytest.raises(ValueError):
     intersect(a, c, axis=1)
@@ -99,4 +105,22 @@ def test_intersect_raises():
   e = np.random.randint(0, 10, (3, 7, 3))
   with pytest.raises(NotImplementedError):
     intersect(d, e, axis=1)
-  
+
+
+def test_get_real_dtype():
+  assert get_real_dtype(np.complex128) == np.float64
+  assert get_real_dtype(np.complex64) == np.float32
+  assert get_real_dtype(np.float64) == np.float64
+  assert get_real_dtype(np.float32) == np.float32
+
+
+def test_get_dtype():
+  assert get_dtype(1) == np.int8
+  assert get_dtype(2) == np.int16
+  assert get_dtype(3) == np.int32
+  assert get_dtype(4) == np.int32
+  assert get_dtype(5) == np.int64
+  assert get_dtype(6) == np.int64
+  assert get_dtype(7) == np.int64
+  assert get_dtype(8) == np.int64
+  assert get_dtype(9) == np.int64
