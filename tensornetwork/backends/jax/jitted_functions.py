@@ -465,8 +465,6 @@ def _implicitly_restarted_arnoldi(jax):
         (num_krylov_vecs + 1, jax.numpy.ravel(initial_state).shape[0]),
         dtype=dtype)
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
-    norms = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
-    norms_before = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
     # perform initial arnoldi factorization
     Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(matvec, args,
                                                      initial_state,
@@ -511,8 +509,8 @@ def _implicitly_restarted_arnoldi(jax):
 
       # restart
       Vm_tmp, Hm_tmp, _, converged = arnoldi_fact(matvec, args, v0,
-                                                     krylov_vectors, H, numeig,
-                                                     num_krylov_vecs, eps)
+                                                  krylov_vectors, H, numeig,
+                                                  num_krylov_vecs, eps)
       Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
       it += 1
 
