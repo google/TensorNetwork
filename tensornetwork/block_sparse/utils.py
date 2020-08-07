@@ -262,7 +262,6 @@ def intersect(A: np.ndarray,
     # arrays were not callapsable
     return _intersect_ndarray(collapsed_A, collapsed_B, axis, assume_unique,
                               return_indices)
-
   if collapsed_A.dtype in (np.int8,
                            np.int16) and collapsed_B.dtype in (np.int8,
                                                                np.int16):
@@ -370,4 +369,4 @@ def _intersect_ndarray(A: np.ndarray,
     raise NotImplementedError(
         "intersection can only be performed on first or second axis")
 
-  raise NotImplementedError("intersect is only implemented for 1d or 2d arrays")
+  raise NotImplementedError("_intersect_ndarray is only implemented for 1d or 2d arrays")
