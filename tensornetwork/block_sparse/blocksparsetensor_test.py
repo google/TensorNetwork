@@ -910,8 +910,8 @@ def test_repr():
   inds = [Index(c, f) for c, f in zip(charges, flows)]
   T = ChargeArray.random(inds, dtype=dtype)
   actual = T.__repr__()
-  expected = "ChargeArray\n   shape: (10, 10, 10)\n  "
-  " charge types: ['U1Charge']\n   dtype: " + repr(
-      T.dtype.name) + "\n   flat flows: " + repr(
-          list(flows)) + "\n   order: " + repr(T._order)
+  expected = "ChargeArray\n   shape: (10, 10, 10)\n  " +\
+    " charge types: ['U1Charge']\n   dtype: " +\
+    repr(T.dtype.name) + "\n   flat flows: " + \
+    repr(list(flows)) + "\n   order: " + repr(T._order)
   assert actual == expected
