@@ -4,8 +4,9 @@ import itertools
 from tensornetwork.block_sparse.utils import (flatten, fuse_stride_arrays,
                                               fuse_ndarrays, fuse_degeneracies,
                                               _find_best_partition,
-                                              _get_strides, unique, get_dtype, get_real_dtype,
-                                              intersect, collapse, expand)
+                                              _get_strides, unique, get_dtype,
+                                              get_real_dtype, intersect,
+                                              collapse, expand)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -236,7 +237,7 @@ def test_intersect_raises():
   e = np.random.randint(0, 10, (3, 7, 3))
   with pytest.raises(NotImplementedError):
     intersect(d, e, axis=1)
-    
+
 def test_intersect_5():
   a = np.array([[0, 2], [1, 3], [2, 4]])
   b = np.array([[0, 2], [-2, 3], [6, 6]])
