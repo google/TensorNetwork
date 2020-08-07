@@ -237,7 +237,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            tol: float = 1E-8,
            which: Text = 'LR',
            maxiter: int = 20,
-           QR_thresh: float = 1E-12) -> Tuple[Tensor, List]:
+           res_thresh: float = 1E-12) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest
     eigenvector-eigenvalue pairs of a linear operator `A`.
@@ -297,6 +297,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
         (larges magnitude).
       maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
+      QR_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
+        if the norm of the residual `fk` of the shifted arnoldi factorization 
+        falls below `res_thresh` (see
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -328,7 +331,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
                                             initial_state, num_krylov_vecs,
                                             numeig, which, tol, maxiter,
-                                            QR_thresh)
+                                            res_thresh)
 
   def eigsh_lanczos(
       self,

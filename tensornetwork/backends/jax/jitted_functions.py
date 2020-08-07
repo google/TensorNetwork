@@ -365,7 +365,7 @@ def _implicitly_restarted_arnoldi(jax):
   ########################################################
 
   @partial(jax.jit, static_argnums=(4, 5, 6))
-  def shifted_QR(Vm, Hm, fm, evals, k, p, which, thresh):
+  def shifted_QR(Vm, Hm, fm, evals, k, p, which, res_thresh):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
     #compress to k = numeig
@@ -393,7 +393,7 @@ def _implicitly_restarted_arnoldi(jax):
     Z = jax.numpy.linalg.norm(fk)
     #if fk is a zero-vector then arnoldi has exactly converged.
     #use small threshold to check this
-    converged = jax.lax.cond(Z < thresh, lambda x: True, lambda x: False, None)
+    converged = jax.lax.cond(Z < res_thresh, lambda x: True, lambda x: False, None)
     return krylov_vectors, H, fk, converged
 
   @partial(jax.jit, static_argnums=(2,))
@@ -424,7 +424,7 @@ def _implicitly_restarted_arnoldi(jax):
 
   def implicitly_restarted_arnoldi_method(
       matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-      maxiter, QR_thresh) -> Tuple[List[Tensor], List[Tensor]]:
+      maxiter, res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -499,7 +499,7 @@ def _implicitly_restarted_arnoldi(jax):
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
       krylov_vectors, H, fk, _converged = shifted_QR(Vm, Hm, fm, evals, numeig,
-                                                     p, _which, QR_thresh)
+                                                     p, _which, res_thresh)
       if _converged:
         converged = True
         break
