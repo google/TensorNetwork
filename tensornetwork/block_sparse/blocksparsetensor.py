@@ -14,16 +14,18 @@
 
 import numpy as np
 import copy
+from functools import reduce
+from operator import mul
+
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    get_flat_meta_data, compute_num_nonzero, reduce_charges)
+    compute_num_nonzero, reduce_charges, get_flat_meta_data)
 from tensornetwork.block_sparse.utils import (flatten, _find_best_partition,
-                                              intersect)
+                                              intersect, unique)
 
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                charge_equal)
-
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
@@ -109,8 +111,10 @@ class ChargeArray:
     """
     data, charges, flows, order = _data_initializer(
         lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
-        lambda charges, flows: np.prod([c.dim for c in charges]), indices,
-        dtype)
+        lambda charges, flows: reduce(mul, [c.dim for c in charges], 1),
+        indices, dtype)
+    #np.prod([c.dim for c in charges])
+    #dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
@@ -135,7 +139,17 @@ class ChargeArray:
       Tuple: A tuple of `int`.
     """
     return tuple(
-        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+        [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def size(self) -> int:
+    """
+    The dense size of the tensor, i.e. the total number of elements, including 
+    those which are zero by conservation of charge.
+    Returns:
+      int: The total number of elements.
+    """
+    return reduce(mul, [self._charges[n].dim for s in self._order for n in s])
 
   @property
   def charges(self) -> List[List[BaseCharge]]:
@@ -417,7 +431,7 @@ class ChargeArray:
       charge_types = self._charges[0].names
     else:
       charge_types = 'no charge types (scalar)'
-      
+
     output = self.__class__.__name__ +'\n   shape: ' + repr(
         self.shape
     ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
@@ -543,6 +557,7 @@ class BlockSparseTensor(ChargeArray):
     if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
+
     out[np.nonzero(
         fuse_charges(self._charges, self._flows) ==
         self._charges[0].identity_charges(dim=1))[0]] = self.data
@@ -776,7 +791,6 @@ class BlockSparseTensor(ChargeArray):
       return self
     tr_partition = _find_best_partition(
         [flat_charges[n].dim for n in permutation])
-
     tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
         flat_charges, flat_flows, tr_partition, permutation)
 
