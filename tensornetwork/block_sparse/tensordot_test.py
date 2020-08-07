@@ -187,6 +187,21 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
                         B.charges[free_inds_B[n - len(free_inds_A)]][0])
 
 
+def test_tensordot_single_arg():
+  R = 3
+  dtype = np.float64
+  np.random.seed(10)
+  Ds = [10, 10, 10]
+  inds = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), False)
+      for n in range(R)
+  ]
+  A = BlockSparseTensor.random(inds, dtype=dtype)
+  res = tensordot(A, A.conj(), ([0]))
+  dense_res = np.tensordot(A.todense(), A.conj().todense(), ([0], [0]))
+  np.testing.assert_allclose(dense_res, res.todense())
+
+
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_tensordot_empty_tensors(dtype, num_charges):
@@ -212,10 +227,12 @@ def test_tensordot_empty_tensors(dtype, num_charges):
 def test_tensordot_raises():
   R1 = 3
   R2 = 3
+  R3 = 3
   dtype = np.float64
   np.random.seed(10)
   Ds1 = np.arange(2, 2 + R1)
   Ds2 = np.arange(2 + R1, 2 + R1 + R2)
+  Ds3 = np.arange(2 + R1, 2 + R1 + R3)
   is1 = [
       Index(U1Charge.random(dimension=Ds1[n], minval=-5, maxval=5), False)
       for n in range(R1)
@@ -224,22 +241,29 @@ def test_tensordot_raises():
       Index(U1Charge.random(dimension=Ds2[n], minval=-5, maxval=5), False)
       for n in range(R2)
   ]
+  is3 = [
+      Index(U1Charge.random(dimension=Ds3[n], minval=-5, maxval=5), False)
+      for n in range(R3)
+  ]
   A = BlockSparseTensor.random(is1, dtype=dtype)
   B = BlockSparseTensor.random(is2, dtype=dtype)
-  with pytest.raises(ValueError):
+  C = BlockSparseTensor.random(is3, dtype=dtype)
+  with pytest.raises(ValueError, match="same length"):
     tensordot(A, B, ([0, 1, 2, 3], [1, 2]))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="same length"):
     tensordot(A, B, ([0, 1], [0, 1, 2, 3]))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="same length"):
     tensordot(A, B, ([0], [1, 2]))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match='invalid input'):
     tensordot(A, B, [0, [1, 2]])
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="incompatible elementary flows"):
     tensordot(A, B, ([0, 0], [1, 2]))
   with pytest.raises(ValueError):
     tensordot(A, B, ([0, 1], [1, 1]))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="rank of `tensor1` is smaller than "):
     tensordot(A, B, ([0, 4], [1, 2]))
+  with pytest.raises(ValueError, match="rank of `tensor2` is smaller than "):
+    tensordot(A, B, ([0, 1], [0, 4]))
   with pytest.raises(ValueError):
     tensordot(A, B, ([0, 4], [1, 4]))
   with pytest.raises(ValueError):
@@ -248,6 +272,10 @@ def test_tensordot_raises():
     tensordot(A, A, ([0, 1], [0, 1]))
   with pytest.raises(ValueError):
     tensordot(A, A.conj(), ([0, 1], [1, 0]))
+  with pytest.raises(ValueError, match="is incompatible with `tensor1.shape"):
+    tensordot(A, A.conj(), ([0, 1, 2, 3], [0, 1, 2, 3]))
+  with pytest.raises(ValueError, match="is incompatible with `tensor1.shape"):
+    tensordot(A, C, ([0, 1, 2, 3], [0, 1, 2, 3]))
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
