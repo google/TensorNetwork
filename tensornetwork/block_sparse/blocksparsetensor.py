@@ -13,14 +13,17 @@
 # limitations under the License.
 
 import numpy as np
-from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.utils import (
-    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    flatten, get_flat_meta_data, compute_num_nonzero, _find_best_partition,
-    reduce_charges)
-from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
-                                               intersect, charge_equal)
 import copy
+from tensornetwork.block_sparse.index import Index
+from tensornetwork.block_sparse.blocksparse_utils import (
+    _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
+    get_flat_meta_data, compute_num_nonzero, reduce_charges)
+from tensornetwork.block_sparse.utils import (flatten, _find_best_partition,
+                                              intersect)
+
+from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
+                                               charge_equal)
+
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
@@ -192,7 +195,8 @@ class ChargeArray:
     Map the sparse tensor to dense storage.
     
     """
-    return np.reshape(self.data, self.shape)
+    tmp = self.contiguous()
+    return np.reshape(tmp.data, tmp.shape)
 
   def reshape(self, shape: Sequence[Union[Index, int]]) -> "ChargeArray":
     """
@@ -255,9 +259,9 @@ class ChargeArray:
         [self._charges[n].dim for o in self._order for n in o])
 
     if len(new_shape) > len(self._charges):
-      raise ValueError("The shape {} is incompatible with the "
-                       "elementary shape {} of the tensor.".format(
-                           tuple(new_shape), tuple(flat_dims)))
+      raise ValueError(f"The shape {tuple(new_shape)} is incompatible with the "
+                       f"elementary shape {tuple(flat_dims)} of the tensor.")
+
 
     if np.any(new_shape == 0) or np.any(flat_dims == 0):
       raise ValueError("reshaping empty arrays is ambiguous, and is currently "
@@ -413,7 +417,8 @@ class ChargeArray:
       charge_types = self._charges[0].names
     else:
       charge_types = 'no charge types (scalar)'
-    output = 'BlockSparseTensor\n   shape: ' + repr(
+      
+    output = self.__class__.__name__ +'\n   shape: ' + repr(
         self.shape
     ) + '\n   charge types: ' + charge_types + '\n   dtype: ' + repr(
         self.dtype.name) + '\n   flat flows: ' + repr(
@@ -909,13 +914,6 @@ def tensordot(
     raise ValueError(
         "`axes2 = {}` is incompatible with `tensor2.shape = {}. ".format(
             axes2, tensor2.shape))
-
-  if not np.all(np.unique(axes1) == np.sort(axes1)):
-    raise ValueError(
-        "Some values in axes[0] = {} appear more than once!".format(axes1))
-  if not np.all(np.unique(axes2) == np.sort(axes2)):
-    raise ValueError(
-        "Some values in axes[1] = {} appear more than once!".format(axes2))
 
   #special case outer product
   if len(axes1) == 0:
