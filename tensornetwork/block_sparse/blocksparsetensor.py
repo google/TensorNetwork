@@ -195,7 +195,8 @@ class ChargeArray:
     Map the sparse tensor to dense storage.
     
     """
-    return np.reshape(self.data, self.shape)
+    tmp = self.contiguous()
+    return np.reshape(tmp.data, tmp.shape)
 
   def reshape(self, shape: Sequence[Union[Index, int]]) -> "ChargeArray":
     """
@@ -258,9 +259,9 @@ class ChargeArray:
         [self._charges[n].dim for o in self._order for n in o])
 
     if len(new_shape) > len(self._charges):
-      raise ValueError("The shape {} is incompatible with the "
-                       "elementary shape {} of the tensor.".format(
-                           tuple(new_shape), tuple(flat_dims)))
+      raise ValueError(f"The shape {tuple(new_shape)} is incompatible with the "
+                       f"elementary shape {tuple(flat_dims)} of the tensor.")
+
 
     if np.any(new_shape == 0) or np.any(flat_dims == 0):
       raise ValueError("reshaping empty arrays is ambiguous, and is currently "
