@@ -84,10 +84,10 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
       raise TypeError("x0 must be a tn.Tensor.")
 
     if x0.backend.name != backend.name:
-      errstr = (f"If both x0 and backend are specified the"
+      errstr = ("If both x0 and backend are specified the"
                 "backends must agree. \n"
-                "x0 backend: {x0.backend.name} \n"
-                "backend: {backend.name} \n")
+                f"x0 backend: {x0.backend.name} \n"
+                f"backend: {backend.name} \n")
       raise ValueError(errstr)
   else:
     x0_array = None
