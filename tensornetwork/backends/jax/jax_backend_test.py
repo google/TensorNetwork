@@ -650,6 +650,40 @@ def test_eigs_raises():
       backend.eigs(lambda x: x, which=which)
 
 
+##################################################################
+#############  This test should just not crash    ################
+##################################################################
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_eigs_bugfix(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 200
+  dtype = np.complex128
+  mat = np.random.rand(D, D).astype(dtype)
+  x = np.random.rand(D).astype(dtype)
+
+  def matvec_jax(vector, matrix):
+    return matrix @ vector
+
+  backend.eigs(
+      matvec_jax, [mat],
+      numeig=1,
+      initial_state=x,
+      which='LR',
+      maxiter=10,
+      num_krylov_vecs=100,
+      tol=0.0001)
+  with pytest.raises(np.linalg.LinAlgError):
+    backend.eigs(
+        matvec_jax, [mat],
+        numeig=1,
+        initial_state=x,
+        which='LR',
+        maxiter=10,
+        num_krylov_vecs=100,
+        tol=0.0001,
+        QR_thresh=0.0)
+
+
 def test_sum():
   np.random.seed(10)
   backend = jax_backend.JaxBackend()
