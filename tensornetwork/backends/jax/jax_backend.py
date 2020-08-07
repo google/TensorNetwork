@@ -236,7 +236,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: int = 20) -> Tuple[Tensor, List]:
+           maxiter: int = 20, QR_thresh: float=1E-12) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest
     eigenvector-eigenvalue pairs of a linear operator `A`.
@@ -326,7 +326,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
     return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
                                             initial_state, num_krylov_vecs,
-                                            numeig, which, tol, maxiter)
+                                            numeig, which, tol, maxiter, QR_thresh)
 
   def eigsh_lanczos(
       self,

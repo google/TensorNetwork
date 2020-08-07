@@ -289,7 +289,7 @@ def _generate_arnoldi_factorization(jax):
 
     def cond_fun(vals):
       # Continue loop while iteration < num_krylov_vecs and norm > eps
-      _, _, _, _, norm, _, iteration, _ = vals
+      _, _, _, _, norm, _, iteration, _= vals
       counter_done = (iteration >= num_krylov_vecs)
       norm_not_too_small = norm > eps
       continue_iteration = jax.lax.cond(counter_done,
@@ -365,7 +365,7 @@ def _implicitly_restarted_arnoldi(jax):
   ########################################################
 
   @partial(jax.jit, static_argnums=(4, 5, 6))
-  def shifted_QR(Vm, Hm, fm, evals, k, p, which):
+  def shifted_QR(Vm, Hm, fm, evals, k, p, which, thresh):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
     #compress to k = numeig
@@ -390,7 +390,11 @@ def _implicitly_restarted_arnoldi(jax):
     krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[0:k, :],
                                           Vk)
     krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[k:], v)
-    return krylov_vectors, H, fk
+    Z = jax.numpy.linalg.norm(fk)
+    #if fk is a zero-vector then arnoldi has exactly converged.
+    #use small threshold to check this
+    converged = jax.lax.cond(Z < thresh, lambda x: True, lambda x: False, None)
+    return krylov_vectors, H, fk, converged
 
   @partial(jax.jit, static_argnums=(2,))
   def update_data(Vm_tmp, Hm_tmp, numits):
@@ -420,7 +424,7 @@ def _implicitly_restarted_arnoldi(jax):
 
   def implicitly_restarted_arnoldi_method(
       matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-      maxiter) -> Tuple[List[Tensor], List[Tensor]]:
+      maxiter, QR_thresh) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -461,7 +465,8 @@ def _implicitly_restarted_arnoldi(jax):
         (num_krylov_vecs + 1, jax.numpy.ravel(initial_state).shape[0]),
         dtype=dtype)
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
-
+    norms = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
+    norms_before = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
     # perform initial arnoldi factorization
     Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(matvec, args,
                                                      initial_state,
@@ -492,15 +497,22 @@ def _implicitly_restarted_arnoldi(jax):
       Vm = Vm.astype(dtype)
       Hm = Hm.astype(dtype)
       fm = fm.astype(dtype)
-
+    converged = False
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
-      krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, evals, numeig, p, _which)
+      krylov_vectors, H, fk, _converged = shifted_QR(Vm, Hm, fm, evals, numeig,
+                                                     p, _which, QR_thresh)
+      if _converged:
+        converged = True
+        break
       v0 = jax.numpy.reshape(fk, initial_state.shape)
+      norms = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
+      norms_before = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
+
       # restart
       Vm_tmp, Hm_tmp, _, converged = arnoldi_fact(matvec, args, v0,
-                                                  krylov_vectors, H, numeig,
-                                                  num_krylov_vecs, eps)
+                                                     krylov_vectors, H, numeig,
+                                                     num_krylov_vecs, eps)
       Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, num_krylov_vecs)
       it += 1
 
