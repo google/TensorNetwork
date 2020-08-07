@@ -242,8 +242,6 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
       BaseCharge(left_charges, charge_types=[U1Charge] * num_charges),
       BaseCharge(right_charges, charge_types=[U1Charge] * num_charges)
   ]
-  print(left_charges)
-  print(right_charges)
   bs, cs, ss = _find_diagonal_sparse_blocks(charges, [False, False], 1)
   np.testing.assert_allclose(cs.charges, unique_left)
   for b1, b2 in zip(blocks, bs):
