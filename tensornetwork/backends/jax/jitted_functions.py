@@ -289,7 +289,7 @@ def _generate_arnoldi_factorization(jax):
 
     def cond_fun(vals):
       # Continue loop while iteration < num_krylov_vecs and norm > eps
-      _, _, _, _, norm, _, iteration, _= vals
+      _, _, _, _, norm, _, iteration, _ = vals
       counter_done = (iteration >= num_krylov_vecs)
       norm_not_too_small = norm > eps
       continue_iteration = jax.lax.cond(counter_done,
@@ -504,9 +504,6 @@ def _implicitly_restarted_arnoldi(jax):
         converged = True
         break
       v0 = jax.numpy.reshape(fk, initial_state.shape)
-      norms = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
-      norms_before = jax.numpy.zeros(num_krylov_vecs, dtype=np.float64)
-
       # restart
       Vm_tmp, Hm_tmp, _, converged = arnoldi_fact(matvec, args, v0,
                                                   krylov_vectors, H, numeig,
