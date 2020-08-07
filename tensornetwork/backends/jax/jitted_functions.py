@@ -393,7 +393,8 @@ def _implicitly_restarted_arnoldi(jax):
     Z = jax.numpy.linalg.norm(fk)
     #if fk is a zero-vector then arnoldi has exactly converged.
     #use small threshold to check this
-    converged = jax.lax.cond(Z < res_thresh, lambda x: True, lambda x: False, None)
+    converged = jax.lax.cond(Z < res_thresh, lambda x: True, lambda x: False,
+                             None)
     return krylov_vectors, H, fk, converged
 
   @partial(jax.jit, static_argnums=(2,))
