@@ -15,26 +15,24 @@ np_tensordot_dtypes = [np.float64, np.complex128]
 
 def get_charge(chargetype, num_charges, D):
   if chargetype == "U1":
-    return BaseCharge(
+    out = BaseCharge(
         np.random.randint(-5, 6, (D, num_charges)),
         charge_types=[U1Charge] * num_charges)
   if chargetype == "Z2":
-    return BaseCharge(
+    out = BaseCharge(
         np.random.randint(0, 2, (D, num_charges)),
         charge_types=[Z2Charge] * num_charges)
   if chargetype == "mixed":
     n1 = num_charges // 2 if num_charges > 1 else 1
-    c = BaseCharge(
+    out = BaseCharge(
         np.random.randint(-5, 6, (D, n1)), charge_types=[U1Charge] * n1)
 
     if num_charges > 1:
       n2 = num_charges - n1
-      c = c @ BaseCharge(
+      out = out @ BaseCharge(
           np.random.randint(0, 2, (D, n2)), charge_types=[Z2Charge] * n2)
 
-    return c
-  return None
-
+  return out
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 def test_ChargeArray_init(chargetype):
