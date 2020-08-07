@@ -1,8 +1,9 @@
 import numpy as np
-# pylint: disable=line-too-long
-from tensornetwork.block_sparse.index import Index, fuse_index_pair, fuse_indices
-from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, fuse_charges
-
+from tensornetwork.block_sparse.index import (Index, fuse_index_pair,
+                                              fuse_indices)
+from tensornetwork.block_sparse.charge import (U1Charge, BaseCharge,
+                                               fuse_charges)
+import pytest
 
 def test_index():
   D = 10
@@ -70,7 +71,7 @@ def test_index_fusion_mul():
   i2 = Index(charges=q2, flow=False)  #index on leg 2
 
   i12 = i1 * i2
-  for n in range(len(i12.charges.charges)):
+  for n in range(i12.charges.charges.shape[1]):
     assert np.all(i12._charges[n].charges == charges[n].charges)
   assert np.all(i12.charges.charges == (q1 + q2).charges)
 
@@ -89,7 +90,7 @@ def test_fuse_indices():
   i2 = Index(charges=q2, flow=False)  #index on leg 2
 
   i12 = fuse_indices([i1, i2])
-  for n in range(len(i12.charges.charges)):
+  for n in range(i12.charges.charges.shape[1]):
     assert np.all(i12._charges[n].charges == charges[n].charges)
   assert np.all(i12.charges.charges == (q1 + q2).charges)
 
@@ -132,3 +133,29 @@ def test_index_copy_2():
   assert flat1234[1] is not i2.flat_charges[0]
   assert flat1234[2] is not i3.flat_charges[0]
   assert flat1234[3] is not i4.flat_charges[0]
+
+def test_index_raises():
+  D = 10
+  B = 4
+  dtype = np.int16
+  np.random.seed(10)
+  q1 = U1Charge(np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype))
+  q2 = U1Charge(np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype))
+  with pytest.raises(TypeError):
+    Index(charges=[q1, q2], flow=[2, True])
+
+def test_repr():
+  D = 10
+  B = 4
+  dtype = np.int16
+  np.random.seed(10)
+  q1 = U1Charge(np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype))
+  q2 = U1Charge(np.random.randint(-B // 2, B // 2 + 1, D).astype(dtype))
+  index = Index(charges=[q1, q2], flow=[False, True])  
+  dense_shape = f"Dimension: {str(index.dim)} \n"
+  charge_str = str(index._charges).replace('\n,', ',\n')
+  charge_str = charge_str.replace('\n', '\n            ')
+  charges = f"Charges:  {charge_str} \n"
+  flow_info = f"Flows:  {str(index.flow)} \n"
+  res = f"Index:\n  {dense_shape}  {charges}  {flow_info} "
+  assert res == index.__repr__()

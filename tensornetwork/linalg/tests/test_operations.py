@@ -23,94 +23,13 @@ import pytest
 import tensornetwork
 import tensornetwork.linalg.operations
 from tensornetwork import backends, backend_contextmanager
+from tensornetwork.tests import testing_utils
 
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
 
-np_real = [np.float32, np.float16, np.float64]
-np_complex = [np.complex64, np.complex128]
-np_int = [np.int8, np.int16, np.int32, np.int64]
-np_uint = [np.uint8, np.uint16, np.uint32, np.uint64]
-np_float_dtypes = np_real + np_complex
-np_not_half = [np.float32, np.float64] + np_complex
-np_not_bool = np_float_dtypes + np_int + np_uint + [None,]
-np_all_dtypes = np_not_bool + [np.bool,]
 
-torch_supported_dtypes = np_real + np_int + [np.uint8, np.bool, None]
-
-
-def safe_randn(shape, backend, dtype):
-  """
-  Creates a random tensor , catching errors that occur when the
-  dtype is not supported by the backend. Returns the Tensor and the backend
-  array, which are both None if the dtype and backend did not match.
-  """
-  np.random.seed(seed=10)
-  init = np.random.randn(*shape)
-  if dtype == np.bool:
-    init = np.round(init)
-  init = init.astype(dtype)
-
-  if dtype in np_complex:
-    init_i = np.random.randn(*shape)
-    init = init + 1.0j * init_i.astype(dtype)
-
-  if backend == "pytorch" and dtype not in torch_supported_dtypes:
-    with pytest.raises(TypeError):
-      A = tensornetwork.Tensor(init, backend=backend)
-    A = None
-    init = None
-  else:
-    A = tensornetwork.Tensor(init, backend=backend)
-  return (A, init)
-
-
-def np_dtype_to_backend(backend, dtype):
-  """
-  Converts a given np dtype to the equivalent in the given backend. Skips
-  the present test if the dtype is not supported in the backend.
-  """
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend_obj = backends.backend_factory.get_backend(backend)
-  if backend_obj.name == "numpy":
-    return dtype
-  A_np = np.ones([1], dtype=dtype)
-
-  if backend_obj.name == "jax":
-    A = jnp.array(A_np)
-  elif backend_obj.name == "tensorflow":
-    A = tf.convert_to_tensor(A_np, dtype=dtype)
-  elif backend_obj.name == "pytorch":
-    if dtype not in torch_supported_dtypes:
-      pytest.skip("dtype unsupported by PyTorch")
-
-    A = torch.tensor(A_np)
-  else:
-    raise ValueError("Invalid backend ", backend)
-  return A.dtype
-
-
-def check_contraction_dtype(backend, dtype):
-  """
-  Skips the test if the backend cannot perform multiply-add with the given
-  dtype.
-  """
-  skip = False
-  if backend == "tensorflow":
-    if dtype in [np.uint8, tf.uint8, np.uint16, tf.uint16, np.int8, tf.int8,
-                 np.int16, tf.int16, np.uint32, tf.uint32, np.uint64,
-                 tf.uint64]:
-      skip = True
-
-  if backend == "pytorch":
-    if dtype in [np.float16, torch.float16]:
-      skip = True
-  if skip:
-    pytest.skip("backend does not support multiply-add with this dtype.")
-
-
-@pytest.mark.parametrize("dtype", np_not_bool)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
 def test_tensordot_invalid_backend_raises_value_error(backend, dtype):
   """
   Tests that tensordot raises ValueError when fed Tensors with different
@@ -120,25 +39,25 @@ def test_tensordot_invalid_backend_raises_value_error(backend, dtype):
   this_name = set([backend])
   other_backend_names = list(backend_names - this_name)
   shape = (4, 4, 4)
-  dtype1 = np_dtype_to_backend(backend, dtype)
-  check_contraction_dtype(backend, dtype1)
+  dtype1 = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype1)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype1)
   for other_backend in other_backend_names:
-    dtype2 = np_dtype_to_backend(other_backend, dtype)
-    check_contraction_dtype(other_backend, dtype2)
+    dtype2 = testing_utils.np_dtype_to_backend(other_backend, dtype)
+    testing_utils.check_contraction_dtype(other_backend, dtype2)
     tensor2 = tensornetwork.ones(shape, backend=other_backend, dtype=dtype2)
     with pytest.raises(ValueError):
       _ = tensornetwork.tensordot(tensor1, tensor2, [[2, 0, 1], [1, 2, 0]])
 
 
-@pytest.mark.parametrize("dtype", np_not_bool)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
 def test_tensordot_vs_backend(backend, dtype):
   """
   Tests that tensordot yields the same result as the backend equivalent.
   """
   shape = (4, 4, 4)
-  dtype = np_dtype_to_backend(backend, dtype)
-  check_contraction_dtype(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensors = [tensor1, tensor2]
@@ -150,13 +69,13 @@ def test_tensordot_vs_backend(backend, dtype):
   np.testing.assert_allclose(backend_result, result.array)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_reshape_vs_backend(backend, dtype):
   """
   Tests that reshape yields the same result as the backend equivalent.
   """
   shape = (3, 2, 4)
-  dtype = np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   result = tensornetwork.reshape(tensor, (6, 4))
   backend_obj = backends.backend_factory.get_backend(backend)
@@ -164,14 +83,14 @@ def test_reshape_vs_backend(backend, dtype):
   assert result.shape == backend_result.shape
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_transpose_vs_backend(backend, dtype):
   """
   Tests that transpose yields the same result as the backend equivalent.
   """
   shape = (3, 2, 4)
   permutation = (1, 2, 0)
-  tensor, array = safe_randn(shape, backend, dtype)
+  tensor, array = testing_utils.safe_randn(shape, backend, dtype)
 
   if tensor is not None:
     backend_obj = backends.backend_factory.get_backend(backend)
@@ -181,14 +100,14 @@ def test_transpose_vs_backend(backend, dtype):
     np.testing.assert_allclose(test, tensor_test.array)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_hconj_vs_backend(backend, dtype):
   """
   Tests that hconj yields the same result as the equivalent backend sequence.
   """
   shape = (3, 2, 4)
   permutation = (1, 2, 0)
-  tensor, array = safe_randn(shape, backend, dtype)
+  tensor, array = testing_utils.safe_randn(shape, backend, dtype)
 
   if tensor is not None:
     backend_obj = backends.backend_factory.get_backend(backend)
@@ -199,13 +118,13 @@ def test_hconj_vs_backend(backend, dtype):
     np.testing.assert_allclose(test, tensor_test.array)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_take_slice_vs_backend(backend, dtype):
   """
   Tests that take_slice yields the same result as the backend equivalent.
   """
   shape = (5, 6, 7)
-  dtype = np_dtype_to_backend(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   start_indices = (1, 2, 3)
   slice_sizes = (2, 3, 3)
@@ -215,11 +134,11 @@ def test_take_slice_vs_backend(backend, dtype):
   assert result.shape == backend_result.shape
 
 
-@pytest.mark.parametrize("dtype", np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 @pytest.mark.parametrize("fname", ["sin", "cos", "exp", "log", "conj", "sign"])
 def test_unary_ops_vs_backend(backend, dtype, fname):
   shape = (4, 5, 6)
-  dtype_b = np_dtype_to_backend(backend, dtype)
+  dtype_b = testing_utils.np_dtype_to_backend(backend, dtype)
   backend_obj = backends.backend_factory.get_backend(backend)
   backend_func = getattr(backend_obj, fname)
   tn_func = getattr(tensornetwork.linalg.operations, fname)
@@ -235,10 +154,10 @@ def test_unary_ops_vs_backend(backend, dtype, fname):
     np.testing.assert_allclose(backend_result, tn_result)
 
 
-@pytest.mark.parametrize("dtype", np_not_half)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_half)
 def test_abs_vs_backend(backend, dtype):
   shape = (4, 5, 6)
-  dtype_b = np_dtype_to_backend(backend, dtype)
+  dtype_b = testing_utils.np_dtype_to_backend(backend, dtype)
   backend_obj = backends.backend_factory.get_backend(backend)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype_b)
   if (backend == "pytorch" and dtype == np.float16):
@@ -249,10 +168,10 @@ def test_abs_vs_backend(backend, dtype):
     np.testing.assert_allclose(backend_result, tn_result)
 
 
-@pytest.mark.parametrize("dtype", np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_sqrt_vs_backend(backend, dtype):
   shape = (4, 5, 6)
-  dtype_b = np_dtype_to_backend(backend, dtype)
+  dtype_b = testing_utils.np_dtype_to_backend(backend, dtype)
   backend_obj = backends.backend_factory.get_backend(backend)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype_b)
   if (backend == "pytorch" and dtype == np.float16):
@@ -263,28 +182,28 @@ def test_sqrt_vs_backend(backend, dtype):
     np.testing.assert_allclose(backend_result, tn_result)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_shape(backend, dtype):
   shape = (4, 5, 6)
-  dtype_b = np_dtype_to_backend(backend, dtype)
+  dtype_b = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype_b)
   tn_result = tensornetwork.shape(tensor)
   assert tensor.shape == tn_result
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_einsum_invalid_backends(dtype, backend):
   backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
   this_name = set([backend])
   other_backend_names = list(backend_names - this_name)
   shape = (4, 3)
-  dtype1 = np_dtype_to_backend(backend, dtype)
+  dtype1 = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype1)
   for other_backend in other_backend_names:
-    dtype2 = np_dtype_to_backend(other_backend, dtype)
+    dtype2 = testing_utils.np_dtype_to_backend(other_backend, dtype)
     tensor2 = tensornetwork.ones(shape, backend=other_backend, dtype=dtype2)
     for other_other_backend in backend_names:
-      dtype3 = np_dtype_to_backend(other_other_backend, dtype)
+      dtype3 = testing_utils.np_dtype_to_backend(other_other_backend, dtype)
       tensor3 = tensornetwork.zeros(shape, backend=other_other_backend,
                                     dtype=dtype3)
       with pytest.raises(ValueError):
@@ -292,11 +211,11 @@ def test_einsum_invalid_backends(dtype, backend):
                                  optimize=True)
 
 
-@pytest.mark.parametrize("dtype", np_not_bool)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
 def test_einsum_vs_backend(dtype, backend):
   shape = (4, 3)
-  dtype = np_dtype_to_backend(backend, dtype)
-  check_contraction_dtype(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor3 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
@@ -308,26 +227,26 @@ def test_einsum_vs_backend(dtype, backend):
   np.testing.assert_allclose(backend_result, result.array)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_outer_invalid_backends(dtype, backend):
   backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
   this_name = set([backend])
   other_backend_names = list(backend_names - this_name)
   shape = (4, 3)
-  dtype1 = np_dtype_to_backend(backend, dtype)
+  dtype1 = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype1)
   for other_backend in other_backend_names:
-    dtype2 = np_dtype_to_backend(other_backend, dtype)
+    dtype2 = testing_utils.np_dtype_to_backend(other_backend, dtype)
     tensor2 = tensornetwork.ones(shape, backend=other_backend, dtype=dtype2)
     with pytest.raises(ValueError):
       _ = tensornetwork.outer(tensor1, tensor2)
 
 
-@pytest.mark.parametrize("dtype", np_not_bool)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
 def test_outer_vs_backend(dtype, backend):
   shape = (4, 3)
-  dtype = np_dtype_to_backend(backend, dtype)
-  check_contraction_dtype(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   result = tensornetwork.outer(tensor1, tensor2)
@@ -337,19 +256,19 @@ def test_outer_vs_backend(dtype, backend):
   np.testing.assert_allclose(backend_result, result.array)
 
 
-@pytest.mark.parametrize("dtype", np_all_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_ncon_invalid_backends(dtype, backend):
   backend_names = set(["jax", "numpy", "tensorflow", "pytorch"])
   this_name = set([backend])
   other_backend_names = list(backend_names - this_name)
   shape = (4, 3)
-  dtype1 = np_dtype_to_backend(backend, dtype)
+  dtype1 = testing_utils.np_dtype_to_backend(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype1)
   for other_backend in other_backend_names:
-    dtype2 = np_dtype_to_backend(other_backend, dtype)
+    dtype2 = testing_utils.np_dtype_to_backend(other_backend, dtype)
     tensor2 = tensornetwork.ones(shape, backend=other_backend, dtype=dtype2)
     for other_other_backend in backend_names:
-      dtype3 = np_dtype_to_backend(other_other_backend, dtype)
+      dtype3 = testing_utils.np_dtype_to_backend(other_other_backend, dtype)
       tensor3 = tensornetwork.zeros(shape, backend=other_other_backend,
                                     dtype=dtype3)
       tensors = [tensor1, tensor2, tensor3]
@@ -358,11 +277,11 @@ def test_ncon_invalid_backends(dtype, backend):
         _ = tensornetwork.linalg.operations.ncon(tensors, idxs)
 
 
-@pytest.mark.parametrize("dtype", np_not_bool)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
 def test_ncon_vs_backend(dtype, backend):
   shape = (4, 3)
-  dtype = np_dtype_to_backend(backend, dtype)
-  check_contraction_dtype(backend, dtype)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype)
   tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
   tensor3 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
@@ -374,34 +293,34 @@ def test_ncon_vs_backend(dtype, backend):
   np.testing.assert_allclose(old_result, result.array)
 
 
-@pytest.mark.parametrize("dtype", np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_diagonal(backend, dtype):
   """ Checks that Tensor.diagonal() works.
   """
   shape = (2, 3, 3)
-  A, _ = safe_randn(shape, backend, dtype)
+  A, _ = testing_utils.safe_randn(shape, backend, dtype)
   if A is not None:
     np.testing.assert_allclose(tensornetwork.diagonal(A).array,
                                A.backend.diagonal(A.array))
 
 
-@pytest.mark.parametrize("dtype", np_float_dtypes)
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
 def test_diagflat(backend, dtype):
   """ Checks that Tensor.diagflat() works.
   """
   shape = (2, 3, 3)
-  A, _ = safe_randn(shape, backend, dtype)
+  A, _ = testing_utils.safe_randn(shape, backend, dtype)
   if A is not None:
     np.testing.assert_allclose(tensornetwork.diagflat(A).array,
                                A.backend.diagflat(A.array))
 
 
-@pytest.mark.parametrize("dtype", np_not_half)
+@pytest.mark.parametrize("dtype", testing_utils.np_not_half)
 def test_trace(backend, dtype):
   """ Checks that Tensor.trace() works.
   """
   shape = (2, 3, 3)
-  A, _ = safe_randn(shape, backend, dtype)
+  A, _ = testing_utils.safe_randn(shape, backend, dtype)
   if A is not None:
     np.testing.assert_allclose(tensornetwork.trace(A).array,
                                A.backend.trace(A.array))

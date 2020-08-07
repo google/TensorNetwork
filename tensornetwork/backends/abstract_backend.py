@@ -207,7 +207,8 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
 
-  def einsum(self, expression: str, *tensors: Tensor, optimize: bool) -> Tensor:
+  def einsum(self, expression: str, *tensors: Tensor,
+             optimize: bool = True) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
         self.name))
@@ -368,7 +369,7 @@ class AbstractBackend:
       maxiter: The maximum number of iterations.
     Returns:
        `Tensor`: An array of `numeig` lowest eigenvalues
-       `Tensor`: An array of `numeig` lowest eigenvectors
+       `list`: A list of `numeig` lowest eigenvectors
     """
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
@@ -814,7 +815,7 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented `sign`.".format(self.name))
 
-  def pivot(self, tensor: Tensor, pivot_axis: int = 1) -> Tensor:
+  def pivot(self, tensor: Tensor, pivot_axis: int = -1) -> Tensor:
     """ Reshapes a tensor into a matrix, whose columns (rows) are the
     vectorized dimensions to the left (right) of pivot_axis.
 
@@ -829,7 +830,7 @@ class AbstractBackend:
       The pivoted tensor.
     """
     ndim = len(self.shape_tuple(tensor))
-    if pivot_axis < 1 or pivot_axis > ndim:
+    if pivot_axis > ndim:
       errstr = f"pivot_axis = {pivot_axis} was invalid given ndim={ndim} array."
       raise ValueError(errstr)
 

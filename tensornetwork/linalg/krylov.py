@@ -13,6 +13,7 @@
 # limitations under the License.
 #pylint: disable=line-too-long
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List, Text
+import functools
 import numpy as np
 import tensornetwork.tensor
 import tensornetwork.backends.abstract_backend as abstract_backend
@@ -23,10 +24,95 @@ AbstractBackend = abstract_backend.AbstractBackend
 Array = Any
 Tensor = tensornetwork.tensor.Tensor
 
+class MatvecCache:
+  """
+  Caches matvec functions so that they have identical function signature
+  when called repeatedly. This circumvents extraneous recompilations when
+  Jit is used. Incoming matvec functions should be in terms of Tensor
+  and have function signature A = matvec(x, *args), where each of the
+  positional arguments in *args is also a Tensor.
+  """
+  def __init__(self):
+    self.clear()
+
+  def clear(self):
+    self.cache = {}
+
+  def retrieve(self, backend_name: Text, matvec: Callable):
+    if backend_name not in self.cache:
+      self.cache[backend_name] = {}
+    if matvec not in self.cache[backend_name]:
+      def wrapped(x, *args):
+        X = Tensor(x, backend=backend_name)
+        Args = [Tensor(a, backend=backend_name) for a in args]
+        Y = matvec(X, *Args)
+        return Y.array
+      self.cache[backend_name][matvec] = wrapped
+    return self.cache[backend_name][matvec]
+
+KRYLOV_MATVEC_CACHE = MatvecCache()
+
+def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
+                        x0: Union[Tensor, None],
+                        args: Union[List[Tensor], None]):
+  """
+  Checks that at least one of backend and x0 are not None; that backend
+  and x0.backend agree; that if args is not None its elements are Tensors
+  whose backends also agree. Creates a backend object from backend
+  and returns the arrays housed by x0 and args.
+
+  Args:
+    backend: A backend, text specifying one, or None.
+    x0: A tn.Tensor, or None.
+    args: A list of tn.Tensor, or None.
+  Returns:
+    backend: A backend object.
+    x0_array: x0.array if x0 was supplied, or None.
+    args_arr: Each array in the list of args if it was supplied, or None.
+  """
+  # If the backend wasn't specified, infer it from x0. If neither was specified
+  # raise ValueError.
+  if backend is None:
+    if x0 is None:
+      raise ValueError("One of backend or x0 must be specified.")
+    backend = x0.backend
+  else:
+    backend = backends.backend_factory.get_backend(backend)
+
+  # If x0 was specified, return the enclosed array. If attempting to do so
+  # raises AttributeError, instead raise TypeError. If backend was also
+  # specified, but was different than x0.backend, raise ValueError.
+  if x0 is not None:
+    try:
+      x0_array = x0.array
+    except AttributeError:
+      raise TypeError("x0 must be a tn.Tensor.")
+
+    if x0.backend.name != backend.name:
+      errstr = ("If both x0 and backend are specified the"
+                "backends must agree. \n"
+                f"x0 backend: {x0.backend.name} \n"
+                f"backend: {backend.name} \n")
+      raise ValueError(errstr)
+  else: # If x0 was not specified, set x0_array (the returned value) to None.
+    x0_array = None
+
+  # If args were specified, set the returned args_array to be all the enclosed
+  # arrays. If any of them raise AttributeError during the attempt, raise
+  # TypeError. If args was not specified, set args_array to None.
+  if args is not None:
+    try:
+      args_array = [a.array for a in args]
+    except AttributeError:
+      raise TypeError("Every element of args must be a tn.Tensor.")
+  else:
+    args_array = None
+  return (backend, x0_array, args_array)
+
 def eigsh_lanczos(A: Callable,
                   backend: Optional[Union[Text, AbstractBackend]] = None,
                   args: Optional[List[Tensor]] = None,
-                  initial_state: Optional[Tensor] = None,
+                  x0: Optional[Tensor] = None,
                   shape: Optional[Tuple[int, ...]] = None,
                   dtype: Optional[Type[np.number]] = None,
                   num_krylov_vecs: int = 20,
@@ -43,11 +129,11 @@ def eigsh_lanczos(A: Callable,
        Call signature of `A` is `res = A(vector, *args)`, where `vector`
        can be an arbitrary `Array`, and `res.shape` has to be `vector.shape`.
     arsg: A list of arguments to `A`.  `A` will be called as
-      `res = A(initial_state, *args)`.
-    initial_state: An initial vector for the Lanczos algorithm. If `None`,
+      `res = A(x0, *args)`.
+    x0: An initial vector for the Lanczos algorithm. If `None`,
       a random initial vector is created using the `backend.randn` method
     shape: The shape of the input-dimension of `A`.
-    dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+    dtype: The dtype of the input `A`. If both no `x0` is provided,
       a random initial state with shape `shape` and dtype `dtype` is created.
     num_krylov_vecs: The number of iterations (number of krylov vectors).
     numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -70,15 +156,10 @@ def eigsh_lanczos(A: Callable,
      eigvals: A list of `numeig` lowest eigenvalues
      eigvecs: A list of `numeig` lowest eigenvectors
   """
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend = backends.backend_factory.get_backend(backend)
-  if args is not None:
-    args = [a.array for a in args]
-  if initial_state is not None:
-    initial_state = initial_state.array
-  result = backend.eigsh_lanczos(A, args=args,
-                                 initial_state=initial_state,
+  backend, x0_array, args_array = krylov_error_checks(backend, x0, args)
+  mv = KRYLOV_MATVEC_CACHE.retrieve(backend.name, A)
+  result = backend.eigsh_lanczos(mv, args=args_array,
+                                 initial_state=x0_array,
                                  shape=shape, dtype=dtype,
                                  num_krylov_vecs=num_krylov_vecs, numeig=numeig,
                                  tol=tol, delta=delta, ndiag=ndiag,
@@ -91,7 +172,7 @@ def eigsh_lanczos(A: Callable,
 def eigs(A: Callable,
          backend: Optional[Union[Text, AbstractBackend]] = None,
          args: Optional[List[Tensor]] = None,
-         initial_state: Optional[Tensor] = None,
+         x0: Optional[Tensor] = None,
          shape: Optional[Tuple[int, ...]] = None,
          dtype: Optional[Type[np.number]] = None,
          num_krylov_vecs: int = 20,
@@ -107,11 +188,11 @@ def eigs(A: Callable,
        Call signature of `A` is `res = A(vector, *args)`, where `vector`
        can be an arbitrary `Array`, and `res.shape` has to be `vector.shape`.
     arsg: A list of arguments to `A`.  `A` will be called as
-      `res = A(initial_state, *args)`.
-    initial_state: An initial vector for the Lanczos algorithm. If `None`,
+      `res = A(x0, *args)`.
+    x0: An initial vector for the Lanczos algorithm. If `None`,
       a random initial vector is created using the `backend.randn` method
     shape: The shape of the input-dimension of `A`.
-    dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+    dtype: The dtype of the input `A`. If both no `x0` is provided,
       a random initial state with shape `shape` and dtype `dtype` is created.
     num_krylov_vecs: The number of iterations (number of krylov vectors).
     numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
@@ -134,14 +215,9 @@ def eigs(A: Callable,
      eigvals: A list of `numeig` lowest eigenvalues
      eigvecs: A list of `numeig` lowest eigenvectors
   """
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend = backends.backend_factory.get_backend(backend)
-  if args is not None:
-    args = [a.array for a in args]
-  if initial_state is not None:
-    initial_state = initial_state.array
-  result = backend.eigs(A, args=args, initial_state=initial_state,
+  backend, x0_array, args_array = krylov_error_checks(backend, x0, args)
+  mv = KRYLOV_MATVEC_CACHE.retrieve(backend.name, A)
+  result = backend.eigs(mv, args=args_array, initial_state=x0_array,
                         shape=shape, dtype=dtype,
                         num_krylov_vecs=num_krylov_vecs, numeig=numeig,
                         tol=tol, which=which, maxiter=maxiter)
@@ -234,14 +310,17 @@ def gmres(A_mv: Callable,
     x       : The converged solution. It has the same shape as `b`.
     info    : 0 if convergence was achieved, the number of restarts otherwise.
   """
-  if A_args is not None:
-    A_args = [a.array for a in A_args]
-  if x0 is not None:
-    x0 = x0.array
-  out = b.backend.gmres(A_mv, b.array, A_args=A_args,
-                        x0=x0, tol=tol, atol=atol,
-                        num_krylov_vectors=num_krylov_vectors,
-                        maxiter=maxiter, M=M)
+  try:
+    b_array = b.array
+  except AttributeError:
+    raise TypeError("b must be a tn.Tensor")
+  backend, x0_array, args_array = krylov_error_checks(b.backend, x0, A_args)
+
+  mv = KRYLOV_MATVEC_CACHE.retrieve(backend.name, A_mv)
+  out = backend.gmres(mv, b_array, A_args=args_array,
+                      x0=x0_array, tol=tol, atol=atol,
+                      num_krylov_vectors=num_krylov_vectors,
+                      maxiter=maxiter, M=M)
   result, info = out
   resultT = Tensor(result, backend=b.backend)
   return (resultT, info)
