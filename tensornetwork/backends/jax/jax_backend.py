@@ -26,11 +26,11 @@ Tensor = Any
 _CACHED_MATVECS = {}
 _CACHED_FUNCTIONS = {}
 _MIN_RES_THRESHS = {
-    np.float16: 1E-3,
-    np.float32: 1E-6,
-    np.float64: 1E-12,
-    np.complex128: 1E-12,
-    np.complex64: 1E-6
+    np.dtype(np.float16): 1E-3,
+    np.dtype(np.float32): 1E-6,
+    np.dtype(np.float64): 1E-12,
+    np.dtype(np.complex128): 1E-12,
+    np.dtype(np.complex64): 1E-6
 }
 
 
@@ -304,10 +304,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
         (larges magnitude).
       maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
-      QR_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
+      res_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
         if the norm of the residual `fk` of the shifted arnoldi factorization 
-        falls below `res_thresh`. If `None` a default value dependent on the 
-        dtype of the operator is chosen.
+        falls below `res_thresh`. If `None` a default value depending on the 
+        `dtype` of the operator is chosen.
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -333,7 +333,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
           type(initial_state)))
 
     if res_thresh is None:
-      res_thresh = _MIN_RES_THRESHS.get(initial_state.dtype, None)
+      try:
+        res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
+      except KeyError:
+        raise KeyError(f"dtype {initial_state.dtype} not supported")
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
