@@ -56,8 +56,7 @@ def safe_randn(shape, backend, dtype):
     init = init + 1.0j * init_i.astype(dtype)
 
   if backend == "pytorch" and dtype not in torch_supported_dtypes:
-    with pytest.raises(TypeError):
-      A = tensornetwork.Tensor(init, backend=backend)
+    pytest.skip("dtype unsupported by PyTorch")
     A = None
     init = None
   else:
