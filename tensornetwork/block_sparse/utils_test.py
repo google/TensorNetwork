@@ -195,6 +195,20 @@ def test_unique_2(return_index, return_inverse, return_counts):
     for n, e in enumerate(expected):
       np.testing.assert_allclose(e, actual[n])
 
+@pytest.mark.parametrize('return_index', [True, False])
+@pytest.mark.parametrize('return_inverse', [True, False])
+@pytest.mark.parametrize('return_counts', [True, False])
+def test_unique_1d(return_index, return_inverse, return_counts):
+  D = 1000
+  a = np.random.randint(-10, 10, D, dtype=np.int16)
+  expected = np.unique(a, return_index, return_inverse, return_counts)
+  actual = unique(a, return_index, return_inverse, return_counts)
+  if not any([return_index, return_inverse, return_counts]):
+    np.testing.assert_allclose(expected, actual)
+  else:
+    for n, e in enumerate(expected):
+      np.testing.assert_allclose(e, actual[n])
+
 def test_intersect_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
   b = np.array([[0, -2, 6], [2, 3, 4]])
@@ -268,9 +282,10 @@ def test_intersect_6():
   np.testing.assert_allclose(lb, [0, 3])
 
 
-def test_intersect_1d():
-  a = np.random.randint(-5, 5, 10)
-  b = np.random.randint(-2, 2, 8)
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_1d(dtype):
+  a = np.random.randint(-5, 5, 10, dtype=dtype)
+  b = np.random.randint(-2, 2, 8, dtype=dtype)
   out, la, lb = intersect_new(a, b, axis=0, return_indices=True)
   out_, la_, lb_ = np.intersect1d(a, b, return_indices=True)
   np.testing.assert_allclose(out, out_)
