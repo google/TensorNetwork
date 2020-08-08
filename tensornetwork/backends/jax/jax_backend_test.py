@@ -103,7 +103,6 @@ def test_convert_to_tensor():
   assert isinstance(actual, type(expected))
   np.testing.assert_allclose(expected, actual)
 
-
 def test_outer_product():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(2 * np.ones((2, 1)))
@@ -123,10 +122,9 @@ def test_einsum():
   np.testing.assert_allclose(expected, actual)
 
 
-@pytest.mark.skip(reason="TODO(chaseriley): Add type checking.")
 def test_convert_bad_test():
   backend = jax_backend.JaxBackend()
-  with pytest.raises(TypeError):
+  with pytest.raises(TypeError, match="Expected"):
     backend.convert_to_tensor(tf.ones((2, 2)))
 
 
