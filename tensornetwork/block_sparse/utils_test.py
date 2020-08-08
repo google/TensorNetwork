@@ -54,7 +54,7 @@ def test_find_best_partition_raises():
   assert p == 3
 
 #pylint: disable=too-many-return-statements
-def get_index(return_index, return_inverse, return_counts, which):
+def get_index(return_index, return_inverse, return_counts, which):#pylint: disable=inconsistent-return-statements
   if which == 'index':
     return 1 if return_index else -1
   if which == 'inverse':
@@ -67,7 +67,6 @@ def get_index(return_index, return_inverse, return_counts, which):
     if return_index or return_inverse:
       return 2 if return_counts else -1
     return 1 if return_counts else -1
-  return None
 
 
 @pytest.mark.parametrize('N, dtype, resdtype', [(1, np.int8, np.int8),
