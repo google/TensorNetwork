@@ -209,37 +209,37 @@ def test_unique_1d(return_index, return_inverse, return_counts):
     for n, e in enumerate(expected):
       np.testing.assert_allclose(e, actual[n])
 
-def test_intersect_1():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6], [2, 3, 4]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])      
+def test_intersect_1(dtype):
+  a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
+  b = np.array([[0, -2, 6], [2, 3, 4]], dtype=dtype)
   out = intersect_new(a, b, axis=1)
   np.testing.assert_allclose(np.array([[0], [2]]), out)
 
-
-def test_intersect_2():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])      
+def test_intersect_2(dtype):
+  a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
+  b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]], dtype=dtype)
   out, la, lb = intersect_new(a, b, axis=1, return_indices=True)
   np.testing.assert_allclose(np.array([[0, 2], [2, 4]]), out)
   np.testing.assert_allclose(la, [0, 2])
   np.testing.assert_allclose(lb, [0, 3])
 
-
-def test_intersect_3():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_3(dtype):
+  a = np.array([0, 1, 2, 3, 4], dtype=dtype)
+  b = np.array([0, -1, 4], dtype=dtype)
   out = intersect_new(a, b)
   np.testing.assert_allclose([0, 4], out)
 
-
-def test_intersect_4():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_4(dtype):
+  a = np.array([0, 1, 2, 3, 4], dtype=dtype)
+  b = np.array([0, -1, 4], dtype=dtype)
   out, la, lb = intersect_new(a, b, return_indices=True)
   np.testing.assert_allclose([0, 4], out)
   np.testing.assert_allclose(la, [0, 4])
   np.testing.assert_allclose(lb, [0, 2])
-
 
 def test_intersect_raises():
   np.random.seed(10)
@@ -265,17 +265,17 @@ def test_intersect_raises():
   with pytest.raises(ValueError, match="array dtypes"):
     intersect_new(a, b, axis=0)
 
-
-def test_intersect_5():
-  a = np.array([[0, 2], [1, 3], [2, 4]])
-  b = np.array([[0, 2], [-2, 3], [6, 6]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_5(dtype):
+  a = np.array([[0, 2], [1, 3], [2, 4]], dtype=dtype)
+  b = np.array([[0, 2], [-2, 3], [6, 6]], dtype=dtype)
   out = intersect_new(a, b, axis=0)
   np.testing.assert_allclose(np.array([[0, 2]]), out)
 
-
-def test_intersect_6():
-  a = np.array([[0, 2], [1, 3], [2, 4]])
-  b = np.array([[0, 2], [-2, 3], [6, 4], [2, 4]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_6(dtype):
+  a = np.array([[0, 2], [1, 3], [2, 4]], dtype=dtype)
+  b = np.array([[0, 2], [-2, 3], [6, 4], [2, 4]], dtype=dtype)
   out, la, lb = intersect_new(a, b, axis=0, return_indices=True)
   np.testing.assert_allclose(np.array([[0, 2], [2, 4]]), out)
   np.testing.assert_allclose(la, [0, 2])
