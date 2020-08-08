@@ -710,7 +710,12 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
-
+  t3 = np.random.rand(10)
+  t4 = np.random.rand(11)
+  c = backend.convert_to_tensor(t3)
+  d = backend.convert_to_tensor(t4)
+  with pytest.raises(ValueError, match="inputs to"):
+    backend.matmul(c, d)
 
 def test_gmres_raises():
   backend = jax_backend.JaxBackend()
