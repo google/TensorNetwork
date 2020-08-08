@@ -243,7 +243,7 @@ def intersect_new(A: np.ndarray,
     if A.shape[0] != B.shape[0]:
       raise ValueError("array heights must match to intersect on second axis")
 
-    out = intersect(
+    out = intersect_new(
         A.T,
         B.T,
         axis=0,
