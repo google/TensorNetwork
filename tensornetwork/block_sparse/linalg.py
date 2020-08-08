@@ -15,12 +15,14 @@
 import numpy as np
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.charge import intersect
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray)
-from tensornetwork.block_sparse.utils import (
+from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    flatten, compute_num_nonzero, compute_sparse_lookup, get_real_dtype)
+    compute_num_nonzero, compute_sparse_lookup)
+from tensornetwork.block_sparse.utils import (flatten, get_real_dtype,
+                                              intersect)
+
 from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
 Tensor = Any
 

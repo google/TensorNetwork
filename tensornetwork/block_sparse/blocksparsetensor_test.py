@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
-                                               charge_equal, fuse_ndarrays,
+                                               charge_equal,
                                                fuse_ndarray_charges, BaseCharge,
                                                Z2Charge)
+from tensornetwork.block_sparse.utils import fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
                                                           BlockSparseTensor)
@@ -14,26 +15,24 @@ np_tensordot_dtypes = [np.float64, np.complex128]
 
 def get_charge(chargetype, num_charges, D):
   if chargetype == "U1":
-    return BaseCharge(
+    out = BaseCharge(
         np.random.randint(-5, 6, (D, num_charges)),
         charge_types=[U1Charge] * num_charges)
   if chargetype == "Z2":
-    return BaseCharge(
+    out = BaseCharge(
         np.random.randint(0, 2, (D, num_charges)),
         charge_types=[Z2Charge] * num_charges)
   if chargetype == "mixed":
     n1 = num_charges // 2 if num_charges > 1 else 1
-    c = BaseCharge(
+    out = BaseCharge(
         np.random.randint(-5, 6, (D, n1)), charge_types=[U1Charge] * n1)
 
     if num_charges > 1:
       n2 = num_charges - n1
-      c = c @ BaseCharge(
+      out = out @ BaseCharge(
           np.random.randint(0, 2, (D, n2)), charge_types=[Z2Charge] * n2)
 
-    return c
-  return None
-
+  return out
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 def test_ChargeArray_init(chargetype):
@@ -133,6 +132,24 @@ def test_ChargeArray_reshape(dtype, Ds, chargetype):
   np.testing.assert_allclose(arr3.flows, [[False] for n in range(len(flat_Ds))])
   assert arr3.ndim == len(flat_Ds)
 
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
+def test_ChargeArray_reshape_with_index(dtype, chargetype):
+  Ds = [8, 9, 10, 11]
+  R = len(Ds)
+  indices = [
+      Index(get_charge(chargetype, 1, Ds[n]), False) for n in range(R)
+  ]
+  arr = ChargeArray.random(indices, dtype=dtype)
+  arr2 = arr.reshape([indices[0] * indices[1], indices[2] * indices[3]])
+  cnt = 0
+  for n in range(arr2.ndim):
+    for m in range(len(arr2.charges[n])):
+      assert charge_equal(arr2.charges[n][m], indices[cnt].charges)
+      cnt += 1
+  np.testing.assert_allclose(arr2.shape, [72, 110])
+  assert arr2.ndim == 2
+
 
 def test_ChargeArray_reshape_raises():
   Ds = [8, 9, 10, 11]
@@ -141,11 +158,19 @@ def test_ChargeArray_reshape_raises():
       for n in range(4)
   ]
   arr = ChargeArray.random(indices)
-  with pytest.raises(ValueError):
+
+  with pytest.raises(ValueError, match=r"The shape \(2, 4, 9, 2, 5, 11\)"):
+    arr.reshape([2, 4, 9, 2, 5, 11])
+
+  with pytest.raises(ValueError, match="A tensor with"):
     arr.reshape([64, 65])
 
   arr2 = arr.reshape([72, 110])
-  with pytest.raises(ValueError):
+  with pytest.raises(
+      ValueError,
+      match=r"The shape \(9, 8, 10, 11\) is incompatible with the"
+      r" elementary shape \(8, 9, 10, 11\) of the tensor."):
+
     arr2.reshape([9, 8, 10, 11])
 
   Ds = [8, 9, 0, 11]
@@ -171,6 +196,25 @@ def test_ChargeArray_transpose(chargetype):
   np.testing.assert_allclose(Ds[order], arr2.shape)
   np.testing.assert_allclose(arr2._order, [[2], [1], [0], [3]])
   np.testing.assert_allclose(arr2.flows, [[True], [False], [True], [False]])
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
+@pytest.mark.parametrize('num_charges', [1, 2, 3])
+def test_ChargeArray_transpose_shuffle(chargetype, num_charges):
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  order = [2, 0, 1, 3]
+  indices = [
+      Index(get_charge(chargetype, num_charges, Ds[n]), flows[n])
+      for n in range(4)
+  ]
+  arr = ChargeArray.random(indices)
+  data = np.ascontiguousarray(np.transpose(np.reshape(arr.data, Ds), order))
+  arr2 = arr.transpose(order, shuffle=True)
+  data3 = np.reshape(arr2.data, Ds[order])
+  np.testing.assert_allclose(data, data3)
+  np.testing.assert_allclose(arr2.shape, Ds[order])
+  np.testing.assert_allclose(arr2._order, [[0], [1], [2], [3]])
+  np.testing.assert_allclose(arr2.flows, [[True], [True], [False], [False]])
 
 
 def test_ChargeArray_transpose_raises():
@@ -258,6 +302,19 @@ def test_ChargeArray_transpose_reshape_contiguous(num_charges, chargetype):
                              np.ascontiguousarray(nparr4).flat)
   np.testing.assert_allclose(arr5.contiguous().data,
                              np.ascontiguousarray(nparr5).flat)
+
+
+@pytest.mark.parametrize('dtype', [np.complex64, np.complex128])
+def test_ChargeArray_conj(dtype):
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
+  arr = ChargeArray.random(indices, dtype=dtype)
+  conj = arr.conj()
+  np.testing.assert_allclose(conj.data, np.conj(arr.data))
 
 
 def test_BlockSparseTensor_init():
@@ -767,6 +824,19 @@ def test_item():
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2"])
 @pytest.mark.parametrize('dtype', np_dtypes)
+def test_T(chargetype, dtype):
+  np.random.seed(10)
+  D = 10
+  rank = 2
+  charges = [get_charge(chargetype, 1, D) for _ in range(rank)]
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
+  T = ChargeArray.random(inds, dtype=dtype)
+  TT = T.T
+  np.testing.assert_allclose(TT.todense(), T.todense().T)
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2"])
+@pytest.mark.parametrize('dtype', np_dtypes)
 def test_herm(chargetype, dtype):
   np.random.seed(10)
   D = 10
@@ -774,10 +844,23 @@ def test_herm(chargetype, dtype):
   charges = [get_charge(chargetype, 1, D) for _ in range(rank)]
   flows = np.random.choice([True, False], size=rank, replace=True)
   inds = [Index(c, f) for c, f in zip(charges, flows)]
-  T = BlockSparseTensor.random(inds, dtype=dtype)
+  T = ChargeArray.random(inds, dtype=dtype)
   TH = T.H
   np.testing.assert_allclose(TH.todense(), T.todense().T.conj())
 
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2"])
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_herm_raises(chargetype, dtype):
+  np.random.seed(10)
+  D = 10
+  rank = 3
+  charges = [get_charge(chargetype, 1, D) for _ in range(rank)]
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
+  T = ChargeArray.random(inds, dtype=dtype)
+  with pytest.raises(ValueError, match="hermitian"):
+    T.H
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2"])
 @pytest.mark.parametrize('dtype', np_dtypes)
@@ -791,3 +874,42 @@ def test_neg(chargetype, dtype):
   T = BlockSparseTensor.random(inds, dtype=dtype)
   T2 = -T
   np.testing.assert_allclose(T.data, -T2.data)
+
+def test_ChargeArray_arithmetic_raises():
+  np.random.seed(10)
+  dtype = np.float64
+  D = 10
+  rank = 3
+  charges = [U1Charge.random(D, -2, 2) for _ in range(rank)]
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
+  T = ChargeArray.random(inds, dtype=dtype)
+  with pytest.raises(NotImplementedError):
+    T - T
+  with pytest.raises(NotImplementedError):
+    T + T
+  with pytest.raises(NotImplementedError):
+    -T
+  with pytest.raises(NotImplementedError):
+    T * 5
+  with pytest.raises(NotImplementedError):
+    5 * T
+  with pytest.raises(NotImplementedError):
+    T / 5
+
+
+def test_repr():
+  np.random.seed(10)
+  dtype = np.float64
+  D = 10
+  rank = 3
+  charges = [U1Charge.random(D, -2, 2) for _ in range(rank)]
+  flows = np.random.choice([True, False], size=rank, replace=True)
+  inds = [Index(c, f) for c, f in zip(charges, flows)]
+  T = ChargeArray.random(inds, dtype=dtype)
+  actual = T.__repr__()
+  expected = "ChargeArray\n   shape: (10, 10, 10)\n  " +\
+    " charge types: ['U1Charge']\n   dtype: " +\
+    repr(T.dtype.name) + "\n   flat flows: " + \
+    repr(list(flows)) + "\n   order: " + repr(T._order)
+  assert actual == expected
