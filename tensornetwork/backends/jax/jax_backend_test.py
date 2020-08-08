@@ -649,7 +649,7 @@ def test_eigs_raises():
         f" is currently not supported."):
       backend.eigs(lambda x: x, which=which)
   with pytest.raises(KeyError, match="dtype"):
-    backend.eigs(lambda x: x, shape = (10,), dtype=np.int32)    
+    backend.eigs(lambda x: x, shape = (10,), dtype=np.int32)
 
 ##################################################################
 #############  This test should just not crash    ################
@@ -907,3 +907,16 @@ def test_pivot(dtype, pivot_axis):
   expected = tensor.reshape(pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype, atol", [(np.float32, 1E-6),
+                                         (np.float64, 1E-10),
+                                         (np.complex64, 1E-6),
+                                         (np.complex128, 1E-10)])
+def test_inv(dtype, atol):
+  shape = (10, 10)
+  backend = jax_backend.JaxBackend()
+  matrix = backend.randn(shape, dtype=dtype, seed=10)
+  inv = backend.inv(matrix)
+  np.testing.assert_allclose(inv @ matrix, np.eye(10), atol=atol)
+  np.testing.assert_allclose(matrix @ inv, np.eye(10), atol=atol)
