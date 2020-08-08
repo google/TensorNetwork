@@ -648,7 +648,8 @@ def test_eigs_raises():
         ValueError, match=f"which = {which}"
         f" is currently not supported."):
       backend.eigs(lambda x: x, which=which)
-
+  with pytest.raises(KeyError, match="dtype"):
+    backend.eigs(lambda x: x, shape = (10,), dtype=np.int32)    
 
 ##################################################################
 #############  This test should just not crash    ################
