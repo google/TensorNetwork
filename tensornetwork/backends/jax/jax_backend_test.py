@@ -920,3 +920,9 @@ def test_inv(dtype, atol):
   inv = backend.inv(matrix)
   np.testing.assert_allclose(inv @ matrix, np.eye(10), atol=atol)
   np.testing.assert_allclose(matrix @ inv, np.eye(10), atol=atol)
+  tensor = backend.randn((10, 10, 10), dtype=dtype, seed=10)  
+  with pytest.raises(ValueError, match="input to"):
+    backend.inv(tensor)
+  
+
+  
