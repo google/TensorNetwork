@@ -122,7 +122,11 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   return min_ind + 1
 
 
-def get_dtype(itemsize):
+def get_dtype(itemsize) -> Type[np.number]:
+  """
+  Return the `numpy.dtype` needed to store an 
+  element of `itemsize` bytes.
+  """
   final_dtype = np.int8
   if itemsize > 1:
     final_dtype = np.int16
@@ -133,7 +137,16 @@ def get_dtype(itemsize):
   return final_dtype
 
 
-def collapse(array: np.ndarray):
+def collapse(array: np.ndarray) -> np.ndarray:
+  """
+  If possible, collapse a 2d numpy array 
+  `array` along the rows into a 1d array of larger 
+  dtype.
+  Args:
+    array: np.ndarray
+  Returns:
+    np.ndarray: The collapsed array.
+  """
   array = np.ascontiguousarray(array)
   if array.ndim == 1:
     return array
@@ -157,6 +170,11 @@ def collapse(array: np.ndarray):
 
 
 def expand(array: np.ndarray, original_dtype):
+  """
+  Reverse operation to `collapse`. 
+  Expand a 1d numpy array `array` into a 2d array
+  of dtype `original_dtype` by view-casting.
+  """
   if array.ndim == 1:
     return array[:, None].view(original_dtype)
   return array
@@ -190,7 +208,7 @@ def unique(array: np.ndarray,
       in the unique array.
     np.ndarray: (optional): The indices of the unique array
       from which `array` can be reconstructed.
-    np.ndarray: The number of times each element of the 
+    np.ndarray (optional): The number of times each element of the 
       unique array appears in `array`.
   """
   collapsed_array = collapse(array)
