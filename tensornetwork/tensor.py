@@ -147,8 +147,8 @@ class Tensor():
   def __mul__(self, other: Union["Tensor", float]) -> "Tensor":
     if isinstance(other, Tensor):
       if self.backend.name != other.backend.name:
-        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
-                  f"not agree.")
+        errstr = (f"Given backens are inconsistent. Found '{self.backend.name}'"
+                  f"and '{other.backend.name}'")
         raise ValueError(errstr)
       other = other.array
     array = self.backend.multiply(self.array, other)
@@ -159,8 +159,8 @@ class Tensor():
   def __truediv__(self, other: Union["Tensor", float]) -> "Tensor":
     if isinstance(other, Tensor):
       if self.backend.name != other.backend.name:
-        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
-                  f"not agree.")
+        errstr = (f"Given backens are inconsistent. Found '{self.backend.name}'"
+                  f"and '{other.backend.name}'")
         raise ValueError(errstr)
       other = other.array
     array = self.backend.divide(self.array, other)
@@ -169,8 +169,8 @@ class Tensor():
   def __sub__(self, other: Union["Tensor", float]) -> "Tensor":
     if isinstance(other, Tensor):
       if self.backend.name != other.backend.name:
-        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
-                  f"not agree.")
+        errstr = (f"Given backens are inconsistent. Found '{self.backend.name}'"
+                  f"and '{other.backend.name}'")
         raise ValueError(errstr)
       other = other.array
     array = self.backend.subtraction(self.array, other)
@@ -183,8 +183,8 @@ class Tensor():
   def __add__(self, other: Union["Tensor", float]) -> "Tensor":
     if isinstance(other, Tensor):
       if self.backend.name != other.backend.name:
-        errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
-                  f"not agree.")
+        errstr = (f"Given backens are inconsistent. Found '{self.backend.name}'"
+                  f"and '{other.backend.name}'")
         raise ValueError(errstr)
       other = other.array
     array = self.backend.addition(self.array, other)
@@ -194,8 +194,8 @@ class Tensor():
 
   def __matmul__(self, other: "Tensor") -> "Tensor":
     if self.backend.name != other.backend.name:
-      errstr = (f"Backends {self.backend.name} and {other.backend.name} did not"
-                f"agree.")
+      errstr = (f"Backends {self.backend.name} and {other.backend.name} did"
+                f"not agree.")
       raise ValueError(errstr)
     array = self.backend.matmul(self.array, other.array)
     return Tensor(array, backend=self.backend)
