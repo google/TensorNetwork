@@ -83,20 +83,6 @@ class Tensor():
     flat = self.reshape([size,]).copy()
     return flat
 
-  def fill(self, val: float):
-    """ Returns a `Tensor` filled with the scalar value `val`.
-    Args:
-      val: The scalar value.
-    Returns:
-      filled: A `Tensor` of the same shape as this one whose entries are all
-              `val`.
-    """
-    vals = np.zeros(self.shape)
-    vals = val
-    mask = np.ones(self.shape)
-    filled_arr = self.backend.index_update(self.array, mask, vals)
-    return Tensor(filled_arr, backend=self.backend)
-
   def hconj(self, perm: Optional[Sequence[int]] = None) -> "Tensor":
     """ The Hermitian conjugated tensor; e.g. the complex conjugate tranposed
     by the permutation set be `axes`. By default the axes are reversed.

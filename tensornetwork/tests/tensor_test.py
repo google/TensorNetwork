@@ -32,8 +32,7 @@ BaseBackend = abstract_backend.AbstractBackend
 
 @pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_init_tensor_from_numpy_array(backend, dtype):
-  """
-  Creates a numpy array, initializes a Tensor from it, and checks that all
+  """ Creates a numpy array, initializes a Tensor from it, and checks that all
   its members have been correctly initialized.
   """
   A, init = testing_utils.safe_zeros((2, 3, 1), backend, dtype)
@@ -381,3 +380,22 @@ def test_tensor_matmul(backend, dtype):
     result = A @ B
     result2 = A.backend.matmul(testA, testB)
     np.testing.assert_allclose(result.array, result2)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_tensor_ops_raise(dtype):
+  """ Checks that tensor operators raise the right error.
+  """
+  shape = (2, 3, 1)
+  A, _ = testing_utils.safe_randn(shape, "numpy", dtype)
+  B, _ = testing_utils.safe_randn(shape, "jax", dtype)
+  with pytest.raises(ValueError):
+    _ = A * B
+  with pytest.raises(ValueError):
+    _ = A + B
+  with pytest.raises(ValueError):
+    _ = A - B
+  with pytest.raises(ValueError):
+    _ = A / B
+  with pytest.raises(ValueError):
+    _ = A @ B
