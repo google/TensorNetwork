@@ -167,9 +167,32 @@ def unique(array: np.ndarray,
            return_index: bool = False,
            return_inverse: bool = False,
            return_counts: bool = False,
-           axis=None,
            label_dtype: Type[np.number] = np.int16) -> Any:
-
+  """
+  Compute the unique elements of 1d or 2d `array` along the 
+  zero axis of the array.
+  This function performs performs a similar
+  task to `numpy.unique` with `axis=0` argument,
+  but is substantially faster for 2d arrays. 
+  Note that for the case of 2d arrays, the ordering of the array of unique 
+  elements differs from the ordering of `numpy.unique`.
+  Args:
+    array: An input array of integers.
+    return_index: If `True`, also return the indices of `array` 
+      that result in the unique array.
+    return_inverse: If `True`, also return the indices of the unique array 
+      that can be used to reconstruct `array`.
+    return_counts: If `True`, also return the number of times 
+      each unique item appears in `array`.
+  Returns:
+    np.ndarray: An array of unique elements.
+    np.ndarray (optional): The indices of array that result 
+      in the unique array.
+    np.ndarray: (optional): The indices of the unique array
+      from which `array` can be reconstructed.
+    np.ndarray: The number of times each element of the 
+      unique array appears in `array`.
+  """
   collapsed_array = collapse(array)
   if collapsed_array.ndim <= 1:
     axis = None
