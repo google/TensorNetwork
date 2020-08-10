@@ -45,6 +45,24 @@ def test_init_tensor_from_numpy_array(backend, dtype):
   assert A.ndim == init.ndim
 
 
+@pytest.mark.parametrize("dtype", testing_utils.torch_supported_dtypes)
+def test_init_tensor_default_backend(dtype):
+  """ Creates a numpy array, initializes a Tensor from it, and checks that all
+  its members have been correctly initialized.
+  """
+  backend = backend_contextmanager.get_default_backend()
+  backend_obj = backends.backend_factory.get_backend(backend)
+  shape = (3, 5, 2)
+  testA = backend_obj.zeros(shape, dtype=dtype)
+  init = np.zeros(shape, dtype=dtype)
+  A = tensornetwork.Tensor(init)
+  assert A.backend.name == backend
+  np.testing.assert_allclose(A.array, testA)
+  assert A.shape == testA.shape
+  assert A.size == testA.size
+  assert A.ndim == testA.ndim
+
+
 @pytest.mark.parametrize("dtype", testing_utils.np_all_dtypes)
 def test_init_tensor_from_backend_array(backend, dtype):
   """
