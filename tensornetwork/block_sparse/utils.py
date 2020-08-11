@@ -338,6 +338,7 @@ def intersect_new(A: np.ndarray,
         assume_unique=assume_unique,
         return_indices=return_indices)
     if return_indices:
+      result = list(result)
       result[0] = expand(result[0], A.dtype, original_width, original_ndim)
     else:
       result = expand(result, A.dtype, original_width, original_ndim)
