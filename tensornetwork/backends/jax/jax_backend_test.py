@@ -632,6 +632,25 @@ def test_eigs_few_eigvals_no_init(dtype, which):
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_large_ncv_with_init(dtype, which):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(
+      mv, [H], init, numeig=4, num_krylov_vecs=50, maxiter=50, which=which)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+  
 def test_eigs_raises():
   backend = jax_backend.JaxBackend()
   with pytest.raises(
