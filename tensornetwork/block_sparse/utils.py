@@ -17,7 +17,8 @@ from tensornetwork.block_sparse.sizetypes import SIZE_T
 from tensornetwork.block_sparse.caching import get_cacher
 from typing import List, Union, Any, Type
 
-def get_real_dtype(dtype: Type[np.number]):
+
+def get_real_dtype(dtype: Type[np.number]) -> Type[np.number]:
   if dtype == np.complex128:
     return np.float64
   if dtype == np.complex64:
@@ -122,7 +123,7 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   return min_ind + 1
 
 
-def get_dtype(itemsize) -> Type[np.number]:
+def get_dtype(itemsize: int) -> Type[np.number]:
   """
   Return the `numpy.dtype` needed to store an 
   element of `itemsize` bytes.
@@ -170,7 +171,7 @@ def collapse(array: np.ndarray) -> np.ndarray:
 
 
 def expand(array: np.ndarray, original_dtype: Type[np.number],
-           original_width: int, original_ndim: int):
+           original_width: int, original_ndim: int) -> np.ndarray:
   """
   Reverse operation to `collapse`. 
   Expand a 1d numpy array `array` into a 2d array
@@ -180,7 +181,10 @@ def expand(array: np.ndarray, original_dtype: Type[np.number],
     original_dtype: The dtype of the original (uncollapsed) array
     original_width: The width (the length of the second dimension)
       of the original (uncollapsed) array.
-    original_ndim:
+    original_ndim: Number of dimensions of the original (uncollapsed)
+      array.
+  Returns:
+    np.ndarray: The expanded array.
   """
   if original_ndim == 1:
     #nothing to expand
@@ -256,7 +260,7 @@ def unique(array: np.ndarray,
     if _return_index:
       out = expand(res[0], array.dtype, original_width, original_ndim)
     else:
-      out = expand(res, array.dtype, original_width, original_ndim)      
+      out = expand(res, array.dtype, original_width, original_ndim)
 
   return out
 
@@ -323,7 +327,7 @@ def intersect_new(A: np.ndarray,
         collapsed_B,
         assume_unique=assume_unique,
         return_indices=True)
-    C = expand(C, A.dtype, original_width, original_ndim)          
+    C = expand(C, A.dtype, original_width, original_ndim)
     if return_indices:
       result = C, A_locs, B_locs
     else:
@@ -342,7 +346,7 @@ def intersect_new(A: np.ndarray,
           collapsed_B,
           assume_unique=assume_unique,
           return_indices=return_indices)
-    C = expand(C, A.dtype, original_width, original_ndim)      
+    C = expand(C, A.dtype, original_width, original_ndim)
     if return_indices:
       result = C, A_locs, B_locs
     else:
