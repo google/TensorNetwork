@@ -932,10 +932,10 @@ def gmres_wrapper(jax: types.ModuleType) -> collections.namedtuple:
   fnames = ("gmres_m, gmres_residual, gmres_krylov, _gs_step, kth_arnoldi_step,"
             " givens_rotation")
   functions = collections.namedtuple("GmresFunctions", fnames)
-  functions["gmres_m"] = gmres_m
-  functions["gmres_residual"] = gmres_residual
-  functions["gmres_krylov"] = gmres_krylov
-  functions["_gs_step"] = _gs_step
-  functions["kth_arnoldi_step"] = kth_arnoldi_step
-  functions["givens_rotation"] = givens_rotation
+  functions.gmres_m = gmres_m
+  functions.gmres_residual = gmres_residual
+  functions.gmres_krylov = gmres_krylov
+  functions._gs_step = _gs_step
+  functions.kth_arnoldi_step = kth_arnoldi_step
+  functions.givens_rotation = givens_rotation
   return functions
