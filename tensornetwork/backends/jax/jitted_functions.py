@@ -549,7 +549,6 @@ def gmres_wrapper(jax: types.ModuleType):
     functions.givens_rotation = givens_rotation
   """
   jnp = jax.numpy
-  functions = dict()
 
   def gmres_m(A_mv: Callable, A_args: Sequence,
               b: jax.ShapedArray, x0: jax.ShapedArray, tol: float,
@@ -825,7 +824,6 @@ def gmres_wrapper(jax: types.ModuleType):
         orthogonalized Krylov vector and new overlaps.
     """
     v = A_mv(V[:, k], *A_args)
-    # ks = itertools.repeat(k, V.shape[1])
     v_new, H_k = jax.lax.scan(_gs_step, v, xs=V.T)
     v_norm = jnp.linalg.norm(v_new)
     r_new = v_new / v_norm
