@@ -109,7 +109,7 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
   """
   if len(dims) == 1:
     raise ValueError(
-        'expecting `dims` with a length of at least 2, got `len(dims ) =1`')
+        'expecting dims with a length of at least 2, got len(dims) =1')
   diffs = [
       np.abs(np.prod(dims[0:n]) - np.prod(dims[n::]))
       for n in range(1, len(dims))
@@ -284,7 +284,7 @@ def intersect_new(A: np.ndarray,
   """
   if A.dtype != B.dtype:
     raise ValueError(f"array dtypes must macht to intersect, "
-                     f"found `A.dtype = {A.dtype}`, `B.dtype = {B.dtype}`")
+                     f"found A.dtype = {A.dtype}, B.dtype = {B.dtype}")
   if axis not in (0, 1):
     raise NotImplementedError(
         "intersection can only be performed on first or second axis")
