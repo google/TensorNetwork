@@ -115,9 +115,7 @@ def test_collapse_expand(N, dtype):
   D = 10000
   expected = np.random.randint(-5, 5, (D, N), dtype=dtype)
   collapsed = collapse(expected)
-  if N == 3:
-    expected = np.concatenate([expected, np.zeros((D, 1), dtype=dtype)], axis=1)
-  actual = expand(collapsed, dtype)
+  actual = expand(collapsed, dtype, original_width=N, original_ndim=2)
   np.testing.assert_allclose(expected, actual)
 
 
@@ -208,14 +206,14 @@ def test_unique_1d(return_index, return_inverse, return_counts):
     for n, e in enumerate(expected):
       np.testing.assert_allclose(e, actual[n])
 
-@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])      
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
 def test_intersect_1(dtype):
   a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
   b = np.array([[0, -2, 6], [2, 3, 4]], dtype=dtype)
   out = intersect_new(a, b, axis=1)
   np.testing.assert_allclose(np.array([[0], [2]]), out)
 
-@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])      
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
 def test_intersect_2(dtype):
   a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
   b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]], dtype=dtype)
