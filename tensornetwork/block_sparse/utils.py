@@ -334,21 +334,15 @@ def intersect_new(A: np.ndarray,
       result = C
 
   else:
+    result = np.intersect1d(
+        collapsed_A,
+        collapsed_B,
+        assume_unique=assume_unique,
+        return_indices=return_indices)
     if return_indices:
-      C, A_locs, B_locs = np.intersect1d(
-          collapsed_A,
-          collapsed_B,
-          assume_unique=assume_unique,
-          return_indices=return_indices)
-      C = expand(C, A.dtype, original_width, original_ndim)
-      result = C, A_locs, B_locs      
+      result[0] = expand(result[0], A.dtype, original_width, original_ndim)
     else:
-      C = np.intersect1d(
-          collapsed_A,
-          collapsed_B,
-          assume_unique=assume_unique,
-          return_indices=return_indices)
-      result = expand(C, A.dtype, original_width, original_ndim)
+      result = expand(result, A.dtype, original_width, original_ndim)
   return result
 
 
