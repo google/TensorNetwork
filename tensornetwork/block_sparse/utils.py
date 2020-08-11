@@ -199,7 +199,6 @@ def expand(array: np.ndarray, original_dtype: Type[np.number],
   return array
 
 
-
 def unique(array: np.ndarray,
            return_index: bool = False,
            return_inverse: bool = False,
@@ -332,7 +331,6 @@ def intersect_new(A: np.ndarray,
       result = C, A_locs, B_locs
     else:
       result = C
-
   else:
     result = np.intersect1d(
         collapsed_A,
