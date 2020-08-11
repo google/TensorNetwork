@@ -169,14 +169,29 @@ def collapse(array: np.ndarray) -> np.ndarray:
   return np.squeeze(tmparray)
 
 
-def expand(array: np.ndarray, original_dtype):
+def expand(array: np.ndarray, original_dtype: Type[np.number],
+           original_width: int, original_ndim: int):
   """
   Reverse operation to `collapse`. 
   Expand a 1d numpy array `array` into a 2d array
   of dtype `original_dtype` by view-casting.
+  Args:
+    array: The collapsed array.
+    original_dtype: The dtype of the original (uncollapsed) array
+    original_width: The width (the length of the second dimension)
+      of the original (uncollapsed) array.
+    original_ndim:
   """
+  if original_ndim == 1:
+    #nothing to expand
+    return np.squeeze(array)
   if array.ndim == 1:
-    return array[:, None].view(original_dtype)
+    #the array has been collapsed
+    #now we uncollapse it
+    result = array[:, None].view(original_dtype)
+    if original_width in (3, 5, 6, 7):
+      result = np.ascontiguousarray(result[:, :original_width])
+    return result
   return array
 
 
@@ -211,6 +226,8 @@ def unique(array: np.ndarray,
     np.ndarray (optional): The number of times each element of the 
       unique array appears in `array`.
   """
+  original_width = array.shape[1]  if array.ndim == 2 else 0
+  original_ndim = array.ndim
   collapsed_array = collapse(array)
   if collapsed_array.ndim <= 1:
     axis = None
@@ -229,26 +246,17 @@ def unique(array: np.ndarray,
     out = list(res)
     if _return_index and not return_index:
       del out[1]
-    out[0] = expand(out[0], array.dtype)
-    if array.ndim > 1:
-      out[0] = out[0][:, 0:array.shape[1]]
-    if array.ndim == 1:
-      out[0] = np.squeeze(out[0])
+    out[0] = expand(out[0], array.dtype, original_width, original_ndim)
     if return_inverse and not return_index:
       out[1] = out[1].astype(label_dtype)
     elif return_inverse and return_index:
       out[2] = out[2].astype(label_dtype)
     out[0] = np.ascontiguousarray(out[0])
-
   else:
     if _return_index:
-      out = expand(res[0], array.dtype)
+      out = expand(res[0], array.dtype, original_width, original_ndim)
     else:
-      out = expand(res, array.dtype)
-    if array.ndim > 1:
-      out = np.ascontiguousarray(out[:, 0:array.shape[1]])
-    if array.ndim == 1:
-      out = np.squeeze(out)
+      out = expand(res, array.dtype, original_width, original_ndim)      
 
   return out
 
@@ -296,24 +304,26 @@ def intersect_new(A: np.ndarray,
 
   if A.ndim > 1 and A.shape[1] != B.shape[1]:
     raise ValueError("array widths must match to intersect on first axis")
+  original_width = A.shape[1] if A.ndim == 2 else 0
+  original_ndim = A.ndim
   collapsed_A = collapse(A)
   collapsed_B = collapse(B)
 
   if collapsed_A.ndim > 1:
-    # arrays were not callapsable
+    # arrays were not callapsable, fall back to slower implementation
     return intersect(collapsed_A, collapsed_B, axis, assume_unique,
                      return_indices)
   if collapsed_A.dtype in (np.int8,
                            np.int16) and collapsed_B.dtype in (np.int8,
                                                                np.int16):
+    #special case of dtype = np.int8 or np.int16
+    #original charges were unpadded in this case
     C, A_locs, B_locs = np.intersect1d(
         collapsed_A,
         collapsed_B,
         assume_unique=assume_unique,
         return_indices=True)
-    C = expand(C, A.dtype)
-    if A.ndim == 1:
-      C = np.squeeze(C)
+    C = expand(C, A.dtype, original_width, original_ndim)          
     if return_indices:
       result = C, A_locs, B_locs
     else:
@@ -332,12 +342,7 @@ def intersect_new(A: np.ndarray,
           collapsed_B,
           assume_unique=assume_unique,
           return_indices=return_indices)
-    C = expand(C, A.dtype)
-    if A.ndim > 1:
-      C = np.ascontiguousarray(C[:, 0:A.shape[1]])
-    else:
-      C = np.squeeze(C)
-
+    C = expand(C, A.dtype, original_width, original_ndim)      
     if return_indices:
       result = C, A_locs, B_locs
     else:
