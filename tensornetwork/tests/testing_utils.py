@@ -5,6 +5,7 @@ import tensorflow as tf
 import torch
 import pytest
 import tensornetwork
+from tensornetwork import backends
 config.update("jax_enable_x64", True)
 
 np_real = [np.float32, np.float64]
