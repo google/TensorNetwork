@@ -523,7 +523,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   return implicitly_restarted_arnoldi_method
 
 
-def gmres_wrapper(jax: types.ModuleType) -> collections.namedtuple:
+def gmres_wrapper(jax: types.ModuleType):
   """
   Allows Jax (the module) to be passed in as an argument rather than imported,
   since doing the latter breaks the build. In addition, instantiates certain
@@ -540,13 +540,13 @@ def gmres_wrapper(jax: types.ModuleType) -> collections.namedtuple:
 
   Returns:
   -------
-  functions: A dictionary of functions:
-    functions["gmres_m"] = gmres_m
-    functions["gmres_residual"] = gmres_residual
-    functions["gmres_krylov"] = gmres_krylov
-    functions["_gs_step"] = _gs_step
-    functions["kth_arnoldi_step"] = kth_arnoldi_step
-    functions["givens_rotation"] = givens_rotation
+  functions: A namedtuple of functions:
+    functions.gmres_m = gmres_m
+    functions.gmres_residual = gmres_residual
+    functions.gmres_krylov = gmres_krylov
+    functions.gs_step = _gs_step
+    functions.kth_arnoldi_step = kth_arnoldi_step
+    functions.givens_rotation = givens_rotation
   """
   jnp = jax.numpy
   functions = dict()
@@ -929,13 +929,13 @@ def gmres_wrapper(jax: types.ModuleType) -> collections.namedtuple:
     sn = -v2 / t
     return cs, sn
 
-  fnames = ("gmres_m, gmres_residual, gmres_krylov, _gs_step, kth_arnoldi_step,"
+  fnames = ("gmres_m, gmres_residual, gmres_krylov, gs_step, kth_arnoldi_step,"
             " givens_rotation")
   functions = collections.namedtuple("GmresFunctions", fnames)
   functions.gmres_m = gmres_m
   functions.gmres_residual = gmres_residual
   functions.gmres_krylov = gmres_krylov
-  functions._gs_step = _gs_step
+  functions.gs_step = _gs_step
   functions.kth_arnoldi_step = kth_arnoldi_step
   functions.givens_rotation = givens_rotation
   return functions
