@@ -471,7 +471,7 @@ def _implicitly_restarted_arnoldi(jax):
                                                      num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
-
+    
     it = 0
     if which == 'LR':
       _which = 0
@@ -494,7 +494,7 @@ def _implicitly_restarted_arnoldi(jax):
       Vm = Vm.astype(dtype)
       Hm = Hm.astype(dtype)
       fm = fm.astype(dtype)
-    converged = False
+      
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
       krylov_vectors, H, fk, converged = shifted_QR(Vm, Hm, fm, evals, numeig,
