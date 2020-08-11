@@ -1,8 +1,10 @@
 import functools
-from typing import List, Any, Tuple, Callable, Sequence, Dict
+from typing import List, Any, Tuple, Callable, Sequence
+import collections
 import types
 import numpy as np
 Tensor = Any
+
 
 def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   """
@@ -347,9 +349,10 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   """
 
   arnoldi_fact = _generate_arnoldi_factorization(jax)
-  #######################################################
-  ########  NEW SORTING FUCTIONS INSERTED HERE  #########
-  #######################################################
+
+  # ######################################################
+  # #######  NEW SORTING FUCTIONS INSERTED HERE  #########
+  # ######################################################
   @functools.partial(jax.jit, static_argnums=(1,))
   def LR_sort(evals, p):
     inds = np.argsort(jax.numpy.real(evals), kind='stable')[::-1]
@@ -362,15 +365,14 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  ########################################################
-  ########################################################
-  ########################################################
-
+  # #######################################################
+  # #######################################################
+  # #######################################################
   @functools.partial(jax.jit, static_argnums=(4, 5, 6))
   def shifted_QR(Vm, Hm, fm, evals, k, p, which):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
-    #compress to k = numeig
+    # compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
     q = jax.ops.index_update(q, jax.ops.index[-1], 1)
     m = Hm.shape[0]
@@ -420,9 +422,10 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
 
-  def implicitly_restarted_arnoldi_method(
-      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-      maxiter) -> Tuple[List[Tensor], List[Tensor]]:
+  def implicitly_restarted_arnoldi_method(matvec, args, initial_state,
+                                          num_krylov_vecs, numeig, which, eps,
+                                          maxiter) -> Tuple[List[Tensor],
+                                                            List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -520,7 +523,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   return implicitly_restarted_arnoldi_method
 
 
-def gmres_wrapper(jax: types.ModuleType) -> Dict:
+def gmres_wrapper(jax: types.ModuleType) -> collections.namedtuple:
   """
   Allows Jax (the module) to be passed in as an argument rather than imported,
   since doing the latter breaks the build. In addition, instantiates certain
@@ -591,7 +594,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
         break
     return (x, beta, n_iter, done)
 
-
   def gmres(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
             x: jax.ShapedArray, num_krylov_vectors: int, x0: jax.ShapedArray,
             tol: float, b_norm: float) -> Tuple[bool, float, jax.ShapedArray]:
@@ -618,7 +620,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     done = k < num_krylov_vectors - 1
     return done, beta, x
 
-
   @jax.jit
   def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
                      x: jax.ShapedArray) -> Tuple[jax.ShapedArray, float]:
@@ -640,7 +641,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     beta = jnp.linalg.norm(r)
     return r, beta
 
-
   def gmres_update(k: int, V: jax.ShapedArray, R: jax.ShapedArray,
                    beta_vec: jax.ShapedArray,
                    x0: jax.ShapedArray) -> jax.ShapedArray:
@@ -661,7 +661,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     y = jax.scipy.linalg.solve_triangular(R[:q, :q], beta_vec[:q])
     x = x0 + V[:, :q] @ y
     return x
-
 
   @functools.partial(jax.jit, static_argnums=(2,))
   def gmres_krylov(A_mv: Callable, A_args: Sequence, n_kry: int,
@@ -725,7 +724,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     k, V, R, beta_vec, err, givens = gmres_variables
     return (k, V, R, beta_vec)
 
-
   VarType = Tuple[int, jax.ShapedArray, jax.ShapedArray, jax.ShapedArray,
                   float, jax.ShapedArray]
   ConstType = Tuple[float, Callable, Sequence, jax.ShapedArray, int]
@@ -752,8 +750,10 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     k = gmres_variables[0]
     err = gmres_variables[4]
     n_kry = gmres_constants[4]
+
     def is_iterating(k, n_kry):
       return k < n_kry
+
     def not_converged(args):
       err, tol = args
       return err >= tol
@@ -761,7 +761,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
                         not_converged,            # Called if True.
                         lambda x: False,          # Called if False.
                         (err, tol))               # Arguments to calls.
-
 
   @jax.jit
   def gmres_krylov_work(gmres_carry: GmresCarryType) -> GmresCarryType:
@@ -790,7 +789,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     gmres_variables = (k + 1, V, R, beta_vec, err, givens)
     return (gmres_variables, gmres_constants)
 
-
   @jax.jit
   def _gs_step(r: jax.ShapedArray,
                v_i: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
@@ -808,7 +806,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     h_i = jnp.vdot(v_i, r)
     r_i = r - h_i * v_i
     return r_i, h_i
-
 
   @jax.jit
   def kth_arnoldi_step(k: int, A_mv: Callable, A_args: Sequence,
@@ -828,8 +825,8 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
         orthogonalized Krylov vector and new overlaps.
     """
     v = A_mv(V[:, k], *A_args)
-    #ks = itertools.repeat(k, V.shape[1])
-    v_new, H_k = jax.lax.scan(_gs_step, v, xs=V.T) # TODO: only nonzero steps
+    # ks = itertools.repeat(k, V.shape[1])
+    v_new, H_k = jax.lax.scan(_gs_step, v, xs=V.T)
     v_norm = jnp.linalg.norm(v_new)
     r_new = v_new / v_norm
     #  Normalize v unless it is the zero vector.
@@ -843,11 +840,9 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     V = jax.ops.index_update(V, jax.ops.index[:, k+1], r_new)
     return V, H
 
-
 ################################################################################
 # GIVENS ROTATIONS
 ################################################################################
-
   @jax.jit
   def apply_rotations(H_col: jax.ShapedArray, givens: jax.ShapedArray,
                       k: int) -> jax.ShapedArray:
@@ -862,6 +857,7 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
       H_col : The rotated vector.
     """
     rotation_carry = (H_col, 0, k, givens)
+
     def loop_condition(carry):
       i = carry[1]
       k = carry[2]
@@ -882,7 +878,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
                                         rotation_carry)
     H_col = rotation_carry[0]
     return H_col
-
 
   @jax.jit
   def apply_givens_rotation(H_col: jax.ShapedArray, givens: jax.ShapedArray,
@@ -918,7 +913,6 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     R_col = jax.ops.index_update(R_col, jax.ops.index[k + 1], 0.)
     return R_col, givens
 
-
   @jax.jit
   def givens_rotation(v1: float, v2: float) -> Tuple[float, float]:
     """
@@ -935,7 +929,9 @@ def gmres_wrapper(jax: types.ModuleType) -> Dict:
     sn = -v2 / t
     return cs, sn
 
-
+  fnames = ("gmres_m, gmres_residual, gmres_krylov, _gs_step, kth_arnoldi_step,"
+            " givens_rotation")
+  functions = collections.namedtuple("GmresFunctions", fnames)
   functions["gmres_m"] = gmres_m
   functions["gmres_residual"] = gmres_residual
   functions["gmres_krylov"] = gmres_krylov
