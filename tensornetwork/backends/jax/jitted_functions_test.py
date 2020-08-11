@@ -116,7 +116,7 @@ def test_gs(dtype):
   A = jax.numpy.array(A)
 
   x0 = jax.numpy.array(np.random.rand(n).astype(dtype))
-  v_new, _ = jax.lax.scan(gmres._gs_step, x0, xs=A.T)
+  v_new, _ = jax.lax.scan(gmres.gs_step, x0, xs=A.T)
   dotcheck = v_new @ A
   tol = A.size*jax.numpy.finfo(dtype).eps
   np.testing.assert_allclose(dotcheck, np.zeros(2), atol=tol)
