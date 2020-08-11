@@ -63,7 +63,7 @@ def np_dtype_to_backend(backend, dtype):
   Converts a given np dtype to the equivalent in the given backend. Skips
   the present test if the dtype is not supported in the backend.
   """
-  backend_obj = backend.backend_factory.get_backend(backend)
+  backend_obj = backends.backend_factory.get_backend(backend)
   if backend_obj.name == "numpy":
     return dtype
   A_np = np.ones([1], dtype=dtype)
