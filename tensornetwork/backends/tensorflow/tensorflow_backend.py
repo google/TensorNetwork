@@ -48,7 +48,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return tf.reshape(tensor, shape)
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None) -> Tensor:
     return tf.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
