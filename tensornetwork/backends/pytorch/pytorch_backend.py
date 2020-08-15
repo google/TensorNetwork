@@ -47,7 +47,9 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return torchlib.reshape(tensor, tuple(np.array(shape).astype(int)))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None) -> Tensor:
+    if perm is None:
+      perm = tuple(range(tensor.ndim - 1, -1, -1))
     return tensor.permute(perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],

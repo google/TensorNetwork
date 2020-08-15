@@ -32,6 +32,16 @@ def test_transpose():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_transpose_noperm():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(
+      np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]]]))
+  actual = backend.transpose(a) # [2, 1, 0]
+  actual = backend.transpose(actual, perm=[0, 2, 1])
+  expected = np.array([[[1.0, 3.0], [5.0, 7.0]], [[2.0, 4.0], [6.0, 8.0]]])
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_shape_concat():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(2 * np.ones((1, 3, 1)))
