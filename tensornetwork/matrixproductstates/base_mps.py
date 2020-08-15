@@ -14,7 +14,7 @@
 import numpy as np
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.network_operations import split_node_full_svd
-from tensornetwork.linalg.linalg import conj
+from tensornetwork.linalg.node_linalg import conj
 from tensornetwork.backends import backend_factory
 import warnings
 from tensornetwork.ncon_interface import ncon
@@ -248,7 +248,7 @@ class BaseMPS:
       sites: Sites where `ops` act.
 
     Returns:
-      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle` 
+      List: measurements :math:`\\langle` `ops[n]`:math:`\\rangle`
         for n in `sites`
     Raises:
       ValueError if `len(ops) != len(sites)`
@@ -277,9 +277,9 @@ class BaseMPS:
   def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
                                   sites2: Sequence[int]) -> List:
     """
-    Compute the correlator 
+    Compute the correlator
     :math:`\\langle` `op1[site1], op2[s]`:math:`\\rangle`
-    between `site1` and all sites `s` in `sites2`. If `s == site1`, 
+    between `site1` and all sites `s` in `sites2`. If `s == site1`,
     `op2[s]` will be applied first.
 
     Args:

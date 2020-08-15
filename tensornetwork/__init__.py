@@ -7,19 +7,13 @@ from tensornetwork.network_operations import (
     split_node_full_svd, split_node_qr, split_node_rq, switch_backend)
 
 from tensornetwork.tensor import Tensor
-
-#pylint: disable=line-too-long
-from tensornetwork.linalg.linalg import (
-    conj,
+from tensornetwork.linalg.initialization import (
     eye,
-    kron,
-    norm,
     ones,
     randn,
     random_uniform,
-    transpose,
-    zeros,
-)
+    zeros
+    )
 
 from tensornetwork.backends.decorators import jit
 
