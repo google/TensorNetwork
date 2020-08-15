@@ -50,7 +50,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return np.reshape(tensor, np.asarray(shape).astype(np.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor: Tensor,
+                perm: Optional[Sequence] = None) -> Tensor:
     return np.transpose(tensor, perm)
 
   def slice(self, tensor: Tensor, start_indices: Tuple[int, ...],
