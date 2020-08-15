@@ -6,6 +6,8 @@ from tensornetwork.network_operations import (
     reduced_density, remove_node, replicate_nodes, split_node,
     split_node_full_svd, split_node_qr, split_node_rq, switch_backend)
 
+from tensornetwork.tensor import Tensor
+
 #pylint: disable=line-too-long
 from tensornetwork.linalg.linalg import (
     conj,
