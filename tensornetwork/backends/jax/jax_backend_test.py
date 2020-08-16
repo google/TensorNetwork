@@ -113,7 +113,6 @@ def test_convert_to_tensor():
   assert isinstance(actual, type(expected))
   np.testing.assert_allclose(expected, actual)
 
-
 def test_outer_product():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(2 * np.ones((2, 1)))
@@ -133,10 +132,9 @@ def test_einsum():
   np.testing.assert_allclose(expected, actual)
 
 
-@pytest.mark.skip(reason="TODO(chaseriley): Add type checking.")
 def test_convert_bad_test():
   backend = jax_backend.JaxBackend()
-  with pytest.raises(TypeError):
+  with pytest.raises(TypeError, match="Expected"):
     backend.convert_to_tensor(tf.ones((2, 2)))
 
 
@@ -562,7 +560,8 @@ def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigs_all_eigvals_with_init(dtype):
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_all_eigvals_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
   np.random.seed(10)
@@ -572,14 +571,15 @@ def test_eigs_all_eigvals_with_init(dtype):
   def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta, U = backend.eigs(mv, [H], init, numeig=D, num_krylov_vecs=D)
+  eta, U = backend.eigs(mv, [H], init, numeig=D, num_krylov_vecs=D, which=which)
   eta_exact, U_exact = np.linalg.eig(H)
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigs_all_eigvals_no_init(dtype):
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_all_eigvals_no_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
   np.random.seed(10)
@@ -589,14 +589,20 @@ def test_eigs_all_eigvals_no_init(dtype):
     return jax.numpy.dot(H, x)
 
   eta, U = backend.eigs(
-      mv, [H], shape=(D,), dtype=dtype, numeig=D, num_krylov_vecs=D)
+      mv, [H],
+      shape=(D,),
+      dtype=dtype,
+      numeig=D,
+      num_krylov_vecs=D,
+      which=which)
   eta_exact, U_exact = np.linalg.eig(H)
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigs_few_eigvals_with_init(dtype):
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_few_eigvals_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
   np.random.seed(10)
@@ -606,14 +612,16 @@ def test_eigs_few_eigvals_with_init(dtype):
   def mv(x, H):
     return jax.numpy.dot(H, x)
 
-  eta, U = backend.eigs(mv, [H], init, numeig=4, num_krylov_vecs=10, maxiter=50)
+  eta, U = backend.eigs(
+      mv, [H], init, numeig=4, num_krylov_vecs=16, maxiter=50, which=which)
   eta_exact, U_exact = np.linalg.eig(H)
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_eigs_few_eigvals_no_init(dtype):
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_few_eigvals_no_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
   np.random.seed(10)
@@ -623,12 +631,36 @@ def test_eigs_few_eigvals_no_init(dtype):
     return jax.numpy.dot(H, x)
 
   eta, U = backend.eigs(
-      mv, [H], shape=(D,), dtype=dtype, numeig=4, num_krylov_vecs=10)
+      mv, [H],
+      shape=(D,),
+      dtype=dtype,
+      numeig=4,
+      num_krylov_vecs=16,
+      which=which)
   eta_exact, U_exact = np.linalg.eig(H)
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("which", ["LR", "LM"])
+def test_eigs_large_ncv_with_init(dtype, which):
+  backend = jax_backend.JaxBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  H = backend.randn((D, D), dtype=dtype, seed=10)
+
+  def mv(x, H):
+    return jax.numpy.dot(H, x)
+
+  eta, U = backend.eigs(
+      mv, [H], init, numeig=4, num_krylov_vecs=50, maxiter=50, which=which)
+  eta_exact, U_exact = np.linalg.eig(H)
+  compare_eigvals_and_eigvecs(
+      np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
+
+  
 def test_eigs_raises():
   backend = jax_backend.JaxBackend()
   with pytest.raises(
@@ -658,6 +690,42 @@ def test_eigs_raises():
         ValueError, match=f"which = {which}"
         f" is currently not supported."):
       backend.eigs(lambda x: x, which=which)
+  with pytest.raises(KeyError, match="dtype"):
+    backend.eigs(lambda x: x, shape=(10,), dtype=np.int32)
+
+##################################################################
+#############  This test should just not crash    ################
+##################################################################
+@pytest.mark.parametrize("dtype",
+                         [np.float64, np.complex128, np.float32, np.complex64])
+def test_eigs_bugfix(dtype):
+  backend = jax_backend.JaxBackend()
+  D = 200
+  mat = jax.numpy.array(np.random.rand(D, D).astype(dtype))
+  x = jax.numpy.array(np.random.rand(D).astype(dtype))
+
+  def matvec_jax(vector, matrix):
+    return matrix @ vector
+
+  backend.eigs(
+      matvec_jax, [mat],
+      numeig=1,
+      initial_state=x,
+      which='LR',
+      maxiter=10,
+      num_krylov_vecs=100,
+      tol=0.0001)
+  #this test will cause some annoying output to std buffer
+  with pytest.raises(np.linalg.LinAlgError):
+    backend.eigs(
+        matvec_jax, [mat],
+        numeig=1,
+        initial_state=x,
+        which='LR',
+        maxiter=10,
+        num_krylov_vecs=100,
+        tol=0.0001,
+        res_thresh=0.0)
 
 
 def test_sum():
@@ -684,7 +752,12 @@ def test_matmul():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
-
+  t3 = np.random.rand(10)
+  t4 = np.random.rand(11)
+  c = backend.convert_to_tensor(t3)
+  d = backend.convert_to_tensor(t4)
+  with pytest.raises(ValueError, match="inputs to"):
+    backend.matmul(c, d)
 
 def test_gmres_raises():
   backend = jax_backend.JaxBackend()
@@ -881,3 +954,19 @@ def test_pivot(dtype, pivot_axis):
   expected = tensor.reshape(pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype, atol", [(np.float32, 1E-6),
+                                         (np.float64, 1E-10),
+                                         (np.complex64, 1E-6),
+                                         (np.complex128, 1E-10)])
+def test_inv(dtype, atol):
+  shape = (10, 10)
+  backend = jax_backend.JaxBackend()
+  matrix = backend.randn(shape, dtype=dtype, seed=10)
+  inv = backend.inv(matrix)
+  np.testing.assert_allclose(inv @ matrix, np.eye(10), atol=atol)
+  np.testing.assert_allclose(matrix @ inv, np.eye(10), atol=atol)
+  tensor = backend.randn((10, 10, 10), dtype=dtype, seed=10)
+  with pytest.raises(ValueError, match="input to"):
+    backend.inv(tensor)
