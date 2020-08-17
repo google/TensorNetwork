@@ -369,7 +369,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   # #######################################################
   # #######################################################
   @functools.partial(jax.jit, static_argnums=(4, 5, 6))
-  def shifted_QR(Vm, Hm, fm, evals, k, p, which):
+  def shifted_QR(Vm, Hm, fm, evals, k, p, which, res_thresh):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
     # compress to k = numeig
