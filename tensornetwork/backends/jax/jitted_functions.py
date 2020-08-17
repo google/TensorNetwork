@@ -427,9 +427,8 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
 
   def implicitly_restarted_arnoldi_method(matvec, args, initial_state,
-                                          num_krylov_vecs, numeig, which, eps,
-                                          maxiter) -> Tuple[List[Tensor],
-                                                            List[Tensor]]:
+    num_krylov_vecs, numeig, which, eps,
+    maxiter, res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -477,7 +476,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
                                                      num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
-    
+
     it = 0
     if which == 'LR':
       _which = 0
@@ -500,7 +499,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       Vm = Vm.astype(dtype)
       Hm = Hm.astype(dtype)
       fm = fm.astype(dtype)
-      
+
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
       krylov_vectors, H, fk, converged = shifted_QR(Vm, Hm, fm, evals, numeig,
