@@ -394,7 +394,10 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[0:k, :],
                                           Vk)
     krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[k:], v)
-    return krylov_vectors, H, fk
+    Z = jax.numpy.linalg.norm(fk)
+    #if fk is a zero-vector then arnoldi has exactly converged.
+    #use small threshold to check this
+    return krylov_vectors, H, fk, Z < res_thresh
 
   @functools.partial(jax.jit, static_argnums=(2,))
   def update_data(Vm_tmp, Hm_tmp, numits):
@@ -421,6 +424,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     state_norms = jax.numpy.linalg.norm(state_vectors, axis=1)
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
+
 
   def implicitly_restarted_arnoldi_method(matvec, args, initial_state,
                                           num_krylov_vecs, numeig, which, eps,
@@ -466,7 +470,6 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
         (num_krylov_vecs + 1, jax.numpy.ravel(initial_state).shape[0]),
         dtype=dtype)
     H = jax.numpy.zeros((num_krylov_vecs + 1, num_krylov_vecs), dtype=dtype)
-
     # perform initial arnoldi factorization
     Vm_tmp, Hm_tmp, numits, converged = arnoldi_fact(matvec, args,
                                                      initial_state,
@@ -474,7 +477,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
                                                      num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
-
+    
     it = 0
     if which == 'LR':
       _which = 0
@@ -497,10 +500,13 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       Vm = Vm.astype(dtype)
       Hm = Hm.astype(dtype)
       fm = fm.astype(dtype)
-
+      
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
-      krylov_vectors, H, fk = shifted_QR(Vm, Hm, fm, evals, numeig, p, _which)
+      krylov_vectors, H, fk, converged = shifted_QR(Vm, Hm, fm, evals, numeig,
+                                                    p, _which, res_thresh)
+      if converged:
+        break
       v0 = jax.numpy.reshape(fk, initial_state.shape)
       # restart
       Vm_tmp, Hm_tmp, _, converged = arnoldi_fact(matvec, args, v0,
