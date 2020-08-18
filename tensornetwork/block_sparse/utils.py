@@ -17,7 +17,6 @@ from tensornetwork.block_sparse.sizetypes import SIZE_T
 from tensornetwork.block_sparse.caching import get_cacher
 from typing import List, Union, Any, Type
 
-
 def get_real_dtype(dtype: Type[np.number]) -> Type[np.number]:
   if dtype == np.complex128:
     return np.float64
