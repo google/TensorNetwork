@@ -7,19 +7,13 @@ from tensornetwork.network_operations import (
     split_node_full_svd, split_node_qr, split_node_rq, switch_backend)
 
 from tensornetwork.tensor import Tensor
-
-#pylint: disable=line-too-long
-from tensornetwork.linalg.linalg import (
-    conj,
+from tensornetwork.linalg.initialization import (
     eye,
-    kron,
-    norm,
     ones,
     randn,
     random_uniform,
-    transpose,
-    zeros,
-)
+    zeros
+    )
 
 from tensornetwork.backends.decorators import jit
 
@@ -39,8 +33,11 @@ from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
 from tensornetwork.matrixproductstates.mpo import FiniteTFI, FiniteXXZ
-from tensornetwork.backend_contextmanager import DefaultBackend, set_default_backend
+from tensornetwork.backend_contextmanager import DefaultBackend
+from tensornetwork.backend_contextmanager import set_default_backend
 from tensornetwork import block_sparse
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
+from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
+from tensornetwork.block_sparse.blocksparsetensor import ChargeArray
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge, ZNCharge
+from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge
+from tensornetwork.block_sparse.charge import ZNCharge

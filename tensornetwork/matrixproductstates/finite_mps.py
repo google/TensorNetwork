@@ -16,7 +16,7 @@ import functools
 
 from tensornetwork.network_components import Node, contract_between
 from tensornetwork.backends import backend_factory
-from tensornetwork.linalg.linalg import conj
+from tensornetwork.linalg.node_linalg import conj
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 from tensornetwork.matrixproductstates.base_mps import BaseMPS
 from tensornetwork.backends.abstract_backend import AbstractBackend
@@ -51,9 +51,9 @@ class FiniteMPS(BaseMPS):
                center_position: Optional[int] = None,
                canonicalize: Optional[bool] = True,
                backend: Optional[Union[AbstractBackend, Text]] = None) -> None:
-    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state 
-       is brought into canonical form, with `BaseMPS.center_position` 
-       at `center_position`. if `center_position` is `None` and 
+    """Initialize a `FiniteMPS`. If `canonicalize` is `True` the state
+       is brought into canonical form, with `BaseMPS.center_position`
+       at `center_position`. if `center_position` is `None` and
        `canonicalize = True`, `BaseMPS.center_position` is set to 0.
 
     Args:
@@ -122,11 +122,11 @@ class FiniteMPS(BaseMPS):
   # pylint: disable=arguments-differ
   def canonicalize(self, normalize: bool = True) -> np.number:
     """Bring the MPS into canonical form according to
-    `center_position`. If `center_position` is `None`, the 
+    `center_position`. If `center_position` is `None`, the
     MPS is canonicalized with `center_position = 0`.
 
     Args:
-      normalize: If `True`, normalize matrices when shifting the 
+      normalize: If `True`, normalize matrices when shifting the
         orthogonality center.
     Returns:
       `Tensor`: The norm of the MPS.

@@ -16,6 +16,8 @@ import tensornetwork as tn
 import pytest
 import numpy as np
 from tensornetwork.backends.abstract_backend import AbstractBackend
+import tensornetwork.linalg
+import tensornetwork.linalg.node_linalg
 
 
 def test_replicate_nodes(backend):
@@ -164,7 +166,7 @@ def test_split_node_rq_unitarity_complex(backend):
   a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   r, q = tn.split_node_rq(a, [a[0]], [a[1]])
   r[1] | q[0]
-  qbar = tn.conj(q)
+  qbar = tn.linalg.node_linalg.conj(q)
   q[1] ^ qbar[1]
   u1 = q @ qbar
   qbar[0] ^ q[0]
@@ -178,7 +180,7 @@ def test_split_node_rq_unitarity_float(backend):
   a = tn.Node(np.random.rand(3, 3), backend=backend)
   r, q = tn.split_node_rq(a, [a[0]], [a[1]])
   r[1] | q[0]
-  qbar = tn.conj(q)
+  qbar = tn.linalg.node_linalg.conj(q)
   q[1] ^ qbar[1]
   u1 = q @ qbar
   qbar[0] ^ q[0]
@@ -210,7 +212,7 @@ def test_split_node_qr_unitarity_complex(backend):
   a = tn.Node(np.random.rand(3, 3) + 1j * np.random.rand(3, 3), backend=backend)
   q, r = tn.split_node_qr(a, [a[0]], [a[1]])
   q[1] | r[0]
-  qbar = tn.conj(q)
+  qbar = tn.linalg.node_linalg.conj(q)
   q[1] ^ qbar[1]
   u1 = q @ qbar
   qbar[0] ^ q[0]
@@ -224,7 +226,7 @@ def test_split_node_qr_unitarity_float(backend):
   a = tn.Node(np.random.rand(3, 3), backend=backend)
   q, r = tn.split_node_qr(a, [a[0]], [a[1]])
   q[1] | r[0]
-  qbar = tn.conj(q)
+  qbar = tn.linalg.node_linalg.conj(q)
   q[1] ^ qbar[1]
   u1 = q @ qbar
   qbar[0] ^ q[0]
@@ -286,10 +288,10 @@ def test_reachable_disconnected_1(backend):
 
 def test_reachable_disconnected_2(backend):
   nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend) for _ in range(4)]
-  nodes[1][1] ^ nodes[2][0]  #connect 2nd and third node
+  nodes[1][1] ^ nodes[2][0]  # connect 2nd and third node
   assert set(tn.reachable([nodes[0],
                            nodes[1]])) == {nodes[0], nodes[1], nodes[2]}
-  nodes[2][1] ^ nodes[3][0]  #connect third and fourth node
+  nodes[2][1] ^ nodes[3][0]  # connect third and fourth node
   assert set(tn.reachable([nodes[0], nodes[1]])) == set(nodes)
 
 
