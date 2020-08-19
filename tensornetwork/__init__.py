@@ -15,6 +15,7 @@ from tensornetwork.linalg.initialization import (
     zeros
     )
 
+from tensornetwork.linalg.linalg import norm
 from tensornetwork.backends.decorators import jit
 
 from tensornetwork.network_components import (
