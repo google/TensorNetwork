@@ -14,11 +14,7 @@
 
 
 import numpy as np
-import jax
-import jax.numpy as jnp
 from jax import config
-import tensorflow as tf
-import torch
 import pytest
 import tensornetwork
 from tensornetwork.linalg import linalg
@@ -26,7 +22,7 @@ import tensornetwork.linalg.initialization
 from tensornetwork import backends, backend_contextmanager
 from tensornetwork.tests import testing_utils
 
-#pylint: disable=no-member
+# pylint: disable=no-member
 config.update("jax_enable_x64", True)
 
 
@@ -145,3 +141,31 @@ def test_rq_vs_backend(backend, dtype):
   tn_arrays = [t.array for t in tn_result]
   for tn_arr, backend_arr in zip(tn_arrays, backend_result):
     np.testing.assert_allclose(tn_arr, backend_arr)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_qr_default(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  tn_result = linalg.qr(tensor, split_axis)
+  result2 = linalg.qr(tensor, split_axis, non_negative_diagonal=False)
+  tn_arrays = [t.array for t in tn_result]
+  arrays2 = [t.array for t in result2]
+  for tn_arr, arr2 in zip(tn_arrays, arrays2):
+    np.testing.assert_allclose(tn_arr, arr2)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_rq_default(backend, dtype):
+  shape = (3, 6, 4, 2)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  tensor = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  split_axis = 1
+  tn_result = linalg.rq(tensor, split_axis)
+  result2 = linalg.rq(tensor, split_axis, non_negative_diagonal=False)
+  tn_arrays = [t.array for t in tn_result]
+  arrays2 = [t.array for t in result2]
+  for tn_arr, arr2 in zip(tn_arrays, arrays2):
+    np.testing.assert_allclose(tn_arr, arr2)

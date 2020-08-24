@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union, Text, Optional, List, Sequence, Tuple
+from typing import Optional, Tuple
 from tensornetwork.tensor import Tensor
+
 
 def svd(
     tensor: Tensor,
@@ -83,7 +84,7 @@ def svd(
 def qr(
     tensor: Tensor,
     pivot_axis: int = -1,
-    non_negative_diagonal: bool = True
+    non_negative_diagonal: bool = False
 ) -> Tuple[Tensor, Tensor]:
   """
   QR reshapes tensor into a matrix and then decomposes that matrix into the
@@ -130,7 +131,7 @@ def qr(
 def rq(
     tensor: Tensor,
     pivot_axis: int = -1,
-    non_negative_diagonal: bool = True
+    non_negative_diagonal: bool = False
 ) -> Tuple[Tensor, Tensor]:
   """
   RQ reshapes tensor into a matrix and then decomposes that matrix into the
