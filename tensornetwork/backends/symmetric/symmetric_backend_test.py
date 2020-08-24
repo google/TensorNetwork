@@ -181,6 +181,24 @@ def test_transpose(R, dtype, num_charges):
   ])
 
 
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5, 6, 7])
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_transpose_default(R, dtype, num_charges):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, num_charges, dtype)
+  order = np.arange(R)[::-1]
+  np.random.shuffle(order)
+  actual = backend.transpose(a)
+  expected = transpose(a, order)
+  np.testing.assert_allclose(expected.data, actual.data)
+  assert np.all([
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
+  ])
+
+
 def test_shape_concat():
   backend = symmetric_backend.SymmetricBackend()
   a = np.asarray((2 * np.ones((1, 3, 1))))
@@ -1042,8 +1060,7 @@ def test_diagonal(Ds, dtype, num_charges, flow):
   inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique_charges = unique(
-      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
+  unique_charges = unique(np_flow * (indices[0]._charges[0].charges[left, :]))
   diagonal = backend.diagonal(arr)
 
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(

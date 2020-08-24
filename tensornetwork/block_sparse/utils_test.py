@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 import itertools
-from tensornetwork.block_sparse.utils import (flatten, fuse_stride_arrays,
-                                              fuse_ndarrays, fuse_degeneracies,
-                                              _find_best_partition,
-                                              _get_strides, unique, get_dtype,
-                                              get_real_dtype, intersect,
-                                              collapse, expand, _intersect_ndarray)
+from tensornetwork.block_sparse.utils import (
+    flatten, fuse_stride_arrays, fuse_ndarrays, fuse_degeneracies,
+    _find_best_partition, _get_strides, unique, get_dtype, get_real_dtype,
+    intersect, collapse, expand, _intersect_ndarray)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -54,7 +52,7 @@ def test_find_best_partition_raises():
   assert p == 3
 
 #pylint: disable=too-many-return-statements
-def get_index(return_index, return_inverse, return_counts, which):
+def get_index(return_index, return_inverse, return_counts, which):#pylint: disable=inconsistent-return-statements
   if which == 'index':
     return 1 if return_index else -1
   if which == 'inverse':
@@ -67,7 +65,6 @@ def get_index(return_index, return_inverse, return_counts, which):
     if return_index or return_inverse:
       return 2 if return_counts else -1
     return 1 if return_counts else -1
-  return None
 
 
 @pytest.mark.parametrize('N, dtype, resdtype', [(1, np.int8, np.int8),
@@ -116,9 +113,7 @@ def test_collapse_expand(N, dtype):
   D = 10000
   expected = np.random.randint(-5, 5, (D, N), dtype=dtype)
   collapsed = collapse(expected)
-  if N == 3:
-    expected = np.concatenate([expected, np.zeros((D, 1), dtype=dtype)], axis=1)
-  actual = expand(collapsed, dtype)
+  actual = expand(collapsed, dtype, original_width=N, original_ndim=2)
   np.testing.assert_allclose(expected, actual)
 
 
@@ -195,37 +190,51 @@ def test_unique_2(return_index, return_inverse, return_counts):
     for n, e in enumerate(expected):
       np.testing.assert_allclose(e, actual[n])
 
-def test_intersect_1():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6], [2, 3, 4]])
+@pytest.mark.parametrize('return_index', [True, False])
+@pytest.mark.parametrize('return_inverse', [True, False])
+@pytest.mark.parametrize('return_counts', [True, False])
+def test_unique_1d(return_index, return_inverse, return_counts):
+  D = 1000
+  a = np.random.randint(-10, 10, D, dtype=np.int16)
+  expected = np.unique(a, return_index, return_inverse, return_counts)
+  actual = unique(a, return_index, return_inverse, return_counts)
+  if not any([return_index, return_inverse, return_counts]):
+    np.testing.assert_allclose(expected, actual)
+  else:
+    for n, e in enumerate(expected):
+      np.testing.assert_allclose(e, actual[n])
+
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_1(dtype):
+  a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
+  b = np.array([[0, -2, 6], [2, 3, 4]], dtype=dtype)
   out = intersect(a, b, axis=1)
   np.testing.assert_allclose(np.array([[0], [2]]), out)
 
-
-def test_intersect_2():
-  a = np.array([[0, 1, 2], [2, 3, 4]])
-  b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_2(dtype):
+  a = np.array([[0, 1, 2], [2, 3, 4]], dtype=dtype)
+  b = np.array([[0, -2, 6, 2], [2, 3, 4, 4]], dtype=dtype)
   out, la, lb = intersect(a, b, axis=1, return_indices=True)
   np.testing.assert_allclose(np.array([[0, 2], [2, 4]]), out)
   np.testing.assert_allclose(la, [0, 2])
   np.testing.assert_allclose(lb, [0, 3])
 
-
-def test_intersect_3():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_3(dtype):
+  a = np.array([0, 1, 2, 3, 4], dtype=dtype)
+  b = np.array([0, -1, 4], dtype=dtype)
   out = intersect(a, b)
   np.testing.assert_allclose([0, 4], out)
 
-
-def test_intersect_4():
-  a = np.array([0, 1, 2, 3, 4])
-  b = np.array([0, -1, 4])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_4(dtype):
+  a = np.array([0, 1, 2, 3, 4], dtype=dtype)
+  b = np.array([0, -1, 4], dtype=dtype)
   out, la, lb = intersect(a, b, return_indices=True)
   np.testing.assert_allclose([0, 4], out)
   np.testing.assert_allclose(la, [0, 4])
   np.testing.assert_allclose(lb, [0, 2])
-
 
 def test_intersect_raises():
   np.random.seed(10)
@@ -251,32 +260,32 @@ def test_intersect_raises():
   with pytest.raises(ValueError, match="array dtypes"):
     intersect(a, b, axis=0)
 
-
-def test_intersect_5():
-  a = np.array([[0, 2], [1, 3], [2, 4]])
-  b = np.array([[0, 2], [-2, 3], [6, 6]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_5(dtype):
+  a = np.array([[0, 2], [1, 3], [2, 4]], dtype=dtype)
+  b = np.array([[0, 2], [-2, 3], [6, 6]], dtype=dtype)
   out = intersect(a, b, axis=0)
   np.testing.assert_allclose(np.array([[0, 2]]), out)
 
-
-def test_intersect_6():
-  a = np.array([[0, 2], [1, 3], [2, 4]])
-  b = np.array([[0, 2], [-2, 3], [6, 4], [2, 4]])
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_6(dtype):
+  a = np.array([[0, 2], [1, 3], [2, 4]], dtype=dtype)
+  b = np.array([[0, 2], [-2, 3], [6, 4], [2, 4]], dtype=dtype)
   out, la, lb = intersect(a, b, axis=0, return_indices=True)
   np.testing.assert_allclose(np.array([[0, 2], [2, 4]]), out)
   np.testing.assert_allclose(la, [0, 2])
   np.testing.assert_allclose(lb, [0, 3])
 
 
-def test_intersect_1d():
-  a = np.random.randint(-5, 5, 10)
-  b = np.random.randint(-2, 2, 8)
+@pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+def test_intersect_1d(dtype):
+  a = np.random.randint(-5, 5, 10, dtype=dtype)
+  b = np.random.randint(-2, 2, 8, dtype=dtype)
   out, la, lb = intersect(a, b, axis=0, return_indices=True)
   out_, la_, lb_ = np.intersect1d(a, b, return_indices=True)
   np.testing.assert_allclose(out, out_)
   np.testing.assert_allclose(la, la_)
   np.testing.assert_allclose(lb, lb_)
-
 
 def test_intersect_ndarray_1():
   a = np.array([[0, 1, 2], [2, 3, 4]])
@@ -310,29 +319,11 @@ def test_intersect_ndarray_4():
   np.testing.assert_allclose(lb, [0, 2])
 
 
-def test_intersect_ndarray_raises():
-  np.random.seed(10)
-  a = np.random.randint(0, 10, (4, 5, 1))
-  b = np.random.randint(0, 10, (4, 6))
-  with pytest.raises(ValueError, match="array ndims"):
-    _intersect_ndarray(a, b, axis=0)
-  a = np.random.randint(0, 10, (4, 5))
-  b = np.random.randint(0, 10, (4, 6))
-  with pytest.raises(ValueError, match="array widths"):
-    _intersect_ndarray(a, b, axis=0)
-  with pytest.raises(NotImplementedError, match="intersection can only"):
-    _intersect_ndarray(a, b, axis=2)
-  d = np.random.randint(0, 10, (3, 7, 3))
-  e = np.random.randint(0, 10, (3, 7, 3))
-  with pytest.raises(NotImplementedError, match="_intersect_ndarray is only"):
-    _intersect_ndarray(d, e, axis=1)
-
 def test_intersect_ndarray_5():
   a = np.array([[0, 2], [1, 3], [2, 4]])
   b = np.array([[0, 2], [-2, 3], [6, 6]])
   out = _intersect_ndarray(a, b, axis=0)
   np.testing.assert_allclose(np.array([[0, 2]]), out)
-
 
 def test_intersect_ndarray_6():
   a = np.array([[0, 2], [1, 3], [2, 4]])
@@ -350,6 +341,23 @@ def test_intersect_ndarray_1d():
   np.testing.assert_allclose(out, out_)
   np.testing.assert_allclose(la, la_)
   np.testing.assert_allclose(lb, lb_)
+
+def test_intersect_ndarray_raises():
+  np.random.seed(10)
+  a = np.random.randint(0, 10, (4, 5, 1))
+  b = np.random.randint(0, 10, (4, 6))
+  with pytest.raises(ValueError, match="array ndims"):
+    _intersect_ndarray(a, b, axis=0)
+  a = np.random.randint(0, 10, (4, 5))
+  b = np.random.randint(0, 10, (4, 6))
+  with pytest.raises(ValueError, match="array widths"):
+    _intersect_ndarray(a, b, axis=0)
+  with pytest.raises(NotImplementedError, match="intersection can only"):
+    _intersect_ndarray(a, b, axis=2)
+  d = np.random.randint(0, 10, (3, 7, 3))
+  e = np.random.randint(0, 10, (3, 7, 3))
+  with pytest.raises(NotImplementedError, match="_intersect_ndarray is only"):
+    _intersect_ndarray(d, e, axis=1)
 
 def test_get_real_dtype():
   assert get_real_dtype(np.complex128) == np.float64

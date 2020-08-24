@@ -230,7 +230,7 @@ def test_find_diagonal_sparse_blocks(num_legs, num_charges):
   # pylint: disable=no-member
   left_inds, _ = np.divmod(nz, right_charges.shape[0])
   left = left_charges[left_inds, :]
-  unique_left = unique(left, axis=0)
+  unique_left = unique(left)
   blocks = []
   for n in range(unique_left.shape[0]):
     ul = unique_left[n, :][None, :]
@@ -311,7 +311,7 @@ def test_find_transposed_diagonal_sparse_blocks(num_charges, order, D):
   # pylint: disable=no-member
   left_inds, _ = np.divmod(tr_nz, right_charges.shape[0])
   left = left_charges[left_inds, :]
-  unique_left = unique(left, axis=0)
+  unique_left = unique(left)
   blocks = []
   for n in range(unique_left.shape[0]):
     ul = unique_left[n, :][None, :]

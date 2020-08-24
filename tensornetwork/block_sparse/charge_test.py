@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
                                                fuse_charges, Z2Charge, ZNCharge)
-from tensornetwork.block_sparse.utils import (unique, intersect, fuse_ndarrays,
+from tensornetwork.block_sparse.utils import (fuse_ndarrays, unique,
                                               fuse_degeneracies)
 
 
@@ -56,8 +56,9 @@ def test_BaseCharge_unique():
   np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
+  #this call has to be to custom unique to ensure correct ordering
   expected = unique(
-      q, return_index=True, return_inverse=True, return_counts=True, axis=0)
+      q, return_index=True, return_inverse=True, return_counts=True)
   actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   assert np.all(actual[0].charges == expected[0])
   assert np.all(actual[1] == expected[1])
@@ -235,7 +236,6 @@ def test_BaseCharge_intersect_return_indices():
   Q1 = BaseCharge(charges=q1)
   Q2 = BaseCharge(charges=q2)
   res, i1, i2 = Q1.intersect(Q2, return_indices=True)
-  #res, i1, i2 = intersect(q1, q2, axis=1, return_indices=True)
   np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]).T)
   np.testing.assert_allclose(i1, [0, 4])
   np.testing.assert_allclose(i2, [1, 2])

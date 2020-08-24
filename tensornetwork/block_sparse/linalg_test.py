@@ -50,8 +50,7 @@ def test_get_diag(dtype, num_charges, Ds, flow):
   inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique_charges = unique(
-      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
+  unique_charges = unique(np_flow * (indices[0]._charges[0].charges[left, :]))
   diagonal = diag(arr)
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
       arr.flat_charges, arr.flat_flows, 1)

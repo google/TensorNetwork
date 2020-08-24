@@ -42,7 +42,9 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return self.bs.reshape(tensor, numpy.asarray(shape).astype(numpy.int32))
 
-  def transpose(self, tensor, perm) -> Tensor:
+  def transpose(self, tensor, perm=None) -> Tensor:
+    if perm is None:
+      perm = tuple(range(tensor.ndim - 1, -1, -1))
     return self.bs.transpose(tensor, perm)
 
   def svd(

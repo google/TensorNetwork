@@ -78,7 +78,7 @@ def compute_sparse_lookup(
       charges=unique_charges,
       charge_labels=None,
       charge_types=charges[0].charge_types)
-  
+
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
@@ -240,10 +240,9 @@ def reduce_charges(charges: List[BaseCharge],
       return obj, np.empty(0, dtype=SIZE_T)
     return obj
 
-  unique_comb_qnums, comb_labels = unique(
-      comb_qnums, return_inverse=True, axis=0)
+  unique_comb_qnums, comb_labels = unique(comb_qnums, return_inverse=True)
   num_unique = unique_comb_qnums.shape[0]
-  
+
   # intersect combined qnums and target_charges
   reduced_qnums, label_to_unique, _ = intersect(
       unique_comb_qnums, target_charges, axis=0, return_indices=True)
