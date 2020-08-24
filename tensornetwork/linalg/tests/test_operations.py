@@ -14,18 +14,14 @@
 
 
 import numpy as np
-import jax
-import jax.numpy as jnp
 from jax import config
-import tensorflow as tf
-import torch
 import pytest
 import tensornetwork
 import tensornetwork.linalg.operations
-from tensornetwork import backends, backend_contextmanager
+from tensornetwork import backends
 from tensornetwork.tests import testing_utils
 
-#pylint: disable=no-member
+# pylint: disable=no-member
 config.update("jax_enable_x64", True)
 
 
@@ -66,6 +62,25 @@ def test_tensordot_vs_backend(backend, dtype):
   backend_obj = backends.backend_factory.get_backend(backend)
   arrays = [t.array for t in tensors]
   backend_result = backend_obj.tensordot(*arrays, axes=dims)
+  np.testing.assert_allclose(backend_result, result.array)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
+def test_tensordot_int_vs_backend(backend, dtype):
+  """
+  Tests that tensordot yields the same result as the backend equivalent.
+  """
+  shape = (4, 4, 4)
+  dtype = testing_utils.np_dtype_to_backend(backend, dtype)
+  testing_utils.check_contraction_dtype(backend, dtype)
+  tensor1 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  tensor2 = tensornetwork.ones(shape, backend=backend, dtype=dtype)
+  tensors = [tensor1, tensor2]
+  dim = 1
+  result = tensornetwork.tensordot(*tensors, dim)
+  backend_obj = backends.backend_factory.get_backend(backend)
+  arrays = [t.array for t in tensors]
+  backend_result = backend_obj.tensordot(*arrays, axes=dim)
   np.testing.assert_allclose(backend_result, result.array)
 
 
@@ -324,3 +339,55 @@ def test_trace(backend, dtype):
   if A is not None:
     np.testing.assert_allclose(tensornetwork.trace(A).array,
                                A.backend.trace(A.array))
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+@pytest.mark.parametrize("pivotA", [None, 1, 2, 0, -1])
+def test_pivot(backend, dtype, pivotA):
+  """ Checks that Tensor.pivot() works.
+  """
+  shapeA = (2, 3, 4, 2)
+  A, _ = testing_utils.safe_randn(shapeA, backend, dtype)
+  if A is not None:
+    if pivotA is None:
+      matrixA = tensornetwork.pivot(A)
+      tA = A.backend.pivot(A.array, pivot_axis=-1)
+    else:
+      matrixA = tensornetwork.pivot(A, pivot_axis=pivotA)
+      tA = A.backend.pivot(A.array, pivot_axis=pivotA)
+    np.testing.assert_allclose(matrixA.array, tA)
+
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+@pytest.mark.parametrize("pivots", ([None, None], [None, 1], [2, None],
+                                    [0, 1]))
+def test_kron(backend, dtype, pivots):
+  """ Checks that Tensor.kron() works.
+  """
+  pivotA, pivotB = pivots
+  shapeA = (2, 3, 4)
+  shapeB = (1, 2)
+  shapeC = (2, 3, 4, 1, 2)
+  A, _ = testing_utils.safe_randn(shapeA, backend, dtype)
+  if A is not None:
+    B, _ = testing_utils.safe_randn(shapeB, backend, dtype)
+    if pivotA is None and pivotB is None:
+      C = tensornetwork.kron(A, B)
+      matrixA = tensornetwork.pivot(A, pivot_axis=-1)
+      matrixB = tensornetwork.pivot(B, pivot_axis=-1)
+    elif pivotA is None:
+      C = tensornetwork.kron(A, B, pivot_axisB=pivotB)
+      matrixA = tensornetwork.pivot(A, pivot_axis=-1)
+      matrixB = tensornetwork.pivot(B, pivot_axis=pivotB)
+    elif pivotB is None:
+      C = tensornetwork.kron(A, B, pivot_axisA=pivotA)
+      matrixA = tensornetwork.pivot(A, pivot_axis=pivotA)
+      matrixB = tensornetwork.pivot(B, pivot_axis=-1)
+    else:
+      C = tensornetwork.kron(A, B, pivot_axisA=pivotA, pivot_axisB=pivotB)
+      matrixA = tensornetwork.pivot(A, pivot_axis=pivotA)
+      matrixB = tensornetwork.pivot(B, pivot_axis=pivotB)
+
+    Ctest = C.backend.einsum("ij,kl->ikjl", matrixA.array, matrixB.array)
+    Ctest = C.backend.reshape(Ctest, shapeC)
+    np.testing.assert_allclose(C.array, Ctest)

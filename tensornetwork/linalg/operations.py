@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union, Text, Optional, List, Sequence, Tuple
+from typing import Text, Union, Optional, Sequence, Tuple
 from tensornetwork.tensor import Tensor
 from tensornetwork import ncon_interface
 
@@ -26,11 +26,9 @@ def _check_backends(tensors: Sequence[Tensor], fname: str) -> Tuple[bool, str]:
   Returns:
     (flag, errstr): Whether all backends agree, and an error message if not.
   """
-  backend = tensors[0].backend
   backend_names = [tensor.backend.name for tensor in tensors]
-  all_backends_same = True
-  for name in backend_names[1:]:
-    all_backends_same = all_backends_same and name == backend.name
+  backends_check = [backend_names[0] == name for name in backend_names[1:]]
+  all_backends_same = all(backends_check)
   errstr = ""
   if not all_backends_same:
     errstr = "All Tensors fed to " + fname + "must have the same backend."
@@ -39,7 +37,8 @@ def _check_backends(tensors: Sequence[Tensor], fname: str) -> Tuple[bool, str]:
   return all_backends_same, errstr
 
 
-def tensordot(a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]) -> Tensor:
+def tensordot(a: Tensor, b: Tensor,
+              axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
   """Do a tensordot (contraction) of Tensors `a` and `b` over the given axes.
   The behaviour of this function largely matches that of np.tensordot.
 
@@ -47,7 +46,8 @@ def tensordot(a: Tensor, b: Tensor, axes: Sequence[Sequence[int]]) -> Tensor:
     a: A Tensor.
     b: Another Tensor.
     axes: Two lists of integers. These values are the contraction
-          axes.
+          axes. A single integer may also be supplied, in which case both
+          tensors are contracted over this axis.
   Raises:
     ValueError, if a and b have different backends.
   Returns:
@@ -101,7 +101,7 @@ def take_slice(tensor: Tensor, start_indices: Tuple[int, ...],
   return sliced_tensor
 
 
-def shape(tensor: Tensor) -> Tuple[Optional[int], ...]:
+def shape(tensor: Tensor) -> Tuple[int, ...]:
   """Get the shape of a Tensor as a tuple of integers.
 
   Args:
@@ -128,7 +128,7 @@ def outer(tensor1: Tensor, tensor2: Tensor) -> Tensor:
   return Tensor(out_data, backend=tensor1.backend)
 
 
-def einsum(expression: str, *tensors: Tensor, optimize: bool) -> Tensor:
+def einsum(expression: Text, *tensors: Tensor, optimize: bool) -> Tensor:
   """Calculate sum of products of Tensors according to expression."""
   all_backends_same, errstr = _check_backends(tensors, "einsum")
   if not all_backends_same:
@@ -386,12 +386,12 @@ def pivot(tensor: Tensor, pivot_axis: int = -1) -> Tensor:
 
 
 def kron(tensorA: Tensor, tensorB: Tensor, pivot_axisA: int = -1,
-         pivot_axisB: int = -1):
+         pivot_axisB: int = -1) -> Tensor:
   """
   Reshape tensorA and tensorB into matrices respectively about pivot_axisA and
   pivot_axisB, computes the Kronecker product of those matrices, and
   reshapes to the concatenated shape of tensorA and tensorB
-  (e.g. tensorA -> (2, 2); tensorB -> (2, 2); result -> (2, 2, 2, 2)).
+  (e.g. tensorA -> (2, 3); tensorB -> (4, 5); result -> (2, 3, 4, 5)).
   """
   tensors = [tensorA, tensorA]
   all_backends_same, errstr = _check_backends(tensors, "kron")
