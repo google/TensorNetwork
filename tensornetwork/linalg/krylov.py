@@ -11,18 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#pylint: disable=line-too-long
-from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List, Text
-import functools
+from typing import Optional, Tuple, Any, Union, Type, Callable, List, Text
 import numpy as np
 import tensornetwork.tensor
 import tensornetwork.backends.abstract_backend as abstract_backend
-from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 
 AbstractBackend = abstract_backend.AbstractBackend
 Array = Any
 Tensor = tensornetwork.tensor.Tensor
+
 
 class MatvecCache:
   """
@@ -50,7 +48,9 @@ class MatvecCache:
       self.cache[backend_name][matvec] = wrapped
     return self.cache[backend_name][matvec]
 
+
 KRYLOV_MATVEC_CACHE = MatvecCache()
+
 
 def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
                         x0: Union[Tensor, None],
@@ -94,7 +94,7 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
                 f"x0 backend: {x0.backend.name} \n"
                 f"backend: {backend.name} \n")
       raise ValueError(errstr)
-  else: # If x0 was not specified, set x0_array (the returned value) to None.
+  else:  # If x0 was not specified, set x0_array (the returned value) to None.
     x0_array = None
 
   # If args were specified, set the returned args_array to be all the enclosed
@@ -108,6 +108,7 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
   else:
     args_array = None
   return (backend, x0_array, args_array)
+
 
 def eigsh_lanczos(A: Callable,
                   backend: Optional[Union[Text, AbstractBackend]] = None,
