@@ -12,7 +12,7 @@ def test_charge_equal():
   q3 = np.array([[1, 2, 4, -3, -5]]).T  
   Q1 = BaseCharge(charges=q1, charge_types=[U1Charge])
   Q2 = BaseCharge(charges=q2, charge_types=[U1Charge])
-  Q3 = BaseCharge(charges=q2, charge_types=[U1Charge])
+  Q3 = BaseCharge(charges=q3, charge_types=[U1Charge])
 
   assert charge_equal(Q1, Q1)
   assert not charge_equal(Q1, Q2)
@@ -474,10 +474,7 @@ def test_getitem():
   assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
 
-  q3 = np.array([0, 0, 0])
-  Q3 = U1Charge(charges=q3)
-
-
+  
 def test_eq_0():
   np.random.seed(10)
   arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
