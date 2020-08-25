@@ -61,7 +61,7 @@ def test_ChargeArray_init_raises(chargetype):
   flows = np.random.choice([True, False], size=rank, replace=True)
   order = [[n + 10] for n in range(rank)]
   with pytest.raises(ValueError):
-    ChargeArray(data, charges, flows, order=order)
+    ChargeArray(data, charges, flows, order=order, check_consistency=True)
 
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
