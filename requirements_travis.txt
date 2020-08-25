@@ -4,3 +4,4 @@ pytest
 torch>=1.4.0
 jax>=0.1.68
 jaxlib>=0.1.47
+pylint==2.5.3
