@@ -147,12 +147,10 @@ def collapse(array: np.ndarray) -> np.ndarray:
   Returns:
     np.ndarray: The collapsed array.
   """
-  array = np.ascontiguousarray(array)
-  if array.ndim == 1:
-    return array
 
-  if array.dtype.itemsize * array.shape[1] > 8:
+  if array.ndim <= 1 or array.dtype.itemsize * array.shape[1] > 8:
     return array
+  array = np.ascontiguousarray(array)  
   newdtype = get_dtype(array.dtype.itemsize * array.shape[1])
   if array.shape[1] in (1, 2, 4, 8):
     tmparray = array.view(newdtype)
@@ -185,7 +183,7 @@ def expand(array: np.ndarray, original_dtype: Type[np.number],
   Returns:
     np.ndarray: The expanded array.
   """
-  if original_ndim == 1:
+  if original_ndim <= 1:
     #nothing to expand
     return np.squeeze(array)
   if array.ndim == 1:
@@ -228,6 +226,7 @@ def unique(array: np.ndarray,
     np.ndarray (optional): The number of times each element of the 
       unique array appears in `array`.
   """
+  array = np.asarray(array)
   original_width = array.shape[1]  if array.ndim == 2 else 0
   original_ndim = array.ndim
   collapsed_array = collapse(array)
@@ -243,7 +242,6 @@ def unique(array: np.ndarray,
       return_inverse=return_inverse,
       return_counts=return_counts,
       axis=axis)
-
   if any([return_index, return_inverse, return_counts]):
     out = list(res)
     if _return_index and not return_index:

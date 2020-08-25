@@ -320,7 +320,7 @@ class BaseCharge:
     )
     return obj
 
-  def unique(self,
+  def unique(self, #pylint: disable=inconsistent-return-statements
              return_index: bool = False,
              return_inverse: bool = False,
              return_counts: bool = False) -> Any:
@@ -406,10 +406,9 @@ class BaseCharge:
           charge_types=self.charge_types)
       tmp[0] = obj
       return tmp
-    return None
 
   def reduce(self,
-             target_charges: np.ndarray,
+             target_charges: Union[int, np.ndarray],
              return_locations: bool = False,
              strides: Optional[int] = 1) -> Any:
     """
@@ -468,8 +467,6 @@ class BaseCharge:
     if self._unique_charges is not None:
       labels = self.charge_labels[n]
       unique_labels, new_labels = unique(labels, return_inverse=True)
-      if unique_labels.ndim == 0:
-        unique_labels = np.asarray(unique_labels)
       unique_charges = self.unique_charges[unique_labels, :]
       obj.__init__(unique_charges, new_labels, self.charge_types)
       return obj
@@ -575,8 +572,7 @@ def ZNCharge(n: int) -> Callable:
 
     @staticmethod
     def fuse(charge1: np.ndarray, charge2: np.ndarray) -> np.ndarray:
-      #pylint: disable=no-member
-      return np.outer(charge1, charge2).ravel() % n
+      return np.add.outer(charge1, charge2).ravel() % n
 
     @staticmethod
     def dual_charges(charges: np.ndarray) -> np.ndarray:
@@ -647,10 +643,28 @@ def charge_equal(c1: BaseCharge, c2: BaseCharge) -> bool:
   Compare two BaseCharges `c1` and `c2`.
   Return `True` if they are equal, else `False`.
   """
+  res = True
   if c1.dim != c2.dim:
     return False
-  if not np.all(c1.unique_charges == c2.unique_charges):
-    return False
-  if not np.all(c1.charge_labels == c2.charge_labels):
-    return False
-  return True
+
+  res = True      
+  if c1._unique_charges is not None and c2._unique_charges is not None:
+    if c1._unique_charges.shape != c2._unique_charges.shape:
+      res = False
+    elif not np.all(c1._unique_charges == c2._unique_charges):
+      res = False
+    elif not np.all(c1.charge_labels == c2.charge_labels):
+      res = False
+    return res
+
+  if c1._charges is not None and c2._charges is not None:
+    if c1._charges.shape != c2._charges.shape:
+      res = False
+    elif not np.all(c1._charges == c2._charges):
+      res = False
+    return res
+  if c1.charges.shape != c2.charges.shape:
+    res = False
+  elif not np.all(c1.charges == c2.charges):
+    res = False
+  return res

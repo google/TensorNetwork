@@ -1,11 +1,38 @@
 import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
-                                               fuse_charges, Z2Charge, ZNCharge)
+                                               fuse_charges, Z2Charge, ZNCharge,
+                                               charge_equal)
 from tensornetwork.block_sparse.utils import (fuse_ndarrays, unique,
                                               fuse_degeneracies)
 
+def test_charge_equal():
+  q1 = np.array([[-1, 2, 4, -3, 1, 2, -5]]).T
+  q2 = np.array([[1, 2, 4, -3, 1, 2, -5]]).T
+  q3 = np.array([[1, 2, 4, -3, -5]]).T  
+  Q1 = BaseCharge(charges=q1, charge_types=[U1Charge])
+  Q2 = BaseCharge(charges=q2, charge_types=[U1Charge])
+  Q3 = BaseCharge(charges=q3, charge_types=[U1Charge])
 
+  assert charge_equal(Q1, Q1)
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+  
+  _ = Q1.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+
+  _ = Q2.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+
+  _ = Q3.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+    
 def test_BaseCharge_charges():
   D = 100
   B = 6
@@ -65,7 +92,14 @@ def test_BaseCharge_unique():
   assert np.all(actual[2] == expected[2])
   assert np.all(actual[3] == expected[3])
 
-  
+  _ = Q.unique_charges # switch internally to unique-labels representation
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
+  assert np.all(actual[0].charges == expected[0])
+  assert np.all(actual[1] == expected[1])
+  assert np.all(actual[2] == expected[2])
+  assert np.all(actual[3] == expected[3])
+
+
 def test_BaseCharge_single_unique():
   D = 30
   np.random.seed(10)
@@ -83,7 +117,7 @@ def test_BaseCharge_single_unique():
   expected = np.unique(q, axis=0)
   actual = Q.unique()
   assert np.all(actual.charges == expected)
-  
+
 
 def test_BaseCharge_unique_sort():
   np.random.seed(10)
@@ -129,11 +163,21 @@ def test_Charge_dual_zncharges(n):
   assert np.all(np.squeeze(q1.dual(True).charges) == (n - charges) % n)
 
 
+def test_Z2Charge_random():
+  np.random.seed(10)
+  z2 = Z2Charge.random(10, 0, 1)
+  assert np.all(np.isin(z2.charges.ravel(), [0,1]))
+
+
 def test_Z2Charge_raises():
   np.random.seed(10)
   charges = np.array([-1, 0, 1, 2])
   with pytest.raises(ValueError):
     Z2Charge(charges)
+  with pytest.raises(ValueError, match="Z2 charges can only"):
+    Z2Charge.random(10, -1, 1)
+  with pytest.raises(ValueError, match="Z2 charges can only"):
+    Z2Charge.random(10, 0, 2)
 
 
 def get_charges(B0, B1, D, num_charges):
@@ -305,6 +349,18 @@ def test_zncharge_dual_invariant(n):
   np.testing.assert_allclose((b.charges + a.charges) % n, np.zeros((D, 1)))
 
 
+@pytest.mark.parametrize("n", list(range(2, 20)))
+def test_zncharge_fusion(n):
+  D = 100
+  np.random.seed(10)
+  charges1 = np.random.randint(0, n, D).astype(np.int16)
+  charges2 = np.random.randint(0, n, D).astype(np.int16)
+  a = ZNCharge(n)(charges1)
+  b = ZNCharge(n)(charges2)
+  np.testing.assert_allclose(
+      np.add.outer(charges1, charges2).ravel() % n, (a + b).charges.ravel())
+
+
 @pytest.mark.parametrize('chargetype, B0, B1, sign', [(U1Charge, -5, 5, -1),
                                                       (Z2Charge, 0, 1, 1)])
 def test_Charge_mul(chargetype, B0, B1, sign):
@@ -383,6 +439,24 @@ def test_reduce():
   np.testing.assert_allclose(res.charges, expected)
   np.testing.assert_allclose(locs, [0, 1, 4, 5, 7])
 
+def test_reduce_1d():
+  q = np.array([0, 1, 2, 0, 6, 1, -9, 0, -7])
+  Q = BaseCharge(charges=q)
+  target_charge = np.array([0, 1])
+  expected = np.array([[0, 1, 0, 1, 0]]).T
+  res, locs = Q.reduce(target_charge, return_locations=True)
+  np.testing.assert_allclose(res.charges, expected)
+  np.testing.assert_allclose(locs, [0, 1, 3, 5, 7])
+
+def test_reduce_integer():
+  q = np.array([0, 1, 2, 0, 6, 1, -9, 0, -7])
+  Q = BaseCharge(charges=q)
+  target_charge = 0
+  expected = np.zeros((3, 1))
+  res, locs = Q.reduce(target_charge, return_locations=True)
+  np.testing.assert_allclose(res.charges, expected)
+  np.testing.assert_allclose(locs, [0, 3, 7])
+
 
 def test_getitem():
   q1 = np.array([0, 1, 2, 0, 6, 1, -9, 0, -7])
@@ -400,7 +474,7 @@ def test_getitem():
   assert np.all([t3.charge_types[n] == U1Charge for n in range(2)])
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
 
-
+  
 def test_eq_0():
   np.random.seed(10)
   arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
@@ -492,7 +566,10 @@ def test_zncharge_raises():
     ZNCharge(0)
   with pytest.raises(ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
-
+  with pytest.raises(ValueError, match="maxval"):
+    ZNCharge(3).random(10, 0, 3)
+  with pytest.raises(ValueError, match="minval"):
+    ZNCharge(3).random(10, -1, 2)
 
 def test_zncharge_does_not_raise():
   ZNCharge(2).random(4) #pytype: disable=attribute-error
