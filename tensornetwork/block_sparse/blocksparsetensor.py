@@ -629,11 +629,6 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    # charges, flows = get_flat_meta_data(indices)
-    # num_non_zero_elements = compute_num_nonzero(charges, flows)
-    # tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-    # order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-
     data, charges, flows, order = _data_initializer(np.ones, compute_num_nonzero,
                                                     indices, dtype)
 
@@ -656,10 +651,6 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    # charges, flows = get_flat_meta_data(indices)
-    # num_non_zero_elements = compute_num_nonzero(charges, flows)
-    # tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-    # order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
     data, charges, flows, order = _data_initializer(np.zeros,
                                                     compute_num_nonzero,
                                                     indices, dtype)
