@@ -31,7 +31,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def __init__(self) -> None:
     # pylint: disable=global-variable-undefined
     global tf
-    super(TensorFlowBackend, self).__init__()
+    super().__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import tensorflow

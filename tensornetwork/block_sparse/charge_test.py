@@ -325,7 +325,7 @@ def test_Charge_mul_raises():
   q = U1Charge(C)
   with pytest.raises(
       ValueError, match="can only multiply by `True` or `False`"):
-    q * 10
+    q * 10 #pytype: disable=unsupported-operands
 
 
 

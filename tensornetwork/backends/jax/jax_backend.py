@@ -42,7 +42,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     global libjax  # Jax module
     global jnp  # jax.numpy module
     global jsp  # jax.scipy module
-    super(JaxBackend, self).__init__()
+    super().__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import jax

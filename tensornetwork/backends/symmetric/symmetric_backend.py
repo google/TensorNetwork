@@ -31,7 +31,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self) -> None:
-    super(SymmetricBackend, self).__init__()
+    super().__init__()
     self.bs = bs
     self.name = "symmetric"
 

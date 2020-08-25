@@ -890,8 +890,8 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(
     tensor1: BlockSparseTensor,
     tensor2: BlockSparseTensor,
-    axes: Optional[Union[Sequence[Sequence[int]],
-                         int]] = 2) -> BlockSparseTensor:
+    axes: Optional[Union[Sequence[Sequence[int]], Sequence[int], int]] = 2
+) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:
