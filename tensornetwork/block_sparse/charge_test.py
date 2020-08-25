@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
                                                fuse_charges, Z2Charge, ZNCharge)
-from tensornetwork.block_sparse.utils import (intersect, fuse_ndarrays,
+from tensornetwork.block_sparse.utils import (fuse_ndarrays, unique,
                                               fuse_degeneracies)
 
 
@@ -21,11 +21,11 @@ def test_BaseCharge_generic():
   B = 5
   np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
-  unique = np.unique(q, axis=0)
+  unique_charges = np.unique(q, axis=0)
   Q = BaseCharge(charges=q)
   assert Q.dim == 300
   assert Q.num_symmetries == 2
-  assert Q.num_unique == unique.shape[0]
+  assert Q.num_unique == unique_charges.shape[0]
 
 
 def test_BaseCharge_len():
@@ -56,13 +56,15 @@ def test_BaseCharge_unique():
   np.random.seed(10)
   q = np.random.randint(-B // 2, B // 2 + 1, (D, 2)).astype(np.int16)
   Q = BaseCharge(charges=q, charge_types=[U1Charge, U1Charge])
-  expected = np.unique(
-      q, return_index=True, return_inverse=True, return_counts=True, axis=0)
+  #this call has to be to custom unique to ensure correct ordering
+  expected = unique(
+      q, return_index=True, return_inverse=True, return_counts=True)
   actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   assert np.all(actual[0].charges == expected[0])
   assert np.all(actual[1] == expected[1])
   assert np.all(actual[2] == expected[2])
   assert np.all(actual[3] == expected[3])
+
   
 def test_BaseCharge_single_unique():
   D = 30
@@ -85,28 +87,13 @@ def test_BaseCharge_single_unique():
 
 def test_BaseCharge_unique_sort():
   np.random.seed(10)
-  unique = np.array([1, 0, -1])
+  unique_charges = np.array([1, 0, -1])
   labels = np.random.randint(0, 3, 100)
-  Q = U1Charge(charges=unique, charge_labels=labels)
-  actual = Q.unique(
-      return_index=True, return_inverse=True, return_counts=True, sort=False)
+  Q = U1Charge(charges=unique_charges, charge_labels=labels)
+  actual = Q.unique(return_index=True, return_inverse=True, return_counts=True)
   np.testing.assert_allclose(actual[0].unique_charges, [[1], [0], [-1]])
 
 
-
-
-def test_fuse_ndarrays():
-  d1 = np.asarray([0, 1])
-  d2 = np.asarray([2, 3, 4])
-  fused = fuse_ndarrays([d1, d2])
-  np.testing.assert_allclose(fused, [2, 3, 4, 3, 4, 5])
-
-
-def test_fuse_degeneracies():
-  d1 = np.asarray([0, 1])
-  d2 = np.asarray([2, 3, 4])
-  fused_degeneracies = fuse_degeneracies(d1, d2)
-  np.testing.assert_allclose(fused_degeneracies, np.kron(d1, d2))
 
 
 @pytest.mark.parametrize('chargetype, B0, B1', [(U1Charge, -5, 5),
@@ -238,7 +225,7 @@ def test_BaseCharge_intersect_2():
 
 def test_BaseCharge_intersect_3():
   c1 = U1Charge(np.array([1, 0, -1]), charge_labels=np.array([2, 0, 1]))
-  c2 = np.array([-1, 0, 1])
+  c2 = np.array([-1, 0, 1], dtype=np.int16)
   res = c1.intersect(c2)
   np.testing.assert_allclose(res.charges, [[-1], [0], [1]])
 
@@ -249,7 +236,6 @@ def test_BaseCharge_intersect_return_indices():
   Q1 = BaseCharge(charges=q1)
   Q2 = BaseCharge(charges=q2)
   res, i1, i2 = Q1.intersect(Q2, return_indices=True)
-  #res, i1, i2 = intersect(q1, q2, axis=1, return_indices=True)
   np.testing.assert_allclose(res.charges, np.asarray([[0, 6], [2, 4]]).T)
   np.testing.assert_allclose(i1, [0, 4])
   np.testing.assert_allclose(i2, [1, 2])
@@ -415,86 +401,6 @@ def test_getitem():
   np.testing.assert_allclose(t3.charges, [[1, 3], [2, 4], [0, 2]])
 
 
-def test_isin():
-  np.random.seed(10)
-  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-
-  c = c1 @ c2
-  c3 = np.array([[-1, -1], [0, 0], [1, 1]])
-  n = c.isin(c3)
-  for m in np.nonzero(n)[0]:
-    charges = c[m].charges
-    #pylint: disable=unsubscriptable-object
-    assert np.any(
-        [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
-  for m in np.nonzero(np.logical_not(n))[0]:
-    charges = c[m].charges
-    #pylint: disable=unsubscriptable-object
-    assert not np.any(
-        [np.array_equal(charges[0, :], c3[k, :]) for k in range(c3.shape[0])])
-
-
-def test_isin_2():
-  np.random.seed(10)
-  c1 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c2 = U1Charge(np.random.randint(-5, 5, 1000, dtype=np.int16))
-  c = c1 @ c2
-  c3 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
-  n = c.isin(c3)
-  for m in np.nonzero(n)[0]:
-    charges = c[m].charges
-    assert np.any([
-        np.array_equal(charges[0, :], c3.charges[k, :])
-        for k in range(c3.charges.shape[0])
-    ])
-  for m in np.nonzero(np.logical_not(n))[0]:
-    charges = c[m].charges
-    assert not np.any([
-        np.array_equal(charges[0, :], c3.charges[k, :])
-        for k in range(c3.charges.shape[0])
-    ])
-
-
-def test_isin_raises():
-
-  class FakeCharge(BaseCharge):
-
-    def __init__(self, charges, charge_labels=None, charge_types=None):
-      super().__init__(charges, charge_labels, charge_types=[type(self)])
-
-    @staticmethod
-    def fuse(charge1, charge2) -> np.ndarray:
-      return np.add.outer(charge1, charge2).ravel()
-
-    @staticmethod
-    def dual_charges(charges) -> np.ndarray:
-      return charges * charges.dtype.type(-1)
-
-    @staticmethod
-    def identity_charge() -> np.ndarray:
-      return np.int16(0)
-
-    @classmethod
-    def random(cls, dimension: int, minval: int, maxval: int) -> np.ndarray:
-      charges = np.random.randint(minval, maxval, dimension, dtype=np.int16)
-      return cls(charges=charges)
-
-  np.random.seed(10)
-  c1 = BaseCharge(
-      np.random.randint(-5, 5, (1000, 2), dtype=np.int16),
-      charge_labels=None,
-      charge_types=[FakeCharge, FakeCharge])
-  c2 = U1Charge(np.array([-1, 0, 1])) @ U1Charge(np.array([-1, 0, 1]))
-  with pytest.raises(TypeError):
-    c1.isin(c2)
-  with pytest.raises(ValueError):
-    c1.isin(np.random.randint(-2, 2, (2, 2, 2)))
-
-  with pytest.raises(ValueError):
-    c1.isin(np.random.randint(-2, 2, (2, 3)))
-
-
 def test_eq_0():
   np.random.seed(10)
   arr = np.array([-2, -1, 0, 1, -1, 3, 4, 5], dtype=np.int16)
@@ -523,12 +429,8 @@ def test_eq_2():
   c2 = U1Charge(np.array([-1, 0, 1, 2, 0, 4, 5, 6, 2], dtype=np.int16))
   c = c1 @ c2
   c3 = np.array([[-1, 0], [1, 2]])
-  inds = np.nonzero(c == c3)
-
-  np.testing.assert_allclose(inds[0][inds[1] == 0], [1, 4])
-  np.testing.assert_allclose(inds[0][inds[1] == 1], [3, 8])
-  for i, j in zip(inds[0], inds[1]):
-    np.array_equal(c[i].charges, c3[j, :])
+  inds = np.nonzero(c == c3)[0]
+  np.testing.assert_allclose(inds, [1, 3, 4, 8])
 
 
 def test_eq__raises():
