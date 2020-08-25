@@ -113,7 +113,7 @@ class Conv2DMPO(Layer):
     if data_format not in ['channels_first', 'channels_last']:
       raise ValueError('Invalid data_format string provided')
 
-    super(Conv2DMPO, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     self.nodes = []
     self.filters = filters
@@ -158,7 +158,7 @@ class Conv2DMPO(Layer):
         f'Output dim incorrect. '
         f'{self.filters}**(1. / {self.num_nodes}) must be round.')
 
-    super(Conv2DMPO, self).build(input_shape)
+    super().build(input_shape)
 
     in_leg_dim = math.ceil(channels**(1. / self.num_nodes))
     out_leg_dim = math.ceil(self.filters**(1. / self.num_nodes))
@@ -261,6 +261,6 @@ class Conv2DMPO(Layer):
         'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
         'bias_regularizer': regularizers.serialize(self.bias_regularizer),
     }
-    base_config = super(Conv2DMPO, self).get_config()
+    base_config = super().get_config()
     config.update(base_config)
     return config

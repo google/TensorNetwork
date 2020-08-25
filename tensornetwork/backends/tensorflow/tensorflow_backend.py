@@ -35,9 +35,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     try:
       #pylint: disable=import-outside-toplevel
       import tensorflow
-    except ImportError:
+    except ImportError as err:
       raise ImportError("Tensorflow not installed, please switch to a "
-                        "different backend or install Tensorflow.")
+                        "different backend or install Tensorflow.") from err
     tf = tensorflow
     self.name = "tensorflow"
 

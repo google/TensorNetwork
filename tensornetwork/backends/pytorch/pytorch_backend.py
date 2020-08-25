@@ -34,9 +34,9 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     try:
       #pylint: disable=import-outside-toplevel
       import torch
-    except ImportError:
+    except ImportError as err:
       raise ImportError("PyTorch not installed, please switch to a different "
-                        "backend or install PyTorch.")
+                        "backend or install PyTorch.") from err
     torchlib = torch
     self.name = "pytorch"
 
