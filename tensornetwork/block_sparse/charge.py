@@ -406,7 +406,6 @@ class BaseCharge:
           charge_types=self.charge_types)
       tmp[0] = obj
       return tmp
-    return None
 
   def reduce(self,
              target_charges: np.ndarray,
