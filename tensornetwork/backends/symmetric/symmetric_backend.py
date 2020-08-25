@@ -459,36 +459,33 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             A_kwargs: Optional[dict] = None,
             x0: Optional[BlockSparseTensor] = None,
             tol: float = 1E-05,
-            atol: Optional[float] = 1E-6,
-            num_krylov_vectors: int = 10,
+            atol: Optional[float] = None,
+            num_krylov_vectors: Optional[int] = None,
             maxiter: Optional[int] = 1,
             M: Optional[Callable] = None
             ) -> Tuple[BlockSparseTensor, int]:
     
     if x0 is None:
-      if (shape is None) or (dtype is None):
-        raise ValueError("if no `initial_state` is passed, then `shape` and"
-                         "`dtype` have to be provided")
-      initial_state = self.randn(shape, dtype)
-    
-    if x0 is not None:
-      if x0.shape != b.shape:
-        errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                     f", {b.shape}.")
-        raise ValueError(errstring)
-
+      x0 = self.randn(b.sparse_shape[0], dtype)
       
-      if x0.dtype != b.dtype:
-        raise ValueError(f"x0.dtype = {x0.dtype} does not"
-                         f" match b.dtype = {b.dtype}")
+    if x0.shape != b.shape:
+      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
+                   f", {b.shape}.")
+      raise ValueError(errstring)
+      
+    if x0.dtype != b.dtype:
+      raise ValueError(f"x0.dtype = {x0.dtype} does not"
+                       f" match b.dtype = {b.dtype}")
       
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
+
+
     if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
-
+    print('ncv', num_krylov_vectors)
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
 
@@ -503,19 +500,31 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       A_kwargs = {}
     
     x0.contiguous()
-    dim = len(initial_state.data)
+    b.contiguous()
+    tmp = BlockSparseTensor(
+        numpy.empty(0, dtype=x0.dtype),
+        x0._charges,
+        x0._flows,
+        check_consistency=False)
+    
     def matvec(vector):
       tmp.data = vector
-      res = A(tmp, *args)
+      res = A_mv(tmp, *A_args, **A_kwargs)
       res.contiguous()
       return res.data
-    tmp = BlockSparseTensor(
-        numpy.empty(0, dtype=initial_state.dtype),
-        initial_state._charges,
-        initial_state._flows,
-        check_consistency=False)
-    lop = sp.sparse.linalg.LinearOperator(
-        dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
+    
+    dim = len(x0.data)
+    A_op = sp.sparse.linalg.LinearOperator(
+        dtype=x0.dtype, shape=(dim, dim), matvec=matvec)
+    x, info = sp.sparse.linalg.gmres(A_op, b.data, x0.data, tol=tol,
+                                     atol=atol,
+                                     restart=num_krylov_vectors,
+                                     maxiter=maxiter, M=M)
+    if info < 0:
+      raise ValueError("ARPACK gmres received illegal input or broke down.")
+    tmp.data = x
+    return (tmp, info)
+    
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
