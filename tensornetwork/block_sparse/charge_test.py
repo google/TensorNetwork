@@ -1,11 +1,38 @@
 import numpy as np
 import pytest
 from tensornetwork.block_sparse.charge import (BaseCharge, U1Charge,
-                                               fuse_charges, Z2Charge, ZNCharge)
+                                               fuse_charges, Z2Charge, ZNCharge,
+                                               charge_equal)
 from tensornetwork.block_sparse.utils import (fuse_ndarrays, unique,
                                               fuse_degeneracies)
 
+def test_charge_equal():
+  q1 = np.array([[-1, 2, 4, -3, 1, 2, -5]]).T
+  q2 = np.array([[1, 2, 4, -3, 1, 2, -5]]).T
+  q3 = np.array([[1, 2, 4, -3, -5]]).T  
+  Q1 = BaseCharge(charges=q1, charge_types=[U1Charge])
+  Q2 = BaseCharge(charges=q2, charge_types=[U1Charge])
+  Q3 = BaseCharge(charges=q2, charge_types=[U1Charge])
 
+  assert charge_equal(Q1, Q1)
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+  
+  _ = Q1.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+
+  _ = Q2.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+
+  _ = Q3.unique_charges
+  assert charge_equal(Q1, Q1)  
+  assert not charge_equal(Q1, Q2)
+  assert not charge_equal(Q1, Q3)  
+    
 def test_BaseCharge_charges():
   D = 100
   B = 6
@@ -542,9 +569,9 @@ def test_zncharge_raises():
     ZNCharge(0)
   with pytest.raises(ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
-  with pytest.raises(ValueError, match="maxval"):    
+  with pytest.raises(ValueError, match="maxval"):
     ZNCharge(3).random(10, 0, 3)
-  with pytest.raises(ValueError, match="minval"):    
+  with pytest.raises(ValueError, match="minval"):
     ZNCharge(3).random(10, -1, 2)
 
 def test_zncharge_does_not_raise():
