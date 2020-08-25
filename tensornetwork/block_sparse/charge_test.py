@@ -542,7 +542,10 @@ def test_zncharge_raises():
     ZNCharge(0)
   with pytest.raises(ValueError, match="Z7 charges must be in"):
     ZNCharge(7)([0, 4, 9])
-
+  with pytest.raises(ValueError, match="maxval"):    
+    ZNCharge(3).random(10, 0, 3)
+  with pytest.raises(ValueError, match="minval"):    
+    ZNCharge(3).random(10, -1, 2)
 
 def test_zncharge_does_not_raise():
   ZNCharge(2).random(4) #pytype: disable=attribute-error
