@@ -408,7 +408,7 @@ class BaseCharge:
       return tmp
 
   def reduce(self,
-             target_charges: np.ndarray,
+             target_charges: Union[int, np.ndarray],
              return_locations: bool = False,
              strides: Optional[int] = 1) -> Any:
     """
@@ -467,8 +467,6 @@ class BaseCharge:
     if self._unique_charges is not None:
       labels = self.charge_labels[n]
       unique_labels, new_labels = unique(labels, return_inverse=True)
-      if unique_labels.ndim == 0:
-        unique_labels = np.asarray(unique_labels)
       unique_charges = self.unique_charges[unique_labels, :]
       obj.__init__(unique_charges, new_labels, self.charge_types)
       return obj
