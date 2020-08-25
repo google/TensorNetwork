@@ -573,7 +573,7 @@ def ZNCharge(n: int) -> Callable:
     @staticmethod
     def fuse(charge1: np.ndarray, charge2: np.ndarray) -> np.ndarray:
       #pylint: disable=no-member
-      return np.outer(charge1, charge2).ravel() % n
+      return np.add.outer(charge1, charge2).ravel() % n
 
     @staticmethod
     def dual_charges(charges: np.ndarray) -> np.ndarray:
