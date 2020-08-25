@@ -451,6 +451,43 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       self.bs.clear_cache()
 
     return eigvals[0:numeig], eigenvectors
+  
+  def gmres(self,
+            A_mv: Callable,
+            b: BlockSparseTensor,
+            A_args: Optional[List] = None,
+            A_kwargs: Optional[dict] = None,
+            x0: Optional[BlockSparseTensor] = None,
+            tol: float = 1E-05,
+            atol: Optional[float] = 1E-6,
+            num_krylov_vectors: int = 10,
+            maxiter: Optional[int] = 1,
+            M: Optional[Callable] = None
+            ) -> Tuple[BlockSparseTensor, int]:
+    
+    if x0 is not None:
+      if x0.dtype != b.dtype:
+        raise ValueError(f"x0.dtype = {x0.dtype} does not"
+                         f" match b.dtype = {b.dtype}")
+
+    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
+      errstring = (f"num_krylov_vectors must be in "
+                   f"0 < {num_krylov_vectors} <= {b.size}.")
+      raise ValueError(errstring)
+
+    if tol < 0:
+      raise ValueError(f"tol = {tol} must be positive.")
+
+    if atol is None:
+      atol = tol
+    elif atol < 0:
+      raise ValueError(f"atol = {atol} must be positive.")
+
+    if A_args is None:
+      A_args = []
+    if A_kwargs is None:
+      A_kwargs = {}
+    
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
