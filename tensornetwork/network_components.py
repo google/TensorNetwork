@@ -305,9 +305,9 @@ class AbstractNode(ABC):
       return axis
     try:
       return self.axis_names.index(axis)
-    except ValueError:
+    except ValueError as err:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
-          axis, self))
+          axis, self)) from err
 
   def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension of the given axis.
