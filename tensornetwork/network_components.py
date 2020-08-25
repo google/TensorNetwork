@@ -446,7 +446,7 @@ class AbstractNode(ABC):
     Returns:
       The loaded node.
     """
-    return
+    return #pytype: disable=bad-return-type
 
   @classmethod
   def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:
