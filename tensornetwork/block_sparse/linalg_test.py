@@ -10,8 +10,7 @@ from tensornetwork.block_sparse.utils import unique
 from tensornetwork import ncon
 from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
                                                conj, svd, qr, eigh, eig, inv,
-                                               sqrt, trace, eye, pinv, zeros,
-                                               ones, randn, random)
+                                               sqrt, trace, eye, pinv)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -626,92 +625,3 @@ def test_pinv_raises():
                                (-0.5, 0.5))
   with pytest.raises(ValueError):
     pinv(A)
-
-
-@pytest.mark.parametrize('dtype', np_dtypes)
-@pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_tn_zeros(dtype, num_charges):
-  np.random.seed(10)
-  Ds = [8, 9, 10, 11]
-  rank = 4
-  flows = np.random.choice([True, False], size=rank, replace=True)
-  indices = [
-      Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (Ds[n], num_charges)),
-              charge_types=[U1Charge] * num_charges), flows[n])
-      for n in range(rank)
-  ]
-  arr = zeros(indices, dtype=dtype)
-  np.testing.assert_allclose(arr.data, 0)
-  np.testing.assert_allclose(Ds, arr.shape)
-  np.testing.assert_allclose(arr.flat_flows, flows)
-  for n in range(4):
-    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
-
-
-@pytest.mark.parametrize('dtype', np_dtypes)
-@pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_tn_ones(dtype, num_charges):
-  np.random.seed(10)
-  Ds = [8, 9, 10, 11]
-  rank = 4
-  flows = np.random.choice([True, False], size=rank, replace=True)
-  indices = [
-      Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (Ds[n], num_charges)),
-              charge_types=[U1Charge] * num_charges), flows[n])
-      for n in range(rank)
-  ]
-
-  arr = ones(indices, dtype=dtype)
-  np.testing.assert_allclose(arr.data, 1)
-  np.testing.assert_allclose(Ds, arr.shape)
-  np.testing.assert_allclose(arr.flat_flows, flows)
-  for n in range(4):
-    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
-
-
-@pytest.mark.parametrize('dtype', np_dtypes)
-@pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_tn_random(dtype, num_charges):
-  np.random.seed(10)
-  Ds = [8, 9, 10, 11]
-  rank = 4
-  flows = np.random.choice([True, False], size=rank, replace=True)
-  indices = [
-      Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (Ds[n], num_charges)),
-              charge_types=[U1Charge] * num_charges), flows[n])
-      for n in range(rank)
-  ]
-  arr = random(indices, dtype=dtype)
-
-  np.testing.assert_allclose(Ds, arr.shape)
-  np.testing.assert_allclose(arr.flat_flows, flows)
-  for n in range(4):
-    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
-
-
-@pytest.mark.parametrize('dtype', np_dtypes)
-@pytest.mark.parametrize('num_charges', [1, 2, 3])
-def test_tn_randn(dtype, num_charges):
-  np.random.seed(10)
-  Ds = [8, 9, 10, 11]
-  rank = 4
-  flows = np.random.choice([True, False], size=rank, replace=True)
-  indices = [
-      Index(
-          BaseCharge(
-              np.random.randint(-5, 6, (Ds[n], num_charges)),
-              charge_types=[U1Charge] * num_charges), flows[n])
-      for n in range(rank)
-  ]
-  arr = randn(indices, dtype=dtype)
-
-  np.testing.assert_allclose(Ds, arr.shape)
-  np.testing.assert_allclose(arr.flat_flows, flows)
-  for n in range(4):
-    assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])

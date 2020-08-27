@@ -30,15 +30,30 @@ from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
 
-def _data_initializer(numpy_initializer, comp_num_elements, indices, dtype):
+def _randn(size, dtype=np.float64):
+  data = np.random.randn(size).astype(dtype)
+  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+      (np.dtype(dtype) is np.dtype(np.complex64))):
+    data += 1j * np.random.randn(size).astype(dtype)
+  return data
+
+
+def _random(size, dtype=np.float64, boundaries=(0, 1)):
+  data = np.random.uniform(boundaries[0], boundaries[1], size).astype(dtype)
+  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+      (np.dtype(dtype) is np.dtype(np.complex64))):
+    data += 1j * np.random.uniform(boundaries[0], boundaries[1],
+                                   size).astype(dtype)
+  return data
+
+
+def _data_initializer(numpy_initializer, comp_num_elements, indices, *args,
+                      **kwargs):
   charges, flows = get_flat_meta_data(indices)
   num_elements = comp_num_elements(charges, flows)
   tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
   order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-  data = numpy_initializer(num_elements).astype(dtype)
-  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
-      (np.dtype(dtype) is np.dtype(np.complex64))):
-    data += 1j * numpy_initializer(num_elements).astype(dtype)
+  data = numpy_initializer(num_elements, *args, **kwargs)
   return data, charges, flows, order
 
 
@@ -73,8 +88,7 @@ class ChargeArray:
         for outflowing.
       order: An optional order argument, determining the shape and order of the
         tensor.
-      check_consistency: No effect. Needed for signature consistency with
-        derived class constructors.
+      check_consistency: Perform error checks at initialization.
     """
     self._charges = charges
     self._flows = np.asarray(flows)
@@ -84,12 +98,14 @@ class ChargeArray:
     if order is None:
       self._order = [[n] for n in range(len(self._charges))]
     else:
-      flat_order = []
-      for o in order:
-        flat_order.extend(o)
-      if not np.array_equal(np.sort(flat_order), np.arange(len(self._charges))):
-        raise ValueError("flat_order = {} is not a permutation of {}".format(
-            flat_order, np.arange(len(self._charges))))
+      if check_consistency:
+        flat_order = []
+        for o in order:
+          flat_order.extend(o)
+        if not np.array_equal(
+            np.sort(flat_order), np.arange(len(self._charges))):
+          raise ValueError("flat_order = {} is not a permutation of {}".format(
+              flat_order, np.arange(len(self._charges))))
 
       self._order = order
 
@@ -109,12 +125,11 @@ class ChargeArray:
     Returns:
       ChargeArray
     """
+
+
     data, charges, flows, order = _data_initializer(
-        lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
-        lambda charges, flows: reduce(mul, [c.dim for c in charges], 1),
-        indices, dtype)
-    #np.prod([c.dim for c in charges])
-    #dtype)
+        _random, lambda charges, flows: np.prod([c.dim for c in charges]),
+        indices, dtype=dtype)
     return cls(data=data, charges=charges, flows=flows, order=order)
 
   @property
@@ -488,7 +503,12 @@ class BlockSparseTensor(ChargeArray):
         number of non-zero elements given by the charges. This usually causes
         significant overhead, so use only for debugging.
     """
-    super().__init__(data=data, charges=charges, flows=flows, order=order)
+    super().__init__(
+        data=data,
+        charges=charges,
+        flows=flows,
+        order=order,
+        check_consistency=check_consistency)
 
     if check_consistency and (len(self._charges) > 0):
       num_non_zero_elements = compute_num_nonzero(self._charges, self._flows)
@@ -578,9 +598,9 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    data, charges, flows, order = _data_initializer(np.random.randn,
+    data, charges, flows, order = _data_initializer(_randn,
                                                     compute_num_nonzero,
-                                                    indices, dtype)
+                                                    indices, dtype=dtype)
     return cls(
         data=data,
         charges=charges,
@@ -603,9 +623,10 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    data, charges, flows, order = _data_initializer(
-        lambda size: np.random.uniform(boundaries[0], boundaries[1], size),
-        compute_num_nonzero, indices, dtype)
+    data, charges, flows, order = _data_initializer(_random,
+                                                    compute_num_nonzero,
+                                                    indices, dtype=dtype,
+                                                    boundaries=boundaries)
     return cls(
         data=data,
         charges=charges,
@@ -625,13 +646,12 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    charges, flows = get_flat_meta_data(indices)
-    num_non_zero_elements = compute_num_nonzero(charges, flows)
-    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+    data, charges, flows, order = _data_initializer(np.ones,
+                                                    compute_num_nonzero,
+                                                    indices, dtype=dtype)
 
     return cls(
-        data=np.ones((num_non_zero_elements,), dtype=dtype),
+        data=data,
         charges=charges,
         flows=flows,
         order=order,
@@ -649,13 +669,12 @@ class BlockSparseTensor(ChargeArray):
     Returns:
       BlockSparseTensor
     """
-    charges, flows = get_flat_meta_data(indices)
-    num_non_zero_elements = compute_num_nonzero(charges, flows)
-    tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-    order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+    data, charges, flows, order = _data_initializer(np.zeros,
+                                                    compute_num_nonzero,
+                                                    indices, dtype=dtype)
 
     return cls(
-        data=np.zeros((num_non_zero_elements,), dtype=dtype),
+        data=data,
         charges=charges,
         flows=flows,
         order=order,
