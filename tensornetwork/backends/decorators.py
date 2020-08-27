@@ -78,11 +78,11 @@ def jit(fun: Callable,
       backend = args[backend_argnum]
       try:
         backend_obj = backends.backend_factory.get_backend(backend)
-      except ValueError:
+      except ValueError as error:
         errstr = (f"backend_argnum={backend_argnum} was specified"
                   f"but the corresponding argument {args[backend_argnum]}"
                   f"did not specify a backend.")
-        raise ValueError(errstr)
+        raise ValueError(errstr) from error
       jitted = backend_obj.jit(fun, static_argnums=static_argnums,
                                device=device, backend=xla_backend)
       return jitted(*args, **kwargs)
