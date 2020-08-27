@@ -86,11 +86,13 @@ def empty_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
   Returns:
     BlockSparseTensor
   """
-  return BlockSparseTensor(np.empty(tensor.data.size, dtype=tensor.dtype),
-                    charges=tensor._charges,
-                    flows = tensor._flows,
-                    order = tensor._order,
-                    check_consistency=False)
+  return BlockSparseTensor(
+      np.empty(tensor.data.size, dtype=tensor.dtype),
+      charges=tensor._charges,
+      flows=tensor._flows,
+      order=tensor._order,
+      check_consistency=False)
+
 
 def ones_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
   """
@@ -101,11 +103,13 @@ def ones_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
   Returns:
     BlockSparseTensor
   """
-  return BlockSparseTensor(np.ones(tensor.data.size, dtype=tensor.dtype),
-                    charges=tensor._charges,
-                    flows = tensor._flows,
-                    order = tensor._order,
-                    check_consistency=False)
+  return BlockSparseTensor(
+      np.ones(tensor.data.size, dtype=tensor.dtype),
+      charges=tensor._charges,
+      flows=tensor._flows,
+      order=tensor._order,
+      check_consistency=False)
+
 
 def zeros_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
   """
@@ -116,11 +120,12 @@ def zeros_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
   Returns:
     BlockSparseTensor
   """
-  return BlockSparseTensor(np.zeros(tensor.data.size, dtype=tensor.dtype),
-                    charges=tensor._charges,
-                    flows = tensor._flows,
-                    order = tensor._order,
-                    check_consistency=False)
+  return BlockSparseTensor(
+      np.zeros(tensor.data.size, dtype=tensor.dtype),
+      charges=tensor._charges,
+      flows=tensor._flows,
+      order=tensor._order,
+      check_consistency=False)
 
 
 def randn_like(tensor: BlockSparseTensor) -> BlockSparseTensor:
