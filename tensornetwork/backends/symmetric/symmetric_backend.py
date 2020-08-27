@@ -463,7 +463,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             ) -> Tuple[BlockSparseTensor, int]:
     
     if x0 is None:
-      x0 = self.randn(b.sparse_shape[0], dtype)
+      x0 = self.bs.initialization.randn_like(b)
       
     if x0.shape != b.shape:
       errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
@@ -482,7 +482,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
       raise ValueError(errstring)
-    print('ncv', num_krylov_vectors)
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
 
