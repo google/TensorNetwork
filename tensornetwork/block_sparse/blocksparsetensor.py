@@ -436,7 +436,15 @@ class ChargeArray:
     raise ValueError("can only convert an array of size 1 to a Python scalar")
 
 
-def compare_shapes(tensor1: ChargeArray, tensor2: ChargeArray):
+def compare_shapes(tensor1: ChargeArray, tensor2: ChargeArray) -> bool:
+  """
+  Compare the shapes of `tensor1` and `tensor2`. Return `True` if the shapes
+  are identical.
+  Args: 
+    tensor1, tensor2: Two tensors.
+  Returns:
+    bool: The result of comparing the shapes.
+  """
   if tensor1.shape != tensor2.shape:
     return False
   if len(tensor1._charges) != len(tensor2._charges):
