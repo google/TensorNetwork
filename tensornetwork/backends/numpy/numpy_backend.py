@@ -25,7 +25,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self) -> None:
-    super(NumPyBackend, self).__init__()
+    super().__init__()
     self.name = "numpy"
 
   def tensordot(self, a: Tensor, b: Tensor,
