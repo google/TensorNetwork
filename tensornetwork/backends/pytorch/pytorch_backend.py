@@ -28,15 +28,15 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
 
   def __init__(self) -> None:
-    super(PyTorchBackend, self).__init__()
+    super().__init__()
     # pylint: disable=global-variable-undefined
     global torchlib
     try:
       #pylint: disable=import-outside-toplevel
       import torch
-    except ImportError:
+    except ImportError as err:
       raise ImportError("PyTorch not installed, please switch to a different "
-                        "backend or install PyTorch.")
+                        "backend or install PyTorch.") from err
     torchlib = torch
     self.name = "pytorch"
 
