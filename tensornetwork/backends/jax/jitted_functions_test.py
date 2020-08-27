@@ -51,13 +51,12 @@ def test_gmres_on_small_known_problem(dtype):
   maxiter = 1
 
   @jax.tree_util.Partial
-  def A_mv(x):
-    return A @ x
+  def A_mv(x, mat):
+    return mat @ x
   tol = A.size*jax.numpy.finfo(dtype).eps
-  x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter)
+  x, _, _, _ = gmres.gmres_m(A_mv, [A], b, x0, tol, tol, n_kry, maxiter)
   solution = jax.numpy.array([2., 1.], dtype=dtype)
   np.testing.assert_allclose(x, solution, atol=tol)
-
 
 @pytest.mark.parametrize("dtype", jax_dtypes)
 def test_gmres_krylov(dtype):
