@@ -80,7 +80,7 @@ class DenseEntangler(Layer):
         num_levels >= 1
     ), f'Need at least 1 level to create Entangler but got {num_levels} levels'
 
-    super().__init__(**kwargs)
+    super(DenseEntangler, self).__init__(**kwargs)
 
     self.output_dim = output_dim
     self.num_legs = num_legs
@@ -102,7 +102,7 @@ class DenseEntangler(Layer):
       root = n**(1. / n_nodes)
       return round(root)**n_nodes == n
 
-    super().build(input_shape)
+    super(DenseEntangler, self).build(input_shape)
 
     # Ensure the Entangler dimensions will work
     assert (
@@ -213,5 +213,5 @@ class DenseEntangler(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super().get_config()
+    base_config = super(DenseEntangler, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

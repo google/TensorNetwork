@@ -31,13 +31,13 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def __init__(self) -> None:
     # pylint: disable=global-variable-undefined
     global tf
-    super().__init__()
+    super(TensorFlowBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import tensorflow
-    except ImportError as err:
+    except ImportError:
       raise ImportError("Tensorflow not installed, please switch to a "
-                        "different backend or install Tensorflow.") from err
+                        "different backend or install Tensorflow.")
     tf = tensorflow
     self.name = "tensorflow"
 
