@@ -30,8 +30,10 @@ from tensornetwork.block_sparse.sizetypes import SIZE_T
 Tensor = Any
 
 
-def _data_initializer(numpy_initializer: Callable, comp_num_elements: Callable,
-                      indices: Sequence[Index], *args, **kwargs) -> Any:
+def _data_initializer(
+    numpy_initializer: Callable, comp_num_elements: Callable,
+    indices: Sequence[Index], *args, **kwargs
+) -> Tuple[np.ndarray, List[BaseCharge], List[bool], List[List[int]]]:
   """
   Initialize an 1d np.ndarray using `numpy_initializer` function.
   Args:
@@ -43,6 +45,10 @@ def _data_initializer(numpy_initializer: Callable, comp_num_elements: Callable,
     *args, **kwargs: Arguments to `numpy_initializer`.
   Returns:
     np.ndarray: An initialized numpy array.
+    List[BaseCharge]: A list containing the flattened charges in `indices`
+    List[bool]: The flattened flows of `indices`.
+    List[List]: A list of list of int, the order information needed to 
+      initialize a BlockSparseTensor.
   """
   charges, flows = get_flat_meta_data(indices)
   num_elements = comp_num_elements(charges, flows)
