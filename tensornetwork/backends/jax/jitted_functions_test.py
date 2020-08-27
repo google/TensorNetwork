@@ -58,6 +58,7 @@ def test_gmres_on_small_known_problem(dtype):
   solution = jax.numpy.array([2., 1.], dtype=dtype)
   np.testing.assert_allclose(x, solution, atol=tol)
 
+  
 @pytest.mark.parametrize("dtype", jax_dtypes)
 def test_gmres_krylov(dtype):
   """
