@@ -51,7 +51,7 @@ def test_gmres_on_small_known_problem(dtype):
   maxiter = 1
 
   @jax.tree_util.Partial
-  def A_mv(x, mat):
+  def A_mv(x):
     return A @ x
   tol = A.size*jax.numpy.finfo(dtype).eps
   x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter)
