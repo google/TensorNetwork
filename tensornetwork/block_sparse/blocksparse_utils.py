@@ -23,9 +23,32 @@ from tensornetwork.block_sparse.utils import (fuse_stride_arrays,
                                               fuse_ndarrays)
 from tensornetwork.block_sparse.caching import get_cacher
 
-from typing import List, Union, Any, Tuple, Optional, Sequence
+from typing import List, Union, Any, Tuple, Optional, Sequence, Callable
 Tensor = Any
 SIZE_T = np.int64  #the size-type of index-arrays
+
+
+def _data_initializer(numpy_initializer: Callable, comp_num_elements: Callable,
+                      indices: List[Index], *args, **kwargs):
+  """
+  Initialize an 1d np.ndarray using `numpy_initializer` function.
+  Args:
+    numpy_initializer: Callable, should return a 1d np.ndarray.
+      Function call signature: `numpy_initializer(*args, **kwargs)`.
+    comp_num_elements: Callable, computes the number of elements of
+      the returned 1d np.ndarray, using  `numel = comp_num_elements(indices)`.
+    indices: List if `Index` objects.
+    *args, **kwargs: Arguments to `numpy_initializer`.
+  Returns:
+    np.ndarray: An initialized numpy array.
+  """
+  charges, flows = get_flat_meta_data(indices)
+  num_elements = comp_num_elements(charges, flows)
+  tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+  order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+  data = numpy_initializer(num_elements, *args, **kwargs)
+  return data, charges, flows, order
+
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """
