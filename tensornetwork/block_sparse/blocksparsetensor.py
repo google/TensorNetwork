@@ -17,9 +17,9 @@ import copy
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
-    get_flat_meta_data, compute_num_nonzero, reduce_charges)
+    get_flat_meta_data, compute_num_nonzero, reduce_charges, _data_initializer)
 from tensornetwork.block_sparse.utils import (flatten, _find_best_partition,
-                                              intersect)
+                                              intersect, _random, _randn)
 
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                charge_equal)
@@ -28,31 +28,6 @@ from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
 
-def _randn(size, dtype=np.float64):
-  data = np.random.randn(size).astype(dtype)
-  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
-      (np.dtype(dtype) is np.dtype(np.complex64))):
-    data += 1j * np.random.randn(size).astype(dtype)
-  return data
-
-
-def _random(size, dtype=np.float64, boundaries=(0, 1)):
-  data = np.random.uniform(boundaries[0], boundaries[1], size).astype(dtype)
-  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
-      (np.dtype(dtype) is np.dtype(np.complex64))):
-    data += 1j * np.random.uniform(boundaries[0], boundaries[1],
-                                   size).astype(dtype)
-  return data
-
-
-def _data_initializer(numpy_initializer, comp_num_elements, indices, *args,
-                      **kwargs):
-  charges, flows = get_flat_meta_data(indices)
-  num_elements = comp_num_elements(charges, flows)
-  tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
-  order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
-  data = numpy_initializer(num_elements, *args, **kwargs)
-  return data, charges, flows, order
 
 
 class ChargeArray:
