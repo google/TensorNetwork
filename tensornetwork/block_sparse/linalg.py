@@ -14,7 +14,8 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import tensordot, _randn, _random
+from tensornetwork.block_sparse.blocksparsetensor import (tensordot, _randn,
+                                                          _random)
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray)
 from tensornetwork.block_sparse.blocksparse_utils import (
