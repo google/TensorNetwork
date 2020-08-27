@@ -436,6 +436,20 @@ class ChargeArray:
     raise ValueError("can only convert an array of size 1 to a Python scalar")
 
 
+def compare_shapes(tensor1: ChargeArray, tensor2: ChargeArray):
+  if tensor1.shape != tensor2.shape:
+    return False
+  if len(tensor1._charges) != len(tensor2._charges):
+    return False
+  if not all([
+      charge_equal(c1, c2) for c1, c2 in zip(tensor1._charges, tensor2._charges)
+  ]):
+    return False
+  if not all([f1 == f2 for f1, f2 in zip(tensor1._flows, tensor2._flows)]):
+    return False
+  return True
+
+
 class BlockSparseTensor(ChargeArray):
   """
   A block-sparse tensor class. This class stores non-zero
