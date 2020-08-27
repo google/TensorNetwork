@@ -43,6 +43,7 @@ def _data_initializer(numpy_initializer: Callable, comp_num_elements: Callable,
     *args, **kwargs: Arguments to `numpy_initializer`.
   Returns:
     np.ndarray: An initialized numpy array.
+    
   """
   charges, flows = get_flat_meta_data(indices)
   num_elements = comp_num_elements(charges, flows)

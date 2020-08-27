@@ -250,7 +250,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         check_consistency=False)
     lop = sp.sparse.linalg.LinearOperator(
         dtype=initial_state.dtype, shape=(dim, dim), matvec=matvec)
-    
+
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
@@ -270,7 +270,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
       raise e
-    
+
     eVs = [
         BlockSparseTensor(
             U[:, n],
@@ -278,7 +278,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             initial_state._flows,
             check_consistency=False) for n in range(numeig)
     ]
-      
+
     self.bs.set_caching_status(former_caching_status)
     if enable_caching and cache_was_empty:
       self.bs.clear_cache()
@@ -359,7 +359,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
-    
+
     former_caching_status = self.bs.get_caching_status()
     self.bs.set_caching_status(enable_caching)
     if enable_caching:
@@ -442,13 +442,13 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
       raise e
-    
+
     self.bs.set_caching_status(former_caching_status)
     if enable_caching and cache_was_empty:
       self.bs.clear_cache()
 
     return eigvals[0:numeig], eigenvectors
-  
+
   def gmres(self,
             A_mv: Callable,
             b: BlockSparseTensor,
@@ -461,19 +461,19 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             maxiter: Optional[int] = 1,
             M: Optional[Callable] = None
             ) -> Tuple[BlockSparseTensor, int]:
-    
+
     if x0 is None:
       x0 = self.bs.randn_like(b)
-      
-    if x0.shape != b.shape:
-      errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                   f", {b.shape}.")
+
+    if not self.bs.compare_shapes(x0.shape, b.shape):
+      errstring = (f"sparse-shape of x0 = {x0.sparse_shape} does not match "
+                   f"sparse shape of b = {b.sparse_shape}.")
       raise ValueError(errstring)
-      
+
     if x0.dtype != b.dtype:
       raise ValueError(f"x0.dtype = {x0.dtype} does not"
                        f" match b.dtype = {b.dtype}")
-      
+
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
 
@@ -494,7 +494,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       A_args = []
     if A_kwargs is None:
       A_kwargs = {}
-    
+
     x0.contiguous()
     b.contiguous()
     tmp = BlockSparseTensor(
@@ -502,13 +502,13 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         x0._charges,
         x0._flows,
         check_consistency=False)
-    
+
     def matvec(vector):
       tmp.data = vector
       res = A_mv(tmp, *A_args, **A_kwargs)
       res.contiguous()
       return res.data
-    
+
     dim = len(x0.data)
     A_op = sp.sparse.linalg.LinearOperator(
         dtype=x0.dtype, shape=(dim, dim), matvec=matvec)
@@ -520,7 +520,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       raise ValueError("ARPACK gmres received illegal input or broke down.")
     tmp.data = x
     return (tmp, info)
-    
+
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     return tensor1 + tensor2
