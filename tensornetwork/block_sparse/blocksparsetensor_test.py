@@ -7,7 +7,8 @@ from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
 from tensornetwork.block_sparse.utils import fuse_ndarrays
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
-                                                          BlockSparseTensor)
+                                                          BlockSparseTensor,
+                                                          compare_shapes)
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -926,3 +927,33 @@ def test_size(chargetype, num_charges):
   ]
   arr = BlockSparseTensor.random(indices)
   assert arr.size == np.prod(Ds)
+
+@pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
+@pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
+def test_compare_charges(chargetype, num_charges):
+  np.random.seed(10)
+  Ds1 = np.array([8, 9, 10, 11])
+  flows1 = [True, False, True, False]
+  indices1 = [
+      Index(get_charge(chargetype, num_charges, Ds1[n]), flows1[n])
+      for n in range(4)
+  ]
+  indices2 = [
+      Index(get_charge(chargetype, num_charges, Ds1[n]), flows1[n])
+      for n in range(4)
+  ]
+  
+  Ds3 = np.array([8, 12, 13])
+  flows3 = [False, True, False]
+  indices3 = [
+      Index(get_charge(chargetype, num_charges, Ds3[n]), flows3[n])
+      for n in range(3)
+  ]
+  arr1 = BlockSparseTensor.random(indices1)
+  arr2 = BlockSparseTensor.random(indices2)
+  arr3 = BlockSparseTensor.random(indices3)
+  assert compare_shapes(arr1, arr1)
+  assert not compare_shapes(arr1, arr2)
+  assert not compare_shapes(arr1, arr3)
+  assert not compare_shapes(arr2, arr3)  
+  
