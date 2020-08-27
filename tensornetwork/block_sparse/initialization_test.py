@@ -99,9 +99,12 @@ def test_tn_randn(dtype, num_charges):
   for n in range(4):
     assert charge_equal(arr.charges[n][0], indices[n].flat_charges[0])
 
+
 @pytest.mark.parametrize('dtype', np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3])
-@pytest.mark.parametrize('fun, val', [(ones_like,1), (zeros_like,0), (empty_like,None), (randn_like,None), (random_like,None)])
+@pytest.mark.parametrize('fun, val', [(ones_like, 1), (zeros_like, 0),
+                                      (empty_like, None), (randn_like, None),
+                                      (random_like, None)])
 def test_like_init(fun, val, dtype, num_charges):
   np.random.seed(10)
   Ds = [8, 9, 10, 11]
