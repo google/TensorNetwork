@@ -14,10 +14,11 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import (tensordot, _randn,
-                                                          _random)
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
-                                                          ChargeArray)
+                                                          ChargeArray,
+                                                          tensordot)
+from tensornetwork.block_sparse.utils import (intersect, flatten,
+                                              get_real_dtype, _randn, _random)
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     compute_num_nonzero, compute_sparse_lookup)
