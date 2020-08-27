@@ -463,7 +463,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             ) -> Tuple[BlockSparseTensor, int]:
     
     if x0 is None:
-      x0 = self.bs.initialization.randn_like(b)
+      x0 = self.bs.randn_like(b)
       
     if x0.shape != b.shape:
       errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
