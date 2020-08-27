@@ -426,9 +426,9 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     return state_vectors
 
 
-  def implicitly_restarted_arnoldi_method(matvec, args, initial_state,
-    num_krylov_vecs, numeig, which, eps,
-    maxiter, res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
+  def implicitly_restarted_arnoldi_method(
+      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps, maxiter,
+      res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -596,7 +596,7 @@ def gmres_wrapper(jax: types.ModuleType):
                             b_norm)
       if done:
         break
-    return (x, beta, n_iter, done)
+    return x, beta, n_iter, done
 
   def gmres(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
             x: jax.ShapedArray, num_krylov_vectors: int, x0: jax.ShapedArray,
@@ -843,9 +843,9 @@ def gmres_wrapper(jax: types.ModuleType):
     V = jax.ops.index_update(V, jax.ops.index[:, k+1], r_new)
     return V, H
 
-################################################################################
+####################################################################
 # GIVENS ROTATIONS
-################################################################################
+####################################################################
   @jax.jit
   def apply_rotations(H_col: jax.ShapedArray, givens: jax.ShapedArray,
                       k: int) -> jax.ShapedArray:
@@ -932,13 +932,21 @@ def gmres_wrapper(jax: types.ModuleType):
     sn = -v2 / t
     return cs, sn
 
-  fnames = ("gmres_m, gmres_residual, gmres_krylov, gs_step, kth_arnoldi_step,"
-            " givens_rotation")
-  functions = collections.namedtuple("GmresFunctions", fnames)
-  functions.gmres_m = gmres_m
-  functions.gmres_residual = gmres_residual
-  functions.gmres_krylov = gmres_krylov
-  functions.gs_step = _gs_step
-  functions.kth_arnoldi_step = kth_arnoldi_step
-  functions.givens_rotation = givens_rotation
-  return functions
+  fnames = [
+      "gmres_m", "gmres_residual", "gmres_krylov", "gs_step",
+      "kth_arnoldi_step", "givens_rotation"
+  ]
+  functions = [
+      gmres_m, gmres_residual, gmres_krylov, _gs_step, kth_arnoldi_step,
+      givens_rotation
+  ]
+
+  class Functions:
+
+    def __init__(self, fun_dict):
+      self.dict = fun_dict
+
+    def __getattr__(self, name):
+      return self.dict[name]
+
+  return Functions(dict(zip(fnames, functions)))
