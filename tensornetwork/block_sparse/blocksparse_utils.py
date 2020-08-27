@@ -31,7 +31,7 @@ Tensor = Any
 
 
 def _data_initializer(numpy_initializer: Callable, comp_num_elements: Callable,
-                      indices: Sequence[Index], *args, **kwargs) -> np.ndarray:
+                      indices: Sequence[Index], *args, **kwargs) -> Any:
   """
   Initialize an 1d np.ndarray using `numpy_initializer` function.
   Args:
