@@ -15,7 +15,7 @@
 import numpy as np
 from tensornetwork.block_sparse.sizetypes import SIZE_T
 from tensornetwork.block_sparse.caching import get_cacher
-from typing import List, Union, Any, Type
+from typing import List, Union, Any, Type, Tuple
 
 
 def _randn(size: int, dtype: Type[np.number] = np.float64) -> np.ndarray:
