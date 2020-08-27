@@ -11,8 +11,10 @@ from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
                                                           BlockSparseTensor,
                                                           ChargeArray)
 from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
-                                               norm, eye, ones, zeros, randn,
-                                               random, eigh, inv)
+                                               norm, eye, eigh, inv)
+from tensornetwork.block_sparse.initialization import (ones, zeros, randn,
+                                                       random)
+
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 
