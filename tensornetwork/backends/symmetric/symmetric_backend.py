@@ -23,9 +23,6 @@ import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
 
-# TODO (mganahl): implement eigs
-
-
 # pylint: disable=abstract-method
 class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
