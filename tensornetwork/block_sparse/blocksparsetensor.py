@@ -14,16 +14,17 @@
 
 import numpy as np
 import copy
+from functools import reduce
+from operator import mul
+
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     get_flat_meta_data, compute_num_nonzero, reduce_charges, _data_initializer)
 from tensornetwork.block_sparse.utils import (flatten, _find_best_partition,
                                               intersect, _random, _randn)
-
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                charge_equal)
-
 from typing import List, Union, Any, Tuple, Type, Optional, Sequence
 Tensor = Any
 
@@ -127,7 +128,17 @@ class ChargeArray:
       Tuple: A tuple of `int`.
     """
     return tuple(
-        [np.prod([self._charges[n].dim for n in s]) for s in self._order])
+        [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
+
+  @property
+  def size(self) -> int:
+    """
+    The dense size of the tensor, i.e. the total number of elements, including 
+    those which are zero by conservation of charge.
+    Returns:
+      int: The total number of elements.
+    """
+    return reduce(mul, [self._charges[n].dim for s in self._order for n in s])
 
   @property
   def charges(self) -> List[List[BaseCharge]]:
@@ -540,6 +551,7 @@ class BlockSparseTensor(ChargeArray):
     if self.ndim == 0:
       return self.data
     out = np.asarray(np.zeros(self.shape, dtype=self.dtype).flat)
+
     out[np.nonzero(
         fuse_charges(self._charges, self._flows) ==
         self._charges[0].identity_charges(dim=1))[0]] = self.data
@@ -772,7 +784,6 @@ class BlockSparseTensor(ChargeArray):
       return self
     tr_partition = _find_best_partition(
         [flat_charges[n].dim for n in permutation])
-
     tr_sparse_blocks, tr_charges, _ = _find_transposed_diagonal_sparse_blocks(
         flat_charges, flat_flows, tr_partition, permutation)
 
@@ -872,8 +883,8 @@ def outerproduct(tensor1: BlockSparseTensor,
 def tensordot(
     tensor1: BlockSparseTensor,
     tensor2: BlockSparseTensor,
-    axes: Optional[Union[Sequence[Sequence[int]],
-                         int]] = 2) -> BlockSparseTensor:
+    axes: Optional[Union[Sequence[Sequence[int]], Sequence[int], int]] = 2
+) -> BlockSparseTensor:
   """
   Contract two `BlockSparseTensor`s along `axes`.
   Args:

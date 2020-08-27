@@ -19,6 +19,10 @@ import numpy as np
 import tensorflow as tf
 import torch
 import jax
+from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
+                                        BaseCharge)
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks#pylint: disable=line-too-long
+from tensornetwork.backends.abstract_backend import AbstractBackend
 
 np_dtypes = [np.float32, np.float64, np.complex64, np.complex128, np.int32]
 tf_dtypes = [tf.float32, tf.float64, tf.complex64, tf.complex128, tf.int32]
@@ -27,11 +31,6 @@ jax_dtypes = [
     jax.numpy.float32, jax.numpy.float64, jax.numpy.complex64,
     jax.numpy.complex128, jax.numpy.int32
 ]
-from tensornetwork.block_sparse import (U1Charge, BlockSparseTensor, Index,
-                                        BaseCharge)
-from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
-from tensornetwork.backends.abstract_backend import AbstractBackend
-
 
 def get_random_symmetric(shape, flows, num_charges, seed=10, dtype=np.float64):
   assert np.all(np.asarray(shape) == shape[0])

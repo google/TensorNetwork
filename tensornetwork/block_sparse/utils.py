@@ -188,12 +188,10 @@ def collapse(array: np.ndarray) -> np.ndarray:
   Returns:
     np.ndarray: The collapsed array.
   """
-  array = np.ascontiguousarray(array)
-  if array.ndim == 1:
-    return array
 
-  if array.dtype.itemsize * array.shape[1] > 8:
+  if array.ndim <= 1 or array.dtype.itemsize * array.shape[1] > 8:
     return array
+  array = np.ascontiguousarray(array)  
   newdtype = get_dtype(array.dtype.itemsize * array.shape[1])
   if array.shape[1] in (1, 2, 4, 8):
     tmparray = array.view(newdtype)
@@ -226,7 +224,7 @@ def expand(array: np.ndarray, original_dtype: Type[np.number],
   Returns:
     np.ndarray: The expanded array.
   """
-  if original_ndim == 1:
+  if original_ndim <= 1:
     #nothing to expand
     return np.squeeze(array)
   if array.ndim == 1:
@@ -269,6 +267,7 @@ def unique(array: np.ndarray,
     np.ndarray (optional): The number of times each element of the 
       unique array appears in `array`.
   """
+  array = np.asarray(array)
   original_width = array.shape[1]  if array.ndim == 2 else 0
   original_ndim = array.ndim
   collapsed_array = collapse(array)
@@ -284,7 +283,6 @@ def unique(array: np.ndarray,
       return_inverse=return_inverse,
       return_counts=return_counts,
       axis=axis)
-
   if any([return_index, return_inverse, return_counts]):
     out = list(res)
     if _return_index and not return_index:
@@ -304,11 +302,11 @@ def unique(array: np.ndarray,
   return out
 
 
-def intersect_new(A: np.ndarray,
-                  B: np.ndarray,
-                  axis=0,
-                  assume_unique=False,
-                  return_indices=False) -> Any:
+def intersect(A: np.ndarray,
+              B: np.ndarray,
+              axis=0,
+              assume_unique=False,
+              return_indices=False) -> Any:
   """
   Extends numpy's intersect1d to find the row or column-wise intersection of
   two 2d arrays. Takes identical input to numpy intersect1d.
@@ -335,7 +333,7 @@ def intersect_new(A: np.ndarray,
     if A.shape[0] != B.shape[0]:
       raise ValueError("array heights must match to intersect on second axis")
 
-    out = intersect_new(
+    out = intersect(
         A.T,
         B.T,
         axis=0,
@@ -354,8 +352,8 @@ def intersect_new(A: np.ndarray,
 
   if collapsed_A.ndim > 1:
     # arrays were not callapsable, fall back to slower implementation
-    return intersect(collapsed_A, collapsed_B, axis, assume_unique,
-                     return_indices)
+    return _intersect_ndarray(collapsed_A, collapsed_B, axis, assume_unique,
+                              return_indices)
   if collapsed_A.dtype in (np.int8,
                            np.int16) and collapsed_B.dtype in (np.int8,
                                                                np.int16):
@@ -385,11 +383,12 @@ def intersect_new(A: np.ndarray,
   return result
 
 
-def intersect(A: np.ndarray,
-              B: np.ndarray,
-              axis=0,
-              assume_unique=False,
-              return_indices=False) -> Any:
+
+def _intersect_ndarray(A: np.ndarray,
+                       B: np.ndarray,
+                       axis=0,
+                       assume_unique=False,
+                       return_indices=False) -> Any:
   """
   Extends numpy's intersect1d to find the row or column-wise intersection of
   two 2d arrays. Takes identical input to numpy intersect1d.
@@ -436,7 +435,7 @@ def intersect(A: np.ndarray,
       return C.view(A.dtype).reshape(-1, ncols)
 
     elif axis == 1:
-      out = intersect(
+      out = _intersect_ndarray(
           A.T.copy(),
           B.T.copy(),
           axis=0,
