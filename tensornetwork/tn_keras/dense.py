@@ -64,7 +64,7 @@ class DenseDecomp(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    super().__init__(**kwargs)
+    super(DenseDecomp, self).__init__(**kwargs)
 
     self.output_dim = output_dim
     self.decomp_size = decomp_size
@@ -81,7 +81,7 @@ class DenseDecomp(Layer):
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
 
-    super().build(input_shape)
+    super(DenseDecomp, self).build(input_shape)
 
     self.a_var = self.add_weight(name='a',
                                  shape=(input_shape[-1], self.decomp_size),
@@ -163,5 +163,5 @@ class DenseDecomp(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super().get_config()
+    base_config = super(DenseDecomp, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

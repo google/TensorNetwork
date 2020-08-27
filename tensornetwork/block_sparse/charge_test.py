@@ -166,7 +166,7 @@ def test_Charge_dual_zncharges(n):
 def test_Z2Charge_random():
   np.random.seed(10)
   z2 = Z2Charge.random(10, 0, 1)
-  assert np.all(np.isin(z2.charges.ravel(), [0,1]))
+  assert np.all(np.isin(z2.charges.ravel(), [0, 1]))
 
 
 def test_Z2Charge_raises():

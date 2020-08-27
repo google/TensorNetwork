@@ -305,9 +305,9 @@ class AbstractNode(ABC):
       return axis
     try:
       return self.axis_names.index(axis)
-    except ValueError as err:
+    except ValueError:
       raise ValueError("Axis name '{}' not found for node '{}'".format(
-          axis, self)) from err
+          axis, self))
 
   def get_dimension(self, axis: Union[Text, int]) -> Optional[int]:
     """Get the dimension of the given axis.
@@ -446,7 +446,7 @@ class AbstractNode(ABC):
     Returns:
       The loaded node.
     """
-    return #pytype: disable=bad-return-type
+    return
 
   @classmethod
   def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:

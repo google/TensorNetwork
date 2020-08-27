@@ -69,7 +69,7 @@ class DenseCondenser(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    super().__init__(**kwargs)
+    super(DenseCondenser, self).__init__(**kwargs)
 
     self.exp_base = exp_base
     self.num_nodes = num_nodes
@@ -86,7 +86,7 @@ class DenseCondenser(Layer):
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
 
-    super().build(input_shape)
+    super(DenseCondenser, self).build(input_shape)
 
     self.output_dim = input_shape[-1] // (self.exp_base**self.num_nodes)
 
@@ -174,5 +174,5 @@ class DenseCondenser(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super().get_config()
+    base_config = super(DenseCondenser, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

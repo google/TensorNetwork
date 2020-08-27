@@ -42,13 +42,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
     global libjax  # Jax module
     global jnp  # jax.numpy module
     global jsp  # jax.scipy module
-    super().__init__()
+    super(JaxBackend, self).__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import jax
-    except ImportError as err:
+    except ImportError:
       raise ImportError("Jax not installed, please switch to a different "
-                        "backend or install Jax.") from err
+                        "backend or install Jax.")
     libjax = jax
     jnp = libjax.numpy
     jsp = libjax.scipy
@@ -335,8 +335,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if res_thresh is None:
       try:
         res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
-      except KeyError as err:
-        raise KeyError(f"dtype {initial_state.dtype} not supported") from err
+      except KeyError:
+        raise KeyError(f"dtype {initial_state.dtype} not supported")
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
