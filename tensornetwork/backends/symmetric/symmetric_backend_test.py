@@ -1272,3 +1272,6 @@ def test_einsum_raises():
   with pytest.raises(
       NotImplementedError, match="`einsum` currently not implemented"):
     backend.einsum('', [])
+
+
+#def test_gmres():
