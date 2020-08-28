@@ -90,8 +90,8 @@ class Index:
   def flat_flows(self) -> List:
     """
     Returns:
-    List: A list containing the elementary indices (the leaves) 
-      of `Index`.
+      List: A list containing the elementary indices (the leaves) 
+        of `Index`.
     """
     return list(self.flow)
 
