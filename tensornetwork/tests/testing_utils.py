@@ -79,3 +79,22 @@ def np_dtype_to_backend(backend, dtype):
   else:
     raise ValueError("Invalid backend ", backend)
   return A.dtype
+
+
+def check_contraction_dtype(backend, dtype):
+  """
+  Skips the test if the backend cannot perform multiply-add with the given
+  dtype.
+  """
+  skip = False
+  if backend == "tensorflow":
+    if dtype in [np.uint8, tf.uint8, np.uint16, tf.uint16, np.int8, tf.int8,
+                 np.int16, tf.int16, np.uint32, tf.uint32, np.uint64,
+                 tf.uint64]:
+      skip = True
+
+  if backend == "pytorch":
+    if dtype in [np.float16, torch.float16]:
+      skip = True
+  if skip:
+    pytest.skip("backend does not support multiply-add with this dtype.")
