@@ -4,3 +4,4 @@ from tensornetwork.contractors.opt_einsum_paths.path_contractors import branch
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import greedy
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import auto
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import custom
+from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver
