@@ -556,7 +556,6 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if num_krylov_vectors is None:
       num_krylov_vectors = b.size
 
-
     if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
                    f"0 < {num_krylov_vectors} <= {b.size}.")
