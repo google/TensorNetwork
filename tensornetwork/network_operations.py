@@ -604,7 +604,7 @@ def reachable(
   if isinstance(inputs, AbstractNode):
     inputs = {inputs}
   elif isinstance(inputs, Edge):
-    inputs = {inputs.node1}
+    inputs = {inputs.node1} # pytype: disable=attribute-error
   elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
     inputs = {x.node1 for x in inputs}
   return _reachable(set(inputs))
