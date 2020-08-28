@@ -1,9 +1,12 @@
-from functools import partial
+import functools
 from typing import List, Any, Tuple, Callable, Sequence
+import collections
+import types
 import numpy as np
 Tensor = Any
 
-def _generate_jitted_eigsh_lanczos(jax):
+
+def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   """
   Helper function to generate jitted lanczos function used
   in JaxBackend.eigsh_lanczos. The function `jax_lanczos`
@@ -36,7 +39,7 @@ def _generate_jitted_eigsh_lanczos(jax):
 
   """
 
-  @partial(jax.jit, static_argnums=(3, 4, 5, 6))
+  @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho):
     """
     Jitted lanczos routine.
@@ -150,7 +153,7 @@ def _generate_jitted_eigsh_lanczos(jax):
   return jax_lanczos
 
 
-def _generate_arnoldi_factorization(jax):
+def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
   """
   Helper function to create a jitted arnoldi factorization.
   The function returns a function `_arnoldi_fact` which
@@ -222,7 +225,7 @@ def _generate_arnoldi_factorization(jax):
     vector = vector - h * jax.numpy.reshape(v, vector.shape)
     return [vector, krylov_vectors, n, H]
 
-  @partial(jax.jit, static_argnums=(5, 6, 7))
+  @functools.partial(jax.jit, static_argnums=(5, 6, 7))
   def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
                     eps):
     """
@@ -247,7 +250,8 @@ def _generate_arnoldi_factorization(jax):
       args: List of arguments to `matvec`.
       v0: Initial state to `matvec`.
       krylov_vectors: An array for storing the krylov vectors. The individual
-        vectors are stored as columns. The shape of `krylov_vecs` has to be
+        vectors are stored as columns.
+        The shape of `krylov_vecs` has to be
         (num_krylov_vecs + 1, np.ravel(v0).shape[0]).
       H: Matrix of overlaps. The shape has to be
         (num_krylov_vecs + 1,num_krylov_vecs + 1).
@@ -307,7 +311,7 @@ def _generate_arnoldi_factorization(jax):
   return _arnoldi_fact
 
 
-def _implicitly_restarted_arnoldi(jax):
+def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   """
   Helper function to generate a jitted function to do an
   implicitly restarted arnoldi factorization of `matvec`. The
@@ -345,30 +349,30 @@ def _implicitly_restarted_arnoldi(jax):
   """
 
   arnoldi_fact = _generate_arnoldi_factorization(jax)
-  #######################################################
-  ########  NEW SORTING FUCTIONS INSERTED HERE  #########
-  #######################################################
-  @partial(jax.jit, static_argnums=(1,))
+
+  # ######################################################
+  # #######  NEW SORTING FUCTIONS INSERTED HERE  #########
+  # ######################################################
+  @functools.partial(jax.jit, static_argnums=(1,))
   def LR_sort(evals, p):
     inds = np.argsort(jax.numpy.real(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  @partial(jax.jit, static_argnums=(1,))
+  @functools.partial(jax.jit, static_argnums=(1,))
   def LM_sort(evals, p):
     inds = np.argsort(jax.numpy.abs(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  ########################################################
-  ########################################################
-  ########################################################
-
-  @partial(jax.jit, static_argnums=(4, 5, 6))
+  # #######################################################
+  # #######################################################
+  # #######################################################
+  @functools.partial(jax.jit, static_argnums=(4, 5, 6))
   def shifted_QR(Vm, Hm, fm, evals, k, p, which, res_thresh):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
-    #compress to k = numeig
+    # compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
     q = jax.ops.index_update(q, jax.ops.index[-1], 1)
     m = Hm.shape[0]
@@ -395,14 +399,14 @@ def _implicitly_restarted_arnoldi(jax):
     #use small threshold to check this
     return krylov_vectors, H, fk, Z < res_thresh
 
-  @partial(jax.jit, static_argnums=(2,))
+  @functools.partial(jax.jit, static_argnums=(2,))
   def update_data(Vm_tmp, Hm_tmp, numits):
     Vm = Vm_tmp[0:numits, :]
     Hm = Hm_tmp[0:numits, 0:numits]
     fm = Vm_tmp[numits, :] * Hm_tmp[numits, numits - 1]
     return Vm, Hm, fm
 
-  @partial(jax.jit, static_argnums=(3,))
+  @functools.partial(jax.jit, static_argnums=(3,))
   def get_vectors(Vm, unitary, inds, numeig):
 
     def body_vector(i, vals):
@@ -421,9 +425,10 @@ def _implicitly_restarted_arnoldi(jax):
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
 
+
   def implicitly_restarted_arnoldi_method(
-      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-      maxiter, res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
+      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps, maxiter,
+      res_thresh) -> Tuple[List[Tensor], List[Tensor]]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -471,7 +476,7 @@ def _implicitly_restarted_arnoldi(jax):
                                                      num_krylov_vecs, eps)
     # obtain an m-step arnoldi factorization
     Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, numits)
-    
+
     it = 0
     if which == 'LR':
       _which = 0
@@ -494,7 +499,7 @@ def _implicitly_restarted_arnoldi(jax):
       Vm = Vm.astype(dtype)
       Hm = Hm.astype(dtype)
       fm = fm.astype(dtype)
-      
+
     while (it < maxiter) and (not converged):
       evals, _ = jax.numpy.linalg.eig(Hm)
       krylov_vectors, H, fk, converged = shifted_QR(Vm, Hm, fm, evals, numeig,
@@ -523,20 +528,36 @@ def _implicitly_restarted_arnoldi(jax):
   return implicitly_restarted_arnoldi_method
 
 
-def gmres_wrapper(jax):
+def gmres_wrapper(jax: types.ModuleType):
   """
   Allows Jax (the module) to be passed in as an argument rather than imported,
-  since doing the latter breaks the build.
+  since doing the latter breaks the build. In addition, instantiates certain
+  of the enclosed functions as concrete objects within a Dict, allowing them to
+  be cached. This avoids spurious recompilations that would otherwise be
+  triggered by attempts to pass callables into Jitted functions.
+
+  The important function here is functions["gmres_m"], which implements
+  GMRES. The other functions are exposed only for testing.
+
   Args:
-    jax: The imported Jax module.
+  ----
+  jax: The imported Jax module.
+
   Returns:
-    gmres: A function performing gmres_m as described below.
+  -------
+  functions: A namedtuple of functions:
+    functions.gmres_m = gmres_m
+    functions.gmres_residual = gmres_residual
+    functions.gmres_krylov = gmres_krylov
+    functions.gs_step = _gs_step
+    functions.kth_arnoldi_step = kth_arnoldi_step
+    functions.givens_rotation = givens_rotation
   """
   jnp = jax.numpy
 
   def gmres_m(A_mv: Callable, A_args: Sequence,
-              b: jax.ShapedArray, x0: jax.ShapedArray, tol: float, atol: float,
-              num_krylov_vectors: int,
+              b: jax.ShapedArray, x0: jax.ShapedArray, tol: float,
+              atol: float, num_krylov_vectors: int,
               maxiter: int) -> Tuple[jax.ShapedArray, float, int, bool]:
     """
     Solve A x = b for x using the m-restarted GMRES method. This is
@@ -549,41 +570,59 @@ def gmres_wrapper(jax):
     Generalized Minimum RESiduals with M iterations per restart (GMRES_M).
 
     Args:
-
-    A_mv     : A function `v0 = A_mv(v, *A_args)` where `v0` and
-               `v` have the same shape.
-    A_args   : A list of positional arguments to A_mv.
-    b        : The `b` in `A @ x = b`.
-    x0       : Initial guess solution.
-    tol, atol: Solution tolerance to achieve,
-               norm(residual) <= max(tol*norm(b), atol).
-               tol is also used to set the threshold at which the Arnoldi
-               factorization terminates.
-    num_krylov_vectors
-             : Size of the Krylov space to build at each restart.
-    maxiter  : The Krylov space will be repeatedly rebuilt up to this many
-               times.
-
-
-    RETURNS
-    -------
-    x (array, (n,)) : The approximate solution.
-    beta (float)    : Norm of the residual at termination.
-    n_iter (int)    : Number of iterations at termination.
-    converged (bool): Whether the desired tolerance was achieved.
+      A_mv: A function v0 = A_mv(v, *A_args) where v0 and v have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The b in A @ x = b.
+      x0: Initial guess solution.
+      tol, atol: Solution tolerance to achieve,
+        norm(residual) <= max(tol * norm(b), atol).
+        tol is also used to set the threshold at which the Arnoldi factorization
+        terminates.
+      num_krylov_vectors: Size of the Krylov space to build at each restart.
+      maxiter: The Krylov space will be repeatedly rebuilt up to this many
+        times.
+    Returns:
+      x: The approximate solution.
+      beta: Norm of the residual at termination.
+      n_iter: Number of iterations at termination.
+      converged: Whether the desired tolerance was achieved.
     """
+    num_krylov_vectors = min(num_krylov_vectors, b.size)
     x = x0
-    converged = False
-    r, beta = gmres_residual(A_mv, A_args, b, x)
     b_norm = jnp.linalg.norm(b)
+    tol = max(tol * b_norm, atol)
     for n_iter in range(maxiter):
-      # pylint: disable=too-many-function-args
-      x = gmres(A_mv, A_args, num_krylov_vectors, x, r, beta, tol)
-      r, beta = gmres_residual(A_mv, A_args, b, x)
-      if beta <= max(tol*b_norm, atol):
-        converged = True
+      done, beta, x = gmres(A_mv, A_args, b, x, num_krylov_vectors, x0, tol,
+                            b_norm)
+      if done:
         break
-    return (x, beta, n_iter, converged)
+    return x, beta, n_iter, done
+
+  def gmres(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
+            x: jax.ShapedArray, num_krylov_vectors: int, x0: jax.ShapedArray,
+            tol: float, b_norm: float) -> Tuple[bool, float, jax.ShapedArray]:
+    """
+    A single restart of GMRES.
+
+    Args:
+      A_mv: A function `v0 = A_mv(v, *A_args)` where `v0` and
+                 `v` have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The `b` in `A @ x = b`.
+      x: Initial guess solution.
+      tol: Solution tolerance to achieve,
+      num_krylov_vectors : Size of the Krylov space to build.
+    Returns:
+      done: Whether convergence was achieved.
+      beta: Magnitude of residual (i.e. the error estimate).
+      x: The approximate solution.
+    """
+    r, beta = gmres_residual(A_mv, A_args, b, x)
+    k, V, R, beta_vec = gmres_krylov(A_mv, A_args, num_krylov_vectors,
+                                     x0, r, beta, tol, b_norm)
+    x = gmres_update(k, V, R, beta_vec, x0)
+    done = k < num_krylov_vectors - 1
+    return done, beta, x
 
   @jax.jit
   def gmres_residual(A_mv: Callable, A_args: Sequence, b: jax.ShapedArray,
@@ -591,35 +630,323 @@ def gmres_wrapper(jax):
     """
     Computes the residual vector r and its norm, beta, which is minimized by
     GMRES.
+
+    Args:
+      A_mv: A function v0 = A_mv(v, *A_args) where v0 and
+        v have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      b: The b in A @ x = b.
+      x: Initial guess solution.
+    Returns:
+      r: The residual vector.
+      beta: Its magnitude.
     """
     r = b - A_mv(x, *A_args)
     beta = jnp.linalg.norm(r)
     return r, beta
 
+  def gmres_update(k: int, V: jax.ShapedArray, R: jax.ShapedArray,
+                   beta_vec: jax.ShapedArray,
+                   x0: jax.ShapedArray) -> jax.ShapedArray:
+    """
+    Updates the solution in response to the information computed by the
+    main GMRES loop.
 
-  @partial(jax.jit, static_argnums=(2, 6))
-  def gmres(A_mv: Callable, A_args: Sequence, n_kry: int,
-            x0: jax.ShapedArray, r: jax.ShapedArray,
-            beta: float, tol: float) -> jax.ShapedArray:
+    Args:
+      k: The final iteration which was reached by GMRES before convergence.
+      V: The Arnoldi matrix of Krylov vectors.
+      R: The R factor in H = QR where H is the Arnoldi overlap matrix.
+      beta_vec: Stores the Givens factors used to map H into QR.
+      x0: The initial guess solution.
+    Returns:
+      x: The updated solution.
     """
-    Solve A x = b for x by the unrestarted GMRES method.
-    Given A, a trial solution x, the residual r,
-    and the size n_kry of the Krylov space, iterates x towards the solution,
-    by finding y in x = x_0 + V y minimizing ||beta - H y||.
-    """
-    v = r / beta
-    Vk_1 = jnp.zeros((n_kry + 1, v.size), dtype=v.dtype)
-    Htilde = jnp.zeros((n_kry + 1, n_kry + 1), dtype=v.dtype)
-    arnoldi_f = _generate_arnoldi_factorization(jax)
-    Vk_1, Htilde, _, _ = arnoldi_f(A_mv, A_args, v, Vk_1, Htilde, 0, n_kry, tol)
-    Vk_1 = Vk_1.T
-    Htilde = Htilde[:, :-1]
-    Q, Rtilde = jnp.linalg.qr(Htilde, mode="complete")
-    Q = Q.T.conj()
-    R = Rtilde[:-1, :]
-    g = beta*jnp.ravel(Q[:-1, 0])
-    y = jax.scipy.linalg.solve_triangular(R, g)
-    update = Vk_1[:, :-1] @ y
-    x = x0 + update
+    q = min(k, R.shape[1])
+    y = jax.scipy.linalg.solve_triangular(R[:q, :q], beta_vec[:q])
+    x = x0 + V[:, :q] @ y
     return x
-  return gmres_m
+
+  @functools.partial(jax.jit, static_argnums=(2,))
+  def gmres_krylov(A_mv: Callable, A_args: Sequence, n_kry: int,
+                   x0: jax.ShapedArray, r: jax.ShapedArray, beta: float,
+                   tol: float,
+                   b_norm: float) -> Tuple[int, jax.ShapedArray,
+                                           jax.ShapedArray, jax.ShapedArray]:
+    """
+    Builds the Arnoldi decomposition of (A, v), where v is the normalized
+    residual of the current solution estimate. The decomposition is
+    returned as V, R, where V is the usual matrix of Krylov vectors and
+    R is the upper triangular matrix in H = QR, with H the usual matrix
+    of overlaps.
+
+    Args:
+      A_mv: A function `v0 = A_mv(v, *A_args)` where `v0` and
+        `v` have the same shape.
+      A_args: A list of positional arguments to A_mv.
+      n_kry: Size of the Krylov space to build; this is called
+        num_krylov_vectors in higher level code.
+      x0: Guess solution.
+      r: Residual vector.
+      beta: Magnitude of r.
+      tol: Solution tolerance to achieve.
+      b_norm: Magnitude of b in Ax = b.
+    Returns:
+      k: Counts the number of iterations before convergence.
+      V: The Arnoldi matrix of Krylov vectors.
+      R: From H = QR where H is the Arnoldi matrix of overlaps.
+      beta_vec: Stores Q implicitly as Givens factors.
+    """
+    n = r.size
+    err = beta
+    v = r / beta
+
+    # These will store the Givens rotations used to update the QR decompositions
+    # of the Arnoldi matrices.
+    # cos : givens[0, :]
+    # sine: givens[1, :]
+    givens = jnp.zeros((2, n_kry), dtype=x0.dtype)
+    beta_vec = jnp.zeros((n_kry + 1), dtype=x0.dtype)
+    beta_vec = jax.ops.index_update(beta_vec, jax.ops.index[0], beta)
+    V = jnp.zeros((n, n_kry + 1), dtype=x0.dtype)
+    V = jax.ops.index_update(V, jax.ops.index[:, 0], v)
+    R = jnp.zeros((n_kry + 1, n_kry), dtype=x0.dtype)
+
+    # The variable data for the carry call. Each iteration modifies these
+    # values and feeds the results to the next iteration.
+    k = 0
+    gmres_variables = (k, V, R, beta_vec, err,  # < The actual output we need.
+                       givens)                  # < Modified between iterations.
+    gmres_constants = (tol, A_mv, A_args, b_norm, n_kry)
+    gmres_carry = (gmres_variables, gmres_constants)
+    # The 'x' input for the carry call. Each iteration will receive an ascending
+    # loop index (from the jnp.arange) along with the constant data
+    # in gmres_constants.
+    gmres_carry = jax.lax.while_loop(gmres_krylov_loop_condition,
+                                     gmres_krylov_work,
+                                     gmres_carry)
+    gmres_variables, gmres_constants = gmres_carry
+    k, V, R, beta_vec, err, givens = gmres_variables
+    return (k, V, R, beta_vec)
+
+  VarType = Tuple[int, jax.ShapedArray, jax.ShapedArray, jax.ShapedArray,
+                  float, jax.ShapedArray]
+  ConstType = Tuple[float, Callable, Sequence, jax.ShapedArray, int]
+  GmresCarryType = Tuple[VarType, ConstType]
+
+  @jax.jit
+  def gmres_krylov_loop_condition(gmres_carry: GmresCarryType) -> bool:
+    """
+    This function dictates whether the main GMRES while loop will proceed.
+    It is equivalent to:
+      if k < n_kry and err > tol:
+        return True
+      else:
+        return False
+    where k, n_kry, err, and tol are unpacked from gmres_carry.
+
+    Args:
+      gmres_carry: The gmres_carry from gmres_krylov.
+    Returns:
+      (bool): Whether to continue iterating.
+    """
+    gmres_constants, gmres_variables = gmres_carry
+    tol = gmres_constants[0]
+    k = gmres_variables[0]
+    err = gmres_variables[4]
+    n_kry = gmres_constants[4]
+
+    def is_iterating(k, n_kry):
+      return k < n_kry
+
+    def not_converged(args):
+      err, tol = args
+      return err >= tol
+    return jax.lax.cond(is_iterating(k, n_kry),   # Predicate.
+                        not_converged,            # Called if True.
+                        lambda x: False,          # Called if False.
+                        (err, tol))               # Arguments to calls.
+
+  @jax.jit
+  def gmres_krylov_work(gmres_carry: GmresCarryType) -> GmresCarryType:
+    """
+    Performs a single iteration of gmres_krylov. See that function for a more
+    detailed description.
+
+    Args:
+      gmres_carry: The gmres_carry from gmres_krylov.
+    Returns:
+      gmres_carry: The updated gmres_carry.
+    """
+    gmres_variables, gmres_constants = gmres_carry
+    k, V, R, beta_vec, err, givens = gmres_variables
+    tol, A_mv, A_args, b_norm, _ = gmres_constants
+
+    V, H = kth_arnoldi_step(k, A_mv, A_args, V, R, tol)
+    R_col, givens = apply_givens_rotation(H[:, k], givens, k)
+    R = jax.ops.index_update(R, jax.ops.index[:, k], R_col[:])
+
+    # Update the residual vector.
+    cs, sn = givens[:, k] * beta_vec[k]
+    beta_vec = jax.ops.index_update(beta_vec, jax.ops.index[k], cs)
+    beta_vec = jax.ops.index_update(beta_vec, jax.ops.index[k + 1], sn)
+    err = jnp.abs(sn) / b_norm
+    gmres_variables = (k + 1, V, R, beta_vec, err, givens)
+    return (gmres_variables, gmres_constants)
+
+  @jax.jit
+  def _gs_step(r: jax.ShapedArray,
+               v_i: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+    """
+    Performs one iteration of the stabilized Gram-Schmidt procedure, with
+    r to be orthonormalized against {v} = {v_0, v_1, ...}.
+
+    Args:
+      r: The new vector which is not in the initially orthonormal set.
+      v_i: The i'th vector in that set.
+    Returns:
+      r_i: The updated r which is now orthonormal with v_i.
+      h_i: The overlap of r with v_i.
+    """
+    h_i = jnp.vdot(v_i, r)
+    r_i = r - h_i * v_i
+    return r_i, h_i
+
+  @jax.jit
+  def kth_arnoldi_step(k: int, A_mv: Callable, A_args: Sequence,
+                       V: jax.ShapedArray, H: jax.ShapedArray,
+                       tol: float) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+    """
+    Performs the kth iteration of the Arnoldi reduction procedure.
+    Args:
+      k: The current iteration.
+      A_mv, A_args: A function A_mv(v, *A_args) performing a linear
+        transformation on v.
+      V: A matrix of size (n, K + 1), K > k such that each column in
+        V[n, :k+1] stores a Krylov vector and V[:, k+1] is all zeroes.
+      H: A matrix of size (K, K), K > k with H[:, k] all zeroes.
+    Returns:
+      V, H: With their k'th columns respectively filled in by a new
+        orthogonalized Krylov vector and new overlaps.
+    """
+    v = A_mv(V[:, k], *A_args)
+    v_new, H_k = jax.lax.scan(_gs_step, v, xs=V.T)
+    v_norm = jnp.linalg.norm(v_new)
+    r_new = v_new / v_norm
+    #  Normalize v unless it is the zero vector.
+    r_new = jax.lax.cond(v_norm > tol,
+                         lambda x: x[0] / x[1],
+                         lambda x: 0.*x[0],
+                         (v_new, v_norm)
+                         )
+    H = jax.ops.index_update(H, jax.ops.index[:, k], H_k)
+    H = jax.ops.index_update(H, jax.ops.index[k+1, k], v_norm)
+    V = jax.ops.index_update(V, jax.ops.index[:, k+1], r_new)
+    return V, H
+
+####################################################################
+# GIVENS ROTATIONS
+####################################################################
+  @jax.jit
+  def apply_rotations(H_col: jax.ShapedArray, givens: jax.ShapedArray,
+                      k: int) -> jax.ShapedArray:
+    """
+    Successively applies each of the rotations stored in givens to H_col.
+
+    Args:
+      H_col : The vector to be rotated.
+      givens: 2 x K, K > k matrix of rotation factors.
+      k     : Iteration number.
+    Returns:
+      H_col : The rotated vector.
+    """
+    rotation_carry = (H_col, 0, k, givens)
+
+    def loop_condition(carry):
+      i = carry[1]
+      k = carry[2]
+      return jax.lax.cond(i < k, lambda x: True, lambda x: False, 0)
+
+    def apply_ith_rotation(carry):
+      H_col, i, k, givens = carry
+      cs = givens[0, i]
+      sn = givens[1, i]
+      H_i = cs * H_col[i] - sn * H_col[i + 1]
+      H_ip1 = sn * H_col[i] + cs * H_col[i + 1]
+      H_col = jax.ops.index_update(H_col, jax.ops.index[i], H_i)
+      H_col = jax.ops.index_update(H_col, jax.ops.index[i + 1], H_ip1)
+      return (H_col, i + 1, k, givens)
+
+    rotation_carry = jax.lax.while_loop(loop_condition,
+                                        apply_ith_rotation,
+                                        rotation_carry)
+    H_col = rotation_carry[0]
+    return H_col
+
+  @jax.jit
+  def apply_givens_rotation(H_col: jax.ShapedArray, givens: jax.ShapedArray,
+                            k: int) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+    """
+    Applies the Givens rotations stored in the vectors cs and sn to the vector
+    H_col. Then constructs a new Givens rotation that eliminates H_col's
+    k'th element, yielding the corresponding column of the R in H's QR
+    decomposition. Returns the new column of R along with the new Givens
+    factors.
+
+    Args:
+      H_col : The column of H to be rotated.
+      givens: A matrix representing the cosine and sine factors of the
+        previous GMRES Givens rotations, in that order
+        (i.e. givens[0, :] -> the cos factor).
+      k     : Iteration number.
+    Returns:
+      R_col : The column of R obtained by transforming H_col.
+      givens_k: The new elements of givens that zeroed out the k+1'th element
+        of H_col.
+    """
+    # This call successively applies each of the
+    # Givens rotations stored in givens[:, :k] to H_col.
+    H_col = apply_rotations(H_col, givens, k)
+
+    cs_k, sn_k = givens_rotation(H_col[k], H_col[k + 1])
+    givens = jax.ops.index_update(givens, jax.ops.index[0, k], cs_k)
+    givens = jax.ops.index_update(givens, jax.ops.index[1, k], sn_k)
+
+    r_k = cs_k * H_col[k] - sn_k * H_col[k + 1]
+    R_col = jax.ops.index_update(H_col, jax.ops.index[k], r_k)
+    R_col = jax.ops.index_update(R_col, jax.ops.index[k + 1], 0.)
+    return R_col, givens
+
+  @jax.jit
+  def givens_rotation(v1: float, v2: float) -> Tuple[float, float]:
+    """
+    Given scalars v1 and v2, computes cs = cos(theta) and sn = sin(theta)
+    so that   [cs  -sn]  @ [v1] = [r]
+              [sn   cs]    [v2]   [0]
+    Args:
+      v1, v2: The scalars.
+    Returns:
+      cs, sn: The rotation factors.
+    """
+    t = jnp.sqrt(v1**2 + v2**2)
+    cs = v1 / t
+    sn = -v2 / t
+    return cs, sn
+
+  fnames = [
+      "gmres_m", "gmres_residual", "gmres_krylov", "gs_step",
+      "kth_arnoldi_step", "givens_rotation"
+  ]
+  functions = [
+      gmres_m, gmres_residual, gmres_krylov, _gs_step, kth_arnoldi_step,
+      givens_rotation
+  ]
+
+  class Functions:
+
+    def __init__(self, fun_dict):
+      self.dict = fun_dict
+
+    def __getattr__(self, name):
+      return self.dict[name]
+
+  return Functions(dict(zip(fnames, functions)))
