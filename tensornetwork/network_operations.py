@@ -793,7 +793,7 @@ def switch_backend(nodes: Iterable[AbstractNode], new_backend: Text) -> None:
     node.backend = backend
 
 
-def get_neighbors(node: AbstractNode) -> List[Node]:
+def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
   """Get all of the neighbors that are directly connected to the given node.
 
   Note: `node` will never be in the returned list, even if `node` has a
