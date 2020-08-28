@@ -18,6 +18,15 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_tensordot_int():
+  backend = pytorch_backend.PyTorchBackend()
+  a = backend.convert_to_tensor(2 * np.ones((3, 3, 3)))
+  b = backend.convert_to_tensor(np.ones((3, 3, 3)))
+  actual = backend.tensordot(a, b, 1)
+  expected = torch.tensordot(a, b, 1)
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_reshape():
   backend = pytorch_backend.PyTorchBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
