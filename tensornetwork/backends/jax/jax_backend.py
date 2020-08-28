@@ -43,13 +43,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
     global libjax  # Jax module
     global jnp  # jax.numpy module
     global jsp  # jax.scipy module
-    super(JaxBackend, self).__init__()
+    super().__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import jax
-    except ImportError:
+    except ImportError as err:
       raise ImportError("Jax not installed, please switch to a different "
-                        "backend or install Jax.")
+                        "backend or install Jax.") from err
     libjax = jax
     jnp = libjax.numpy
     jsp = libjax.scipy
@@ -336,8 +336,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if res_thresh is None:
       try:
         res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
-      except KeyError:
-        raise KeyError(f"dtype {initial_state.dtype} not supported")
+      except KeyError as err:
+        raise KeyError(f"dtype {initial_state.dtype} not supported") from err
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
@@ -597,18 +597,18 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if A_args is None:
       A_args = []
 
-
-    def matrix_matvec(x, *args):
-      x = x.reshape(b.shape)
-      result = A_mv(x, *args)
-      return result.ravel()
-
     if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(matrix_matvec)
-    if "gmres_f" not in _CACHED_FUNCTIONS:
-      _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
-    gmres_f = _CACHED_FUNCTIONS["gmres_f"]
-    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
+      @libjax.tree_util.Partial
+      def matrix_matvec(x, *args):
+        x = x.reshape(b.shape)
+        result = A_mv(x, *args)
+        return result.ravel()
+      _CACHED_MATVECS[A_mv] = matrix_matvec
+
+    if "gmres" not in _CACHED_FUNCTIONS:
+      _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
+    gmres_m = _CACHED_FUNCTIONS["gmres"].gmres_m
+    x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
                                       maxiter)
     if converged:
