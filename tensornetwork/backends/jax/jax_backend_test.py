@@ -5,12 +5,12 @@ import jax
 import pytest
 from tensornetwork.backends.jax import jax_backend
 import jax.config as config
+import tensornetwork.backends.jax.jitted_functions as jitted_functions
 # pylint: disable=no-member
 config.update("jax_enable_x64", True)
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 np_not_half = [np.float32, np.float64, np.complex64, np.complex128]
-
 
 
 def test_tensordot():
@@ -815,8 +815,7 @@ def test_gmres_raises():
     backend.gmres(dummy_mv, b, A_kwargs=A_kwargs)
 
 
-jax_qr_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
-@pytest.mark.parametrize("dtype", jax_qr_dtypes)
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_gmres_on_small_known_problem(dtype):
   dummy = jax.numpy.zeros(1, dtype=dtype)
   dtype = dummy.dtype
@@ -836,7 +835,30 @@ def test_gmres_on_small_known_problem(dtype):
   assert eps < tol
 
 
-@pytest.mark.parametrize("dtype", jax_qr_dtypes)
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_gmres_with_args(dtype):
+  dummy = jax.numpy.zeros(1, dtype=dtype)
+  dtype = dummy.dtype
+
+  backend = jax_backend.JaxBackend()
+  A = jax.numpy.zeros((2, 2), dtype=dtype)
+  B = jax.numpy.array(([[0, 1], [3, 0]]), dtype=dtype)
+  C = jax.numpy.array(([[1, 0], [0, -4]]), dtype=dtype)
+  b = jax.numpy.array([3, 2], dtype=dtype)
+  x0 = jax.numpy.ones(2, dtype=dtype)
+  n_kry = 2
+
+  def A_mv(x, B, C):
+    return (A + B + C) @ x
+  tol = 100*jax.numpy.finfo(dtype).eps
+  x, _ = backend.gmres(A_mv, b, A_args=[B, C], x0=x0, num_krylov_vectors=n_kry,
+                       tol=tol)
+  solution = jax.numpy.array([2., 1.], dtype=dtype)
+  eps = jax.numpy.linalg.norm(jax.numpy.abs(solution) - jax.numpy.abs(x))
+  assert eps < tol
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_gmres_on_larger_random_problem(dtype):
   dummy = jax.numpy.zeros(1, dtype=dtype)
   dtype = dummy.dtype
@@ -856,7 +878,7 @@ def test_gmres_on_larger_random_problem(dtype):
   assert err < max(rtol, atol)
 
 
-@pytest.mark.parametrize("dtype", np_not_half)
+@pytest.mark.parametrize("dtype", np_dtypes)
 def test_gmres_not_matrix(dtype):
   dummy = jax.numpy.zeros(1, dtype=dtype)
   dtype = dummy.dtype
