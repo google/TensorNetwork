@@ -16,6 +16,15 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_tensordot_int():
+  backend = tensorflow_backend.TensorFlowBackend()
+  a = backend.convert_to_tensor(2 * np.ones((3, 3, 3)))
+  b = backend.convert_to_tensor(np.ones((3, 3, 3)))
+  actual = backend.tensordot(a, b, 1)
+  expected = tf.tensordot(a, b, 1)
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_reshape():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
@@ -36,7 +45,7 @@ def test_transpose_noperm():
   backend = tensorflow_backend.TensorFlowBackend()
   a = backend.convert_to_tensor(
       np.array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]]]))
-  actual = backend.transpose(a) # [2, 1, 0]
+  actual = backend.transpose(a)  # [2, 1, 0]
   actual = backend.transpose(actual, perm=[0, 2, 1])
   expected = np.array([[[1.0, 3.0], [5.0, 7.0]], [[2.0, 4.0], [6.0, 8.0]]])
   np.testing.assert_allclose(expected, actual)
@@ -533,7 +542,7 @@ def test_diagflat(dtype, k):
   backend = tensorflow_backend.TensorFlowBackend()
   array = backend.randn((16,), dtype=dtype, seed=10)
   actual = backend.diagflat(array, k=k)
-  #pylint: disable=unexpected-keyword-arg
+  # pylint: disable=unexpected-keyword-arg
   expected = tf.linalg.diag(array, k=k)
   np.testing.assert_allclose(expected, actual)
 

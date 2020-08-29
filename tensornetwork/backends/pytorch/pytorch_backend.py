@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#pylint: disable=line-too-long
-from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
+# pylint: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Callable, List, Type
+from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.pytorch import decompositions
 import numpy as np
@@ -21,7 +22,7 @@ import numpy as np
 # we don't actually lose anything by doing this.
 Tensor = Any
 
-#pylint: disable=abstract-method
+# pylint: disable=abstract-method
 
 
 class PyTorchBackend(abstract_backend.AbstractBackend):
@@ -32,7 +33,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     # pylint: disable=global-variable-undefined
     global torchlib
     try:
-      #pylint: disable=import-outside-toplevel
+      # pylint: disable=import-outside-toplevel
       import torch
     except ImportError as err:
       raise ImportError("PyTorch not installed, please switch to a different "
@@ -41,7 +42,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     self.name = "pytorch"
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return torchlib.tensordot(a, b, dims=axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
@@ -415,7 +416,7 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     Args:
       tensor: A tensor.
       offset: Offset of the diagonal from the main diagonal.
-              This argument is not supported  by the PyTorch 
+              This argument is not supported  by the PyTorch
               backend and an error will be raised if they are
               specified.
       axis1, axis2: Axis to be used as the first/second axis of the 2D

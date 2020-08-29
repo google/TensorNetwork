@@ -15,6 +15,8 @@ from tensornetwork.linalg.initialization import (
     zeros
     )
 
+from tensornetwork.linalg.linalg import norm, qr, svd
+
 #pylint: disable=redefined-builtin
 from tensornetwork.linalg.operations import (
     tensordot,
