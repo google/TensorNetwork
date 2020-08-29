@@ -13,6 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
+from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
@@ -29,7 +30,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     self.name = "numpy"
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     # use einsum for scalar-like products, its much faster
     if not isinstance(axes, int):
       if (len(axes[0]) == a.ndim) and (len(axes[1]) == b.ndim):
@@ -171,8 +172,8 @@ class NumPyBackend(abstract_backend.AbstractBackend):
            maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. If no `initial_state` is provided then 
-    `shape` and `dtype` are required so that a suitable initial state can be 
+    of a linear operator `A`. If no `initial_state` is provided then
+    `shape` and `dtype` are required so that a suitable initial state can be
     randomly generated.
     This is a wrapper for scipy.sparse.linalg.eigs which only supports
     a subset of the arguments of scipy.sparse.linalg.eigs.
