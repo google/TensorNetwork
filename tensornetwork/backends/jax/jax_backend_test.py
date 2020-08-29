@@ -22,6 +22,15 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_tensordot_int():
+  backend = jax_backend.JaxBackend()
+  a = backend.convert_to_tensor(2 * np.ones((3, 3, 3)))
+  b = backend.convert_to_tensor(np.ones((3, 3, 3)))
+  actual = backend.tensordot(a, b, 1)
+  expected = jax.numpy.tensordot(a, b, 1)
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_reshape():
   backend = jax_backend.JaxBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
@@ -660,7 +669,7 @@ def test_eigs_large_ncv_with_init(dtype, which):
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
-  
+
 def test_eigs_raises():
   backend = jax_backend.JaxBackend()
   with pytest.raises(

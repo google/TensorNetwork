@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#pylint: disable=line-too-long
-from typing import Optional, Any, Sequence, Tuple, Type, Callable, List, Text
+# pylint: disable=line-too-long
+from typing import Optional, Any, Sequence, Tuple, Type, Callable, List
+from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
@@ -22,7 +23,7 @@ from tensornetwork.backends.tensorflow import tensordot2
 import numpy as np
 Tensor = Any
 
-#pylint: disable=abstract-method
+# pylint: disable=abstract-method
 
 
 class TensorFlowBackend(abstract_backend.AbstractBackend):
@@ -33,7 +34,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     global tf
     super().__init__()
     try:
-      #pylint: disable=import-outside-toplevel
+      # pylint: disable=import-outside-toplevel
       import tensorflow
     except ImportError as err:
       raise ImportError("Tensorflow not installed, please switch to a "
@@ -42,7 +43,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     self.name = "tensorflow"
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return tensordot2.tensordot(tf, a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
@@ -262,7 +263,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       raise ValueError("inputs to `matmul` have to be a tensors of order > 1,")
 
     return tf.matmul(tensor1, tensor2)
-  
+
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
