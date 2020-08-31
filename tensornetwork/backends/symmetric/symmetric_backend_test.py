@@ -12,6 +12,7 @@ from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         inv)
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
+from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
@@ -949,7 +950,166 @@ def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
 #################################################################
 # finished sanity checks
 #################################################################
+def finite_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
+                   dtype=np.float64):
+  N = len(Bz)
+  mpo = []
+  temp = np.zeros((1, 5, 2, 2), dtype=dtype)
+  #BSz
+  temp[0, 0, 0, 0] = -0.5 * Bz[0]
+  temp[0, 0, 1, 1] = 0.5 * Bz[0]
 
+  #Sm
+  temp[0, 1, 0, 1] = Jxy[0] / 2.0 * 1.0
+  #Sp
+  temp[0, 2, 1, 0] = Jxy[0] / 2.0 * 1.0
+  #Sz
+  temp[0, 3, 0, 0] = Jz[0] * (-0.5)
+  temp[0, 3, 1, 1] = Jz[0] * 0.5
+
+  #11
+  temp[0, 4, 0, 0] = 1.0
+  temp[0, 4, 1, 1] = 1.0
+  mpo.append(temp)
+  for n in range(1, N - 1):
+    temp = np.zeros((5, 5, 2, 2), dtype=dtype)
+    #11
+    temp[0, 0, 0, 0] = 1.0
+    temp[0, 0, 1, 1] = 1.0
+    #Sp
+    temp[1, 0, 1, 0] = 1.0
+    #Sm
+    temp[2, 0, 0, 1] = 1.0
+    #Sz
+    temp[3, 0, 0, 0] = -0.5
+    temp[3, 0, 1, 1] = 0.5
+    #BSz
+    temp[4, 0, 0, 0] = -0.5 * Bz[n]
+    temp[4, 0, 1, 1] = 0.5 * Bz[n]
+
+    #Sm
+    temp[4, 1, 0, 1] = Jxy[n] / 2.0 * 1.0
+    #Sp
+    temp[4, 2, 1, 0] = Jxy[n] / 2.0 * 1.0
+    #Sz
+    temp[4, 3, 0, 0] = Jz[n] * (-0.5)
+    temp[4, 3, 1, 1] = Jz[n] * 0.5
+    #11
+    temp[4, 4, 0, 0] = 1.0
+    temp[4, 4, 1, 1] = 1.0
+
+    mpo.append(temp)
+  temp = np.zeros((5, 1, 2, 2), dtype=dtype)
+  #11
+  temp[0, 0, 0, 0] = 1.0
+  temp[0, 0, 1, 1] = 1.0
+  #Sp
+  temp[1, 0, 1, 0] = 1.0
+  #Sm
+  temp[2, 0, 0, 1] = 1.0
+  #Sz
+  temp[3, 0, 0, 0] = -0.5
+  temp[3, 0, 1, 1] = 0.5
+  #BSz
+  temp[4, 0, 0, 0] = -0.5 * Bz[-1]
+  temp[4, 0, 1, 1] = 0.5 * Bz[-1]
+
+  mpo.append(temp)
+  return mpo
+
+
+def blocksparse_XXZ_mpo(N, Jz=1, Jxy=1, Bz=0, dtype=np.float64):
+  dense_mpo = finite_XXZ_mpo(
+      Jz * np.ones(N - 1),
+      Jxy * np.ones(N - 1),
+      Bz=Bz * np.ones(N),
+      dtype=dtype)
+  ileft = Index(U1Charge(np.array([0])), False)
+  iright = ileft.flip_flow()
+  i1 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), False)
+  i2 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), True)
+  i3 = Index(U1Charge(np.array([0, 1])), False)
+  i4 = Index(U1Charge(np.array([0, 1])), True)
+
+  mpotensors = [BlockSparseTensor.fromdense(
+      [ileft, i2, i3, i4], dense_mpo[0])] + [
+          BlockSparseTensor.fromdense([i1, i2, i3, i4], tensor)
+          for tensor in dense_mpo[1:-1]
+      ] + [BlockSparseTensor.fromdense([i1, iright, i3, i4], dense_mpo[-1])]
+  return mpotensors
+
+
+def blocksparse_halffilled_spin_MPStensors(N=10, D=20, B=5, dtype=np.float64):
+  auxcharges = [U1Charge([0])] + [
+      U1Charge.random(D, n // 2, n // 2 + B) for n in range(N - 1)
+  ] + [U1Charge([N // 2])]
+  return [
+      BlockSparseTensor.random([
+          Index(auxcharges[n], False),
+          Index(U1Charge([0, 1]), False),
+          Index(auxcharges[n + 1], True)
+      ], dtype=dtype) for n in range(N)
+  ]
+
+
+def blocksparse_DMRG_blocks(N=10, D=20, B=5, Jz=1, Jxy=1, Bz=0, dtype=np.float64):
+  mps_tensors = blocksparse_halffilled_spin_MPStensors(N, D, B, dtype)
+  mpo_tensors = blocksparse_XXZ_mpo(N, Jz, Jxy, Bz, dtype)
+  mps = FiniteMPS(mps_tensors, backend='symmetric', canonicalize=True)
+  mps.position(N // 2)
+  mps_tensors = mps.tensors
+  L = BlockSparseTensor.ones([
+      mpo_tensors[0].sparse_shape[0].flip_flow(),
+      mps_tensors[0].sparse_shape[0].flip_flow(), mps_tensors[0].sparse_shape[0]
+  ])
+  R = BlockSparseTensor.ones([
+      mpo_tensors[-1].sparse_shape[1].flip_flow(),
+      mps_tensors[-1].sparse_shape[2].flip_flow(),
+      mps_tensors[-1].sparse_shape[2]
+  ])
+  for n in range(N // 2):
+    L = ncon([L, mps_tensors[n], mps_tensors[n].conj(), mpo_tensors[n]],
+             [[3, 1, 5], [1, 2, -2], [5, 4, -3], [3, -1, 4, 2]],
+             backend='symmetric')
+  for n in reversed(range(N // 2 + 1, N)):
+    R = ncon([R, mps_tensors[n], mps_tensors[n].conj(), mpo_tensors[n]],
+             [[3, 1, 5], [-2, 2, 1], [-3, 4, 5], [-1, 3, 4, 2]],
+             backend='symmetric')
+  return mps_tensors[N // 2], L, mpo_tensors[N // 2], R
+
+
+@pytest.mark.parametrize('Jz', [1.0])
+@pytest.mark.parametrize('Jxy', [1, 0])
+@pytest.mark.parametrize('Bz', [0.0, 0.2])
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+def test_eigsh_lanczos_real(Jz, Jxy, Bz, dtype):
+  N, D, B = 20, 100, 3
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=backend)
+
+  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
+  backend = symmetric_backend.SymmetricBackend()
+  np_backend = numpy_backend.NumPyBackend()
+
+  eta_sym, U_sym = backend.eigsh_lanczos(
+      matvec,
+      args=[L, mpo, R, 'symmetric'],
+      initial_state=mps,
+      numeig=1,
+      num_krylov_vecs=50)
+  eta_np, U_np = np_backend.eigsh_lanczos(
+      matvec,
+      args=[L.todense(), mpo.todense(),
+            R.todense(), 'numpy'],
+      initial_state=mps.todense(),
+      numeig=1,
+      num_krylov_vecs=50)
+  np.testing.assert_allclose(eta_sym, eta_np)
+  for n, u in enumerate(U_sym):
+    np.testing.assert_almost_equal(u.todense(), U_np[n])
 
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
