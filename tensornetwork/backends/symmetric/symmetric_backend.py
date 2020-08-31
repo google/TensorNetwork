@@ -237,12 +237,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
-    initial_state.contiguous()
+    initial_state.contiguous(inplace=True)
     dim = len(initial_state.data)
     def matvec(vector):
       tmp.data = vector
       res = A(tmp, *args)
-      res.contiguous()
+      res.contiguous(inplace=True)
       return res.data
     tmp = BlockSparseTensor(
         numpy.empty(0, dtype=initial_state.dtype),
@@ -367,7 +367,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       cache_was_empty = self.bs.get_cacher().is_empty
     try:
       vector_n = initial_state
-      vector_n.contiguous()  # bring into contiguous memory layout
+      vector_n.contiguous(inplace=True)  # bring into contiguous memory layout
 
       Z = self.norm(vector_n)
       vector_n /= Z
@@ -389,13 +389,13 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
         if reorthogonalize:
           # vector_n is always in contiguous memory layout at this point
           for v in krylov_vecs:
-            v.contiguous()  # make sure storage layouts are matching
+            v.contiguous(inplace=True)  # make sure storage layouts are matching
             # it's save to operate on the tensor data now (pybass some checks)
             vector_n.data -= numpy.dot(numpy.conj(v.data),
                                        vector_n.data) * v.data
         krylov_vecs.append(vector_n)
         A_vector_n = A(vector_n, *args)
-        A_vector_n.contiguous()  # contiguous memory layout
+        A_vector_n.contiguous(inplace=True)  # contiguous memory layout
 
         # operate on tensor-data for scalar products
         # this can be potentially problematic if vector_n and A_vector_n
@@ -573,8 +573,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if A_kwargs is None:
       A_kwargs = {}
 
-    x0.contiguous()
-    b.contiguous()
+    x0.contiguous(inplace=True)
+    b.contiguous(inplace=True)
     tmp = BlockSparseTensor(
         numpy.empty(0, dtype=x0.dtype),
         x0._charges,
@@ -583,7 +583,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     def matvec(vector):
       tmp.data = vector
       res = A_mv(tmp, *A_args, **A_kwargs)
-      res.contiguous()
+      res.contiguous(inplace=True)
       return res.data
 
     dim = len(x0.data)
