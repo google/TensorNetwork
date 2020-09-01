@@ -1082,7 +1082,7 @@ def blocksparse_DMRG_blocks(N=10, D=20, B=5, Jz=1, Jxy=1, Bz=0, dtype=np.float64
 @pytest.mark.parametrize('Jxy', [1, 0])
 @pytest.mark.parametrize('Bz', [0.0, 0.2])
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-def test_eigsh_lanczos_real(Jz, Jxy, Bz, dtype):
+def test_eigsh_lanczos_non_trivial(Jz, Jxy, Bz, dtype):
   N, D, B = 20, 100, 3
 
   def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
@@ -1111,6 +1111,39 @@ def test_eigsh_lanczos_real(Jz, Jxy, Bz, dtype):
   for n, u in enumerate(U_sym):
     np.testing.assert_almost_equal(u.todense(), U_np[n])
 
+@pytest.mark.parametrize('Jz', [1.0])
+@pytest.mark.parametrize('Jxy', [1, 0])
+@pytest.mark.parametrize('Bz', [0.0, 0.2])
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+def test_eigs_non_trivial(Jz, Jxy, Bz, dtype):
+  N, D, B = 20, 100, 3
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=backend)
+
+  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
+  backend = symmetric_backend.SymmetricBackend()
+  np_backend = numpy_backend.NumPyBackend()
+
+  eta_sym, U_sym = backend.eigs(
+      matvec,
+      args=[L, mpo, R, 'symmetric'],
+      initial_state=mps,
+      numeig=1,
+      num_krylov_vecs=50)
+  eta_np, U_np = np_backend.eigs(
+      matvec,
+      args=[L.todense(), mpo.todense(),
+            R.todense(), 'numpy'],
+      initial_state=mps.todense(),
+      numeig=1,
+      num_krylov_vecs=50)
+  np.testing.assert_allclose(eta_sym, eta_np)
+  for n, u in enumerate(U_sym):
+    np.testing.assert_almost_equal(u.todense(), U_np[n])
+    
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
   with pytest.raises(
