@@ -597,7 +597,7 @@ def _find_transposed_diagonal_sparse_blocks(
     return cacher.cache[hash_val]
   return block_maps, obj, block_dims
 
-def _to_string(charges: List[BaseCharge], flows: np.ndarray,
+def _to_string(charges: List[BaseCharge], flows: Union[np.ndarray, List],
                tr_partition: int, order: List[int]) -> str:
   """
   map the input arguments of _find_transposed_diagonal_sparse_blocks 
