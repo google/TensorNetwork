@@ -9,7 +9,7 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
 class DenseCondenser(Layer):
   """Condenser TN layer. Greatly reduces dimensionality of input.
   Used in conjunction with DenseEntangler to achieve very large hidden layers.

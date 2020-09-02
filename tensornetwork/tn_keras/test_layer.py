@@ -6,11 +6,11 @@ import shutil
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model  # type: ignore
 import tensorflow as tf
-from tensornetwork.tn_keras.dense import DenseDecomp
-from tensornetwork.tn_keras.mpo import DenseMPO
-from tensornetwork.tn_keras.condenser import DenseCondenser
-from tensornetwork.tn_keras.expander import DenseExpander
-from tensornetwork.tn_keras.entangler import DenseEntangler
+from tensornetwork.tn_keras import DenseDecomp
+from tensornetwork.tn_keras import DenseMPO
+from tensornetwork.tn_keras import DenseCondenser
+from tensornetwork.tn_keras import DenseExpander
+from tensornetwork.tn_keras import DenseEntangler
 from tensorflow.keras.layers import Dense  # type: ignore
 
 

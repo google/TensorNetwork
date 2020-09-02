@@ -9,7 +9,7 @@ import tensornetwork as tn
 import math
 
 
-@tf.keras.utils.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
 class Conv2DMPO(Layer):
   """2D Convolutional Matrix Product Operator (MPO) TN layer.
 
