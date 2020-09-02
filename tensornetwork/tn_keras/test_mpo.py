@@ -1,5 +1,5 @@
 import itertools
-from tensornetwork.tn_keras import DenseMPO
+from tensornetwork.tn_keras.layers import DenseMPO
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras import Input

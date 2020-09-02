@@ -7,7 +7,9 @@ import tensornetwork as tn
 import numpy as np
 
 
+# pytype: disable=module-attr
 @tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseDecomp(Layer):
   """TN layer comparable to Dense that carries out matrix multiplication
   with 2 significantly smaller weight matrices instead of 1 large one.
