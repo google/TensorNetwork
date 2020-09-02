@@ -13,7 +13,7 @@ from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
 from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
                                                norm, eye, eigh, inv, eig)
 from tensornetwork.block_sparse.initialization import (ones, zeros, randn,
-                                                       random)
+                                                       random, randn_like)
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
@@ -135,12 +135,6 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
       charge_equal(expected._charges[n], actual._charges[n])
       for n in range(len(actual._charges))
   ])
-
-
-def test_gmres_not_implemented():
-  backend = symmetric_backend.SymmetricBackend()
-  with pytest.raises(NotImplementedError):
-    backend.gmres(lambda x: x, np.ones((2)))
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
@@ -1510,4 +1504,43 @@ def test_einsum_raises():
     backend.einsum('', [])
 
 
-#def test_gmres():
+def get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64):
+  np.random.seed(seed)
+  mpsinds = [
+      Index(U1Charge(np.random.randint(5, 15, D, dtype=np.int16)), False),
+      Index(U1Charge(np.array([0, 1, 2, 3], dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(5, 18, D, dtype=np.int16)), True)
+  ]
+  mpoinds = [
+      Index(U1Charge(np.random.randint(0, 5, M)), False),
+      Index(U1Charge(np.random.randint(0, 10, M)), True), mpsinds[1],
+      mpsinds[1].flip_flow()
+  ]
+  Linds = [mpoinds[0].flip_flow(), mpsinds[0].flip_flow(), mpsinds[0]]
+  Rinds = [mpoinds[1].flip_flow(), mpsinds[2].flip_flow(), mpsinds[2]]
+
+  mps = BlockSparseTensor.random(mpsinds, dtype=dtype)
+  mpo = BlockSparseTensor.random(mpoinds, dtype=dtype)
+  L = BlockSparseTensor.random(Linds, dtype=dtype)
+  R = BlockSparseTensor.random(Rinds, dtype=dtype)
+  return L, mps, mpo, R
+
+
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+def test_gmres(dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
+  b = randn_like(mps)
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
+  x, _ = backend.gmres(
+      matvec,
+      b, [L, mpo, R],
+      x0=mps,
+      enable_caching=True,
+      num_krylov_vectors=40)
+  assert norm(matvec(x, L, mpo, R) - b) < 1E-10
