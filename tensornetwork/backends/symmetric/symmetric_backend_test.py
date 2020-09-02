@@ -948,8 +948,13 @@ def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
 
 
 #################################################################
-# finished sanity checks
+# finished eigsh_lanczos sanity checks
 #################################################################
+
+
+################################################################
+# non-trivial checks for eigsh_lanczos
+################################################################
 def finite_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
                    dtype=np.float64):
   N = len(Bz)
@@ -1052,7 +1057,13 @@ def blocksparse_halffilled_spin_MPStensors(N=10, D=20, B=5, dtype=np.float64):
   ]
 
 
-def blocksparse_DMRG_blocks(N=10, D=20, B=5, Jz=1, Jxy=1, Bz=0, dtype=np.float64):
+def blocksparse_DMRG_blocks(N=10,
+                            D=20,
+                            B=5,
+                            Jz=1,
+                            Jxy=1,
+                            Bz=0,
+                            dtype=np.float64):
   mps_tensors = blocksparse_halffilled_spin_MPStensors(N, D, B, dtype)
   mpo_tensors = blocksparse_XXZ_mpo(N, Jz, Jxy, Bz, dtype)
   mps = FiniteMPS(mps_tensors, backend='symmetric', canonicalize=True)
@@ -1114,49 +1125,9 @@ def test_eigsh_lanczos_non_trivial(Jz, Jxy, Bz, dtype, numeig, reorthogonalize):
   for n, u in enumerate(U_sym):
     np.testing.assert_almost_equal(u.todense(), U_np[n])
 
-
-@pytest.mark.parametrize('Jz', [1.0])
-@pytest.mark.parametrize('Jxy', [1.0])
-@pytest.mark.parametrize('Bz', [0.0, 0.2])
-@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-@pytest.mark.parametrize('numeig', [1, 4])
-def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
-  N, D, B = 20, 20, 1
-
-  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
-    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
-                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
-                backend=backend)
-
-  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
-  np.random.shuffle(mps.data)
-  np.random.shuffle(L.data)
-  np.random.shuffle(mpo.data)
-  np.random.shuffle(R.data)
-  backend = symmetric_backend.SymmetricBackend()
-  eta_sym, U_sym = backend.eigs(
-      matvec,
-      args=[L, mpo, R, 'symmetric'],
-      initial_state=mps,
-      numeig=numeig,
-      num_krylov_vecs=50)
-
-  H_sparse = ncon([L, mpo, R], [[1, -1, -4], [1, 2, -5, -2], [2, -3, -6]],
-                  backend='symmetric')
-  H_sparse.contiguous(inplace=True)
-  D1, d, D2, _, _, _ = H_sparse.shape
-  H_sparse = H_sparse.reshape((D1 * d * D2, D1 * d * D2))
-  eta_sparse, _ = eig(H_sparse)
-  mask = np.squeeze(eta_sparse.flat_charges[0].charges == 0)
-  eigvals = eta_sparse.data[mask]
-  isort = np.argsort(np.real(eigvals))[::-1]
-  sparse_eigvals = eigvals[isort]
-  _, iy = np.nonzero(np.abs(eta_sym[:, None] - sparse_eigvals[None, :]) < 1E-8)
-  eta_exact = sparse_eigvals[iy]
-  np.testing.assert_allclose(eta_exact, eta_sym)
-  for n in range(numeig):
-    assert norm(matvec(U_sym[n], L, mpo, R) - eta_sym[n] * U_sym[n]) < 1E-8
-
+################################################################
+# non-trivial checks for eigsh_lanczos
+################################################################
 
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
@@ -1441,6 +1412,65 @@ def test_eigs_raises():
     backend.eigs(lambda x: x, [H], numeig=3, num_krylov_vecs=3)
   with pytest.raises(TypeError, match="Expected a"):
     backend.eigs(lambda x: x, [H], initial_state=[])
+
+
+#################################################################
+# finished eigs sanity checks
+#################################################################
+
+################################################################
+# non-trivial checks for eigs
+################################################################
+
+# TODO (martin): figure out why direct comparison of eigen vectors
+# between tn.block_sparse.linalg.eig and eigs fails.
+
+@pytest.mark.parametrize('Jz', [1.0])
+@pytest.mark.parametrize('Jxy', [1.0])
+@pytest.mark.parametrize('Bz', [0.0, 0.2])
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('numeig', [1, 4])
+def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
+  N, D, B = 20, 20, 1
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=backend)
+
+  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
+  np.random.shuffle(mps.data)
+  np.random.shuffle(L.data)
+  np.random.shuffle(mpo.data)
+  np.random.shuffle(R.data)
+  backend = symmetric_backend.SymmetricBackend()
+  eta_sym, U_sym = backend.eigs(
+      matvec,
+      args=[L, mpo, R, 'symmetric'],
+      initial_state=mps,
+      numeig=numeig,
+      num_krylov_vecs=50)
+
+  H_sparse = ncon([L, mpo, R], [[1, -1, -4], [1, 2, -5, -2], [2, -3, -6]],
+                  backend='symmetric')
+  H_sparse.contiguous(inplace=True)
+  D1, d, D2, _, _, _ = H_sparse.shape
+  H_sparse = H_sparse.reshape((D1 * d * D2, D1 * d * D2))
+  eta_sparse, _ = eig(H_sparse)
+  mask = np.squeeze(eta_sparse.flat_charges[0].charges == 0)
+  eigvals = eta_sparse.data[mask]
+  isort = np.argsort(np.real(eigvals))[::-1]
+  sparse_eigvals = eigvals[isort]
+  _, iy = np.nonzero(np.abs(eta_sym[:, None] - sparse_eigvals[None, :]) < 1E-8)
+  eta_exact = sparse_eigvals[iy]
+  np.testing.assert_allclose(eta_exact, eta_sym)
+  for n in range(numeig):
+    assert norm(matvec(U_sym[n], L, mpo, R) - eta_sym[n] * U_sym[n]) < 1E-8
+
+
+################################################################
+# finished non-trivial checks for eigs
+################################################################
 
 
 def test_decomps_raise():
