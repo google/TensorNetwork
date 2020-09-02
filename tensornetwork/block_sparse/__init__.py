@@ -8,7 +8,7 @@ from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           outerproduct)
 from tensornetwork.block_sparse.linalg import (svd, qr, diag, sqrt, trace, inv,
                                                pinv, eye, eigh, eig, conj,
-                                               reshape, transpose, norm)
+                                               reshape, transpose, norm, abs, sign)
 
 from tensornetwork.block_sparse.initialization import (zeros, ones, randn,
                                                        random, empty_like,
