@@ -693,7 +693,7 @@ def pinv(matrix: BlockSparseTensor,
       order=matrix._order,
       check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
 
-def abs(tensor: BlockSparseTensor) -> BlockSparseTensor:
+def abs(tensor: BlockSparseTensor) -> BlockSparseTensor: #pylint: disable=redefined-builtin
   result = empty_like(tensor)
   result.data = np.abs(tensor.data)
   return result
