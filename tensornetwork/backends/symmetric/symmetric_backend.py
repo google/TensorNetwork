@@ -13,6 +13,7 @@
 # limitations under the License.
 #pyling: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Callable, List, Text, Type
+from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
@@ -34,7 +35,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     self.name = "symmetric"
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return self.bs.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
@@ -179,7 +180,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
            enable_caching: bool = True) -> Tuple[Tensor, List]:
     """
     Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
-    of a linear operator `A`. 
+    of a linear operator `A`.
     If no `initial_state` is provided then `shape`  and `dtype` are required
     so that a suitable initial state can be randomly generated.
     This is a wrapper for scipy.sparse.linalg.eigs which only supports
@@ -209,9 +210,9 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
             'LI' : largest imaginary part
       maxiter: The maximum number of iterations.
       enable_caching: If `True`, block-data during calls to `matvec` are cached
-        for later reuse. Note: usually it is save to enable_caching, unless 
+        for later reuse. Note: usually it is save to enable_caching, unless
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
-        In this case, if one does a large number of krylov steps, this can lead 
+        In this case, if one does a large number of krylov steps, this can lead
         to memory clutter and/or overflow.
 
     Returns:
@@ -237,6 +238,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+    
     initial_state.contiguous(inplace=True)
     dim = len(initial_state.data)
     def matvec(vector):
@@ -331,9 +333,9 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
       reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
         explicit orthogonalization (more costly than `reorthogonalize=False`)
       enable_caching: If `True`, block-data during calls to `matvec` is cached
-        for later reuse. Note: usually it is safe to enable_caching, unless 
+        for later reuse. Note: usually it is safe to enable_caching, unless
         `matvec` uses matrix decompositions like SVD, QR, eigh, eig or similar.
-        In this case, if one does a large number of krylov steps, this can lead 
+        In this case, if one does a large number of krylov steps, this can lead
         to memory clutter and/or OOM errors.
 
     Returns:

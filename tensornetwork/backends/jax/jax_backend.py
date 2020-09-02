@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Optional, Tuple, Callable, List, Text, Type, Sequence
+from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
@@ -42,13 +43,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
     global libjax  # Jax module
     global jnp  # jax.numpy module
     global jsp  # jax.scipy module
-    super(JaxBackend, self).__init__()
+    super().__init__()
     try:
       #pylint: disable=import-outside-toplevel
       import jax
-    except ImportError:
+    except ImportError as err:
       raise ImportError("Jax not installed, please switch to a different "
-                        "backend or install Jax.")
+                        "backend or install Jax.") from err
     libjax = jax
     jnp = libjax.numpy
     jsp = libjax.scipy
@@ -56,7 +57,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self._dtype = np.dtype(dtype) if dtype is not None else None
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return jnp.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
@@ -305,8 +306,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
       maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
       res_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
-        if the norm of the residual `fk` of the shifted arnoldi factorization 
-        falls below `res_thresh`. If `None` a default value depending on the 
+        if the norm of the residual `fk` of the shifted arnoldi factorization
+        falls below `res_thresh`. If `None` a default value depending on the
         `dtype` of the operator is chosen.
     Returns:
       (eigvals, eigvecs)
@@ -335,8 +336,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if res_thresh is None:
       try:
         res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
-      except KeyError:
-        raise KeyError(f"dtype {initial_state.dtype} not supported")
+      except KeyError as err:
+        raise KeyError(f"dtype {initial_state.dtype} not supported") from err
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
@@ -596,18 +597,18 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if A_args is None:
       A_args = []
 
-
-    def matrix_matvec(x, *args):
-      x = x.reshape(b.shape)
-      result = A_mv(x, *args)
-      return result.ravel()
-
     if A_mv not in _CACHED_MATVECS:
-      _CACHED_MATVECS[A_mv] = libjax.tree_util.Partial(matrix_matvec)
-    if "gmres_f" not in _CACHED_FUNCTIONS:
-      _CACHED_FUNCTIONS["gmres_f"] = jitted_functions.gmres_wrapper(libjax)
-    gmres_f = _CACHED_FUNCTIONS["gmres_f"]
-    x, _, n_iter, converged = gmres_f(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
+      @libjax.tree_util.Partial
+      def matrix_matvec(x, *args):
+        x = x.reshape(b.shape)
+        result = A_mv(x, *args)
+        return result.ravel()
+      _CACHED_MATVECS[A_mv] = matrix_matvec
+
+    if "gmres" not in _CACHED_FUNCTIONS:
+      _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
+    gmres_m = _CACHED_FUNCTIONS["gmres"].gmres_m
+    x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
                                       maxiter)
     if converged:

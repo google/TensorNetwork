@@ -25,7 +25,7 @@ class AbstractBackend:
     self.name = 'abstract backend'
 
   def tensordot(self, a: Tensor, b: Tensor,
-                axes: Sequence[Sequence[int]]) -> Tensor:
+                axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     """Do a tensordot of tensors `a` and `b` over the given axes.
 
     Args:
