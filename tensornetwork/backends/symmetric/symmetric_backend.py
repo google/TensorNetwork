@@ -24,9 +24,6 @@ import tensornetwork.block_sparse as bs
 import numpy
 Tensor = Any
 
-# TODO (mganahl): implement eigs
-
-
 # pylint: disable=abstract-method
 class SymmetricBackend(abstract_backend.AbstractBackend):
   """See base_backend.BaseBackend for documentation."""
@@ -240,6 +237,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if not isinstance(initial_state, BlockSparseTensor):
       raise TypeError("Expected a `BlockSparseTensor`. Got {}".format(
           type(initial_state)))
+    
     initial_state.contiguous(inplace=True)
     dim = len(initial_state.data)
     def matvec(vector):
