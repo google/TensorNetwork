@@ -23,7 +23,7 @@ from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     compute_num_nonzero, compute_sparse_lookup)
 from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
-
+from tensornetwork.block_sparse.initialization import empty_like
 
 def norm(tensor: BlockSparseTensor) -> float:
   """
@@ -692,3 +692,13 @@ def pinv(matrix: BlockSparseTensor,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
       check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+
+def abs(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  result = empty_like(tensor)
+  result.data = np.abs(tensor.data)
+  return result
+
+def sign(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  result = empty_like(tensor)
+  result.data = np.sign(tensor.data)
+  return result
