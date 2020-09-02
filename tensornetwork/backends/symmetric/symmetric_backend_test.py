@@ -9,7 +9,7 @@ from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
                                         sqrt, ChargeArray, diag, trace, norm,
                                         eye, ones, zeros, randn, random, eigh,
-                                        inv)
+                                        inv, eig)
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
@@ -1079,7 +1079,7 @@ def blocksparse_DMRG_blocks(N=10, D=20, B=5, Jz=1, Jxy=1, Bz=0, dtype=np.float64
 
 
 @pytest.mark.parametrize('Jz', [1.0])
-@pytest.mark.parametrize('Jxy', [1, 0])
+@pytest.mark.parametrize('Jxy', [1.0])
 @pytest.mark.parametrize('Bz', [0.0, 0.2])
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('numeig, reorthogonalize', [(1, False), (4, True)])
@@ -1114,13 +1114,14 @@ def test_eigsh_lanczos_non_trivial(Jz, Jxy, Bz, dtype, numeig, reorthogonalize):
   for n, u in enumerate(U_sym):
     np.testing.assert_almost_equal(u.todense(), U_np[n])
 
+
 @pytest.mark.parametrize('Jz', [1.0])
-@pytest.mark.parametrize('Jxy', [1, 0])
+@pytest.mark.parametrize('Jxy', [1.0])
 @pytest.mark.parametrize('Bz', [0.0, 0.2])
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('numeig', [1, 4])
 def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
-  N, D, B = 20, 100, 3
+  N, D, B = 20, 20, 1
 
   def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
     return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
@@ -1128,28 +1129,35 @@ def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
                 backend=backend)
 
   mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
+  np.random.shuffle(mps.data)
+  np.random.shuffle(L.data)
+  np.random.shuffle(mpo.data)
+  np.random.shuffle(R.data)
   backend = symmetric_backend.SymmetricBackend()
-  np_backend = numpy_backend.NumPyBackend()
-
   eta_sym, U_sym = backend.eigs(
       matvec,
       args=[L, mpo, R, 'symmetric'],
       initial_state=mps,
       numeig=numeig,
       num_krylov_vecs=50)
-  eta_np, U_np = np_backend.eigs(
-      matvec,
-      args=[L.todense(), mpo.todense(),
-            R.todense(), 'numpy'],
-      initial_state=mps.todense(),
-      numeig=numeig,
-      num_krylov_vecs=50)
-  _, iy = np.nonzero(np.abs(eta_sym[:, None] - eta_np[None, :]) < 1E-5)
-  np.testing.assert_allclose(eta_sym, eta_np[iy])  
 
-  # for n, u in enumerate(U_sym):
-  #   np.testing.assert_almost_equal(u.todense(), U_np[n])
-    
+  H_sparse = ncon([L, mpo, R], [[1, -1, -4], [1, 2, -5, -2], [2, -3, -6]],
+                  backend='symmetric')
+  H_sparse.contiguous(inplace=True)
+  D1, d, D2, _, _, _ = H_sparse.shape
+  H_sparse = H_sparse.reshape((D1 * d * D2, D1 * d * D2))
+  eta_sparse, _ = eig(H_sparse)
+  mask = np.squeeze(eta_sparse.flat_charges[0].charges == 0)
+  eigvals = eta_sparse.data[mask]
+  isort = np.argsort(np.real(eigvals))[::-1]
+  sparse_eigvals = eigvals[isort]
+  _, iy = np.nonzero(np.abs(eta_sym[:, None] - sparse_eigvals[None, :]) < 1E-8)
+  eta_exact = sparse_eigvals[iy]
+  np.testing.assert_allclose(eta_exact, eta_sym)
+  for n in range(numeig):
+    assert norm(matvec(U_sym[n], L, mpo, R) - eta_sym[n] * U_sym[n]) < 1E-8
+
+
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
   with pytest.raises(
