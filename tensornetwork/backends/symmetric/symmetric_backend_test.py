@@ -1447,17 +1447,42 @@ def test_eigs_raises():
 
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('numeig', [1, 4])
-def test_eigs_non_trivial(dtype, numeig):
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('args', [True, False])
+def test_eigs_non_trivial(dtype, numeig, x0, args):
   L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
-  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock):
     return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
-                backend=backend)
+                backend='symmetric')
+
+  def matvec_no_args(MPSTensor):
+    return ncon([L, MPSTensor, mpo, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
   backend = symmetric_backend.SymmetricBackend()
+  if x0:
+    init = mps
+    _dtype = None
+    shape = None
+  else:
+    init = None
+    _dtype = dtype
+    shape = mps.sparse_shape
+  if args:
+    mv = matvec
+    _args = [L, mpo, R]
+  else:
+    mv = matvec_no_args
+    _args = None
+
   eta_sym, U_sym = backend.eigs(
-      matvec,
-      args=[L, mpo, R, 'symmetric'],
-      initial_state=mps,
+      A=mv,
+      args=_args,
+      initial_state=init,
+      shape=shape,
+      dtype=_dtype,
       numeig=numeig,
       num_krylov_vecs=50)
 
