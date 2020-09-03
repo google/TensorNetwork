@@ -23,6 +23,27 @@ np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
 
+def get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64):
+  np.random.seed(seed)
+  mpsinds = [
+      Index(U1Charge(np.random.randint(5, 15, D, dtype=np.int16)), False),
+      Index(U1Charge(np.array([0, 1, 2, 3], dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(5, 18, D, dtype=np.int16)), True)
+  ]
+  mpoinds = [
+      Index(U1Charge(np.random.randint(0, 5, M)), False),
+      Index(U1Charge(np.random.randint(0, 10, M)), True), mpsinds[1],
+      mpsinds[1].flip_flow()
+  ]
+  Linds = [mpoinds[0].flip_flow(), mpsinds[0].flip_flow(), mpsinds[0]]
+  Rinds = [mpoinds[1].flip_flow(), mpsinds[2].flip_flow(), mpsinds[2]]
+
+  mps = BlockSparseTensor.random(mpsinds, dtype=dtype)
+  mpo = BlockSparseTensor.random(mpoinds, dtype=dtype)
+  L = BlockSparseTensor.random(Linds, dtype=dtype)
+  R = BlockSparseTensor.random(Rinds, dtype=dtype)
+  return L, mps, mpo, R
+
 
 def get_tensor(R, num_charges, dtype=np.float64):
   Ds = np.random.randint(8, 12, R)
@@ -1424,24 +1445,14 @@ def test_eigs_raises():
 # TODO (martin): figure out why direct comparison of eigen vectors
 # between tn.block_sparse.linalg.eig and eigs fails.
 
-@pytest.mark.parametrize('Jz', [1.0])
-@pytest.mark.parametrize('Jxy', [1.0])
-@pytest.mark.parametrize('Bz', [0.0, 0.2])
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('numeig', [1, 4])
-def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
-  N, D, B = 20, 20, 1
-
+def test_eigs_non_trivial(dtype, numeig):
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
   def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
     return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend=backend)
-
-  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
-  np.random.shuffle(mps.data)
-  np.random.shuffle(L.data)
-  np.random.shuffle(mpo.data)
-  np.random.shuffle(R.data)
   backend = symmetric_backend.SymmetricBackend()
   eta_sym, U_sym = backend.eigs(
       matvec,
@@ -1465,7 +1476,6 @@ def test_eigs_non_trivial(Jz, Jxy, Bz, dtype, numeig):
   np.testing.assert_allclose(eta_exact, eta_sym)
   for n in range(numeig):
     assert norm(matvec(U_sym[n], L, mpo, R) - eta_sym[n] * U_sym[n]) < 1E-8
-
 
 ################################################################
 # finished non-trivial checks for eigs
@@ -1502,29 +1512,6 @@ def test_einsum_raises():
   with pytest.raises(
       NotImplementedError, match="`einsum` currently not implemented"):
     backend.einsum('', [])
-
-
-def get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64):
-  np.random.seed(seed)
-  mpsinds = [
-      Index(U1Charge(np.random.randint(5, 15, D, dtype=np.int16)), False),
-      Index(U1Charge(np.array([0, 1, 2, 3], dtype=np.int16)), False),
-      Index(U1Charge(np.random.randint(5, 18, D, dtype=np.int16)), True)
-  ]
-  mpoinds = [
-      Index(U1Charge(np.random.randint(0, 5, M)), False),
-      Index(U1Charge(np.random.randint(0, 10, M)), True), mpsinds[1],
-      mpsinds[1].flip_flow()
-  ]
-  Linds = [mpoinds[0].flip_flow(), mpsinds[0].flip_flow(), mpsinds[0]]
-  Rinds = [mpoinds[1].flip_flow(), mpsinds[2].flip_flow(), mpsinds[2]]
-
-  mps = BlockSparseTensor.random(mpsinds, dtype=dtype)
-  mpo = BlockSparseTensor.random(mpoinds, dtype=dtype)
-  L = BlockSparseTensor.random(Linds, dtype=dtype)
-  R = BlockSparseTensor.random(Rinds, dtype=dtype)
-  return L, mps, mpo, R
-
 
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('x0', [True, False])
