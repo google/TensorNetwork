@@ -1256,8 +1256,8 @@ def test_diagonal(Ds, dtype, num_charges, flow):
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2])
 @pytest.mark.parametrize("offset", [0, 1])
-@pytest.mark.parametrize("axis1", range(0, 1))
-@pytest.mark.parametrize("axis2", range(0, 1))
+@pytest.mark.parametrize("axis1", [0, 1])
+@pytest.mark.parametrize("axis2", [0, 1])
 def test_trace(dtype, num_charges, offset, axis1, axis2):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
