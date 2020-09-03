@@ -1527,7 +1527,9 @@ def get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64):
 
 
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-def test_gmres(dtype):
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('ncv', [None, 40])
+def test_gmres(dtype, x0, ncv):
   backend = symmetric_backend.SymmetricBackend()
   L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
   b = randn_like(mps)
@@ -1536,11 +1538,83 @@ def test_gmres(dtype):
     return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend='symmetric')
-
+  if x0:
+    init = mps
+  else:
+    init = None
   x, _ = backend.gmres(
       matvec,
       b, [L, mpo, R],
-      x0=mps,
+      x0=init,
       enable_caching=True,
-      num_krylov_vectors=40)
+      num_krylov_vectors=ncv)
   assert norm(matvec(x, L, mpo, R) - b) < 1E-10
+
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('ncv', [None, 40])
+def test_gmres_no_args(dtype, x0, ncv):
+  backend = symmetric_backend.SymmetricBackend()
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
+  b = randn_like(mps)
+
+  def matvec(MPSTensor):
+    return ncon([L, MPSTensor, mpo, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+  if x0:
+    init = mps
+  else:
+    init = None
+  x, _ = backend.gmres(
+      matvec,
+      b, A_args=None,
+      x0=init,
+      enable_caching=True,
+      num_krylov_vectors=ncv)
+  assert norm(matvec(x) - b) < 1E-10
+
+
+def test_gmres_cache_exception():
+  backend = symmetric_backend.SymmetricBackend()
+  _, mps, _, _ = get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64)
+  b = randn_like(mps)
+
+  def matvec(vec):
+    raise ValueError()
+
+  with pytest.raises(ValueError):
+    backend.gmres(
+        matvec,
+        b,
+        A_args=None,
+        x0=mps,
+        enable_caching=True,
+        num_krylov_vectors=40)
+  cacher = get_cacher()
+  assert not cacher.do_caching
+  assert not get_caching_status()
+  assert cacher.cache == {}
+
+def test_gmres_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  _, mps, _, _ = get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64)
+
+  def matvec(vec):
+    return vec
+  with pytest.raises(ValueError, match="x0.sparse_shape"):
+    b = randn_like(mps.conj())
+    backend.gmres(matvec, b, x0=mps)
+  with pytest.raises(TypeError, match="x0.dtype"):
+    b = BlockSparseTensor.random(mps.sparse_shape, dtype=np.complex128)
+    backend.gmres(matvec, b, x0=mps)
+
+  b = randn_like(mps)    
+  with pytest.raises(ValueError, match="num_krylov_vectors must"):
+    backend.gmres(matvec, b, x0=mps, num_krylov_vectors=-1)
+  with pytest.raises(ValueError, match="tol = "):
+    backend.gmres(matvec, b, x0=mps, tol=-0.001)
+  with pytest.raises(ValueError, match="atol = "):
+    backend.gmres(matvec, b, x0=mps, atol=-0.001)
+
+  
