@@ -8,7 +8,7 @@ import tensorflow.keras
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, Dense, Flatten
-from tensornetwork.tn_keras.conv2d_mpo import Conv2DMPO
+from tensornetwork.tn_keras.layers import Conv2DMPO
 
 LAYER_NAME = 'conv_layer'
 
