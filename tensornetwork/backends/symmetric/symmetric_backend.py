@@ -267,12 +267,11 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           ncv=num_krylov_vecs,
           tol=tol,
           maxiter=maxiter)
-    except Exception as e:
+    finally:
       #set caching status back to what it was
       self.bs.set_caching_status(former_caching_status)
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
-      raise e
 
     eVs = [
         BlockSparseTensor(
@@ -438,17 +437,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           state += vec * u[n1, n2]
         eigenvectors.append(state / self.norm(state))
 
-    except Exception as e:
+    finally:
       # reset caching status to what it was in case of
       # and exception
       self.bs.set_caching_status(former_caching_status)
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
-      raise e
-
-    self.bs.set_caching_status(former_caching_status)
-    if enable_caching and cache_was_empty:
-      self.bs.clear_cache()
 
     return eigvals[0:numeig], eigenvectors
 
@@ -606,13 +600,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
           restart=num_krylov_vectors,
           maxiter=maxiter,
           M=M)
-    except Exception as e:
+    finally:
       #set caching status back to what it was
       self.bs.set_caching_status(former_caching_status)
       if enable_caching and cache_was_empty:
         self.bs.clear_cache()
-      raise e
-
+    
     if info < 0:
       raise ValueError("ARPACK gmres received illegal input or broke down.")
     if info > 0:
