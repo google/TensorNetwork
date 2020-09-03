@@ -508,7 +508,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                           atol=tol
       num_krylov_vectors: Size of the Krylov space to build at each restart.
         Expense is cubic in this parameter. If supplied, it must be
-        an integer in 0 < num_krylov_vectors <= b.size. Default: b.size.
+        an integer in 0 < num_krylov_vectors <= b.size. 
+        Default: min(100, b.size).
       maxiter: The Krylov space will be repeatedly rebuilt up to this many
         times. Large values of this argument
         should be used only with caution, since especially for nearly
