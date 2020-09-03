@@ -1608,7 +1608,6 @@ def test_gmres_raises():
   with pytest.raises(TypeError, match="x0.dtype"):
     b = BlockSparseTensor.random(mps.sparse_shape, dtype=np.complex128)
     backend.gmres(matvec, b, x0=mps)
-
   b = randn_like(mps)    
   with pytest.raises(ValueError, match="num_krylov_vectors must"):
     backend.gmres(matvec, b, x0=mps, num_krylov_vectors=-1)
