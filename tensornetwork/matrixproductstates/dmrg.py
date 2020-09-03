@@ -558,8 +558,10 @@ class BaseDMRG:
     self.compute_right_envs()
     return ncon([
         self.add_right_layer(self.right_envs[0], self.mps.tensors[0],
-                             self.mpo.tensors[0])
-    ], [[1, 1, -1]], backend=self.backend.name)[0]
+                             self.mpo.tensors[0]),
+        self.left_envs[0],
+    ], [[1, 2, 3], [1, 2, 3]],
+                backend=self.backend.name).item()
 
 
 class FiniteDMRG(BaseDMRG):
@@ -578,10 +580,19 @@ class FiniteDMRG(BaseDMRG):
       mpo: A FiniteMPO object.
       name: An optional name for the simulation.
     """
-    lshape = (mpo.tensors[0].shape[0], mps.tensors[0].shape[0],
-              mps.tensors[0].shape[0])
-    rshape = (mpo.tensors[-1].shape[1], mps.tensors[-1].shape[2],
-              mps.tensors[-1].shape[2])
+    conmpo0 = mps.backend.conj(mpo.tensors[0])
+    conmps0 = mps.backend.conj(mps.tensors[0])
+    mps0 = mps.tensors[0]
+
+    conmpoN = mps.backend.conj(mpo.tensors[-1])
+    conmpsN = mps.backend.conj(mps.tensors[-1])
+    mpsN = mps.tensors[-1]
+
+
+    lshape = (conmpo0.sparse_shape[0], conmps0.sparse_shape[0],
+              mps0.sparse_shape[0])
+    rshape = (conmpoN.sparse_shape[1], conmpsN.sparse_shape[2],
+              mpsN.sparse_shape[2])
     lb = mps.backend.ones(lshape, dtype=mps.dtype)
     rb = mps.backend.ones(rshape, dtype=mps.dtype)
     super().__init__(
