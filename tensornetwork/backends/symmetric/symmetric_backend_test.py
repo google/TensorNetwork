@@ -1605,19 +1605,16 @@ def test_gmres_raises():
   backend = symmetric_backend.SymmetricBackend()
   _, mps, _, _ = get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64)
 
-  def matvec(vec):
-    return vec
-
   with pytest.raises(ValueError, match="x0.sparse_shape"):
     b = randn_like(mps.conj())
-    backend.gmres(matvec, b, x0=mps)
+    backend.gmres(lambda x: x, b, x0=mps)
   with pytest.raises(TypeError, match="x0.dtype"):
     b = BlockSparseTensor.random(mps.sparse_shape, dtype=np.complex128)
-    backend.gmres(matvec, b, x0=mps)
+    backend.gmres(lambda x: x, b, x0=mps)
   b = randn_like(mps)
   with pytest.raises(ValueError, match="num_krylov_vectors must"):
-    backend.gmres(matvec, b, x0=mps, num_krylov_vectors=-1)
+    backend.gmres(lambda x: x, b, x0=mps, num_krylov_vectors=-1)
   with pytest.raises(ValueError, match="tol = "):
-    backend.gmres(matvec, b, x0=mps, tol=-0.001)
+    backend.gmres(lambda x: x, b, x0=mps, tol=-0.001)
   with pytest.raises(ValueError, match="atol = "):
-    backend.gmres(matvec, b, x0=mps, atol=-0.001)
+    backend.gmres(lambda x: x, b, x0=mps, atol=-0.001)
