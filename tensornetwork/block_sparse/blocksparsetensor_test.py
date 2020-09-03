@@ -949,11 +949,21 @@ def test_compare_charges(chargetype, num_charges):
       Index(get_charge(chargetype, num_charges, Ds3[n]), flows3[n])
       for n in range(3)
   ]
+
+  Ds4 = np.array([2,4,9,10,11])
+  flows4 = [False, True, False, True, False]
+  indices4 = [
+    Index(get_charge(chargetype, num_charges, Ds4[n]), flows4[n])
+    for n in range(len(Ds4))
+  ]
   arr1 = BlockSparseTensor.random(indices1)
   arr2 = BlockSparseTensor.random(indices2)
   arr3 = BlockSparseTensor.random(indices3)
+  arr4 = BlockSparseTensor.random(indices4).reshape(Ds1)
+  
   assert compare_shapes(arr1, arr1)
   assert not compare_shapes(arr1, arr2)
+  assert not compare_shapes(arr1, arr4)
   assert not compare_shapes(arr1, arr3)
   assert not compare_shapes(arr2, arr3)  
   
