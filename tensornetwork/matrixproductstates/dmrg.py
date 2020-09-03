@@ -580,20 +580,21 @@ class FiniteDMRG(BaseDMRG):
       mpo: A FiniteMPO object.
       name: An optional name for the simulation.
     """
-    conmpo0 = mps.backend.conj(mpo.tensors[0])
-    conmps0 = mps.backend.conj(mps.tensors[0])
+    backend = mps.backend
+    conmpo0 = backend.conj(mpo.tensors[0])
+    conmps0 = backend.conj(mps.tensors[0])
     mps0 = mps.tensors[0]
 
-    conmpoN = mps.backend.conj(mpo.tensors[-1])
-    conmpsN = mps.backend.conj(mps.tensors[-1])
+    conmpoN = backend.conj(mpo.tensors[-1])
+    conmpsN = backend.conj(mps.tensors[-1])
     mpsN = mps.tensors[-1]
 
 
-    lshape = (conmpo0.sparse_shape[0], conmps0.sparse_shape[0],
-              mps0.sparse_shape[0])
-    rshape = (conmpoN.sparse_shape[1], conmpsN.sparse_shape[2],
-              mpsN.sparse_shape[2])
-    lb = mps.backend.ones(lshape, dtype=mps.dtype)
-    rb = mps.backend.ones(rshape, dtype=mps.dtype)
+    lshape = (backend.sparse_shape(conmpo0)[0], backend.sparse_shape(conmps0)[0],
+              backend.sparse_shape(mps0)[0])
+    rshape = (backend.sparse_shape(conmpoN)[1], backend.sparse_shape(conmpsN)[2],
+              backend.sparse_shape(mpsN)[2])
+    lb = backend.ones(lshape, dtype=mps.dtype)
+    rb = backend.ones(rshape, dtype=mps.dtype)
     super().__init__(
         mps=mps, mpo=mpo, left_boundary=lb, right_boundary=rb, name=name)
