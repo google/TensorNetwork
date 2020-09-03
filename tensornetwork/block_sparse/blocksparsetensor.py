@@ -283,7 +283,7 @@ class ChargeArray:
       partitions.append(tmp[0] + 1)
       flat_dims = flat_dims[partitions[-1]:]
     for d in flat_dims:
-      if d != 1:
+      if d != 1: #Note (martin): I suspect this will never be raised
         raise ValueError(
             "The shape {} is incompatible with the "
             "elementary shape {} of the tensor.".format(
