@@ -1538,6 +1538,7 @@ def test_gmres(dtype, x0, ncv):
     return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend='symmetric')
+
   if x0:
     init = mps
   else:
@@ -1549,6 +1550,7 @@ def test_gmres(dtype, x0, ncv):
       enable_caching=True,
       num_krylov_vectors=ncv)
   assert norm(matvec(x, L, mpo, R) - b) < 1E-10
+
 
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('x0', [True, False])
@@ -1562,13 +1564,15 @@ def test_gmres_no_args(dtype, x0, ncv):
     return ncon([L, MPSTensor, mpo, R],
                 [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
                 backend='symmetric')
+
   if x0:
     init = mps
   else:
     init = None
   x, _ = backend.gmres(
       matvec,
-      b, A_args=None,
+      b,
+      A_args=None,
       x0=init,
       enable_caching=True,
       num_krylov_vectors=ncv)
