@@ -550,7 +550,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
                       f" match b.dtype = {b.dtype}")
 
     if num_krylov_vectors is None:
-      num_krylov_vectors = b.size
+      num_krylov_vectors = min(b.size, 100)
 
     if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
       errstring = (f"num_krylov_vectors must be in "
