@@ -8,8 +8,9 @@ import numpy as np
 import tensornetwork as tn
 import math
 
-
-@tf.keras.utils.register_keras_serializable()
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class Conv2DMPO(Layer):
   """2D Convolutional Matrix Product Operator (MPO) TN layer.
 
