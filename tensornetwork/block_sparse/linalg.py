@@ -1,4 +1,4 @@
-# Copyright 2019 The TensorNetwork Authors
+# copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -691,4 +691,4 @@ def pinv(matrix: BlockSparseTensor,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
