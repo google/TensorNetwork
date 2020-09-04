@@ -634,7 +634,7 @@ def test_trace(dtype, offset, axis1, axis2):
 
 
 def test_trace_raises():
-  shape = [1]*30
+  shape = tuple([1] * 30)
   backend = pytorch_backend.PyTorchBackend()
   array = backend.randn(shape, seed=10)
   with pytest.raises(ValueError):

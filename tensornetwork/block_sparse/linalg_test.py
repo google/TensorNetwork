@@ -5,7 +5,8 @@ from tensornetwork.block_sparse.charge import (U1Charge, fuse_charges,
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.blocksparsetensor import (ChargeArray,
                                                           BlockSparseTensor)
-from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks #pylint: disable=line-too-long
+from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
+from tensornetwork.block_sparse.utils import unique
 from tensornetwork import ncon
 from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
                                                conj, svd, qr, eigh, eig, inv,
@@ -49,8 +50,7 @@ def test_get_diag(dtype, num_charges, Ds, flow):
   inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique = np.unique(
-      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
+  unique_charges = unique(np_flow * (indices[0]._charges[0].charges[left, :]))
   diagonal = diag(arr)
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
       arr.flat_charges, arr.flat_flows, 1)
@@ -59,7 +59,8 @@ def test_get_diag(dtype, num_charges, Ds, flow):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+  np.testing.assert_allclose(unique_charges,
+                             diagonal.flat_charges[0].unique_charges)
 
 
 @pytest.mark.parametrize('dtype', np_dtypes)
@@ -263,6 +264,44 @@ def test_svd_singvals(dtype, Ds, R1, num_charges):
       np.sort(Sdense[Sdense > 1E-15]), np.sort(S2.data[S2.data > 0.0]))
 
 
+def test_svd_raises():
+  np.random.seed(10)
+  dtype = np.float64
+  Ds = [10, 11, 12]
+  R = len(Ds)
+  charges = [
+      BaseCharge(np.random.randint(-5, 6, (Ds[n], 1)), charge_types=[U1Charge])
+      for n in range(R)
+  ]
+  flows = [True] * R
+  A = BlockSparseTensor.random([Index(charges[n], flows[n]) for n in range(R)],
+                               dtype=dtype)
+  with pytest.raises(NotImplementedError):
+    svd(A, full_matrices=False, compute_uv=False)
+
+
+#A sanity check that does not use symmetries (all charges are 0)
+def test_qr_r_mode():
+  Ds = [10, 11]
+  dtype = np.float64
+  np.random.seed(10)
+  rank = len(Ds)
+  charges = [
+      BaseCharge(np.zeros((Ds[n], 1)), charge_types=[U1Charge] * 1)
+      for n in range(rank)
+  ]
+  flows = [True] * rank
+  A = BlockSparseTensor.random(
+      [Index(charges[n], flows[n]) for n in range(rank)], dtype=dtype)
+  d1 = np.prod(Ds[:1])
+  d2 = np.prod(Ds[1:])
+  A = A.reshape([d1, d2])
+  R = qr(A, mode='r')
+  R_np = np.linalg.qr(A.todense(), mode='r')
+  np.testing.assert_allclose(
+      np.abs(np.diag(R.todense())), np.abs(np.diag(R_np)))
+
+
 @pytest.mark.parametrize("mode", ['complete', 'reduced'])
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("Ds, R1", [([20, 21], 1), ([18, 19, 20], 2),
@@ -291,12 +330,13 @@ def test_qr_prod(dtype, Ds, R1, mode, num_charges):
     assert charge_equal(A_._charges[n], A._charges[n])
 
 
+
 def test_qr_raises():
   np.random.seed(10)
   dtype = np.float64
   num_charges = 1
-  Ds = [20, 21]
-  R1 = 1
+  Ds = [20, 21, 22]
+  R1 = 2
   R = len(Ds)
   charges = [
       BaseCharge(
@@ -308,9 +348,13 @@ def test_qr_raises():
                                dtype=dtype)
   d1 = np.prod(Ds[:R1])
   d2 = np.prod(Ds[R1:])
-  A = A.reshape([d1, d2])
-  with pytest.raises(ValueError):
-    qr(A, mode='fake_mode')
+  B = A.reshape([d1, d2])
+  with pytest.raises(ValueError, match='unknown value'):
+    qr(B, mode='fake_mode')
+  with pytest.raises(NotImplementedError, match="mode `raw`"):
+    qr(B, mode='raw')
+  with pytest.raises(NotImplementedError, match="qr currently"):
+    qr(A)
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
@@ -520,7 +564,7 @@ def test_trace_raises(num_charges):
       np.random.randint(-5, 6, (D, num_charges), dtype=np.int16),
       charge_types=[U1Charge] * num_charges)
   A1 = BlockSparseTensor.random([Index(charge1, False)])
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="trace can only"):
     trace(A1)
 
   charge2 = BaseCharge(
@@ -528,15 +572,15 @@ def test_trace_raises(num_charges):
       charge_types=[U1Charge] * num_charges)
   indices = [
       Index(charge1, False),
-      Index(charge2, False),
+      Index(charge2, True),
       Index(charge1, False)
   ]
   A2 = BlockSparseTensor.random(indices)
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="not matching"):
     trace(A2, axes=(0, 1))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="non-matching flows"):
     trace(A2, axes=(0, 2))
-  with pytest.raises(ValueError):
+  with pytest.raises(ValueError, match="has to be 2"):
     trace(A2, axes=(0, 1, 2))
 
 

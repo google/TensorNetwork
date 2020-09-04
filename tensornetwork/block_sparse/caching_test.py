@@ -6,6 +6,7 @@ from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge, charge_equal
 from tensornetwork.block_sparse.blocksparse_utils import (
     _to_string, _find_transposed_diagonal_sparse_blocks)
+
 from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor
 from tensornetwork.ncon_interface import ncon
 import numpy as np
@@ -23,7 +24,7 @@ def test_set_caching_status():
   assert len(_INSTANTIATED_CACHERS) == 1
   assert _INSTANTIATED_CACHERS[0] is cacher
   assert cacher.do_caching
-  
+
   set_caching_status(False)
   cacher = get_cacher()
   assert len(_INSTANTIATED_CACHERS) == 1
@@ -103,7 +104,7 @@ def test_cache():
   np.testing.assert_allclose(cacher.cache[sC][2], dimsC)
   disable_caching()
   clear_cache()
-  
+
 def test_clear_cache():
   D = 100
   M = 5
@@ -129,6 +130,6 @@ def test_clear_cache():
        backend='symmetric')
   cacher = get_cacher()
   assert len(cacher.cache) > 0
-  disable_caching()  
+  disable_caching()
   clear_cache()
   assert len(cacher.cache) == 0

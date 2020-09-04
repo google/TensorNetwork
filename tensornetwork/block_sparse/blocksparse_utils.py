@@ -13,19 +13,20 @@
 # limitations under the License.
 
 import numpy as np
+from functools import reduce
+from operator import mul
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import (fuse_charges, BaseCharge,
                                                fuse_ndarray_charges,
                                                charge_equal)
-from tensornetwork.block_sparse.utils import (fuse_stride_arrays,
+from tensornetwork.block_sparse.utils import (fuse_stride_arrays, unique,
                                               fuse_degeneracies, intersect,
                                               _find_best_partition,
                                               fuse_ndarrays)
 from tensornetwork.block_sparse.caching import get_cacher
-
 from typing import List, Union, Any, Tuple, Optional, Sequence
+from tensornetwork.block_sparse.sizetypes import SIZE_T
 Tensor = Any
-SIZE_T = np.int64  #the size-type of index-arrays
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """
@@ -46,7 +47,7 @@ def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
 
 def compute_sparse_lookup(
     charges: List[BaseCharge], flows: Union[np.ndarray, List[bool]],
-    target_charges: BaseCharge) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    target_charges: BaseCharge) -> Tuple[np.ndarray, BaseCharge, np.ndarray]:
   """
   Compute lookup table for how dense index positions map 
   to sparse index positions, treating only those elements as non-zero
@@ -65,18 +66,24 @@ def compute_sparse_lookup(
   """
 
   fused_charges = fuse_charges(charges, flows)
-  unique_charges, inverse = fused_charges.unique(
-      return_inverse=True, sort=False)
-  _, label_to_unique, _ = unique_charges.intersect(
-      target_charges, return_indices=True)
+  unique_charges, inverse = unique(fused_charges.charges, return_inverse=True)
+  _, label_to_unique, _ = intersect(
+      unique_charges, target_charges.charges, return_indices=True)
+  # _, label_to_unique, _ = unique_charges.intersect(
+  #     target_charges, return_indices=True)
   tmp = np.full(
-      len(unique_charges), fill_value=-1, dtype=charges[0].label_dtype)
+      unique_charges.shape[0], fill_value=-1, dtype=charges[0].label_dtype)
+  obj = charges[0].__new__(type(charges[0]))
+  obj.__init__(
+      charges=unique_charges,
+      charge_labels=None,
+      charge_types=charges[0].charge_types)
 
   tmp[label_to_unique] = label_to_unique
   lookup = tmp[inverse]
   lookup = lookup[lookup >= 0]
 
-  return lookup, unique_charges, np.sort(label_to_unique)
+  return lookup, obj, np.sort(label_to_unique)
 
 
 def compute_fused_charge_degeneracies(
@@ -96,29 +103,28 @@ def compute_fused_charge_degeneracies(
     np.ndarray: The degeneracies of each unqiue fused charge.
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique(return_counts=True, sort=False)
+    return (charges[0] * flows[0]).unique(return_counts=True)
+  dims = [c.dim for c in charges]
+  # for small dims is faster to fuse all and use unique
+  # directly
+  if reduce(mul, dims, 1) < 20000:
+    fused = fuse_charges(charges, flows)
+    return fused.unique(return_counts=True)
 
-  # get unique charges and their degeneracies on the first leg.
-  # We are fusing from "left" to "right".
-  accumulated_charges, accumulated_degeneracies = (charges[0] *
-                                                   flows[0]).unique(
-                                                       return_counts=True,
-                                                       sort=False)
-  for n in range(1, len(charges)):
-    leg_charges, leg_degeneracies = charges[n].unique(
-        return_counts=True, sort=False)
-    fused_charges = accumulated_charges + leg_charges * flows[n]
-    fused_degeneracies = fuse_degeneracies(accumulated_degeneracies,
-                                           leg_degeneracies)
-    accumulated_charges = fused_charges.unique(sort=False)
-    accumulated_degeneracies = np.array([
-        np.sum(fused_degeneracies[fused_charges.charge_labels ==
-                                  accumulated_charges.charge_labels[m]])
-        for m in range(len(accumulated_charges))
-    ])
-
-  return accumulated_charges, accumulated_degeneracies
-
+  partition = _find_best_partition(dims)
+  fused_left = fuse_charges(charges[:partition], flows[:partition])
+  fused_right = fuse_charges(charges[partition:], flows[partition:])
+  left_unique, left_degens = fused_left.unique(return_counts=True)
+  right_unique, right_degens = fused_right.unique(return_counts=True)
+  fused = left_unique + right_unique
+  unique_charges, charge_labels = fused.unique(return_inverse=True)
+  fused_degeneracies = fuse_degeneracies(left_degens, right_degens)
+  new_ord = np.argsort(charge_labels)
+  all_degens = np.cumsum(fused_degeneracies[new_ord])
+  cum_degens = all_degens[np.flatnonzero(np.diff(charge_labels[new_ord]))]
+  final_degeneracies = np.append(cum_degens, all_degens[-1]) - np.append(
+      0, cum_degens)
+  return unique_charges, final_degeneracies
 
 def compute_unique_fused_charges(
     charges: List[BaseCharge], flows: Union[np.ndarray,
@@ -137,13 +143,13 @@ def compute_unique_fused_charges(
 
   """
   if len(charges) == 1:
-    return (charges[0] * flows[0]).unique(sort=False)
+    return (charges[0] * flows[0]).unique()
 
-  accumulated_charges = (charges[0] * flows[0]).unique(sort=False)
+  accumulated_charges = (charges[0] * flows[0]).unique()
   for n in range(1, len(charges)):
-    leg_charges = charges[n].unique(sort=False)
+    leg_charges = charges[n].unique()
     fused_charges = accumulated_charges + leg_charges * flows[n]
-    accumulated_charges = fused_charges.unique(sort=False)
+    accumulated_charges = fused_charges.unique()
   return accumulated_charges
 
 
@@ -234,8 +240,7 @@ def reduce_charges(charges: List[BaseCharge],
       return obj, np.empty(0, dtype=SIZE_T)
     return obj
 
-  unique_comb_qnums, comb_labels = np.unique(
-      comb_qnums, return_inverse=True, axis=0)
+  unique_comb_qnums, comb_labels = unique(comb_qnums, return_inverse=True)
   num_unique = unique_comb_qnums.shape[0]
 
   # intersect combined qnums and target_charges
@@ -390,13 +395,11 @@ def _find_diagonal_sparse_blocks(
   return block_maps, obj, block_dims
 
 
-
-
 def _find_transposed_diagonal_sparse_blocks(
     charges: List[BaseCharge],
     flows: Union[np.ndarray, List[bool]],
     tr_partition: int,
-    order: Optional[Union[List, np.ndarray]] = None,
+    order: Optional[Union[List, np.ndarray]] = None
 ) -> Tuple[List, BaseCharge, np.ndarray]:
   """
   Find the diagonal blocks of a transposed tensor with 
@@ -592,6 +595,7 @@ def _find_transposed_diagonal_sparse_blocks(
     obj.__init__(block_qnums,
                  np.arange(block_qnums.shape[0], dtype=charges[0].label_dtype),
                  charges[0].charge_types)
+
   if cacher.do_caching:
     cacher.cache[hash_val] = (block_maps, obj, block_dims)
     return cacher.cache[hash_val]
