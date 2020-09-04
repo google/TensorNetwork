@@ -14,11 +14,6 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-<<<<<<< HEAD
-=======
-from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.utils import intersect, flatten, get_real_dtype
->>>>>>> upstream/master
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray,
                                                           tensordot)
