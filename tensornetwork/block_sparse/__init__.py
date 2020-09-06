@@ -7,9 +7,14 @@ from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           tensordot,
                                                           outerproduct)
 from tensornetwork.block_sparse.linalg import (svd, qr, diag, sqrt, trace, inv,
-                                               pinv, eye, zeros, ones, randn,
-                                               eigh, eig, conj, reshape,
-                                               transpose, random, norm)
+                                               pinv, eye, eigh, eig, conj,
+                                               reshape, transpose, norm)
+
+from tensornetwork.block_sparse.initialization import (zeros, ones, randn,
+                                                       random, empty_like,
+                                                       ones_like, zeros_like,
+                                                       randn_like, random_like)
+
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.caching import (get_cacher, enable_caching,
                                                 disable_caching, clear_cache,

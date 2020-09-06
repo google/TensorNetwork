@@ -1,4 +1,4 @@
-# Copyright 2019 The TensorNetwork Authors
+# copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import tensordot
-from tensornetwork.block_sparse.utils import intersect, flatten, get_real_dtype
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
-                                                          ChargeArray)
+                                                          ChargeArray,
+                                                          tensordot)
+from tensornetwork.block_sparse.utils import (intersect, flatten,
+                                              get_real_dtype, _randn, _random)
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     compute_num_nonzero, compute_sparse_lookup)
@@ -691,61 +692,3 @@ def pinv(matrix: BlockSparseTensor,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
       check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
-
-
-def ones(indices: Sequence[Index],
-         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a symmetric tensor with ones.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.ones(indices, dtype)
-
-
-def zeros(indices: Sequence[Index],
-          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a symmetric tensor with zeros.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.zeros(indices, dtype)
-
-
-def randn(indices: Sequence[Index],
-          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a random symmetric tensor from random normal distribution.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.randn(indices, dtype)
-
-
-def random(indices: Sequence[Index],
-           boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a random symmetric tensor from random uniform distribution.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    boundaries: Tuple of interval boundaries for the random uniform
-      distribution.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-  return BlockSparseTensor.random(indices, boundaries, dtype)

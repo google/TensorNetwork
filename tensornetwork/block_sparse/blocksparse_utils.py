@@ -24,9 +24,39 @@ from tensornetwork.block_sparse.utils import (fuse_stride_arrays, unique,
                                               _find_best_partition,
                                               fuse_ndarrays)
 from tensornetwork.block_sparse.caching import get_cacher
-from typing import List, Union, Any, Tuple, Optional, Sequence
+from typing import List, Union, Any, Tuple, Optional, Sequence, Callable
 from tensornetwork.block_sparse.sizetypes import SIZE_T
+
 Tensor = Any
+
+
+def _data_initializer(
+    numpy_initializer: Callable, comp_num_elements: Callable,
+    indices: Sequence[Index], *args, **kwargs
+) -> Tuple[np.ndarray, List[BaseCharge], List[bool], List[List[int]]]:
+  """
+  Initialize a 1d np.ndarray using `numpy_initializer` function.
+  Args:
+    numpy_initializer: Callable, should return a 1d np.ndarray.
+      Function call signature: `numpy_initializer(*args, **kwargs)`.
+    comp_num_elements: Callable, computes the number of elements of
+      the returned 1d np.ndarray, using  `numel = comp_num_elements(indices)`.
+    indices: List if `Index` objects.
+    *args, **kwargs: Arguments to `numpy_initializer`.
+  Returns:
+    np.ndarray: An initialized numpy array.
+    List[BaseCharge]: A list containing the flattened charges in `indices`
+    List[bool]: The flattened flows of `indices`.
+    List[List]: A list of list of int, the order information needed to 
+      initialize a BlockSparseTensor.
+  """
+  charges, flows = get_flat_meta_data(indices)
+  num_elements = comp_num_elements(charges, flows)
+  tmp = np.append(0, np.cumsum([len(i.flat_charges) for i in indices]))
+  order = [list(np.arange(tmp[n], tmp[n + 1])) for n in range(len(tmp) - 1)]
+  data = numpy_initializer(num_elements, *args, **kwargs)
+  return data, charges, flows, order
+
 
 def get_flat_meta_data(indices: Sequence[Index]) -> Tuple[List, List]:
   """

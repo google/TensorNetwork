@@ -15,7 +15,48 @@
 import numpy as np
 from tensornetwork.block_sparse.sizetypes import SIZE_T
 from tensornetwork.block_sparse.caching import get_cacher
-from typing import List, Union, Any, Type
+from typing import List, Union, Any, Type, Tuple
+
+
+def _randn(size: int, dtype: Type[np.number] = np.float64) -> np.ndarray:
+  """
+  Initialize a 1d np.ndarray of length `size` of dtype `dtype`
+  with random gaussian values.
+  Args:
+    size: The length of the array.
+    dtype: The desired dtype.
+  Returns:
+    np.ndarray: The data array.
+  """
+  data = np.random.randn(size).astype(dtype)
+  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+      (np.dtype(dtype) is np.dtype(np.complex64))):
+    data += 1j * np.random.randn(size).astype(dtype)
+  return data
+
+
+def _random(size: int,
+            dtype: Type[np.number] = np.float64,
+            boundaries: Tuple = (0, 1)) -> np.ndarray:
+  """
+  Initialize a 1d np.ndarray of length `size` of dtype `dtype`
+  with random uniform values.
+  Args:
+    size: The length of the array.
+    dtype: The desired dtype.
+    boundaries: The boundaries of the interval where numbers are
+      drawn from.
+  Returns:
+    np.ndarray: The data array.
+  """
+
+  data = np.random.uniform(boundaries[0], boundaries[1], size).astype(dtype)
+  if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+      (np.dtype(dtype) is np.dtype(np.complex64))):
+    data += 1j * np.random.uniform(boundaries[0], boundaries[1],
+                                   size).astype(dtype)
+  return data
+
 
 def get_real_dtype(dtype: Type[np.number]) -> Type[np.number]:
   if dtype == np.complex128:
