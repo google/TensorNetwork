@@ -691,7 +691,7 @@ def pinv(matrix: BlockSparseTensor,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0)) # pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0)) #pytype: disable=bad-return-type
 
 def abs(tensor: BlockSparseTensor) -> BlockSparseTensor: #pylint: disable=redefined-builtin
   result = empty_like(tensor)
