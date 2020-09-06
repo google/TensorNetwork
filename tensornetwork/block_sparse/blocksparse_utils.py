@@ -35,7 +35,7 @@ def _data_initializer(
     indices: Sequence[Index], *args, **kwargs
 ) -> Tuple[np.ndarray, List[BaseCharge], List[bool], List[List[int]]]:
   """
-  Initialize an 1d np.ndarray using `numpy_initializer` function.
+  Initialize a 1d np.ndarray using `numpy_initializer` function.
   Args:
     numpy_initializer: Callable, should return a 1d np.ndarray.
       Function call signature: `numpy_initializer(*args, **kwargs)`.

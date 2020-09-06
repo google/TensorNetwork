@@ -648,4 +648,3 @@ def test_sign():
   ]
   arr = BlockSparseTensor.random(indices)
   np.testing.assert_allclose(sign(arr).data, np.sign(arr.data))
-  

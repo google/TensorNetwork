@@ -283,7 +283,7 @@ class ChargeArray:
       partitions.append(tmp[0] + 1)
       flat_dims = flat_dims[partitions[-1]:]
     for d in flat_dims:
-      if d != 1:
+      if d != 1: #Note (martin): I suspect this will never be raised
         raise ValueError(
             "The shape {} is incompatible with the "
             "elementary shape {} of the tensor.".format(
@@ -434,6 +434,28 @@ class ChargeArray:
       if len(self.data) == 1:
         return self.data[0]
     raise ValueError("can only convert an array of size 1 to a Python scalar")
+
+
+def compare_shapes(tensor1: ChargeArray, tensor2: ChargeArray) -> bool:
+  """
+  Compare the shapes of `tensor1` and `tensor2`. Return `True` if the shapes
+  are identical.
+  Args: 
+    tensor1, tensor2: Two tensors.
+  Returns:
+    bool: The result of comparing the shapes.
+  """
+  if tensor1.shape != tensor2.shape:
+    return False
+  if len(tensor1._charges) != len(tensor2._charges):
+    return False
+  if not all([
+      charge_equal(c1, c2) for c1, c2 in zip(tensor1._charges, tensor2._charges)
+  ]):
+    return False
+  if not all([f1 == f2 for f1, f2 in zip(tensor1._flows, tensor2._flows)]):
+    return False
+  return True
 
 
 class BlockSparseTensor(ChargeArray):
