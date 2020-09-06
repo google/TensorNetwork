@@ -937,7 +937,7 @@ def test_size(chargetype, num_charges):
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
-def test_compare_charges(chargetype, num_charges):
+def test_compare_shapes(chargetype, num_charges):
   np.random.seed(10)
   Ds1 = np.array([8, 9, 10, 11])
   flows1 = [True, False, True, False]
