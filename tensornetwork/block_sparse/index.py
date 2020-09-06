@@ -81,7 +81,7 @@ class Index:
   def flat_charges(self) -> List:
     """
     Returns:
-    List: A list containing the elementary indices (the leaves) 
+    List: A list containing the elementary indices
       of `Index`.
     """
     return self._charges
@@ -90,7 +90,7 @@ class Index:
   def flat_flows(self) -> List:
     """
     Returns:
-      List: A list containing the elementary indices (the leaves) 
+      List: A list containing the elementary indices
         of `Index`.
     """
     return list(self.flow)
