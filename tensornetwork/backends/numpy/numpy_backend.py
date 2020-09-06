@@ -331,6 +331,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
                    indicates some kind of floating point issue).
                   -if num_krylov_vectors is 0 or exceeds b.size.
                   -if tol was negative.
+      TypeError:  -if the dtype of `x0` and `b` are mismatching.
 
     Returns:
       x       : The converged solution. It has the same shape as `b`.
@@ -346,7 +347,7 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       if x0.dtype != b.dtype:
         errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
                      f", {b.dtype}.")
-        raise ValueError(errstring)
+        raise TypeError(errstring)
       x0 = x0.ravel()
 
 

@@ -555,7 +555,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                   -if tol or atol was negative.
       NotImplementedError: - If M is supplied.
                            - If A_kwargs is supplied.
-
+      TypeError:  -if the dtype of `x0` and `b` are mismatching.
     Returns:
       x       : The converged solution. It has the same shape as `b`.
       info    : 0 if convergence was achieved, the number of restarts otherwise.
@@ -569,7 +569,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       if x0.dtype != b.dtype:
         errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
                      f", {b.dtype}.")
-        raise ValueError(errstring)
+        raise TypeError(errstring)
       x0 = x0.ravel()
     else:
       x0 = self.zeros(b.shape, b.dtype).ravel()

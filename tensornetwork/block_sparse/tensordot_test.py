@@ -277,6 +277,28 @@ def test_tensordot_raises():
   with pytest.raises(ValueError, match="is incompatible with `tensor1.shape"):
     tensordot(A, C, ([0, 1, 2, 3], [0, 1, 2, 3]))
 
+  Ds1 = np.array([8, 9, 10, 11])
+  Ds2 = np.array([8, 9])
+  flows1 = [False] * len(Ds1)
+  flows2 = [False] * len(Ds2)
+  indices1 = [Index(U1Charge.random(D, -2, 2), f) for D, f in zip(Ds1, flows1)]
+  indices2 = [Index(U1Charge.random(D, -2, 2), f) for D, f in zip(Ds2, flows2)]
+  arr1 = BlockSparseTensor.random(indices1)
+  arr2 = BlockSparseTensor.random(indices2)
+  with pytest.raises(ValueError, match="axes2 = "):
+    tensordot(arr1, arr2, ([0, 1, 2], [0, 1, 2]))
+
+  Ds2 = np.array([8, 9, 2, 5, 11])
+  flows2 = [False] * len(Ds2)
+  indices1 = [Index(U1Charge.random(D, -2, 2), f) for D, f in zip(Ds1, flows1)]
+  indices2 = [Index(U1Charge.random(D, -2, 2), f) for D, f in zip(Ds2, flows2)]
+  arr1 = BlockSparseTensor.random(indices1)
+  arr2 = BlockSparseTensor.random(indices2).reshape(Ds1)
+  with pytest.raises(ValueError, match="incompatible elementary shapes "):
+    tensordot(arr1, arr2.conj(), ([2, 3], [2, 3]))
+
+
+
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])

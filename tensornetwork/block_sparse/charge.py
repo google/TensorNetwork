@@ -275,10 +275,12 @@ class BaseCharge:
   def intersect(self, other, assume_unique=False, return_indices=False) -> Any:
     """
     Compute the intersection of `self` with `other`. See also np.intersect1d.
+
     Args:
       other: A BaseCharge object.
       assume_unique: If `True` assume that elements are unique.
       return_indices: If `True`, return index-labels.
+
     Returns:
       If `return_indices=True`:
         BaseCharge
@@ -341,6 +343,7 @@ class BaseCharge:
       return_counts: If `True`, also return the number of times each unique 
         item appears in `self.charges`.
 
+    Returns:
       BaseCharge: The sorted unique values.
       np.ndarray: The indices of the first occurrences of the unique values 
         in the original array. Only provided if `return_index` is True.

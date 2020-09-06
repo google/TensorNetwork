@@ -783,7 +783,7 @@ def test_gmres_raises():
   b = jax.numpy.zeros((N,), dtype=jax.numpy.float64)
   diff = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
           f", {b.dtype}.")
-  with pytest.raises(ValueError, match=diff): # x0, b have different dtypes
+  with pytest.raises(TypeError, match=diff): # x0, b have different dtypes
     backend.gmres(dummy_mv, b, x0=x0)
 
   x0 = jax.numpy.zeros((N,))

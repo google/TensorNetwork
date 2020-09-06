@@ -5,7 +5,8 @@ from tensornetwork.block_sparse import linalg
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           ChargeArray,
                                                           tensordot,
-                                                          outerproduct)
+                                                          outerproduct,
+                                                          compare_shapes)
 from tensornetwork.block_sparse.linalg import (svd, qr, diag, sqrt, trace, inv,
                                                pinv, eye, eigh, eig, conj,
                                                reshape, transpose, norm)
