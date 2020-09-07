@@ -1644,4 +1644,3 @@ def test_gmres_raises():
     backend.gmres(lambda x: x, b, x0=mps, tol=-0.001)
   with pytest.raises(ValueError, match="atol = "):
     backend.gmres(lambda x: x, b, x0=mps, atol=-0.001)
-
