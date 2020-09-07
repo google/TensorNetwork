@@ -18,6 +18,10 @@ from jax import config
 import pytest
 import tensornetwork
 import tensornetwork.linalg.operations
+from tensornetwork.linalg.operations import kron
+from tensornetwork.linalg.initialization import random_uniform
+from tensornetwork.tensor import Tensor
+from tensornetwork.ncon_interface import ncon
 from tensornetwork import backends
 from tensornetwork.tests import testing_utils
 
@@ -359,35 +363,46 @@ def test_pivot(backend, dtype, pivotA):
 
 
 @pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
-@pytest.mark.parametrize("pivots", ([None, None], [None, 1], [2, None],
-                                    [0, 1]))
-def test_kron(backend, dtype, pivots):
+def test_kron(backend, dtype):
   """ Checks that Tensor.kron() works.
   """
-  pivotA, pivotB = pivots
-  shapeA = (2, 3, 4)
-  shapeB = (1, 2)
-  shapeC = (2, 3, 4, 1, 2)
-  A, _ = testing_utils.safe_randn(shapeA, backend, dtype)
-  if A is not None:
-    B, _ = testing_utils.safe_randn(shapeB, backend, dtype)
-    if pivotA is None and pivotB is None:
-      C = tensornetwork.kron(A, B)
-      matrixA = tensornetwork.pivot(A, pivot_axis=-1)
-      matrixB = tensornetwork.pivot(B, pivot_axis=-1)
-    elif pivotA is None:
-      C = tensornetwork.kron(A, B, pivot_axisB=pivotB)
-      matrixA = tensornetwork.pivot(A, pivot_axis=-1)
-      matrixB = tensornetwork.pivot(B, pivot_axis=pivotB)
-    elif pivotB is None:
-      C = tensornetwork.kron(A, B, pivot_axisA=pivotA)
-      matrixA = tensornetwork.pivot(A, pivot_axis=pivotA)
-      matrixB = tensornetwork.pivot(B, pivot_axis=-1)
-    else:
-      C = tensornetwork.kron(A, B, pivot_axisA=pivotA, pivot_axisB=pivotB)
-      matrixA = tensornetwork.pivot(A, pivot_axis=pivotA)
-      matrixB = tensornetwork.pivot(B, pivot_axis=pivotB)
+  if (backend == "pytorch" and dtype in (np.complex64, np.complex128)):
+    pytest.skip("pytorch support for complex dtypes is currently poor.")
 
-    Ctest = C.backend.einsum("ij,kl->ikjl", matrixA.array, matrixB.array)
-    Ctest = C.backend.reshape(Ctest, shapeC)
-    np.testing.assert_allclose(C.array, Ctest)
+  np.random.seed(10)
+  t1 = Tensor(np.random.rand(2, 2).astype(dtype), backend=backend)
+  t2 = Tensor(np.random.rand(3, 3).astype(dtype), backend=backend)
+
+  res_kron = kron(t1, t2)
+  res_ncon = ncon([t1.array, t2.array], [[-1, -3], [-2, -4]], backend=backend)
+  np.testing.assert_allclose(res_kron.array, res_ncon)
+  mat1 = res_kron.reshape((6, 6))
+  mat2 = np.kron(t1.array, t2.array)
+  np.testing.assert_allclose(mat1.array, mat2)
+
+  t1 = Tensor(np.random.rand(2, 2, 2, 2).astype(dtype), backend=backend)
+  t2 = Tensor(np.random.rand(3, 3, 3, 3).astype(dtype), backend=backend)
+  res_kron = kron(t1, t2)
+  res_ncon = ncon([t1.array, t2.array], [[-1, -2, -5, -6], [-3, -4, -7, -8]],
+                  backend=backend)
+  np.testing.assert_allclose(res_kron.array, res_ncon)
+  mat1 = res_kron.reshape((36, 36))
+  mat2 = np.kron(
+      np.array(t1.array).reshape(4, 4),
+      np.array(t2.array).reshape(9, 9))
+  np.testing.assert_allclose(mat1.array, mat2)
+
+
+def test_kron_raises(backend):
+  np.random.seed(10)
+  t1 = Tensor(np.random.rand(2, 2, 2), backend=backend)
+  t2 = Tensor(np.random.rand(3, 3), backend=backend)
+  with pytest.raises(ValueError, match="tensorA.ndim"):
+    kron(t1, t2)
+  with pytest.raises(ValueError, match="tensorB.ndim"):
+    kron(t2, t1)
+
+  t1 = Tensor(np.random.rand(2, 2, 2), backend='numpy')
+  t2 = Tensor(np.random.rand(3, 3), backend='tensorflow')
+  with pytest.raises(ValueError, match="kron"):
+    kron(t1, t2)
