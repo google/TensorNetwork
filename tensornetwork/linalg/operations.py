@@ -385,21 +385,46 @@ def pivot(tensor: Tensor, pivot_axis: int = -1) -> Tensor:
   return Tensor(result, backend=backend)
 
 
-def kron(tensorA: Tensor, tensorB: Tensor, pivot_axisA: int = -1,
-         pivot_axisB: int = -1) -> Tensor:
+def kron(tensorA: Tensor, tensorB: Tensor) -> Tensor:
   """
-  Reshape tensorA and tensorB into matrices respectively about pivot_axisA and
-  pivot_axisB, computes the Kronecker product of those matrices, and
-  reshapes to the concatenated shape of tensorA and tensorB
-  (e.g. tensorA -> (2, 3); tensorB -> (4, 5); result -> (2, 3, 4, 5)).
+  Compute the (tensor) kronecker product between `tensorA` and
+  `tensorB`. `tensorA` and `tensorB` can be tensors of any 
+  even order (i.e. `tensorA.ndim % 2 == 0`, `tensorB.ndim % 2 == 0`).
+  The returned tensor has index ordering such that when reshaped into 
+  a matrix with `pivot =t ensorA.ndim//2 + tensorB.ndim//2`, 
+  the resulting matrix is identical to the result of numpy's 
+  `np.kron(matrixA, matrixB)`, with `matrixA, matrixB` matrices 
+  obtained from reshaping `tensorA` and `tensorB` into matrices with 
+  `pivotA = tensorA.ndim//2`, `pivotB = tensorB.ndim//2`
+
+  Example:
+  `tensorA.shape = (2,3,4,5)`, `tensorB.shape(6,7)` ->
+  `kron(tensorA, tensorB).shape = (2, 3, 6, 4, 5, 7)` 
+
+  Args:
+    tensorA: A `Tensor`.
+    tensorB: A `Tensor`.
+  Returns:
+    Tensor: The kronecker product.
+  Raises:
+    ValueError: - If backends, are not matching.
+                - If ndims of the input tensors are not even.
   """
   tensors = [tensorA, tensorA]
   all_backends_same, errstr = _check_backends(tensors, "kron")
   if not all_backends_same:
     raise ValueError(errstr)
+  ndimA, ndimB = tensorA.ndim, tensorB.ndim
+  if ndimA % 2 != 0:
+    raise ValueError(f"kron only supports tensors with even number of legs."
+                     f"found tensorA.ndim = {ndimA}")
+  if ndimB % 2 != 0:
+    raise ValueError(f"kron only supports tensors with even number of legs."
+                     f"found tensorB.ndim = {ndimB}")
   backend = tensorA.backend
-  matrixA = pivot(tensorA, pivot_axis=pivot_axisA)
-  matrixB = pivot(tensorB, pivot_axis=pivot_axisB)
-  arr = backend.einsum("ij,kl->ikjl", matrixA.array, matrixB.array)
-  full_shape = tuple(list(tensorA.shape) + list(tensorB.shape))
-  return Tensor(arr, backend=backend).reshape(full_shape)
+  incoming = list(range(ndimA // 2)) + list(range(ndimA, ndimA + ndimB // 2))
+  outgoing = list(range(ndimA // 2, ndimA)) + list(
+      range(ndimA + ndimB // 2, ndimA + ndimB))
+  arr = backend.transpose(
+      backend.outer_product(tensorA.array, tensorB.array), incoming + outgoing)
+  return Tensor(arr, backend=backend)
