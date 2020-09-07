@@ -385,8 +385,7 @@ def pivot(tensor: Tensor, pivot_axis: int = -1) -> Tensor:
   return Tensor(result, backend=backend)
 
 
-def kron(tensorA: Tensor,
-         tensorB: Tensor) -> Tensor:
+def kron(tensorA: Tensor, tensorB: Tensor) -> Tensor:
   """
   Compute the (tensor) kronecker product between `tensorA` and
   `tensorB`. `tensorA` and `tensorB` can be tensors of any 
@@ -423,9 +422,9 @@ def kron(tensorA: Tensor,
     raise ValueError(f"kron only supports tensors with even number of legs."
                      f"found tensorB.ndim = {ndimB}")
   backend = tensorA.backend
-  new_order = list(range(ndimA // 2)) + list(range(
-      ndimA, ndimA + ndimB // 2)) + list(range(ndimA // 2, ndimA)) + list(
-          range(ndimA + ndimB // 2, ndimA + ndimB))
+  incoming = list(range(ndimA // 2)) + list(range(ndimA, ndimA + ndimB // 2))
+  outgoing = list(range(ndimA // 2, ndimA)) + list(
+      range(ndimA + ndimB // 2, ndimA + ndimB))
   arr = backend.transpose(
-      backend.outer_product(tensorA.array, tensorB.array), new_order)
+      backend.outer_product(tensorA.array, tensorB.array), incoming + outgoing)
   return Tensor(arr, backend=backend)
