@@ -10,7 +10,8 @@ from tensornetwork.block_sparse.utils import unique
 from tensornetwork import ncon
 from tensornetwork.block_sparse.linalg import (norm, diag, reshape, transpose,
                                                conj, svd, qr, eigh, eig, inv,
-                                               sqrt, trace, eye, pinv)
+                                               sqrt, trace, eye, pinv, sign)
+import tensornetwork.block_sparse.linalg as linalg
 
 np_dtypes = [np.float64, np.complex128]
 np_tensordot_dtypes = [np.float64, np.complex128]
@@ -625,3 +626,25 @@ def test_pinv_raises():
                                (-0.5, 0.5))
   with pytest.raises(ValueError):
     pinv(A)
+
+def test_abs():
+  np.random.seed(10)
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
+  arr = BlockSparseTensor.random(indices)
+  np.testing.assert_allclose(linalg.abs(arr).data, np.abs(arr.data))
+
+def test_sign():
+  np.random.seed(10)
+  Ds = np.array([8, 9, 10, 11])
+  flows = [True, False, True, False]
+  indices = [
+      Index(U1Charge.random(dimension=Ds[n], minval=-5, maxval=5), flows[n])
+      for n in range(4)
+  ]
+  arr = BlockSparseTensor.random(indices)
+  np.testing.assert_allclose(sign(arr).data, np.sign(arr.data))
