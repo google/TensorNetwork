@@ -593,9 +593,11 @@ def test_remove_node(backend):
   assert broken_edges_by_axis == {0: a[0]}
 
 def test_from_topology(backend):
+  #pylint: disable=unbalanced-tuple-unpacking
   x, y, z = tn.from_topology(
       "abc,bceg,adef", 
-      [np.ones((2,) * n) for n in [3, 4, 4]])
+      [np.ones((2,) * n) for n in [3, 4, 4]],
+      backend=backend)
   assert x.axis_names == ['a', 'b', 'c']
   assert y.axis_names == ['b', 'c', 'e', 'g']
   assert z.axis_names == ['a', 'd', 'e', 'f']
