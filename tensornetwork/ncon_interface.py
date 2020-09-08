@@ -629,7 +629,6 @@ def ncon(
       _tensors.append(t.array)
     else:
       _tensors.append(t)
-  print(_tensors)
   _tensors = [backend_obj.convert_to_tensor(t) for t in _tensors]
   if check_network:
     _check_network(network_structure, [t.shape for t in _tensors], con_order,
