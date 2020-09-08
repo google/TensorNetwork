@@ -618,17 +618,18 @@ def ncon(
     con_order = None
 
   are_tensors = [isinstance(t, tensor.Tensor) for t in tensors]
-  tensors = {t for t in tensors if isinstance(t, tensor.Tensor)}
-  if not all([n.backend.name == backend_obj.name for n in tensors]):
+  tensors_set = {t for t in tensors if isinstance(t, tensor.Tensor)}
+  if not all([n.backend.name == backend_obj.name for n in tensors_set]):
     raise ValueError("Some tensors have backends different from '{}'".format(
         backend_obj.name))
 
   _tensors = []
   for t in tensors:
     if isinstance(t, tensor.Tensor):
-      _tensors.append(t.tensor)
+      _tensors.append(t.array)
     else:
       _tensors.append(t)
+  print(_tensors)
   _tensors = [backend_obj.convert_to_tensor(t) for t in _tensors]
   if check_network:
     _check_network(network_structure, [t.shape for t in _tensors], con_order,
