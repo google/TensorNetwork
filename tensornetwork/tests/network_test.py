@@ -591,3 +591,18 @@ def test_remove_node(backend):
   broken_edges_by_name, broken_edges_by_axis = tn.remove_node(b)
   assert broken_edges_by_name == {"0": a[0]}
   assert broken_edges_by_axis == {0: a[0]}
+
+def test_from_topology(backend):
+  x, y, z = tn.from_topology(
+    "abc,bceg,adef", 
+    [np.ones((2,) * n) for n in [3, 4, 4]])
+  assert x.axis_names == ['a', 'b', 'c']
+  assert y.axis_names == ['b', 'c', 'e', 'g']
+  assert z.axis_names == ['a', 'd', 'e', 'f']
+  assert x['a'] is z['a']
+  assert x['b'] is y['b']
+  assert x['c'] is y['c']
+  assert z['d'].is_dangling()
+  assert y['e'] is z['e']
+  assert z['f'].is_dangling()
+  assert y['g'].is_dangling()
