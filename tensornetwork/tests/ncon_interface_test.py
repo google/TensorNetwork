@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import numpy as np
-from tensornetwork import AbstractNode, Node
+from tensornetwork.tensor import Tensor
 from tensornetwork import ncon_interface
 
 from tensornetwork.ncon_interface import (_get_cont_out_labels,
@@ -45,19 +45,19 @@ def test_sanity_check(backend):
 def test_node_sanity_check(backend):
   np.random.seed(10)
   t1, t2 = np.random.rand(2, 2), np.random.rand(2, 2)
-  n1, n2 = Node(t1, backend=backend), Node(t2, backend=backend)
+  n1, n2 = Tensor(t1, backend=backend), Tensor(t2, backend=backend)
   result = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
-  np.testing.assert_allclose(result.tensor, t1 @ t2)
+  np.testing.assert_allclose(result.array, t1 @ t2)
 
 
 def test_return_type(backend):
   t1, t2 = np.ones((2, 2)), np.ones((2, 2))
-  n1, n2 = Node(t1, backend=backend), Node(t2, backend=backend)
+  n1, n2 = Tensor(t1, backend=backend), Tensor(t2, backend=backend)
   result_1 = ncon_interface.ncon([t1, t2], [(-1, 1), (1, -2)], backend=backend)
   result_2 = ncon_interface.ncon([n1, n2], [(-1, 1), (1, -2)], backend=backend)
   result_3 = ncon_interface.ncon([n1, t2], [(-1, 1), (1, -2)], backend=backend)
   assert isinstance(result_1, type(n1.backend.convert_to_tensor(t1)))
-  assert isinstance(result_2, AbstractNode)
+  assert isinstance(result_2, Tensor)
   assert isinstance(result_3, type(n1.backend.convert_to_tensor(t1)))
 
 
@@ -91,28 +91,28 @@ def test_order_spec(backend):
 def test_node_order_spec(backend):
   np.random.seed(10)
   a = np.random.rand(2, 2)
-  node = Node(a, backend=backend)
+  node = Tensor(a, backend=backend)
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                out_order=[-1, -2],
                                backend=backend)
 
-  np.testing.assert_allclose(result.tensor, a @ a)
+  np.testing.assert_allclose(result.array, a @ a)
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                con_order=[1],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, a @ a)
+  np.testing.assert_allclose(result.array, a @ a)
 
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                con_order=[1],
                                out_order=[-1, -2],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, a @ a)
+  np.testing.assert_allclose(result.array, a @ a)
 
   result = ncon_interface.ncon([node, node], [(-1, 1), (1, -2)],
                                con_order=[1],
                                out_order=[-2, -1],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, (a @ a).T)
+  np.testing.assert_allclose(result.array, (a @ a).T)
 
 
 def test_order_spec_noninteger(backend):
@@ -137,17 +137,17 @@ def test_node_order_spec_noninteger(backend):
   np.random.seed(10)
   a = np.random.rand(2, 2)
   exp = a @ a
-  node = Node(a, backend=backend)
+  node = Tensor(a, backend=backend)
   result = ncon_interface.ncon([node, node], [('-o1', 'i'), ('i', '-o2')],
                                con_order=['i'],
                                out_order=['-o1', '-o2'],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, exp)
+  np.testing.assert_allclose(result.array, exp)
   result = ncon_interface.ncon([node, node], [('-o1', 'i'), ('i', '-o2')],
                                con_order=['i'],
                                out_order=['-o2', '-o1'],
                                backend=backend)
-  np.testing.assert_allclose(result.tensor, exp.T)
+  np.testing.assert_allclose(result.array, exp.T)
 
 
 def test_output_order(backend):
@@ -160,9 +160,9 @@ def test_output_order(backend):
 def test_node_output_order(backend):
   np.random.seed(10)
   t = np.random.randn(2, 2)
-  a = Node(t, backend=backend)
+  a = Tensor(t, backend=backend)
   res = ncon_interface.ncon([a], [(-2, -1)], backend=backend)
-  np.testing.assert_allclose(res.tensor, t.transpose())
+  np.testing.assert_allclose(res.array, t.transpose())
 
 
 def test_outer_product_1(backend):
@@ -211,55 +211,55 @@ def test_outer_product_2_mixed_labels(backend):
 def test_node_outer_product_1(backend):
   t1 = np.array([1, 2, 3])
   t2 = np.array([1, 2])
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
   res = ncon_interface.ncon([a, b], [(-1,), (-2,)], backend=backend)
-  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape((3, 2)))
+  np.testing.assert_allclose(res.array, np.kron(t1, t2).reshape((3, 2)))
 
   res = ncon_interface.ncon([a, a, a, a], [(1,), (1,), (2,), (2,)],
                             backend=backend)
-  np.testing.assert_allclose(res.tensor, 196)
+  np.testing.assert_allclose(res.array, 196)
 
 
 def test_node_outer_product_1_mixed_labels(backend):
   t1 = np.array([1, 2, 3])
   t2 = np.array([1, 2])
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
   res = ncon_interface.ncon([a, b], [('-hi',), ('-ho',)], backend=backend)
-  np.testing.assert_allclose(res.tensor, np.kron(t1, t2).reshape((3, 2)))
+  np.testing.assert_allclose(res.array, np.kron(t1, t2).reshape((3, 2)))
 
   res = ncon_interface.ncon([a, a, a, a], [('hi',), ('hi',), ('ho',), ('ho',)],
                             backend=backend)
-  np.testing.assert_allclose(res.tensor, 196)
+  np.testing.assert_allclose(res.array, 196)
 
 
 def test_node_outer_product_2(backend):
   np.random.seed(10)
   t1 = np.random.rand(10, 100)
   t2 = np.random.rand(8)
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
 
   res = ncon_interface.ncon([a, b], [(-1, -2), (-3,)],
                             out_order=[-2, -1, -3],
                             backend=backend)
   exp = np.einsum('ij,k->jik', t1, t2)
-  np.testing.assert_allclose(res.tensor, exp)
+  np.testing.assert_allclose(res.array, exp)
 
 
 def test_node_outer_product_2_mixed_labels(backend):
   np.random.seed(10)
   t1 = np.random.rand(10, 100)
   t2 = np.random.rand(8)
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
 
   res = ncon_interface.ncon([a, b], [(-1, '-hi'), ('-ho',)],
                             out_order=['-hi', -1, '-ho'],
                             backend=backend)
   exp = np.einsum('ij,k->jik', t1, t2)
-  np.testing.assert_allclose(res.tensor, exp)
+  np.testing.assert_allclose(res.array, exp)
 
 
 def test_trace(backend):
@@ -275,15 +275,15 @@ def test_trace_str_labels(backend):
 
 
 def test_node_trace(backend):
-  a = Node(np.ones((2, 2)), backend=backend)
+  a = Tensor(np.ones((2, 2)), backend=backend)
   res = ncon_interface.ncon([a], [(1, 1)], backend=backend)
-  np.testing.assert_allclose(res.tensor, 2)
+  np.testing.assert_allclose(res.array, 2)
 
 
 def test_node_trace_str_labels(backend):
-  a = Node(np.ones((2, 2)), backend=backend)
+  a = Tensor(np.ones((2, 2)), backend=backend)
   res = ncon_interface.ncon([a], [('hi', 'hi')], backend=backend)
-  np.testing.assert_allclose(res.tensor, 2)
+  np.testing.assert_allclose(res.array, 2)
 
 
 def test_small_matmul(backend):
@@ -308,10 +308,10 @@ def test_node_small_matmul(backend):
   t1 = np.random.randn(2, 2)
   t2 = np.random.randn(2, 2)
 
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
   res = ncon_interface.ncon([a, b], [(1, -1), (1, -2)], backend=backend)
-  np.testing.assert_allclose(res.tensor, t1.transpose() @ t2)
+  np.testing.assert_allclose(res.array, t1.transpose() @ t2)
 
 
 def test_node_small_matmul_mixed_labels(backend):
@@ -319,12 +319,12 @@ def test_node_small_matmul_mixed_labels(backend):
   t1 = np.random.randn(2, 2)
   t2 = np.random.randn(2, 2)
 
-  a = Node(t1, backend=backend)
-  b = Node(t2, backend=backend)
+  a = Tensor(t1, backend=backend)
+  b = Tensor(t2, backend=backend)
 
   res = ncon_interface.ncon([a, b], [('hi', -1), ('hi', '-ho')],
                             backend=backend)
-  np.testing.assert_allclose(res.tensor, t1.transpose() @ t2)
+  np.testing.assert_allclose(res.array, t1.transpose() @ t2)
 
 
 def test_contraction(backend):
@@ -351,26 +351,26 @@ def test_contraction_mixed_labels(backend):
 def test_node_contraction(backend):
   np.random.seed(10)
   tensor = np.random.randn(2, 2, 2)
-  a = Node(tensor, backend=backend)
+  a = Tensor(tensor, backend=backend)
   res = ncon_interface.ncon([a, a, a], [(-1, 1, 2), (1, 2, 3), (3, -2, -3)],
                             backend=backend)
   res_np = tensor.reshape((2, 4)) @ tensor.reshape((4, 2)) @ tensor.reshape(
       (2, 4))
   res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res.tensor, res_np)
+  np.testing.assert_allclose(res.array, res_np)
 
 
 def test_node_contraction_mixed_labels(backend):
   np.random.seed(10)
   tensor = np.random.randn(2, 2, 2)
-  a = Node(tensor, backend=backend)
+  a = Tensor(tensor, backend=backend)
   res = ncon_interface.ncon([a, a, a], [(-1, 'rick', 2), ('rick', 2, 'morty'),
                                         ('morty', -2, -3)],
                             backend=backend)
   res_np = tensor.reshape((2, 4)) @ tensor.reshape((4, 2)) @ tensor.reshape(
       (2, 4))
   res_np = res_np.reshape((2, 2, 2))
-  np.testing.assert_allclose(res.tensor, res_np)
+  np.testing.assert_allclose(res.array, res_np)
 
 
 def check(exp, actual):
@@ -744,8 +744,8 @@ def test_node_invalid_network(backend):
   b = np.ones((2, 3, 4, 2))
   c = np.ones((2, 4, 4, 3))
   run_tests(
-      Node(a, backend=backend), Node(b, backend=backend),
-      Node(c, backend=backend), backend)
+      Tensor(a, backend=backend), Tensor(b, backend=backend),
+      Tensor(c, backend=backend), backend)
 
 
 def test_infinite_loop(backend):

@@ -293,7 +293,7 @@ def test_ncon_invalid_backends(dtype, backend):
       tensors = [tensor1, tensor2, tensor3]
       idxs = [[1, -1], [1, 2], [-2, 2]]
       with pytest.raises(ValueError):
-        _ = tensornetwork.linalg.operations.ncon(tensors, idxs)
+        _ = ncon(tensors, idxs)
 
 
 @pytest.mark.parametrize("dtype", testing_utils.np_not_bool)
@@ -307,7 +307,7 @@ def test_ncon_vs_backend(dtype, backend):
   tensors = [tensor1, tensor2, tensor3]
   arrays = [tensor1.array, tensor2.array, tensor3.array]
   idxs = [[1, -1], [1, 2], [-2, 2]]
-  result = tensornetwork.linalg.operations.ncon(tensors, idxs)
+  result = ncon(tensors, idxs, backend=backend)
   old_result = tensornetwork.ncon(arrays, idxs, backend=backend)
   np.testing.assert_allclose(old_result, result.array)
 
