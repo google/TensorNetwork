@@ -594,8 +594,8 @@ def test_remove_node(backend):
 
 def test_from_topology(backend):
   x, y, z = tn.from_topology(
-    "abc,bceg,adef", 
-    [np.ones((2,) * n) for n in [3, 4, 4]])
+      "abc,bceg,adef", 
+      [np.ones((2,) * n) for n in [3, 4, 4]])
   assert x.axis_names == ['a', 'b', 'c']
   assert y.axis_names == ['b', 'c', 'e', 'g']
   assert z.axis_names == ['a', 'd', 'e', 'f']
