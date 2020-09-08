@@ -15,7 +15,7 @@
 import warnings
 import numpy as np
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
-from tensornetwork import tensor
+from tensornetwork import tensor as tn_tensor
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
@@ -521,13 +521,13 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
 
 
 def ncon(
-    tensors: Sequence[Union[tensor.Tensor, Tensor]],
+    tensors: Sequence[Union[tn_tensor.Tensor, Tensor]],
     network_structure: Sequence[Sequence[Union[str, int]]],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
     check_network: bool = True,
     backend: Optional[Union[Text, AbstractBackend]] = None
-) -> Union[tensor.Tensor, Tensor]:
+) -> Union[tn_tensor.Tensor, Tensor]:
   r"""Contracts a list of backend-tensors or  `Tensor`s 
     according to a tensor network 
     specification.
@@ -617,15 +617,15 @@ def ncon(
   if con_order == []:  #allow empty list as input
     con_order = None
 
-  are_tensors = [isinstance(t, tensor.Tensor) for t in tensors]
-  tensors_set = {t for t in tensors if isinstance(t, tensor.Tensor)}
+  are_tensors = [isinstance(t, tn_tensor.Tensor) for t in tensors]
+  tensors_set = {t for t in tensors if isinstance(t, tn_tensor.Tensor)}
   if not all([n.backend.name == backend_obj.name for n in tensors_set]):
     raise ValueError("Some tensors have backends different from '{}'".format(
         backend_obj.name))
 
   _tensors = []
   for t in tensors:
-    if isinstance(t, tensor.Tensor):
+    if isinstance(t, tn_tensor.Tensor):
       _tensors.append(t.array)
     else:
       _tensors.append(t)
@@ -659,5 +659,5 @@ def ncon(
                                              sizes, tuple(con_order),
                                              tuple(out_order), backend_obj)
   if all(are_tensors):
-    return tensor.Tensor(res_tensor, backend=backend_obj)
+    return tn_tensor.Tensor(res_tensor, backend=backend_obj)
   return res_tensor
