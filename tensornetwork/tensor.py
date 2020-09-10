@@ -185,3 +185,6 @@ class Tensor():
       raise ValueError(errstr)
     array = self.backend.matmul(self.array, other.array)
     return Tensor(array, backend=self.backend)
+
+  def __repr__(self):
+    return self.array.__repr__()

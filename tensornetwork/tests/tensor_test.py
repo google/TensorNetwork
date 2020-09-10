@@ -417,3 +417,11 @@ def test_tensor_ops_raise(dtype):
     _ = A / B
   with pytest.raises(ValueError):
     _ = A @ B
+
+@pytest.mark.parametrize("dtype", testing_utils.np_float_dtypes)
+def test_tensor_repr(backend, dtype):
+  """ Checks Tensor __repr__ behavior"""
+  shape = (8, 3, 4)
+  A, init = testing_utils.safe_randn(shape, backend, dtype)
+  assert A.__repr__() == A.array.__repr__()
+
