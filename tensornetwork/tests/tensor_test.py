@@ -422,6 +422,6 @@ def test_tensor_ops_raise(dtype):
 def test_tensor_repr(backend, dtype):
   """ Checks Tensor __repr__ behavior"""
   shape = (8, 3, 4)
-  A, init = testing_utils.safe_randn(shape, backend, dtype)
+  A, _ = testing_utils.safe_randn(shape, backend, dtype)
   assert A.__repr__() == A.array.__repr__()
 
