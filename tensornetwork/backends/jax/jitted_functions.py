@@ -381,7 +381,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     for shift in shifts:
       tmp = shift * jax.numpy.eye(m)
       Qj, R = jax.numpy.linalg.qr(Hm - tmp)
-      Hm = R @ Q + tmp# Qj.T.conj() @ Hm @ Qj
+      Hm = R @ Qj + tmp
       Vm = Qj.T @ Vm
       q = q @ Qj
 
