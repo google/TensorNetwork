@@ -18,6 +18,7 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
+from tensornetwork.backends.jax.precision import get_jax_precision
 from functools import partial
 
 Tensor = Any
@@ -344,10 +345,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
+    precision = get_jax_precision(libjax)      
     return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
                                             initial_state, num_krylov_vecs,
                                             numeig, which, tol, maxiter,
-                                            res_thresh)
+                                            res_thresh, precision)
 
   def eigsh_lanczos(
       self,
@@ -454,8 +456,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
       eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
       _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
     eigsh_lanczos = _CACHED_FUNCTIONS["eigsh_lanczos"]
+    precision = get_jax_precision(libjax)
     return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
-                         num_krylov_vecs, numeig, delta, reorthogonalize)
+                         num_krylov_vecs, numeig, delta, reorthogonalize,
+                         precision)
 
   def gmres(self,
             A_mv: Callable,
@@ -608,9 +612,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if "gmres" not in _CACHED_FUNCTIONS:
       _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
     gmres_m = _CACHED_FUNCTIONS["gmres"].gmres_m
+    precision = get_jax_precision(libjax)          
     x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
-                                      maxiter)
+                                      maxiter, precision)
     if converged:
       info = 0
     else:
