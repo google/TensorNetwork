@@ -21,7 +21,7 @@ def get_jax_precision(jax):
     return jax.lax.Precision.HIGH
   if JAX_PRECISION[0] == "HIGHEST":
     return jax.lax.Precision.HIGHEST
-  return None
+  raise ValueError(f"found unknown value JAX_PRECISOIN={JAX_PRECISION}.")
 
 def set_jax_precision(value):
   if value not in ("DEFAULT", "HIGH", "HIGHEST"):
