@@ -944,3 +944,12 @@ def test_pivot(dtype, pivot_axis):
   expected = tensor.reshape(pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_serialize(dtype):
+  shape = (3, 2, 1)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  s = backend.serialize_tensor(tensor)
+  assert isinstance(s, str)
+  assert (tensor == backend.deserialize_tensor(s)).any()

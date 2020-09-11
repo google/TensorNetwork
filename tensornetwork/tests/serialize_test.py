@@ -1,0 +1,108 @@
+# Copyright 2019 The TensorNetwork Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import tensornetwork as tn
+import pytest
+import numpy as np
+
+
+def assert_nodes_eq(a, b):
+  assert type(a) == type(b) #pylint: disable=unidiomatic-typecheck
+  assert getattr(a, 'name', None) == getattr(b, 'name', None)
+  assert getattr(a, 'axis_names', None) == getattr(b, 'axis_names', None)
+  assert getattr(a, 'backend', None) == getattr(b, 'backend', None)
+  assert getattr(a, 'shape', None) == getattr(b, 'shape', None)
+  assert getattr(a, 'rank', None) == getattr(b, 'rank', None)
+  assert getattr(a, 'dtype', None) == getattr(b, 'dtype', None)
+  assert getattr(a, 'dimension', None) == getattr(b, 'dimension', None)
+  ta = getattr(a, 'tensor', None)
+  if isinstance(ta, np.ndarray):
+    assert (ta == getattr(b, 'tensor', None)).any()
+
+
+def assert_edges_eq(a, b):
+  assert isinstance(a, tn.Edge) and isinstance(b, tn.Edge)
+  assert a.name == b.name
+  assert a._axes == b._axes
+
+
+def assert_graphs_eq(a_nodes, b_nodes):
+  assert len(a_nodes) == len(b_nodes)
+  a_nodes_dict = {}
+  b_nodes_dict = {}
+  for i, (a, b) in enumerate(zip(a_nodes, b_nodes)):
+    a_nodes_dict[a] = i
+    b_nodes_dict[b] = i
+  for a, b in zip(a_nodes, b_nodes):
+    for e1, e2 in zip(a.edges, b.edges):
+      assert_edges_eq(e1, e2)
+      assert a_nodes_dict.get(e1.node2,
+                              None) == b_nodes_dict.get(e2.node2, None)
+
+
+def create_basic_network():
+  a = tn.Node(np.array([1, 2, 3]), name='an', axis_names=['a1'])
+  b = tn.Node(np.ones([3, 3, 3]), name='bn', axis_names=['b1', 'b2', 'b3'])
+  c = tn.Node(np.ones([3, 3, 3]), name='cn', axis_names=['c1', 'c2', 'c3'])
+  d = tn.Node(np.ones([3, 3, 3]), name='dn', axis_names=['d1', 'd2', 'd3'])
+
+  a[0] ^ b[0]
+  b[1] ^ c[0]
+  c[1] ^ d[0]
+  c[2] ^ b[2]
+
+  return [a, b, c, d]
+
+
+def test_basic_serial():
+  nodes = create_basic_network()
+
+  s = tn.nodes_to_json(nodes)
+  new_nodes = tn.nodes_from_json(s)
+  for x, y in zip(nodes, new_nodes):
+    assert_nodes_eq(x, y)
+  assert_graphs_eq(nodes, new_nodes)
+
+
+def test_exlcuded_node_serial():
+  nodes = create_basic_network()
+
+  s = tn.nodes_to_json(nodes[:-1])
+  new_nodes = tn.nodes_from_json(s)
+  for x, y in zip(nodes, new_nodes):
+    assert_nodes_eq(x, y)
+  with pytest.raises(AssertionError):
+    assert_graphs_eq(nodes, new_nodes)
+  sub_graph = nodes[:-1]
+  sub_graph[-1][1].disconnect(sub_graph[-1][1].name)
+  assert_graphs_eq(sub_graph, new_nodes)
+
+
+def test_multi_node_type_serial():
+  a = tn.Node(np.array([1, 2, 3]), name='an', axis_names=['a1'])
+  b = tn.CopyNode(rank=3, dimension=3, name='bn', axis_names=['b1', 'b2', 'b3'])
+  c = tn.CopyNode(rank=3, dimension=3, name='cn', axis_names=['c1', 'c2', 'c3'])
+  d = tn.Node(np.ones([3, 3, 3]), name='dn', axis_names=['d1', 'd2', 'd3'])
+
+  a[0] ^ b[0]
+  b[1] ^ c[0]
+  c[1] ^ d[0]
+  b[2] ^ d[1]
+  c[2] ^ d[2]
+  nodes = [a, b, c, d]
+  s = tn.nodes_to_json(nodes)
+  new_nodes = tn.nodes_from_json(s)
+  for x, y in zip(nodes, new_nodes):
+    assert_nodes_eq(x, y)
+  assert_graphs_eq(nodes, new_nodes)

@@ -17,6 +17,7 @@ import collections
 from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
     Sequence, Iterable, Type
 import numpy as np
+import json
 
 #pylint: disable=useless-import-alias
 #pylint: disable=line-too-long
@@ -212,18 +213,19 @@ def split_node(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd(
-      transp_tensor,
-      len(left_edges),
-      max_singular_values,
-      max_truncation_err,
-      relative=relative)
+  u, s, vh, trun_vals = backend.svd(transp_tensor,
+                                    len(left_edges),
+                                    max_singular_values,
+                                    max_truncation_err,
+                                    relative=relative)
   sqrt_s = backend.sqrt(s)
   u_s = backend.broadcast_right_multiplication(u, sqrt_s)
   vh_s = backend.broadcast_left_multiplication(sqrt_s, vh)
 
-  left_node = Node(
-      u_s, name=left_name, axis_names=left_axis_names, backend=backend)
+  left_node = Node(u_s,
+                   name=left_name,
+                   axis_names=left_axis_names,
+                   backend=backend)
 
   left_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
@@ -232,8 +234,10 @@ def split_node(
     left_node.add_edge(edge, i)
     edge.update_axis(left_axes_order[i], node, i, left_node)
 
-  right_node = Node(
-      vh_s, name=right_name, axis_names=right_axis_names, backend=backend)
+  right_node = Node(vh_s,
+                    name=right_name,
+                    axis_names=right_axis_names,
+                    backend=backend)
 
   right_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
@@ -310,8 +314,10 @@ def split_node_qr(
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
   q, r = backend.qr(transp_tensor, len(left_edges))
-  left_node = Node(
-      q, name=left_name, axis_names=left_axis_names, backend=backend)
+  left_node = Node(q,
+                   name=left_name,
+                   axis_names=left_axis_names,
+                   backend=backend)
 
   left_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
@@ -320,8 +326,10 @@ def split_node_qr(
     left_node.add_edge(edge, i)
     edge.update_axis(left_axes_order[i], node, i, left_node)
 
-  right_node = Node(
-      r, name=right_name, axis_names=right_axis_names, backend=backend)
+  right_node = Node(r,
+                    name=right_name,
+                    axis_names=right_axis_names,
+                    backend=backend)
 
   right_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
@@ -401,8 +409,10 @@ def split_node_rq(
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
   r, q = backend.rq(transp_tensor, len(left_edges))
-  left_node = Node(
-      r, name=left_name, axis_names=left_axis_names, backend=backend)
+  left_node = Node(r,
+                   name=left_name,
+                   axis_names=left_axis_names,
+                   backend=backend)
 
   left_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
@@ -411,8 +421,10 @@ def split_node_rq(
     left_node.add_edge(edge, i)
     edge.update_axis(left_axes_order[i], node, i, left_node)
 
-  right_node = Node(
-      q, name=right_name, axis_names=right_axis_names, backend=backend)
+  right_node = Node(q,
+                    name=right_name,
+                    axis_names=right_axis_names,
+                    backend=backend)
 
   right_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in right_edges
@@ -530,22 +542,24 @@ def split_node_full_svd(
   backend = node.backend
   transp_tensor = node.tensor_from_edge_order(left_edges + right_edges)
 
-  u, s, vh, trun_vals = backend.svd(
-      transp_tensor,
-      len(left_edges),
-      max_singular_values,
-      max_truncation_err,
-      relative=relative)
-  left_node = Node(
-      u, name=left_name, axis_names=left_axis_names, backend=backend)
-  singular_values_node = Node(
-      backend.diagflat(s),
-      name=middle_name,
-      axis_names=center_axis_names,
-      backend=backend)
+  u, s, vh, trun_vals = backend.svd(transp_tensor,
+                                    len(left_edges),
+                                    max_singular_values,
+                                    max_truncation_err,
+                                    relative=relative)
+  left_node = Node(u,
+                   name=left_name,
+                   axis_names=left_axis_names,
+                   backend=backend)
+  singular_values_node = Node(backend.diagflat(s),
+                              name=middle_name,
+                              axis_names=center_axis_names,
+                              backend=backend)
 
-  right_node = Node(
-      vh, name=right_name, axis_names=right_axis_names, backend=backend)
+  right_node = Node(vh,
+                    name=right_name,
+                    axis_names=right_axis_names,
+                    backend=backend)
 
   left_axes_order = [
       edge.axis1 if edge.node1 is node else edge.axis2 for edge in left_edges
@@ -561,10 +575,12 @@ def split_node_full_svd(
     # i + 1 to account for the new edge.
     right_node.add_edge(edge, i + 1)
     edge.update_axis(right_axes_order[i], node, i + 1, right_node)
-  connect(
-      left_node.edges[-1], singular_values_node.edges[0], name=left_edge_name)
-  connect(
-      singular_values_node.edges[1], right_node.edges[0], name=right_edge_name)
+  connect(left_node.edges[-1],
+          singular_values_node.edges[0],
+          name=left_edge_name)
+  connect(singular_values_node.edges[1],
+          right_node.edges[0],
+          name=right_edge_name)
   node.fresh_edges(node.axis_names)
   return left_node, singular_values_node, right_node, trun_vals
 
@@ -604,7 +620,7 @@ def reachable(
   if isinstance(inputs, AbstractNode):
     inputs = {inputs}
   elif isinstance(inputs, Edge):
-    inputs = {inputs.node1} # pytype: disable=attribute-error
+    inputs = {inputs.node1}  # pytype: disable=attribute-error
   elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
     inputs = {x.node1 for x in inputs}
   return _reachable(set(inputs))
@@ -817,3 +833,103 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
         neighbors.append(edge.node1)
         neighbors_set.add(edge.node1)
   return neighbors
+
+
+JSON_TYPE_DICT = {
+    Node: 'Node',
+    CopyNode: 'CopyNode',
+}
+
+
+def nodes_to_json(nodes: List[AbstractNode]) -> str:
+  """
+  Create a JSON string representing the Tensor Network made up of the given 
+  nodes. Nodes and their attributes, edges and their attributes and tensor
+  values are included.
+  
+  Tensors are serialized according the the format used by each tensors backend.
+  
+  For edges spanning included nodes and excluded nodes the edge attributes are 
+  preserved in the serialization but the connection to the excluded node is 
+  dropped. The original edge is not modified.
+  
+  Args:
+    nodes: A list of nodes making up a tensor network.
+    
+  Returns:
+    A string representing the JSON serialized tensor network.
+    
+  Raises:
+    ValueError: If a node does not have a serialized 'type' string.
+  """
+  type_dict = JSON_TYPE_DICT
+  network_dict = {
+      'nodes': [],
+      'edges': [],
+  }
+  node_id_dict = {}
+
+  for i, node in enumerate(nodes):
+    t = type_dict.get(type(node), None)
+    if not t:
+      ValueError(f'Unsupported serialization type: {type(node)}')
+
+    node_id_dict[node] = i
+    network_dict['nodes'].append({
+        'id': i,
+        'type': t,
+        'attributes': node.to_serial_dict(),
+    })
+  edges = get_all_edges(nodes)
+  for edge in edges:
+    node_ids = [node_id_dict.get(n, None) for n in edge.get_nodes()]
+    attributes = edge.to_serial_dict()
+    attributes['axes'] = [
+        a if node_ids[i] is not None else None
+        for i, a in enumerate(attributes['axes'])
+    ]
+    node_dict = {
+        'node_ids': node_ids,
+        'attributes': attributes,
+    }
+    network_dict['edges'].append(node_dict)
+  return json.dumps(network_dict)
+
+
+def nodes_from_json(json_str: str) -> List[AbstractNode]:
+  """
+  Create a tensor network from a JSON string representation of a tensor network.
+  
+  Args:
+    json_str: A string representing a JSON serialized tensor network.
+    
+  Returns:
+    A list of nodes making up the tensor network.
+    
+  Raises:
+    ValueError: If a node 'type' field does not have a corresponding node class.
+  """
+  type_dict = {value: key for key, value in JSON_TYPE_DICT.items()}
+  network_dict = json.loads(json_str)
+  nodes = []
+  node_ids = {}
+  for n in network_dict['nodes']:
+    t = type_dict.get(n['type'], None)
+    if not t:
+      ValueError(f'Unsupported serialization type: {n["type"]}')
+
+    node = t.from_serial_dict(n['attributes'])
+    nodes.append(node)
+    node_ids[n['id']] = node
+  for e in network_dict['edges']:
+    e_nodes = [node_ids.get(n_id, None) for n_id in e['node_ids']]
+    axes = e['attributes']['axes']
+    edge = Edge(node1=e_nodes[0],
+                axis1=axes[0],
+                node2=e_nodes[1],
+                axis2=axes[1],
+                name=e['attributes']['name'])
+    for node, axis in zip(e_nodes, axes):
+      if node is not None:
+        node.add_edge(edge, axis, override=True)
+  return nodes
