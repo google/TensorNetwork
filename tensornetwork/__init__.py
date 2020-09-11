@@ -68,3 +68,5 @@ from tensornetwork.block_sparse.blocksparsetensor import ChargeArray
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge
 from tensornetwork.block_sparse.charge import ZNCharge
+from tensornetwork.backends.jax.precision import (set_jax_precision,
+                                                  get_jax_precision)
