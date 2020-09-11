@@ -40,7 +40,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   """
 
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
-  def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho, precision):
+  def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho,
+                  precision):
     """
     Jitted lanczos routine.
     Args:
@@ -63,7 +64,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
-      vector -= jax.numpy.vdot(v, vector, precision = precision) * jax.numpy.reshape(v, vector.shape)
+      vector -= jax.numpy.vdot(
+          v, vector, precision=precision) * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
@@ -275,7 +277,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       H = jax.ops.index_update(H, jax.ops.index[j, n], h)
       vector = vector - h * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors, n, H]
-    
+
     # body of the arnoldi iteration
     def body(vals):
       krylov_vectors, H, matvec, vector, _, threshold, i, maxiter = vals
@@ -557,11 +559,10 @@ def gmres_wrapper(jax: types.ModuleType):
   """
   jnp = jax.numpy
 
-  def gmres_m(A_mv: Callable, A_args: Sequence,
-              b: jax.ShapedArray, x0: jax.ShapedArray, tol: float,
-              atol: float, num_krylov_vectors: int,
-              maxiter: int,
-              precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, float, int, bool]:
+  def gmres_m(
+      A_mv: Callable, A_args: Sequence, b: jax.ShapedArray, x0: jax.ShapedArray,
+      tol: float, atol: float, num_krylov_vectors: int, maxiter: int,
+      precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, float, int, bool]:
     """
     Solve A x = b for x using the m-restarted GMRES method. This is
     intended to be called via jax_backend.gmres.
@@ -739,11 +740,11 @@ def gmres_wrapper(jax: types.ModuleType):
       gmres_variables, gmres_constants = gmres_carry
       k, V, R, beta_vec, err, givens = gmres_variables
       tol, A_mv, A_args, b_norm, _ = gmres_constants
-  
+
       V, H = kth_arnoldi_step(k, A_mv, A_args, V, R, tol, precision)
       R_col, givens = apply_givens_rotation(H[:, k], givens, k)
       R = jax.ops.index_update(R, jax.ops.index[:, k], R_col[:])
-  
+
       # Update the residual vector.
       cs, sn = givens[:, k] * beta_vec[k]
       beta_vec = jax.ops.index_update(beta_vec, jax.ops.index[k], cs)
@@ -772,10 +773,10 @@ def gmres_wrapper(jax: types.ModuleType):
       k = gmres_variables[0]
       err = gmres_variables[4]
       n_kry = gmres_constants[4]
-  
+
       def is_iterating(k, n_kry):
         return k < n_kry
-  
+
       def not_converged(args):
         err, tol = args
         return err >= tol
@@ -783,7 +784,7 @@ def gmres_wrapper(jax: types.ModuleType):
                           not_converged,            # Called if True.
                           lambda x: False,          # Called if False.
                           (err, tol))               # Arguments to calls.
-      
+
     gmres_carry = jax.lax.while_loop(gmres_krylov_loop_condition,
                                      gmres_krylov_work,
                                      gmres_carry)
@@ -799,11 +800,11 @@ def gmres_wrapper(jax: types.ModuleType):
 
 
 
-  @functools.partial(jax.jit, static_argnums = (6,))
-  def kth_arnoldi_step(k: int, A_mv: Callable, A_args: Sequence,
-                       V: jax.ShapedArray, H: jax.ShapedArray,
-                       tol: float,
-                       precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+  @functools.partial(jax.jit, static_argnums=(6,))
+  def kth_arnoldi_step(
+      k: int, A_mv: Callable, A_args: Sequence, V: jax.ShapedArray,
+      H: jax.ShapedArray, tol: float,
+      precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     """
     Performs the kth iteration of the Arnoldi reduction procedure.
     Args:
@@ -817,9 +818,10 @@ def gmres_wrapper(jax: types.ModuleType):
       V, H: With their k'th columns respectively filled in by a new
         orthogonalized Krylov vector and new overlaps.
     """
-    def _gs_step(r: jax.ShapedArray,
-                 v_i: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
-  
+
+    def _gs_step(
+        r: jax.ShapedArray,
+        v_i: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
       """
       Performs one iteration of the stabilized Gram-Schmidt procedure, with
       r to be orthonormalized against {v} = {v_0, v_1, ...}.
@@ -834,7 +836,7 @@ def gmres_wrapper(jax: types.ModuleType):
       h_i = jnp.vdot(v_i, r, precision=precision)
       r_i = r - h_i * v_i
       return r_i, h_i
-      
+
     v = A_mv(V[:, k], *A_args)
     v_new, H_k = jax.lax.scan(_gs_step, init=v, xs=V.T)
     v_norm = jnp.linalg.norm(v_new)

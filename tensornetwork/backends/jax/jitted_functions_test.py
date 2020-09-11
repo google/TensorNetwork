@@ -25,7 +25,7 @@ def test_arnoldi_factorization(dtype):
   kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
   H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
   start = 0
-  precision = get_jax_precision(jax)      
+  precision = get_jax_precision(jax)
   kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01, precision)
   Vm = jax.numpy.transpose(kv[:it, :])
   Hm = H[:it, :it]
@@ -57,7 +57,8 @@ def test_gmres_on_small_known_problem(dtype):
     return A @ x
   tol = A.size*jax.numpy.finfo(dtype).eps
   precision = get_jax_precision(jax)
-  x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter, precision)
+  x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter,
+                             precision)
   solution = jax.numpy.array([2., 1.], dtype=dtype)
   np.testing.assert_allclose(x, solution, atol=tol)
 
