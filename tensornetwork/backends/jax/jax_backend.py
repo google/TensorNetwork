@@ -59,7 +59,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
-    return jnp.tensordot(a, b, axes)
+    precision = get_jax_precision(libjax)
+    return jnp.tensordot(a, b, axes, precision=precision)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
@@ -133,7 +134,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return result
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return jnp.tensordot(tensor1, tensor2, 0)
+    precision = get_jax_precision(libjax)
+    return jnp.tensordot(tensor1, tensor2, 0, precision=precision)
 
   def einsum(self,
              expression: str,
@@ -345,7 +347,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
-    precision = get_jax_precision(libjax)      
+    precision = get_jax_precision(libjax)
     return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
                                             initial_state, num_krylov_vecs,
                                             numeig, which, tol, maxiter,
@@ -698,12 +700,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=axis, keepdims=keepdims)
+    return jnp.sum(tensor, axis=axis, keepdims=keepdims)
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
-    return jnp.matmul(tensor1, tensor2)
+    precision = get_jax_precision(libjax)
+    return jnp.matmul(tensor1, tensor2, precision=precision)
 
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
