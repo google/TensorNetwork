@@ -22,7 +22,7 @@ from tensornetwork.backends.jax.precision import get_jax_precision
 from functools import partial
 
 Tensor = Any
-
+JaxPrecisionType = Any
 # pylint: disable=abstract-method
 
 _CACHED_MATVECS = {}
@@ -39,7 +39,8 @@ _MIN_RES_THRESHS = {
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
-  def __init__(self, dtype: Optional[np.dtype] = None) -> None:
+  def __init__(self, dtype: Optional[np.dtype] = None,
+               precision: JaxPrecisionType = "DEFAULT") -> None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -56,11 +57,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
     jsp = libjax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
-
+    self.jax_precision = get_jax_precision(libjax, precision)
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
-    precision = get_jax_precision(libjax)
-    return jnp.tensordot(a, b, axes, precision=precision)
+    return jnp.tensordot(a, b, axes, precision=self.jax_precision)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
@@ -134,8 +134,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return result
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    precision = get_jax_precision(libjax)
-    return jnp.tensordot(tensor1, tensor2, 0, precision=precision)
+    return jnp.tensordot(tensor1, tensor2, 0,
+                         precision=self.jax_precision)
 
   def einsum(self,
              expression: str,
@@ -347,11 +347,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
-    precision = get_jax_precision(libjax)
     return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
                                             initial_state, num_krylov_vecs,
                                             numeig, which, tol, maxiter,
-                                            res_thresh, precision)
+                                            res_thresh, self.jax_precision)
 
   def eigsh_lanczos(
       self,
@@ -458,10 +457,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
       eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
       _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
     eigsh_lanczos = _CACHED_FUNCTIONS["eigsh_lanczos"]
-    precision = get_jax_precision(libjax)
     return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
                          num_krylov_vecs, numeig, delta, reorthogonalize,
-                         precision)
+                         self.jax_precision)
 
   def gmres(self,
             A_mv: Callable,
@@ -614,10 +612,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if "gmres" not in _CACHED_FUNCTIONS:
       _CACHED_FUNCTIONS["gmres"] = jitted_functions.gmres_wrapper(libjax)
     gmres_m = _CACHED_FUNCTIONS["gmres"].gmres_m
-    precision = get_jax_precision(libjax)          
     x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
-                                      maxiter, precision)
+                                      maxiter, self.jax_precision)
     if converged:
       info = 0
     else:
@@ -705,8 +702,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
-    precision = get_jax_precision(libjax)
-    return jnp.matmul(tensor1, tensor2, precision=precision)
+    return jnp.matmul(tensor1, tensor2, precision=self.jax_precision)
 
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:
