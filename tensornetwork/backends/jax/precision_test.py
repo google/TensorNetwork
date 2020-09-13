@@ -1,14 +1,11 @@
 import pytest
-from tensornetwork.backends.jax.precision import (get_jax_precision,
-                                                  set_jax_precision)
+from tensornetwork.backends.jax.precision import get_jax_precision
 import jax
 
-def test_set_jax_precision():
-  set_jax_precision("DEFAULT")
-  assert get_jax_precision(jax) is jax.lax.Precision.DEFAULT
-  set_jax_precision("HIGH")
-  assert get_jax_precision(jax) is jax.lax.Precision.HIGH
-  set_jax_precision("HIGHEST")
-  assert get_jax_precision(jax) is jax.lax.Precision.HIGHEST
-  with pytest.raises(ValueError, match="WRONG_VALUE is not a valid"):
-    set_jax_precision("WRONG_VALUE")
+
+def test_get_jax_precision():
+  assert get_jax_precision(jax, "DEFAULT") is jax.lax.Precision.DEFAULT
+  assert get_jax_precision(jax, "HIGH") is jax.lax.Precision.HIGH
+  assert get_jax_precision(jax, "HIGHEST") is jax.lax.Precision.HIGHEST
+  with pytest.raises(ValueError, match="unkown value NO_PRECISION"):
+    get_jax_precision(jax, "NO_PRECISION")
