@@ -13,6 +13,8 @@
 # limitations under the License.
 
 def get_jax_precision(jax, precision):
+  if precision is None:
+    return jax.lax.Precision.DEFAULT
   if precision == "DEFAULT":
     return jax.lax.Precision.DEFAULT
   if precision == "HIGH":
@@ -21,4 +23,3 @@ def get_jax_precision(jax, precision):
     return jax.lax.Precision.HIGHEST
   raise ValueError(f"unknown value {precision}"
                    f" for precision.")
-
