@@ -87,22 +87,3 @@ def test_exlcuded_node_serial():
   sub_graph = nodes[:-1]
   sub_graph[-1][1].disconnect(sub_graph[-1][1].name)
   assert_graphs_eq(sub_graph, new_nodes)
-
-
-def test_multi_node_type_serial():
-  a = tn.Node(np.array([1, 2, 3]), name='an', axis_names=['a1'])
-  b = tn.CopyNode(rank=3, dimension=3, name='bn', axis_names=['b1', 'b2', 'b3'])
-  c = tn.CopyNode(rank=3, dimension=3, name='cn', axis_names=['c1', 'c2', 'c3'])
-  d = tn.Node(np.ones([3, 3, 3]), name='dn', axis_names=['d1', 'd2', 'd3'])
-
-  a[0] ^ b[0]
-  b[1] ^ c[0]
-  c[1] ^ d[0]
-  b[2] ^ d[1]
-  c[2] ^ d[2]
-  nodes = [a, b, c, d]
-  s = tn.nodes_to_json(nodes)
-  new_nodes = tn.nodes_from_json(s)
-  for x, y in zip(nodes, new_nodes):
-    assert_nodes_eq(x, y)
-  assert_graphs_eq(nodes, new_nodes)

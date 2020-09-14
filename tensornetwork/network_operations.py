@@ -837,7 +837,6 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
 
 JSON_TYPE_DICT = {
     Node: 'Node',
-    CopyNode: 'CopyNode',
 }
 
 
