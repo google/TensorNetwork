@@ -30,17 +30,78 @@ _BACKENDS = {
 #we instantiate each backend only once and store it here
 _INSTANTIATED_BACKENDS = dict()
 
+jax_config_args = dict(
+    dtype=None,  # default: float64 
+    precision=None  # default: jax.lax.Precision.DEFAULT
+)
+numpy_config_args = dict()
+pytorch_config_args = dict()
+tensorflow_config_args = dict()
+symmetric_config_args = dict()
 
+CONFIG_ARGS = {
+    'numpy': numpy_config_args,
+    'jax': jax_config_args,
+    'tensorflow': tensorflow_config_args,
+    'pytorch': pytorch_config_args,
+    'symmetric': symmetric_config_args
+}
+
+
+def configure_backend(backend: Union[Text, abstract_backend.AbstractBackend],
+                      **kwargs):
+  """
+  Globally configure the behaviour of different backends.
+  All backends in _INSTANTIATED_BACKENDS are reconfigured, 
+  and the default config parameters will be changed to `**kwargs`.
+  """
+  if isinstance(backend, abstract_backend.AbstractBackend):
+    backend_name = backend.name
+  else:
+    backend_name = backend
+  for arg, val in kwargs.items():
+    if arg not in CONFIG_ARGS[backend]:
+      raise ValueError(f"unkown config-variable {arg} "
+                       f"for {backend_name} backend")
+    CONFIG_ARGS[backend_name][arg] = val  #TODO(mganahl): add check for val
+
+  if isinstance(backend, abstract_backend.AbstractBackend):
+    backend_name = backend.name
+  else:
+    backend_name = backend
+  # the passed backend does not have to be in _INSTANTIATED_BACKENDS
+  if isinstance(backend, abstract_backend.AbstractBackend):
+    backend.configure(**CONFIG_ARGS[backend_name])
+    
+  backend_names = _INSTANTIATED_BACKENDS.keys()
+  if backend_name in backend_names:
+    # if this backend is already in use, reconfigure it
+    _INSTANTIATED_BACKENDS[backend_name].configure(**CONFIG_ARGS[backend_name])
+    
+def reset_backend(backend: Union[Text, abstract_backend.AbstractBackend])->None:
+  """
+  Reset `backend` to its default configuration.
+  """
+  if isinstance(backend, abstract_backend.AbstractBackend):
+    backend.config(**CONFIG_ARGS[backend])    
+    backend_name = backend.name
+  else:
+    backend_name = backend
+  backend_names = _INSTANTIATED_BACKENDS.keys()    
+  if backend_name in backend_names:
+    _INSTANTIATED_BACKENDS[backend_name].configure(**CONFIG_ARGS[backend])
+    
+  
 def get_backend(
     backend: Union[Text, abstract_backend.AbstractBackend]
 ) -> abstract_backend.AbstractBackend:
+  
   if isinstance(backend, abstract_backend.AbstractBackend):
-    return backend
+    backend = backend.name
   if backend not in _BACKENDS:
     raise ValueError("Backend '{}' does not exist".format(backend))
-
   if backend in _INSTANTIATED_BACKENDS:
-    return _INSTANTIATED_BACKENDS[backend]
-
-  _INSTANTIATED_BACKENDS[backend] = _BACKENDS[backend]()
+    return  _INSTANTIATED_BACKENDS[backend]
+  
+  _INSTANTIATED_BACKENDS[backend] = _BACKENDS[backend](**CONFIG_ARGS[backend])
   return _INSTANTIATED_BACKENDS[backend]
