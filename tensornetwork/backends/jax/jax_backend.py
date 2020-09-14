@@ -22,7 +22,6 @@ from tensornetwork.backends.jax.precision import get_jax_precision
 from functools import partial
 
 Tensor = Any
-JaxPrecisionType = Any
 # pylint: disable=abstract-method
 
 _CACHED_MATVECS = {}
@@ -40,7 +39,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
   def __init__(self, dtype: Optional[np.dtype] = None,
-               precision: JaxPrecisionType = "DEFAULT") -> None:
+               precision: Optional[Text] = None) -> None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -58,6 +57,13 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
     self.jax_precision = get_jax_precision(libjax, precision)
+
+  def configure(self,
+                dtype: Optional[np.dtype] = None,
+                precision: Optional[Text] = None):
+    self._dtype = np.dtype(dtype) if dtype is not None else None
+    self.jax_precision = get_jax_precision(libjax, precision)
+
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return jnp.tensordot(a, b, axes, precision=self.jax_precision)
