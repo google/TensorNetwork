@@ -58,7 +58,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self._dtype = np.dtype(dtype) if dtype is not None else None
     self.jax_precision = get_jax_precision(libjax, precision)
 
-  def configure(self,
+  def configure(self, #pylint: disable=arguments-differ
                 dtype: Optional[np.dtype] = None,
                 precision: Optional[Text] = None):
     self._dtype = np.dtype(dtype) if dtype is not None else None
