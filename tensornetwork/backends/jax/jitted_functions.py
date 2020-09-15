@@ -101,7 +101,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
                           [norm, landelta])
 
-    numel = jax.numpy.prod([np.int32(d) for d in shape])
+    #TODO (mganahl): check if this runs on TPU
+    numel = np.prod(shape).astype(np.int32) 
     #note: ncv + 2 because the first vector is all zeros, and the
     #last is the unnormalized residual.
     krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=init.dtype)
