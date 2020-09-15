@@ -2,7 +2,6 @@ import numpy as np
 import jax
 import pytest
 from tensornetwork.backends.jax import jitted_functions
-from tensornetwork.backends.jax.precision import get_jax_precision
 jax.config.update('jax_enable_x64', True)
 
 jax_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
@@ -25,7 +24,7 @@ def test_arnoldi_factorization(dtype):
   kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
   H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
   start = 0
-  precision = get_jax_precision(jax, "HIGHEST")
+  precision = jax.lax.Precision.HIGHEST
   kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01, precision)
   Vm = jax.numpy.transpose(kv[:it, :])
   Hm = H[:it, :it]
@@ -56,7 +55,7 @@ def test_gmres_on_small_known_problem(dtype):
   def A_mv(x):
     return A @ x
   tol = A.size*jax.numpy.finfo(dtype).eps
-  precision = get_jax_precision(jax, "HIGHEST")
+  precision = jax.lax.Precision.HIGHEST
   x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter,
                              precision)
   solution = jax.numpy.array([2., 1.], dtype=dtype)
@@ -85,7 +84,7 @@ def test_gmres_krylov(dtype):
   tol = A.size*jax.numpy.finfo(dtype).eps
   x0 = jax.numpy.array(np.random.rand(n).astype(dtype))
   b = jax.numpy.array(np.random.rand(n), dtype=dtype)
-  precision = get_jax_precision(jax, "HIGHEST")
+  precision = jax.lax.Precision.HIGHEST
   r, beta = gmres.gmres_residual(A_mv, [], b, x0)
   _, V, R, _ = gmres.gmres_krylov(A_mv, [], n_kry, x0, r, beta,
                                   tol, jax.numpy.linalg.norm(b),
@@ -124,7 +123,7 @@ def test_gmres_arnoldi_step(dtype):
   Q = jax.numpy.array(Q)
   H = jax.numpy.zeros((n_kry + 1, n_kry), dtype=x0.dtype)
   tol = A.size*jax.numpy.finfo(dtype).eps
-  precision = get_jax_precision(jax, "HIGHEST")
+  precision = jax.lax.Precision.HIGHEST
   @jax.tree_util.Partial
   def A_mv(x):
     return A @ x
