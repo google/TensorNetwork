@@ -784,8 +784,6 @@ def gmres_wrapper(jax: types.ModuleType):
   GmresCarryType = Tuple[VarType, ConstType]
 
 
-
-
   @functools.partial(jax.jit, static_argnums=(6,))
   def kth_arnoldi_step(
       k: int, A_mv: Callable, A_args: Sequence, V: jax.ShapedArray,
