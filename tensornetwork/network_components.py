@@ -922,39 +922,38 @@ class Edge:
   """
 
   def __init__(self,
-               node1: AbstractNode,
-               axis1: int,
+               nodes: Iterable[Union[AbstractNode, None]],
+               axes: Iterable[Union[AbstractNode, None]],
                name: Optional[Text] = None,
-               node2: Optional[AbstractNode] = None,
-               axis2: Optional[int] = None) -> None:
     """Create an Edge.
 
     Args:
+      nodes: Iterable of nodes this edge connects. 
+      axes: Iterable of ints describing the axis of this edge describes for 
+        each connecting node.
       name: Name of the edge. Used primarily for debugging.
-      node1: One of the nodes edge connects.
-      axis1: The axis of node1 that represents this edge.
-      node2: The other node that this edge connects. Can be `None` if edge is
-        dangling.
-      axis2: The axis of node2 that represents this edge. Must be `None` if
-        node2 is `None`.
 
     Raises:
-      ValueError: If node2 and axis2 are not either both `None` or both
-        not be `None`.
+      ValueError: If corresponding values for nodes and axes are not of equal
+        length and are not both `None` or neither `None`.
     """
-    if (node2 is None) != (axis2 is None):
-      raise ValueError(
-          "node2 and axis2 must either be both None or both not be None")
+    if len(nodes) != len(axes):
+      raise ValueError("nodes and axes must be of the same length")
+    for n, a in zip(nodes, axes):
+      if (n is None) != (a is None):
+        raise ValueError(
+            """corresponding node and axis must either both be None or both not 
+            be None""")
     self.is_disabled = False
     if name is None:
       name = '__unnamed_edge__'
     else:
       if not isinstance(name, str):
         raise TypeError("Edge name should be str type")
-    self._nodes = [node1, node2]
-    self._axes = [axis1, axis2]
+    self.nodes = nodes
+    self.axes = axes
     self._name = name
-    self._is_dangling = node2 is None
+    self._is_dangling = self.nodes[1] is None
 
   # contraction methods now explicitly disable Edges by setting
   # node1, node2 to None. This makes use of weakref for node1 and node2
@@ -1011,9 +1010,35 @@ class Edge:
           'Edge has been disabled, setting node1 is no longer possible')
     self._axes[1] = axis2
 
+  @property
+  def axes(self) -> Tuple[int]:
+    if self.is_disabled:
+      raise ValueError(
+          'Edge has been disabled, accessing axes is no longer possible')
+    return tuple(self._axes)
+
+  @axes.setter
+  def axes(self, axes: Iterable[int]) -> None:
+    if self.is_disabled:
+      raise ValueError(
+          'Edge has been disabled, setting axes is no longer possible')
+    if not all(map(lambda x: isinstance(x, int) or x is None), axes):
+      raise TypeError("All axis values should be int type")
+    self._axes = list(axes)
+
+  def set_axis(self, axis_pos, axis) -> None:
+    if axis_pos < 0 or axis_pos >= len(self._axes):
+      raise ValueError(
+          f"axis_pos {axis_pos} is outside the range 0 - {len(self._axes) - 1}"
+          )
+    if not (isinstance(axis, int) or axis is None):
+      raise TypeError("axis must be of type int")
+    self._axes[axis_pos] = axis
+
+
   def get_nodes(self) -> List[Optional[AbstractNode]]:
     """Get the nodes of the edge."""
-    return self._nodes[:]
+    return list(self.nodes)
 
   def update_axis(self, old_axis: int, old_node: AbstractNode, new_axis: int,
                   new_node: AbstractNode) -> None:
@@ -1039,6 +1064,31 @@ class Edge:
                        "node1: '{}', axis1: {}, node2: '{}', axis2: {}".format(
                            self, old_node, old_axis, self.node1, self.axis1,
                            self.node2, self.axis2))
+
+  @property
+  def nodes(self) -> Tuple[AbstractNode]:
+    if self.is_disabled:
+      raise ValueError(
+          'Edge has been disabled, accessing nodes is no longer possible')
+    return tuple(self._nodes)
+
+  @nodes.setter
+  def nodes(self, nodes: Iterable[AbstractNode]) -> None:
+    if self.is_disabled:
+      raise ValueError(
+          'Edge has been disabled, setting nodes is no longer possible')
+    if not all(map(lambda x: isinstance(x, AbstractNode) or x is None), nodes):
+      raise TypeError("All node values should be Node type")
+    self._nodes = list(nodes)
+
+  def set_node(self, node_pos, node) -> None:
+    if node_pos < 0 or node_pos >= len(self._nodes):
+      raise ValueError(
+          f"node_pos {node_pos} is outside the range 0 - {len(self._nodes) - 1}"
+          )
+    if not (isinstance(node, AbstractNode) or node is None):
+      raise TypeError("node must be of type AbstractNode")
+    self._nodes[node_pos] = node
 
   @property
   def node1(self) -> AbstractNode:
