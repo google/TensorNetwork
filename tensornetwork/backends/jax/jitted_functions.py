@@ -84,7 +84,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(
-          beta)  #betas[i-1] is 1.0 for initialization of loop
+          beta)  
 
       next_vector = jax.numpy.reshape(
           jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
@@ -111,6 +111,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
     #the first two beta-values can be discarded
     betas = jax.numpy.zeros(ncv + 1, dtype=init.dtype)
+    #set betas[0] to 1.0 for initialization of loop    
     betas = betas.at[0].set(1.0)
     alphas = jax.numpy.zeros(ncv, dtype=init.dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
