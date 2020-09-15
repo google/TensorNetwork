@@ -38,7 +38,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     Callable: A jitted function that does a lanczos iteration.
 
   """
-
+  #TODO (mganahl): split into two lanczos implementations, one for
+  # reortho=False (this one) and one for reortho=True.
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho,
                   precision):
@@ -62,7 +63,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       list: Eigenvectors
     """
     shape = init.shape
-
+    #TODO (mganahl): replace with restarted classical gram-schmidt
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
