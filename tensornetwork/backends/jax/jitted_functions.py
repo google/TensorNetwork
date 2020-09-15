@@ -121,6 +121,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
     eigvals = eigvals.astype(A_tridiag.dtype)
 
+    #expand eigenvectors in krylov basis
     def body_vector(i, vals):
       krv, unitary, states = vals
       dim = unitary.shape[1]
