@@ -110,7 +110,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
       return jax.lax.cond(iteration <= maxiteration, [norm, threshold],
                           check_thresh, False, lambda x: x)
-
+    #TODO (mganahl): check if this runs on TPU (dtype issue)
     numel = np.prod(init.shape).astype(np.int32)
     krylov_vecs = jax.numpy.zeros((ncv + 1, numel), dtype=init.dtype)
     norms = jax.numpy.zeros(ncv, dtype=init.dtype)
