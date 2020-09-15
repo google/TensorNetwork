@@ -18,7 +18,6 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
-from tensornetwork.backends.jax.precision import get_jax_precision
 from functools import partial
 
 Tensor = Any
@@ -56,7 +55,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     jsp = libjax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
-    self.jax_precision = get_jax_precision(libjax, precision)
+    self.jax_precision = precision if precision is not None else libjax.lax.Precision.DEFAULT
 
   def configure(self, #pylint: disable=arguments-differ
                 dtype: Optional[np.dtype] = None,
