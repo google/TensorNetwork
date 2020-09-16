@@ -835,11 +835,6 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
   return neighbors
 
 
-JSON_TYPE_DICT = {
-    Node: 'Node',
-}
-
-
 def nodes_to_json(nodes: List[AbstractNode]) -> str:
   """
   Create a JSON string representing the Tensor Network made up of the given 
@@ -861,7 +856,6 @@ def nodes_to_json(nodes: List[AbstractNode]) -> str:
   Raises:
     ValueError: If a node does not have a serialized 'type' string.
   """
-  type_dict = JSON_TYPE_DICT
   network_dict = {
       'nodes': [],
       'edges': [],
@@ -869,29 +863,24 @@ def nodes_to_json(nodes: List[AbstractNode]) -> str:
   node_id_dict = {}
 
   for i, node in enumerate(nodes):
-    t = type_dict.get(type(node), None)
-    if not t:
-      ValueError(f'Unsupported serialization type: {type(node)}')
-
     node_id_dict[node] = i
     network_dict['nodes'].append({
         'id': i,
-        'type': t,
         'attributes': node.to_serial_dict(),
     })
   edges = get_all_edges(nodes)
   for edge in edges:
-    node_ids = [node_id_dict.get(n, None) for n in edge.get_nodes()]
+    node_ids = [node_id_dict.get(n) for n in edge.get_nodes()]
     attributes = edge.to_serial_dict()
     attributes['axes'] = [
         a if node_ids[i] is not None else None
         for i, a in enumerate(attributes['axes'])
     ]
-    node_dict = {
+    edge_dict = {
         'node_ids': node_ids,
         'attributes': attributes,
     }
-    network_dict['edges'].append(node_dict)
+    network_dict['edges'].append(edge_dict)
   return json.dumps(network_dict)
 
 
@@ -908,20 +897,15 @@ def nodes_from_json(json_str: str) -> List[AbstractNode]:
   Raises:
     ValueError: If a node 'type' field does not have a corresponding node class.
   """
-  type_dict = {value: key for key, value in JSON_TYPE_DICT.items()}
   network_dict = json.loads(json_str)
   nodes = []
   node_ids = {}
   for n in network_dict['nodes']:
-    t = type_dict.get(n['type'], None)
-    if not t:
-      ValueError(f'Unsupported serialization type: {n["type"]}')
-
-    node = t.from_serial_dict(n['attributes'])
+    node = Node.from_serial_dict(n['attributes'])
     nodes.append(node)
     node_ids[n['id']] = node
   for e in network_dict['edges']:
-    e_nodes = [node_ids.get(n_id, None) for n_id in e['node_ids']]
+    e_nodes = [node_ids.get(n_id) for n_id in e['node_ids']]
     axes = e['attributes']['axes']
     edge = Edge(node1=e_nodes[0],
                 axis1=axes[0],

@@ -28,7 +28,7 @@ def assert_nodes_eq(a, b):
   assert getattr(a, 'dimension', None) == getattr(b, 'dimension', None)
   ta = getattr(a, 'tensor', None)
   if isinstance(ta, np.ndarray):
-    assert (ta == getattr(b, 'tensor', None)).any()
+    assert (ta == getattr(b, 'tensor', None)).all()
 
 
 def assert_edges_eq(a, b):
@@ -52,10 +52,19 @@ def assert_graphs_eq(a_nodes, b_nodes):
 
 
 def create_basic_network():
-  a = tn.Node(np.array([1, 2, 3]), name='an', axis_names=['a1'])
-  b = tn.Node(np.ones([3, 3, 3]), name='bn', axis_names=['b1', 'b2', 'b3'])
-  c = tn.Node(np.ones([3, 3, 3]), name='cn', axis_names=['c1', 'c2', 'c3'])
-  d = tn.Node(np.ones([3, 3, 3]), name='dn', axis_names=['d1', 'd2', 'd3'])
+  np.random.seed(10)
+  a = tn.Node(np.random.normal(size=[8]),
+              name='an',
+              axis_names=['a1'])
+  b = tn.Node(np.random.normal(size=[8, 8, 8]),
+              name='bn',
+              axis_names=['b1', 'b2', 'b3'])
+  c = tn.Node(np.random.normal(size=[8, 8, 8]),
+              name='cn',
+              axis_names=['c1', 'c2', 'c3'])
+  d = tn.Node(np.random.normal(size=[8, 8, 8]),
+              name='dn',
+              axis_names=['d1', 'd2', 'd3'])
 
   a[0] ^ b[0]
   b[1] ^ c[0]
@@ -73,6 +82,9 @@ def test_basic_serial():
   for x, y in zip(nodes, new_nodes):
     assert_nodes_eq(x, y)
   assert_graphs_eq(nodes, new_nodes)
+  c = tn.contractors.greedy(nodes, ignore_edge_order=True)
+  new_c = tn.contractors.greedy(new_nodes, ignore_edge_order=True)
+  np.testing.assert_allclose(c.tensor, new_c.tensor)
 
 
 def test_exlcuded_node_serial():

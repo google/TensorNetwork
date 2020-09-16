@@ -943,15 +943,7 @@ class CopyNode(AbstractNode):
     
     Returns: A dict object.
     """
-    node_dict = super().to_serial_dict()
-    node_dict.update({
-        'rank': self.rank,
-        'dimension': self.dimension,
-        'dtype': np.dtype(self.dtype).name,
-    })
-    if self.tensor is not None:
-      node_dict['tensor'] = self.backend.serialize_tensor(self.tensor)
-    return node_dict
+    return
 
   @classmethod
   def from_serial_dict(cls, serial_dict) -> "CopyNode":
@@ -963,15 +955,7 @@ class CopyNode(AbstractNode):
     Returns:
       A node.
     """
-    serial_dict['dtype'] = np.dtype(serial_dict['dtype']).type
-    tensor = serial_dict.pop('tensor', None)
-    node = cls(**serial_dict)
-
-    if tensor is not None:
-      node.tensor = backend_factory.get_backend(
-          serial_dict['backend']).deserialize_tensor(tensor)
-    return node
-
+    return
 
 class Edge:
   """Each edge represents a vector space common to the tensors it connects and

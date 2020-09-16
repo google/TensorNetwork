@@ -947,9 +947,9 @@ def test_pivot(dtype, pivot_axis):
 
 @pytest.mark.parametrize('dtype', np_dtypes)
 def test_serialize(dtype):
-  shape = (3, 2, 1)
+  shape = (8, 6, 4, 2, 1)
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn(shape, dtype=dtype, seed=10)
   s = backend.serialize_tensor(tensor)
   assert isinstance(s, str)
-  assert (tensor == backend.deserialize_tensor(s)).any()
+  assert (tensor == backend.deserialize_tensor(s)).all()

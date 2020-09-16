@@ -742,4 +742,4 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     m = io.BytesIO()
     m.write(s.encode('latin-1'))
     m.seek(0)
-    return np.load(m, allow_pickle=False)
+    return np.load(m)
