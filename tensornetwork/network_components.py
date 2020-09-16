@@ -943,7 +943,7 @@ class CopyNode(AbstractNode):
     
     Returns: A dict object.
     """
-    return
+    raise NotImplementedError("to_serial_dict is not implemented in CopyNode")
 
   @classmethod
   def from_serial_dict(cls, serial_dict) -> "CopyNode":
@@ -955,7 +955,7 @@ class CopyNode(AbstractNode):
     Returns:
       A node.
     """
-    return
+    raise NotImplementedError("from_serial_dict is not implemented in CopyNode")
 
 class Edge:
   """Each edge represents a vector space common to the tensors it connects and
