@@ -85,7 +85,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       for _ in range(iterations):
         ov = jax.numpy.dot(
             krylov_vectors.conj(), vec, precision=precision)
-        vec = vec - jax.numpy.dot(ov, krylov_vectors)
+        vec = vec - jax.numpy.dot(ov, krylov_vectors, precision=precision)
       return vec
 
     def body_lanczos(vals):
