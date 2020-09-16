@@ -72,7 +72,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
-      vector -= jax.numpy.vdot(
+      vector = vector - jax.numpy.vdot(
           v, vector, precision=precision) * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors]
 
