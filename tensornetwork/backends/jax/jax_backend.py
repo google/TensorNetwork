@@ -57,12 +57,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
     self._dtype = np.dtype(dtype) if dtype is not None else None
     self.jax_precision = precision if precision is not None else libjax.lax.Precision.DEFAULT #pylint: disable=line-too-long
 
-  def configure(self, #pylint: disable=arguments-differ
-                dtype: Optional[np.dtype] = None,
-                precision: Optional[Text] = None):
-    self._dtype = np.dtype(dtype) if dtype is not None else None
-    self.jax_precision = precision if precision is not None else libjax.lax.Precision.DEFAULT #pylint: disable=line-too-long
-
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
     return jnp.tensordot(a, b, axes, precision=self.jax_precision)
