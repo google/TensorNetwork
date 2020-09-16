@@ -127,6 +127,14 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     initvals = [krylov_vecs, alphas, betas, 1]
     krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
                                                        initvals)
+    # FIXME (mganahl): if while loop stopped early at iteration i, alphas
+    # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
+    # degenerate eigenvalues 0.0. JAX does currently not support
+    # dynamic slicing with variable slice sizes, so these beta values
+    # can't be truncated.
+    # If algebraically small EV are desired, one can initialize `alphas` with
+    # large positive values, thus pushing the spurious eigenvalues further
+    # away from the desired ones (similar for algebraically large EVs)
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
