@@ -825,7 +825,7 @@ class BlockSparseTensor(ChargeArray):
         list(new_flat_order[tmp[n]:tmp[n + 1]]) for n in range(len(tmp) - 1)
     ]
     charges = [self._charges[o] for o in permutation]
-    flows = [self._flows[o] for o in permutation]
+    flows = np.asarray([self._flows[o] for o in permutation])
     if not inplace:
       return BlockSparseTensor(
           data,
