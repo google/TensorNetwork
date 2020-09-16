@@ -70,7 +70,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     """
     shape = init.shape
     dtype = init.dtype
-    
+
     def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
       """
       orthogonalize `vector`  to all rows of `krylov_vectors`.
@@ -92,10 +92,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
-      masked_kv = (i > jax.numpy.arange(ncv + 2))[:,None] * krylov_vectors
       previous_vector = jax.lax.cond(
           reortho, lambda x: iterative_classical_gram_schmidt(
-              previous_vector, masked_kv), lambda x: previous_vector, None)
+              previous_vector,
+              (i > jax.numpy.arange(ncv + 2))[:, None] * krylov_vectors),
+          lambda x: previous_vector, None)
 
       beta = jax.numpy.linalg.norm(previous_vector)
       normalized_vector = previous_vector / beta
