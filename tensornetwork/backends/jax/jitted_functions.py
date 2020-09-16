@@ -38,6 +38,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     Callable: A jitted function that does a lanczos iteration.
 
   """
+
+
   # TODO (mganahl): split into two lanczos implementations, one for
   # reortho=False (this one) and one for reortho=True.
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
@@ -68,22 +70,32 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     """
     shape = init.shape
     dtype = init.dtype
-    # TODO (mganahl): replace with restarted classical gram-schmidt
-    def body_modified_gram_schmidt(i, vals):
-      vector, krylov_vectors = vals
-      v = krylov_vectors[i, :]
-      vector = vector - jax.numpy.vdot(
-          v, vector, precision=precision) * v
-      return [vector, krylov_vectors]
+    def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
+      """
+      orthogonalize `vector`  to all rows of `krylov_vectors`.
+      Args:
+        vector: Initial vector.
+        krylov_vectors: Matrix of krylov vectors, each row is treated as a
+          vector.
+        iterations: Number of iterations.
+      Returns:
+        jax.numpy.array: The orthogonalized vector.
+      """
+      vec = vector
+      for _ in range(iterations):
+        ov = jax.numpy.dot(
+            krylov_vectors.conj(), vec, precision=precision)
+        vec = vec - jax.numpy.dot(ov, krylov_vectors)
+      return vec
 
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
+      masked_kv = (i > jax.numpy.arange(ncv + 2))[:,None] * krylov_vectors
+      previous_vector = jax.lax.cond(
+          reortho, lambda x: iterative_classical_gram_schmidt(
+              previous_vector, masked_kv), lambda x: previous_vector, None)
 
-      previous_vector, krylov_vectors = jax.lax.cond(
-          reortho,
-          lambda x: jax.lax.fori_loop(1, i, body_modified_gram_schmidt, x),
-          lambda x: x, [jax.numpy.ravel(previous_vector), krylov_vectors])
       beta = jax.numpy.linalg.norm(previous_vector)
       normalized_vector = previous_vector / beta
       Av = matvec(jax.lax.reshape(normalized_vector, shape), *arguments)
