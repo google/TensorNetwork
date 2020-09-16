@@ -107,7 +107,6 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
                           [norm, landelta])
 
-    # TODO (mganahl): check if this runs on TPU
     numel = np.prod(shape).astype(np.int32) 
     # note: ncv + 2 because the first vector is all zeros, and the
     # last is the unnormalized residual.
@@ -127,14 +126,16 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     initvals = [krylov_vecs, alphas, betas, 1]
     krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
                                                        initvals)
-    # FIXME (mganahl): if while loop stopped early at iteration i, alphas
+    # FIXME (mganahl): if the while_loop stopps early at iteration i, alphas
     # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
     # degenerate eigenvalues 0.0. JAX does currently not support
     # dynamic slicing with variable slice sizes, so these beta values
-    # can't be truncated.
-    # If algebraically small EV are desired, one can initialize `alphas` with
+    # can't be truncated. Thus, if numeig >= i - 1, jitted_lanczos returns
+    # a set of spurious eigen vectors and eigen values.
+    # If algebraically small EVs are desired, one can initialize `alphas` with
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
+    
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
