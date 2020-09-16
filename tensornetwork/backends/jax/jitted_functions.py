@@ -70,6 +70,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     """
     shape = init.shape
     dtype = init.dtype
+    
     def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
       """
       orthogonalize `vector`  to all rows of `krylov_vectors`.
