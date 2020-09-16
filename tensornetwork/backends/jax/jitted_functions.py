@@ -39,7 +39,6 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
   """
 
-
   # TODO (mganahl): split into two lanczos implementations, one for
   # reortho=False (this one) and one for reortho=True.
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
