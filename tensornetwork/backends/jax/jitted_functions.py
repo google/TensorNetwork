@@ -44,7 +44,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho,
                   precision):
     """
-    Jitted lanczos routine.
+    Lanczos iteration for symmeric eigenvalue problems. If reortho = False,
+    the Krylov basis is constructed without explicit re-orthogonalization. 
+    In infinite precision, all Krylov vectors would be orthogonal. Due to 
+    finite precision arithmetic, orthogonality is usually quickly lost. 
+    For reortho=True, the Krylov basis is explicitly reorthogonalized.
     Args:
       matvec: A callable implementing the matrix-vector product of a
         linear operator.
@@ -63,6 +67,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       list: Eigenvectors
     """
     shape = init.shape
+    dtype = init.dtype
     #TODO (mganahl): replace with restarted classical gram-schmidt
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
@@ -106,21 +111,21 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     numel = np.prod(shape).astype(np.int32) 
     #note: ncv + 2 because the first vector is all zeros, and the
     #last is the unnormalized residual.
-    krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=init.dtype)
+    krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
     #initial state is normalized inside the loop
     krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
     #the first two beta-values can be discarded
-    betas = jax.numpy.zeros(ncv + 1, dtype=init.dtype)
+    betas = jax.numpy.zeros(ncv + 1, dtype=dtype)
     #set betas[0] to 1.0 for initialization of loop    
     betas = betas.at[0].set(1.0)
-    alphas = jax.numpy.zeros(ncv, dtype=init.dtype)
+    alphas = jax.numpy.zeros(ncv, dtype=dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
     krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
                                                        initvals)
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
-    eigvals = eigvals.astype(A_tridiag.dtype)
+    eigvals = eigvals.astype(dtype)
 
     #expand eigenvectors in krylov basis
     def body_vector(i, vals):
