@@ -73,27 +73,28 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
       vector = vector - jax.numpy.vdot(
-          v, vector, precision=precision) * jax.numpy.reshape(v, vector.shape)
+          v, vector, precision=precision) * v
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
+
+      previous_vector, krylov_vectors = jax.lax.cond(
+          reortho,
+          lambda x: jax.lax.fori_loop(1, i, body_modified_gram_schmidt, x),
+          lambda x: x, [jax.numpy.ravel(previous_vector), krylov_vectors])
       beta = jax.numpy.linalg.norm(previous_vector)
       normalized_vector = previous_vector / beta
-      normalized_vector, krylov_vectors = jax.lax.cond(
-          reortho,
-          lambda x: jax.lax.fori_loop(0, i, body_modified_gram_schmidt, x),
-          lambda x: x, [normalized_vector, krylov_vectors])
       Av = matvec(jax.lax.reshape(normalized_vector, shape), *arguments)
       alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(
-          beta)  
-
-      next_vector = jax.numpy.reshape(
-          jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
-          krylov_vectors[i - 1] * beta, Av.shape)
+          beta)
+      next_vector = jax.lax.cond(
+          reortho, lambda x: Av, lambda x: jax.numpy.reshape(
+              jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
+              krylov_vectors[i - 1] * beta, Av.shape), None)
       krylov_vectors = krylov_vectors.at[i, :].set(
           jax.numpy.ravel(normalized_vector))
       krylov_vectors = krylov_vectors.at[i + 1, :].set(
@@ -107,7 +108,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
                           [norm, landelta])
 
-    numel = np.prod(shape).astype(np.int32) 
+    numel = np.prod(shape).astype(np.int32)
     # note: ncv + 2 because the first vector is all zeros, and the
     # last is the unnormalized residual.
     krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
@@ -135,7 +136,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # If algebraically small EVs are desired, one can initialize `alphas` with
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
-    
+
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
