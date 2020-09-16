@@ -383,7 +383,6 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   def shifted_QR(Vm, Hm, fm, evals, k, p, which, res_thresh):
     funs = [LR_sort, LM_sort]
     shifts, _ = funs[which](evals, p)
-    print(shifts)
     # compress to k = numeig
     q = jax.numpy.zeros(Hm.shape[0])
     q = jax.ops.index_update(q, jax.ops.index[-1], 1)
