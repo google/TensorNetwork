@@ -38,7 +38,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     Callable: A jitted function that does a lanczos iteration.
 
   """
-  #TODO (mganahl): split into two lanczos implementations, one for
+  # TODO (mganahl): split into two lanczos implementations, one for
   # reortho=False (this one) and one for reortho=True.
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho,
@@ -68,7 +68,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     """
     shape = init.shape
     dtype = init.dtype
-    #TODO (mganahl): replace with restarted classical gram-schmidt
+    # TODO (mganahl): replace with restarted classical gram-schmidt
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
@@ -107,17 +107,22 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
                           [norm, landelta])
 
-    #TODO (mganahl): check if this runs on TPU
+    # TODO (mganahl): check if this runs on TPU
     numel = np.prod(shape).astype(np.int32) 
-    #note: ncv + 2 because the first vector is all zeros, and the
-    #last is the unnormalized residual.
+    # note: ncv + 2 because the first vector is all zeros, and the
+    # last is the unnormalized residual.
     krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
-    #initial state is normalized inside the loop
+    # NOTE (mganahl): initial state is normalized inside the loop
     krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
-    #the first two beta-values can be discarded
+
+    # betas are the upper and lower diagonal elements
+    # of the projected linear operator
+    # the first two beta-values can be discarded
+    # set betas[0] to 1.0 for initialization of loop
+    # betas[2] is set to the norm of the initial state.
     betas = jax.numpy.zeros(ncv + 1, dtype=dtype)
-    #set betas[0] to 1.0 for initialization of loop    
     betas = betas.at[0].set(1.0)
+    # diagonal elements of the projected linear operator
     alphas = jax.numpy.zeros(ncv, dtype=dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
     krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
@@ -127,7 +132,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
     eigvals = eigvals.astype(dtype)
 
-    #expand eigenvectors in krylov basis
+    # expand eigenvectors in krylov basis
     def body_vector(i, vals):
       krv, unitary, states = vals
       dim = unitary.shape[1]
