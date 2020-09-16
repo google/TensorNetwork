@@ -14,7 +14,7 @@
 
 import h5py
 from tensornetwork.component_factory import get_component
-from tensornetwork.network_components import Edge, AbstractNode
+from tensornetwork.network_components import Edge, AbstractNode, Node
 from tensornetwork.network_operations import reachable, get_all_edges
 from typing import List, Union, BinaryIO
 import numpy as np
@@ -120,3 +120,37 @@ def load_nodes(path: str) -> List[AbstractNode]:
     node.set_name(node_names[node.name])
 
   return nodes_list
+
+def from_topology(topology, tensors, backend=None):
+  """Create and connect new `tn.Node`s by the given einsum-like topology.
+  
+  Example:
+    ```
+    a, b, c = tn.from_topology("xy,yz,zx", [a, b, c])
+    ```
+  Args:
+    topology: A string that defines the topology. Should be like
+      the left side of an einsum expression.
+    tensors: The tensors needed to create the nodes.
+
+  Returns:
+    A list of Nodes.
+  """
+  edge_dict = {}
+  nodes = []
+  split_list = topology.split(",")
+  if len(split_list) != len(tensors):
+    raise ValueError("topology and number of tensors is mismatched")
+  for local_axes, tensor in zip(split_list, tensors):
+    local_axes_list = list(local_axes)
+    if len(local_axes_list) != len(tensor.shape):
+      raise ValueError(f"{local_axes} does not match shape {tensor.shape}")
+    new_node = Node(tensor, axis_names=local_axes_list, backend=backend)
+    for c in local_axes:
+      if c in edge_dict:
+        edge_dict[c] = edge_dict[c] ^ new_node[c]
+      else:
+        edge_dict[c] = new_node[c]
+    nodes.append(new_node)
+  return nodes     
+      
