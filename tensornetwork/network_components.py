@@ -1095,7 +1095,7 @@ class Edge:
     return self.node1.shape[self.axis1]
 
   def is_dangling(self) -> bool:
-    """Whether ths edge is a dangling edge."""
+    """Whether this edge is a dangling edge."""
     return self._is_dangling
 
   def is_trace(self) -> bool:
