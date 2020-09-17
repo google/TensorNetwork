@@ -37,13 +37,6 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented tensordot.".format(self.name))
 
-  def configure(self, **kwargs) -> None:  # pylint: disable=unused-argument
-    """
-    Configure the backend.
-    Args: 
-      **kwargs: A backend-dependent dictionary of config arguments
-    """
-    return
 
   # We use `Tensor` for the shape type here since the shape could
   # be a tensor.
