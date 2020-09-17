@@ -38,7 +38,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     Callable: A jitted function that does a lanczos iteration.
 
   """
-  JaxPrecisionType = jax.xla_extension.PrecisionConfig_Precision
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
 
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec: Callable, arguments: List, init: jax.ShapedArray,
@@ -560,7 +560,7 @@ def gmres_wrapper(jax: types.ModuleType):
     functions.givens_rotation = givens_rotation
   """
   jnp = jax.numpy
-  JaxPrecisionType = jax.xla_extension.PrecisionConfig_Precision
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
   def gmres_m(
       A_mv: Callable, A_args: Sequence, b: jax.ShapedArray, x0: jax.ShapedArray,
       tol: float, atol: float, num_krylov_vectors: int, maxiter: int,
