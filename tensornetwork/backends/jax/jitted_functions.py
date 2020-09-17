@@ -4,7 +4,7 @@ import collections
 import types
 import numpy as np
 Tensor = Any
-JaxPrecisionType = Any
+
 
 def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   """
@@ -38,11 +38,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     Callable: A jitted function that does a lanczos iteration.
 
   """
-  # TODO (mganahl): split into two lanczos implementations, one for
-  # reortho=False (this one) and one for reortho=True.
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
-  def jax_lanczos(matvec, arguments, init, ncv, neig, landelta, reortho,
-                  precision):
+  def jax_lanczos(matvec: Callable, arguments: List, init: jax.ShapedArray,
+                  ncv: int, neig: int, landelta: float, reortho: bool,
+                  precision: JaxPrecisionType):
     """
     Lanczos iteration for symmeric eigenvalue problems. If reortho = False,
     the Krylov basis is constructed without explicit re-orthogonalization. 
@@ -566,7 +566,7 @@ def gmres_wrapper(jax: types.ModuleType):
     functions.givens_rotation = givens_rotation
   """
   jnp = jax.numpy
-
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
   def gmres_m(
       A_mv: Callable, A_args: Sequence, b: jax.ShapedArray, x0: jax.ShapedArray,
       tol: float, atol: float, num_krylov_vectors: int, maxiter: int,

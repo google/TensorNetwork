@@ -37,7 +37,6 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented tensordot.".format(self.name))
 
-
   # We use `Tensor` for the shape type here since the shape could
   # be a tensor.
   def reshape(self, tensor: Tensor, shape: Sequence[Tensor]) -> Tensor:
