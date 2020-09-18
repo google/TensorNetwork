@@ -17,6 +17,7 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
+import warnings
 from tensornetwork.backends.jax import jitted_functions
 from functools import partial
 
@@ -25,14 +26,6 @@ Tensor = Any
 
 _CACHED_MATVECS = {}
 _CACHED_FUNCTIONS = {}
-_MIN_RES_THRESHS = {
-    np.dtype(np.float16): 1E-3,
-    np.dtype(np.float32): 1E-6,
-    np.dtype(np.float64): 1E-12,
-    np.dtype(np.complex128): 1E-12,
-    np.dtype(np.complex64): 1E-6
-}
-
 
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
@@ -246,8 +239,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: int = 20,
-           res_thresh: Optional[float] = None) -> Tuple[Tensor, List]:
+           maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest
     eigenvector-eigenvalue pairs of a linear operator `A`.
@@ -307,10 +299,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
         (larges magnitude).
       maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
-      res_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
-        if the norm of the residual `fk` of the shifted arnoldi factorization
-        falls below `res_thresh`. If `None` a default value depending on the
-        `dtype` of the operator is chosen.
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -335,22 +323,26 @@ class JaxBackend(abstract_backend.AbstractBackend):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
-    if res_thresh is None:
-      try:
-        res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
-      except KeyError as err:
-        raise KeyError(f"dtype {initial_state.dtype} not supported") from err
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
-    return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
-                                            initial_state, num_krylov_vecs,
-                                            numeig, which, tol, maxiter,
-                                            res_thresh, self.jax_precision)
 
+    eta, U, numits = _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
+                                                      initial_state,
+                                                      num_krylov_vecs, numeig,
+                                                      which, tol, maxiter,
+                                                      self.jax_precision)
+    if numeig > numits:
+      warnings.warn(
+          f"Arnoldi terminated early after numits = {numits}"
+          f" < numeig = {numeig} steps. For this value of `numeig `"
+          f"the routine will return spurious eigenvalues of value 0.0."
+          f"Use a smaller value of numeig, or a smaller value for `tol`")
+    return eta, U
+  
   def eigsh_lanczos(
       self,
       A: Callable,
