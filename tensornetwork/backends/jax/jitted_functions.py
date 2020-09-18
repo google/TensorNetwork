@@ -282,7 +282,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     # Av, krylov_vectors, _, H = jax.lax.fori_loop(
     #     0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
     #```
-    def modified_gram_schmidt_step_arnoldi(j, vals):
+    def modified_gram_schmidt_step_arnoldi(j, vals): #pylint: disable=unused-variable
       """
       Single step of a modified gram-schmidt orthogonalization.
       Substantially more accurate than classical gram schmidt
