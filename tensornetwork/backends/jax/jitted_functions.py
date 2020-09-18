@@ -13,7 +13,7 @@ def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
       vector: jax.ShapedArray,
       krylov_vectors: jax.ShapedArray,
       precision: JaxPrecisionType,
-      iterations: int = 4,
+      iterations: int = 2,
       ) -> jax.ShapedArray:
     """
     orthogonalize `vector`  to all rows of `krylov_vectors`.
