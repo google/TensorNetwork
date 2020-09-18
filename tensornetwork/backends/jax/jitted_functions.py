@@ -465,7 +465,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   @functools.partial(jax.jit, static_argnums=(2, 3))
   def check_eigvals_convergence_iram(beta_m, Hm, eps, numeig):
     eigvals, eigvecs = jax.numpy.linalg.eig(Hm)
-    #TODO (mganahl) confirm that this is a valid matrix norm)
+    # TODO (mganahl) confirm that this is a valid matrix norm)
     Hm_norm = jax.numpy.linalg.norm(Hm)
     thresh = jax.numpy.maximum(
         jax.numpy.finfo(eigvals.dtype).eps * Hm_norm,
@@ -516,7 +516,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     shape = initial_state.shape
     dtype = initial_state.dtype
 
-    dim = np.prod(shape).astype(np.int32) #TPU requirement
+    dim = np.prod(shape).astype(np.int32) 
     num_expand = num_krylov_vecs - numeig
 
     if (num_expand <= 1) and (num_krylov_vecs < dim):
@@ -599,7 +599,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     def cond_fun(carry):
       it, ar_converged, converged = carry[3], carry[5], carry[
-          6]  # check converged
+          6]
       return jax.lax.cond(
           it < maxiter, lambda x: x, lambda x: False,
           jax.numpy.logical_not(jax.numpy.logical_or(converged, ar_converged)))
@@ -609,21 +609,23 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     res = jax.lax.while_loop(cond_fun, outer_loop, carry)
     Hm, Vm = res[0], res[1]
     numits, converged = res[4], res[6]
-    #if `ar_converged` then `norm`is below convergence threshold
-    #set it to 0.0 in this case to prevent `jnp.linalg.eig` from finding a
-    #spurious eigenvalue of order `norm`.
+    # if `ar_converged` then `norm`is below convergence threshold
+    # set it to 0.0 in this case to prevent `jnp.linalg.eig` from finding a
+    # spurious eigenvalue of order `norm`.
     Hm = Hm.at[numits, numits - 1].set(
         jax.lax.cond(converged, lambda x: Hm.dtype.type(0.0), lambda x: x,
                      Hm[numits, numits - 1]))
 
-    # if the Arnoldi-factorization stopped early (after `numit` iterations,
+    # if the Arnoldi-factorization stopped early (after `numit` iterations)
     # before exhausting the allowed size of the Krylov subspace,
-    # i.e. `numit` < 'num_krylov_vecs'), set elements
+    # (i.e. `numit` < 'num_krylov_vecs'), set elements
     # at positions m, n with m, n >= `numit` to 0.0.
-    # NOTE (mganahl): under certain circumstances, the routine can still
+    
+    # FIXME (mganahl): under certain circumstances, the routine can still
     # return spurious 0 eigenvalues: if arnoldi terminated early
     # (after numits < num_krylov_vecs iterations)
     # and numeig > numits, then spurious 0.0 eigenvalues will be returned
+    
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eig(Hm)
@@ -633,7 +635,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     return eigvals[inds], [
         jax.numpy.reshape(vectors[n, :], shape)
         for n in range(numeig)
-    ], numeig <= numits
+    ], numits
 
   return implicitly_restarted_arnoldi_method
 
