@@ -5,6 +5,38 @@ import types
 import numpy as np
 Tensor = Any
 
+
+def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
+
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
+  def iterative_classical_gram_schmidt(
+      vector: jax.ShapedArray,
+      krylov_vectors: jax.ShapedArray,
+      precision: JaxPrecisionType,
+      iterations: int = 4,
+      ) -> jax.ShapedArray:
+    """
+    orthogonalize `vector`  to all rows of `krylov_vectors`.
+    Args:
+      vector: Initial vector.
+      krylov_vectors: Matrix of krylov vectors, each row is treated as a
+        vector.
+      iterations: Number of iterations.
+    Returns:
+      jax.ShapedArray: The orthogonalized vector.
+    """
+    vec = vector
+    overlaps = 0
+    for _ in range(iterations):
+      ov = jax.numpy.dot(
+          krylov_vectors.conj(), vec, precision=precision)
+      vec = vec - jax.numpy.dot(
+          ov, krylov_vectors, precision=precision)
+      overlaps = overlaps + ov
+    return vec, overlaps
+  return iterative_classical_gram_schmidt
+
+
 def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   """
   Helper function to generate jitted lanczos function used
@@ -68,35 +100,15 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     """
     shape = init.shape
     dtype = init.dtype
-
-    def iterative_classical_gram_schmidt(
-        vector: jax.ShapedArray,
-        krylov_vectors: jax.ShapedArray,
-        iterations: int = 2) -> jax.ShapedArray:
-      """
-      orthogonalize `vector`  to all rows of `krylov_vectors`.
-      Args:
-        vector: Initial vector.
-        krylov_vectors: Matrix of krylov vectors, each row is treated as a
-          vector.
-        iterations: Number of iterations.
-      Returns:
-        jax.ShapedArray: The orthogonalized vector.
-      """
-      vec = vector
-      for _ in range(iterations):
-        ov = jax.numpy.dot(
-            krylov_vectors.conj(), vec, precision=precision)
-        vec = vec - jax.numpy.dot(ov, krylov_vectors, precision=precision)
-      return vec
-
+    iterative_classical_gram_schmidt = _iterative_classical_gram_schmidt(jax)
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
       previous_vector = jax.lax.cond(
           reortho, lambda x: iterative_classical_gram_schmidt(
               previous_vector,
-              (i > jax.numpy.arange(ncv + 2))[:, None] * krylov_vectors),
+              (i > jax.numpy.arange(ncv + 2))[:, None] * krylov_vectors,
+            precision)[0],
           lambda x: previous_vector, None)
 
       beta = jax.numpy.linalg.norm(previous_vector)
@@ -263,34 +275,9 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
             if `False`: iteration terminated without encountering
             an invariant subspace.
     """
-    def iterative_classical_gram_schmidt(
-        vector: jax.ShapedArray,
-        krylov_vectors: jax.ShapedArray,
-        iterations: int = 2) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
-      """
-      Orthogonalize `vector`  to all rows of `krylov_vectors`, using
-      an iterated classical gram schmidt orthogonalization.
-      Args:
-        vector: Initial vector.
-        krylov_vectors: Matrix of krylov vectors, each row is treated as a
-          vector.
-        iterations: Number of iterations.
-      Returns:
-        jax.ShapedArray: The orthogonalized vector.
-        jax.ShapedArray: The overlaps of `vector` with all previous
-          krylov vectors
-      """
-      vec = vector
-      overlaps = 0
-      for _ in range(iterations):
-        ov = jax.numpy.dot(
-            krylov_vectors.conj(), vec, precision=precision)
-        vec = vec - jax.numpy.dot(
-            ov, krylov_vectors, precision=precision)
-        overlaps = overlaps + ov
-      return vec, overlaps
 
     shape = v0.shape
+    iterative_classical_gram_schmidt = _iterative_classical_gram_schmidt(jax)    
     Z = jax.numpy.linalg.norm(v0)
     #only normalize if norm > tol, else return zero vector
     v = jax.lax.cond(Z > tol, lambda x: v0 / Z, lambda x: v0 * 0.0, None)
@@ -305,7 +292,7 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
       Av = matvec(previous_vector, *args)
       Av, overlaps = iterative_classical_gram_schmidt(
           Av.ravel(),
-          (i >= jax.numpy.arange(Vm.shape[0]))[:, None] * Vm)
+          (i >= jax.numpy.arange(Vm.shape[0]))[:, None] * Vm, precision)
       alphas = alphas.at[i].set(overlaps[i])
       norm = jax.numpy.linalg.norm(Av)
       Av = jax.numpy.reshape(Av, shape)
@@ -385,7 +372,8 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
 
   """
   JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
-
+  iterative_classical_gram_schmidt = _iterative_classical_gram_schmidt(jax)
+  
   @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
   def _arnoldi_fact(
       matvec: Callable, args: List, v0: jax.ShapedArray,
@@ -471,33 +459,6 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       vector = vector - h * v
       return [vector, krylov_vectors, n, H]
 
-    def iterative_classical_gram_schmidt(
-        vector: jax.ShapedArray,
-        krylov_vectors: jax.ShapedArray,
-        iterations: int = 2) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
-      """
-      Orthogonalize `vector`  to all rows of `krylov_vectors`, using
-      an iterated classical gram schmidt orthogonalization.
-      Args:
-        vector: Initial vector.
-        krylov_vectors: Matrix of krylov vectors, each row is treated as a
-          vector.
-        iterations: Number of iterations.
-      Returns:
-        jax.ShapedArray: The orthogonalized vector.
-        jax.ShapedArray: The overlaps of `vector` with all previous
-          krylov vectors
-      """
-      vec = vector
-      overlaps = 0
-      for _ in range(iterations):
-        ov = jax.numpy.dot(
-            krylov_vectors.conj(), vec, precision=precision)
-        vec = vec - jax.numpy.dot(
-            ov, krylov_vectors, precision=precision)
-        overlaps = overlaps + ov
-      return vec, overlaps
-
     shape = v0.shape
     Z = jax.numpy.linalg.norm(v0)
     #only normalize if norm > tol, else return zero vector
@@ -515,7 +476,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       Av, overlaps = iterative_classical_gram_schmidt(
           Av.ravel(),
           (i >= jax.numpy.arange(krylov_vectors.shape[0]))[:, None] *
-          krylov_vectors)
+          krylov_vectors, precision)
       H = H.at[:, i].set(overlaps)
       norm = jax.numpy.linalg.norm(Av)
       Av = jax.numpy.reshape(Av, shape)
