@@ -261,14 +261,16 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       eps: Convergence parameter. Iteration is terminated if the norm of a
         krylov-vector falls below `eps`.
     Returns:
-      kv: An array of krylov vectors
-      H: A matrix of overlaps
-      fm: The unnormalized residual
-      norm: The norm of `fm`.
-      it: The number of performed iterations.
-      converged: if `True`: iteration hit an invariant subspace
-                 if `False`: iteration terminated without encountering
-                 an invariant subspace.
+      jax.ShapedArray: An array of shape 
+        `(num_krylov_vecs, np.prod(initial_state.shape))` of krylov vectors.
+      jax.ShapedArray: Upper Hessenberg matrix of shape 
+        `(num_krylov_vecs, num_krylov_vecs`) of the Arnoldi processs.
+      jax.ShapedArray: The unnormalized residual of the Arnoldi process.
+      int: The norm of the residual.
+      int: The number of performed iterations.
+      bool: if `True`: iteration hit an invariant subspace.
+            if `False`: iteration terminated without encountering
+            an invariant subspace.
     """
 
     def modified_gram_schmidt_step_arnoldi(j, vals):
