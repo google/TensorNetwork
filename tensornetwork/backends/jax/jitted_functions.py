@@ -293,7 +293,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       vector, krylov_vectors, n, H = vals
       v = krylov_vectors[j, :]
       h = jax.numpy.vdot(v, vector, precision=precision)
-      H = jax.ops.index_update(H, jax.ops.index[j, n], h)
+      H = H.at[j, n].set(h)
       vector = vector - h * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors, n, H]
 
