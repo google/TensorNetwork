@@ -223,7 +223,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
 
   """
 
-  @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
+  #@functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
   def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
                     eps, precision=jax.lax.Precision.HIGHEST):
     #TODO: fix docstring
@@ -273,6 +273,15 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
             an invariant subspace.
     """
 
+    # Note (mganahl): currently unused, but is very convenient to have
+    # for further development and tests (it's usually more accurate than
+    # classical gs)
+    # Call signature:
+    #```python
+    # initial_vals = [Av.ravel(), krylov_vectors, i, H]
+    # Av, krylov_vectors, _, H = jax.lax.fori_loop(
+    #     0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
+    #```
     def modified_gram_schmidt_step_arnoldi(j, vals):
       """
       Single step of a modified gram-schmidt orthogonalization.
@@ -295,12 +304,9 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       H = H.at[j, n].set(h)
       vector = vector - h * v
       return [vector, krylov_vectors, n, H]
-
-    # Note (mganahl): currently unused, but is very convenient to have
-    # for furhter development and tests
-    def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=5):
+    def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
       """
-      orthogonalize `vector`  to all rows of `krylov_vectors`, using
+      Orthogonalize `vector`  to all rows of `krylov_vectors`, using
       an iterated classical gram schmidt orthogonalization.
       Args:
         vector: Initial vector.
@@ -335,11 +341,15 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     def body(vals):
       krylov_vectors, H, previous_vector, _, i = vals
       Av = matvec(previous_vector, *args)
-      initial_vals = [Av.ravel(), krylov_vectors, i, H]
-      Av, krylov_vectors, _, H = jax.lax.fori_loop(
-          0, i + 1, modified_gram_schmidt_step_arnoldi, initial_vals)
+
+      Av, overlaps = iterative_classical_gram_schmidt(
+          Av.ravel(),
+          (i >= jax.numpy.arange(krylov_vectors.shape[0]))[:, None] *
+          krylov_vectors)
+      H = H.at[:, i].set(overlaps)
+      norm = jax.numpy.linalg.norm(Av)
       Av = jax.numpy.reshape(Av, shape)
-      norm = jax.numpy.linalg.norm(Av.ravel())
+
       # only normalize if norm is larger than threshold,
       # otherwise return zero vector
       Av = jax.lax.cond(norm > eps, lambda x: Av/norm, lambda x: Av * 0.0, None)
@@ -518,7 +528,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     shape = initial_state.shape
     dtype = initial_state.dtype
 
-    dim = np.prod(shape).astype(np.int32) 
+    dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
 
     if (num_expand <= 1) and (num_krylov_vecs < dim):
@@ -622,12 +632,12 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     # before exhausting the allowed size of the Krylov subspace,
     # (i.e. `numit` < 'num_krylov_vecs'), set elements
     # at positions m, n with m, n >= `numit` to 0.0.
-    
+
     # FIXME (mganahl): under certain circumstances, the routine can still
     # return spurious 0 eigenvalues: if arnoldi terminated early
     # (after numits < num_krylov_vecs iterations)
     # and numeig > numits, then spurious 0.0 eigenvalues will be returned
-    
+
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eig(Hm)
