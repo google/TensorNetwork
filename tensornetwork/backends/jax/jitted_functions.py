@@ -1,5 +1,5 @@
 import functools
-from typing import List, Any, Tuple, Callable, Sequence
+from typing import List, Any, Tuple, Callable, Sequence, Text
 import collections
 import types
 import numpy as np
@@ -426,6 +426,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Callable: A function performing an implicitly restarted
       Arnoldi factorization
   """
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
 
   arnoldi_fact = _generate_arnoldi_factorization(jax)
 
@@ -493,7 +494,8 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     return state_vectors
 
   @functools.partial(jax.jit, static_argnums=(2, 3))
-  def check_eigvals_convergence_iram(beta_m, Hm, eps, numeig):
+  def check_eigvals_convergence_iram(beta_m: float, Hm: jax.ShapedArray,
+                                     eps: float, numeig: int) -> bool:
     eigvals, eigvecs = jax.numpy.linalg.eig(Hm)
     # TODO (mganahl) confirm that this is a valid matrix norm)
     Hm_norm = jax.numpy.linalg.norm(Hm)
@@ -505,8 +507,10 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7, 8))
   def implicitly_restarted_arnoldi_method(
-      matvec, args, initial_state, num_krylov_vecs, numeig, which, eps,
-      maxiter, precision) -> Tuple[List[Tensor], List[Tensor]]:
+      matvec: Callable, args: List, initial_state: jax.ShapedArray,
+      num_krylov_vecs: int, numeig: int, which: Text, eps: float, maxiter: int,
+      precision: JaxPrecisionType
+  ) -> Tuple[jax.ShapedArray, List[jax.ShapedArray], int]:
     """
     Implicitly restarted arnoldi factorization of `matvec`. The routine
     finds the lowest `numeig` eigenvector-eigenvalue pairs of `matvec`
@@ -536,12 +540,12 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       eps: Convergence flag. If the norm of a krylov vector drops below `eps`
         the iteration is terminated.
       maxiter: Maximum number of (outer) iteration steps.
+      precision: jax.lax.Precision used within lax operations.
     Returns:
-      List: Eigenvalues
+      jax.ShapedArray: Eigenvalues
       List: Eigenvectors
-      bool: if `True`, routine terminated OK
-            if `False`, result contains spurious eigenvalues 0.0
-    
+      int: Number of inner krylov iterations of the last arnoldi 
+        factorization.
     """
     shape = initial_state.shape
     dtype = initial_state.dtype
