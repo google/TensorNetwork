@@ -357,7 +357,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     initial_values = [krylov_vectors, H, v, Z, start]
     final_values = jax.lax.while_loop(cond_fun, body, initial_values)
     krylov_vectors, H, residual, norm, it = final_values
-    return krylov_vectors, H, residual.ravel(), norm, it, norm < eps
+    return krylov_vectors, H, residual.ravel(), it, norm < eps
 
   return _arnoldi_fact
 
