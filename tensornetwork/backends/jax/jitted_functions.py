@@ -228,13 +228,14 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
 
   """
   JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
-  
+
   @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
   def _arnoldi_fact(
       matvec: Callable, args: List, v0: jax.ShapedArray,
       krylov_vectors: jax.ShapedArray, H: jax.ShapedArray, start: int,
       num_krylov_vecs: int, eps: float, precision: JaxPrecisionType
-  ) -> Tuple[jax.ShapedArray, jax.ShapedArray, int]:
+  ) -> Tuple[jax.ShapedArray, jax.ShapedArray, jax.ShapedArray, float, int,
+             bool]:
     """
     Compute an m-step arnoldi factorization of `matvec`, with
     m = min(`it`,`num_krylov_vecs`). The factorization will
@@ -312,8 +313,11 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       H = H.at[j, n].set(h)
       vector = vector - h * v
       return [vector, krylov_vectors, n, H]
-    
-    def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
+
+    def iterative_classical_gram_schmidt(
+        vector: jax.ShapedArray,
+        krylov_vectors: jax.ShapedArray,
+        iterations: int = 2) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
       """
       Orthogonalize `vector`  to all rows of `krylov_vectors`, using
       an iterated classical gram schmidt orthogonalization.
@@ -429,7 +433,9 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   # #######  NEW SORTING FUCTIONS INSERTED HERE  #########
   # ######################################################
   @functools.partial(jax.jit, static_argnums=(0,))
-  def LR_sort(p, evals):
+  def LR_sort(
+      p: int,
+      evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     inds = jax.numpy.argsort(jax.numpy.real(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
@@ -439,7 +445,10 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   # #######################################################
 
   @functools.partial(jax.jit, static_argnums=(3, 4))
-  def shifted_QR(Vm, Hm, fm, numeig, sort_fun):
+  def shifted_QR(
+      Vm: jax.ShapedArray, Hm: jax.ShapedArray, fm: jax.ShapedArray,
+      numeig: int, sort_fun: Callable
+  ) -> Tuple[jax.ShapedArray, jax.ShapedArray, jax.ShapedArray]:
     ######################################################
     #######  NEW SORTING FUCTIONS INSERTED HERE  #########
     ######################################################
@@ -466,19 +475,19 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     return Vm, Hm, fk
 
   @functools.partial(jax.jit, static_argnums=(3,))
-  def get_vectors(Vm, unitary, inds, numeig):
-    def body_vector(i, vals):
-      krv, unitary, states, inds = vals
+  def get_vectors(Vm: jax.ShapedArray, unitary: jax.ShapedArray,
+                  inds: jax.ShapedArray, numeig: int) -> jax.ShapedArray:
+
+    def body_vector(i, states):
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
       states = jax.ops.index_add(states, jax.ops.index[n, :],
-                                 krv[m, :] * unitary[m, inds[n]])
-      return [krv, unitary, states, inds]
+                                 Vm[m, :] * unitary[m, inds[n]])
+      return states
 
     state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=Vm.dtype)
     _, _, state_vectors, _ = jax.lax.fori_loop(
-        0, numeig * Vm.shape[0], body_vector,
-        [Vm, unitary, state_vectors, inds])
+        0, numeig * Vm.shape[0], body_vector, state_vectors)
     state_norms = jax.numpy.linalg.norm(state_vectors, axis=1)
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
