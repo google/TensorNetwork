@@ -24,8 +24,8 @@ def test_arnoldi_factorization(dtype):
   kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
   H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
   start = 0
-
-  kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01, precision)
+  tol = 0,01
+  kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, tol, precision)
   Vm = jax.numpy.transpose(kv[:it, :])
   Hm = H[:it, :it]
   fm = kv[it, :] * H[it, it - 1]
