@@ -24,7 +24,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   `matvec`: A callable implementing the matrix-vector product of a
   linear operator. `arguments`: Arguments to `matvec` additional to
   an input vector. `matvec` will be called as `matvec(init, *args)`.
-  `init`: An initial input state to `matvec`.
+  `init`: An initial input vector to `matvec`.
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
   `landelta`: Convergence parameter: if the norm of the current Lanczos vector
@@ -54,7 +54,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
         linear operator.
       arguments: Arguments to `matvec` additional to an input vector.
         `matvec` will be called as `matvec(init, *args)`.
-      init: An initial input state to `matvec`.
+      init: An initial input vector to `matvec`.
       ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
       neig: Number of eigenvalue-eigenvector pairs to be computed.
       landelta: Convergence parameter: if the norm of the current Lanczos vector
@@ -122,14 +122,14 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # note: ncv + 2 because the first vector is all zeros, and the
     # last is the unnormalized residual.
     krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
-    # NOTE (mganahl): initial state is normalized inside the loop
+    # NOTE (mganahl): initial vector is normalized inside the loop
     krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
 
     # betas are the upper and lower diagonal elements
     # of the projected linear operator
     # the first two beta-values can be discarded
     # set betas[0] to 1.0 for initialization of loop
-    # betas[2] is set to the norm of the initial state.
+    # betas[2] is set to the norm of the initial vector.
     betas = jax.numpy.zeros(ncv + 1, dtype=dtype)
     betas = betas.at[0].set(1.0)
     # diagonal elements of the projected linear operator
@@ -154,17 +154,17 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
     # expand eigenvectors in krylov basis
     def body_vector(i, vals):
-      krv, unitary, states = vals
+      krv, unitary, vectors = vals
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
-      states = jax.ops.index_add(states, jax.ops.index[n, :],
+      vectors = jax.ops.index_add(vectors, jax.ops.index[n, :],
                                  krv[m + 1, :] * unitary[m, n])
-      return [krv, unitary, states]
+      return [krv, unitary, vectors]
 
-    state_vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
+    _vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
     _, _, vectors = jax.lax.fori_loop(0, neig * (krylov_vecs.shape[0] - 1),
                                       body_vector,
-                                      [krylov_vecs, U, state_vectors])
+                                      [krylov_vecs, U, _vectors])
 
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], init.shape) /
