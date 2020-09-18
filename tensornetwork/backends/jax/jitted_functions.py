@@ -257,7 +257,7 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
       jax.ShapedArray: Upper Hessenberg matrix of shape 
         `(num_krylov_vecs, num_krylov_vecs`) of the Arnoldi processs.
       jax.ShapedArray: The unnormalized residual of the Arnoldi process.
-      int: The norm of the residual.
+      float: The norm of the residual.
       int: The number of performed iterations.
       bool: if `True`: iteration hit an invariant subspace.
             if `False`: iteration terminated without encountering
@@ -291,7 +291,6 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
       return vec, overlaps
 
     shape = v0.shape
-    dtype = v0.dtype
     Z = jax.numpy.linalg.norm(v0)
     #only normalize if norm > tol, else return zero vector
     v = jax.lax.cond(Z > tol, lambda x: v0 / Z, lambda x: v0 * 0.0, None)
@@ -304,14 +303,12 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
     def body(vals):
       Vm, alphas, betas, previous_vector, _, i = vals
       Av = matvec(previous_vector, *args)
-
       Av, overlaps = iterative_classical_gram_schmidt(
           Av.ravel(),
           (i >= jax.numpy.arange(Vm.shape[0]))[:, None] * Vm)
       alphas = alphas.at[i].set(overlaps[i])
       norm = jax.numpy.linalg.norm(Av)
       Av = jax.numpy.reshape(Av, shape)
-
       # only normalize if norm is larger than threshold,
       # otherwise return zero vector
       Av = jax.lax.cond(norm > tol, lambda x: Av/norm, lambda x: Av * 0.0, None)
@@ -508,7 +505,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     krylov_vectors = krylov_vectors.at[start, :].set(jax.numpy.ravel(v))
     H = jax.lax.cond(
         start > 0,
-        lambda x: jax.ops.index_update(H, jax.ops.index[x, x - 1], Z),
+        lambda x: H.at[x, x - 1].set(Z),
         lambda x: H, start)
     # body of the arnoldi iteration
     def body(vals):
