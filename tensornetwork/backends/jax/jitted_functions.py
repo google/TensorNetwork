@@ -163,7 +163,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
       vectors = jax.ops.index_add(vectors, jax.ops.index[n, :],
-                                 krv[m + 1, :] * unitary[m, n])
+                                  krv[m + 1, :] * unitary[m, n])
       return [krv, unitary, vectors]
 
     _vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
