@@ -724,18 +724,6 @@ def test_eigs_bugfix(dtype):
       maxiter=10,
       num_krylov_vecs=100,
       tol=0.0001)
-  #this test will cause some annoying output to std buffer
-  with pytest.raises(np.linalg.LinAlgError):
-    backend.eigs(
-        matvec_jax, [mat],
-        numeig=1,
-        initial_state=x,
-        which='LR',
-        maxiter=10,
-        num_krylov_vecs=100,
-        tol=0.0001,
-        res_thresh=0.0)
-
 
 def test_sum():
   np.random.seed(10)
