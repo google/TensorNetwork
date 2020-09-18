@@ -487,8 +487,8 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       return states
 
     state_vectors = jax.numpy.zeros([numeig, Vm.shape[1]], dtype=Vm.dtype)
-    _, _, state_vectors, _ = jax.lax.fori_loop(
-        0, numeig * Vm.shape[0], body_vector, state_vectors)
+    state_vectors = jax.lax.fori_loop(0, numeig * Vm.shape[0], body_vector,
+                                      state_vectors)
     state_norms = jax.numpy.linalg.norm(state_vectors, axis=1)
     state_vectors = state_vectors / state_norms[:, None]
     return state_vectors
