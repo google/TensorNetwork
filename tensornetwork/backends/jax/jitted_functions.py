@@ -304,6 +304,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       H = H.at[j, n].set(h)
       vector = vector - h * v
       return [vector, krylov_vectors, n, H]
+    
     def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
       """
       Orthogonalize `vector`  to all rows of `krylov_vectors`, using
