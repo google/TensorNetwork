@@ -39,10 +39,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
   """
   JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
+
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec: Callable, arguments: List, init: jax.ShapedArray,
                   ncv: int, neig: int, landelta: float, reortho: bool,
-                  precision: JaxPrecisionType):
+                  precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, List]:
     """
     Lanczos iteration for symmeric eigenvalue problems. If reortho = False,
     the Krylov basis is constructed without explicit re-orthogonalization. 
@@ -63,12 +64,16 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
         This should be used if `neig>1`.
       precision: jax.lax.Precision type used in jax.numpy.vdot
     Returns:
-      jax.numpy.ndarray: Eigenvalues
-      list: Eigenvectors
+      jax.ShapedArray: Eigenvalues
+      List: Eigenvectors
     """
     shape = init.shape
     dtype = init.dtype
-    def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=2):
+
+    def iterative_classical_gram_schmidt(
+        vector: jax.ShapedArray,
+        krylov_vectors: jax.ShapedArray,
+        iterations: int = 2) -> jax.ShapedArray:
       """
       orthogonalize `vector`  to all rows of `krylov_vectors`.
       Args:
@@ -77,7 +82,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
           vector.
         iterations: Number of iterations.
       Returns:
-        jax.numpy.array: The orthogonalized vector.
+        jax.ShapedArray: The orthogonalized vector.
       """
       vec = vector
       for _ in range(iterations):
@@ -85,7 +90,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
             krylov_vectors.conj(), vec, precision=precision)
         vec = vec - jax.numpy.dot(ov, krylov_vectors, precision=precision)
       return vec
-    
+
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
@@ -222,11 +227,14 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     converged: Whether convergence was achieved.
 
   """
-
-
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
+  
   @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
-  def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
-                    eps, precision):
+  def _arnoldi_fact(
+      matvec: Callable, args: List, v0: jax.ShapedArray,
+      krylov_vectors: jax.ShapedArray, H: jax.ShapedArray, start: int,
+      num_krylov_vecs: int, eps: float, precision: JaxPrecisionType
+  ) -> Tuple[jax.ShapedArray, jax.ShapedArray, int]:
     """
     Compute an m-step arnoldi factorization of `matvec`, with
     m = min(`it`,`num_krylov_vecs`). The factorization will
