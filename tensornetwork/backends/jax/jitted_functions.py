@@ -294,17 +294,21 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       vector = vector - h * v
       return [vector, krylov_vectors, n, H]
 
-
+    # Note (mganahl): currently unused, but is very convenient to have
+    # for furhter development and tests
     def iterative_classical_gram_schmidt(vector, krylov_vectors, iterations=5):
       """
-      orthogonalize `vector`  to all rows of `krylov_vectors`.
+      orthogonalize `vector`  to all rows of `krylov_vectors`, using
+      an iterated classical gram schmidt orthogonalization.
       Args:
         vector: Initial vector.
         krylov_vectors: Matrix of krylov vectors, each row is treated as a
           vector.
         iterations: Number of iterations.
       Returns:
-        jax.numpy.array: The orthogonalized vector.
+        jax.ShapedArray: The orthogonalized vector.
+        jax.ShapedArray: The overlaps of `vector` with all previous
+          krylov vectors
       """
       vec = vector
       overlaps = 0
@@ -357,7 +361,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     initial_values = [krylov_vectors, H, v, Z, start]
     final_values = jax.lax.while_loop(cond_fun, body, initial_values)
     krylov_vectors, H, residual, norm, it = final_values
-    return krylov_vectors, H, residual.ravel(), it, norm < eps
+    return krylov_vectors, H, residual, norm, it, norm < eps
 
   return _arnoldi_fact
 
@@ -531,12 +535,11 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     # perform initial arnoldi factorization
     Vm, Hm, residual, norm, numits, ar_converged = arnoldi_fact(
         matvec, args, initial_state, Vm, Hm, 0, num_krylov_vecs, eps, precision)
-    #Vm, Hm, fm = update_data(Vm_tmp, Hm_tmp, __num_krylov_vecs)
-    fm = residual * norm
+    fm = residual.ravel() * norm
 
 
-    #sort_fun returns `num_expand` least relevant eigenvalues
-    #(those to be projected out)
+    # sort_fun returns `num_expand` least relevant eigenvalues
+    # (those to be projected out)
     if which == 'LR':
       sort_fun = jax.tree_util.Partial(functools.partial(LR_sort, num_expand))
     else:
@@ -580,7 +583,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
         Vm, Hm, residual, norm, numits, ar_converged = arnoldi_fact(
             matvec, args, jax.numpy.reshape(fk, shape), Vk, Hk, numeig,
             num_krylov_vecs, eps, precision)
-        fm = residual * norm
+        fm = residual.ravel() * norm
         return Vm, Hm, fm, norm, numits, ar_converged
 
       res = jax.lax.cond(
