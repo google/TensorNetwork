@@ -25,7 +25,6 @@ def test_arnoldi_factorization(dtype):
   kv = jax.numpy.zeros((ncv, D), dtype=dtype)
   H = jax.numpy.zeros((ncv, ncv), dtype=dtype)
   start = 0
-
   Vm, Hm, residual, norm, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv,
                                           1E-5, precision)
   fm = residual * norm
