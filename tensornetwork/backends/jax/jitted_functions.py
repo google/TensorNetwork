@@ -917,7 +917,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
           functools.partial(_LR_sort(jax), num_expand))
     elif which == 'SR':
       sort_fun = jax.tree_util.Partial(
-          functools.partial(_SR_sort(jax), num_expand))
+        functools.partial(_SR_sort(jax), num_expand))
     else:
       raise ValueError(f"which = {which} not implemented")
 
@@ -928,7 +928,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       #pack into alphas and betas into tridiagonal matrix
       Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
         betas.conj().T, -1)
-      evals, _ = jax.numpy.eigh(Hm)
+      evals, _ = jax.numpy.linalg.eigh(Hm)
       shifts, _ = sort_fun(evals)
       # perform shifted QR iterations to compress lanczos factorization
       # Note that ||fk|| typically decreases as one iterates the outer loop
