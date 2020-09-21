@@ -79,11 +79,17 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
+      def body_while(vals):
+        pv, kv, _ = vals
+        pv, kv = jax.lax.fori_loop(1, i, body_modified_gram_schmidt, [pv, kv])
+        return [pv, kv, False]
+      def cond_while(vals):
+        return vals[2]
 
-      previous_vector, krylov_vectors = jax.lax.cond(
-          reortho,
-          lambda x: jax.lax.fori_loop(1, i, body_modified_gram_schmidt, x),
-          lambda x: x, [jax.numpy.ravel(previous_vector), krylov_vectors])
+      previous_vector, krylov_vectors, _ = jax.lax.while_loop(
+          cond_while, body_while,
+          [previous_vector.ravel(), krylov_vectors, reortho])
+
       beta = jax.numpy.linalg.norm(previous_vector)
       normalized_vector = previous_vector / beta
       Av = matvec(jax.lax.reshape(normalized_vector, shape), *arguments)
