@@ -501,16 +501,16 @@ def _LR_sort(jax):
 
   return LR_sort
 
-def _SR_sort(jax):
+def _SA_sort(jax):
   @functools.partial(jax.jit, static_argnums=(0,))
-  def SR_sort(
+  def SA_sort(
       p: int,
       evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     inds = jax.numpy.argsort(jax.numpy.real(evals), kind='stable')
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  return SR_sort
+  return SA_sort
 
 
 def _shifted_QR(jax):
@@ -784,8 +784,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eig(Hm)
-    inds = jax.numpy.argsort(
-        jax.numpy.real(eigvals[0:numeig]), kind='stable')[::-1]
+    inds = sort_fun(eigvals)[1][:numeig]    
     vectors = get_vectors(Vm, U, inds, numeig)
     return eigvals[inds], [
         jax.numpy.reshape(vectors[n, :], shape)
@@ -901,10 +900,9 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     Vm, alphas, betas, residual, norm, numits, ar_converged = lanczos_fact(
         matvec, args, initial_state, Vm, alphas, betas, 0, num_krylov_vecs, tol,
         precision)
-    Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-        betas.conj().T, -1)
+    # Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
+    #   betas.conj(), 1)
     fm = residual.ravel() * norm
-
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
     check_eigvals_convergence = _check_eigvals_convergence(jax)
@@ -915,9 +913,9 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     if which == 'LR':
       sort_fun = jax.tree_util.Partial(
           functools.partial(_LR_sort(jax), num_expand))
-    elif which == 'SR':
+    elif which == 'SA':
       sort_fun = jax.tree_util.Partial(
-        functools.partial(_SR_sort(jax), num_expand))
+        functools.partial(_SA_sort(jax), num_expand))
     else:
       raise ValueError(f"which = {which} not implemented")
 
@@ -927,7 +925,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       alphas, betas, Vm, fm, it, numits, ar_converged, _, _, = carry
       #pack into alphas and betas into tridiagonal matrix
       Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-        betas.conj().T, -1)
+        betas.conj(), 1)
       evals, _ = jax.numpy.linalg.eigh(Hm)
       shifts, _ = sort_fun(evals)
       # perform shifted QR iterations to compress lanczos factorization
@@ -974,18 +972,17 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     carry = [alphas, betas, Vm, fm, it, numits, ar_converged, converged, norm]
     res = jax.lax.while_loop(cond_fun, outer_loop, carry)
     alphas, betas, Vm = res[0], res[1], res[2]
-    numits, converged = res[4], res[6]
+    numits, converged = res[5], res[7]
     # if `ar_converged` then `norm`is below convergence threshold
     # set it to 0.0 in this case to prevent `jnp.linalg.eig` from finding a
     # spurious eigenvalue of order `norm`.
+
     betas = betas.at[numits - 1].set(
       jax.lax.cond(converged, lambda x: betas.dtype.type(0.0), lambda x: x,
                    betas[numits - 1]))
-    
     Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-        betas.conj().T, -1)
+      betas.conj(), 1)
 
-    # if the Lanczos-factorization stopped early (after `numit` iterations)
     # before exhausting the allowed size of the Krylov subspace,
     # (i.e. `numit` < 'num_krylov_vecs'), set elements
     # at positions m, n with m, n >= `numit` to 0.0.
@@ -994,11 +991,9 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     # (after numits < num_krylov_vecs iterations)
     # and numeig > numits, then spurious 0.0 eigenvalues will be returned
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
-        numits > jax.numpy.arange(num_krylov_vecs))[None, :]
-    
+      numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eigh(Hm)
-    inds = jax.numpy.argsort(
-        jax.numpy.real(eigvals[0:numeig]), kind='stable')[::-1]
+    inds = sort_fun(eigvals)[1][:numeig]
     vectors = get_vectors(Vm, U, inds, numeig)
     return eigvals[inds], [
         jax.numpy.reshape(vectors[n, :], shape)
