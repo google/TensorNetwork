@@ -104,12 +104,19 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
-      previous_vector = jax.lax.cond(
-          reortho, lambda x: iterative_classical_gram_schmidt(
-              previous_vector,
-              (i > jax.numpy.arange(ncv + 2))[:, None] * krylov_vectors,
-            precision)[0],
-          lambda x: previous_vector, None)
+
+      def body_while(vals):
+        pv, kv, _ = vals
+        pv = iterative_classical_gram_schmidt(
+          pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv, precision)[0]
+        return [pv, kv, False]
+
+      def cond_while(vals):
+        return vals[2]
+
+      previous_vector, krylov_vectors, _ = jax.lax.while_loop(
+          cond_while, body_while,
+          [previous_vector.ravel(), krylov_vectors, reortho])
 
       beta = jax.numpy.linalg.norm(previous_vector)
       normalized_vector = previous_vector / beta
@@ -117,10 +124,20 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(beta)
-      next_vector = jax.lax.cond(
-          reortho, lambda x: Av, lambda x: jax.numpy.reshape(
-              jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
-              krylov_vectors[i - 1] * beta, Av.shape), None)
+
+      def while_next(vals):
+        Av, _ = vals
+        res = Av - normalized_vector * alpha -   krylov_vectors[i - 1] * beta
+        return [res, False]
+
+      def cond_next(vals):
+        return vals[1]
+
+      next_vector, _ = jax.lax.while_loop(
+          cond_next, while_next,
+          [Av.ravel(), jax.numpy.logical_not(reortho)])
+      next_vector = jax.numpy.reshape(next_vector, shape)
+
       krylov_vectors = krylov_vectors.at[i, :].set(
           jax.numpy.ravel(normalized_vector))
       krylov_vectors = krylov_vectors.at[i + 1, :].set(
@@ -151,8 +168,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # diagonal elements of the projected linear operator
     alphas = jax.numpy.zeros(ncv, dtype=dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
-    krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
-                                                       initvals)
+    krylov_vecs, alphas, betas, numits = jax.lax.while_loop(
+        cond_fun, body_lanczos, initvals)
     # FIXME (mganahl): if the while_loop stopps early at iteration i, alphas
     # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
     # degenerate eigenvalues 0.0. JAX does currently not support
@@ -163,6 +180,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
 
+    #FIXME: replace with eigh_banded once JAX supports it
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
@@ -185,7 +203,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], shape) /
         jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
-    ]
+    ], numits
+
   return jax_lanczos
 
 
@@ -756,20 +775,26 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       converged = check_eigvals_convergence(beta_k, Hk, tol, numeig)
 
       def do_arnoldi(vals):
-        Vk, Hk, fk = vals
+        Vk, Hk, fk, _, _, _, _ = vals
         # restart
         Vm, Hm, residual, norm, numits, ar_converged = arnoldi_fact(
             matvec, args, jax.numpy.reshape(fk, shape), Vk, Hk, numeig,
             num_krylov_vecs, tol, precision)
         fm = residual.ravel() * norm
-        return Vm, Hm, fm, norm, numits, ar_converged
+        return [Vm, Hm, fm, norm, numits, ar_converged, False]
 
-      res = jax.lax.cond(
-          converged, lambda x:
-          (Vk, Hk, fk, jax.numpy.linalg.norm(fk), numeig, False),
-          lambda x: do_arnoldi((Vk, Hk, fk)), None)
+      def cond_arnoldi(vals):
+        return vals[6]
 
-      Vm, Hm, fm, norm, numits, ar_converged = res
+      res = jax.lax.while_loop(cond_arnoldi, do_arnoldi, [
+          Vk, Hk, fk,
+          jax.numpy.linalg.norm(fk), numeig, False,
+          jax.numpy.logical_not(converged)
+      ])
+
+
+
+      Vm, Hm, fm, norm, numits, ar_converged = res[0:6]
       out_vars = [
           Hm, Vm, fm, it + 1, numits, ar_converged, converged, norm
       ]
@@ -965,21 +990,27 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       # extract new alphas and betas
       alphas = jax.numpy.diag(Hk)
       betas = jax.numpy.diag(Hk, -1)
+      
       def do_lanczos(vals):
-        Vk, alphas, betas, fk = vals
+        Vk, alphas, betas, fk, _, _, _, _ = vals
         # restart
         Vm, alphas, betas, residual, norm, numits, ar_converged = lanczos_fact(
             matvec, args, jax.numpy.reshape(fk, shape), Vk, alphas, betas,
             numeig, num_krylov_vecs, tol, precision)
         fm = residual.ravel() * norm
-        return Vm, alphas, betas, fm, norm, numits, ar_converged
+        return [Vm, alphas, betas, fm, norm, numits, ar_converged, False]
 
-      res = jax.lax.cond(
-          converged, lambda x:
-          (Vk, alphas, betas, fk, jax.numpy.linalg.norm(fk), numeig, False),
-          lambda x: do_lanczos((Vk, alphas, betas, fk)), None)
+      def cond_lanczos(vals):
+        return vals[7]
 
-      Vm, alphas, betas, fm, norm, numits, ar_converged = res
+      res = jax.lax.while_loop(cond_lanczos, do_lanczos, [
+          Vk, alphas, betas, fk,
+          jax.numpy.linalg.norm(fk), numeig, False,
+          jax.numpy.logical_not(converged)
+      ])
+
+      Vm, alphas, betas, fm, norm, numits, ar_converged = res[0:7]
+
       out_vars = [
           alphas, betas, Vm, fm, it + 1, numits, ar_converged, converged, norm
       ]

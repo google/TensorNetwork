@@ -20,6 +20,7 @@ import numpy as np
 import warnings
 from tensornetwork.backends.jax import jitted_functions
 from functools import partial
+import warnings
 
 Tensor = Any
 # pylint: disable=abstract-method
@@ -562,9 +563,16 @@ class JaxBackend(abstract_backend.AbstractBackend):
       eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
       _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
     eigsh_lanczos = _CACHED_FUNCTIONS["eigsh_lanczos"]
-    return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
-                         num_krylov_vecs, numeig, delta, reorthogonalize,
-                         self.jax_precision)
+    eta, U, numits = eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
+                                   num_krylov_vecs, numeig, delta,
+                                   reorthogonalize, self.jax_precision)
+    if numeig > numits:
+      warnings.warn(
+          f"Lanczos terminated early after numits = {numits}"
+          f" < numeig = {numeig} steps. For this value of `numeig `"
+          f"the routine will return spurious eigenvalues of value 0.0."
+          f"Use a smaller value of numeig, or a smaller value for `tol`")
+    return eta, U
 
   def gmres(self,
             A_mv: Callable,
