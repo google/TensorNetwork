@@ -59,7 +59,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
   `landelta`: Convergence parameter: if the norm of the current Lanczos vector
-    falls below `landelta`, iteration is stopped.
+
   `reortho`: If `True`, reorthogonalize all krylov vectors at each step.
      This should be used if `neig>1`.
 
@@ -530,9 +530,9 @@ def _shifted_QR(jax):
 
     def body(i, vals):
       Vm, Hm, q = vals
-      Qj, R = jax.numpy.linalg.qr(Hm - shifts[i] *
+      Qj, _ = jax.numpy.linalg.qr(Hm - shifts[i] *
                                   jax.numpy.eye(Hm.shape[0], dtype=Hm.dtype))
-      Hm = R @ Qj
+      Hm = Qj.T.conj() @ Hm @ Qj
       Vm = Qj.T @ Vm
       q = q @ Qj
       return Vm, Hm, q
