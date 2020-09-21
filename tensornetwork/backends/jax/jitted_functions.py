@@ -792,8 +792,6 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
           jax.numpy.logical_not(converged)
       ])
 
-
-
       Vm, Hm, fm, norm, numits, ar_converged = res[0:6]
       out_vars = [
           Hm, Vm, fm, it + 1, numits, ar_converged, converged, norm
