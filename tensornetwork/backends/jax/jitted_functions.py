@@ -98,7 +98,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       def body_while(vals):
         pv, kv, _ = vals
         pv = iterative_classical_gram_schmidt(
-          pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv)
+            pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv)
         return [pv, kv, False]
 
       def cond_while(vals):
