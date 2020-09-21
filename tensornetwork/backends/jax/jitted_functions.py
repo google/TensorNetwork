@@ -412,8 +412,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
-      which: Which eigenvalues to target. Currently supported: `which = 'LR'`
-        or `which = 'LM'`.
+      which: Which eigenvalues to target. Currently supported: `which = 'LR'.
       eps: Convergence flag. If the norm of a krylov vector drops below `eps`
         the iteration is terminated.
       maxiter: Maximum number of (outer) iteration steps.
