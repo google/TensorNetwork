@@ -17,7 +17,6 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
-import warnings
 from tensornetwork.backends.jax import jitted_functions
 from functools import partial
 import warnings
