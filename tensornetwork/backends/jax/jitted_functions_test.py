@@ -47,12 +47,12 @@ def test_LR_sort(dtype):
   np.testing.assert_allclose(exp_inds, actual_inds)
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_SR_sort(dtype):
+def test_SA_sort(dtype):
   np.random.seed(10)
   x = np.random.rand(20).astype(dtype)
   p = 10
-  SR_sort = jitted_functions._SR_sort(jax)
-  actual_x, actual_inds = SR_sort(p, jax.numpy.array(np.real(x)))
+  SA_sort = jitted_functions._SA_sort(jax)
+  actual_x, actual_inds = SA_sort(p, jax.numpy.array(np.real(x)))
   exp_inds = np.argsort(x)
   exp_x = x[exp_inds][-p:]
   np.testing.assert_allclose(exp_x, actual_x)
@@ -76,7 +76,7 @@ def test_shifted_QR(dtype):
 
   lanczos = jitted_functions._generate_lanczos_factorization(jax)
   shifted_QR = jitted_functions._shifted_QR(jax)
-  SR_sort = jitted_functions._SR_sort(jax)
+  SA_sort = jitted_functions._SA_sort(jax)
 
   Vm = jax.numpy.zeros((ncv, D), dtype=dtype)
   alphas = jax.numpy.zeros(ncv, dtype=dtype)
@@ -97,7 +97,7 @@ def test_shifted_QR(dtype):
                                  np.zeros((D, ncv)).astype(dtype))
 
   evals, _ = jax.numpy.linalg.eigh(Hm)
-  shifts, _ = SR_sort(numeig, evals)
+  shifts, _ = SA_sort(numeig, evals)
   Vk, Hk, fk = shifted_QR(Vm, Hm, fm, shifts, numeig)
 
   Vk = Vk.at[numeig:, :].set(0)
