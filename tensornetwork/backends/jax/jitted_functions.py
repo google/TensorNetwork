@@ -661,8 +661,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eig(Hm)
-    inds = jax.numpy.argsort(
-        jax.numpy.real(eigvals[0:numeig]), kind='stable')[::-1]
+    inds = sort_fun(eigvals)[1][:numeig]
     vectors = get_vectors(Vm, U, inds, numeig)
     return eigvals[inds], [
         jax.numpy.reshape(vectors[n, :], shape)
