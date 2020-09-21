@@ -629,20 +629,26 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       converged = check_eigvals_convergence_iram(beta_k, Hk, eps, numeig)
 
       def do_arnoldi(vals):
-        Vk, Hk, fk = vals
+        Vk, Hk, fk, _, _, _, _ = vals
         # restart
         Vm, Hm, residual, norm, numits, ar_converged = arnoldi_fact(
             matvec, args, jax.numpy.reshape(fk, shape), Vk, Hk, numeig,
             num_krylov_vecs, eps, precision)
         fm = residual.ravel() * norm
-        return Vm, Hm, fm, norm, numits, ar_converged
+        return [Vm, Hm, fm, norm, numits, ar_converged, False]
 
-      res = jax.lax.cond(
-          converged, lambda x:
-          (Vk, Hk, fk, jax.numpy.linalg.norm(fk), numeig, False),
-          lambda x: do_arnoldi((Vk, Hk, fk)), None)
+      def cond_arnoldi(vals):
+        return vals[6]
 
-      Vm, Hm, fm, norm, numits, ar_converged = res
+      res = jax.lax.while_loop(cond_arnoldi, do_arnoldi, [
+          Vk, Hk, fk,
+          jax.numpy.linalg.norm(fk), numeig, False,
+          jax.numpy.logical_not(converged)
+      ])
+
+
+
+      Vm, Hm, fm, norm, numits, ar_converged = res[0:6]
       out_vars = [
           Hm, Vm, fm, it + 1, numits, ar_converged, converged, norm
       ]
