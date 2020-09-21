@@ -97,13 +97,19 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(beta)
 
-      def _next_vector():
-        return jax.numpy.reshape(
-            jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
-            krylov_vectors[i - 1] * beta, Av.shape)
+      def while_next(vals):
+        Av, _ = vals
+        res = Av - normalized_vector * alpha -   krylov_vectors[i - 1] * beta
+        return [res, False]
 
-      next_vector = jax.lax.cond(reortho, lambda x: Av,
-                                 lambda x: _next_vector(), None)
+      def cond_next(vals):
+        return vals[1]
+
+      next_vector, _ = jax.lax.while_loop(
+          cond_next, while_next,
+          [Av.ravel(), jax.numpy.logical_not(reortho)])
+      next_vector = jax.numpy.reshape(next_vector, shape)
+
       krylov_vectors = krylov_vectors.at[i, :].set(
           jax.numpy.ravel(normalized_vector))
       krylov_vectors = krylov_vectors.at[i + 1, :].set(
