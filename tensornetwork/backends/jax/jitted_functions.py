@@ -39,6 +39,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
   """
   JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
+
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec: Callable, arguments: List, init: jax.ShapedArray,
                   ncv: int, neig: int, landelta: float, reortho: bool,
