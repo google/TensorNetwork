@@ -24,7 +24,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   `matvec`: A callable implementing the matrix-vector product of a
   linear operator. `arguments`: Arguments to `matvec` additional to
   an input vector. `matvec` will be called as `matvec(init, *args)`.
-  `init`: An initial input state to `matvec`.
+  `init`: An initial input vector to `matvec`.
   `ncv`: Number of krylov iterations (i.e. dimension of the Krylov space).
   `neig`: Number of eigenvalue-eigenvector pairs to be computed.
   `landelta`: Convergence parameter: if the norm of the current Lanczos vector
@@ -43,7 +43,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
   @functools.partial(jax.jit, static_argnums=(3, 4, 5, 6, 7))
   def jax_lanczos(matvec: Callable, arguments: List, init: jax.ShapedArray,
                   ncv: int, neig: int, landelta: float, reortho: bool,
-                  precision: JaxPrecisionType):
+                  precision: JaxPrecisionType) -> Tuple[jax.ShapedArray, List]:
     """
     Lanczos iteration for symmeric eigenvalue problems. If reortho = False,
     the Krylov basis is constructed without explicit re-orthogonalization. 
@@ -55,7 +55,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
         linear operator.
       arguments: Arguments to `matvec` additional to an input vector.
         `matvec` will be called as `matvec(init, *args)`.
-      init: An initial input state to `matvec`.
+      init: An initial input vector to `matvec`.
       ncv: Number of krylov iterations (i.e. dimension of the Krylov space).
       neig: Number of eigenvalue-eigenvector pairs to be computed.
       landelta: Convergence parameter: if the norm of the current Lanczos vector
@@ -64,25 +64,43 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
         This should be used if `neig>1`.
       precision: jax.lax.Precision type used in jax.numpy.vdot
     Returns:
-      jax.numpy.ndarray: Eigenvalues
-      list: Eigenvectors
+      jax.ShapedArray: Eigenvalues
+      List: Eigenvectors
     """
     shape = init.shape
     dtype = init.dtype
-    # TODO (mganahl): replace with restarted classical gram-schmidt
-    def body_modified_gram_schmidt(i, vals):
-      vector, krylov_vectors = vals
-      v = krylov_vectors[i, :]
-      vector = vector - jax.numpy.vdot(v, vector, precision=precision) * v
-      return [vector, krylov_vectors]
+
+    def iterative_classical_gram_schmidt(
+        vector: jax.ShapedArray,
+        krylov_vectors: jax.ShapedArray,
+        iterations: int = 2) -> jax.ShapedArray:
+      """
+      orthogonalize `vector`  to all rows of `krylov_vectors`.
+      Args:
+        vector: Initial vector.
+        krylov_vectors: Matrix of krylov vectors, each row is treated as a
+          vector.
+        iterations: Number of iterations.
+      Returns:
+        jax.ShapedArray: The orthogonalized vector.
+      """
+      vec = vector
+      for _ in range(iterations):
+        ov = jax.numpy.dot(
+            krylov_vectors.conj(), vec, precision=precision)
+        vec = vec - jax.numpy.dot(ov, krylov_vectors, precision=precision)
+      return vec
 
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
+
       def body_while(vals):
         pv, kv, _ = vals
-        pv, kv = jax.lax.fori_loop(1, i, body_modified_gram_schmidt, [pv, kv])
+        pv = iterative_classical_gram_schmidt(
+            pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv)
         return [pv, kv, False]
+
       def cond_while(vals):
         return vals[2]
 
@@ -97,13 +115,19 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(beta)
 
-      def _next_vector():
-        return jax.numpy.reshape(
-            jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
-            krylov_vectors[i - 1] * beta, Av.shape)
+      def while_next(vals):
+        Av, _ = vals
+        res = Av - normalized_vector * alpha -   krylov_vectors[i - 1] * beta
+        return [res, False]
 
-      next_vector = jax.lax.cond(reortho, lambda x: Av,
-                                 lambda x: _next_vector(), None)
+      def cond_next(vals):
+        return vals[1]
+
+      next_vector, _ = jax.lax.while_loop(
+          cond_next, while_next,
+          [Av.ravel(), jax.numpy.logical_not(reortho)])
+      next_vector = jax.numpy.reshape(next_vector, shape)
+
       krylov_vectors = krylov_vectors.at[i, :].set(
           jax.numpy.ravel(normalized_vector))
       krylov_vectors = krylov_vectors.at[i + 1, :].set(
@@ -121,14 +145,14 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # note: ncv + 2 because the first vector is all zeros, and the
     # last is the unnormalized residual.
     krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
-    # NOTE (mganahl): initial state is normalized inside the loop
+    # NOTE (mganahl): initial vector is normalized inside the loop
     krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
 
     # betas are the upper and lower diagonal elements
     # of the projected linear operator
     # the first two beta-values can be discarded
     # set betas[0] to 1.0 for initialization of loop
-    # betas[2] is set to the norm of the initial state.
+    # betas[2] is set to the norm of the initial vector.
     betas = jax.numpy.zeros(ncv + 1, dtype=dtype)
     betas = betas.at[0].set(1.0)
     # diagonal elements of the projected linear operator
@@ -154,17 +178,17 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
     # expand eigenvectors in krylov basis
     def body_vector(i, vals):
-      krv, unitary, states = vals
+      krv, unitary, vectors = vals
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
-      states = jax.ops.index_add(states, jax.ops.index[n, :],
-                                 krv[m + 1, :] * unitary[m, n])
-      return [krv, unitary, states]
+      vectors = jax.ops.index_add(vectors, jax.ops.index[n, :],
+                                  krv[m + 1, :] * unitary[m, n])
+      return [krv, unitary, vectors]
 
-    state_vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
+    _vectors = jax.numpy.zeros([neig, numel], dtype=init.dtype)
     _, _, vectors = jax.lax.fori_loop(0, neig * (krylov_vecs.shape[0] - 1),
                                       body_vector,
-                                      [krylov_vecs, U, state_vectors])
+                                      [krylov_vecs, U, _vectors])
 
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], init.shape) /
@@ -222,11 +246,14 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
     converged: Whether convergence was achieved.
 
   """
-
+  JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
 
   @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
-  def _arnoldi_fact(matvec, args, v0, krylov_vectors, H, start, num_krylov_vecs,
-                    eps, precision):
+  def _arnoldi_fact(
+      matvec: Callable, args: List, v0: jax.ShapedArray,
+      krylov_vectors: jax.ShapedArray, H: jax.ShapedArray, start: int,
+      num_krylov_vecs: int, eps: float, precision: JaxPrecisionType
+  ) -> Tuple[jax.ShapedArray, jax.ShapedArray, int]:
     """
     Compute an m-step arnoldi factorization of `matvec`, with
     m = min(`it`,`num_krylov_vecs`). The factorization will
@@ -293,7 +320,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
       vector, krylov_vectors, n, H = vals
       v = krylov_vectors[j, :]
       h = jax.numpy.vdot(v, vector, precision=precision)
-      H = jax.ops.index_update(H, jax.ops.index[j, n], h)
+      H = H.at[j, n].set(h)
       vector = vector - h * jax.numpy.reshape(v, vector.shape)
       return [vector, krylov_vectors, n, H]
 
