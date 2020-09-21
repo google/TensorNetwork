@@ -835,7 +835,38 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
   return neighbors
 
 
-def nodes_to_json(nodes: List[AbstractNode]) -> str:
+def _build_serial_binding(edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
+                          edge_id_dict: Dict[Edge, int]) -> Dict[str, Iterable[int]]:
+  if not edge_binding or not edge_id_dict:
+    return {}
+  serial_edge_binding = {}
+  for k, v in edge_binding.items():
+    if not isinstance(k, str):
+      raise TypeError(f'Binding keys must be of type string, not {type(k)}')
+
+    binding_list = []
+    # pylint: disable=isinstance-second-argument-not-valid-type
+    if isinstance(v, Iterable):
+      for e in v:
+        if not isinstance(e, Edge):
+          raise TypeError('Binding elements must be Edges or iterables of Edges')
+        e_id = edge_id_dict.get(e)
+        if e_id is not None:
+          binding_list.append(e_id)
+    else:
+      if not isinstance(v, Edge):
+        raise TypeError('Binding elements must be Edges or iterables of Edges')
+      e_id = edge_id_dict.get(v)
+      if e_id is not None:
+        binding_list.append(e_id)
+    if binding_list:
+      serial_edge_binding[k] = tuple(binding_list)
+  return serial_edge_binding
+
+
+def nodes_to_json(nodes: List[AbstractNode],
+                  edge_binding: Optional[Dict[str, Union[Edge, Iterable[Edge]]]]
+                  = None) -> str:
   """
   Create a JSON string representing the Tensor Network made up of the given 
   nodes. Nodes and their attributes, edges and their attributes and tensor
@@ -849,19 +880,24 @@ def nodes_to_json(nodes: List[AbstractNode]) -> str:
   
   Args:
     nodes: A list of nodes making up a tensor network.
+    edge_binding: A dictionary containing {str->edge} bindings. Edges that are 
+      not included in the serialized network are ommited from the dictionary.
     
   Returns:
     A string representing the JSON serialized tensor network.
     
   Raises:
-    ValueError: If a node does not have a serialized 'type' string.
+    TypeError: If an edge_binding dict is passed with non string keys, or non 
+      Edge values.
   """
   network_dict = {
       'nodes': [],
       'edges': [],
   }
   node_id_dict = {}
+  edge_id_dict = {}
 
+  # Build serialized Nodes
   for i, node in enumerate(nodes):
     node_id_dict[node] = i
     network_dict['nodes'].append({
@@ -869,22 +905,31 @@ def nodes_to_json(nodes: List[AbstractNode]) -> str:
         'attributes': node.to_serial_dict(),
     })
   edges = get_all_edges(nodes)
-  for edge in edges:
+
+  # Build serialized edges
+  for i, edge in enumerate(edges):
+    edge_id_dict[edge] = i
     node_ids = [node_id_dict.get(n) for n in edge.get_nodes()]
     attributes = edge.to_serial_dict()
     attributes['axes'] = [
-        a if node_ids[i] is not None else None
-        for i, a in enumerate(attributes['axes'])
+        a if node_ids[j] is not None else None
+        for j, a in enumerate(attributes['axes'])
     ]
     edge_dict = {
+        'id': i,
         'node_ids': node_ids,
         'attributes': attributes,
     }
     network_dict['edges'].append(edge_dict)
+
+  serial_edge_binding = _build_serial_binding(edge_binding, edge_id_dict)
+  if serial_edge_binding:
+    network_dict['edge_binding'] = serial_edge_binding
   return json.dumps(network_dict)
 
 
-def nodes_from_json(json_str: str) -> List[AbstractNode]:
+def nodes_from_json(json_str: str) -> Tuple[List[AbstractNode],
+                                            Dict[str, Tuple[Edge]]]:
   """
   Create a tensor network from a JSON string representation of a tensor network.
   
@@ -893,13 +938,15 @@ def nodes_from_json(json_str: str) -> List[AbstractNode]:
     
   Returns:
     A list of nodes making up the tensor network.
+    A dictionary of {str -> (edge,)} bindings. All dictionary values are tuples
+      of Edges.
     
-  Raises:
-    ValueError: If a node 'type' field does not have a corresponding node class.
   """
   network_dict = json.loads(json_str)
   nodes = []
   node_ids = {}
+  edge_lookup = {}
+  edge_binding = {}
   for n in network_dict['nodes']:
     node = Node.from_serial_dict(n['attributes'])
     nodes.append(node)
@@ -912,7 +959,12 @@ def nodes_from_json(json_str: str) -> List[AbstractNode]:
                 node2=e_nodes[1],
                 axis2=axes[1],
                 name=e['attributes']['name'])
+    edge_lookup[e['id']] = edge
     for node, axis in zip(e_nodes, axes):
       if node is not None:
         node.add_edge(edge, axis, override=True)
-  return nodes
+  for k, v in network_dict.get('edge_binding', {}).items():
+    for e_id in v:
+      edge_binding[k] = edge_binding.get(k, ()) + (edge_lookup[e_id],)
+
+  return nodes, edge_binding

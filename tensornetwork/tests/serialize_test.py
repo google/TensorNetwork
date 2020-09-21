@@ -18,7 +18,7 @@ import numpy as np
 
 
 def assert_nodes_eq(a, b):
-  assert type(a) == type(b) #pylint: disable=unidiomatic-typecheck
+  assert type(a) == type(b)  #pylint: disable=unidiomatic-typecheck
   assert getattr(a, 'name', None) == getattr(b, 'name', None)
   assert getattr(a, 'axis_names', None) == getattr(b, 'axis_names', None)
   assert getattr(a, 'backend', None) == getattr(b, 'backend', None)
@@ -53,9 +53,7 @@ def assert_graphs_eq(a_nodes, b_nodes):
 
 def create_basic_network():
   np.random.seed(10)
-  a = tn.Node(np.random.normal(size=[8]),
-              name='an',
-              axis_names=['a1'])
+  a = tn.Node(np.random.normal(size=[8]), name='an', axis_names=['a1'])
   b = tn.Node(np.random.normal(size=[8, 8, 8]),
               name='bn',
               axis_names=['b1', 'b2', 'b3'])
@@ -78,7 +76,7 @@ def test_basic_serial():
   nodes = create_basic_network()
 
   s = tn.nodes_to_json(nodes)
-  new_nodes = tn.nodes_from_json(s)
+  new_nodes, _ = tn.nodes_from_json(s)
   for x, y in zip(nodes, new_nodes):
     assert_nodes_eq(x, y)
   assert_graphs_eq(nodes, new_nodes)
@@ -91,7 +89,7 @@ def test_exlcuded_node_serial():
   nodes = create_basic_network()
 
   s = tn.nodes_to_json(nodes[:-1])
-  new_nodes = tn.nodes_from_json(s)
+  new_nodes, _ = tn.nodes_from_json(s)
   for x, y in zip(nodes, new_nodes):
     assert_nodes_eq(x, y)
   with pytest.raises(AssertionError):
@@ -99,3 +97,48 @@ def test_exlcuded_node_serial():
   sub_graph = nodes[:-1]
   sub_graph[-1][1].disconnect(sub_graph[-1][1].name)
   assert_graphs_eq(sub_graph, new_nodes)
+
+
+def test_serial_with_bindings():
+  a, b, c, d = create_basic_network()
+  bindings = {}
+  a[0].name = 'ea0'
+  bindings['ea'] = a[0]
+  for s, n in zip(['eb', 'ec', 'ed'], [b, c, d]):
+    for i, e in enumerate(n.edges):
+      e.name = s + str(i)
+      bindings[s] = bindings.get(s, ()) + (e,)
+  s = tn.nodes_to_json([a, b, c, d], edge_binding=bindings)
+  _, new_bindings = tn.nodes_from_json(s)
+  assert len(new_bindings) == len(bindings)
+  assert bindings['ea'].name == new_bindings['ea'][0].name
+  for k in ['eb', 'ec', 'ed']:
+    new_names = {e.name for e in new_bindings[k]}
+    names = {e.name for e in bindings[k]}
+    assert names == new_names
+
+
+def test_serial_non_str_keys():
+  a, b, c, d = create_basic_network()
+  bindings = {}
+  bindings[1] = a[0]
+  with pytest.raises(TypeError):
+    _ = tn.nodes_to_json([a, b, c, d], edge_binding=bindings)
+
+
+def test_serial_non_edge_values():
+  a, b, c, d = create_basic_network()
+  bindings = {}
+  bindings['non_edge'] = a
+  with pytest.raises(TypeError):
+    _ = tn.nodes_to_json([a, b, c, d], edge_binding=bindings)
+
+
+def test_serial_exclude_non_network_edges():
+  a, b, c, d = create_basic_network() # pylint: disable=unused-variable
+  bindings = {'include': a[0], 'boundary': b[1], 'exclude': d[0]}
+  s = tn.nodes_to_json([a, b], edge_binding=bindings)
+  nodes, new_bindings = tn.nodes_from_json(s)
+  assert len(nodes) == 2
+  assert 'include' in new_bindings and 'boundary' in new_bindings
+  assert 'exclude' not in new_bindings
