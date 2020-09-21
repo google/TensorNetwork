@@ -462,7 +462,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     def body(i, vals):
       Vm, Hm, q = vals
-      Qj, _ = jax.numpy.linalg.qr(Hm - shifts[i] *
+      Qj, R = jax.numpy.linalg.qr(Hm - shifts[i] *
                                   jax.numpy.eye(Hm.shape[0], dtype=Hm.dtype))
       Hm = R @ Qj
       Vm = Qj.T @ Vm
