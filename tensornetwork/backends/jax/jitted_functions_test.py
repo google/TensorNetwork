@@ -8,7 +8,8 @@ jax_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
 precision = jax.lax.Precision.HIGHEST
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_arnoldi_factorization(dtype):
+@pytest.mark.parametrize("ncv", [10, 20, 30])
+def test_arnoldi_factorization(dtype, ncv):
   np.random.seed(10)
   D = 20
   mat = np.random.rand(D, D).astype(dtype)
@@ -20,22 +21,22 @@ def test_arnoldi_factorization(dtype):
     return matrix @ vector
 
   arnoldi = jitted_functions._generate_arnoldi_factorization(jax)
-  ncv = 40
-  kv = jax.numpy.zeros((ncv, D), dtype=dtype)
+  Vm = jax.numpy.zeros((ncv, D), dtype=dtype)
   H = jax.numpy.zeros((ncv, ncv), dtype=dtype)
   start = 0
   tol = 1E-5
-  Vm, Hm, residual, norm, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv,
+  Vm, Hm, residual, norm, it, _ = arnoldi(matvec, [mat], x, Vm, H, start, ncv,
                                           tol, precision)
   fm = residual * norm
   em = np.zeros((1, Vm.shape[0]))
   em[0, -1] = 1
   #test arnoldi relation
   np.testing.assert_almost_equal(mat @ Vm.T - Vm.T @ Hm - fm[:, None] * em,
-                                 np.zeros((it, Vm.shape[0])).astype(dtype))
+                                 np.zeros((D, ncv)).astype(dtype))
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-def test_lanczos_factorization(dtype):
+@pytest.mark.parametrize("ncv", [10, 20, 30])
+def test_lanczos_factorization(dtype, ncv):
   np.random.seed(10)
   D = 20
   mat = np.random.rand(D, D).astype(dtype)
@@ -48,7 +49,6 @@ def test_lanczos_factorization(dtype):
     return matrix @ vector
 
   lanczos = jitted_functions._generate_lanczos_factorization(jax)
-  ncv = 40
   Vm = jax.numpy.zeros((ncv, D), dtype=dtype)
   alphas = jax.numpy.zeros(ncv, dtype=dtype)
   betas = jax.numpy.zeros(ncv-1, dtype=dtype)
@@ -64,7 +64,7 @@ def test_lanczos_factorization(dtype):
   em[0, -1] = 1
   #test arnoldi relation
   np.testing.assert_almost_equal(Ham @ Vm.T - Vm.T @ Hm - fm[:, None] * em,
-                                 np.zeros((it, Vm.shape[0])).astype(dtype))
+                                 np.zeros((D, ncv)).astype(dtype))
 
 
 @pytest.mark.parametrize("dtype", jax_dtypes)
