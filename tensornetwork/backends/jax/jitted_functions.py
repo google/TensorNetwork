@@ -506,11 +506,22 @@ def _SA_sort(jax):
   def SA_sort(
       p: int,
       evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
-    inds = jax.numpy.argsort(jax.numpy.real(evals), kind='stable')
+    inds = jax.numpy.argsort(evals, kind='stable')
     shifts = evals[inds][-p:]
     return shifts, inds
 
   return SA_sort
+
+def _LA_sort(jax):
+  @functools.partial(jax.jit, static_argnums=(0,))
+  def LA_sort(
+      p: int,
+      evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+    inds = jax.numpy.argsort(evals, kind='stable')[::-1]
+    shifts = evals[inds][-p:]
+    return shifts, inds
+
+  return LA_sort
 
 
 def _shifted_QR(jax):
@@ -853,6 +864,8 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     eigenvalues 0.0: if the Lanczos iteration terminated early
     (after numits < num_krylov_vecs iterations)
     and numeig > numits, then spurious 0.0 eigenvalues will be returned.
+    
+    NOTE: `dtype` of `initial_state` and `matvec` have to match.
 
     Args:
       matvec: A callable representing the linear operator.
@@ -900,8 +913,6 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     Vm, alphas, betas, residual, norm, numits, ar_converged = lanczos_fact(
         matvec, args, initial_state, Vm, alphas, betas, 0, num_krylov_vecs, tol,
         precision)
-    # Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-    #   betas.conj(), 1)
     fm = residual.ravel() * norm
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
@@ -910,9 +921,9 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
 
     # sort_fun returns `num_expand` least relevant eigenvalues
     # (those to be projected out)
-    if which == 'LR':
+    if which == 'LA':
       sort_fun = jax.tree_util.Partial(
-          functools.partial(_LR_sort(jax), num_expand))
+        functools.partial(_LA_sort(jax), num_expand))
     elif which == 'SA':
       sort_fun = jax.tree_util.Partial(
         functools.partial(_SA_sort(jax), num_expand))
