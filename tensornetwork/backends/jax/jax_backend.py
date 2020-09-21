@@ -421,7 +421,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if args is None:
       args = []
-    if which in ('SI', 'LI', 'SM'):
+    if which not in ('SA'):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig > num_krylov_vecs:
@@ -440,11 +440,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
-    if "imp_arnoldi" not in _CACHED_FUNCTIONS:
-      imp_arnoldi = jitted_functions._implicitly_restarted_lanczos(libjax)
-      _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
+    if "imp_lanczos" not in _CACHED_FUNCTIONS:
+      imp_lanczos = jitted_functions._implicitly_restarted_lanczos(libjax)
+      _CACHED_FUNCTIONS["imp_lanczos"] = imp_lanczos
 
-    eta, U, numits = _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
+    eta, U, numits = _CACHED_FUNCTIONS["imp_lanczos"](_CACHED_MATVECS[A], args,
                                                       initial_state,
                                                       num_krylov_vecs, numeig,
                                                       which, tol, maxiter,
@@ -456,7 +456,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
           f"the routine will return spurious eigenvalues of value 0.0."
           f"Use a smaller value of numeig, or a smaller value for `tol`")
     return eta, U
-  
+
   def eigsh_lanczos(
       self,
       A: Callable,
