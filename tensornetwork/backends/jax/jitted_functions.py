@@ -444,7 +444,6 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
   # #######################################################
   # #######################################################
   # #######################################################
-
   @functools.partial(jax.jit, static_argnums=(3, 4))
   def shifted_QR(
       Vm: jax.ShapedArray, Hm: jax.ShapedArray, fm: jax.ShapedArray,
@@ -465,7 +464,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       Vm, Hm, q = vals
       Qj, _ = jax.numpy.linalg.qr(Hm - shifts[i] *
                                   jax.numpy.eye(Hm.shape[0], dtype=Hm.dtype))
-      Hm = Qj.T.conj() @ Hm @ Qj
+      Hm = R @ Qj
       Vm = Qj.T @ Vm
       q = q @ Qj
       return Vm, Hm, q
