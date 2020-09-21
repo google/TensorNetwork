@@ -94,10 +94,13 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
+
       def body_while(vals):
         pv, kv, _ = vals
-        pv, kv = jax.lax.fori_loop(1, i, body_modified_gram_schmidt, [pv, kv])
+        pv, kv = iterative_classical_gram_schmidt(
+            pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv)
         return [pv, kv, False]
+
       def cond_while(vals):
         return vals[2]
 
@@ -238,7 +241,7 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
 
   """
   JaxPrecisionType = type(jax.lax.Precision.DEFAULT)
-  
+
   @functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
   def _arnoldi_fact(
       matvec: Callable, args: List, v0: jax.ShapedArray,
