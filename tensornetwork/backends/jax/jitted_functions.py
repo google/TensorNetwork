@@ -517,7 +517,6 @@ def _LR_sort(jax):
     inds = jax.numpy.argsort(jax.numpy.real(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
-
   return sorter
 
 def _SA_sort(jax):
@@ -528,7 +527,6 @@ def _SA_sort(jax):
     inds = jax.numpy.argsort(evals, kind='stable')
     shifts = evals[inds][-p:]
     return shifts, inds
-
   return sorter
 
 def _LA_sort(jax):
@@ -539,7 +537,6 @@ def _LA_sort(jax):
     inds = jax.numpy.argsort(evals, kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
-
   return sorter
 
 def _LM_sort(jax):
@@ -550,9 +547,10 @@ def _LM_sort(jax):
     inds = jax.numpy.argsort(jax.numpy.abs(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
-
   return sorter
 
+# ####################################################
+# ####################################################
 
 def _shifted_QR(jax):
   @functools.partial(jax.jit, static_argnums=(4,))
