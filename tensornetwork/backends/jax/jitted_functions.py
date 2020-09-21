@@ -16,12 +16,14 @@ def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
       iterations: int = 2,
       ) -> jax.ShapedArray:
     """
-    orthogonalize `vector`  to all rows of `krylov_vectors`.
+    Orthogonalize `vector`  to all rows of `krylov_vectors`.
+
     Args:
       vector: Initial vector.
       krylov_vectors: Matrix of krylov vectors, each row is treated as a
         vector.
       iterations: Number of iterations.
+
     Returns:
       jax.ShapedArray: The orthogonalized vector.
     """
@@ -81,6 +83,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     In infinite precision, all Krylov vectors would be orthogonal. Due to 
     finite precision arithmetic, orthogonality is usually quickly lost. 
     For reortho=True, the Krylov basis is explicitly reorthogonalized.
+
     Args:
       matvec: A callable implementing the matrix-vector product of a
         linear operator.
@@ -94,9 +97,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       reortho: If `True`, reorthogonalize all krylov vectors at each step.
         This should be used if `neig>1`.
       precision: jax.lax.Precision type used in jax.numpy.vdot
+
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
+      int: Number of iterations
     """
     shape = init.shape
     dtype = init.dtype
@@ -259,6 +264,7 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
         `Vm.shape[0] + 1`
       tol: Convergence parameter. Iteration is terminated if the norm of a
         krylov-vector falls below `tol`.
+
     Returns:
       jax.ShapedArray: An array of shape 
         `(num_krylov_vecs, np.prod(initial_state.shape))` of krylov vectors.
