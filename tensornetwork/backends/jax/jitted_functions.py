@@ -558,11 +558,6 @@ def _shifted_QR(jax):
       Vm: jax.ShapedArray, Hm: jax.ShapedArray, fm: jax.ShapedArray,
       shifts: jax.ShapedArray,
       numeig: int) -> Tuple[jax.ShapedArray, jax.ShapedArray, jax.ShapedArray]:
-    ######################################################
-    #######  NEW SORTING FUCTIONS INSERTED HERE  #########
-    ######################################################
-    ######################################################
-    ######################################################
     # compress arnoldi factorization
     q = jax.numpy.zeros(Hm.shape[0], dtype=Hm.dtype)
     q = q.at[-1].set(1.0)
