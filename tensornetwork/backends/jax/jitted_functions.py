@@ -680,7 +680,6 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
         `matvec(x, *args)` with `x` the input array on which
         `matvec` should act.
       initial_state: An starting vector for the iteration.
-      dim: The matrix dimension of the linear operator `matvec`.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
       which: Which eigenvalues to target. 
@@ -689,6 +688,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
         the iteration is terminated.
       maxiter: Maximum number of (outer) iteration steps.
       precision: jax.lax.Precision used within lax operations.
+
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
@@ -899,7 +899,6 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
         `matvec(x, *args)` with `x` the input array on which
         `matvec` should act.
       initial_state: An starting vector for the iteration.
-      dim: The matrix dimension of the linear operator `matvec`.
       num_krylov_vecs: Number of krylov vectors of the lanczos factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
       which: Which eigenvalues to target. 
@@ -908,6 +907,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
         the iteration is terminated.
       maxiter: Maximum number of (outer) iteration steps.
       precision: jax.lax.Precision used within lax operations.
+
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
