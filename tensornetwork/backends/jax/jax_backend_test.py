@@ -676,7 +676,7 @@ def test_eigs_large_ncv_with_init(dtype, which):
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-8)
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR"])
+@pytest.mark.parametrize("which", ["LR", "LM"])
 def test_eigs_large_matrix_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 1000
