@@ -106,6 +106,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     shape = init.shape
     dtype = init.dtype
     iterative_classical_gram_schmidt = _iterative_classical_gram_schmidt(jax)
+
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
       previous_vector = krylov_vectors[i, :]
@@ -113,7 +114,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       def body_while(vals):
         pv, kv, _ = vals
         pv = iterative_classical_gram_schmidt(
-          pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv, precision)[0]
+            pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv, precision)[0]
         return [pv, kv, False]
 
       def cond_while(vals):
@@ -829,7 +830,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eig(Hm)
-    inds = sort_fun(eigvals)[1][:numeig]    
+    inds = sort_fun(eigvals)[1][:numeig]
     vectors = get_vectors(Vm, U, inds, numeig)
     return eigvals[inds], [
         jax.numpy.reshape(vectors[n, :], shape)
@@ -963,7 +964,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       raise ValueError(f"which = {which} not implemented")
 
     it = 1  # we already did one lanczos factorization
-    
+
     def outer_loop(carry):
       alphas, betas, Vm, fm, it, numits, ar_converged, _, _, = carry
       # pack into alphas and betas into tridiagonal matrix
@@ -985,7 +986,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       # extract new alphas and betas
       alphas = jax.numpy.diag(Hk)
       betas = jax.numpy.diag(Hk, -1)
-      
+
       def do_lanczos(vals):
         Vk, alphas, betas, fk, _, _, _, _ = vals
         # restart
