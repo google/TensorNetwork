@@ -17,7 +17,6 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.numpy import decompositions
 import numpy as np
-import warnings
 from tensornetwork.backends.jax import jitted_functions
 from functools import partial
 import warnings
@@ -344,17 +343,18 @@ class JaxBackend(abstract_backend.AbstractBackend):
           f"Use a smaller value of numeig, or a smaller value for `tol`")
     return eta, U
 
-  def eigsh(self, #pylint: disable=arguments-differ
-           A: Callable,
-           args: Optional[List] = None,
-           initial_state: Optional[Tensor] = None,
-           shape: Optional[Tuple[int, ...]] = None,
-           dtype: Optional[Type[np.number]] = None,
-           num_krylov_vecs: int = 50,
-           numeig: int = 6,
-           tol: float = 1E-8,
-           which: Text = 'LR',
-           maxiter: int = 20) -> Tuple[Tensor, List]:
+  def eigsh(
+      self,  #pylint: disable=arguments-differ
+      A: Callable,
+      args: Optional[List] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,
+      num_krylov_vecs: int = 50,
+      numeig: int = 6,
+      tol: float = 1E-8,
+      which: Text = 'LR',
+      maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Lanczos method for finding the lowest
     eigenvector-eigenvalue pairs of a symmetric (hermitian) linear operator `A`.

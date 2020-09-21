@@ -969,7 +969,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       alphas, betas, Vm, fm, it, numits, ar_converged, _, _, = carry
       # pack into alphas and betas into tridiagonal matrix
       Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-        betas.conj(), 1)
+          betas.conj(), 1)
       evals, _ = jax.numpy.linalg.eigh(Hm)
       shifts, _ = sort_fun(evals)
       # perform shifted QR iterations to compress lanczos factorization
@@ -1028,10 +1028,10 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     # spurious eigenvalue of order `norm`.
 
     betas = betas.at[numits - 1].set(
-      jax.lax.cond(converged, lambda x: betas.dtype.type(0.0), lambda x: x,
-                   betas[numits - 1]))
+        jax.lax.cond(converged, lambda x: betas.dtype.type(0.0), lambda x: x,
+                     betas[numits - 1]))
     Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-      betas.conj(), 1)
+        betas.conj(), 1)
 
     # before exhausting the allowed size of the Krylov subspace,
     # (i.e. `numit` < 'num_krylov_vecs'), set elements
@@ -1041,13 +1041,12 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     # (after numits < num_krylov_vecs iterations)
     # and numeig > numits, then spurious 0.0 eigenvalues will be returned
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
-      numits > jax.numpy.arange(num_krylov_vecs))[None, :]
+        numits > jax.numpy.arange(num_krylov_vecs))[None, :]
     eigvals, U = jax.numpy.linalg.eigh(Hm)
     inds = sort_fun(eigvals)[1][:numeig]
     vectors = get_vectors(Vm, U, inds, numeig)
     return eigvals[inds], [
-        jax.numpy.reshape(vectors[n, :], shape)
-        for n in range(numeig)
+        jax.numpy.reshape(vectors[n, :], shape) for n in range(numeig)
     ], numits
 
   return implicitly_restarted_lanczos_method

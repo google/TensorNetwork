@@ -374,17 +374,18 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
         self.name))
 
-  def eigsh(self,
-           A: Callable,
-           args: Optional[List[Tensor]] = None,
-           initial_state: Optional[Tensor] = None,
-           shape: Optional[Tuple[int, ...]] = None,
-           dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
-           num_krylov_vecs: int = 50,
-           numeig: int = 1,
-           tol: float = 1E-8,
-           which: Text = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
+  def eigsh(
+      self,
+      A: Callable,
+      args: Optional[List[Tensor]] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      num_krylov_vecs: int = 50,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      which: Text = 'LR',
+      maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """Lanczos method for finding the lowest eigenvector-eigenvalue pairs
     of a symmetric (hermitian) linear operator `A`. `A` is a callable 
     implementing the matrix-vector product. If no `initial_state` is provided 
