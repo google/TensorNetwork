@@ -26,7 +26,7 @@ def test_arnoldi_factorization(dtype, ncv):
   start = 0
   tol = 1E-5
   Vm, Hm, residual, norm, _, _ = arnoldi(matvec, [mat], x, Vm, H, start, ncv,
-                                          tol, precision)
+                                         tol, precision)
   fm = residual * norm
   em = np.zeros((1, Vm.shape[0]))
   em[0, -1] = 1
@@ -132,10 +132,10 @@ def test_lanczos_factorization(dtype, ncv):
   start = 0
   tol = 1E-5
   Vm, alphas, betas, residual, norm, _, _ = lanczos(matvec, [Ham], x, Vm,
-                                                     alphas, betas, start, ncv,
-                                                     tol, precision)
+                                                    alphas, betas, start, ncv,
+                                                    tol, precision)
   Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
-    betas.conj(), 1)
+      betas.conj(), 1)
   fm = residual * norm
   em = np.zeros((1, Vm.shape[0]))
   em[0, -1] = 1
