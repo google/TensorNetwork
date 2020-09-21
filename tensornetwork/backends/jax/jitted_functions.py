@@ -135,7 +135,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # If algebraically small EVs are desired, one can initialize `alphas` with
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
-
+    
+    #FIXME: replace with eigh_banded once JAX supports it
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
