@@ -946,7 +946,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     
     def outer_loop(carry):
       alphas, betas, Vm, fm, it, numits, ar_converged, _, _, = carry
-      #pack into alphas and betas into tridiagonal matrix
+      # pack into alphas and betas into tridiagonal matrix
       Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
         betas.conj(), 1)
       evals, _ = jax.numpy.linalg.eigh(Hm)
@@ -962,7 +962,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       Hk = Hk.at[:, numeig:].set(0.0)
       beta_k = jax.numpy.linalg.norm(fk)
       converged = check_eigvals_convergence(beta_k, Hk, tol, numeig)
-      #extract new alphas and betas
+      # extract new alphas and betas
       alphas = jax.numpy.diag(Hk)
       betas = jax.numpy.diag(Hk, -1)
       def do_lanczos(vals):
