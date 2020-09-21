@@ -492,36 +492,47 @@ def _generate_arnoldi_factorization(jax: types.ModuleType) -> Callable:
 # ######################################################
 def _LR_sort(jax):
   @functools.partial(jax.jit, static_argnums=(0,))
-  def LR_sort(
+  def sorter(
       p: int,
       evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     inds = jax.numpy.argsort(jax.numpy.real(evals), kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  return LR_sort
+  return sorter
 
 def _SA_sort(jax):
   @functools.partial(jax.jit, static_argnums=(0,))
-  def SA_sort(
+  def sorter(
       p: int,
       evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     inds = jax.numpy.argsort(evals, kind='stable')
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  return SA_sort
+  return sorter
 
 def _LA_sort(jax):
   @functools.partial(jax.jit, static_argnums=(0,))
-  def LA_sort(
+  def sorter(
       p: int,
       evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
     inds = jax.numpy.argsort(evals, kind='stable')[::-1]
     shifts = evals[inds][-p:]
     return shifts, inds
 
-  return LA_sort
+  return sorter
+
+def _LM_sort(jax):
+  @functools.partial(jax.jit, static_argnums=(0,))
+  def sorter(
+      p: int,
+      evals: jax.ShapedArray) -> Tuple[jax.ShapedArray, jax.ShapedArray]:
+    inds = jax.numpy.argsort(jax.numpy.abs(evals), kind='stable')[::-1]
+    shifts = evals[inds][-p:]
+    return shifts, inds
+
+  return sorter
 
 
 def _shifted_QR(jax):
@@ -704,8 +715,9 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     # sort_fun returns `num_expand` least relevant eigenvalues
     # (those to be projected out)
     if which == 'LR':
-      LR_sort = _LR_sort(jax)
-      sort_fun = jax.tree_util.Partial(functools.partial(LR_sort, num_expand))
+      sort_fun = jax.tree_util.Partial(_LR_sort(jax), num_expand)
+    elif which == 'LM':
+      sort_fun = jax.tree_util.Partial(_LM_sort(jax), num_expand)
     else:
       raise ValueError(f"which = {which} not implemented")
 
@@ -922,11 +934,11 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     # sort_fun returns `num_expand` least relevant eigenvalues
     # (those to be projected out)
     if which == 'LA':
-      sort_fun = jax.tree_util.Partial(
-        functools.partial(_LA_sort(jax), num_expand))
+      sort_fun = jax.tree_util.Partial(_LA_sort(jax), num_expand)
     elif which == 'SA':
-      sort_fun = jax.tree_util.Partial(
-        functools.partial(_SA_sort(jax), num_expand))
+      sort_fun = jax.tree_util.Partial(_SA_sort(jax), num_expand)
+    elif which == 'LM':
+      sort_fun = jax.tree_util.Partial(_LM_sort(jax), num_expand)
     else:
       raise ValueError(f"which = {which} not implemented")
 
