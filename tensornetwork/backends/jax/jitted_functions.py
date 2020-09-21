@@ -124,8 +124,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # diagonal elements of the projected linear operator
     alphas = jax.numpy.zeros(ncv, dtype=dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
-    krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
-                                                       initvals)
+    krylov_vecs, alphas, betas, numits = jax.lax.while_loop(
+        cond_fun, body_lanczos, initvals)
     # FIXME (mganahl): if the while_loop stopps early at iteration i, alphas
     # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
     # degenerate eigenvalues 0.0. JAX does currently not support
@@ -135,7 +135,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # If algebraically small EVs are desired, one can initialize `alphas` with
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
-    
+
     #FIXME: replace with eigh_banded once JAX supports it
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
@@ -159,7 +159,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], init.shape) /
         jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
-    ]
+    ], numits
 
   return jax_lanczos
 
