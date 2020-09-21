@@ -30,8 +30,8 @@ def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
     vec = vector
     overlaps = 0
     for _ in range(iterations):
-      ov = jax.numpy.dot(
-          krylov_vectors.conj(), vec, precision=precision)
+      ov = jax.numpy.vdot(
+          krylov_vectors, vec, precision=precision)
       vec = vec - jax.numpy.dot(
           ov, krylov_vectors, precision=precision)
       overlaps = overlaps + ov
