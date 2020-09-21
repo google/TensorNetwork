@@ -5,7 +5,7 @@ from tensornetwork.backends.jax import jitted_functions
 jax.config.update('jax_enable_x64', True)
 
 jax_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
-
+precision = jax.lax.Precision.HIGHEST
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_arnoldi_factorization(dtype):
@@ -24,7 +24,8 @@ def test_arnoldi_factorization(dtype):
   kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
   H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
   start = 0
-  kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01)
+
+  kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01, precision)
   Vm = jax.numpy.transpose(kv[:it, :])
   Hm = H[:it, :it]
   fm = kv[it, :] * H[it, it - 1]
@@ -54,7 +55,8 @@ def test_gmres_on_small_known_problem(dtype):
   def A_mv(x):
     return A @ x
   tol = A.size*jax.numpy.finfo(dtype).eps
-  x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter)
+  x, _, _, _ = gmres.gmres_m(A_mv, [], b, x0, tol, tol, n_kry, maxiter,
+                             precision)
   solution = jax.numpy.array([2., 1.], dtype=dtype)
   np.testing.assert_allclose(x, solution, atol=tol)
 
@@ -83,7 +85,8 @@ def test_gmres_krylov(dtype):
   b = jax.numpy.array(np.random.rand(n), dtype=dtype)
   r, beta = gmres.gmres_residual(A_mv, [], b, x0)
   _, V, R, _ = gmres.gmres_krylov(A_mv, [], n_kry, x0, r, beta,
-                                  tol, jax.numpy.linalg.norm(b))
+                                  tol, jax.numpy.linalg.norm(b),
+                                  precision)
   phases = jax.numpy.sign(jax.numpy.diagonal(R[:-1, :]))
   R = phases.conj()[:, None] * R[:-1, :]
   Vtest = np.zeros((n, n_kry + 1), dtype=x0.dtype)
@@ -91,35 +94,13 @@ def test_gmres_krylov(dtype):
   Vtest = jax.numpy.array(Vtest)
   Htest = jax.numpy.zeros((n_kry + 1, n_kry), dtype=x0.dtype)
   for k in range(n_kry):
-    Vtest, Htest = gmres.kth_arnoldi_step(k, A_mv, [], Vtest, Htest, tol)
+    Vtest, Htest = gmres.kth_arnoldi_step(k, A_mv, [], Vtest, Htest, tol,
+                                          precision)
   _, Rtest = jax.numpy.linalg.qr(Htest)
   phases = jax.numpy.sign(jax.numpy.diagonal(Rtest))
   Rtest = phases.conj()[:, None] * Rtest
   np.testing.assert_allclose(V, Vtest, atol=tol)
   np.testing.assert_allclose(R, Rtest, atol=tol)
-
-
-@pytest.mark.parametrize("dtype", jax_dtypes)
-def test_gs(dtype):
-  """
-  The Gram-Schmidt process works.
-  """
-  gmres = jitted_functions.gmres_wrapper(jax)
-  dummy = jax.numpy.zeros(1, dtype=dtype)
-  dtype = dummy.dtype
-  n = 8
-  A = np.zeros((n, 2), dtype=dtype)
-  A[:-1, 0] = 1.0
-  Ai = A[:, 0] / np.linalg.norm(A[:, 0])
-  A[:, 0] = Ai
-  A[-1, -1] = 1.0
-  A = jax.numpy.array(A)
-
-  x0 = jax.numpy.array(np.random.rand(n).astype(dtype))
-  v_new, _ = jax.lax.scan(gmres.gs_step, x0, xs=A.T)
-  dotcheck = v_new @ A
-  tol = A.size*jax.numpy.finfo(dtype).eps
-  np.testing.assert_allclose(dotcheck, np.zeros(2), atol=tol)
 
 
 @pytest.mark.parametrize("dtype", jax_dtypes)
@@ -140,12 +121,11 @@ def test_gmres_arnoldi_step(dtype):
   Q = jax.numpy.array(Q)
   H = jax.numpy.zeros((n_kry + 1, n_kry), dtype=x0.dtype)
   tol = A.size*jax.numpy.finfo(dtype).eps
-
   @jax.tree_util.Partial
   def A_mv(x):
     return A @ x
   for k in range(n_kry):
-    Q, H = gmres.kth_arnoldi_step(k, A_mv, [], Q, H, tol)
+    Q, H = gmres.kth_arnoldi_step(k, A_mv, [], Q, H, tol, precision)
   QAQ = Q[:, :n_kry].conj().T @ A @ Q[:, :n_kry]
   np.testing.assert_allclose(H[:n_kry, :], QAQ, atol=tol)
 
