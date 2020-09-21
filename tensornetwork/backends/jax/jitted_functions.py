@@ -106,10 +106,14 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(beta)
-      next_vector = jax.lax.cond(
-          reortho, lambda x: Av, lambda x: jax.numpy.reshape(
-              jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
-              krylov_vectors[i - 1] * beta, Av.shape), None)
+
+      def _next_vector():
+        return jax.numpy.reshape(
+            jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
+            krylov_vectors[i - 1] * beta, Av.shape)
+
+      next_vector = jax.lax.cond(reortho, lambda x: Av,
+                                 lambda x: _next_vector(), None)
       krylov_vectors = krylov_vectors.at[i, :].set(
           jax.numpy.ravel(normalized_vector))
       krylov_vectors = krylov_vectors.at[i + 1, :].set(
@@ -140,8 +144,8 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # diagonal elements of the projected linear operator
     alphas = jax.numpy.zeros(ncv, dtype=dtype)
     initvals = [krylov_vecs, alphas, betas, 1]
-    krylov_vecs, alphas, betas, _ = jax.lax.while_loop(cond_fun, body_lanczos,
-                                                       initvals)
+    krylov_vecs, alphas, betas, numits = jax.lax.while_loop(
+        cond_fun, body_lanczos, initvals)
     # FIXME (mganahl): if the while_loop stopps early at iteration i, alphas
     # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
     # degenerate eigenvalues 0.0. JAX does currently not support
@@ -152,6 +156,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     # large positive values, thus pushing the spurious eigenvalues further
     # away from the desired ones (similar for algebraically large EVs)
 
+    #FIXME: replace with eigh_banded once JAX supports it
     A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
         betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
@@ -174,7 +179,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], init.shape) /
         jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
-    ]
+    ], numits
 
   return jax_lanczos
 
