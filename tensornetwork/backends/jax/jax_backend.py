@@ -307,7 +307,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if args is None:
       args = []
-    if which in ('SI', 'LI', 'SM', 'SR'):
+    if which not in ('LR', 'LM'):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig > num_krylov_vecs:
@@ -421,7 +421,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if args is None:
       args = []
-    if which not in ('SA'):
+    if which not in ('SA', 'LA', 'LM'):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig > num_krylov_vecs:
