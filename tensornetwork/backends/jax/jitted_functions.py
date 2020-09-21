@@ -45,7 +45,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
                   ncv: int, neig: int, landelta: float, reortho: bool,
                   precision: JaxPrecisionType):
     """
-    Jitted lanczos routine.
+    Lanczos iteration for symmeric eigenvalue problems. If reortho = False,
+    the Krylov basis is constructed without explicit re-orthogonalization. 
+    In infinite precision, all Krylov vectors would be orthogonal. Due to 
+    finite precision arithmetic, orthogonality is usually quickly lost. 
+    For reortho=True, the Krylov basis is explicitly reorthogonalized.
     Args:
       matvec: A callable implementing the matrix-vector product of a
         linear operator.
@@ -58,84 +62,97 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
         falls below `landelta`, iteration is stopped.
       reortho: If `True`, reorthogonalize all krylov vectors at each step.
         This should be used if `neig>1`.
+      precision: jax.lax.Precision type used in jax.numpy.vdot
     Returns:
       jax.numpy.ndarray: Eigenvalues
       list: Eigenvectors
     """
-
+    shape = init.shape
+    dtype = init.dtype
+    # TODO (mganahl): replace with restarted classical gram-schmidt
     def body_modified_gram_schmidt(i, vals):
       vector, krylov_vectors = vals
       v = krylov_vectors[i, :]
-      vector -= jax.numpy.vdot(
-          v, vector, precision=precision) * jax.numpy.reshape(v, vector.shape)
+      vector = vector - jax.numpy.vdot(v, vector, precision=precision) * v
       return [vector, krylov_vectors]
 
     def body_lanczos(vals):
-      current_vector, krylov_vectors, vector_norms = vals[0:3]
-      diagonal_elements, matvec, args, _ = vals[3:7]
-      threshold, i, maxiteration = vals[7:]
-      norm = jax.numpy.linalg.norm(current_vector)
-      normalized_vector = current_vector / norm
-      normalized_vector, krylov_vectors = jax.lax.cond(
-          reortho, True,
-          lambda x: jax.lax.fori_loop(0, i, body_modified_gram_schmidt,
-                                      [normalized_vector, krylov_vectors]),
-          False, lambda x: [normalized_vector, krylov_vectors])
-      Av = matvec(normalized_vector, *args)
+      krylov_vectors, alphas, betas, i = vals
+      previous_vector = krylov_vectors[i, :]
+      def body_while(vals):
+        pv, kv, _ = vals
+        pv, kv = jax.lax.fori_loop(1, i, body_modified_gram_schmidt, [pv, kv])
+        return [pv, kv, False]
+      def cond_while(vals):
+        return vals[2]
 
-      diag_element = jax.numpy.vdot(normalized_vector, Av, precision=precision)
+      previous_vector, krylov_vectors, _ = jax.lax.while_loop(
+          cond_while, body_while,
+          [previous_vector.ravel(), krylov_vectors, reortho])
 
-      res = jax.numpy.reshape(
-          jax.numpy.ravel(Av) -
-          jax.numpy.ravel(normalized_vector) * diag_element -
-          krylov_vectors[i - 1] * norm, Av.shape)
-      krylov_vectors = jax.ops.index_update(krylov_vectors, jax.ops.index[i, :],
-                                            jax.numpy.ravel(normalized_vector))
+      beta = jax.numpy.linalg.norm(previous_vector)
+      normalized_vector = previous_vector / beta
+      Av = matvec(jax.lax.reshape(normalized_vector, shape), *arguments)
+      alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
+      alphas = alphas.at[i - 1].set(alpha)
+      betas = betas.at[i].set(beta)
 
-      vector_norms = jax.ops.index_update(vector_norms, jax.ops.index[i - 1],
-                                          norm)
-      diagonal_elements = jax.ops.index_update(diagonal_elements,
-                                               jax.ops.index[i - 1],
-                                               diag_element)
+      def _next_vector():
+        return jax.numpy.reshape(
+            jax.numpy.ravel(Av) - jax.numpy.ravel(normalized_vector) * alpha -
+            krylov_vectors[i - 1] * beta, Av.shape)
 
-      return [
-          res, krylov_vectors, vector_norms, diagonal_elements, matvec, args,
-          norm, threshold, i + 1, maxiteration
-      ]
+      next_vector = jax.lax.cond(reortho, lambda x: Av,
+                                 lambda x: _next_vector(), None)
+      krylov_vectors = krylov_vectors.at[i, :].set(
+          jax.numpy.ravel(normalized_vector))
+      krylov_vectors = krylov_vectors.at[i + 1, :].set(
+          jax.numpy.ravel(next_vector))
+
+      return [krylov_vectors, alphas, betas, i + 1]
 
     def cond_fun(vals):
-      _, _, _, _, _, _, norm, threshold, iteration, maxiteration = vals
+      betas, i = vals[-2], vals[-1]
+      norm = betas[i - 1]
+      return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
+                          [norm, landelta])
 
-      def check_thresh(check_vals):
-        val, thresh = check_vals
-        return jax.lax.cond(val < thresh, False, lambda x: x, True, lambda x: x)
+    numel = np.prod(shape).astype(np.int32)
+    # note: ncv + 2 because the first vector is all zeros, and the
+    # last is the unnormalized residual.
+    krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
+    # NOTE (mganahl): initial state is normalized inside the loop
+    krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
 
-      return jax.lax.cond(iteration <= maxiteration, [norm, threshold],
-                          check_thresh, False, lambda x: x)
-    #TODO (mganahl): check if this runs on TPU (dtype issue)
-    numel = np.prod(init.shape).astype(np.int32)
-    krylov_vecs = jax.numpy.zeros((ncv + 1, numel), dtype=init.dtype)
-    norms = jax.numpy.zeros(ncv, dtype=init.dtype)
-    diag_elems = jax.numpy.zeros(ncv, dtype=init.dtype)
+    # betas are the upper and lower diagonal elements
+    # of the projected linear operator
+    # the first two beta-values can be discarded
+    # set betas[0] to 1.0 for initialization of loop
+    # betas[2] is set to the norm of the initial state.
+    betas = jax.numpy.zeros(ncv + 1, dtype=dtype)
+    betas = betas.at[0].set(1.0)
+    # diagonal elements of the projected linear operator
+    alphas = jax.numpy.zeros(ncv, dtype=dtype)
+    initvals = [krylov_vecs, alphas, betas, 1]
+    krylov_vecs, alphas, betas, numits = jax.lax.while_loop(
+        cond_fun, body_lanczos, initvals)
+    # FIXME (mganahl): if the while_loop stopps early at iteration i, alphas
+    # and betas are 0.0 at positions n >= i - 1. eigh will then wrongly give
+    # degenerate eigenvalues 0.0. JAX does currently not support
+    # dynamic slicing with variable slice sizes, so these beta values
+    # can't be truncated. Thus, if numeig >= i - 1, jitted_lanczos returns
+    # a set of spurious eigen vectors and eigen values.
+    # If algebraically small EVs are desired, one can initialize `alphas` with
+    # large positive values, thus pushing the spurious eigenvalues further
+    # away from the desired ones (similar for algebraically large EVs)
 
-    norms = jax.ops.index_update(norms, jax.ops.index[0], 1.0)
-
-    norms_dtype = jax.numpy.real(jax.numpy.empty((0, 0),
-                                                 dtype=init.dtype)).dtype
-    initvals = [
-        init, krylov_vecs, norms, diag_elems, matvec, arguments,
-        norms_dtype.type(1.0), landelta, 1, ncv
-    ]
-    output = jax.lax.while_loop(cond_fun, body_lanczos, initvals)
-    final_state, krylov_vecs, norms, diags, _, _, _, _, it, _ = output
-    krylov_vecs = jax.ops.index_update(krylov_vecs, jax.ops.index[it, :],
-                                       jax.numpy.ravel(final_state))
-
-    A_tridiag = jax.numpy.diag(diags) + jax.numpy.diag(
-        norms[1:], 1) + jax.numpy.diag(jax.numpy.conj(norms[1:]), -1)
+    #FIXME: replace with eigh_banded once JAX supports it
+    A_tridiag = jax.numpy.diag(alphas) + jax.numpy.diag(
+        betas[2:], 1) + jax.numpy.diag(jax.numpy.conj(betas[2:]), -1)
     eigvals, U = jax.numpy.linalg.eigh(A_tridiag)
-    eigvals = eigvals.astype(A_tridiag.dtype)
+    eigvals = eigvals.astype(dtype)
 
+    # expand eigenvectors in krylov basis
     def body_vector(i, vals):
       krv, unitary, states = vals
       dim = unitary.shape[1]
@@ -152,7 +169,7 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     return jax.numpy.array(eigvals[0:neig]), [
         jax.numpy.reshape(vectors[n, :], init.shape) /
         jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
-    ]
+    ], numits
 
   return jax_lanczos
 
@@ -797,8 +814,6 @@ def gmres_wrapper(jax: types.ModuleType):
                   float, jax.ShapedArray]
   ConstType = Tuple[float, Callable, Sequence, jax.ShapedArray, int]
   GmresCarryType = Tuple[VarType, ConstType]
-
-
 
 
   @functools.partial(jax.jit, static_argnums=(6,))
