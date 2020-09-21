@@ -7,7 +7,6 @@ jax.config.update('jax_enable_x64', True)
 jax_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
 precision = jax.lax.Precision.HIGHEST
 
-
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_arnoldi_factorization(dtype):
   np.random.seed(10)
@@ -33,6 +32,38 @@ def test_arnoldi_factorization(dtype):
   em[0, -1] = 1
   #test arnoldi relation
   np.testing.assert_almost_equal(mat @ Vm.T - Vm.T @ Hm - fm[:, None] * em,
+                                 np.zeros((it, Vm.shape[0])).astype(dtype))
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_lanczos_factorization(dtype):
+  np.random.seed(10)
+  D = 20
+  mat = np.random.rand(D, D).astype(dtype)
+  Ham = mat + mat.T.conj()
+  x = np.random.rand(D).astype(dtype)
+
+  @jax.tree_util.Partial
+  @jax.jit
+  def matvec(vector, matrix):
+    return matrix @ vector
+
+  lanczos = jitted_functions._generate_lanczos_factorization(jax)
+  ncv = 40
+  Vm = jax.numpy.zeros((ncv, D), dtype=dtype)
+  alphas = jax.numpy.zeros(ncv, dtype=dtype)
+  betas = jax.numpy.zeros(ncv-1, dtype=dtype)
+  start = 0
+  tol = 1E-5
+  Vm, alphas, betas, residual, norm, it, _ = lanczos(matvec, [Ham], x, Vm,
+                                                     alphas, betas, start, ncv,
+                                                     tol, precision)
+  Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
+      betas.conj(), 1)
+  fm = residual * norm
+  em = np.zeros((1, Vm.shape[0]))
+  em[0, -1] = 1
+  #test arnoldi relation
+  np.testing.assert_almost_equal(Ham @ Vm.T - Vm.T @ Hm - fm[:, None] * em,
                                  np.zeros((it, Vm.shape[0])).astype(dtype))
 
 
