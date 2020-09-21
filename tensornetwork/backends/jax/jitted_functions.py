@@ -893,8 +893,6 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     (after numits < num_krylov_vecs iterations)
     and numeig > numits, then spurious 0.0 eigenvalues will be returned.
     
-    NOTE: `dtype` of `initial_state` and `matvec` have to match.
-
     Args:
       matvec: A callable representing the linear operator.
       args: Arguments to `matvec`.  `matvec` is called with
