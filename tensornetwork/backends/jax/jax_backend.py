@@ -353,7 +353,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       num_krylov_vecs: int = 50,
       numeig: int = 6,
       tol: float = 1E-8,
-      which: Text = 'LR',
+      which: Text = 'SA',
       maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Lanczos method for finding the lowest
