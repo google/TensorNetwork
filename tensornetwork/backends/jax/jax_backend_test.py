@@ -569,7 +569,7 @@ def compare_eigvals_and_eigvecs(U, eta, U_exact, eta_exact, thresh=1E-8):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR", "LM"])
+@pytest.mark.parametrize("which", ["LR"])
 def test_eigs_all_eigvals_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
@@ -587,7 +587,7 @@ def test_eigs_all_eigvals_with_init(dtype, which):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR", "LM"])
+@pytest.mark.parametrize("which", ["LR"])
 def test_eigs_all_eigvals_no_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
@@ -610,7 +610,7 @@ def test_eigs_all_eigvals_no_init(dtype, which):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR", "LM"])
+@pytest.mark.parametrize("which", ["LR"])
 def test_eigs_few_eigvals_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
@@ -629,7 +629,7 @@ def test_eigs_few_eigvals_with_init(dtype, which):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR", "LM"])
+@pytest.mark.parametrize("which", ["LR"])
 def test_eigs_few_eigvals_no_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
@@ -652,7 +652,7 @@ def test_eigs_few_eigvals_no_init(dtype, which):
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("which", ["LR", "LM"])
+@pytest.mark.parametrize("which", ["LR"])
 def test_eigs_large_ncv_with_init(dtype, which):
   backend = jax_backend.JaxBackend()
   D = 16
@@ -699,7 +699,7 @@ def test_eigs_raises():
         ValueError, match=f"which = {which}"
         f" is currently not supported."):
       backend.eigs(lambda x: x, which=which)
-  with pytest.raises(KeyError, match="dtype"):
+  with pytest.raises(TypeError, match="dtype"):
     backend.eigs(lambda x: x, shape=(10,), dtype=np.int32)
 
 ##################################################################
@@ -724,18 +724,6 @@ def test_eigs_bugfix(dtype):
       maxiter=10,
       num_krylov_vecs=100,
       tol=0.0001)
-  #this test will cause some annoying output to std buffer
-  with pytest.raises(np.linalg.LinAlgError):
-    backend.eigs(
-        matvec_jax, [mat],
-        numeig=1,
-        initial_state=x,
-        which='LR',
-        maxiter=10,
-        num_krylov_vecs=100,
-        tol=0.0001,
-        res_thresh=0.0)
-
 
 def test_sum():
   np.random.seed(10)

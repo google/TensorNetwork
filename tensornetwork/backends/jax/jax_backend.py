@@ -19,26 +19,19 @@ from tensornetwork.backends.numpy import decompositions
 import numpy as np
 from tensornetwork.backends.jax import jitted_functions
 from functools import partial
+import warnings
 
 Tensor = Any
-
 # pylint: disable=abstract-method
 
 _CACHED_MATVECS = {}
 _CACHED_FUNCTIONS = {}
-_MIN_RES_THRESHS = {
-    np.dtype(np.float16): 1E-3,
-    np.dtype(np.float32): 1E-6,
-    np.dtype(np.float64): 1E-12,
-    np.dtype(np.complex128): 1E-12,
-    np.dtype(np.complex64): 1E-6
-}
-
 
 class JaxBackend(abstract_backend.AbstractBackend):
   """See abstract_backend.AbstractBackend for documentation."""
 
-  def __init__(self, dtype: Optional[np.dtype] = None) -> None:
+  def __init__(self, dtype: Optional[np.dtype] = None,
+               precision: Optional[Text] = None) -> None:
     # pylint: disable=global-variable-undefined
     global libjax  # Jax module
     global jnp  # jax.numpy module
@@ -55,10 +48,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
     jsp = libjax.scipy
     self.name = "jax"
     self._dtype = np.dtype(dtype) if dtype is not None else None
+    self.jax_precision = precision if precision is not None else libjax.lax.Precision.DEFAULT #pylint: disable=line-too-long
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
-    return jnp.tensordot(a, b, axes)
+    return jnp.tensordot(a, b, axes, precision=self.jax_precision)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return jnp.reshape(tensor, np.asarray(shape).astype(np.int32))
@@ -132,7 +126,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return result
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return jnp.tensordot(tensor1, tensor2, 0)
+    return jnp.tensordot(tensor1, tensor2, 0,
+                         precision=self.jax_precision)
 
   def einsum(self,
              expression: str,
@@ -244,8 +239,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
            numeig: int = 6,
            tol: float = 1E-8,
            which: Text = 'LR',
-           maxiter: int = 20,
-           res_thresh: Optional[float] = None) -> Tuple[Tensor, List]:
+           maxiter: int = 20) -> Tuple[Tensor, List]:
     """
     Implicitly restarted Arnoldi method for finding the lowest
     eigenvector-eigenvalue pairs of a linear operator `A`.
@@ -305,10 +299,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
         (larges magnitude).
       maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
         equivalent to a simple Arnoldi method.
-      res_thresh: Threshold parameter. Implicitly restarted arnoldi terminates
-        if the norm of the residual `fk` of the shifted arnoldi factorization
-        falls below `res_thresh`. If `None` a default value depending on the
-        `dtype` of the operator is chosen.
     Returns:
       (eigvals, eigvecs)
        eigvals: A list of `numeig` eigenvalues
@@ -333,22 +323,26 @@ class JaxBackend(abstract_backend.AbstractBackend):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
-    if res_thresh is None:
-      try:
-        res_thresh = _MIN_RES_THRESHS[initial_state.dtype]
-      except KeyError as err:
-        raise KeyError(f"dtype {initial_state.dtype} not supported") from err
     if A not in _CACHED_MATVECS:
       _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
 
     if "imp_arnoldi" not in _CACHED_FUNCTIONS:
       imp_arnoldi = jitted_functions._implicitly_restarted_arnoldi(libjax)
       _CACHED_FUNCTIONS["imp_arnoldi"] = imp_arnoldi
-    return _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
-                                            initial_state, num_krylov_vecs,
-                                            numeig, which, tol, maxiter,
-                                            res_thresh)
 
+    eta, U, numits = _CACHED_FUNCTIONS["imp_arnoldi"](_CACHED_MATVECS[A], args,
+                                                      initial_state,
+                                                      num_krylov_vecs, numeig,
+                                                      which, tol, maxiter,
+                                                      self.jax_precision)
+    if numeig > numits:
+      warnings.warn(
+          f"Arnoldi terminated early after numits = {numits}"
+          f" < numeig = {numeig} steps. For this value of `numeig `"
+          f"the routine will return spurious eigenvalues of value 0.0."
+          f"Use a smaller value of numeig, or a smaller value for `tol`")
+    return eta, U
+  
   def eigsh_lanczos(
       self,
       A: Callable,
@@ -454,8 +448,16 @@ class JaxBackend(abstract_backend.AbstractBackend):
       eigsh_lanczos = jitted_functions._generate_jitted_eigsh_lanczos(libjax)
       _CACHED_FUNCTIONS["eigsh_lanczos"] = eigsh_lanczos
     eigsh_lanczos = _CACHED_FUNCTIONS["eigsh_lanczos"]
-    return eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
-                         num_krylov_vecs, numeig, delta, reorthogonalize)
+    eta, U, numits = eigsh_lanczos(_CACHED_MATVECS[A], args, initial_state,
+                                   num_krylov_vecs, numeig, delta,
+                                   reorthogonalize, self.jax_precision)
+    if numeig > numits:
+      warnings.warn(
+          f"Lanczos terminated early after numits = {numits}"
+          f" < numeig = {numeig} steps. For this value of `numeig `"
+          f"the routine will return spurious eigenvalues of value 0.0."
+          f"Use a smaller value of numeig, or a smaller value for `tol`")
+    return eta, U
 
   def gmres(self,
             A_mv: Callable,
@@ -610,7 +612,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     gmres_m = _CACHED_FUNCTIONS["gmres"].gmres_m
     x, _, n_iter, converged = gmres_m(_CACHED_MATVECS[A_mv], A_args, b.ravel(),
                                       x0, tol, atol, num_krylov_vectors,
-                                      maxiter)
+                                      maxiter, self.jax_precision)
     if converged:
       info = 0
     else:
@@ -693,12 +695,12 @@ class JaxBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=axis, keepdims=keepdims)
+    return jnp.sum(tensor, axis=axis, keepdims=keepdims)
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
       raise ValueError("inputs to `matmul` have to be tensors of order > 1,")
-    return jnp.matmul(tensor1, tensor2)
+    return jnp.matmul(tensor1, tensor2, precision=self.jax_precision)
 
   def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
                axis2: int = -1) -> Tensor:

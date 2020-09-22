@@ -55,7 +55,7 @@ from tensornetwork.ncon_interface import ncon
 from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
-from tensornetwork.utils import load_nodes, save_nodes
+from tensornetwork.utils import load_nodes, save_nodes, from_topology
 from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
