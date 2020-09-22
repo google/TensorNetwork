@@ -11,6 +11,7 @@ from tensornetwork.network_components import (Node, CopyNode, Edge,
                                               _remove_trace_edge, _remove_edges)
 import tensornetwork as tn
 from tensornetwork.backends.abstract_backend import AbstractBackend
+from typing import Dict
 
 string_type = h5py.special_dtype(vlen=str)
 
@@ -63,6 +64,13 @@ class TestNode(AbstractNode):
 
   def copy(self, conjugate: bool = False) -> "TestNode":
     return TestNode()
+
+  def to_serial_dict(self) -> Dict:
+    return {}
+
+  @classmethod
+  def from_serial_dict(cls, serial_dict) -> "TestNode":
+    return cls()
 
 
 @pytest.fixture(name='single_node_edge')
