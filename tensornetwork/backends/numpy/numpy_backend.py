@@ -165,6 +165,54 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   def eigh(self, matrix: Tensor) -> Tuple[Tensor, Tensor]:
     return np.linalg.eigh(matrix)
 
+  def eigsh(
+      self,
+      A: Callable,
+      args: Optional[List[Tensor]] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      num_krylov_vecs: int = 50,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      which: Text = 'LR',
+      maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
+    """Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of a symmetric (hermitian) linear operator `A`. `A` is a callable 
+    implementing the matrix-vector product. If no `initial_state` is provided 
+    then `shape` and `dtype` have to be passed so that a suitable initial
+    state can be randomly  generated.
+    Args:
+      A: A (sparse) implementation of a linear operator
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn`
+        method.
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI' | 'SI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+            'SI' : smallest imaginary part
+        Note that not all of those might be supported by specialized backends.
+      maxiter: The maximum number of iterations.
+    Returns:
+       `Tensor`: An array of `numeig` lowest eigenvalues
+       `list`: A list of `numeig` lowest eigenvectors
+    """
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
+  
   def eigs(self,
            A: Callable,
            args: Optional[List] = None,

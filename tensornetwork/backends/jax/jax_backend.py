@@ -307,7 +307,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     if args is None:
       args = []
-    if which in ('SI', 'LI', 'SM', 'SR'):
+    if which not in ('LR', 'LM'):
       raise ValueError(f'which = {which} is currently not supported.')
 
     if numeig > num_krylov_vecs:
@@ -342,7 +342,122 @@ class JaxBackend(abstract_backend.AbstractBackend):
           f"the routine will return spurious eigenvalues of value 0.0."
           f"Use a smaller value of numeig, or a smaller value for `tol`")
     return eta, U
-  
+
+  def eigsh(
+      self,  #pylint: disable=arguments-differ
+      A: Callable,
+      args: Optional[List] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,
+      num_krylov_vecs: int = 50,
+      numeig: int = 6,
+      tol: float = 1E-8,
+      which: Text = 'SA',
+      maxiter: int = 20) -> Tuple[Tensor, List]:
+    """
+    Implicitly restarted Lanczos method for finding the lowest
+    eigenvector-eigenvalue pairs of a symmetric (hermitian) linear operator `A`.
+    `A` is a function implementing the matrix-vector
+    product.
+
+    WARNING: This routine uses jax.jit to reduce runtimes. jitting is triggered
+    at the first invocation of `eigsh`, and on any subsequent calls
+    if the python `id` of `A` changes, even if the formal definition of `A`
+    stays the same.
+    Example: the following will jit once at the beginning, and then never again:
+
+    ```python
+    import jax
+    import numpy as np
+    def A(H,x):
+      return jax.np.dot(H,x)
+    for n in range(100):
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh(A, [H],x) #jitting is triggerd only at `n=0`
+    ```
+
+    The following code triggers jitting at every iteration, which
+    results in considerably reduced performance
+
+    ```python
+    import jax
+    import numpy as np
+    for n in range(100):
+      def A(H,x):
+        return jax.np.dot(H,x)
+      H = jax.np.array(np.random.rand(10,10))
+      x = jax.np.array(np.random.rand(10,10))
+      res = eigsh(A, [H],x) #jitting is triggerd at every step `n`
+    ```
+
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `backend.randn` method
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The number of eigenvector-eigenvalue pairs to be computed.
+      tol: The desired precision of the eigenvalues. For the jax backend
+        this has currently no effect, and precision of eigenvalues is not
+        guaranteed. This feature may be added at a later point. To increase
+        precision the caller can either increase `maxiter` or `num_krylov_vecs`.
+      which: Flag for targetting different types of eigenvalues. Currently
+        supported are `which = 'LR'` (larges real part) and `which = 'LM'`
+        (larges magnitude).
+      maxiter: Maximum number of restarts. For `maxiter=0` the routine becomes
+        equivalent to a simple Arnoldi method.
+    Returns:
+      (eigvals, eigvecs)
+       eigvals: A list of `numeig` eigenvalues
+       eigvecs: A list of `numeig` eigenvectors
+    """
+
+    if args is None:
+      args = []
+    if which not in ('SA', 'LA', 'LM'):
+      raise ValueError(f'which = {which} is currently not supported.')
+
+    if numeig > num_krylov_vecs:
+      raise ValueError('`num_krylov_vecs` >= `numeig` required!')
+
+    if initial_state is None:
+      if (shape is None) or (dtype is None):
+        raise ValueError("if no `initial_state` is passed, then `shape` and"
+                         "`dtype` have to be provided")
+      initial_state = self.randn(shape, dtype)
+
+    if not isinstance(initial_state, jnp.ndarray):
+      raise TypeError("Expected a `jax.array`. Got {}".format(
+          type(initial_state)))
+
+    if A not in _CACHED_MATVECS:
+      _CACHED_MATVECS[A] = libjax.tree_util.Partial(libjax.jit(A))
+
+    if "imp_lanczos" not in _CACHED_FUNCTIONS:
+      imp_lanczos = jitted_functions._implicitly_restarted_lanczos(libjax)
+      _CACHED_FUNCTIONS["imp_lanczos"] = imp_lanczos
+
+    eta, U, numits = _CACHED_FUNCTIONS["imp_lanczos"](_CACHED_MATVECS[A], args,
+                                                      initial_state,
+                                                      num_krylov_vecs, numeig,
+                                                      which, tol, maxiter,
+                                                      self.jax_precision)
+    if numeig > numits:
+      warnings.warn(
+          f"Arnoldi terminated early after numits = {numits}"
+          f" < numeig = {numeig} steps. For this value of `numeig `"
+          f"the routine will return spurious eigenvalues of value 0.0."
+          f"Use a smaller value of numeig, or a smaller value for `tol`")
+    return eta, U
+
   def eigsh_lanczos(
       self,
       A: Callable,
