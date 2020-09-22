@@ -7,6 +7,7 @@ jax.config.update('jax_enable_x64', True)
 jax_dtypes = [np.float32, np.float64, np.complex64, np.complex128]
 precision = jax.lax.Precision.HIGHEST
 
+
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])
 def test_arnoldi_factorization(dtype):
   np.random.seed(10)
@@ -21,18 +22,18 @@ def test_arnoldi_factorization(dtype):
 
   arnoldi = jitted_functions._generate_arnoldi_factorization(jax)
   ncv = 40
-  kv = jax.numpy.zeros((ncv + 1, D), dtype=dtype)
-  H = jax.numpy.zeros((ncv + 1, ncv), dtype=dtype)
+  kv = jax.numpy.zeros((ncv, D), dtype=dtype)
+  H = jax.numpy.zeros((ncv, ncv), dtype=dtype)
   start = 0
-
-  kv, H, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv, 0.01, precision)
-  Vm = jax.numpy.transpose(kv[:it, :])
-  Hm = H[:it, :it]
-  fm = kv[it, :] * H[it, it - 1]
-  em = np.zeros((1, Vm.shape[1]))
+  tol = 1E-5
+  Vm, Hm, residual, norm, it, _ = arnoldi(matvec, [mat], x, kv, H, start, ncv,
+                                          tol, precision)
+  fm = residual * norm
+  em = np.zeros((1, Vm.shape[0]))
   em[0, -1] = 1
-  np.testing.assert_almost_equal(mat @ Vm - Vm @ Hm - fm[:, None] * em,
-                                 np.zeros((it, Vm.shape[1])).astype(dtype))
+  #test arnoldi relation
+  np.testing.assert_almost_equal(mat @ Vm.T - Vm.T @ Hm - fm[:, None] * em,
+                                 np.zeros((it, Vm.shape[0])).astype(dtype))
 
 
 @pytest.mark.parametrize("dtype", jax_dtypes)
