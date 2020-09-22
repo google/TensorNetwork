@@ -306,7 +306,7 @@ def _generate_lanczos_factorization(jax: types.ModuleType) -> Callable:
       Av = jax.lax.cond(norm > tol, lambda x: Av/norm, lambda x: Av * 0.0, None)
       Vm, betas = jax.lax.cond(
           i < num_krylov_vecs - 1,
-          lambda x: (Vm.at[i + 1, :].set(Av.ravel()), betas.at[i].set(norm)), #pylint: disable=line-too-long
+          lambda x: (Vm.at[i + 1, :].set(Av.ravel()), betas.at[i].set(norm)),
           lambda x: (Vm, betas),
           None)
 
