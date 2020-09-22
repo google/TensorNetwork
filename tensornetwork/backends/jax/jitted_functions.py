@@ -927,8 +927,8 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
 
-    if (num_expand <= 1) and (num_krylov_vecs < dim):
-      raise ValueError(f"num_krylov_vecs must be between numeig + 1 <"
+    if numeig >= num_krylov_vecs:
+      raise ValueError(f"num_krylov_vecs must be between numeig <"
                        f" num_krylov_vecs <= dim = {dim},"
                        f" num_krylov_vecs = {num_krylov_vecs}")
     if numeig > dim:
@@ -964,7 +964,6 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       raise ValueError(f"which = {which} not implemented")
 
     it = 1  # we already did one lanczos factorization
-
     def outer_loop(carry):
       alphas, betas, Vm, fm, it, numits, ar_converged, _, _, = carry
       # pack into alphas and betas into tridiagonal matrix
@@ -1022,14 +1021,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     carry = [alphas, betas, Vm, fm, it, numits, ar_converged, converged, norm]
     res = jax.lax.while_loop(cond_fun, outer_loop, carry)
     alphas, betas, Vm = res[0], res[1], res[2]
-    numits, converged = res[5], res[7]
-    # if `ar_converged` then `norm`is below convergence threshold
-    # set it to 0.0 in this case to prevent `jnp.linalg.eig` from finding a
-    # spurious eigenvalue of order `norm`.
-
-    betas = betas.at[numits - 1].set(
-        jax.lax.cond(converged, lambda x: betas.dtype.type(0.0), lambda x: x,
-                     betas[numits - 1]))
+    numits, ar_converged, converged = res[5], res[6], res[7]
     Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
         betas.conj(), 1)
 
