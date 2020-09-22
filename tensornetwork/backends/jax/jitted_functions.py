@@ -707,9 +707,8 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
-
-    if (num_expand <= 1) and (num_krylov_vecs < dim):
-      raise ValueError(f"num_krylov_vecs must be between numeig + 1 <"
+    if num_krylov_vecs <= numeig < dim:
+      raise ValueError(f"num_krylov_vecs must be between numeig <"
                        f" num_krylov_vecs <= dim = {dim},"
                        f" num_krylov_vecs = {num_krylov_vecs}")
     if numeig > dim:
@@ -926,8 +925,8 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
 
     dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
-
-    if numeig >= num_krylov_vecs:
+    #note: the second part of the cond is for testing purposes
+    if num_krylov_vecs <= numeig < dim:
       raise ValueError(f"num_krylov_vecs must be between numeig <"
                        f" num_krylov_vecs <= dim = {dim},"
                        f" num_krylov_vecs = {num_krylov_vecs}")
