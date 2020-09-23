@@ -5,17 +5,45 @@ from tensornetwork.backends.numpy import numpy_backend
 from tensornetwork.block_sparse.charge import (U1Charge, charge_equal,
                                                BaseCharge, fuse_charges)
 from tensornetwork.block_sparse.blocksparse_utils import _find_diagonal_sparse_blocks  #pylint: disable=line-too-long
+from tensornetwork.block_sparse.utils import unique
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse import (tensordot, BlockSparseTensor, transpose,
-                                        sqrt, ChargeArray, diag, trace, norm,
-                                        eye, ones, zeros, randn, random, eigh,
-                                        inv)
+from tensornetwork.block_sparse.blocksparsetensor import (tensordot,
+                                                          BlockSparseTensor,
+                                                          ChargeArray)
+from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
+                                               norm, eye, eigh, inv, eig)
+from tensornetwork.block_sparse.initialization import (ones, zeros, randn,
+                                                       random, randn_like)
+
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
+from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
+
 
 np_randn_dtypes = [np.float32, np.float16, np.float64]
 np_dtypes = np_randn_dtypes + [np.complex64, np.complex128]
 np_tensordot_dtypes = [np.float16, np.float64, np.complex128]
+
+def get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64):
+  np.random.seed(seed)
+  mpsinds = [
+      Index(U1Charge(np.random.randint(5, 15, D, dtype=np.int16)), False),
+      Index(U1Charge(np.array([0, 1, 2, 3], dtype=np.int16)), False),
+      Index(U1Charge(np.random.randint(5, 18, D, dtype=np.int16)), True)
+  ]
+  mpoinds = [
+      Index(U1Charge(np.random.randint(0, 5, M)), False),
+      Index(U1Charge(np.random.randint(0, 10, M)), True), mpsinds[1],
+      mpsinds[1].flip_flow()
+  ]
+  Linds = [mpoinds[0].flip_flow(), mpsinds[0].flip_flow(), mpsinds[0]]
+  Rinds = [mpoinds[1].flip_flow(), mpsinds[2].flip_flow(), mpsinds[2]]
+
+  mps = BlockSparseTensor.random(mpsinds, dtype=dtype)
+  mpo = BlockSparseTensor.random(mpoinds, dtype=dtype)
+  L = BlockSparseTensor.random(Linds, dtype=dtype)
+  R = BlockSparseTensor.random(Rinds, dtype=dtype)
+  return L, mps, mpo, R
 
 
 def get_tensor(R, num_charges, dtype=np.float64):
@@ -129,12 +157,6 @@ def test_tensordot(R1, R2, cont, dtype, num_charges):
       charge_equal(expected._charges[n], actual._charges[n])
       for n in range(len(actual._charges))
   ])
-
-
-def test_gmres_not_implemented():
-  backend = symmetric_backend.SymmetricBackend()
-  with pytest.raises(NotImplementedError):
-    backend.gmres(lambda x: x, np.ones((2)))
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
@@ -947,9 +969,186 @@ def test_eigsh_lanczos_reorthogonalize_sanity_check(dtype, numeig):
 
 
 #################################################################
-# finished sanity checks
+# finished eigsh_lanczos sanity checks
 #################################################################
 
+
+################################################################
+# non-trivial checks for eigsh_lanczos
+################################################################
+def finite_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
+                   dtype=np.float64):
+  N = len(Bz)
+  mpo = []
+  temp = np.zeros((1, 5, 2, 2), dtype=dtype)
+  #BSz
+  temp[0, 0, 0, 0] = -0.5 * Bz[0]
+  temp[0, 0, 1, 1] = 0.5 * Bz[0]
+
+  #Sm
+  temp[0, 1, 0, 1] = Jxy[0] / 2.0 * 1.0
+  #Sp
+  temp[0, 2, 1, 0] = Jxy[0] / 2.0 * 1.0
+  #Sz
+  temp[0, 3, 0, 0] = Jz[0] * (-0.5)
+  temp[0, 3, 1, 1] = Jz[0] * 0.5
+
+  #11
+  temp[0, 4, 0, 0] = 1.0
+  temp[0, 4, 1, 1] = 1.0
+  mpo.append(temp)
+  for n in range(1, N - 1):
+    temp = np.zeros((5, 5, 2, 2), dtype=dtype)
+    #11
+    temp[0, 0, 0, 0] = 1.0
+    temp[0, 0, 1, 1] = 1.0
+    #Sp
+    temp[1, 0, 1, 0] = 1.0
+    #Sm
+    temp[2, 0, 0, 1] = 1.0
+    #Sz
+    temp[3, 0, 0, 0] = -0.5
+    temp[3, 0, 1, 1] = 0.5
+    #BSz
+    temp[4, 0, 0, 0] = -0.5 * Bz[n]
+    temp[4, 0, 1, 1] = 0.5 * Bz[n]
+
+    #Sm
+    temp[4, 1, 0, 1] = Jxy[n] / 2.0 * 1.0
+    #Sp
+    temp[4, 2, 1, 0] = Jxy[n] / 2.0 * 1.0
+    #Sz
+    temp[4, 3, 0, 0] = Jz[n] * (-0.5)
+    temp[4, 3, 1, 1] = Jz[n] * 0.5
+    #11
+    temp[4, 4, 0, 0] = 1.0
+    temp[4, 4, 1, 1] = 1.0
+
+    mpo.append(temp)
+  temp = np.zeros((5, 1, 2, 2), dtype=dtype)
+  #11
+  temp[0, 0, 0, 0] = 1.0
+  temp[0, 0, 1, 1] = 1.0
+  #Sp
+  temp[1, 0, 1, 0] = 1.0
+  #Sm
+  temp[2, 0, 0, 1] = 1.0
+  #Sz
+  temp[3, 0, 0, 0] = -0.5
+  temp[3, 0, 1, 1] = 0.5
+  #BSz
+  temp[4, 0, 0, 0] = -0.5 * Bz[-1]
+  temp[4, 0, 1, 1] = 0.5 * Bz[-1]
+
+  mpo.append(temp)
+  return mpo
+
+
+def blocksparse_XXZ_mpo(N, Jz=1, Jxy=1, Bz=0, dtype=np.float64):
+  dense_mpo = finite_XXZ_mpo(
+      Jz * np.ones(N - 1),
+      Jxy * np.ones(N - 1),
+      Bz=Bz * np.ones(N),
+      dtype=dtype)
+  ileft = Index(U1Charge(np.array([0])), False)
+  iright = ileft.flip_flow()
+  i1 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), False)
+  i2 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), True)
+  i3 = Index(U1Charge(np.array([0, 1])), False)
+  i4 = Index(U1Charge(np.array([0, 1])), True)
+
+  mpotensors = [BlockSparseTensor.fromdense(
+      [ileft, i2, i3, i4], dense_mpo[0])] + [
+          BlockSparseTensor.fromdense([i1, i2, i3, i4], tensor)
+          for tensor in dense_mpo[1:-1]
+      ] + [BlockSparseTensor.fromdense([i1, iright, i3, i4], dense_mpo[-1])]
+  return mpotensors
+
+
+def blocksparse_halffilled_spin_MPStensors(N=10, D=20, B=5, dtype=np.float64):
+  auxcharges = [U1Charge([0])] + [
+      U1Charge.random(D, n // 2, n // 2 + B) for n in range(N - 1)
+  ] + [U1Charge([N // 2])]
+  return [
+      BlockSparseTensor.random([
+          Index(auxcharges[n], False),
+          Index(U1Charge([0, 1]), False),
+          Index(auxcharges[n + 1], True)
+      ], dtype=dtype) for n in range(N)
+  ]
+
+
+def blocksparse_DMRG_blocks(N=10,
+                            D=20,
+                            B=5,
+                            Jz=1,
+                            Jxy=1,
+                            Bz=0,
+                            dtype=np.float64):
+  mps_tensors = blocksparse_halffilled_spin_MPStensors(N, D, B, dtype)
+  mpo_tensors = blocksparse_XXZ_mpo(N, Jz, Jxy, Bz, dtype)
+  mps = FiniteMPS(mps_tensors, backend='symmetric', canonicalize=True)
+  mps.position(N // 2)
+  mps_tensors = mps.tensors
+  L = BlockSparseTensor.ones([
+      mpo_tensors[0].sparse_shape[0].flip_flow(),
+      mps_tensors[0].sparse_shape[0].flip_flow(), mps_tensors[0].sparse_shape[0]
+  ])
+  R = BlockSparseTensor.ones([
+      mpo_tensors[-1].sparse_shape[1].flip_flow(),
+      mps_tensors[-1].sparse_shape[2].flip_flow(),
+      mps_tensors[-1].sparse_shape[2]
+  ])
+  for n in range(N // 2):
+    L = ncon([L, mps_tensors[n], mps_tensors[n].conj(), mpo_tensors[n]],
+             [[3, 1, 5], [1, 2, -2], [5, 4, -3], [3, -1, 4, 2]],
+             backend='symmetric')
+  for n in reversed(range(N // 2 + 1, N)):
+    R = ncon([R, mps_tensors[n], mps_tensors[n].conj(), mpo_tensors[n]],
+             [[3, 1, 5], [-2, 2, 1], [-3, 4, 5], [-1, 3, 4, 2]],
+             backend='symmetric')
+  return mps_tensors[N // 2], L, mpo_tensors[N // 2], R
+
+
+@pytest.mark.parametrize('Jz', [1.0])
+@pytest.mark.parametrize('Jxy', [1.0])
+@pytest.mark.parametrize('Bz', [0.0, 0.2])
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('numeig, reorthogonalize', [(1, False), (4, True)])
+def test_eigsh_lanczos_non_trivial(Jz, Jxy, Bz, dtype, numeig, reorthogonalize):
+  N, D, B = 20, 100, 3
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock, backend='symmetric'):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend=backend)
+
+  mps, L, mpo, R = blocksparse_DMRG_blocks(N, D, B, Jz, Jxy, Bz, dtype)
+  backend = symmetric_backend.SymmetricBackend()
+  np_backend = numpy_backend.NumPyBackend()
+
+  eta_sym, U_sym = backend.eigsh_lanczos(
+      matvec,
+      args=[L, mpo, R, 'symmetric'],
+      initial_state=mps,
+      numeig=numeig,
+      reorthogonalize=reorthogonalize,
+      num_krylov_vecs=50)
+  eta_np, U_np = np_backend.eigsh_lanczos(
+      matvec,
+      args=[L.todense(), mpo.todense(),
+            R.todense(), 'numpy'],
+      initial_state=mps.todense(),
+      numeig=numeig,
+      reorthogonalize=reorthogonalize,
+      num_krylov_vecs=50)
+  np.testing.assert_allclose(eta_sym, eta_np)
+  for n, u in enumerate(U_sym):
+    np.testing.assert_almost_equal(u.todense(), U_np[n])
+
+################################################################
+# non-trivial checks for eigsh_lanczos
+################################################################
 
 def test_eigsh_lanczos_raises():
   backend = symmetric_backend.SymmetricBackend()
@@ -1056,8 +1255,7 @@ def test_diagonal(Ds, dtype, num_charges, flow):
   inds = np.nonzero(fused == np.zeros((1, num_charges), dtype=np.int16))[0]
   # pylint: disable=no-member
   left, _ = np.divmod(inds, Ds[1])
-  unique = np.unique(
-      np_flow * (indices[0]._charges[0].charges[left, :]), axis=0)
+  unique_charges = unique(np_flow * (indices[0]._charges[0].charges[left, :]))
   diagonal = backend.diagonal(arr)
 
   sparse_blocks, _, block_shapes = _find_diagonal_sparse_blocks(
@@ -1067,7 +1265,8 @@ def test_diagonal(Ds, dtype, num_charges, flow):
       for n in range(len(sparse_blocks))
   ])
   np.testing.assert_allclose(data, diagonal.data)
-  np.testing.assert_allclose(unique, diagonal.flat_charges[0].unique_charges)
+  np.testing.assert_allclose(unique_charges,
+                             diagonal.flat_charges[0].unique_charges)
   with pytest.raises(NotImplementedError):
     diagonal = backend.diagonal(arr, axis1=0)
   with pytest.raises(NotImplementedError):
@@ -1079,8 +1278,8 @@ def test_diagonal(Ds, dtype, num_charges, flow):
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2])
 @pytest.mark.parametrize("offset", [0, 1])
-@pytest.mark.parametrize("axis1", range(0, 1))
-@pytest.mark.parametrize("axis2", range(0, 1))
+@pytest.mark.parametrize("axis1", [0, 1])
+@pytest.mark.parametrize("axis2", [0, 1])
 def test_trace(dtype, num_charges, offset, axis1, axis2):
   np.random.seed(10)
   backend = symmetric_backend.SymmetricBackend()
@@ -1236,6 +1435,79 @@ def test_eigs_raises():
     backend.eigs(lambda x: x, [H], initial_state=[])
 
 
+#################################################################
+# finished eigs sanity checks
+#################################################################
+
+################################################################
+# non-trivial checks for eigs
+################################################################
+
+# TODO (martin): figure out why direct comparison of eigen vectors
+# between tn.block_sparse.linalg.eig and eigs fails.
+
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('numeig', [1, 4])
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('args', [True, False])
+def test_eigs_non_trivial(dtype, numeig, x0, args):
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
+  def matvec_no_args(MPSTensor):
+    return ncon([L, MPSTensor, mpo, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
+  backend = symmetric_backend.SymmetricBackend()
+  if x0:
+    init = mps
+    _dtype = None
+    shape = None
+  else:
+    init = None
+    _dtype = dtype
+    shape = mps.sparse_shape
+  if args:
+    mv = matvec
+    _args = [L, mpo, R]
+  else:
+    mv = matvec_no_args
+    _args = None
+
+  eta_sym, U_sym = backend.eigs(
+      A=mv,
+      args=_args,
+      initial_state=init,
+      shape=shape,
+      dtype=_dtype,
+      numeig=numeig,
+      num_krylov_vecs=50)
+
+  H_sparse = ncon([L, mpo, R], [[1, -1, -4], [1, 2, -5, -2], [2, -3, -6]],
+                  backend='symmetric')
+  H_sparse.contiguous(inplace=True)
+  D1, d, D2, _, _, _ = H_sparse.shape
+  H_sparse = H_sparse.reshape((D1 * d * D2, D1 * d * D2))
+  eta_sparse, _ = eig(H_sparse)
+  mask = np.squeeze(eta_sparse.flat_charges[0].charges == 0)
+  eigvals = eta_sparse.data[mask]
+  isort = np.argsort(np.real(eigvals))[::-1]
+  sparse_eigvals = eigvals[isort]
+  _, iy = np.nonzero(np.abs(eta_sym[:, None] - sparse_eigvals[None, :]) < 1E-8)
+  eta_exact = sparse_eigvals[iy]
+  np.testing.assert_allclose(eta_exact, eta_sym)
+  for n in range(numeig):
+    assert norm(matvec(U_sym[n], L, mpo, R) - eta_sym[n] * U_sym[n]) < 1E-8
+
+################################################################
+# finished non-trivial checks for eigs
+################################################################
+
+
 def test_decomps_raise():
   np.random.seed(10)
   dtype = np.float64
@@ -1266,3 +1538,109 @@ def test_einsum_raises():
   with pytest.raises(
       NotImplementedError, match="`einsum` currently not implemented"):
     backend.einsum('', [])
+
+def test_sign():
+  tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
+  backend = symmetric_backend.SymmetricBackend()
+  res = backend.sign(tensor)
+  np.testing.assert_allclose(res.data, np.sign(tensor.data))  
+
+def test_abs():
+  tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
+  backend = symmetric_backend.SymmetricBackend()
+  res = backend.abs(tensor)
+  np.testing.assert_allclose(res.data, np.abs(tensor.data))  
+
+  
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('ncv', [None, 40])
+def test_gmres(dtype, x0, ncv):
+  backend = symmetric_backend.SymmetricBackend()
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
+  b = randn_like(mps)
+
+  def matvec(MPSTensor, LBlock, MPOTensor, RBlock):
+    return ncon([LBlock, MPSTensor, MPOTensor, RBlock],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
+  if x0:
+    init = mps
+  else:
+    init = None
+  x, _ = backend.gmres(
+      matvec,
+      b, [L, mpo, R],
+      x0=init,
+      enable_caching=True,
+      num_krylov_vectors=ncv)
+  assert norm(matvec(x, L, mpo, R) - b) < 1E-10
+
+
+@pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+@pytest.mark.parametrize('x0', [True, False])
+@pytest.mark.parametrize('ncv', [None, 40])
+def test_gmres_no_args(dtype, x0, ncv):
+  backend = symmetric_backend.SymmetricBackend()
+  L, mps, mpo, R = get_matvec_tensors(D=10, M=5, seed=10, dtype=dtype)
+  b = randn_like(mps)
+
+  def matvec(MPSTensor):
+    return ncon([L, MPSTensor, mpo, R],
+                [[3, 1, -1], [1, 2, 4], [3, 5, -2, 2], [5, 4, -3]],
+                backend='symmetric')
+
+  if x0:
+    init = mps
+  else:
+    init = None
+  x, _ = backend.gmres(
+      matvec,
+      b,
+      A_args=None,
+      x0=init,
+      enable_caching=True,
+      num_krylov_vectors=ncv)
+  assert norm(matvec(x) - b) < 1E-10
+
+
+def test_gmres_cache_exception():
+  backend = symmetric_backend.SymmetricBackend()
+  _, mps, _, _ = get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64)
+  b = randn_like(mps)
+
+  def matvec(vec):
+    raise ValueError()
+
+  with pytest.raises(ValueError):
+    backend.gmres(
+        matvec,
+        b,
+        A_args=None,
+        x0=mps,
+        enable_caching=True,
+        num_krylov_vectors=40)
+  cacher = get_cacher()
+  assert not cacher.do_caching
+  assert not get_caching_status()
+  assert cacher.cache == {}
+
+
+def test_gmres_raises():
+  backend = symmetric_backend.SymmetricBackend()
+  _, mps, _, _ = get_matvec_tensors(D=10, M=5, seed=10, dtype=np.float64)
+
+  with pytest.raises(ValueError, match="x0.sparse_shape"):
+    b = randn_like(mps.conj())
+    backend.gmres(lambda x: x, b, x0=mps)
+  with pytest.raises(TypeError, match="x0.dtype"):
+    b = BlockSparseTensor.random(mps.sparse_shape, dtype=np.complex128)
+    backend.gmres(lambda x: x, b, x0=mps)
+  b = randn_like(mps)
+  with pytest.raises(ValueError, match="num_krylov_vectors must"):
+    backend.gmres(lambda x: x, b, x0=mps, num_krylov_vectors=-1)
+  with pytest.raises(ValueError, match="tol = "):
+    backend.gmres(lambda x: x, b, x0=mps, tol=-0.001)
+  with pytest.raises(ValueError, match="atol = "):
+    backend.gmres(lambda x: x, b, x0=mps, atol=-0.001)

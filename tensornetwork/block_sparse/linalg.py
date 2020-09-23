@@ -1,4 +1,4 @@
-# Copyright 2019 The TensorNetwork Authors
+# copyright 2019 The TensorNetwork Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
 
 import numpy as np
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import tensordot
 from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
-                                                          ChargeArray)
+                                                          ChargeArray,
+                                                          tensordot)
+from tensornetwork.block_sparse.utils import (intersect, flatten,
+                                              get_real_dtype, _randn, _random)
 from tensornetwork.block_sparse.blocksparse_utils import (
     _find_transposed_diagonal_sparse_blocks, _find_diagonal_sparse_blocks,
     compute_num_nonzero, compute_sparse_lookup)
-from tensornetwork.block_sparse.utils import (flatten, get_real_dtype,
-                                              intersect)
-
 from typing import List, Union, Any, Tuple, Type, Optional, Text, Sequence
-Tensor = Any
-
+from tensornetwork.block_sparse.initialization import empty_like
 
 def norm(tensor: BlockSparseTensor) -> float:
   """
@@ -93,7 +91,7 @@ def diag(tensor: ChargeArray) -> Any:
   flat_flows = tensor._flows
   flat_order = tensor.flat_order
   tr_partition = len(tensor._order[0])
-  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(#pylint: disable=line-too-long
+  sparse_blocks, charges, block_shapes = _find_transposed_diagonal_sparse_blocks(  #pylint: disable=line-too-long
       flat_charges, flat_flows, tr_partition, flat_order)
 
   shapes = np.min(block_shapes, axis=0)
@@ -299,7 +297,7 @@ def svd(matrix: BlockSparseTensor,
   return S
 
 
-def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
+def qr(matrix: BlockSparseTensor, mode: Text = 'reduced') -> Any:
   """
   Compute the qr decomposition of an `M` by `N` matrix `matrix`.
   The matrix is factorized into `q*r`, with 
@@ -317,10 +315,12 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     (BlockSparseTensor,BlockSparseTensor): If mode = `reduced` or `complete`
     BlockSparseTensor: If mode = `r`.
   """
-  if mode == 'raw':
-    raise NotImplementedError('mode `raw` currenntly not supported')
   if matrix.ndim != 2:
     raise NotImplementedError("qr currently supports only rank-2 tensors.")
+  if mode not in ('reduced', 'complete', 'raw', 'r'):
+    raise ValueError('unknown value {} for input `mode`'.format(mode))
+  if mode == 'raw':
+    raise NotImplementedError('mode `raw` currenntly not supported')
 
   flat_charges = matrix._charges
   flat_flows = matrix._flows
@@ -336,10 +336,9 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
     if mode in ('reduced', 'complete'):
       q_blocks.append(out[0])
       r_blocks.append(out[1])
-    elif mode == 'r':
-      r_blocks.append(out)
     else:
-      raise ValueError('unknown value {} for input `mode`'.format(mode))
+      r_blocks.append(out)
+
 
   tmp_r_charge_labels = [
       np.full(r_blocks[n].shape[0], fill_value=n, dtype=np.int16)
@@ -391,9 +390,7 @@ def qr(matrix: BlockSparseTensor, mode: Optional[Text] = 'reduced') -> Any:
         flows=flows_q,
         order=order_q,
         check_consistency=False).transpose((1, 0)), R
-
   return R
-
 
 def eigh(matrix: BlockSparseTensor,
          UPLO: Optional[Text] = 'L') -> Tuple[ChargeArray, BlockSparseTensor]:
@@ -535,13 +532,13 @@ def inv(matrix: BlockSparseTensor) -> BlockSparseTensor:
   for n, block in enumerate(blocks):
     data[block] = np.ravel(
         np.linalg.inv(np.reshape(matrix.data[block], shapes[:, n])).T)
-
+  #pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0))  #pytype: disable=bad-return-type
 
 
 def sqrt(
@@ -639,7 +636,7 @@ def trace(tensor: BlockSparseTensor,
           Index([out._charges[out._order[i][0]]],
                 [not out._flows[out._order[i][0]]]))
       #pylint: disable=line-too-long
-      out = tensordot(out, identity, ([i, j], [0, 1]))# pytype: disable=wrong-arg-types
+      out = tensordot(out, identity, ([i, j], [0, 1]))  # pytype: disable=wrong-arg-types
       a0ar = np.asarray(a0)
 
       mask_min = a0ar > np.min([i, j])
@@ -688,68 +685,20 @@ def pinv(matrix: BlockSparseTensor,
             np.reshape(matrix.data[block], shapes[:, n]),
             rcond=rcond,
             hermitian=hermitian).T)
-
+  #pylint: disable=line-too-long
   return BlockSparseTensor(
       data=data,
       charges=matrix._charges,
       flows=np.logical_not(matrix._flows),
       order=matrix._order,
-      check_consistency=False).transpose((1, 0))#pytype: disable=bad-return-type
+      check_consistency=False).transpose((1, 0)) #pytype: disable=bad-return-type
 
+def abs(tensor: BlockSparseTensor) -> BlockSparseTensor: #pylint: disable=redefined-builtin
+  result = empty_like(tensor)
+  result.data = np.abs(tensor.data)
+  return result
 
-def ones(indices: Sequence[Index],
-         dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a symmetric tensor with ones.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.ones(indices, dtype)
-
-
-def zeros(indices: Sequence[Index],
-          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a symmetric tensor with zeros.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.zeros(indices, dtype)
-
-
-def randn(indices: Sequence[Index],
-          dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a random symmetric tensor from random normal distribution.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-
-  return BlockSparseTensor.randn(indices, dtype)
-
-
-def random(indices: Sequence[Index],
-           boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-           dtype: Optional[Type[np.number]] = None) -> BlockSparseTensor:
-  """
-  Initialize a random symmetric tensor from random uniform distribution.
-  Args:
-    indices: List of `Index` objecst, one for each leg.
-    boundaries: Tuple of interval boundaries for the random uniform
-      distribution.
-    dtype: An optional numpy dtype. The dtype of the tensor
-  Returns:
-    BlockSparseTensor
-  """
-  return BlockSparseTensor.random(indices, boundaries, dtype)
+def sign(tensor: BlockSparseTensor) -> BlockSparseTensor:
+  result = empty_like(tensor)
+  result.data = np.sign(tensor.data)
+  return result

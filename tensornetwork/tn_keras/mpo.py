@@ -9,7 +9,9 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseMPO(Layer):
   """Matrix Product Operator (MPO) TN layer.
 
@@ -69,7 +71,7 @@ class DenseMPO(Layer):
 
     assert num_nodes > 2, 'Need at least 3 nodes to create MPO.'
 
-    super(DenseMPO, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     self.output_dim = output_dim
     self.num_nodes = num_nodes
@@ -104,7 +106,7 @@ class DenseMPO(Layer):
       f'Output dim incorrect. \
       {self.output_dim}**(1. / {self.num_nodes}) must be round.'
 
-    super(DenseMPO, self).build(input_shape)
+    super().build(input_shape)
 
     self.in_leg_dim = math.ceil(input_dim**(1. / self.num_nodes))
     self.out_leg_dim = math.ceil(self.output_dim**(1. / self.num_nodes))
@@ -212,5 +214,5 @@ class DenseMPO(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super(DenseMPO, self).get_config()
+    base_config = super().get_config()
     return dict(list(base_config.items()) + list(config.items()))

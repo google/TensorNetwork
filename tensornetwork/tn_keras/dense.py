@@ -7,7 +7,9 @@ import tensornetwork as tn
 import numpy as np
 
 
-@tf.keras.utils.register_keras_serializable() # type: ignore
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseDecomp(Layer):
   """TN layer comparable to Dense that carries out matrix multiplication
   with 2 significantly smaller weight matrices instead of 1 large one.
@@ -64,7 +66,7 @@ class DenseDecomp(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    super(DenseDecomp, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     self.output_dim = output_dim
     self.decomp_size = decomp_size
@@ -81,7 +83,7 @@ class DenseDecomp(Layer):
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
 
-    super(DenseDecomp, self).build(input_shape)
+    super().build(input_shape)
 
     self.a_var = self.add_weight(name='a',
                                  shape=(input_shape[-1], self.decomp_size),
@@ -163,5 +165,5 @@ class DenseDecomp(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super(DenseDecomp, self).get_config()
+    base_config = super().get_config()
     return dict(list(base_config.items()) + list(config.items()))

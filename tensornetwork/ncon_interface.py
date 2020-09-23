@@ -15,7 +15,7 @@
 import warnings
 import numpy as np
 from typing import Any, Sequence, List, Optional, Union, Text, Tuple, Dict, Set
-from tensornetwork import network_components
+from tensornetwork import tensor as tn_tensor
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
@@ -521,14 +521,15 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
 
 
 def ncon(
-    tensors: Sequence[Union[network_components.AbstractNode, Tensor]],
+    tensors: Sequence[Union[tn_tensor.Tensor, Tensor]],
     network_structure: Sequence[Sequence[Union[str, int]]],
     con_order: Optional[Sequence] = None,
     out_order: Optional[Sequence] = None,
     check_network: bool = True,
     backend: Optional[Union[Text, AbstractBackend]] = None
-) -> Union[network_components.AbstractNode, Tensor]:
-  r"""Contracts a list of tensors or nodes according to a tensor network 
+) -> Union[tn_tensor.Tensor, Tensor]:
+  r"""Contracts a list of backend-tensors or  `Tensor`s 
+    according to a tensor network 
     specification.
 
     The network is provided as a list of lists, one for each
@@ -586,7 +587,7 @@ def ncon(
       https://arxiv.org/abs/1402.0939
     
     Args:
-      tensors: List of `Tensors` or `AbstractNodes`.
+      tensors: List of backend-tensors or `Tensor`s.
       network_structure: List of lists specifying the tensor network structure.
       con_order: List of edge labels specifying the contraction order.
       out_order: List of edge labels specifying the output order.
@@ -595,9 +596,9 @@ def ncon(
         `tensornetwork.backend_contextmanager.get_default_backend`.
 
     Returns:
-      The result of the contraction. The result is returned as a `Node`
-      if all elements of `tensors` are `AbstractNode` objects, else
-      it is returned as a `Tensor` object.
+      The result of the contraction: 
+        * A backend-tensor: If all elements of `tensors` are backend-tensors.
+        * A `Tensor`: If all elements of `tensors` are `Tensor` objects.
     """
 
   # TODO (mganahl): for certain cases np.einsum is still faster than ncon:
@@ -616,16 +617,16 @@ def ncon(
   if con_order == []:  #allow empty list as input
     con_order = None
 
-  are_nodes = [isinstance(t, network_components.AbstractNode) for t in tensors]
-  nodes = {t for t in tensors if isinstance(t, network_components.AbstractNode)}
-  if not all([n.backend.name == backend_obj.name for n in nodes]):
-    raise ValueError("Some nodes have backends different from '{}'".format(
+  are_tensors = [isinstance(t, tn_tensor.Tensor) for t in tensors]
+  tensors_set = {t for t in tensors if isinstance(t, tn_tensor.Tensor)}
+  if not all([n.backend.name == backend_obj.name for n in tensors_set]):
+    raise ValueError("Some tensors have backends different from '{}'".format(
         backend_obj.name))
 
   _tensors = []
   for t in tensors:
-    if isinstance(t, network_components.AbstractNode):
-      _tensors.append(t.tensor)
+    if isinstance(t, tn_tensor.Tensor):
+      _tensors.append(t.array)
     else:
       _tensors.append(t)
   _tensors = [backend_obj.convert_to_tensor(t) for t in _tensors]
@@ -657,6 +658,6 @@ def ncon(
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels),
                                              sizes, tuple(con_order),
                                              tuple(out_order), backend_obj)
-  if all(are_nodes):
-    return network_components.Node(res_tensor, backend=backend_obj)
+  if all(are_tensors):
+    return tn_tensor.Tensor(res_tensor, backend=backend_obj)
   return res_tensor

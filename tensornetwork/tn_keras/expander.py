@@ -9,7 +9,9 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseExpander(Layer):
   """Expander TN layer. Greatly expands dimensionality of input.
   Used in conjunction with DenseEntangler to achieve very large hidden layers.
@@ -69,7 +71,7 @@ class DenseExpander(Layer):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    super(DenseExpander, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     self.exp_base = exp_base
     self.num_nodes = num_nodes
@@ -86,7 +88,7 @@ class DenseExpander(Layer):
       raise ValueError('The last dimension of the inputs to `Dense` '
                        'should be defined. Found `None`.')
 
-    super(DenseExpander, self).build(input_shape)
+    super().build(input_shape)
 
     self.output_dim = input_shape[-1] * (self.exp_base**self.num_nodes)
 
@@ -174,5 +176,5 @@ class DenseExpander(Layer):
           getattr(self, initializer_arg))
 
     # Get base config
-    base_config = super(DenseExpander, self).get_config()
+    base_config = super().get_config()
     return dict(list(base_config.items()) + list(config.items()))

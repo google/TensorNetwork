@@ -18,6 +18,15 @@ def test_tensordot():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_tensordot_int():
+  backend = numpy_backend.NumPyBackend()
+  a = backend.convert_to_tensor(2 * np.ones((3, 3, 3)))
+  b = backend.convert_to_tensor(np.ones((3, 3, 3)))
+  actual = backend.tensordot(a, b, 1)
+  expected = np.tensordot(a, b, 1)
+  np.testing.assert_allclose(expected, actual)
+
+
 def test_reshape():
   backend = numpy_backend.NumPyBackend()
   a = backend.convert_to_tensor(np.ones((2, 3, 4)))
@@ -426,7 +435,7 @@ def test_gmres_raises():
   b = np.zeros((N,), dtype=np.float64)
   diff = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
           f", {b.dtype}.")
-  with pytest.raises(ValueError, match=diff): # x0, b have different dtypes
+  with pytest.raises(TypeError, match=diff): # x0, b have different dtypes
     backend.gmres(dummy_mv, b, x0=x0)
 
   x0 = np.zeros((N,))
@@ -935,3 +944,12 @@ def test_pivot(dtype, pivot_axis):
   expected = tensor.reshape(pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_serialize(dtype):
+  shape = (8, 6, 4, 2, 1)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  s = backend.serialize_tensor(tensor)
+  assert isinstance(s, str)
+  assert (tensor == backend.deserialize_tensor(s)).all()
