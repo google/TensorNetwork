@@ -591,9 +591,8 @@ class AbstractBackend:
 
       x0 = self.reshape(x0, (N,))
 
-    if num_krylov_vectors > b.size:
-      num_krylov_vectors = b.size
-
+    if num_krylov_vectors > N:
+      num_krylov_vectors = N
 
     if tol < 0:
       raise ValueError(f"tol = {tol} must be positive.")
@@ -607,9 +606,6 @@ class AbstractBackend:
       errstring = (f"num_krylov_vectors must be positive, not"
                    f"{num_krylov_vectors}.")
       raise ValueError(errstring)
-
-    if num_krylov_vectors > b.size:
-      num_krylov_vectors = b.size
 
     if A_args is None:
       A_args = []
