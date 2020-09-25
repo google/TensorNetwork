@@ -445,15 +445,11 @@ def test_gmres_raises():
     backend.gmres(dummy_mv, b, x0=x0)
 
   num_krylov_vectors = 0
-  diff = (f"num_krylov_vectors must be in "
-          f"0 < {num_krylov_vectors} <= {b.size}")
+  diff = (f"num_krylov_vectors must be positive, not"
+          f"{num_krylov_vectors}.")
   with pytest.raises(ValueError, match=diff): # num_krylov_vectors <= 0
     backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
   num_krylov_vectors = N+1
-  diff = (f"num_krylov_vectors must be in "
-          f"0 < {num_krylov_vectors} <= {b.size}")
-  with pytest.raises(ValueError, match=diff): # num_krylov_vectors > b.size
-    backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
 
   tol = -1.
   diff = (f"tol = {tol} must be positive.")
@@ -492,7 +488,7 @@ def test_gmres_on_larger_random_problem(dtype):
     return A @ x
   b = A_mv(solution)
   tol = b.size * np.finfo(dtype).eps
-  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  x, _ = backend.gmres(A_mv, b, tol=tol, num_krylov_vectors=100)
   err = np.linalg.norm(np.abs(x)-np.abs(solution))
   rtol = tol*np.linalg.norm(b)
   atol = tol
@@ -512,7 +508,7 @@ def test_gmres_not_matrix(dtype):
     return backend.einsum('ijkl,kl', A, x)
   b = A_mv(solution)
   tol = b.size * np.finfo(dtype).eps
-  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  x, _ = backend.gmres(A_mv, b, tol=tol, num_krylov_vectors=100)
   err = np.linalg.norm(np.abs(x)-np.abs(solution))
   rtol = tol*np.linalg.norm(b)
   atol = tol

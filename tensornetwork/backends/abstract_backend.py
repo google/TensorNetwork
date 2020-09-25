@@ -483,7 +483,7 @@ class AbstractBackend:
             x0: Optional[Tensor] = None,
             tol: float = 1E-05,
             atol: Optional[float] = None,
-            num_krylov_vectors: Optional[int] = None,
+            num_krylov_vectors: int = 20,
             maxiter: Optional[int] = 1,
             M: Optional[Callable] = None) -> Tuple[Tensor, int]:
     """ GMRES solves the linear system A @ x = b for x given a vector `b` and
@@ -536,9 +536,9 @@ class AbstractBackend:
                           atol=tol
       num_krylov_vectors
                : Size of the Krylov space to build at each restart.
-                 Expense is cubic in this parameter. If supplied, it must be
-                 an integer in 0 < num_krylov_vectors <= b.size.
-                 Default: b.size.
+                 Expense is cubic in this parameter. It must be positive.
+                 If greater than b.size, it will be set to b.size.
+                 Default: 20
       maxiter  : The Krylov space will be repeatedly rebuilt up to this many
                  times. Large values of this argument
                  should be used only with caution, since especially for nearly
@@ -563,8 +563,72 @@ class AbstractBackend:
       x       : The converged solution. It has the same shape as `b`.
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
+    bshape = self.shape_tensor(b)
+    N = self.shape_prod(bshape)
+    try:
+      dtype = b.dtype
+    except AttributeError:
+      raise AttributeError("gmres was called using a vector `b` that did"
+                           "not have a dtype method.")
+
+    if x0 is None:
+      x0 = self.zeros((N,), dtype)
+    else:
+      x0shape = self.shape_tensor(x0)
+      if x0shape != bshape:
+        errstring = (f"If x0 is supplied, its shape, {x0shape}, must match b's"
+                     f", {bshape}.")
+        raise ValueError(errstring)
+      try:
+        x0dtype = x0.dtype
+      except AttributeError:
+        raise AttributeError("gmres was called using a vector `x0` that did"
+                             "not have a dtype method.")
+      if x0dtype != dtype:
+        errstring = (f"If x0 is supplied, its dtype, {x0dtype}, must match"
+                     f" b's, {dtype}.")
+        raise TypeError(errstring)
+
+      x0 = self.reshape(x0, (N,))
+
+    if num_krylov_vectors > N:
+      num_krylov_vectors = N
+
+    if tol < 0:
+      raise ValueError(f"tol = {tol} must be positive.")
+
+    if atol is None:
+      atol = tol
+    elif atol < 0:
+      raise ValueError(f"atol = {atol} must be positive.")
+
+    if num_krylov_vectors <= 0:
+      errstring = (f"num_krylov_vectors must be positive, not"
+                   f"{num_krylov_vectors}.")
+      raise ValueError(errstring)
+
+    if A_args is None:
+      A_args = []
+    if A_kwargs is None:
+      A_kwargs = {}
+    return self._gmres(A_mv, b, A_args, A_kwargs, x0, tol, atol,
+                       num_krylov_vectors, maxiter, M=M)
+
+
+  def _gmres(self,
+             A_mv: Callable,
+             b: Tensor,
+             A_args: List,
+             A_kwargs: dict,
+             x0: Tensor,
+             tol: float,
+             atol: float,
+             num_krylov_vectors: int,
+             maxiter: int,
+             M: Optional[Callable] = None) -> Tuple[Tensor, int]:
     raise NotImplementedError("Backend '{}' has not implemented gmres.".format(
         self.name))
+
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """

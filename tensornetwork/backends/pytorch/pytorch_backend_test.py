@@ -497,8 +497,9 @@ def test_eigs_not_implemented():
 
 def test_gmres_not_implemented():
   backend = pytorch_backend.PyTorchBackend()
+  dummy = backend.zeros(2)
   with pytest.raises(NotImplementedError):
-    backend.gmres(lambda x: x, np.ones((2)))
+    backend.gmres(lambda x: x, dummy)
 
 
 def test_broadcast_right_multiplication():

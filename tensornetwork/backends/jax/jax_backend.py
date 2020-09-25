@@ -574,18 +574,17 @@ class JaxBackend(abstract_backend.AbstractBackend):
           f"Use a smaller value of numeig, or a smaller value for `tol`")
     return eta, U
 
-  def gmres(self,
-            A_mv: Callable,
-            b: Tensor,
-            A_args: Optional[List] = None,
-            A_kwargs: Optional[dict] = None,
-            x0: Optional[Tensor] = None,
-            tol: float = 1E-05,
-            atol: Optional[float] = None,
-            num_krylov_vectors: Optional[int] = None,
-            maxiter: Optional[int] = 1,
-            M: Optional[Callable] = None
-            ) -> Tuple[Tensor, int]:
+  def _gmres(self,
+             A_mv: Callable,
+             b: Tensor,
+             A_args: List,
+             A_kwargs: dict,
+             x0: Tensor,
+             tol: float,
+             atol: float,
+             num_krylov_vectors: int,
+             maxiter: int,
+             M: Optional[Callable] = None) -> Tuple[Tensor, int]:
     """ GMRES solves the linear system A @ x = b for x given a vector `b` and
     a general (not necessarily symmetric/Hermitian) linear operator `A`.
 
@@ -650,9 +649,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
                           atol=tol
       num_krylov_vectors
                : Size of the Krylov space to build at each restart.
-                 Expense is cubic in this parameter. If supplied, it must be
-                 an integer in 0 < num_krylov_vectors <= b.size.
-                 Default: b.size.
+                 Expense is cubic in this parameter.
+                 Default: 20.
       maxiter  : The Krylov space will be repeatedly rebuilt up to this many
                  times. Large values of this argument
                  should be used only with caution, since especially for nearly
@@ -668,7 +666,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
     Raises:
       ValueError: -if `x0` is supplied but its shape differs from that of `b`.
-                  -if num_krylov_vectors is 0 or exceeds b.size.
+                  -if num_krylov_vectors <= 0.
                   -if tol or atol was negative.
       NotImplementedError: - If M is supplied.
                            - If A_kwargs is supplied.
@@ -678,41 +676,11 @@ class JaxBackend(abstract_backend.AbstractBackend):
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
 
-    if x0 is not None:
-      if x0.shape != b.shape:
-        errstring = (f"If x0 is supplied, its shape, {x0.shape}, must match b's"
-                     f", {b.shape}.")
-        raise ValueError(errstring)
-      if x0.dtype != b.dtype:
-        errstring = (f"If x0 is supplied, its dtype, {x0.dtype}, must match b's"
-                     f", {b.dtype}.")
-        raise TypeError(errstring)
-      x0 = x0.ravel()
-    else:
-      x0 = self.zeros(b.shape, b.dtype).ravel()
-
-    if num_krylov_vectors is None:
-      num_krylov_vectors = b.size
-    if num_krylov_vectors <= 0 or num_krylov_vectors > b.size:
-      errstring = (f"num_krylov_vectors must be in "
-                   f"0 < {num_krylov_vectors} <= {b.size}.")
-      raise ValueError(errstring)
-
-    if tol < 0:
-      raise ValueError(f"tol = {tol} must be positive.")
-
-    if atol is None:
-      atol = tol
-    elif atol < 0:
-      raise ValueError(f"atol = {atol} must be positive.")
-
     if M is not None:
       raise NotImplementedError("M is not supported by the Jax backend.")
-    if A_kwargs is not None:
+    if A_kwargs:
       raise NotImplementedError("A_kwargs is not supported by the Jax backend.")
 
-    if A_args is None:
-      A_args = []
 
     if A_mv not in _CACHED_MATVECS:
       @libjax.tree_util.Partial
