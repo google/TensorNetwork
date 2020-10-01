@@ -988,3 +988,16 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented deserialize_tensor.".format(
             self.name))
+
+  def power(self, a: Tensor, b: Tensor) -> Tensor:
+    """
+    Returns the element-wise exponentiation of tensor a raised to tensor b.
+    
+    Args:
+      a: The tensor containing the bases.
+      b: The tensor containing the powers.
+
+    Returns:
+      The tensor that is each element of a raised to the corresponding power in b.
+    """
+    raise NotImplementedError(f"Backend {self.name} has not implemented power.")
