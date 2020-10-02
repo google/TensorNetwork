@@ -8,7 +8,7 @@ from tensornetwork.network_operations import (
     nodes_to_json, nodes_from_json)
 
 from tensornetwork.tensor import Tensor
-from tensornetwork.linalg.initialization import (eye, ones, randn,
+from tensornetwork.linalg.initialization import (eye, ones, ones_like, zeros_like, randn,
                                                  random_uniform, zeros)
 
 from tensornetwork.linalg.linalg import norm, qr, svd
@@ -46,3 +46,4 @@ from tensornetwork.block_sparse.blocksparsetensor import ChargeArray
 from tensornetwork.block_sparse.index import Index
 from tensornetwork.block_sparse.charge import U1Charge, BaseCharge, Z2Charge
 from tensornetwork.block_sparse.charge import ZNCharge
+

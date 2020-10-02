@@ -17,6 +17,8 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
+from tensorflow.python.ops.numpy_ops.np_arrays import convert_to_tensor
+
 from tensornetwork.backends import abstract_backend
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
@@ -104,6 +106,51 @@ def ones(shape: Sequence[int],
   """
   the_tensor = initialize_tensor("ones", shape, backend=backend, dtype=dtype)
   return the_tensor
+
+def ones_like(input: Union[np.ndarray,Tensor],
+         dtype: Optional[Type[np.number]] = None,
+         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+  """Return a Tensor shape full of ones the same shape as input
+  Args:
+    input : Object to recieve shape from
+     dtype (optional) : dtype of object
+     backend(optional): The backend or its name."""
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  elif isinstance(backend, str):
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  else:
+    backend = backend
+  if isinstance(input, Tensor): # encase input of type Tensor, create Tensor normally
+    the_tensor = initialize_tensor("ones", input.shape, backend=input.backend, dtype=input.dtype)
+    return the_tensor
+  if isinstance(input, np.ndarray): # encase input of type np.ndarray, convert to Tensor
+    input = convert_to_tensor(input,dtype=dtype)
+    the_tensor = initialize_tensor("ones", input.shape, backend=backend, dtype=dtype)
+    return the_tensor
+
+
+def zeros_like(input: Union[np.ndarray,Tensor],
+         dtype: Optional[Type[np.number]] = None,
+         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+  """Return a Tensor shape full of zeros the same shape as input
+  Args:
+    input : Object to recieve shape from
+     dtype (optional) : dtype of object
+     backend(optional): The backend or its name."""
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  elif isinstance(backend, str):
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  else:
+    backend = backend
+  if isinstance(input, Tensor): # encase input of type Tensor, create Tensor normally
+    the_tensor = initialize_tensor("zeros", input.shape, backend=input.backend, dtype=input.dtype)
+    return the_tensor
+  if isinstance(input, np.ndarray): # encase input of type np.ndarray, convert to Tensor
+    input = convert_to_tensor(input,dtype=dtype)
+    the_tensor = initialize_tensor("zeros", input.shape, backend=backend, dtype=dtype)
+    return the_tensor
 
 
 def randn(shape: Sequence[int],
