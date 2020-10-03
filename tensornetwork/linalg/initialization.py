@@ -17,7 +17,7 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
-from tensorflow.python.ops.numpy_ops.np_arrays import convert_to_tensor
+from tensorflow.python.framework import ops
 
 from tensornetwork.backends import abstract_backend
 from tensornetwork import backend_contextmanager
@@ -107,8 +107,8 @@ def ones(shape: Sequence[int],
   the_tensor = initialize_tensor("ones", shape, backend=backend, dtype=dtype)
   return the_tensor
 
-def ones_like(input: Union[np.ndarray,Tensor],
-         dtype: Optional[Type[np.number]] = None,
+def ones_like(input: Union[np.ndarray,Tensor,AbstractBackend],
+         dtype: Optional[Type[Any]] = None,
          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of ones the same shape as input
   Args:
@@ -117,21 +117,22 @@ def ones_like(input: Union[np.ndarray,Tensor],
      backend(optional): The backend or its name."""
   if backend is None:
     backend = backend_contextmanager.get_default_backend()
-  elif isinstance(backend, str):
-    backend = backend_contextmanager.backend_factory.get_backend(backend)
   else:
-    backend = backend
-  if isinstance(input, Tensor): # encase input of type Tensor, create Tensor normally
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
     the_tensor = initialize_tensor("ones", input.shape, backend=input.backend, dtype=input.dtype)
     return the_tensor
-  if isinstance(input, np.ndarray): # encase input of type np.ndarray, convert to Tensor
-    input = convert_to_tensor(input,dtype=dtype)
-    the_tensor = initialize_tensor("ones", input.shape, backend=backend, dtype=dtype)
+  else: # incase input of type np.ndarray, convert to Tensor
+    try:
+      input = ops.convert_to_tensor(input)
+    except TypeError:
+      input = ops.convert_to_tensor(input.numpy(), dtype=dtype)
+    the_tensor = initialize_tensor("ones", input.get_shape().as_list(), backend=backend, dtype=dtype)
     return the_tensor
 
 
-def zeros_like(input: Union[np.ndarray,Tensor],
-         dtype: Optional[Type[np.number]] = None,
+def zeros_like(input: Union[np.ndarray,Tensor,AbstractBackend],
+         dtype: Optional[Any] = None,
          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of zeros the same shape as input
   Args:
@@ -140,16 +141,17 @@ def zeros_like(input: Union[np.ndarray,Tensor],
      backend(optional): The backend or its name."""
   if backend is None:
     backend = backend_contextmanager.get_default_backend()
-  elif isinstance(backend, str):
-    backend = backend_contextmanager.backend_factory.get_backend(backend)
   else:
-    backend = backend
-  if isinstance(input, Tensor): # encase input of type Tensor, create Tensor normally
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
     the_tensor = initialize_tensor("zeros", input.shape, backend=input.backend, dtype=input.dtype)
     return the_tensor
-  if isinstance(input, np.ndarray): # encase input of type np.ndarray, convert to Tensor
-    input = convert_to_tensor(input,dtype=dtype)
-    the_tensor = initialize_tensor("zeros", input.shape, backend=backend, dtype=dtype)
+  else:  # incase input of type np.ndarray, convert to Tensor
+    try:
+      input = ops.convert_to_tensor(input)
+    except TypeError:
+      input = ops.convert_to_tensor(input.numpy(), dtype=dtype)
+    the_tensor = initialize_tensor("zeros", input.get_shape().as_list(), backend=backend, dtype=dtype)
     return the_tensor
 
 
