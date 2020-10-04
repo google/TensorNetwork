@@ -107,7 +107,7 @@ def ones(shape: Sequence[int],
   the_tensor = initialize_tensor("ones", shape, backend=backend, dtype=dtype)
   return the_tensor
 
-def ones_like(input: Union[np.ndarray,Tensor,AbstractBackend],
+def ones_like(input: Union[Any],
          dtype: Optional[Type[Any]] = None,
          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of ones the same shape as input
@@ -125,13 +125,14 @@ def ones_like(input: Union[np.ndarray,Tensor,AbstractBackend],
   else: # incase input of type np.ndarray, convert to Tensor
     try:
       input = ops.convert_to_tensor(input)
-    except TypeError:
-      input = ops.convert_to_tensor(input.numpy(), dtype=dtype)
+    except TypeError as e:
+      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
+      raise TypeError(error)
     the_tensor = initialize_tensor("ones", input.get_shape().as_list(), backend=backend, dtype=dtype)
     return the_tensor
 
 
-def zeros_like(input: Union[np.ndarray,Tensor,AbstractBackend],
+def zeros_like(input: Union[Any],
          dtype: Optional[Any] = None,
          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of zeros the same shape as input
@@ -149,8 +150,9 @@ def zeros_like(input: Union[np.ndarray,Tensor,AbstractBackend],
   else:  # incase input of type np.ndarray, convert to Tensor
     try:
       input = ops.convert_to_tensor(input)
-    except TypeError:
-      input = ops.convert_to_tensor(input.numpy(), dtype=dtype)
+    except TypeError as e:
+      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
+      raise TypeError(error)
     the_tensor = initialize_tensor("zeros", input.get_shape().as_list(), backend=backend, dtype=dtype)
     return the_tensor
 
