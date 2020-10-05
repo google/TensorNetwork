@@ -436,3 +436,8 @@ def test_pivot_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
     backend.pivot(np.ones((2, 2)))
+
+def test_power_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.power(np.array([1, 2]), np.array([1, 2]))
