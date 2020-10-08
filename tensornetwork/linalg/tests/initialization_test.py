@@ -101,16 +101,17 @@ def test_ones(backend):
     np.testing.assert_allclose(tnI.array, npI)
 
 def test_ones_like(backend):
-    """Tests tensornetwork.ones_like against np.ones_like"""
+    """Tests tensornetwork.ones_like against np.zeros_like"""
+    backend_obj = backends.backend_factory.get_backend(backend)
     shape = (2, 4, 1)
     n = np.eye(2)
-    backend_obj = backends.backend_factory.get_backend(backend)
-    for dtype in dtypes[backend]["all"]:
-        objTensor = tensornetwork.ones(shape, backend=backend)
-        tensor = tensornetwork.ones_like(objTensor, dtype=dtype, backend=backend) # input as Tensor object
-        numpyT = tensornetwork.ones_like(n)  # input as numpy array
+    @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
+    def inner_test(dtype):
+        objTensor = tensornetwork.ones(shape, dtype=dtype, backend=backend)
+        tensor = tensornetwork.ones_like(objTensor, dtype=dtype, backend=backend)  # input as Tensor object
+        numpyT = tensornetwork.ones_like(n, dtype=dtype, backend=backend)  # input as numpy array
         tensorCheck = backend_obj.ones(shape, dtype=dtype)
-        numpyCheck = backend_obj.ones(n.shape)
+        numpyCheck = backend_obj.ones(n.shape, dtype=dtype)
         np.testing.assert_allclose(tensor.array, tensorCheck)
         np.testing.assert_allclose(numpyT.array, numpyCheck)
 
@@ -119,8 +120,9 @@ def test_zeros_like(backend):
     backend_obj = backends.backend_factory.get_backend(backend)
     shape = (2, 4, 1)
     n = np.eye(2)
-    for dtype in dtypes[backend]["all"]:
-        objTensor = tensornetwork.ones(shape, dtype=dtype, backend=backend)
+    @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
+    def inner_test(dtype):
+        objTensor = tensornetwork.zeros(shape, dtype=dtype, backend=backend)
         tensor = tensornetwork.zeros_like(objTensor, dtype=dtype, backend=backend)  # input as Tensor object
         numpyT = tensornetwork.zeros_like(n, dtype=dtype, backend=backend)  # input as numpy array
         tensorCheck = backend_obj.zeros(shape, dtype=dtype)

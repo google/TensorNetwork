@@ -17,7 +17,6 @@ import warnings
 from typing import Optional, Sequence, Tuple, Any, Union, Type, Callable, List
 from typing import Text
 import numpy as np
-from tensorflow.python.framework import ops
 
 from tensornetwork.backends import abstract_backend
 from tensornetwork import backend_contextmanager
@@ -124,10 +123,10 @@ def ones_like(input: Union[Any],
     return the_tensor
   else: # incase input of type np.ndarray, convert to Tensor
     try:
-      input = ops.convert_to_tensor(input)
+      input = backend.convert_to_tensor(input)
     except TypeError as e:
       error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
-      raise TypeError(error)
+      raise TypeError(error) from e
     the_tensor = initialize_tensor("ones", input.get_shape().as_list(), backend=backend, dtype=dtype)
     return the_tensor
 
@@ -149,11 +148,11 @@ def zeros_like(input: Union[Any],
     return the_tensor
   else:  # incase input of type np.ndarray, convert to Tensor
     try:
-      input = ops.convert_to_tensor(input)
+      input = backend.convert_to_tensor(input)
     except TypeError as e:
       error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
-      raise TypeError(error)
-    the_tensor = initialize_tensor("zeros", input.get_shape().as_list(), backend=backend, dtype=dtype)
+      raise TypeError(error) from e
+    the_tensor = initialize_tensor("zeros", input.shape, backend=backend, dtype=dtype)
     return the_tensor
 
 
