@@ -121,7 +121,7 @@ def ones_like(input: Union[Any],
   if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
     the_tensor = initialize_tensor("ones", input.shape, backend=input.backend, dtype=input.dtype)
     return the_tensor
-  else: # incase input of type np.ndarray, convert to Tensor
+  else:
     try:
       input = backend.convert_to_tensor(input)
     except TypeError as e:
@@ -146,7 +146,7 @@ def zeros_like(input: Union[Any],
   if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
     the_tensor = initialize_tensor("zeros", input.shape, backend=input.backend, dtype=input.dtype)
     return the_tensor
-  else:  # incase input of type np.ndarray, convert to Tensor
+  else:
     try:
       input = backend.convert_to_tensor(input)
     except TypeError as e:
