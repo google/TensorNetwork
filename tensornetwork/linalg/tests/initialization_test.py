@@ -106,7 +106,7 @@ def test_ones_like(backend):
     shape = (2, 4, 1)
     n = np.eye(2)
     @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
-    def inner_test(dtype):
+    def inner_one_test(dtype):
         objTensor = tensornetwork.ones(shape, dtype=dtype, backend=backend)
         tensor = tensornetwork.ones_like(objTensor, dtype=dtype, backend=backend)  # input as Tensor object
         numpyT = tensornetwork.ones_like(n, dtype=dtype, backend=backend)  # input as numpy array
@@ -121,7 +121,7 @@ def test_zeros_like(backend):
     shape = (2, 4, 1)
     n = np.eye(2)
     @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
-    def inner_test(dtype):
+    def inner_zero_test(dtype):
         objTensor = tensornetwork.zeros(shape, dtype=dtype, backend=backend)
         tensor = tensornetwork.zeros_like(objTensor, dtype=dtype, backend=backend)  # input as Tensor object
         numpyT = tensornetwork.zeros_like(n, dtype=dtype, backend=backend)  # input as numpy array
