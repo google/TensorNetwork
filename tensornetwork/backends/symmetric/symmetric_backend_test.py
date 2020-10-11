@@ -1644,3 +1644,25 @@ def test_gmres_raises():
     backend.gmres(lambda x: x, b, x0=mps, tol=-0.001)
   with pytest.raises(ValueError, match="atol = "):
     backend.gmres(lambda x: x, b, x0=mps, atol=-0.001)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_real(dtype, R, num_charges):
+    backend = symmetric_backend.SymmetricBackend()
+    a = get_tensor(R, num_charges, dtype)
+    a = backend.real(a)
+    temp = np.isreal(a)
+    assert(temp.all())
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("R", [2, 3, 4, 5])
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_imag(dtype, R, num_charges):
+    backend = symmetric_backend.SymmetricBackend()
+    a = get_tensor(R, num_charges, dtype)
+    a = backend.imag(a)
+    temp = np.iscomplex(a)
+    assert(temp.all())

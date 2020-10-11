@@ -871,3 +871,25 @@ class JaxBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return jnp.sign(tensor)
+
+  def real(self, tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input Tensor
+
+    Returns: Re(tensor),Real part of tensor
+
+    """
+    return jnp.real(tensor)
+
+  def imag(self, tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input Tensor
+
+    Returns: Im(tensor), Imaginary part of tensor
+
+    """
+    return jnp.imag(tensor)

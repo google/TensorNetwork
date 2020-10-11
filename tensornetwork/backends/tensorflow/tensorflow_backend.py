@@ -383,3 +383,25 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return tf.math.sign(tensor)
+
+  def real(self, tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input Tensor
+
+    Returns: Real part of tensor, Re(tensor)
+
+    """
+    return tf.math.real(tensor)
+
+  def imag(self, tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input Tensor
+
+    Returns: Imaginary part of tensor, Im(tensor)
+
+    """
+    return tf.math.imag(tensor)

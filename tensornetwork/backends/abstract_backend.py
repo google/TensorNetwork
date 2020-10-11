@@ -988,3 +988,28 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented deserialize_tensor.".format(
             self.name))
+
+  def real(self, tensor: Tensor) -> Tensor:
+      """
+
+      Args:
+          tensor: The input Tensor
+
+      Returns:
+          Real value of the given Tensor
+      """
+      raise NotImplementedError(
+          "Backend '{}' has not implemented real.".format(
+              self.name))
+
+  def imag(self,tensor: Tensor) -> Tensor:
+      """
+            Args:
+                tensor: The input Tensor
+
+            Returns:
+                Imaginary value of the given Tensor
+            """
+      raise NotImplementedError(
+          "Backend '{}' has not implemented imag.".format(
+              self.name))

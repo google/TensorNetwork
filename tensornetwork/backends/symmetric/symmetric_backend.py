@@ -680,3 +680,12 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def pivot(self, tensor: Tensor, pivot_axis: int = -1) -> Tensor:
     raise NotImplementedError("Symmetric backend doesn't support pivot.")
+
+  def real(self, tensor: Tensor) -> Tensor:
+     temp = tensor.data[abs(tensor.data.imag) > 0]
+     return temp.real
+  def imag(self, tensor:Tensor) -> Tensor:
+    temp = tensor.data[abs(tensor.data.imag) < 0]
+    return temp.imag
+
+
