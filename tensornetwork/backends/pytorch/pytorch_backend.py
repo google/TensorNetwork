@@ -474,21 +474,37 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     return torchlib.sign(tensor)
 
   def real(self, tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input Tensor
+
+    Returns: Re(tensor),Real part of tensor
+
+    """
     if torchlib.is_complex(tensor):
       return torchlib.real(tensor)
     else:
-      like = torchlib.zeros_like(tensor, dtype=torchlib.cfloat)
+      temp = torchlib.zeros_like(tensor, dtype=torchlib.cfloat)
       tensor = torchlib.as_tensor(tensor, dtype=torchlib.cfloat)
-      torchlib.add(tensor, like, out=tensor)
+      torchlib.add(tensor, temp, out=tensor)
       return torchlib.real(tensor)
 
   def imag(self,tensor: Tensor) -> Tensor:
+    """
+
+    Args:
+      tensor: Input tensor
+
+    Returns: Im(tensor),returns Imaginary part of tensor
+
+    """
     if torchlib.is_complex(tensor):
       return torchlib.imag(tensor)
     else:
-      like = torchlib.zeros_like(tensor, dtype=torchlib.cfloat)
+      temp = torchlib.zeros_like(tensor, dtype=torchlib.cfloat)
       tensor = torchlib.as_tensor(tensor, dtype=torchlib.cfloat)
-      torchlib.add(tensor, like, out=tensor)
+      torchlib.add(tensor, temp, out=tensor)
       return torchlib.imag(tensor)
 
 

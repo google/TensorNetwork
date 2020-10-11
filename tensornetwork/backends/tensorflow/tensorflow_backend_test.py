@@ -600,9 +600,10 @@ def test_pivot(dtype, pivot_axis):
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
 
+
 @pytest.mark.parametrize("dtype", tf_dtypes)
-@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j])),
-                                   (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
+@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j]))
+                              , (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
 def test_real(dtype, input_cur):
   backend = tensorflow_backend.TensorFlowBackend()
   cur = backend.convert_to_tensor(input_cur)
