@@ -100,13 +100,14 @@ def test_ones(backend):
     npI = backend_obj.ones(shape, dtype=dtype)
     np.testing.assert_allclose(tnI.array, npI)
 
-def test_ones_like(backend):
+
+@pytest.mark.parametrize("shape", (2, 4, 1))
+@pytest.mark.parametrize("n", np.eye(2))
+def test_ones_like(backend, shape, n):
     """Tests tensornetwork.ones_like against np.zeros_like"""
     backend_obj = backends.backend_factory.get_backend(backend)
-    shape = (2, 4, 1)
-    n = np.eye(2)
     @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
-    def inner_one_test(dtype):
+    def inner_ones_test(dtype):
         objTensor = tensornetwork.ones(shape, dtype=dtype, backend=backend)
         tensor = tensornetwork.ones_like(objTensor, dtype=dtype, backend=backend)  # input as Tensor object
         numpyT = tensornetwork.ones_like(n, dtype=dtype, backend=backend)  # input as numpy array
@@ -115,11 +116,13 @@ def test_ones_like(backend):
         np.testing.assert_allclose(tensor.array, tensorCheck)
         np.testing.assert_allclose(numpyT.array, numpyCheck)
 
-def test_zeros_like(backend):
+
+@pytest.mark.parametrize("shape", (2, 4, 1))
+@pytest.mark.parametrize("n", np.eye(2))
+def test_zeros_like(backend, shape, n):
     """Tests tensornetwork.zeros_like against np.zeros_like"""
     backend_obj = backends.backend_factory.get_backend(backend)
-    shape = (2, 4, 1)
-    n = np.eye(2)
+
     @pytest.mark.parametrize("dtype,expected",(dtypes[backend]["all"]))
     def inner_zero_test(dtype):
         objTensor = tensornetwork.zeros(shape, dtype=dtype, backend=backend)
