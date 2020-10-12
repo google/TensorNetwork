@@ -29,7 +29,7 @@ def initialize_tensor(fname: Text,
                       *fargs: Any,
                       backend: Optional[Union[Text, AbstractBackend]] = None,
                       **fkwargs: Any) -> Tensor:
-  """Return a Tensor wrapping data obtained by an initialization function
+    """Return a Tensor wrapping data obtained by an initialization function
   implemented in a backend. The Tensor will have the same shape as the
   underlying array that function generates, with all Edges dangling.
   This function is not intended to be called directly, but doing so should
@@ -44,20 +44,20 @@ def initialize_tensor(fname: Text,
           (the_backend).fname(*fargs, **fkwargs), with one dangling edge per
           axis of data.
   """
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  backend_obj = backends.backend_factory.get_backend(backend)
-  func = getattr(backend_obj, fname)
-  data = func(*fargs, **fkwargs)
-  tensor = Tensor(data, backend=backend)
-  return tensor
+    if backend is None:
+        backend = backend_contextmanager.get_default_backend()
+    backend_obj = backends.backend_factory.get_backend(backend)
+    func = getattr(backend_obj, fname)
+    data = func(*fargs, **fkwargs)
+    tensor = Tensor(data, backend=backend)
+    return tensor
 
 
 def eye(N: int,
         dtype: Optional[Type[np.number]] = None,
         M: Optional[int] = None,
         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor representing a 2D array with ones on the diagonal and
+    """Return a Tensor representing a 2D array with ones on the diagonal and
   zeros elsewhere. The Tensor has two dangling Edges.
   Args:
     N (int): The first dimension of the returned matrix.
@@ -69,14 +69,14 @@ def eye(N: int,
         Represents an array of all zeros except for the k'th diagonal of all
         ones.
   """
-  the_tensor = initialize_tensor("eye", N, backend=backend, dtype=dtype, M=M)
-  return the_tensor
+    the_tensor = initialize_tensor("eye", N, backend=backend, dtype=dtype, M=M)
+    return the_tensor
 
 
 def zeros(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
           backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor of shape `shape` of all zeros.
+    """Return a Tensor of shape `shape` of all zeros.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -85,14 +85,14 @@ def zeros(shape: Sequence[int],
   Returns:
     the_tensor : Tensor of shape `shape`. Represents an array of all zeros.
   """
-  the_tensor = initialize_tensor("zeros", shape, backend=backend, dtype=dtype)
-  return the_tensor
+    the_tensor = initialize_tensor("zeros", shape, backend=backend, dtype=dtype)
+    return the_tensor
 
 
 def ones(shape: Sequence[int],
          dtype: Optional[Type[np.number]] = None,
          backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor of shape `shape` of all ones.
+    """Return a Tensor of shape `shape` of all ones.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -102,65 +102,70 @@ def ones(shape: Sequence[int],
     the_tensor : Tensor of shape `shape`
         Represents an array of all ones.
   """
-  the_tensor = initialize_tensor("ones", shape, backend=backend, dtype=dtype)
-  return the_tensor
+    the_tensor = initialize_tensor("ones", shape, backend=backend, dtype=dtype)
+    return the_tensor
 
 
-def ones_like(input: Union[Any],
-         dtype: Optional[Type[Any]] = None,
-         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor shape full of ones the same shape as input
+def ones_like(tensor: Union[Any],
+              dtype: Optional[Type[Any]] = None,
+              backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+    """Return a Tensor shape full of ones the same shape as input
+  Args:
+    inputTen : Object to recieve shape from
+     dtype (optional) : dtype of object
+     backend(optional): The backend or its name."""
+    if backend is None:
+        backend = backend_contextmanager.get_default_backend()
+    else:
+        backend = backend_contextmanager.backend_factory.get_backend(backend)
+    if isinstance(tensor, Tensor):
+        the_tensor = initialize_tensor("ones", tensor.shape,
+                                       backend=tensor.backend, dtype=tensor.dtype)
+        return the_tensor
+    else:
+        try:
+            tensor = backend.convert_to_tensor(tensor)
+        except TypeError as e:
+            error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
+            raise TypeError(error) from e
+        the_tensor = initialize_tensor("ones", tensor.get_shape().as_list(),
+                                       backend=backend, dtype=dtype)
+        return the_tensor
+
+
+def zeros_like(tensor: Union[Any],
+               dtype: Optional[Any] = None,
+               backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+    """Return a Tensor shape full of zeros the same shape as input
   Args:
     input : Object to recieve shape from
      dtype (optional) : dtype of object
      backend(optional): The backend or its name."""
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  else:
-    backend = backend_contextmanager.backend_factory.get_backend(backend)
-  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
-    the_tensor = initialize_tensor("ones", input.shape, backend=input.backend, dtype=input.dtype)
-    return the_tensor
-  else:
-    try:
-      input = backend.convert_to_tensor(input)
-    except TypeError as e:
-      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
-      raise TypeError(error) from e
-    the_tensor = initialize_tensor("ones", input.get_shape().as_list(), backend=backend, dtype=dtype)
-    return the_tensor
-
-
-def zeros_like(input: Union[Any],
-         dtype: Optional[Any] = None,
-         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor shape full of zeros the same shape as input
-  Args:
-    input : Object to recieve shape from
-     dtype (optional) : dtype of object
-     backend(optional): The backend or its name."""
-  if backend is None:
-    backend = backend_contextmanager.get_default_backend()
-  else:
-    backend = backend_contextmanager.backend_factory.get_backend(backend)
-  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
-    the_tensor = initialize_tensor("zeros", input.shape, backend=input.backend, dtype=input.dtype)
-    return the_tensor
-  else:
-    try:
-      input = backend.convert_to_tensor(input)
-    except TypeError as e:
-      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
-      raise TypeError(error) from e
-    the_tensor = initialize_tensor("zeros", input.shape, backend=backend, dtype=dtype)
-    return the_tensor
+    if backend is None:
+        backend = backend_contextmanager.get_default_backend()
+    else:
+        backend = backend_contextmanager.backend_factory.get_backend(backend)
+    if isinstance(tensor, Tensor):
+        the_tensor = initialize_tensor("zeros", tensor.shape,
+                                       backend=tensor.backend, dtype=tensor.dtype)
+        return the_tensor
+    else:
+        try:
+            tensor = backend.convert_to_tensor(tensor)
+        except TypeError as e:
+            error = "Input to zeros_like has invalid " \
+                    "type causing error massage: \n" + str(e)
+            raise TypeError(error) from e
+        the_tensor = initialize_tensor("zeros", tensor.shape,
+                                       backend=backend, dtype=dtype)
+        return the_tensor
 
 
 def randn(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
           seed: Optional[int] = None,
           backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-  """Return a Tensor of shape `shape` of Gaussian random floats.
+    """Return a Tensor of shape `shape` of Gaussian random floats.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -170,9 +175,9 @@ def randn(shape: Sequence[int],
   Returns:
     the_tensor : Tensor of shape `shape` filled with Gaussian random data.
   """
-  the_tensor = initialize_tensor("randn", shape, backend=backend, seed=seed,
-                                 dtype=dtype)
-  return the_tensor
+    the_tensor = initialize_tensor("randn", shape, backend=backend, seed=seed,
+                                   dtype=dtype)
+    return the_tensor
 
 
 def random_uniform(shape: Sequence[int],
@@ -181,7 +186,7 @@ def random_uniform(shape: Sequence[int],
                    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
                    backend: Optional[Union[Text, AbstractBackend]]
                    = None) -> Tensor:
-  """Return a Tensor of shape `shape` of uniform random floats.
+    """Return a Tensor of shape `shape` of uniform random floats.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -192,6 +197,6 @@ def random_uniform(shape: Sequence[int],
   Returns:
     the_tensor : Tensor of shape `shape` filled with uniform random data.
   """
-  the_tensor = initialize_tensor("random_uniform", shape, backend=backend,
-                                 seed=seed, boundaries=boundaries, dtype=dtype)
-  return the_tensor
+    the_tensor = initialize_tensor("random_uniform", shape, backend=backend,
+                                   seed=seed, boundaries=boundaries, dtype=dtype)
+    return the_tensor
