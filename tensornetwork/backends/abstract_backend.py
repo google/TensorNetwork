@@ -706,6 +706,20 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented `inv`.".format(
         self.name))
 
+  def pinv(self, matrix: Tensor,
+           rcond: float = 1E-15,
+           hermitian: bool = False) -> Tensor:
+      """Compute the Moore-Penrose/Pseudo inverse of a 'matrix'.
+
+     Args:
+       matrix: A 'matrix'.
+       rcond: Cutoff for small singular values
+       hermitian: If True, matrix provided in function argument is assumed to be Hermitian (symmetric if real-valued)
+     Returns:
+       Tensor: The inverse of `matrix`
+     """
+      raise NotImplementedError("Backend '{}' has not implemented pinv".format(self.name))
+
   def broadcast_right_multiplication(self, tensor1: Tensor,
                                      tensor2: Tensor) -> Tensor:
     """
