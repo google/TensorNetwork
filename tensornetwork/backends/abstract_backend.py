@@ -721,7 +721,7 @@ class AbstractBackend:
      Tensor: The inverse of `matrix`
         """
     raise NotImplementedError(
-      "Backend '{}' has not implemented pinv".format(self.name))
+        "Backend '{}' has not implemented pinv".format(self.name))
 
   def broadcast_right_multiplication(self, tensor1: Tensor,
                                      tensor2: Tensor) -> Tensor:
