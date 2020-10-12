@@ -106,6 +106,56 @@ def ones(shape: Sequence[int],
   return the_tensor
 
 
+def ones_like(input: Union[Any],
+         dtype: Optional[Type[Any]] = None,
+         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+  """Return a Tensor shape full of ones the same shape as input
+  Args:
+    input : Object to recieve shape from
+     dtype (optional) : dtype of object
+     backend(optional): The backend or its name."""
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  else:
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
+    the_tensor = initialize_tensor("ones", input.shape, backend=input.backend, dtype=input.dtype)
+    return the_tensor
+  else:
+    try:
+      input = backend.convert_to_tensor(input)
+    except TypeError as e:
+      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
+      raise TypeError(error) from e
+    the_tensor = initialize_tensor("ones", input.get_shape().as_list(), backend=backend, dtype=dtype)
+    return the_tensor
+
+
+def zeros_like(input: Union[Any],
+         dtype: Optional[Any] = None,
+         backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+  """Return a Tensor shape full of zeros the same shape as input
+  Args:
+    input : Object to recieve shape from
+     dtype (optional) : dtype of object
+     backend(optional): The backend or its name."""
+  if backend is None:
+    backend = backend_contextmanager.get_default_backend()
+  else:
+    backend = backend_contextmanager.backend_factory.get_backend(backend)
+  if isinstance(input, Tensor):  # incase input of type Tensor, create Tensor normally
+    the_tensor = initialize_tensor("zeros", input.shape, backend=input.backend, dtype=input.dtype)
+    return the_tensor
+  else:
+    try:
+      input = backend.convert_to_tensor(input)
+    except TypeError as e:
+      error = "Input to zeros_like has invalid type causing error massage: \n" + str(e)
+      raise TypeError(error) from e
+    the_tensor = initialize_tensor("zeros", input.shape, backend=backend, dtype=dtype)
+    return the_tensor
+
+
 def randn(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
           seed: Optional[int] = None,
