@@ -1096,3 +1096,27 @@ def test_inv(dtype, atol):
   tensor = backend.randn((10, 10, 10), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match="input to"):
     backend.inv(tensor)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("input_cur", [np.array([1, 2]),
+                                       np.array([5+6j, 4+10j]),
+                                       np.array([5j, 7j])])
+def test_real(dtype,input_cur):
+  backend = jax_backend.JaxBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = backend.real(cur)
+  expcted = jax.numpy.real(cur)
+  np.testing.assert_allclose(acual, expcted)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("input_cur", [np.array([1, 2]),
+                                       np.array([5+6j, 4+10j]),
+                                       np.array([5j, 7j])])
+def test_imag(dtype, input_cur):
+  backend = jax_backend.JaxBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = backend.imag(cur)
+  expcted = jax.numpy.imag(cur)
+  np.testing.assert_allclose(acual, expcted)

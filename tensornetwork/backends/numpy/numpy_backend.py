@@ -759,3 +759,25 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     m.write(s.encode('latin-1'))
     m.seek(0)
     return np.load(m)
+
+  def real(self, tensor: Tensor) -> Tensor:
+    """
+    Retuns Re(tensor), returns real element in tensor given
+    Args:
+      tensor: Input Tensor
+
+    Returns:
+      returns real element in tensor given
+    """
+    return np.real(tensor)
+
+  def imag(self, tensor: Tensor) -> Tensor:
+    """
+    Returns Im(tensor), returns the Imaginary part of tensor
+    Args:
+      tensor: Input Tensor
+
+    Returns:
+      returns the Imaginary part of tensor
+    """
+    return np.imag(tensor)

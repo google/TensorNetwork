@@ -949,3 +949,23 @@ def test_serialize(dtype):
   s = backend.serialize_tensor(tensor)
   assert isinstance(s, str)
   assert (tensor == backend.deserialize_tensor(s)).all()
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j])),
+                                   (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
+def test_real(dtype, input_cur):
+  backend = numpy_backend.NumPyBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  np.testing.assert_allclose(cur.real, np.real(input_cur))
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j])),
+                         (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
+def test_imag(dtype, input_cur):
+  backend = numpy_backend.NumPyBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = cur.imag
+  expected = np.imag(input_cur)
+  np.testing.assert_allclose(acual, expected)
