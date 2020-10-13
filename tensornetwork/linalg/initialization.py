@@ -120,16 +120,16 @@ def ones_like(tensor: Union[Any],
     backend = backend_contextmanager.backend_factory.get_backend(backend)
   if isinstance(tensor, Tensor):
     the_tensor = initialize_tensor("ones", tensor.shape,
-                                       backend=tensor.backend, dtype=tensor.dtype)
+                        backend=tensor.backend, dtype=tensor.dtype)
   else:
     try:
-        tensor = backend.convert_to_tensor(tensor)
+      tensor = backend.convert_to_tensor(tensor)
     except TypeError as e:
-        error = "Input to zeros_like has invalid type causing error massage: \n" + \
+      error = "Input to zeros_like has invalid type causing error massage: \n" + \
                 str(e)
-        raise TypeError(error) from e
+      raise TypeError(error) from e
     the_tensor = initialize_tensor("ones", tensor.get_shape().as_list(),
-                                       backend=backend, dtype=dtype)
+                        backend=backend, dtype=dtype)
   return the_tensor
 
 
@@ -147,16 +147,16 @@ def zeros_like(tensor: Union[Any],
     backend = backend_contextmanager.backend_factory.get_backend(backend)
   if isinstance(tensor, Tensor):
     the_tensor = initialize_tensor("zeros", tensor.shape,
-                                       backend=tensor.backend, dtype=tensor.dtype)
+                        backend=tensor.backend, dtype=tensor.dtype)
   else:
     try:
-        tensor = backend.convert_to_tensor(tensor)
+      tensor = backend.convert_to_tensor(tensor)
     except TypeError as e:
-        error = "Input to zeros_like has invalid " \
+      error = "Input to zeros_like has invalid " \
                     "type causing error massage: \n" + str(e)
-        raise TypeError(error) from e
+      raise TypeError(error) from e
     the_tensor = initialize_tensor("zeros", tensor.shape,
-                                       backend=backend, dtype=dtype)
+                        backend=backend, dtype=dtype)
   return the_tensor
 
 
@@ -164,7 +164,7 @@ def randn(shape: Sequence[int],
           dtype: Optional[Type[np.number]] = None,
           seed: Optional[int] = None,
           backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
-    """Return a Tensor of shape `shape` of Gaussian random floats.
+  """Return a Tensor of shape `shape` of Gaussian random floats.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -174,9 +174,9 @@ def randn(shape: Sequence[int],
   Returns:
     the_tensor : Tensor of shape `shape` filled with Gaussian random data.
   """
-    the_tensor = initialize_tensor("randn", shape, backend=backend, seed=seed,
+  the_tensor = initialize_tensor("randn", shape, backend=backend, seed=seed,
                                    dtype=dtype)
-    return the_tensor
+  return the_tensor
 
 
 def random_uniform(shape: Sequence[int],
@@ -185,7 +185,7 @@ def random_uniform(shape: Sequence[int],
                    boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
                    backend: Optional[Union[Text, AbstractBackend]]
                    = None) -> Tensor:
-    """Return a Tensor of shape `shape` of uniform random floats.
+  """Return a Tensor of shape `shape` of uniform random floats.
   The Tensor has one dangling Edge per dimension.
   Args:
     shape : Shape of the array.
@@ -196,6 +196,6 @@ def random_uniform(shape: Sequence[int],
   Returns:
     the_tensor : Tensor of shape `shape` filled with uniform random data.
   """
-    the_tensor = initialize_tensor("random_uniform", shape, backend=backend,
-                                   seed=seed, boundaries=boundaries, dtype=dtype)
-    return the_tensor
+  the_tensor = initialize_tensor("random_uniform", shape, backend=backend,
+                                seed=seed, boundaries=boundaries, dtype=dtype)
+  return the_tensor
