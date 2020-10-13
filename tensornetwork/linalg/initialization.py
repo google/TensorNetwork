@@ -135,7 +135,8 @@ def ones_like(tensor: Union[Any],
 
 def zeros_like(tensor: Union[Any],
                dtype: Optional[Any] = None,
-               backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
+               backend: Optional[Union[Text,
+                                       AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of zeros the same shape as input
   Args:
     tensor : Object to recieve shape from
