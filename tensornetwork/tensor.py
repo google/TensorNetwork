@@ -111,7 +111,7 @@ class Tensor():
     """
     reshaped = self.backend.reshape(self.array, shape)
     return Tensor(reshaped, backend=self.backend)
-  def block(self):
+  def item(self):
     """Return a Python scalar formed after converting a size-1 Tensor
         if size of Tensor is not 1
         then raises ValueError"""
