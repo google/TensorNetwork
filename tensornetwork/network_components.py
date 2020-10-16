@@ -2074,7 +2074,10 @@ def contract_between(
           np.mean(node1_output_axes) > np.mean(node2_output_axes)):
         node1, node2 = node2, node1
         axes1, axes2 = axes2, axes1
-
+    # Sorting the indicies improves performance.
+    ind_sort = [axes1.index(l) for l in sorted(axes1)]
+    axes1 = [axes1[i] for i in ind_sort]
+    axes2 = [axes2[i] for i in ind_sort]
     new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
     new_node = Node(tensor=new_tensor, name=name, backend=backend)
     # node1 and node2 get new edges in _remove_edges
