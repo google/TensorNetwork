@@ -111,11 +111,13 @@ class Tensor():
     """
     reshaped = self.backend.reshape(self.array, shape)
     return Tensor(reshaped, backend=self.backend)
+  
   def item(self):
-    """Return a Python scalar formed after converting a size-1 Tensor
-        if size of Tensor is not 1
-        then raises ValueError"""
+    """Copies the single element of this Tensor and returns it. If this Tensor has more than one element,
+       raises ValueError."""
+    
     return self.array.item()
+  
   def squeeze(self):
     """Return a new `Tensor` with all axes of size 1 eliminated.
     """
