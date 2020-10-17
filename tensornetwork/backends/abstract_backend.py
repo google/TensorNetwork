@@ -50,6 +50,13 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented reshape.".format(self.name))
 
+  def item(self):
+    """Copies the single element of this Tensor and returns it. If this Tensor has more than one element,
+        raises ValueError."""
+    raise NotImplementedError(
+        "Backend '{}' has not implemented item.".format(self.name))
+
+    
   def transpose(self,
                 tensor: Tensor,
                 perm: Optional[Sequence[int]] = None) -> Tensor:
