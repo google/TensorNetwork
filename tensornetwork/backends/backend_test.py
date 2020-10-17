@@ -168,6 +168,10 @@ def test_abstract_backend_reshape_not_implemented():
   with pytest.raises(NotImplementedError):
     backend.reshape(np.ones((2, 2)), (4, 1))
 
+def test_abstract_backend_item_not_implemented():
+  backend = AbstractBackend()
+  with pytest.raises(NotImplementedError):
+    backend.item(np.ones((1,1)))
 
 def test_abstract_backend_transpose_not_implemented():
   backend = AbstractBackend()
