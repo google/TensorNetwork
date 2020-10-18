@@ -1010,4 +1010,25 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         f"Backend {self.name} has not implemented power.")
-        
+
+  def real(self, tensor: Tensor) -> Tensor:
+      """Return Re(tensor)
+      Args:
+          tensor: Input Tensor
+
+      Returns: Re(tensor), real part of tensor
+
+      """
+      raise NotImplementedError(
+          f"Backend {self.name} has not implemented .real")
+
+  def imag(self, tensor: Tensor) -> Tensor:
+      """Return Im(tensor)
+      Args:
+          tensor: Input tensor.
+
+      Returns: Im(tensor), imaginary part of tensor.
+
+      """
+      raise NotImplementedError(
+          f"Backend {self.name} has not implemented .imag")

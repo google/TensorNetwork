@@ -664,3 +664,29 @@ def test_matmul_rank2():
   actual = backend.matmul(a, b)
   expected = np.matmul(t1, t2)
   np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+@pytest.mark.parametrize("input_cur", [(np.array([1+6j, 2+7j])), (np.array([1j, 2j])),
+                         (np.array([5+3j, 4+7j]))])
+def test_real(dtype, input_cur):
+  backend = pytorch_backend.PyTorchBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = backend.real(cur)
+  expected = torch.real(cur)
+  np.testing.assert_allclose(acual, expected)
+  cur = backend.convert_to_tensor(np.array([1, 2]))
+  np.testing.assert_allclose(backend.real(cur), np.array([1, 2]))
+
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+@pytest.mark.parametrize("input_cur", [(np.array([1+6j, 2+7j])), (np.array([1j, 2j])),
+                         (np.array([5+3j, 4+7j]))])
+def test_imag(dtype, input_cur):
+  backend = pytorch_backend.PyTorchBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = backend.imag(cur)
+  expected = torch.imag(cur)
+  np.testing.assert_allclose(acual, expected)
+  cur = backend.convert_to_tensor(np.array([1, 2]))
+  np.testing.assert_allclose(backend.imag(cur), np.array([0, 0]))

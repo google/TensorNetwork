@@ -950,16 +950,22 @@ def test_serialize(dtype):
   assert isinstance(s, str)
   assert (tensor == backend.deserialize_tensor(s)).all()
 
+
 @pytest.mark.parametrize('dtype', np_dtypes)
-def test_power(dtype):
-  shape = (4, 3, 2)
+@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j])),
+                                   (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
+def test_real(dtype, input_cur):
   backend = numpy_backend.NumPyBackend()
-  base_tensor = np.abs(backend.randn(shape, dtype=dtype, seed=10))
-  power_tensor = backend.randn(shape, dtype=dtype, seed=10)
-  actual = backend.power(base_tensor, power_tensor)
-  expected = np.power(base_tensor, power_tensor)
-  np.testing.assert_allclose(expected, actual)
-  power = np.random.rand(1)[0]
-  actual = backend.power(base_tensor, power)
-  expected = np.power(base_tensor, power)
-  np.testing.assert_allclose(expected, actual)
+  cur = backend.convert_to_tensor(input_cur)
+  np.testing.assert_allclose(cur.real, np.real(input_cur))
+
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+@pytest.mark.parametrize("input_cur", [(np.array([1, 2, 3, 4])), (np.array([1j, 2j, 3j, 4j])),
+                         (np.array([10+2j, 20+2j, 30+5j, 40+20j]))])
+def test_imag(dtype, input_cur):
+  backend = numpy_backend.NumPyBackend()
+  cur = backend.convert_to_tensor(input_cur)
+  acual = cur.imag
+  expected = np.imag(input_cur)
+  np.testing.assert_allclose(acual, expected)

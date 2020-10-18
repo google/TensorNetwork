@@ -759,24 +759,25 @@ class NumPyBackend(abstract_backend.AbstractBackend):
     m.write(s.encode('latin-1'))
     m.seek(0)
     return np.load(m)
-  
-  def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
+
+  def real(self, tensor: Tensor) -> Tensor:
     """
-    Returns the exponentiation of tensor a raised to b.  
-      If b is a tensor, then the exponentiation is element-wise 
-        between the two tensors, with a as the base and b as the power.
-        Note that a and b must be broadcastable to the same shape if 
-        b is a tensor.
-      If b is a scalar, then the exponentiation is each value in a
-        raised to the power of b.
-    
+    Retuns Re(tensor), returns real element in tensor given
     Args:
-      a: The tensor containing the bases.
-      b: The tensor containing the powers; or a single scalar as the power.
+      tensor: Input Tensor
 
     Returns:
-      The tensor that is each element of a raised to the 
-        power of b.  Note that the shape of the returned tensor
-        is that produced by the broadcast of a and b.
+      returns real element in tensor given
     """
-    return np.power(a, b)
+    return np.real(tensor)
+
+  def imag(self, tensor: Tensor) -> Tensor:
+    """
+    Returns Im(tensor), returns the Imaginary part of tensor
+    Args:
+      tensor: Input Tensor
+
+    Returns:
+      returns the Imaginary part of tensor
+    """
+    return np.imag(tensor)
