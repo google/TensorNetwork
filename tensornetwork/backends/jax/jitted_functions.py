@@ -605,7 +605,22 @@ def _get_vectors(jax):
 
   return get_vectors
 
-def _check_eigvals_convergence(jax):
+def _check_eigvals_convergence_eigh(jax):
+  @functools.partial(jax.jit, static_argnums=(2, 3))
+  def check_eigvals_convergence(beta_m: float, Hm: jax.ShapedArray,
+                                tol: float, numeig: int) -> bool:
+    eigvals, eigvecs = jax.numpy.linalg.eigh(Hm)
+    # TODO (mganahl) confirm that this is a valid matrix norm)
+    Hm_norm = jax.numpy.linalg.norm(Hm)
+    thresh = jax.numpy.maximum(
+        jax.numpy.finfo(eigvals.dtype).eps * Hm_norm,
+        jax.numpy.abs(eigvals[:numeig]) * tol)
+    vals = jax.numpy.abs(eigvecs[numeig - 1, :numeig])
+    return jax.numpy.all(beta_m * vals < thresh)
+
+  return check_eigvals_convergence
+
+def _check_eigvals_convergence_eig(jax):
   @functools.partial(jax.jit, static_argnums=(2, 3))
   def check_eigvals_convergence(beta_m: float, Hm: jax.ShapedArray,
                                 tol: float, numeig: int) -> bool:
@@ -727,7 +742,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
-    check_eigvals_convergence = _check_eigvals_convergence(jax)
+    check_eigvals_convergence = _check_eigvals_convergence_eig(jax)
     get_vectors = _get_vectors(jax)
 
     # sort_fun returns `num_expand` least relevant eigenvalues
@@ -948,7 +963,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     fm = residual.ravel() * norm
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
-    check_eigvals_convergence = _check_eigvals_convergence(jax)
+    check_eigvals_convergence = _check_eigvals_convergence_eigh(jax)
     get_vectors = _get_vectors(jax)
 
     # sort_fun returns `num_expand` least relevant eigenvalues
