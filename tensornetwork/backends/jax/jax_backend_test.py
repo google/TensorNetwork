@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import scipy as sp
 import jax
+import jax.numpy as jnp
 import pytest
 from tensornetwork.backends.jax import jax_backend
 import jax.config as config
@@ -772,6 +773,100 @@ def test_eigs_eigsh_large_matrix_with_init(dtype, solver, matrix_generator,
   eta_exact, U_exact = exact_decomp(H)
   compare_eigvals_and_eigvecs(
       np.stack(U, axis=1), eta, U_exact, eta_exact, thresh=1E-4, atol=1E-4)
+
+def get_hoppings(dtype, N, which):
+  if which == 'uniform':
+    hop = -jnp.ones(N - 1, dtype=dtype)
+    if dtype in (np.complex128, np.complex64):
+      hop -= 1j * jnp.ones(N - 1, dtype)
+  elif which == 'randn':
+    hop = -jnp.array(np.random.randn(N - 1).astype(dtype))
+    if dtype in (np.complex128, np.complex64):
+      hop -= 1j * jnp.array(np.random.randn(N - 1).astype(dtype))
+  return hop
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("hop_type", ['uniform', 'randn'])
+@pytest.mark.parametrize("N", [14])
+def test_eigsh_free_fermions(N, dtype, hop_type):
+  """
+  Find the lowest eigenvalues and eigenvectors
+  of a 1d free-fermion Hamiltonian on N sites.
+  The dimension of the hermitian matrix is
+  (2**N, 2**N).
+  """
+  backend = jax_backend.JaxBackend(precision=jax.lax.Precision.HIGHEST)
+  np.random.seed(10)
+  hop = get_hoppings(dtype, N, hop_type)
+  pot = jnp.ones(N, dtype)
+  P = jnp.diag(np.array([0, -1])).astype(dtype)
+  c = jnp.array([[0, 1], [0, 0]], dtype)
+  n = c.T @ c
+  eye = jnp.eye(2, dtype=dtype)
+  neye = jnp.kron(n, eye)
+  eyen = jnp.kron(eye, n)
+  ccT = jnp.kron(c @ P, c.T)
+  cTc = jnp.kron(c.T, c)
+
+  @jax.jit
+  def matvec(vec):
+    x = vec.reshape((4, 2**(N - 2)))
+    out = jnp.zeros(x.shape, x.dtype)
+    t1 = neye * pot[0] + eyen * pot[1] / 2
+    t2 = cTc * hop[0] - ccT * jnp.conj(hop[0])
+    out += jnp.einsum('ij,ki -> kj', x, t1 + t2)
+    x = x.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape((4, 2**(N - 2)))
+    out = out.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape(
+        (4, 2**(N - 2)))
+    for site in range(1, N - 2):
+      t1 = neye * pot[site] / 2 + eyen * pot[site + 1] / 2
+      t2 = cTc * hop[site] - ccT * jnp.conj(hop[site])
+      out += jnp.einsum('ij,ki -> kj', x, t1 + t2)
+      x = x.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape((4, 2**(N - 2)))
+      out = out.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape(
+          (4, 2**(N - 2)))
+    t1 = neye * pot[N - 2] / 2 + eyen * pot[N - 1]
+    t2 = cTc * hop[N - 2] - ccT * jnp.conj(hop[N - 2])
+    out += jnp.einsum('ij,ki -> kj', x, t1 + t2)
+    x = x.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape((4, 2**(N - 2)))
+    out = out.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape(
+        (4, 2**(N - 2)))
+
+    x = x.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape(2**N)
+    out = out.reshape((2, 2**(N - 1))).transpose((1, 0)).reshape(2**N)
+    return out.ravel()
+
+  H = np.diag(pot) + np.diag(hop.conj(), 1) + np.diag(hop, -1)
+  single_particle_energies = np.linalg.eigh(H)[0]
+
+  many_body_energies = []
+  for n in range(2**N):
+    many_body_energies.append(
+        np.sum(single_particle_energies[np.nonzero(
+            np.array(list(bin(n)[2:]), dtype=int)[::-1])[0]]))
+  many_body_energies = np.sort(many_body_energies)
+
+  init = jnp.array(np.random.randn(2**N)).astype(dtype)
+  init /= jnp.linalg.norm(init)
+
+  ncv = 20
+  numeig = 6
+  which = 'SA'
+  tol = 1E-8
+  maxiter = 30
+  atol=1E-8
+  eta, _ = backend.eigsh(
+      A=matvec,
+      args = [],
+      initial_state=init,
+      num_krylov_vecs=ncv,
+      numeig=numeig,
+      which=which,
+      tol=tol,
+      maxiter=maxiter)
+  np.testing.assert_allclose(
+      eta, many_body_energies[:numeig], atol=atol, rtol=atol)
 
 
 @pytest.mark.parametrize(
