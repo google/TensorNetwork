@@ -898,10 +898,10 @@ def test_eigsh_free_fermions(N, dtype, param_type):
   which = 'SA'
   tol = 1E-10
   maxiter = 30
-  atol=1E-8
+  atol = 1E-8
   eta, _ = backend.eigsh(
       A=matvec,
-      args = [],
+      args=[],
       initial_state=init,
       num_krylov_vecs=ncv,
       numeig=numeig,
