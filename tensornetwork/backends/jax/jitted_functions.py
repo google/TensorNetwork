@@ -622,7 +622,7 @@ def _get_vectors(jax):
 def _check_eigvals_convergence_eigh(jax):
   @functools.partial(jax.jit, static_argnums=(3,))
   def check_eigvals_convergence(beta_m: float, Hm: jax.ShapedArray,
-                                Hm_norm:float,
+                                Hm_norm: float,
                                 tol: float) -> bool:
     eigvals, eigvecs = jax.numpy.linalg.eigh(Hm)
     # TODO (mganahl) confirm that this is a valid matrix norm)
@@ -705,7 +705,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     of `matvec` matches the dtype of the initial state. Otherwise jax
     will raise a TypeError.
 
-    NOTE: Under certain circumstances, the routine can return spurious 
+    NOTE: Under certain circumstances, the routine can return spurious
     eigenvalues 0.0: if the Arnoldi iteration terminated early
     (after numits < num_krylov_vecs iterations)
     and numeig > numits, then spurious 0.0 eigenvalues will be returned.
@@ -718,7 +718,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
-      which: Which eigenvalues to target. 
+      which: Which eigenvalues to target.
         Currently supported: `which = 'LR'` (largest real part).
       tol: Convergence flag. If the norm of a krylov vector drops below `tol`
         the iteration is terminated.
@@ -728,7 +728,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
-      int: Number of inner krylov iterations of the last arnoldi 
+      int: Number of inner krylov iterations of the last arnoldi
         factorization.
     """
     shape = initial_state.shape
@@ -1273,7 +1273,7 @@ def gmres_wrapper(jax: types.ModuleType):
       """
       Performs a single iteration of gmres_krylov. See that function for a more
       detailed description.
-  
+
       Args:
         gmres_carry: The gmres_carry from gmres_krylov.
       Returns:
@@ -1304,7 +1304,7 @@ def gmres_wrapper(jax: types.ModuleType):
         else:
           return False
       where k, n_kry, err, and tol are unpacked from gmres_carry.
-  
+
       Args:
         gmres_carry: The gmres_carry from gmres_krylov.
       Returns:
@@ -1365,7 +1365,7 @@ def gmres_wrapper(jax: types.ModuleType):
       """
       Performs one iteration of the stabilized Gram-Schmidt procedure, with
       r to be orthonormalized against {v} = {v_0, v_1, ...}.
-  
+
       Args:
         r: The new vector which is not in the initially orthonormal set.
         v_i: The i'th vector in that set.
