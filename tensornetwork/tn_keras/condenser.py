@@ -36,7 +36,10 @@ class DenseCondenser(Layer):
       # After the first layer, you don't need to specify
       # the size of the input anymore:
       model.add(
-        DenseCondenser(exp_base=2, num_nodes=3, use_bias=True, activation='relu'))
+        DenseCondenser(exp_base=2, 
+                       num_nodes=3, 
+                       use_bias=True, 
+                       activation='relu'))
 
   Args:
     exp_base: Positive integer, base of the dimensionality reduction term.

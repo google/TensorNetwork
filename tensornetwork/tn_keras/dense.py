@@ -26,7 +26,10 @@ class DenseDecomp(Layer):
       # as first layer in a sequential model:
       model = Sequential()
       model.add(
-        DenseDecomp(512, decomp_size=128, activation='relu', input_shape=(1024,)))
+        DenseDecomp(512, 
+                    decomp_size=128, 
+                    activation='relu', 
+                    input_shape=(1024,)))
       # now the model will take as input arrays of shape (*, 1024)
       # and output arrays of shape (*, 512).
       # After the first layer, you don't need to specify

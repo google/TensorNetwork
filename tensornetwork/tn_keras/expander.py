@@ -36,7 +36,10 @@ class DenseExpander(Layer):
       # After the first layer, you don't need to specify
       # the size of the input anymore:
       model.add(
-        DenseExpander(exp_base=2, num_nodes=2, use_bias=True, activation='relu'))
+        DenseExpander(exp_base=2, 
+                      num_nodes=2, 
+                      use_bias=True, 
+                      activation='relu'))
 
   Args:
     exp_base: Positive integer, base of the dimensionality expansion term.
