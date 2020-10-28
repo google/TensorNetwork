@@ -23,6 +23,7 @@ TensorNetwork reference documentation
    mps
    network
    block_sparse
+   tn_keras
 
 .. toctree::
    :maxdepth: 1
