@@ -707,20 +707,20 @@ class AbstractBackend:
         self.name))
 
   def pinv(self,
-           matrix: Tensor,
+           tensor: Tensor,
            pivot_axis: int = -1,
            rcond: float = 1E-15,
            hermitian: bool = False) -> Tensor:
     """Compute the Moore-Penrose/Pseudo inverse of a 'matrix'.
 
     Args:
-     matrix: A 'matrix'.
+     Tensor: A 'matrix'.
      rcond: Cutoff for small singular values
      hermitian: If True, matrix provided in function argument is assumed to be
                 Hermitian (symmetric if real-valued)
     Returns:
-     Tensor: The pseudo inverse of `matrix`
-        """
+     tensor: The pseudo inverse of `matrix`
+         """
     raise NotImplementedError(
         "Backend '{}' has not implemented pinv".format(self.name))
 
