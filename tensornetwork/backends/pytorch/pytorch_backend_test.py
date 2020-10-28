@@ -631,7 +631,7 @@ def test_trace(dtype, offset, axis1, axis2):
   else:
     actual = backend.trace(array, offset=offset, axis1=axis1, axis2=axis2)
     expected = np.trace(array, axis1=axis1, axis2=axis2)
-    np.testing.assert_allclose(actual, expected)
+    np.testing.assert_allclose(actual, expected, atol=1e-6, rtol=1e-6)
 
 
 def test_trace_raises():
