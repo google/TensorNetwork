@@ -702,4 +702,3 @@ def sign(tensor: BlockSparseTensor) -> BlockSparseTensor:
   result = empty_like(tensor)
   result.data = np.sign(tensor.data)
   return result
-

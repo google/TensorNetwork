@@ -935,7 +935,6 @@ def test_size(chargetype, num_charges):
   arr = BlockSparseTensor.random(indices)
   assert arr.size == np.prod(Ds)
 
-
 @pytest.mark.parametrize('chargetype', ["U1", "Z2", "mixed"])
 @pytest.mark.parametrize('num_charges', [1, 2, 3, 4])
 def test_compare_shapes(chargetype, num_charges):
