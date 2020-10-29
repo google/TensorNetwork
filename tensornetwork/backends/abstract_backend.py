@@ -1010,4 +1010,15 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         f"Backend {self.name} has not implemented power.")
-        
+
+  def item(self, tensor) -> Union[float, int, complex]:
+    """
+    Return the item of a 1-element tensor.
+
+    Args:
+      tensor: A 1-element tensor
+
+    Returns:
+      The value in tensor.
+    """
+    raise NotImplementedError("Backend {self.name} has not implemented item")

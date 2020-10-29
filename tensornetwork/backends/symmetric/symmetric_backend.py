@@ -680,3 +680,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def pivot(self, tensor: Tensor, pivot_axis: int = -1) -> Tensor:
     raise NotImplementedError("Symmetric backend doesn't support pivot.")
+
+  def item(self, tensor):
+    return tensor.item()
+  
