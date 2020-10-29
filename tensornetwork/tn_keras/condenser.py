@@ -21,28 +21,30 @@ class DenseCondenser(Layer):
   constructed from and applied to the last input dimension.
 
   Example:
+    ::
 
-  ```python
-  # as first layer in a sequential model:
-  model = Sequential()
-  model.add(
-    DenseCondenser(exp_base=2
-                  num_nodes=3,
-                  use_bias=True,
-                  activation='relu',
-                  input_shape=(1024,)))
-  # now the model will take as input arrays of shape (*, 1024)
-  # and output arrays of shape (*, 128).
-  # After the first layer, you don't need to specify
-  # the size of the input anymore:
-  model.add(
-    DenseCondenser(exp_base=2, num_nodes=3, use_bias=True, activation='relu'))
-  ```
+      # as first layer in a sequential model:
+      model = Sequential()
+      model.add(
+        DenseCondenser(exp_base=2
+                      num_nodes=3,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(1024,)))
+      # now the model will take as input arrays of shape (*, 1024)
+      # and output arrays of shape (*, 128).
+      # After the first layer, you don't need to specify
+      # the size of the input anymore:
+      model.add(
+        DenseCondenser(exp_base=2, 
+                       num_nodes=3, 
+                       use_bias=True, 
+                       activation='relu'))
 
   Args:
     exp_base: Positive integer, base of the dimensionality reduction term.
     num_nodes: Positive integer, number of nodes in condenser.
-      Note: the output dim will be input_shape[-1] // (exp_base**num_nodes)
+      The output dim will be input_shape[-1] // (exp_base**num_nodes)
       so increasing num_nodes will decrease the output dim exponentially.
     activation: Activation function to use.
       If you don't specify anything, no activation is applied
