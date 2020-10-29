@@ -123,6 +123,7 @@ We begin by creating directly the node structure of the MPS. First we define fun
     #connect edges to build mps
     connected_edges=[]
     conn=mps[0][1]^mps[1][0]
+    connected_edges.append(conn)
     for k in range(1,rank-1):
         conn=mps[k][2]^mps[k+1][0]
         connected_edges.append(conn)

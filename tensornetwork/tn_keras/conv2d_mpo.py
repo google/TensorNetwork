@@ -8,8 +8,9 @@ import numpy as np
 import tensornetwork as tn
 import math
 
-
-@tf.keras.utils.register_keras_serializable()
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class Conv2DMPO(Layer):
   """2D Convolutional Matrix Product Operator (MPO) TN layer.
 
@@ -21,23 +22,22 @@ class Conv2DMPO(Layer):
   and convolved with the layer input to produce a tensor of outputs.
 
   Example:
+    ::
 
-  ```python
-  # as first layer in a sequential model:
-  model = Sequential()
-  model.add(
-    Conv2DMPO(256,
-              kernel_size=3,
-              num_nodes=4,
-              bond_dim=16,
-              activation='relu',
-              input_shape=(32, 32, 256)))
-  # now the model will take as input tensors of shape (*, 32, 32, 256)
-  # and output arrays of shape (*, 32, 32, 256).
-  # After the first layer, you don't need to specify
-  # the size of the input anymore:
-  model.add(Conv2DMPO(256, 3, num_nodes=4, bond_dim=8, activation='relu'))
-  ```
+      # as first layer in a sequential model:
+      model = Sequential()
+      model.add(
+        Conv2DMPO(256,
+                  kernel_size=3,
+                  num_nodes=4,
+                  bond_dim=16,
+                  activation='relu',
+                  input_shape=(32, 32, 256)))
+      # now the model will take as input tensors of shape (*, 32, 32, 256)
+      # and output arrays of shape (*, 32, 32, 256).
+      # After the first layer, you don't need to specify
+      # the size of the input anymore:
+      model.add(Conv2DMPO(256, 3, num_nodes=4, bond_dim=8, activation='relu'))
 
   Args:
     filters: Integer, the dimensionality of the output space

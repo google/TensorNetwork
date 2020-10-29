@@ -267,94 +267,6 @@ def trace(tensor: Tensor, offset: int = 0, axis1: int = -2,
   return Tensor(result, backend=backend)
 
 
-def ncon(
-    tensors: Sequence[Tensor],
-    network_structure: Sequence[Sequence[Union[str, int]]],
-    con_order: Optional[Sequence] = None,
-    out_order: Optional[Sequence] = None,
-    check_network: bool = True,
-) -> Tensor:
-  r"""Contracts a list of tn.Tensor according to a tensor network
-    specification.
-
-    The network is provided as a list of lists, one for each
-    tensor, specifying the labels for the edges connected to that tensor.
-
-    Labels can be any numbers or strings. Negative number-type labels
-    and string-type labels with a prepended hyphen ('-') are open labels
-    and remain uncontracted.
-
-    Positive number-type labels and string-type labels with no prepended
-    hyphen ('-') are closed labels and are contracted.
-
-    Any open label appearing more than once is treated as an open
-    batch label. Any closed label appearing more than once is treated as
-    a closed batch label.
-
-    Upon finishing the contraction, all open batch labels will have been
-    collapsed into a single dimension, and all closed batch labels will
-    have been summed over.
-
-    If `out_order = None`, output labels are ordered according to descending
-    number ordering and ascending ASCII ordering, with number labels always
-    appearing before string labels. Example:
-    network_structure = [[-1, 1, '-rick', '2',-2], [-2, '2', 1, '-morty']]
-    results in an output order of [-1, -2, '-morty', '-rick'].
-
-    If `out_order` is given, the indices of the resulting tensor will be
-    transposed into this order.
-
-    If `con_order = None`, `ncon` will first contract all number labels
-    in ascending order followed by all string labels in ascending ASCII
-    order.
-    If `con_order` is given, `ncon` will contract according to this order.
-
-    For example, matrix multiplication:
-
-    .. code-block:: python
-
-      A = np.array([[1.0, 2.0], [3.0, 4.0]])
-      B = np.array([[1.0, 1.0], [0.0, 1.0]])
-      ncon([A,B], [(-1, 1), (1, -2)])
-
-    Matrix trace:
-
-    .. code-block:: python
-
-      A = np.array([[1.0, 2.0], [3.0, 4.0]])
-      ncon([A], [(1, 1)]) # 5.0
-
-    Note:
-      Disallowing `0` as an edge label is legacy behaviour, see
-      `original NCON implementation`_.
-    .. _original NCON implementation:
-      https://arxiv.org/abs/1402.0939
-    Args:
-      tensors: List of `Tensors`.
-      network_structure: List of lists specifying the tensor network structure.
-      con_order: List of edge labels specifying the contraction order.
-      out_order: List of edge labels specifying the output order.
-      check_network: Boolean flag. If `True` check the network.
-      backend: String specifying the backend to use. Defaults to
-        `tensornetwork.backend_contextmanager.get_default_backend`.
-
-    Returns:
-      The result of the contraction. The result is returned as a `Node`
-      if all elements of `tensors` are `AbstractNode` objects, else
-      it is returned as a `Tensor` object.
-    """
-  all_backends_same, errstr = _check_backends(tensors, "ncon")
-  if not all_backends_same:
-    raise ValueError(errstr)
-  backend = tensors[0].backend
-  arrays = [tensor.array for tensor in tensors]
-  res = ncon_interface.ncon(arrays, network_structure, con_order=con_order,
-                            out_order=out_order, check_network=check_network,
-                            backend=backend)
-  output = Tensor(res, backend=backend)
-  return output
-
-
 def sign(tensor: Tensor) -> Tensor:
   """ Returns the sign of the elements of Tensor.
   """
@@ -385,21 +297,46 @@ def pivot(tensor: Tensor, pivot_axis: int = -1) -> Tensor:
   return Tensor(result, backend=backend)
 
 
-def kron(tensorA: Tensor, tensorB: Tensor, pivot_axisA: int = -1,
-         pivot_axisB: int = -1) -> Tensor:
+def kron(tensorA: Tensor, tensorB: Tensor) -> Tensor:
   """
-  Reshape tensorA and tensorB into matrices respectively about pivot_axisA and
-  pivot_axisB, computes the Kronecker product of those matrices, and
-  reshapes to the concatenated shape of tensorA and tensorB
-  (e.g. tensorA -> (2, 3); tensorB -> (4, 5); result -> (2, 3, 4, 5)).
+  Compute the (tensor) kronecker product between `tensorA` and
+  `tensorB`. `tensorA` and `tensorB` can be tensors of any 
+  even order (i.e. `tensorA.ndim % 2 == 0`, `tensorB.ndim % 2 == 0`).
+  The returned tensor has index ordering such that when reshaped into 
+  a matrix with `pivot =t ensorA.ndim//2 + tensorB.ndim//2`, 
+  the resulting matrix is identical to the result of numpy's 
+  `np.kron(matrixA, matrixB)`, with `matrixA, matrixB` matrices 
+  obtained from reshaping `tensorA` and `tensorB` into matrices with 
+  `pivotA = tensorA.ndim//2`, `pivotB = tensorB.ndim//2`
+
+  Example:
+  `tensorA.shape = (2,3,4,5)`, `tensorB.shape(6,7)` ->
+  `kron(tensorA, tensorB).shape = (2, 3, 6, 4, 5, 7)` 
+
+  Args:
+    tensorA: A `Tensor`.
+    tensorB: A `Tensor`.
+  Returns:
+    Tensor: The kronecker product.
+  Raises:
+    ValueError: - If backends, are not matching.
+                - If ndims of the input tensors are not even.
   """
   tensors = [tensorA, tensorA]
   all_backends_same, errstr = _check_backends(tensors, "kron")
   if not all_backends_same:
     raise ValueError(errstr)
+  ndimA, ndimB = tensorA.ndim, tensorB.ndim
+  if ndimA % 2 != 0:
+    raise ValueError(f"kron only supports tensors with even number of legs."
+                     f"found tensorA.ndim = {ndimA}")
+  if ndimB % 2 != 0:
+    raise ValueError(f"kron only supports tensors with even number of legs."
+                     f"found tensorB.ndim = {ndimB}")
   backend = tensorA.backend
-  matrixA = pivot(tensorA, pivot_axis=pivot_axisA)
-  matrixB = pivot(tensorB, pivot_axis=pivot_axisB)
-  arr = backend.einsum("ij,kl->ikjl", matrixA.array, matrixB.array)
-  full_shape = tuple(list(tensorA.shape) + list(tensorB.shape))
-  return Tensor(arr, backend=backend).reshape(full_shape)
+  incoming = list(range(ndimA // 2)) + list(range(ndimA, ndimA + ndimB // 2))
+  outgoing = list(range(ndimA // 2, ndimA)) + list(
+      range(ndimA + ndimB // 2, ndimA + ndimB))
+  arr = backend.transpose(
+      backend.outer_product(tensorA.array, tensorB.array), incoming + outgoing)
+  return Tensor(arr, backend=backend)

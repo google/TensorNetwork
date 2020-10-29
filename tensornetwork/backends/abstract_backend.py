@@ -50,7 +50,8 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented reshape.".format(self.name))
 
-  def transpose(self, tensor: Tensor,
+  def transpose(self,
+                tensor: Tensor,
                 perm: Optional[Sequence[int]] = None) -> Tensor:
     """Transpose a tensor according to a given permutation. By default
     the axes are reversed.
@@ -132,28 +133,24 @@ class AbstractBackend:
       s_rest: Vector of discarded singular values (length zero if no
               truncation).
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented svd.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented svd.".format(
+        self.name))
 
-  def qr(
-      self,
-      tensor: Tensor,
-      pivot_axis: int = -1,
-      non_negative_diagonal: bool = False
-  ) -> Tuple[Tensor, Tensor]:
+  def qr(self,
+         tensor: Tensor,
+         pivot_axis: int = -1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     """Computes the QR decomposition of a tensor."""
-    raise NotImplementedError(
-        "Backend '{}' has not implemented qr.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented qr.".format(
+        self.name))
 
-  def rq(
-      self,
-      tensor: Tensor,
-      pivot_axis: int = -1,
-      non_negative_diagonal: bool = False
-  ) -> Tuple[Tensor, Tensor]:
+  def rq(self,
+         tensor: Tensor,
+         pivot_axis: int = -1,
+         non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
     """Computes the RQ (reversed QR) decomposition of a tensor."""
-    raise NotImplementedError(
-        "Backend '{}' has not implemented rq.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented rq.".format(
+        self.name))
 
   def shape_concat(self, values: Sequence[Tensor], axis) -> Tensor:
     """Concatenate a sequence of tensors together about the given axis."""
@@ -207,7 +204,9 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented outer_product.".format(self.name))
 
-  def einsum(self, expression: str, *tensors: Tensor,
+  def einsum(self,
+             expression: str,
+             *tensors: Tensor,
              optimize: bool = True) -> Tensor:
     """Calculate sum of products of tensors according to expression."""
     raise NotImplementedError("Backend '{}' has not implemented einsum.".format(
@@ -219,10 +218,11 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented norm.".format(
         self.name))
 
-  def eye(self,
-          N: int,
-          dtype: Type[np.number],# pylint: disable=no-member
-          M: Optional[int] = None) -> Tensor:
+  def eye(
+      self,
+      N: int,
+      dtype: Type[np.number],  # pylint: disable=no-member
+      M: Optional[int] = None) -> Tensor:
     """Return an identity matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
        (numpy, torch, tensorflow) or a `ShapeType` object
@@ -237,7 +237,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented eye.".format(
         self.name))
 
-  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:# pylint: disable=no-member
+  def ones(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:  # pylint: disable=no-member
     """Return an ones-matrix of dimension `dim`
        Depending on specific backends, `dim` has to be either an int
        (numpy, torch, tensorflow) or a `ShapeType` object
@@ -250,7 +250,7 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented ones.".format(
         self.name))
 
-  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:# pylint: disable=no-member
+  def zeros(self, shape: Tuple[int, ...], dtype: Type[np.number]) -> Tensor:  # pylint: disable=no-member
     """Return a zeros-matrix of dimension `dim` Depending on specific backends,
     `dim` has to be either an int (numpy, torch, tensorflow) or a `ShapeType`
     object (for block-sparse backends).
@@ -264,10 +264,11 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented zeros.".format(
         self.name))
 
-  def randn(self,
-            shape: Tuple[int, ...],
-            dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
-            seed: Optional[int] = None) -> Tensor:
+  def randn(
+      self,
+      shape: Tuple[int, ...],
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      seed: Optional[int] = None) -> Tensor:
     """Return a random-normal-matrix of dimension `dim` Depending on specific
     backends, `dim` has to be either an int (numpy, torch, tensorflow) or a
     `ShapeType` object (for block-sparse backends).
@@ -282,11 +283,12 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented randn.".format(
         self.name))
 
-  def random_uniform(self,
-                     shape: Tuple[int, ...],
-                     boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
-                     dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
-                     seed: Optional[int] = None) -> Tensor:
+  def random_uniform(
+      self,
+      shape: Tuple[int, ...],
+      boundaries: Optional[Tuple[float, float]] = (0.0, 1.0),
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      seed: Optional[int] = None) -> Tensor:
     """Return a random uniform matrix of dimension `dim`.
 
     Depending on specific backends, `dim` has to be either an int
@@ -327,21 +329,70 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented eigh".format(
         self.name))
 
-  def eigs(self,
-           A: Callable,
-           args: Optional[List[Tensor]] = None,
-           initial_state: Optional[Tensor] = None,
-           shape: Optional[Tuple[int, ...]] = None,
-           dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
-           num_krylov_vecs: int = 50,
-           numeig: int = 1,
-           tol: float = 1E-8,
-           which: Text = 'LR',
-           maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
+  def eigs(
+      self,
+      A: Callable,
+      args: Optional[List[Tensor]] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      num_krylov_vecs: int = 50,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      which: Text = 'LR',
+      maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
     """Arnoldi method for finding the lowest eigenvector-eigenvalue pairs
     of a linear operator `A`. `A` is a callable implementing the
     matrix-vector product. If no `initial_state` is provided then
     `shape` and `dtype` have to be passed so that a suitable initial
+    state can be randomly  generated.
+    Args:
+      A: A (sparse) implementation of a linear operator
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      initial_state: An initial vector for the algorithm. If `None`,
+        a random initial `Tensor` is created using the `numpy.random.randn`
+        method.
+      shape: The shape of the input-dimension of `A`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      numeig: The nummber of eigenvector-eigenvalue pairs to be computed.
+        If `numeig > 1`, `reorthogonalize` has to be `True`.
+      tol: The desired precision of the eigenvalus. Uses
+      which : ['LM' | 'SM' | 'LR' | 'SR' | 'LI' | 'SI']
+        Which `k` eigenvectors and eigenvalues to find:
+            'LM' : largest magnitude
+            'SM' : smallest magnitude
+            'LR' : largest real part
+            'SR' : smallest real part
+            'LI' : largest imaginary part
+            'SI' : smallest imaginary part
+        Note that not all of those might be supported by specialized backends.
+      maxiter: The maximum number of iterations.
+    Returns:
+       `Tensor`: An array of `numeig` lowest eigenvalues
+       `list`: A list of `numeig` lowest eigenvectors
+    """
+    raise NotImplementedError("Backend '{}' has not implemented eigs.".format(
+        self.name))
+
+  def eigsh(
+      self,
+      A: Callable,
+      args: Optional[List[Tensor]] = None,
+      initial_state: Optional[Tensor] = None,
+      shape: Optional[Tuple[int, ...]] = None,
+      dtype: Optional[Type[np.number]] = None,  # pylint: disable=no-member
+      num_krylov_vecs: int = 50,
+      numeig: int = 1,
+      tol: float = 1E-8,
+      which: Text = 'LR',
+      maxiter: Optional[int] = None) -> Tuple[Tensor, List]:
+    """Lanczos method for finding the lowest eigenvector-eigenvalue pairs
+    of a symmetric (hermitian) linear operator `A`. `A` is a callable 
+    implementing the matrix-vector product. If no `initial_state` is provided 
+    then `shape` and `dtype` have to be passed so that a suitable initial
     state can be randomly  generated.
     Args:
       A: A (sparse) implementation of a linear operator
@@ -432,10 +483,9 @@ class AbstractBackend:
             x0: Optional[Tensor] = None,
             tol: float = 1E-05,
             atol: Optional[float] = None,
-            num_krylov_vectors: Optional[int] = None,
+            num_krylov_vectors: int = 20,
             maxiter: Optional[int] = 1,
-            M: Optional[Callable] = None
-            ) -> Tuple[Tensor, int]:
+            M: Optional[Callable] = None) -> Tuple[Tensor, int]:
     """ GMRES solves the linear system A @ x = b for x given a vector `b` and
     a general (not necessarily symmetric/Hermitian) linear operator `A`.
 
@@ -486,9 +536,9 @@ class AbstractBackend:
                           atol=tol
       num_krylov_vectors
                : Size of the Krylov space to build at each restart.
-                 Expense is cubic in this parameter. If supplied, it must be
-                 an integer in 0 < num_krylov_vectors <= b.size.
-                 Default: b.size.
+                 Expense is cubic in this parameter. It must be positive.
+                 If greater than b.size, it will be set to b.size.
+                 Default: 20
       maxiter  : The Krylov space will be repeatedly rebuilt up to this many
                  times. Large values of this argument
                  should be used only with caution, since especially for nearly
@@ -513,8 +563,72 @@ class AbstractBackend:
       x       : The converged solution. It has the same shape as `b`.
       info    : 0 if convergence was achieved, the number of restarts otherwise.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented gmres.".format(self.name))
+    bshape = self.shape_tensor(b)
+    N = self.shape_prod(bshape)
+    try:
+      dtype = b.dtype
+    except AttributeError:
+      raise AttributeError("gmres was called using a vector `b` that did"
+                           "not have a dtype method.")
+
+    if x0 is None:
+      x0 = self.zeros((N,), dtype)
+    else:
+      x0shape = self.shape_tensor(x0)
+      if x0shape != bshape:
+        errstring = (f"If x0 is supplied, its shape, {x0shape}, must match b's"
+                     f", {bshape}.")
+        raise ValueError(errstring)
+      try:
+        x0dtype = x0.dtype
+      except AttributeError:
+        raise AttributeError("gmres was called using a vector `x0` that did"
+                             "not have a dtype method.")
+      if x0dtype != dtype:
+        errstring = (f"If x0 is supplied, its dtype, {x0dtype}, must match"
+                     f" b's, {dtype}.")
+        raise TypeError(errstring)
+
+      x0 = self.reshape(x0, (N,))
+
+    if num_krylov_vectors > N:
+      num_krylov_vectors = N
+
+    if tol < 0:
+      raise ValueError(f"tol = {tol} must be positive.")
+
+    if atol is None:
+      atol = tol
+    elif atol < 0:
+      raise ValueError(f"atol = {atol} must be positive.")
+
+    if num_krylov_vectors <= 0:
+      errstring = (f"num_krylov_vectors must be positive, not"
+                   f"{num_krylov_vectors}.")
+      raise ValueError(errstring)
+
+    if A_args is None:
+      A_args = []
+    if A_kwargs is None:
+      A_kwargs = {}
+    return self._gmres(A_mv, b, A_args, A_kwargs, x0, tol, atol,
+                       num_krylov_vectors, maxiter, M=M)
+
+
+  def _gmres(self,
+             A_mv: Callable,
+             b: Tensor,
+             A_args: List,
+             A_kwargs: dict,
+             x0: Tensor,
+             tol: float,
+             atol: float,
+             num_krylov_vectors: int,
+             maxiter: int,
+             M: Optional[Callable] = None) -> Tuple[Tensor, int]:
+    raise NotImplementedError("Backend '{}' has not implemented gmres.".format(
+        self.name))
+
 
   def addition(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     """
@@ -606,8 +720,8 @@ class AbstractBackend:
       Tensor: The result of multiplying `tensor1` onto `tensor2`.
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented `broadcast_right_multiplication`."
-        .format(self.name))
+        "Backend '{}' has not implemented `broadcast_right_multiplication`.".
+        format(self.name))
 
   def broadcast_left_multiplication(self, tensor1: Tensor,
                                     tensor2: Tensor) -> Tensor:
@@ -623,8 +737,8 @@ class AbstractBackend:
       Tensor: The result of multiplying `tensor1` onto `tensor2`.
     """
     raise NotImplementedError(
-        "Backend '{}' has not implemented `broadcast_left_multiplication`."
-        .format(self.name))
+        "Backend '{}' has not implemented `broadcast_left_multiplication`.".
+        format(self.name))
 
   def sin(self, tensor: Tensor) -> Tensor:
     """
@@ -742,7 +856,10 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented diagflat.".format(self.name))
 
-  def diagonal(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+  def diagonal(self,
+               tensor: Tensor,
+               offset: int = 0,
+               axis1: int = -2,
                axis2: int = -1) -> Tensor:
     """Return specified diagonals.
 
@@ -770,7 +887,10 @@ class AbstractBackend:
     raise NotImplementedError(
         "Backend '{}' has not implemented diagonal.".format(self.name))
 
-  def trace(self, tensor: Tensor, offset: int = 0, axis1: int = -2,
+  def trace(self,
+            tensor: Tensor,
+            offset: int = 0,
+            axis1: int = -2,
             axis2: int = -1) -> Tensor:
     """Return summed entries along diagonals.
 
@@ -790,8 +910,8 @@ class AbstractBackend:
     Returns:
       array_of_diagonals: The batched summed diagonals.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented trace.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented trace.".format(
+        self.name))
 
   def abs(self, tensor: Tensor) -> Tensor:
     """
@@ -801,8 +921,8 @@ class AbstractBackend:
     Returns:
       tensor: Its elementwise absolute value.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `abs`.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `abs`.".format(
+        self.name))
 
   def sign(self, tensor: Tensor):
     """
@@ -812,8 +932,8 @@ class AbstractBackend:
     Args:
       tensor: The input tensor.
     """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented `sign`.".format(self.name))
+    raise NotImplementedError("Backend '{}' has not implemented `sign`.".format(
+        self.name))
 
   def pivot(self, tensor: Tensor, pivot_axis: int = -1) -> Tensor:
     """ Reshapes a tensor into a matrix, whose columns (rows) are the
@@ -836,6 +956,58 @@ class AbstractBackend:
 
     left_dims = tensor.shape[:pivot_axis]
     right_dims = tensor.shape[pivot_axis:]
-    tensor = self.reshape(tensor, [self.shape_prod(left_dims),
-                                   self.shape_prod(right_dims)])
+    tensor = self.reshape(
+        tensor, [self.shape_prod(left_dims),
+                 self.shape_prod(right_dims)])
     return tensor
+
+  def serialize_tensor(self, tensor: Tensor) -> str:
+    """
+    Return a string that serializes the given tensor.
+    
+    Args:
+      tensor: The input tensor.
+      
+    Returns:
+      A string representing the serialized tensor. 
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented serialize_tensor.".format(self.name))
+
+  def deserialize_tensor(self, s: str) -> Tensor:
+    """
+    Return a tensor given a serialized tensor string. 
+    
+    Args:
+      s: The input string representing a serialized tensor.
+      
+    Returns:
+      The tensor object represented by the string.
+     
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented deserialize_tensor.".format(
+            self.name))
+
+  def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
+    """
+    Returns the exponentiation of tensor a raised to b.  
+      If b is a tensor, then the exponentiation is element-wise 
+        between the two tensors, with a as the base and b as the power.
+        Note that a and b must be broadcastable to the same shape if 
+        b is a tensor.
+      If b is a scalar, then the exponentiation is each value in a
+        raised to the power of b.
+    
+    Args:
+      a: The tensor containing the bases.
+      b: The tensor containing the powers; or a single scalar as the power.
+
+    Returns:
+      The tensor that is each element of a raised to the 
+        power of b.  Note that the shape of the returned tensor
+        is that produced by the broadcast of a and b.
+    """
+    raise NotImplementedError(
+        f"Backend {self.name} has not implemented power.")
+        

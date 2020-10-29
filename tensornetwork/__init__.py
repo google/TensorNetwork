@@ -4,43 +4,21 @@ from tensornetwork.network_operations import (
     check_connected, check_correct, contract_trace_edges, copy, get_all_edges,
     get_all_nodes, get_neighbors, get_subgraph_dangling, reachable,
     reduced_density, remove_node, replicate_nodes, split_node,
-    split_node_full_svd, split_node_qr, split_node_rq, switch_backend)
+    split_node_full_svd, split_node_qr, split_node_rq, switch_backend,
+    nodes_to_json, nodes_from_json)
 
 from tensornetwork.tensor import Tensor
-from tensornetwork.linalg.initialization import (
-    eye,
-    ones,
-    randn,
-    random_uniform,
-    zeros
-    )
+from tensornetwork.linalg.initialization import (eye, ones, randn,
+                                                 random_uniform, zeros)
 
 from tensornetwork.linalg.linalg import norm, qr, svd
 
 #pylint: disable=redefined-builtin
-from tensornetwork.linalg.operations import (
-    tensordot,
-    reshape,
-    transpose,
-    take_slice,
-    shape,
-    sqrt,
-    outer,
-    einsum,
-    conj,
-    hconj,
-    sin,
-    cos,
-    exp,
-    log,
-    diagonal,
-    diagflat,
-    trace,
-    sign,
-    abs,
-    kron,
-    pivot
-    )
+from tensornetwork.linalg.operations import (tensordot, reshape, transpose,
+                                             take_slice, shape, sqrt, outer,
+                                             einsum, conj, hconj, sin, cos, exp,
+                                             log, diagonal, diagflat, trace,
+                                             sign, abs, kron, pivot)
 
 from tensornetwork.backends.decorators import jit
 
@@ -55,7 +33,7 @@ from tensornetwork.ncon_interface import ncon
 from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors
-from tensornetwork.utils import load_nodes, save_nodes
+from tensornetwork.utils import load_nodes, save_nodes, from_topology
 from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG

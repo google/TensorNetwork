@@ -9,7 +9,9 @@ import numpy as np
 import math
 
 
-@tf.keras.utils.register_keras_serializable()  # type: ignore
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseExpander(Layer):
   """Expander TN layer. Greatly expands dimensionality of input.
   Used in conjunction with DenseEntangler to achieve very large hidden layers.
@@ -19,23 +21,25 @@ class DenseExpander(Layer):
   constructed from and applied to the last input dimension.
 
   Example:
+    ::
 
-  ```python
-  # as first layer in a sequential model:
-  model = Sequential()
-  model.add(
-    DenseExpander(exp_base=2
-                  num_nodes=3,
-                  use_bias=True,
-                  activation='relu',
-                  input_shape=(128,)))
-  # now the model will take as input arrays of shape (*, 128)
-  # and output arrays of shape (*, 1024).
-  # After the first layer, you don't need to specify
-  # the size of the input anymore:
-  model.add(
-    DenseExpander(exp_base=2, num_nodes=2, use_bias=True, activation='relu'))
-  ```
+      # as first layer in a sequential model:
+      model = Sequential()
+      model.add(
+        DenseExpander(exp_base=2
+                      num_nodes=3,
+                      use_bias=True,
+                      activation='relu',
+                      input_shape=(128,)))
+      # now the model will take as input arrays of shape (*, 128)
+      # and output arrays of shape (*, 1024).
+      # After the first layer, you don't need to specify
+      # the size of the input anymore:
+      model.add(
+        DenseExpander(exp_base=2, 
+                      num_nodes=2, 
+                      use_bias=True, 
+                      activation='relu'))
 
   Args:
     exp_base: Positive integer, base of the dimensionality expansion term.

@@ -14,6 +14,7 @@ from tensornetwork.block_sparse.linalg import (transpose, sqrt, diag, trace,
                                                norm, eye, eigh, inv, eig)
 from tensornetwork.block_sparse.initialization import (ones, zeros, randn,
                                                        random, randn_like)
+
 from tensornetwork.block_sparse.caching import get_cacher, get_caching_status
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
@@ -1537,6 +1538,19 @@ def test_einsum_raises():
   with pytest.raises(
       NotImplementedError, match="`einsum` currently not implemented"):
     backend.einsum('', [])
+
+def test_sign():
+  tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
+  backend = symmetric_backend.SymmetricBackend()
+  res = backend.sign(tensor)
+  np.testing.assert_allclose(res.data, np.sign(tensor.data))
+
+def test_abs():
+  tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
+  backend = symmetric_backend.SymmetricBackend()
+  res = backend.abs(tensor)
+  np.testing.assert_allclose(res.data, np.abs(tensor.data))
+
 
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('x0', [True, False])

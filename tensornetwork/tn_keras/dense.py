@@ -7,7 +7,9 @@ import tensornetwork as tn
 import numpy as np
 
 
-@tf.keras.utils.register_keras_serializable() # type: ignore
+# pytype: disable=module-attr
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+# pytype: enable=module-attr
 class DenseDecomp(Layer):
   """TN layer comparable to Dense that carries out matrix multiplication
   with 2 significantly smaller weight matrices instead of 1 large one.
@@ -19,18 +21,20 @@ class DenseDecomp(Layer):
   constructed from and applied to the last input dimension.
 
   Example:
+    ::
 
-  ```python
-  # as first layer in a sequential model:
-  model = Sequential()
-  model.add(
-    DenseDecomp(512, decomp_size=128, activation='relu', input_shape=(1024,)))
-  # now the model will take as input arrays of shape (*, 1024)
-  # and output arrays of shape (*, 512).
-  # After the first layer, you don't need to specify
-  # the size of the input anymore:
-  model.add(DenseDecomp(512, decomp_size=128, activation='relu'))
-  ```
+      # as first layer in a sequential model:
+      model = Sequential()
+      model.add(
+        DenseDecomp(512, 
+                    decomp_size=128, 
+                    activation='relu', 
+                    input_shape=(1024,)))
+      # now the model will take as input arrays of shape (*, 1024)
+      # and output arrays of shape (*, 512).
+      # After the first layer, you don't need to specify
+      # the size of the input anymore:
+      model.add(DenseDecomp(512, decomp_size=128, activation='relu'))
 
   Args:
     output_dim: Positive integer, dimensionality of the output space.

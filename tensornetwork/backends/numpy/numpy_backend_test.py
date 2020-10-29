@@ -445,15 +445,11 @@ def test_gmres_raises():
     backend.gmres(dummy_mv, b, x0=x0)
 
   num_krylov_vectors = 0
-  diff = (f"num_krylov_vectors must be in "
-          f"0 < {num_krylov_vectors} <= {b.size}")
+  diff = (f"num_krylov_vectors must be positive, not"
+          f"{num_krylov_vectors}.")
   with pytest.raises(ValueError, match=diff): # num_krylov_vectors <= 0
     backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
   num_krylov_vectors = N+1
-  diff = (f"num_krylov_vectors must be in "
-          f"0 < {num_krylov_vectors} <= {b.size}")
-  with pytest.raises(ValueError, match=diff): # num_krylov_vectors > b.size
-    backend.gmres(dummy_mv, b, num_krylov_vectors=num_krylov_vectors)
 
   tol = -1.
   diff = (f"tol = {tol} must be positive.")
@@ -492,7 +488,7 @@ def test_gmres_on_larger_random_problem(dtype):
     return A @ x
   b = A_mv(solution)
   tol = b.size * np.finfo(dtype).eps
-  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  x, _ = backend.gmres(A_mv, b, tol=tol, num_krylov_vectors=100)
   err = np.linalg.norm(np.abs(x)-np.abs(solution))
   rtol = tol*np.linalg.norm(b)
   atol = tol
@@ -512,7 +508,7 @@ def test_gmres_not_matrix(dtype):
     return backend.einsum('ijkl,kl', A, x)
   b = A_mv(solution)
   tol = b.size * np.finfo(dtype).eps
-  x, _ = backend.gmres(A_mv, b, tol=tol) # atol = tol by default
+  x, _ = backend.gmres(A_mv, b, tol=tol, num_krylov_vectors=100)
   err = np.linalg.norm(np.abs(x)-np.abs(solution))
   rtol = tol*np.linalg.norm(b)
   atol = tol
@@ -943,4 +939,27 @@ def test_pivot(dtype, pivot_axis):
   tensor = backend.randn(shape, dtype=dtype, seed=10)
   expected = tensor.reshape(pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
+  np.testing.assert_allclose(expected, actual)
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_serialize(dtype):
+  shape = (8, 6, 4, 2, 1)
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn(shape, dtype=dtype, seed=10)
+  s = backend.serialize_tensor(tensor)
+  assert isinstance(s, str)
+  assert (tensor == backend.deserialize_tensor(s)).all()
+
+@pytest.mark.parametrize('dtype', np_dtypes)
+def test_power(dtype):
+  shape = (4, 3, 2)
+  backend = numpy_backend.NumPyBackend()
+  base_tensor = np.abs(backend.randn(shape, dtype=dtype, seed=10))
+  power_tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.power(base_tensor, power_tensor)
+  expected = np.power(base_tensor, power_tensor)
+  np.testing.assert_allclose(expected, actual)
+  power = np.random.rand(1)[0]
+  actual = backend.power(base_tensor, power)
+  expected = np.power(base_tensor, power)
   np.testing.assert_allclose(expected, actual)

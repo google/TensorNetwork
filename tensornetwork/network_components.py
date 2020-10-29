@@ -446,7 +446,7 @@ class AbstractNode(ABC):
     Returns:
       The loaded node.
     """
-    return #pytype: disable=bad-return-type
+    return  #pytype: disable=bad-return-type
 
   @classmethod
   def _load_node_data(cls, node_data: h5py.Group) -> Tuple[Any, Any, Any, Any]:
@@ -478,17 +478,42 @@ class AbstractNode(ABC):
     node_group.create_dataset('name', data=self.name)
     node_group.create_dataset('shape', data=self.shape)
     if self.axis_names:
-      node_group.create_dataset(
-          'axis_names',
-          dtype=string_type,
-          data=np.array(self.axis_names, dtype=object))
+      node_group.create_dataset('axis_names',
+                                dtype=string_type,
+                                data=np.array(self.axis_names, dtype=object))
     else:  #couldn't find any documentation on saving None
       node_group.create_dataset('axis_names', dtype='i', data=123456789)
 
-    node_group.create_dataset(
-        'edges',
-        dtype=string_type,
-        data=np.array([edge.name for edge in self.edges], dtype=object))
+    node_group.create_dataset('edges',
+                              dtype=string_type,
+                              data=np.array([edge.name for edge in self.edges],
+                                            dtype=object))
+
+  @abstractmethod
+  def to_serial_dict(self) -> Dict:
+    """Return a serializable dict representing the node.
+    
+    Returns: A dict object.
+    """
+    node_dict = {
+        'name': self.name,
+        'axis_names': self.axis_names,
+        'backend': self.backend.name,
+    }
+    return node_dict
+
+  @classmethod
+  @abstractmethod
+  def from_serial_dict(cls, serial_dict) -> "AbstractNode":
+    """Return a node given a serialized dict representing it.
+    
+    Args:
+      serial_dict: A python dict representing a serialized node.
+      
+    Returns:
+      A node.
+    """
+    return cls(**serial_dict)
 
   @abstractmethod
   def copy(self, conjugate: bool = False) -> "AbstractNode":
@@ -551,11 +576,10 @@ class Node(AbstractNode):
     else:
       backend_obj = backend_factory.get_backend(backend)
     self._tensor = backend_obj.convert_to_tensor(tensor)
-    super().__init__(
-        name=name,
-        axis_names=axis_names,
-        backend=backend_obj,
-        shape=backend_obj.shape_tuple(self._tensor))
+    super().__init__(name=name,
+                     axis_names=axis_names,
+                     backend=backend_obj,
+                     shape=backend_obj.shape_tuple(self._tensor))
 
   def op_protection(self, other: Union[int, float, complex, "Node"]) -> Tensor:
     if not isinstance(other, (int, float, complex, Node)):
@@ -575,38 +599,34 @@ class Node(AbstractNode):
   def __add__(self, other: Union[int, float, "Node"]) -> "Node":
     other_tensor = self.op_protection(other)
     new_tensor = self.backend.addition(self.tensor, other_tensor)
-    return Node(
-        tensor=new_tensor,
-        name=self.name,
-        axis_names=None,
-        backend=self.backend.name)
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=None,
+                backend=self.backend.name)
 
   def __sub__(self, other: Union[int, float, "Node"]) -> "Node":
     other_tensor = self.op_protection(other)
     new_tensor = self.backend.subtraction(self.tensor, other_tensor)
-    return Node(
-        tensor=new_tensor,
-        name=self.name,
-        axis_names=None,
-        backend=self.backend.name)
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=None,
+                backend=self.backend.name)
 
   def __mul__(self, other: Union[int, float, "Node"]) -> "Node":
     other_tensor = self.op_protection(other)
     new_tensor = self.backend.multiply(self.tensor, other_tensor)
-    return Node(
-        tensor=new_tensor,
-        name=self.name,
-        axis_names=None,
-        backend=self.backend.name)
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=None,
+                backend=self.backend.name)
 
   def __truediv__(self, other: Union[int, float, "Node"]) -> "Node":
     other_tensor = self.op_protection(other)
     new_tensor = self.backend.divide(self.tensor, other_tensor)
-    return Node(
-        tensor=new_tensor,
-        name=self.name,
-        axis_names=None,
-        backend=self.backend.name)
+    return Node(tensor=new_tensor,
+                name=self.name,
+                axis_names=None,
+                backend=self.backend.name)
 
   def get_tensor(self) -> Tensor:
     return self.tensor
@@ -615,11 +635,10 @@ class Node(AbstractNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "Node":
-    new_node = Node(
-        self.tensor,
-        name=self.name,
-        axis_names=self.axis_names,
-        backend=self.backend)
+    new_node = Node(self.tensor,
+                    name=self.name,
+                    axis_names=self.axis_names,
+                    backend=self.backend)
     if conjugate:
       new_node.set_tensor(self.backend.conj(self.tensor))
     visited_edges = set()
@@ -628,13 +647,39 @@ class Node(AbstractNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(
-            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
+        new_edge = Edge(new_node,
+                        i,
+                        name=edge.name,
+                        node2=new_node,
+                        axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
         new_node.add_edge(Edge(new_node, i, name=edge.name), i)
     return new_node
+
+  def to_serial_dict(self) -> Dict:
+    """Return a serializable dict representing the node.
+    
+    Returns: A dict object.
+    """
+    node_dict = super().to_serial_dict()
+    node_dict['tensor'] = self.backend.serialize_tensor(self.tensor)
+    return node_dict
+
+  @classmethod
+  def from_serial_dict(cls, serial_dict) -> "Node":
+    """Return a node given a serialized dict representing it.
+    
+    Args:
+      serial_dict: A python dict representing a serialized node.
+      
+    Returns:
+      A node.
+    """
+    serial_dict['tensor'] = backend_factory.get_backend(
+        serial_dict['backend']).deserialize_tensor(serial_dict['tensor'])
+    return cls(**serial_dict)
 
   @property
   def shape(self) -> Tuple[Optional[int], ...]:
@@ -673,11 +718,10 @@ class Node(AbstractNode):
     name, _, axis_names, backend = cls._load_node_data(node_data)
     tensor = node_data['tensor'][()]
     # pylint: disable=unnecessary-comprehension
-    node = Node(
-        tensor,
-        name=name,
-        axis_names=[ax for ax in axis_names],
-        backend=backend)
+    node = Node(tensor,
+                name=name,
+                axis_names=[ax for ax in axis_names],
+                backend=backend)
     return node
 
   def __repr__(self) -> Text:
@@ -721,11 +765,10 @@ class CopyNode(AbstractNode):
     self._tensor = None
     self.copy_node_dtype = dtype
 
-    super().__init__(
-        name=name,
-        axis_names=axis_names,
-        backend=backend_obj,
-        shape=(dimension,) * rank)
+    super().__init__(name=name,
+                     axis_names=axis_names,
+                     backend=backend_obj,
+                     shape=(dimension,) * rank)
 
   def __add__(self, other: Union[int, float, "AbstractNode"]) -> "AbstractNode":
     raise NotImplementedError("AbstractNode has not implemented addition ( + )")
@@ -753,13 +796,12 @@ class CopyNode(AbstractNode):
     self.tensor = tensor
 
   def copy(self, conjugate: bool = False) -> "CopyNode":
-    new_node = CopyNode(
-        self.rank,
-        self.dimension,
-        name=self.name,
-        axis_names=self.axis_names,
-        backend=self.backend,
-        dtype=self.dtype)
+    new_node = CopyNode(self.rank,
+                        self.dimension,
+                        name=self.name,
+                        axis_names=self.axis_names,
+                        backend=self.backend,
+                        dtype=self.dtype)
     new_node.set_tensor(self.get_tensor())
     visited_edges = set()
     for i, edge in enumerate(self.edges):
@@ -767,8 +809,11 @@ class CopyNode(AbstractNode):
         continue
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
-        new_edge = Edge(
-            new_node, i, name=edge.name, node2=new_node, axis2=edge.axis2)
+        new_edge = Edge(new_node,
+                        i,
+                        name=edge.name,
+                        node2=new_node,
+                        axis2=edge.axis2)
         new_node.add_edge(new_edge, i)
         new_node.add_edge(new_edge, edge.axis2)
       else:
@@ -868,8 +913,8 @@ class CopyNode(AbstractNode):
       node_group: h5py group where data is saved
     """
     super()._save_node(node_group)
-    node_group.create_dataset(
-        name='copy_node_dtype', data=np.dtype(self.copy_node_dtype).name)
+    node_group.create_dataset(name='copy_node_dtype',
+                              data=np.dtype(self.copy_node_dtype).name)
 
   @classmethod
   def _load_node(cls, node_data: h5py.Group) -> "CopyNode":
@@ -884,16 +929,33 @@ class CopyNode(AbstractNode):
     name, shape, axis_names, backend = cls._load_node_data(node_data)
     copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
     # pylint: disable=unnecessary-comprehension
-    node = CopyNode(
-        rank=len(shape),
-        dimension=shape[0],
-        name=name,
-        axis_names=[ax for ax in axis_names],
-        backend=backend,
-        dtype=copy_node_dtype)
+    node = CopyNode(rank=len(shape),
+                    dimension=shape[0],
+                    name=name,
+                    axis_names=[ax for ax in axis_names],
+                    backend=backend,
+                    dtype=copy_node_dtype)
 
     return node
 
+  def to_serial_dict(self) -> Dict:
+    """Return a serializable dict representing the node.
+    
+    Returns: A dict object.
+    """
+    raise NotImplementedError("to_serial_dict is not implemented in CopyNode")
+
+  @classmethod
+  def from_serial_dict(cls, serial_dict) -> "CopyNode":
+    """Return a node given a serialized dict representing it.
+    
+    Args:
+      serial_dict: A python dict representing a serialized node.
+      
+    Returns:
+      A node.
+    """
+    raise NotImplementedError("from_serial_dict is not implemented in CopyNode")
 
 class Edge:
   """Each edge represents a vector space common to the tensors it connects and
@@ -1200,6 +1262,17 @@ class Edge:
     if self is not other:
       raise ValueError('Cannot break two unconnected edges')
     return self.disconnect()
+
+  def to_serial_dict(self) -> Dict:
+    """Return a serializable dict representing the edge.
+    
+    Returns: A dict object.
+    """
+    edge_dict = {
+        'name': self.name,
+        'axes': self._axes,
+    }
+    return edge_dict
 
 
 def get_shared_edges(node1: AbstractNode, node2: AbstractNode) -> Set[Edge]:
@@ -1699,20 +1772,18 @@ def _remove_edges(edges: Set[Edge], node1: AbstractNode, node2: AbstractNode,
   remaining_edges = []
   for (i, edge) in enumerate(node1_edges):
     if edge not in edges:  # NOTE: Makes the cost quadratic in # edges
-      edge.update_axis(
-          old_node=node1,
-          old_axis=i,
-          new_axis=len(remaining_edges),
-          new_node=new_node)
+      edge.update_axis(old_node=node1,
+                       old_axis=i,
+                       new_axis=len(remaining_edges),
+                       new_node=new_node)
       remaining_edges.append(edge)
 
   for (i, edge) in enumerate(node2_edges):
     if edge not in edges:
-      edge.update_axis(
-          old_node=node2,
-          old_axis=i,
-          new_axis=len(remaining_edges),
-          new_node=new_node)
+      edge.update_axis(old_node=node2,
+                       old_axis=i,
+                       new_axis=len(remaining_edges),
+                       new_node=new_node)
       remaining_edges.append(edge)
 
   for (i, edge) in enumerate(remaining_edges):
@@ -1801,8 +1872,10 @@ def contract(edge: Edge,
     return _contract_trace(edge, name)
   new_tensor = backend.tensordot(edge.node1.tensor, edge.node2.tensor,
                                  [[edge.axis1], [edge.axis2]])
-  new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend.name)
+  new_node = Node(tensor=new_tensor,
+                  name=name,
+                  axis_names=axis_names,
+                  backend=backend.name)
   # edge.node1 and edge.node2 get new edges in _remove_edges
   _remove_edges(set([edge]), edge.node1, edge.node2, new_node)
   return new_node
@@ -1832,11 +1905,10 @@ def contract_copy_node(copy_node: CopyNode,
       if edge.node1 is copy_node or edge.node2 is copy_node:
         continue
       old_axis = edge.axis1 if edge.node1 is partner else edge.axis2
-      edge.update_axis(
-          old_node=partner,
-          old_axis=old_axis,
-          new_node=new_node,
-          new_axis=new_axis)
+      edge.update_axis(old_node=partner,
+                       old_axis=old_axis,
+                       new_node=new_node,
+                       new_axis=new_axis)
       new_node.add_edge(edge, new_axis)
       new_axis += 1
   assert len(new_tensor.shape) == new_axis
@@ -1881,8 +1953,11 @@ def connect(edge1: Edge, edge2: Edge, name: Optional[Text] = None) -> Edge:
   axis1_num = node1.get_axis_number(edge1.axis1)
   axis2_num = node2.get_axis_number(edge2.axis1)
 
-  new_edge = Edge(
-      node1=node1, axis1=axis1_num, name=name, node2=node2, axis2=axis2_num)
+  new_edge = Edge(node1=node1,
+                  axis1=axis1_num,
+                  name=name,
+                  node2=node2,
+                  axis2=axis2_num)
 
   node1.add_edge(new_edge, axis1_num, override=True)
   node2.add_edge(new_edge, axis2_num, override=True)
@@ -1999,7 +2074,10 @@ def contract_between(
           np.mean(node1_output_axes) > np.mean(node2_output_axes)):
         node1, node2 = node2, node1
         axes1, axes2 = axes2, axes1
-
+    # Sorting the indicies improves performance.
+    ind_sort = [axes1.index(l) for l in sorted(axes1)]
+    axes1 = [axes1[i] for i in ind_sort]
+    axes2 = [axes2[i] for i in ind_sort]
     new_tensor = backend.tensordot(node1.tensor, node2.tensor, [axes1, axes2])
     new_node = Node(tensor=new_tensor, name=name, backend=backend)
     # node1 and node2 get new edges in _remove_edges
@@ -2084,8 +2162,10 @@ def outer_product(node1: AbstractNode,
     new_tensor = backend.outer_product(node1.tensor, node2.tensor)
   node1_axis_names = node1.axis_names
   node2_axis_names = node2.axis_names
-  new_node = Node(
-      tensor=new_tensor, name=name, axis_names=axis_names, backend=backend)
+  new_node = Node(tensor=new_tensor,
+                  name=name,
+                  axis_names=axis_names,
+                  backend=backend)
   additional_axes = len(node1.tensor.shape)
 
   for i, edge in enumerate(node1.edges):
