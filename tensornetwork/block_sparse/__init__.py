@@ -7,9 +7,10 @@ from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
                                                           tensordot,
                                                           outerproduct,
                                                           compare_shapes)
-from tensornetwork.block_sparse.linalg import (svd, qr, diag, sqrt, trace, inv,#pylint: disable=redef
+
+from tensornetwork.block_sparse.linalg import (svd, qr, diag, sqrt, trace, inv,#pylint: disable=redefined-builtin
                                                pinv, eye, eigh, eig, conj,
-                                               reshape, transpose, norm, abs,
+                                               reshape, transpose, norm, abs, 
                                                sign)
 
 from tensornetwork.block_sparse.initialization import (zeros, ones, randn,
