@@ -812,8 +812,8 @@ def test_item():
   assert t1.item() == 1
 
 
-  Ds = [1,1]
-  charges = [U1Charge.random(Ds[n], 1,2) for n in range(2)]
+  Ds = [1, 1]
+  charges = [U1Charge.random(Ds[n], 1, 2) for n in range(2)]
   flows = [False, False]
   inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
   t2 = BlockSparseTensor.random(inds, dtype=np.float64)
