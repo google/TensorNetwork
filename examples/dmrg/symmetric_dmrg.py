@@ -1,19 +1,22 @@
-from typing import Type, Text
-import tensornetwork as tn
-import numpy as np
-from tensornetwork import (FiniteMPO, FiniteMPS, U1Charge, Index,
-                           BlockSparseTensor, FiniteXXZ, FiniteDMRG)
-
 """
 Example of backend independent DMRG calculation for the
 spin 1/2 Heisenberg Model.
 """
 
+from typing import Type, Text
+import tensornetwork as tn
+import numpy as np
+from tensornetwork import (FiniteMPO, FiniteMPS, U1Charge, Index,
+                           BlockSparseTensor, FiniteXXZ, FiniteDMRG)
 import jax
 #enable double precision in JAX
 jax.config.update('jax_enable_x64', True)
-def blocksparse_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray,
-                        Bz: np.ndarray, dtype: Type[np.number] = np.float64)->FiniteMPO:
+
+
+def blocksparse_XXZ_mpo(Jz: np.ndarray,
+                        Jxy: np.ndarray,
+                        Bz: np.ndarray,
+                        dtype: Type[np.number] = np.float64) -> FiniteMPO:
   """
   Prepare a symmetric MPO.
 
@@ -40,8 +43,10 @@ def blocksparse_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray,
   return FiniteMPO(mpotensors, backend='symmetric')
 
 
-def blocksparse_halffilled_spin_mps(N: int, D: int, B: int=5,
-                                    dtype: Type[np.number]=np.float64):
+def blocksparse_halffilled_spin_mps(N: int,
+                                    D: int,
+                                    B: int = 5,
+                                    dtype: Type[np.number] = np.float64):
   """
   Prepare a U(1) symmetric spin 1/2 MPS at zero total magnetization.
 
@@ -68,8 +73,7 @@ def blocksparse_halffilled_spin_mps(N: int, D: int, B: int=5,
   return FiniteMPS(tensors, canonicalize=True, backend='symmetric')
 
 
-def initialize_spin_mps(N: int, D: int,
-                        dtype: Type[np.number], backend: Text):
+def initialize_spin_mps(N: int, D: int, dtype: Type[np.number], backend: Text):
   """
   Helper function to initialize an MPS for a given backend.
 
@@ -105,9 +109,9 @@ def initialize_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
   return FiniteXXZ(Jz, Jxy, Bz, dtype=dtype, backend=backend)
 
 
-def run_twosite_dmrg(N: int, D: int, dtype: Type[np.number],
-                     Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
-                     num_sweeps: int, backend: Text):
+def run_twosite_dmrg(N: int, D: int, dtype: Type[np.number], Jz: np.ndarray,
+                     Jxy: np.ndarray, Bz: np.ndarray, num_sweeps: int,
+                     backend: Text):
   """
   Run two-site dmrg for the XXZ Heisenberg model using a given backend.
 
@@ -129,26 +133,27 @@ def run_twosite_dmrg(N: int, D: int, dtype: Type[np.number],
   return dmrg.run_two_site(
       max_bond_dim=D, num_sweeps=num_sweeps, num_krylov_vecs=10, verbose=1)
 
-if __name__ == '__main__':
-  """
-  Run two-site DMRG for the XXZ Heisenberg model for different backends.
-  """
 
-  #change parameters to simulate larger systems and bigger bond dimensions
+if __name__ == '__main__':
+  # Run two-site DMRG for the XXZ Heisenberg model for
+  # different backends.
   #
-  #Notes: JAX backend peforms jit (just in time) compilation of
-  #       operations. This results in an overhead whenever the computation
-  #       encounters a bond dimension it has not seen before.
-  #       In two-site DMRG this happens when the bond dimensions
-  #       are ramped up during the simulation close to the boundaries.
+  # change parameters to simulate larger systems and bigger
+  # bond dimensions
   #
-  #       The symmetric backend is for small bond dimensions typicall slower
-  #       Than other backends, due to inherent book-keeping overhead.
-  #       In comparison with numpy, the two backends typically are of the same
-  #       speed for a bond dimension of D ~ 100. For value of D >~ 400, their
-  #       symmetric backend is typically substantially faster than numpy,
-  #       pytorch or jax on CPU.
-  
+  # Notes: JAX backend peforms jit (just in time) compilation of
+  #        operations. This results in an overhead whenever the computation
+  #        encounters a bond dimension it has not seen before.
+  #        In two-site DMRG this happens when the bond dimensions
+  #        are ramped up during the simulation close to the boundaries.
+  #
+  #        The symmetric backend is for small bond dimensions typicall slower
+  #        Than other backends, due to inherent book-keeping overhead.
+  #        In comparison with numpy, the two backends typically are of the same
+  #        speed for a bond dimension of D ~ 100. For value of D >~ 400, their
+  #        symmetric backend is typically substantially faster than numpy,
+  #        pytorch or jax on CPU.
+
   num_sites, bond_dim, datatype = 20, 16, np.float64
   jz = np.ones(num_sites - 1)
   jxy = np.ones(num_sites - 1)
@@ -167,7 +172,7 @@ if __name__ == '__main__':
         bz,
         num_sweeps=n_sweeps,
         backend=be)
-  
+
   text = [
       f"\nenergy for backend {backend}: {e}" for backend, e in energies.items()
   ]
