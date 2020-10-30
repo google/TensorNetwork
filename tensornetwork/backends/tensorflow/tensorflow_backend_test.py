@@ -605,3 +605,8 @@ def test_item(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
   tensor = backend.ones(1, dtype=dtype) * 5.0
   assert backend.item(tensor) == 5.0
+
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.ones((2, 1), dtype=dtype)
+  with pytest.raises(ValueError, match="expected"):
+    backend.item(tensor)
