@@ -554,7 +554,8 @@ class BaseMPS:
         M=self.backend.sparse_shape(result)[1],
         dtype=self.dtype)
     return self.backend.sqrt(
-        ncon([tmp, self.backend.conj(tmp)], [[1, 2], [1, 2]], backend=self.backend))
+        ncon([tmp, self.backend.conj(tmp)], [[1, 2], [1, 2]],
+             backend=self.backend))
 
   # pylint: disable=inconsistent-return-statements
   def check_canonical(self) -> Any:
