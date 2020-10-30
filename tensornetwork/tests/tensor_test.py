@@ -436,5 +436,3 @@ def test_ncon_builder(backend):
           [[2, 1, -1], [2, 3, -2], [1, 3, -3]], 
           backend=backend).array,
       ncon_interface.finalize(builder).array)
-
-
