@@ -387,8 +387,13 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     return tf.math.sign(tensor)
 
   def item(self, tensor):
+    numel = 0
     if len(tensor.shape) > 0:
-      if reduce(mul, tensor.shape) != 1:
+      numel = reduce(mul, tensor.shape)
+      if numel != 1:
         raise ValueError(f"expected tensor with one element, "
                          f"got {tensor.shape}")
-    return tensor[0]
+
+    if numel == 1:
+      return tensor[0]
+    return tensor
