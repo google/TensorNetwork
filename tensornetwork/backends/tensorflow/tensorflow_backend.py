@@ -14,8 +14,6 @@
 # pylint: disable=line-too-long
 from typing import Optional, Any, Sequence, Tuple, Type, Callable, List
 from typing import Union
-from functools import reduce
-from operator import mul
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
