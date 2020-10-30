@@ -200,4 +200,3 @@ class NconBuilder():
     return NconBuilder(
         self.tensors + other.tensors,
         self.axes + other.axes)
-
