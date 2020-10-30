@@ -567,9 +567,9 @@ class AbstractBackend:
     N = self.shape_prod(bshape)
     try:
       dtype = b.dtype
-    except AttributeError:
+    except AttributeError as err:
       raise AttributeError("gmres was called using a vector `b` that did"
-                           "not have a dtype method.")
+                           "not have a dtype method.") from err
 
     if x0 is None:
       x0 = self.zeros((N,), dtype)
@@ -581,9 +581,9 @@ class AbstractBackend:
         raise ValueError(errstring)
       try:
         x0dtype = x0.dtype
-      except AttributeError:
+      except AttributeError as err:
         raise AttributeError("gmres was called using a vector `x0` that did"
-                             "not have a dtype method.")
+                             "not have a dtype method.") from err
       if x0dtype != dtype:
         errstring = (f"If x0 is supplied, its dtype, {x0dtype}, must match"
                      f" b's, {dtype}.")

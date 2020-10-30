@@ -433,7 +433,8 @@ class ChargeArray:
   def item(self):
     if len(self.shape) > 0:
       if reduce(mul, self.shape) != 1:
-        raise ValueError("can only convert an array of size 1 to a Python scalar")
+        raise ValueError("can only convert an array of "
+                         "size 1 to a Python scalar")
     if len(self.data) == 1:
       return self.data[0]
     return self.dtype.type(0.0)
