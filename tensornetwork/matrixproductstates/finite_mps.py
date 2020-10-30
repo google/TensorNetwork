@@ -163,7 +163,7 @@ class FiniteMPS(BaseMPS):
       else:
         continue
       deviations.append(deviation**2)
-    return self.backend.sqrt(sum(deviations[1:], deviations[0]))      
+    return self.backend.sqrt(sum(deviations[1:], deviations[0]))
 
   def left_envs(self, sites: Sequence[int]) -> Dict:
     """Compute left reduced density matrices for site `sites`. This returns a
@@ -200,7 +200,8 @@ class FiniteMPS(BaseMPS):
     for site in left_sites:
       left_envs[site] = Node(
           self.backend.eye(
-              N=self.backend.sparse_shape(self.backend.conj(self.tensors[site]))[0],
+              N=self.backend.sparse_shape(
+                  self.backend.conj(self.tensors[site]))[0],
               dtype=self.dtype),
           backend=self.backend)
 
@@ -273,7 +274,8 @@ class FiniteMPS(BaseMPS):
     for site in right_sites:
       right_envs[site] = Node(
           self.backend.eye(
-              N=self.backend.sparse_shape(self.backend.conj(self.tensors[site]))[2],
+              N=self.backend.sparse_shape(
+                  self.backend.conj(self.tensors[site]))[2],
               dtype=self.dtype),
           backend=self.backend)
 
