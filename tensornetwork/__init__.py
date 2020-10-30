@@ -7,7 +7,7 @@ from tensornetwork.network_operations import (
     split_node_full_svd, split_node_qr, split_node_rq, switch_backend,
     nodes_to_json, nodes_from_json)
 
-from tensornetwork.tensor import Tensor
+from tensornetwork.tensor import Tensor, NconBuilder
 from tensornetwork.linalg.initialization import (eye, ones, randn,
                                                  random_uniform, zeros)
 
@@ -29,7 +29,7 @@ from tensornetwork.network_components import (
     outer_product, outer_product_final_nodes, slice_edge, split_edge)
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, disconnect
-from tensornetwork.ncon_interface import ncon
+from tensornetwork.ncon_interface import ncon, finalize
 from tensornetwork.version import __version__
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork import contractors

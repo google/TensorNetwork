@@ -24,6 +24,7 @@ import tensornetwork
 from tensornetwork.backends import abstract_backend
 from tensornetwork import backends, backend_contextmanager
 from tensornetwork.tests import testing_utils
+from tensornetwork import ncon_interface
 
 #pylint: disable=no-member
 config.update("jax_enable_x64", True)
@@ -417,3 +418,23 @@ def test_tensor_ops_raise(dtype):
     _ = A / B
   with pytest.raises(ValueError):
     _ = A @ B
+
+
+def test_ncon_builder(backend):
+  a, _ = testing_utils.safe_randn((2, 2, 2), backend, np.float32)
+  b, _ = testing_utils.safe_randn((2, 2, 2), backend, np.float32)
+  c, _ = testing_utils.safe_randn((2, 2, 2), backend, np.float32)
+  tmp = a(2, 1, -1)
+  assert tmp.tensors[0] is a
+  assert tmp.axes[0] == [2, 1, -1]
+  builder = a(2, 1, -1) @ b(2, 3, -2) @ c(1, 3, -3)
+  assert builder.tensors == [a, b, c]
+  assert builder.axes == [[2, 1, -1], [2, 3, -2], [1, 3, -3]]
+  np.testing.assert_allclose(
+      ncon_interface.ncon(
+          [a, b, c], 
+          [[2, 1, -1], [2, 3, -2], [1, 3, -3]], 
+          backend=backend).array,
+      ncon_interface.finalize(builder).array)
+
+

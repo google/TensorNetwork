@@ -661,3 +661,9 @@ def ncon(
   if all(are_tensors):
     return tn_tensor.Tensor(res_tensor, backend=backend_obj)
   return res_tensor
+
+def finalize(ncon_builder: tn_tensor.NconBuilder) -> tn_tensor.Tensor:
+  return ncon(
+      ncon_builder.tensors, 
+      ncon_builder.axes,
+      backend=ncon_builder.tensors[0].backend)

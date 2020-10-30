@@ -185,3 +185,19 @@ class Tensor():
       raise ValueError(errstr)
     array = self.backend.matmul(self.array, other.array)
     return Tensor(array, backend=self.backend)
+
+  def __call__(self, *args):
+    return NconBuilder([self], [list(args)]) 
+
+
+class NconBuilder():
+  def __init__(self, tensors, axes):
+    self.tensors = tensors[:] # Forces a copy.
+    self.axes = axes[:]
+
+  def __matmul__(self, other: "NconBuilder") -> "NconBuilder":
+    assert isinstance(other, NconBuilder)
+    return NconBuilder(
+        self.tensors + other.tensors,
+        self.axes + other.axes)
+
