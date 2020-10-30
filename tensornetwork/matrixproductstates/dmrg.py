@@ -589,11 +589,10 @@ class FiniteDMRG(BaseDMRG):
     conmpsN = backend.conj(mps.tensors[-1])
     mpsN = mps.tensors[-1]
 
-
-    lshape = (backend.sparse_shape(conmpo0)[0], backend.sparse_shape(conmps0)[0],
-              backend.sparse_shape(mps0)[0])
-    rshape = (backend.sparse_shape(conmpoN)[1], backend.sparse_shape(conmpsN)[2],
-              backend.sparse_shape(mpsN)[2])
+    lshape = (backend.sparse_shape(conmpo0)[0],
+              backend.sparse_shape(conmps0)[0], backend.sparse_shape(mps0)[0])
+    rshape = (backend.sparse_shape(conmpoN)[1],
+              backend.sparse_shape(conmpsN)[2], backend.sparse_shape(mpsN)[2])
     lb = backend.ones(lshape, dtype=mps.dtype)
     rb = backend.ones(rshape, dtype=mps.dtype)
     super().__init__(
