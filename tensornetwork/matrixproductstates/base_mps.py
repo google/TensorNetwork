@@ -271,7 +271,7 @@ class BaseMPS:
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
       result = L @ A @ O @ conj_A @ R
-      res.append(result.tensor.item())
+      res.append(self.backend.item(result.tensor))
     return res
 
   def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
@@ -431,7 +431,7 @@ class BaseMPS:
           L = Node(
               self.apply_transfer_operator(n % N, 'left', L.tensor),
               backend=self.backend)
-    return [o.item() for o in c]
+    return [self.backend.item(o) for o in c]
 
   def apply_two_site_gate(self,
                           gate: Tensor,
