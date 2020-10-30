@@ -385,8 +385,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return tf.math.sign(tensor)
-  
-  def item(self, tensor):
-    if tensor.shape != ():
 
-    return tensor.item()
+  def item(self, tensor):
+    if tensor.shape != (1,):
+      raise ValueError(f"expected tensor of shape (1,), "
+                       f"got {tensor.shape}")
+    return tensor[0]
