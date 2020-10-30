@@ -871,3 +871,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return jnp.sign(tensor)
+
+  def item(self, tensor):
+    return tensor.item()

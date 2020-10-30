@@ -599,3 +599,9 @@ def test_pivot(dtype, pivot_axis):
   expected = tf.reshape(tensor, pivot_shape)
   actual = backend.pivot(tensor, pivot_axis=pivot_axis)
   np.testing.assert_allclose(expected, actual)
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_item(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.ones(1, dtype=dtype) * 5.0
+  assert backend.item(tensor) == 5.0

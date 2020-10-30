@@ -17,6 +17,8 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
+from functools import reduce
+from operator import mul
 
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -383,3 +385,9 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return tf.math.sign(tensor)
+
+  def item(self, tensor):
+    if tensor.shape != (1,):
+      raise ValueError(f"expected tensor of shape (1,), "
+                       f"got {tensor.shape}")
+    return tensor[0]

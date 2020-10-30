@@ -963,3 +963,9 @@ def test_power(dtype):
   actual = backend.power(base_tensor, power)
   expected = np.power(base_tensor, power)
   np.testing.assert_allclose(expected, actual)
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_item(dtype):
+  backend = numpy_backend.NumPyBackend()
+  tensor = backend.randn((1,), dtype=dtype, seed=10)
+  assert tensor.item() == backend.item(tensor)
