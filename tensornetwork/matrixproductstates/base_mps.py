@@ -94,10 +94,10 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    @partial(jit, backend=self.backend)
-    def svd(tensor):
+    @partial(jit, backend=self.backend, static_argnums=(1,))
+    def svd(tensor, max_singular_values=None):
       return self.backend.svd(tensor=tensor, pivot_axis=2,
-                              max_singular_values=None)
+                              max_singular_values=max_singular_values)
     self.svd = svd
 
     @partial(jit, backend=self.backend)
