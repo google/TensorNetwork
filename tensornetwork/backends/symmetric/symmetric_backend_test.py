@@ -1655,4 +1655,3 @@ def test_item(dtype, num_charges):
   tensor = BlockSparseTensor.random(indices=indices, dtype=dtype)
   backend = symmetric_backend.SymmetricBackend()
   assert backend.item(tensor) == tensor.item()
-

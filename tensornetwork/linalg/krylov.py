@@ -85,8 +85,8 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
   if x0 is not None:
     try:
       x0_array = x0.array
-    except AttributeError from err:
-      raise TypeError("x0 must be a tn.Tensor.") as err
+    except AttributeError as err:
+      raise TypeError("x0 must be a tn.Tensor.") from err
 
     if x0.backend.name != backend.name:
       errstr = ("If both x0 and backend are specified the"
