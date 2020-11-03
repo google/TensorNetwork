@@ -1,3 +1,17 @@
+# Copyright 2019 The TensorNetwork Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import functools
 from typing import List, Any, Tuple, Callable, Sequence, Text
 import collections
@@ -605,7 +619,22 @@ def _get_vectors(jax):
 
   return get_vectors
 
-def _check_eigvals_convergence(jax):
+def _check_eigvals_convergence_eigh(jax):
+  @functools.partial(jax.jit, static_argnums=(3,))
+  def check_eigvals_convergence(beta_m: float, Hm: jax.ShapedArray,
+                                Hm_norm: float,
+                                tol: float) -> bool:
+    eigvals, eigvecs = jax.numpy.linalg.eigh(Hm)
+    # TODO (mganahl) confirm that this is a valid matrix norm)
+    thresh = jax.numpy.maximum(
+        jax.numpy.finfo(eigvals.dtype).eps * Hm_norm,
+        jax.numpy.abs(eigvals) * tol)
+    vals = jax.numpy.abs(eigvecs[-1, :])
+    return jax.numpy.all(beta_m * vals < thresh)
+
+  return check_eigvals_convergence
+
+def _check_eigvals_convergence_eig(jax):
   @functools.partial(jax.jit, static_argnums=(2, 3))
   def check_eigvals_convergence(beta_m: float, Hm: jax.ShapedArray,
                                 tol: float, numeig: int) -> bool:
@@ -676,7 +705,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     of `matvec` matches the dtype of the initial state. Otherwise jax
     will raise a TypeError.
 
-    NOTE: Under certain circumstances, the routine can return spurious 
+    NOTE: Under certain circumstances, the routine can return spurious
     eigenvalues 0.0: if the Arnoldi iteration terminated early
     (after numits < num_krylov_vecs iterations)
     and numeig > numits, then spurious 0.0 eigenvalues will be returned.
@@ -689,7 +718,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the arnoldi factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
-      which: Which eigenvalues to target. 
+      which: Which eigenvalues to target.
         Currently supported: `which = 'LR'` (largest real part).
       tol: Convergence flag. If the norm of a krylov vector drops below `tol`
         the iteration is terminated.
@@ -699,7 +728,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
-      int: Number of inner krylov iterations of the last arnoldi 
+      int: Number of inner krylov iterations of the last arnoldi
         factorization.
     """
     shape = initial_state.shape
@@ -727,7 +756,7 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
-    check_eigvals_convergence = _check_eigvals_convergence(jax)
+    check_eigvals_convergence = _check_eigvals_convergence_eig(jax)
     get_vectors = _get_vectors(jax)
 
     # sort_fun returns `num_expand` least relevant eigenvalues
@@ -767,12 +796,11 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
       # ||fk|| = \beta_m in reference above
       Vk, Hk, fk = shifted_QR(Vm, Hm, fm, shifts, numeig)
       # reset matrices
+      beta_k = jax.numpy.linalg.norm(fk)
+      converged = check_eigvals_convergence(beta_k, Hk, tol, numeig)
       Vk = Vk.at[numeig:, :].set(0.0)
       Hk = Hk.at[numeig:, :].set(0.0)
       Hk = Hk.at[:, numeig:].set(0.0)
-      beta_k = jax.numpy.linalg.norm(fk)
-      converged = check_eigvals_convergence(beta_k, Hk, tol, numeig)
-
       def do_arnoldi(vals):
         Vk, Hk, fk, _, _, _, _ = vals
         # restart
@@ -894,11 +922,15 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     of `matvec` matches the dtype of the initial state. Otherwise jax
     will raise a TypeError.
 
-    NOTE: Under certain circumstances, the routine can return spurious 
+    NOTE: Under certain circumstances, the routine can return spurious
     eigenvalues 0.0: if the Lanczos iteration terminated early
     (after numits < num_krylov_vecs iterations)
     and numeig > numits, then spurious 0.0 eigenvalues will be returned.
-    
+
+    References:
+    http://emis.impa.br/EMIS/journals/ETNA/vol.2.1994/pp1-21.dir/pp1-21.pdf
+    http://people.inf.ethz.ch/arbenz/ewp/Lnotes/chapter11.pdf
+
     Args:
       matvec: A callable representing the linear operator.
       args: Arguments to `matvec`.  `matvec` is called with
@@ -907,7 +939,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       initial_state: An starting vector for the iteration.
       num_krylov_vecs: Number of krylov vectors of the lanczos factorization.
         numeig: The number of desired eigenvector-eigenvalue pairs.
-      which: Which eigenvalues to target. 
+      which: Which eigenvalues to target.
         Currently supported: `which = 'LR'` (largest real part).
       tol: Convergence flag. If the norm of a krylov vector drops below `tol`
         the iteration is terminated.
@@ -917,7 +949,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     Returns:
       jax.ShapedArray: Eigenvalues
       List: Eigenvectors
-      int: Number of inner krylov iterations of the last lanczos 
+      int: Number of inner krylov iterations of the last lanczos
         factorization.
     """
     shape = initial_state.shape
@@ -948,7 +980,7 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     fm = residual.ravel() * norm
     # generate needed functions
     shifted_QR = _shifted_QR(jax)
-    check_eigvals_convergence = _check_eigvals_convergence(jax)
+    check_eigvals_convergence = _check_eigvals_convergence_eigh(jax)
     get_vectors = _get_vectors(jax)
 
     # sort_fun returns `num_expand` least relevant eigenvalues
@@ -975,15 +1007,17 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
       # indicating that iram converges.
       # ||fk|| = \beta_m in reference above
       Vk, Hk, fk = shifted_QR(Vm, Hm, fm, shifts, numeig)
-      # reset matrices
-      Vk = Vk.at[numeig:, :].set(0.0)
-      Hk = Hk.at[numeig:, :].set(0.0)
-      Hk = Hk.at[:, numeig:].set(0.0)
-      beta_k = jax.numpy.linalg.norm(fk)
-      converged = check_eigvals_convergence(beta_k, Hk, tol, numeig)
       # extract new alphas and betas
       alphas = jax.numpy.diag(Hk)
       betas = jax.numpy.diag(Hk, -1)
+      alphas = alphas.at[numeig:].set(0.0)
+      betas = betas.at[numeig-1:].set(0.0)
+
+      beta_k = jax.numpy.linalg.norm(fk)
+      Hktest = Hk[:numeig, :numeig]
+      matnorm = jax.numpy.linalg.norm(Hktest)
+      converged = check_eigvals_convergence(beta_k, Hktest, matnorm, tol)
+
 
       def do_lanczos(vals):
         Vk, alphas, betas, fk, _, _, _, _ = vals
@@ -1023,16 +1057,13 @@ def _implicitly_restarted_lanczos(jax: types.ModuleType) -> Callable:
     numits, ar_converged, converged = res[5], res[6], res[7]
     Hm = jax.numpy.diag(alphas) + jax.numpy.diag(betas, -1) + jax.numpy.diag(
         betas.conj(), 1)
-
-    # before exhausting the allowed size of the Krylov subspace,
-    # (i.e. `numit` < 'num_krylov_vecs'), set elements
-    # at positions m, n with m, n >= `numit` to 0.0.
     # FIXME (mganahl): under certain circumstances, the routine can still
     # return spurious 0 eigenvalues: if lanczos terminated early
     # (after numits < num_krylov_vecs iterations)
     # and numeig > numits, then spurious 0.0 eigenvalues will be returned
     Hm = (numits > jax.numpy.arange(num_krylov_vecs))[:, None] * Hm * (
         numits > jax.numpy.arange(num_krylov_vecs))[None, :]
+
     eigvals, U = jax.numpy.linalg.eigh(Hm)
     inds = sort_fun(eigvals)[1][:numeig]
     vectors = get_vectors(Vm, U, inds, numeig)
@@ -1242,7 +1273,7 @@ def gmres_wrapper(jax: types.ModuleType):
       """
       Performs a single iteration of gmres_krylov. See that function for a more
       detailed description.
-  
+
       Args:
         gmres_carry: The gmres_carry from gmres_krylov.
       Returns:
@@ -1273,7 +1304,7 @@ def gmres_wrapper(jax: types.ModuleType):
         else:
           return False
       where k, n_kry, err, and tol are unpacked from gmres_carry.
-  
+
       Args:
         gmres_carry: The gmres_carry from gmres_krylov.
       Returns:
@@ -1334,7 +1365,7 @@ def gmres_wrapper(jax: types.ModuleType):
       """
       Performs one iteration of the stabilized Gram-Schmidt procedure, with
       r to be orthonormalized against {v} = {v_0, v_1, ...}.
-  
+
       Args:
         r: The new vector which is not in the initially orthonormal set.
         v_i: The i'th vector in that set.

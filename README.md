@@ -130,17 +130,6 @@ b = np.ones((2, 2))
 c = ncon([a, b], [(-1, 1), (1, -2)])
 print(c)
 ```
-It is also possible to generate a set of nodes that represent the given tensor network.
-```python
-from tensornetwork import ncon_network
-a = np.ones((2, 2))
-b = np.ones((2, 2))
-nodes, e_con, e_out = ncon_network([a, b], [(-1, 1), (1, -2)])
-for e in e_con:
-    n = tn.contract(e) # Contract edges in order
-n.reorder_edges(e_out) # Permute final tensor as necessary
-print(n.tensor)
-```
 
 ## Different backend support.
 Currently, we support JAX, TensorFlow, PyTorch and NumPy as TensorNetwork backends.
