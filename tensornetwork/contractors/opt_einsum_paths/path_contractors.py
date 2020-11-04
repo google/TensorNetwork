@@ -291,11 +291,13 @@ def custom(nodes: Iterable[AbstractNode],
   alg = functools.partial(optimizer, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order, ignore_edge_order)
 
+
 def path_solver(
     algorithm: Text,
     nodes: Iterable[AbstractNode],
-    memory_limit: Optional[int]=None,
-    nbranch: Optional[int]=None) -> Tuple[List[Tuple[int, int]], List[AbstractNode]]:
+    memory_limit: Optional[int] = None,
+    nbranch: Optional[int] = None
+) -> Tuple[List[Tuple[int, int]], List[AbstractNode]]:
   """Calculates the contraction paths using `opt_einsum` methods.
 
   Args:
@@ -312,10 +314,10 @@ def path_solver(
   """
   if algorithm == "optimal":
     alg = functools.partial(
-      opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
+        opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
   elif algorithm == "branch":
     alg = functools.partial(
-      opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
+        opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
   elif algorithm == "greedy":
     alg = functools.partial(opt_einsum.paths.greedy, memory_limit=memory_limit)
   elif algorithm == "auto":
@@ -325,18 +327,19 @@ def path_solver(
       raise ValueError(f"network is trivial with {n} nodes. ")
     if n < 5:
       alg = functools.partial(
-        opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
+          opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
     if n < 7:
       alg = functools.partial(
-        opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=None)
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=None)
     if n < 9:
       alg = functools.partial(
-        opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=2)
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=2)
     if n < 15:
       alg = functools.partial(
-        opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=1)
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=1)
     else:
-      alg = functools.partial(opt_einsum.paths.greedy, memory_limit=memory_limit)
+      alg = functools.partial(
+          opt_einsum.paths.greedy, memory_limit=memory_limit)
   else:
     raise ValueError("algorithm {algorithm} not implemented")
 
@@ -345,8 +348,8 @@ def path_solver(
   return path
 
 
-def contract_path(path: Tuple[List[Tuple[int, int]]],
-                  nodes: Iterable[AbstractNode],
+def contract_path(path: Tuple[List[Tuple[int,
+                                         int]]], nodes: Iterable[AbstractNode],
                   output_edge_order: Sequence[Edge]) -> AbstractNode:
   """Contract `nodes` using `path`.
 
