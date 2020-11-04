@@ -16,6 +16,8 @@ from tensornetwork.network_components import Node, contract_between
 from tensornetwork.network_operations import split_node_full_svd
 from tensornetwork.linalg.node_linalg import conj
 from tensornetwork.backends import backend_factory
+from functools import partial
+from tensornetwork.backends.decorators import jit
 import warnings
 from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
@@ -92,22 +94,21 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
+    @partial(jit, backend=self.backend, static_argnums=(1,))
     def svd(tensor, max_singular_values=None):
       return self.backend.svd(tensor=tensor, pivot_axis=2,
                               max_singular_values=max_singular_values)
-
     self.svd = svd
 
+    @partial(jit, backend=self.backend)
     def qr(tensor):
       return self.backend.qr(tensor, 2)
+    self.qr = qr
 
-    self.qr = self.backend.jit(qr)
-
+    @partial(jit, backend=self.backend)
     def rq(tensor):
       return self.backend.rq(tensor, 1)
-
-    self.rq = self.backend.jit(rq)
-
+    self.rq = rq
 
     self.norm = self.backend.jit(self.backend.norm)
     ########################################################################
