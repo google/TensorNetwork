@@ -324,7 +324,7 @@ def path_solver(
     n = len(list(nodes))  #pytype thing
     _nodes = nodes
     if n <= 1:
-      raise ValueError(f"network is trivial with {n} nodes. ")
+      return []
     if n < 5:
       alg = functools.partial(
           opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
@@ -361,6 +361,9 @@ def contract_path(path: Tuple[List[Tuple[int, int]]],
   Returns:
     Final node after full contraction.
   """
+  if len(path) == 0:
+    return nodes
+
   for a, b in path:
     new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
     nodes.append(new_node)
