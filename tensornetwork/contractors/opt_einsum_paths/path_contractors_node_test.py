@@ -235,7 +235,7 @@ def test_contract_path(backend, algorithm):
   mpsc[1] ^ mpo[2]
 
   nodes = [mps, mpsc, mpo, L]
-  path = path_contractors.path_solver(algorithm="optimal", nodes=nodes)
+  path = path_contractors.path_solver(algorithm=algorithm, nodes=nodes)
   order = [mpo[1], mps[2], mpsc[2]]
   res = path_contractors.contract_path(
       path=path, nodes=nodes, output_edge_order=order)
