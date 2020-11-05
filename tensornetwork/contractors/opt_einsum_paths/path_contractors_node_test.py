@@ -216,7 +216,10 @@ def test_path_solver_optimal(backend):
   path = path_contractors.path_solver(algorithm="optimal", nodes=nodes)
   assert path == [(1, 3), (1, 2), (0, 1)]
 
-def test_contract_path(backend):
+
+@pytest.fixture(
+    name="algorithm", params=["optimal", "branch", "greedy", "auto"])
+def test_contract_path(backend, algorithm):
   np.random.seed(10)
   D, d, M = 100, 4, 10
 
