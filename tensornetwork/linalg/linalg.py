@@ -77,6 +77,12 @@ def svd(
                     max_singular_values=max_singular_values,
                     max_truncation_error=max_truncation_error,
                     relative=relative)
+  # Tensor(out[0], backend=backend)
+  # Tensor(out[1], backend=backend)
+  # Tensor(out[2], backend=backend)
+  # print(out)
+  # print(len(out))
+  # print(out[3])
   tensors = [Tensor(t, backend=backend) for t in out]
   return tuple(tensors)
 
