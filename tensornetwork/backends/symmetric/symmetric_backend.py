@@ -17,7 +17,8 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.symmetric import decompositions
 from tensornetwork.block_sparse.index import Index
-from tensornetwork.block_sparse.blocksparsetensor import BlockSparseTensor, ChargeArray
+from tensornetwork.block_sparse.blocksparsetensor import (BlockSparseTensor,
+                                                          ChargeArray)
 import warnings
 import scipy as sp
 import scipy.sparse.linalg
