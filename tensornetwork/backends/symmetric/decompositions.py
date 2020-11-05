@@ -188,7 +188,8 @@ def svd(
   S = ChargeArray(all_singvals, [left_singval_charge], [False])
 
   left_discarded_singval_charge = charges[left_discarded_singval_charge_labels]
-  Sdisc = ChargeArray(all_discarded_singvals, [left_discarded_singval_charge], [False])
+  Sdisc = ChargeArray(all_discarded_singvals, [left_discarded_singval_charge],
+                      [False])
 
   new_left_charge = charges[left_charge_labels]
   new_right_charge = charges[right_charge_labels]
@@ -218,7 +219,7 @@ def svd(
       check_consistency=False)
   left_shape = left_dims + (S.shape[0],)
   right_shape = (S.shape[0],) + right_dims
-  return U.reshape(left_shape), S, V.reshape(right_shape), Sdisc#discarded_singvals[ discarded_singvals > 0.0]
+  return U.reshape(left_shape), S, V.reshape(right_shape), Sdisc
 
 
 def qr(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
