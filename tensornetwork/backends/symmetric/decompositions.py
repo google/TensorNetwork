@@ -61,6 +61,7 @@ def svd(
     v_blocks.append(out[2])
 
   orig_num_singvals = np.int64(np.sum([len(s) for s in singvals]))
+  orig_block_size = [len(s) for s in singvals]
   discarded_singvals = np.zeros(0, dtype=get_real_dtype(tensor.dtype))
   if (max_singular_values
       is not None) and (max_singular_values >= orig_num_singvals):
@@ -120,15 +121,26 @@ def svd(
     if extended_singvals.shape[1] > 0:
       #pylint: disable=no-member
       keep = np.divmod(inds, extended_singvals.shape[1])
+      disc = np.divmod(discarded_inds, extended_singvals.shape[1])
     else:
       keep = (np.zeros(1, dtype=SIZE_T), np.zeros(1, dtype=SIZE_T))
+      disc = (np.zeros(0, dtype=SIZE_T), np.zeros(0, dtype=SIZE_T))
     newsingvals = [
         extended_singvals[keep[0][keep[1] == n], keep[1][keep[1] == n]][::-1]
         for n in range(extended_singvals.shape[1])
     ]
-
-    discarded_singvals = extended_flat_singvals[discarded_inds]
+    discsingvals = [
+        extended_singvals[disc[0][disc[1] == n], disc[1][disc[1] == n]][::-1]
+        for n in range(extended_singvals.shape[1])
+    ]
+    orig_block_size
+    new_block_size = [len(s) for s in newsingvals]
+    discsingvals = [
+        d[:(orig_block_size[n] - new_block_size[n])]
+        for n, d in enumerate(discsingvals)
+    ]
     singvals = newsingvals
+    discarded_singvals = discsingvals
   if len(singvals) > 0:
     left_singval_charge_labels = np.concatenate([
         np.full(singvals[n].shape[0], fill_value=n, dtype=np.int16)
@@ -159,8 +171,25 @@ def svd(
     right_charge_labels = np.empty(0, dtype=np.int16)
     all_ublocks = np.empty(0, dtype=get_real_dtype(tensor.dtype))
     all_vblocks = np.empty(0, dtype=get_real_dtype(tensor.dtype))
+
+  if len(discarded_singvals) > 0:
+    left_discarded_singval_charge_labels = np.concatenate([
+        np.full(discarded_singvals[n].shape[0], fill_value=n, dtype=np.int16)
+        for n in range(len(discarded_singvals))
+    ])
+    all_discarded_singvals = np.concatenate(discarded_singvals)
+
+  else:
+    left_discarded_singval_charge_labels = np.empty(0, dtype=np.int16)
+    all_discarded_singvals = np.empty(0, dtype=get_real_dtype(tensor.dtype))
+
+
   left_singval_charge = charges[left_singval_charge_labels]
   S = ChargeArray(all_singvals, [left_singval_charge], [False])
+
+  left_discarded_singval_charge = charges[left_discarded_singval_charge_labels]
+  Sdisc = ChargeArray(all_discarded_singvals, [left_discarded_singval_charge],
+                      [False])
 
   new_left_charge = charges[left_charge_labels]
   new_right_charge = charges[right_charge_labels]
@@ -190,8 +219,7 @@ def svd(
       check_consistency=False)
   left_shape = left_dims + (S.shape[0],)
   right_shape = (S.shape[0],) + right_dims
-  return U.reshape(left_shape), S, V.reshape(right_shape), discarded_singvals[
-      discarded_singvals > 0.0]
+  return U.reshape(left_shape), S, V.reshape(right_shape), Sdisc
 
 
 def qr(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
