@@ -347,8 +347,8 @@ def path_solver(
   return path
 
 
-def contract_path(path: Tuple[List[Tuple[int,
-                                         int]]], nodes: Iterable[AbstractNode],
+def contract_path(path: Tuple[List[Tuple[int, int]]],
+                  nodes: Iterable[AbstractNode],
                   output_edge_order: Sequence[Edge]) -> AbstractNode:
   """Contract `nodes` using `path`.
 
