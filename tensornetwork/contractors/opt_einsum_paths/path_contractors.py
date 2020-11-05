@@ -343,8 +343,7 @@ def path_solver(
   else:
     raise ValueError("algorithm {algorithm} not implemented")
 
-  nodes_set = set(nodes)
-  path, _ = utils.get_path(nodes_set, alg)
+  path, _ = utils.get_path(nodes, alg)
   return path
 
 
