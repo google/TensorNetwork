@@ -243,3 +243,23 @@ def test_contract_path(backend, algorithm):
              [[1, 2, -2], [5, 4, -3], [3, 1, 5], [3, -1, 4, 2]],
              backend=backend)
   np.testing.assert_allclose(res.tensor, exp)
+
+
+def test_contract_path_raises(backend):
+  np.random.seed(10)
+  D, d, M = 100, 4, 10
+
+  mps = Node(np.random.rand(D, d, D), backend=backend)
+  mpsc = Node(np.random.rand(D, d, D), backend=backend)
+  L = Node(np.random.rand(M, D, D), backend=backend)
+  mpo = Node(np.random.rand(M, M, d, d), backend=backend)
+
+  L[0] ^ mpo[0]
+  L[1] ^ mps[0]
+  L[2] ^ mpsc[0]
+  mps[1] ^ mpo[3]
+  mpsc[1] ^ mpo[2]
+
+  nodes = [mps, mpsc, mpo, L]
+  with pytest.raises(ValueError, match="algorithm"):
+    _ = path_contractors.path_solver(algorithm="no-algorithm", nodes=nodes)
