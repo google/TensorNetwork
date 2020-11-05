@@ -130,8 +130,8 @@ def svd(
         for n in range(extended_singvals.shape[1])
     ]
     discsingvals = [
-      extended_singvals[disc[0][disc[1] == n], disc[1][disc[1] == n]][::-1]
-      for n in range(extended_singvals.shape[1])
+        extended_singvals[disc[0][disc[1] == n], disc[1][disc[1] == n]][::-1]
+        for n in range(extended_singvals.shape[1])
     ]
     orig_block_size
     new_block_size = [len(s) for s in newsingvals]
