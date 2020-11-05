@@ -133,7 +133,6 @@ def svd(
         extended_singvals[disc[0][disc[1] == n], disc[1][disc[1] == n]][::-1]
         for n in range(extended_singvals.shape[1])
     ]
-    orig_block_size
     new_block_size = [len(s) for s in newsingvals]
     discsingvals = [
         d[:(orig_block_size[n] - new_block_size[n])]
