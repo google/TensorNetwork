@@ -17,7 +17,7 @@ import pytest
 from tensornetwork import Node
 from tensornetwork.contractors import auto
 from tensornetwork.contractors.opt_einsum_paths import path_contractors
-
+from tensornetwork.ncon_interface import ncon
 
 @pytest.fixture(
     name="path_algorithm", params=["optimal", "branch", "greedy", "auto"])
@@ -215,3 +215,27 @@ def test_path_solver_optimal(backend):
   nodes = [mps, mpsc, mpo, L]
   path = path_contractors.path_solver(algorithm="optimal", nodes=nodes)
   assert path == [(1, 3), (1, 2), (0, 1)]
+
+def test_contract_path(backend):
+  np.random.seed(10)
+  D, d, M = 100, 4, 10
+
+  mps = Node(np.random.rand(D, d, D), backend=backend)
+  mpsc = Node(np.random.rand(D, d, D), backend=backend)
+  L = Node(np.random.rand(M, D, D), backend=backend)
+  mpo = Node(np.random.rand(M, M, d, d), backend=backend)
+
+  L[0] ^ mpo[0]
+  L[1] ^ mps[0]
+  L[2] ^ mpsc[0]
+  mps[1] ^ mpo[3]
+  mpsc[1] ^ mpo[2]
+
+  nodes = [mps, mpsc, mpo, L]
+  path = path_contractors.path_solver(algorithm="optimal", nodes=nodes)
+  order = [mpo[1], mps[2], mpsc[2]]
+  res = path_contractors.contract_path(
+      path=path, nodes=nodes, output_edge_order=order)
+  exp = ncon([mps.tensor, mpsc.tensor, L.tensor, mpo.tensor],
+             [[1, 2, -2], [5, 4, -3], [3, 1, 5], [3, -1, 4, 2]], backend=backend)
+  np.testing.assert_allclose(res.tensor, exp)
