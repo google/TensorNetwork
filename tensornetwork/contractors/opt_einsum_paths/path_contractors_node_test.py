@@ -237,5 +237,6 @@ def test_contract_path(backend):
   res = path_contractors.contract_path(
       path=path, nodes=nodes, output_edge_order=order)
   exp = ncon([mps.tensor, mpsc.tensor, L.tensor, mpo.tensor],
-             [[1, 2, -2], [5, 4, -3], [3, 1, 5], [3, -1, 4, 2]], backend=backend)
+             [[1, 2, -2], [5, 4, -3], [3, 1, 5], [3, -1, 4, 2]],
+             backend=backend)
   np.testing.assert_allclose(res.tensor, exp)
