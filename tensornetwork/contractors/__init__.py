@@ -1,7 +1,10 @@
-from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver # pylint: disable=line-too-long
+# pylint: disable=line-too-long
+from tensornetwork.contractors.custom_path_solvers.nconinterface import ncon_solver
 from tensornetwork.contractors.bucket_contractor import bucket
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import optimal
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import branch
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import greedy
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import auto
 from tensornetwork.contractors.opt_einsum_paths.path_contractors import custom
+from tensornetwork.contractors.opt_einsum_paths.path_contractors import path_solver
+from tensornetwork.contractors.opt_einsum_paths.path_contractors import contract_path
