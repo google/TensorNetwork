@@ -1657,11 +1657,11 @@ def test_matmul(dtype, num_charges):
       np.random.randint(-5, 6, (D, num_charges)),
       charge_types=[U1Charge] * num_charges)
   c2 = BaseCharge(
-    np.random.randint(-5, 6, (D, num_charges)),
-    charge_types=[U1Charge] * num_charges)
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
   c3 = BaseCharge(
-    np.random.randint(-5, 6, (D, num_charges)),
-    charge_types=[U1Charge] * num_charges)
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
   charges1 = [c1, c2]
   charges2 = [c2, c3]
   flows1 = [False, True]
@@ -1671,7 +1671,7 @@ def test_matmul(dtype, num_charges):
   A = BlockSparseTensor.random(indices=inds1, dtype=dtype)
   B = BlockSparseTensor.random(indices=inds2, dtype=dtype)
 
-  actual = backend.matmul(A,B)
+  actual = backend.matmul(A, B)
   expected = A @ B
   np.testing.assert_allclose(expected.data, actual.data)
   assert np.all([
