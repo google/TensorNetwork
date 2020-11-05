@@ -611,6 +611,7 @@ def test_item(dtype):
   with pytest.raises(ValueError, match="expected"):
     backend.item(tensor)
 
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_power(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()
