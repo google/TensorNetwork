@@ -195,3 +195,23 @@ def test_passes_ignore_edge_order_from_auto(backend):
     auto(nodes, ignore_edge_order=True)
   except ValueError:
     pytest.fail("auto should pass ignore_edge_order when n >= 5 && n < 7")
+
+
+def test_path_solver_optimal(backend):
+  np.random.seed(10)
+  D, d, M = 100, 4, 10
+
+  mps = Node(np.random.rand(D, d, D), backend=backend)
+  mpsc = Node(np.random.rand(D, d, D), backend=backend)
+  L = Node(np.random.rand(M, D, D), backend=backend)
+  mpo = Node(np.random.rand(M, M, d, d), backend=backend)
+
+  L[0] ^ mpo[0]
+  L[1] ^ mps[0]
+  L[2] ^ mpsc[0]
+  mps[1] ^ mpo[2]
+  mpsc[1] ^ mpo[3]
+
+  nodes = [mps, mpsc, mpo, L]
+  path = path_contractors.path_solver(algorithm="optimal", nodes=nodes)
+  assert path == [(1, 3), (1, 2), (0, 1)]
