@@ -683,4 +683,8 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
 
   def item(self, tensor):
     return tensor.item()
-  
+
+  def matmul(self, tensor1: Tensor, tensor2: Tensor):
+    if (tensor1.ndim != 2) or (tensor2.ndim != 2):
+      raise ValueError("inputs to `matmul` have to be matrices")
+    return tensor1 @ tensor2
