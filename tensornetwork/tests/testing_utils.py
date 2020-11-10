@@ -125,4 +125,4 @@ def assert_allclose(expected, actual, backend, **kwargs):
     if not np.all(np.abs(exp.data - act.data) < 1E-10):
       np.testing.assert_allclose(act.data, exp.data, **kwargs)
   else:
-    np.testing.assert_allclose(actual, expected)
+    np.testing.assert_allclose(actual, expected, **kwargs)
