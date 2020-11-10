@@ -22,7 +22,7 @@ from tensornetwork.network_operations import check_connected, get_all_edges, get
 from tensornetwork.network_components import get_all_nondangling, contract_parallel, contract_between
 from tensornetwork.network_components import Edge, AbstractNode
 from tensornetwork.contractors.opt_einsum_paths import utils
-from typing import Any, Optional, Sequence, Iterable
+from typing import Any, Optional, Sequence, Iterable, Text, Tuple, List
 
 #TODO (martin): add return types of functions back once TensorNetwork is gone
 #               remove _base_network
@@ -42,7 +42,7 @@ def base(nodes: Iterable[AbstractNode],
       final node in `nodes_set`
       are reordered into `output_edge_order`;
       if final node has more than one edge,
-      `output_edge_order` must be pronvided.
+      `output_edge_order` must be provided.
     ignore_edge_order: An option to ignore the output edge
       order.
 
@@ -290,3 +290,87 @@ def custom(nodes: Iterable[AbstractNode],
   """
   alg = functools.partial(optimizer, memory_limit=memory_limit)
   return base(nodes, alg, output_edge_order, ignore_edge_order)
+
+
+def path_solver(
+    algorithm: Text,
+    nodes: Iterable[AbstractNode],
+    memory_limit: Optional[int] = None,
+    nbranch: Optional[int] = None
+) -> Tuple[List[Tuple[int, int]], List[AbstractNode]]:
+  """Calculates the contraction paths using `opt_einsum` methods.
+
+  Args:
+    algorithm: `opt_einsum` method to use for calculating the contraction path.
+    nodes: an iterable of `AbstractNode` objects to contract.
+    memory_limit: Maximum number of elements in an array during contractions.
+      Only relevant for `algorithm in (optimal, greedy)`
+    nbranch: Number of best contractions to explore.
+      If None it explores all inner products starting with those that
+      have the best cost heuristic. Only relevant for `algorithm=branch`.
+
+  Returns:
+    The optimal contraction path as returned by `opt_einsum`.
+  """
+  if algorithm == "optimal":
+    alg = functools.partial(
+        opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
+  elif algorithm == "branch":
+    alg = functools.partial(
+        opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=nbranch)
+  elif algorithm == "greedy":
+    alg = functools.partial(opt_einsum.paths.greedy, memory_limit=memory_limit)
+  elif algorithm == "auto":
+    n = len(list(nodes))  #pytype thing
+    _nodes = nodes
+    if n <= 1:
+      return []
+    if n < 5:
+      alg = functools.partial(
+          opt_einsum.paths.dynamic_programming, memory_limit=memory_limit)
+    if n < 7:
+      alg = functools.partial(
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=None)
+    if n < 9:
+      alg = functools.partial(
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=2)
+    if n < 15:
+      alg = functools.partial(
+          opt_einsum.paths.branch, memory_limit=memory_limit, nbranch=1)
+    else:
+      alg = functools.partial(
+          opt_einsum.paths.greedy, memory_limit=memory_limit)
+  else:
+    raise ValueError("algorithm {algorithm} not implemented")
+
+  path, _ = utils.get_path(nodes, alg)
+  return path
+
+
+def contract_path(path: Tuple[List[Tuple[int, int]]],
+                  nodes: Iterable[AbstractNode],
+                  output_edge_order: Sequence[Edge]) -> AbstractNode:
+  """Contract `nodes` using `path`.
+
+  Args:
+    path: The contraction path as returned from `path_solver`.
+    nodes: A collection of connected nodes.
+    output_edge_order: A list of edges. Edges of the
+      final node in `nodes`
+      are reordered into `output_edge_order`;
+  Returns:
+    Final node after full contraction.
+  """
+  if len(path) == 0:
+    return nodes
+
+  for a, b in path:
+    new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
+    nodes.append(new_node)
+    nodes = utils.multi_remove(nodes, [a, b])
+
+  # if the final node has more than one edge,
+  # output_edge_order has to be specified
+  final_node = nodes[0]  # nodes were connected, we checked this
+  final_node.reorder_edges(output_edge_order)
+  return final_node
