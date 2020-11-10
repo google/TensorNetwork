@@ -1543,15 +1543,15 @@ def test_sign():
   tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
   backend = symmetric_backend.SymmetricBackend()
   res = backend.sign(tensor)
-  np.testing.assert_allclose(res.data, np.sign(tensor.data))  
+  np.testing.assert_allclose(res.data, np.sign(tensor.data))
 
 def test_abs():
   tensor = get_tensor(R=4, num_charges=1, dtype=np.float64)
   backend = symmetric_backend.SymmetricBackend()
   res = backend.abs(tensor)
-  np.testing.assert_allclose(res.data, np.abs(tensor.data))  
+  np.testing.assert_allclose(res.data, np.abs(tensor.data))
 
-  
+
 @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
 @pytest.mark.parametrize('x0', [True, False])
 @pytest.mark.parametrize('ncv', [None, 40])
@@ -1655,3 +1655,63 @@ def test_item(dtype, num_charges):
   tensor = BlockSparseTensor.random(indices=indices, dtype=dtype)
   backend = symmetric_backend.SymmetricBackend()
   assert backend.item(tensor) == tensor.item()
+
+
+@pytest.mark.parametrize("dtype", np_tensordot_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_matmul(dtype, num_charges):
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  D = 100
+  c1 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  c2 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  c3 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  charges1 = [c1, c2]
+  charges2 = [c2, c3]
+  flows1 = [False, True]
+  flows2 = [False, True]
+  inds1 = [Index(charges1[n], flows1[n]) for n in range(2)]
+  inds2 = [Index(charges2[n], flows2[n]) for n in range(2)]
+  A = BlockSparseTensor.random(indices=inds1, dtype=dtype)
+  B = BlockSparseTensor.random(indices=inds2, dtype=dtype)
+
+  actual = backend.matmul(A, B)
+  expected = A @ B
+  np.testing.assert_allclose(expected.data, actual.data)
+  assert np.all([
+      charge_equal(expected._charges[n], actual._charges[n])
+      for n in range(len(actual._charges))
+  ])
+
+
+def test_matmul_raises():
+  dtype = np.float64
+  num_charges = 1
+  np.random.seed(10)
+  backend = symmetric_backend.SymmetricBackend()
+  D = 100
+  c1 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  c2 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  c3 = BaseCharge(
+      np.random.randint(-5, 6, (D, num_charges)),
+      charge_types=[U1Charge] * num_charges)
+  charges1 = [c1, c2, c3]
+  charges2 = [c2, c3]
+  flows1 = [False, True, False]
+  flows2 = [False, True]
+  inds1 = [Index(charges1[n], flows1[n]) for n in range(3)]
+  inds2 = [Index(charges2[n], flows2[n]) for n in range(2)]
+  A = BlockSparseTensor.random(indices=inds1, dtype=dtype)
+  B = BlockSparseTensor.random(indices=inds2, dtype=dtype)
+  with pytest.raises(ValueError, match="inputs to"):
+    _ = backend.matmul(A, B)
