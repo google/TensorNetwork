@@ -173,8 +173,8 @@ def svd(
 
   if len(discarded_singvals) > 0:
     tmp_labels = [
-      np.full(discarded_singvals[n].shape[0], fill_value=n, dtype=np.int16)
-      for n in range(len(discarded_singvals))
+        np.full(discarded_singvals[n].shape[0], fill_value=n, dtype=np.int16)
+        for n in range(len(discarded_singvals))
     ]
     left_discarded_singval_charge_labels = np.concatenate(tmp_labels)
     all_discarded_singvals = np.concatenate(discarded_singvals)
