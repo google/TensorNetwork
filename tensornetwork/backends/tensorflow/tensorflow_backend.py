@@ -17,8 +17,8 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
-from functools import reduce
-from operator import mul
+import functools as fct
+import operator as op
 
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -389,7 +389,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
   def item(self, tensor):
     numel = 0
     if len(tensor.shape) > 0:
-      numel = reduce(mul, tensor.shape)
+      numel = fct.reduce(op.mul, tensor.shape)
       if numel != 1:
         raise ValueError(f"expected tensor with one element, "
                          f"got {tensor.shape}")
