@@ -172,10 +172,11 @@ def svd(
     all_vblocks = np.empty(0, dtype=get_real_dtype(tensor.dtype))
 
   if len(discarded_singvals) > 0:
-    left_discarded_singval_charge_labels = np.concatenate([
-        np.full(discarded_singvals[n].shape[0], fill_value=n, dtype=np.int16)
-        for n in range(len(discarded_singvals))
-    ])
+    tmp_labels = [
+      np.full(discarded_singvals[n].shape[0], fill_value=n, dtype=np.int16)
+      for n in range(len(discarded_singvals))
+    ]
+    left_discarded_singval_charge_labels = np.concatenate(tmp_labels)
     all_discarded_singvals = np.concatenate(discarded_singvals)
 
   else:
