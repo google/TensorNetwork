@@ -6,8 +6,8 @@ spin 1/2 Heisenberg Model.
 from typing import Type, Text
 import tensornetwork as tn
 import numpy as np
-from tensornetwork import (FiniteMPO, FiniteMPS, U1Charge, Index,
-                           BlockSparseTensor, FiniteXXZ, FiniteDMRG)
+import tensornetwork as tn
+
 import jax
 #enable double precision in JAX
 jax.config.update('jax_enable_x64', True)
@@ -16,7 +16,7 @@ jax.config.update('jax_enable_x64', True)
 def blocksparse_XXZ_mpo(Jz: np.ndarray,
                         Jxy: np.ndarray,
                         Bz: np.ndarray,
-                        dtype: Type[np.number] = np.float64) -> FiniteMPO:
+                        dtype: Type[np.number] = np.float64) -> tn.FiniteMPO:
   """
   Prepare a symmetric MPO.
 
@@ -25,22 +25,22 @@ def blocksparse_XXZ_mpo(Jz: np.ndarray,
     dtype: data type.
 
   Returns:
-    `FiniteMPO`: The mpo of the XXZ Heisenberg model with U(1) symmetry.
+    `tn.FiniteMPO`: The mpo of the XXZ Heisenberg model with U(1) symmetry.
   """
-  dense_mpo = FiniteXXZ(Jz, Jxy, Bz, dtype=dtype).tensors
-  ileft = Index(U1Charge(np.array([0])), False)
+  dense_mpo = tn.FiniteXXZ(Jz, Jxy, Bz, dtype=dtype).tensors
+  ileft = tn.Index(tn.U1Charge(np.array([0])), False)
   iright = ileft.flip_flow()
-  i1 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), False)
-  i2 = Index(U1Charge(np.array([0, -1, 1, 0, 0])), True)
-  i3 = Index(U1Charge(np.array([0, 1])), False)
-  i4 = Index(U1Charge(np.array([0, 1])), True)
+  i1 = tn.Index(tn.U1Charge(np.array([0, -1, 1, 0, 0])), False)
+  i2 = tn.Index(tn.U1Charge(np.array([0, -1, 1, 0, 0])), True)
+  i3 = tn.Index(tn.U1Charge(np.array([0, 1])), False)
+  i4 = tn.Index(tn.U1Charge(np.array([0, 1])), True)
 
-  mpotensors = [BlockSparseTensor.fromdense(
+  mpotensors = [tn.BlockSparseTensor.fromdense(
       [ileft, i2, i3, i4], dense_mpo[0])] + [
-          BlockSparseTensor.fromdense([i1, i2, i3, i4], tensor)
+          tn.BlockSparseTensor.fromdense([i1, i2, i3, i4], tensor)
           for tensor in dense_mpo[1:-1]
-      ] + [BlockSparseTensor.fromdense([i1, iright, i3, i4], dense_mpo[-1])]
-  return FiniteMPO(mpotensors, backend='symmetric')
+      ] + [tn.BlockSparseTensor.fromdense([i1, iright, i3, i4], dense_mpo[-1])]
+  return tn.FiniteMPO(mpotensors, backend='symmetric')
 
 
 def blocksparse_halffilled_spin_mps(N: int,
@@ -57,20 +57,20 @@ def blocksparse_halffilled_spin_mps(N: int,
     dtype: The data type of the MPS.
 
   Returns:
-    `FiniteMPS`: A U(1) symmetric spin 1/2 mps at zero total magnetization.
+    `tn.FiniteMPS`: A U(1) symmetric spin 1/2 mps at zero total magnetization.
   """
-  auxcharges = [U1Charge([0])] + [
-      U1Charge.random(D, n // 2, n // 2 + B) for n in range(N - 1)
-  ] + [U1Charge([N // 2])]
+  auxcharges = [tn.U1Charge([0])] + [
+      tn.U1Charge.random(D, n // 2, n // 2 + B) for n in range(N - 1)
+  ] + [tn.U1Charge([N // 2])]
   tensors = [
-      BlockSparseTensor.random([
-          Index(auxcharges[n], False),
-          Index(U1Charge([0, 1]), False),
-          Index(auxcharges[n + 1], True)
+      tn.BlockSparseTensor.random([
+          tn.Index(auxcharges[n], False),
+          tn.Index(tn.U1Charge([0, 1]), False),
+          tn.Index(auxcharges[n + 1], True)
       ],
                                dtype=dtype) for n in range(N)
   ]
-  return FiniteMPS(tensors, canonicalize=True, backend='symmetric')
+  return tn.FiniteMPS(tensors, canonicalize=True, backend='symmetric')
 
 
 def initialize_spin_mps(N: int, D: int, dtype: Type[np.number], backend: Text):
@@ -83,11 +83,11 @@ def initialize_spin_mps(N: int, D: int, dtype: Type[np.number], backend: Text):
     dtype: The data type of the MPS.
 
   Returns:
-    `FiniteMPS`: A spin 1/2 mps for the corresponding backend.
+    `tn.FiniteMPS`: A spin 1/2 mps for the corresponding backend.
   """
   if backend == 'symmetric':
     return blocksparse_halffilled_spin_mps(N=N, D=D, B=5, dtype=dtype)
-  return FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
+  return tn.FiniteMPS.random([2] * N, [D] * (N - 1), dtype=dtype, backend=backend)
 
 
 def initialize_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
@@ -101,12 +101,12 @@ def initialize_XXZ_mpo(Jz: np.ndarray, Jxy: np.ndarray, Bz: np.ndarray,
     dtype: data type.
     backend: The backend.
   Returns:
-    `FiniteMPS`: A spin 1/2 mps for the corresponding backend.
+    `tn.FiniteMPS`: A spin 1/2 mps for the corresponding backend.
   """
 
   if backend == 'symmetric':
     return blocksparse_XXZ_mpo(Jz=Jz, Jxy=Jxy, Bz=Bz, dtype=dtype)
-  return FiniteXXZ(Jz, Jxy, Bz, dtype=dtype, backend=backend)
+  return tn.FiniteXXZ(Jz, Jxy, Bz, dtype=dtype, backend=backend)
 
 
 def run_twosite_dmrg(N: int, D: int, dtype: Type[np.number], Jz: np.ndarray,
@@ -129,7 +129,7 @@ def run_twosite_dmrg(N: int, D: int, dtype: Type[np.number], Jz: np.ndarray,
   """
   mps = initialize_spin_mps(N, 32, dtype, backend)
   mpo = initialize_XXZ_mpo(Jz, Jxy, Bz, dtype, backend)
-  dmrg = FiniteDMRG(mps, mpo)
+  dmrg = tn.FiniteDMRG(mps, mpo)
   return dmrg.run_two_site(
       max_bond_dim=D, num_sweeps=num_sweeps, num_krylov_vecs=10, verbose=1)
 
