@@ -601,6 +601,17 @@ def test_pivot(dtype, pivot_axis):
   np.testing.assert_allclose(expected, actual)
 
 @pytest.mark.parametrize("dtype", tf_dtypes)
+def test_item(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.ones(1, dtype=dtype) * 5.0
+  assert backend.item(tensor) == 5.0
+
+  backend = tensorflow_backend.TensorFlowBackend()
+  tensor = backend.ones((2, 1), dtype=dtype)
+  with pytest.raises(ValueError, match="expected"):
+    backend.item(tensor)
+
+@pytest.mark.parametrize("dtype", tf_dtypes)
 def test_power(dtype):
   shape = (4, 3, 2)
   backend = tensorflow_backend.TensorFlowBackend()

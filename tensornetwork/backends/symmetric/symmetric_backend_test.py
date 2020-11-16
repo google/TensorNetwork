@@ -1645,6 +1645,16 @@ def test_gmres_raises():
   with pytest.raises(ValueError, match="atol = "):
     backend.gmres(lambda x: x, b, x0=mps, atol=-0.001)
 
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_item(dtype, num_charges):
+  charges = BaseCharge(
+      np.zeros((1, num_charges), dtype=np.int16),
+      charge_types=[U1Charge] * num_charges)
+  indices = [Index(charges, True)]
+  tensor = BlockSparseTensor.random(indices=indices, dtype=dtype)
+  backend = symmetric_backend.SymmetricBackend()
+  assert backend.item(tensor) == tensor.item()
 
 
 @pytest.mark.parametrize("dtype", np_tensordot_dtypes)
