@@ -472,3 +472,6 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return torchlib.sign(tensor)
+  
+  def item(self, tensor):
+    return tensor.item()

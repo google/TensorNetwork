@@ -780,3 +780,6 @@ class NumPyBackend(abstract_backend.AbstractBackend):
         is that produced by the broadcast of a and b.
     """
     return np.power(a, b)
+  
+  def item(self, tensor):
+    return tensor.item()
