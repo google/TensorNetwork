@@ -810,16 +810,25 @@ def test_item():
       order=[],
       check_consistency=False)
   assert t1.item() == 1
+
+
+  Ds = [1, 1]
+  charges = [U1Charge.random(Ds[n], 1, 2) for n in range(2)]
+  flows = [False, False]
+  inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
+  t2 = BlockSparseTensor.random(inds, dtype=np.float64)
+  assert t2.item() == 0.0
+
   Ds = [10, 11, 12, 13]
   charges = [U1Charge.random(Ds[n], -5, 5) for n in range(4)]
   flows = [True, False, True, False]
   inds = [Index(c, flows[n]) for n, c in enumerate(charges)]
-  t2 = BlockSparseTensor.random(inds, dtype=np.float64)
+  t3 = BlockSparseTensor.random(inds, dtype=np.float64)
   with pytest.raises(
       ValueError,
       match="can only convert an array of"
       " size 1 to a Python scalar"):
-    t2.item()
+    t3.item()
 
 
 @pytest.mark.parametrize('chargetype', ["U1", "Z2"])

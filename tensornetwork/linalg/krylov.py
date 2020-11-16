@@ -85,8 +85,8 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
   if x0 is not None:
     try:
       x0_array = x0.array
-    except AttributeError:
-      raise TypeError("x0 must be a tn.Tensor.")
+    except AttributeError as err:
+      raise TypeError("x0 must be a tn.Tensor.") from err
 
     if x0.backend.name != backend.name:
       errstr = ("If both x0 and backend are specified the"
@@ -103,8 +103,8 @@ def krylov_error_checks(backend: Union[Text, AbstractBackend, None],
   if args is not None:
     try:
       args_array = [a.array for a in args]
-    except AttributeError:
-      raise TypeError("Every element of args must be a tn.Tensor.")
+    except AttributeError as err:
+      raise TypeError("Every element of args must be a tn.Tensor.") from err
   else:
     args_array = None
   return (backend, x0_array, args_array)
@@ -313,8 +313,8 @@ def gmres(A_mv: Callable,
   """
   try:
     b_array = b.array
-  except AttributeError:
-    raise TypeError("b must be a tn.Tensor")
+  except AttributeError as err:
+    raise TypeError("b must be a tn.Tensor") from err
   backend, x0_array, args_array = krylov_error_checks(b.backend, x0, A_args)
 
   mv = KRYLOV_MATVEC_CACHE.retrieve(backend.name, A_mv)

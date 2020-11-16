@@ -1234,3 +1234,9 @@ def test_inv(dtype, atol):
   tensor = backend.randn((10, 10, 10), dtype=dtype, seed=10)
   with pytest.raises(ValueError, match="input to"):
     backend.inv(tensor)
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_item(dtype):
+  backend = jax_backend.JaxBackend()
+  tensor = backend.randn((1,), dtype=dtype, seed=10)
+  assert backend.item(tensor) == tensor.item()

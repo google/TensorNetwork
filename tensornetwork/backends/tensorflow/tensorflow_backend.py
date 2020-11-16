@@ -17,6 +17,8 @@ from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
 from tensornetwork.backends.tensorflow import tensordot2
+import functools as fct
+import operator as op
 
 # This might seem bad, but pytype treats tf.Tensor as Any anyway, so
 # we don't actually lose anything by doing this.
@@ -384,22 +386,34 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     """
     return tf.math.sign(tensor)
 
+  def item(self, tensor):
+    numel = 0
+    if len(tensor.shape) > 0:
+      numel = fct.reduce(op.mul, tensor.shape)
+      if numel != 1:
+        raise ValueError(f"expected tensor with one element, "
+                         f"got {tensor.shape}")
+
+    if numel == 1:
+      return tensor[0]
+    return tensor
+
   def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
     """
-    Returns the exponentiation of tensor a raised to b.  
-      If b is a tensor, then the exponentiation is element-wise 
+    Returns the exponentiation of tensor a raised to b.
+      If b is a tensor, then the exponentiation is element-wise
         between the two tensors, with a as the base and b as the power.
-        Note that a and b must be broadcastable to the same shape if 
+        Note that a and b must be broadcastable to the same shape if
         b is a tensor.
       If b is a scalar, then the exponentiation is each value in a
         raised to the power of b.
-    
+
     Args:
       a: The tensor containing the bases.
       b: The tensor containing the powers; or a single scalar as the power.
 
     Returns:
-      The tensor that is each element of a raised to the 
+      The tensor that is each element of a raised to the
         power of b.  Note that the shape of the returned tensor
         is that produced by the broadcast of a and b.
     """
