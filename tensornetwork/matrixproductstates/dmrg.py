@@ -31,12 +31,12 @@ class BaseDMRG:
     """
     Base class for DMRG simulations.
     Args:
-      mps: The initial mps. Should be either FiniteMPS or InfiniteMPS 
+      mps: The initial mps. Should be either FiniteMPS or InfiniteMPS
         (latter is not yet supported).
       mpo: A `FiniteMPO` or `InfiniteMPO` object.
-      lb:  The left boundary environment. `lb` has to have shape 
+      lb:  The left boundary environment. `lb` has to have shape
         (mpo[0].shape[0],mps[0].shape[0],mps[0].shape[0])
-      rb: The right environment. `rb` has to have shape 
+      rb: The right environment. `rb` has to have shape
         (mpo[-1].shape[1],mps[-1].shape[1],mps[-1].shape[1])
       name: An optional name for the simulation.
     Raises:
@@ -113,9 +113,9 @@ class BaseDMRG:
 
   def position(self, site: int):
     """
-    Shifts the center position `site`, and updates left and 
-    right environments accordingly. Left blocks at sites > `site` are set 
-    to `None`, and right blocks at sites < `site` are `None`. 
+    Shifts the center position `site`, and updates left and
+    right environments accordingly. Left blocks at sites > `site` are set
+    to `None`, and right blocks at sites < `site` are `None`.
     Args:
       site: The site to which the position of the center-site should be shifted.
     Returns: BaseDMRG
@@ -158,7 +158,7 @@ class BaseDMRG:
 
   def compute_left_envs(self) -> None:
     """
-    Compute all left environment blocks of sites up to 
+    Compute all left environment blocks of sites up to
     (including) self.mps.center_position.
     """
     lb = self.left_envs[0]
@@ -188,8 +188,8 @@ class BaseDMRG:
                          delta=1E-6,
                          ndiag=10) -> np.number:
     """
-    Single-site optimization at the current position of the center site. 
-    The method shifts the center position of the mps by one site 
+    Single-site optimization at the current position of the center site.
+    The method shifts the center position of the mps by one site
     to the left or to the right, depending on the value of `sweep_dir`.
     Args:
       sweep_dir: Sweep direction; 'left' or 'l' for a sweep from right to left,
@@ -199,7 +199,7 @@ class BaseDMRG:
       delta: Stopping criterion for Lanczos iteration.
         If a Krylov vector :math: `x_n` has an L2 norm
         :math:`\\lVert x_n\\rVert < delta`, the iteration
-        is stopped. 
+        is stopped.
       ndiag: Inverse frequencey of tridiagonalizations in `eighs_lanczos`.
     Returns:
       float/complex: The local energy after optimization.
@@ -360,17 +360,17 @@ class BaseDMRG:
         to the left side.
       precision: The desired precision of the energy. If `precision` is
         reached, optimization is terminated.
-      num_krylov_vecs: Krylov space dimension used in the iterative 
+      num_krylov_vecs: Krylov space dimension used in the iterative
         eigsh_lanczos method.
-      verbose: Verbosity flag. Us`verbose=0` to suppress any output. 
+      verbose: Verbosity flag. Us`verbose=0` to suppress any output.
         Larger values produce increasingly more output.
-      delta: Convergence parameter of `eigsh_lanczos` to determine if 
+      delta: Convergence parameter of `eigsh_lanczos` to determine if
         an invariant subspace has been found.
-      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in 
-        `eigsh_lanczos` have converged within `tol`, `eighs_lanczos` 
+      tol: Tolerance parameter of `eigsh_lanczos`. If eigenvalues in
+        `eigsh_lanczos` have converged within `tol`, `eighs_lanczos`
         is terminted.
-      ndiag: Inverse frequency at which eigenvalues of the 
-        tridiagonal Hamiltonian produced by `eigsh_lanczos` are tested 
+      ndiag: Inverse frequency at which eigenvalues of the
+        tridiagonal Hamiltonian produced by `eigsh_lanczos` are tested
         for convergence. `ndiag=10` tests at every tenth step.
     Returns:
       float: The energy upon termination of `run_one_site`.
@@ -558,8 +558,10 @@ class BaseDMRG:
     self.compute_right_envs()
     return ncon([
         self.add_right_layer(self.right_envs[0], self.mps.tensors[0],
-                             self.mpo.tensors[0])
-    ], [[1, 1, -1]], backend=self.backend.name)[0]
+                             self.mpo.tensors[0]),
+        self.left_envs[0],
+    ], [[1, 2, 3], [1, 2, 3]],
+                backend=self.backend.name).item()
 
 
 class FiniteDMRG(BaseDMRG):
@@ -578,11 +580,20 @@ class FiniteDMRG(BaseDMRG):
       mpo: A FiniteMPO object.
       name: An optional name for the simulation.
     """
-    lshape = (mpo.tensors[0].shape[0], mps.tensors[0].shape[0],
-              mps.tensors[0].shape[0])
-    rshape = (mpo.tensors[-1].shape[1], mps.tensors[-1].shape[2],
-              mps.tensors[-1].shape[2])
-    lb = mps.backend.ones(lshape, dtype=mps.dtype)
-    rb = mps.backend.ones(rshape, dtype=mps.dtype)
+    backend = mps.backend
+    conmpo0 = backend.conj(mpo.tensors[0])
+    conmps0 = backend.conj(mps.tensors[0])
+    mps0 = mps.tensors[0]
+
+    conmpoN = backend.conj(mpo.tensors[-1])
+    conmpsN = backend.conj(mps.tensors[-1])
+    mpsN = mps.tensors[-1]
+
+    lshape = (backend.sparse_shape(conmpo0)[0],
+              backend.sparse_shape(conmps0)[0], backend.sparse_shape(mps0)[0])
+    rshape = (backend.sparse_shape(conmpoN)[1],
+              backend.sparse_shape(conmpsN)[2], backend.sparse_shape(mpsN)[2])
+    lb = backend.ones(lshape, dtype=mps.dtype)
+    rb = backend.ones(rshape, dtype=mps.dtype)
     super().__init__(
         mps=mps, mpo=mpo, left_boundary=lb, right_boundary=rb, name=name)

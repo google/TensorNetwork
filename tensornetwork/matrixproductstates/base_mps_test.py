@@ -101,7 +101,7 @@ def test_left_orthonormalization(backend_dtype_values):
   mps.position(0)
   mps.position(len(mps) - 1)
   assert all([
-      mps.check_orthonormality('left', site) < 1E-12
+      abs(mps.check_orthonormality('left', site)) < 1E-12
       for site in range(len(mps))
   ])
 
@@ -118,7 +118,7 @@ def test_right_orthonormalization(backend_dtype_values):
   mps.position(len(mps) - 1)
   mps.position(0)
   assert all([
-      mps.check_orthonormality('right', site) < 1E-12
+      abs(mps.check_orthonormality('right', site)) < 1E-12
       for site in range(len(mps))
   ])
 

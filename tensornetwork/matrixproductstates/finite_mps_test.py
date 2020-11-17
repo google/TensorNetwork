@@ -71,9 +71,9 @@ def test_canonical_finite_mps(backend_dtype_values):
   mps = FiniteMPS(
       tensors, center_position=N//2, backend=backend, canonicalize=True)
   mps.center_position += 1
-  assert mps.check_canonical() > 1E-12
+  assert abs(mps.check_canonical()) > 1E-12
   mps.canonicalize()
-  assert mps.check_canonical() < 1E-12
+  assert abs(mps.check_canonical()) < 1E-12
 
 
 def test_local_measurement_finite_mps(backend_dtype_values):
