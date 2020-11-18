@@ -397,7 +397,8 @@ class ChargeArray:
   @property
   def T(self) -> "ChargeArray":
     return self.transpose()
-
+  def __pow__(self, number):
+    raise NotImplementedError("__pow__ not implemented for ChargeArray")
   def __sub__(self, other: "BlockSparseTensor") -> "ChargeArray":
     raise NotImplementedError("__sub__ not implemented for ChargeArray")
 
@@ -784,6 +785,19 @@ class BlockSparseTensor(ChargeArray):
         flows=self._flows,
         order=self._order,
         check_consistency=False)
+  
+  def __pow__(self, number: np.number) -> "BlockSparseTensor":
+    if not np.isscalar(number):
+      raise TypeError(
+          "Can only exponentiate BlockSparseTensor by a number. Found type {}"
+          .format(type(number)))
+    return BlockSparseTensor(
+        data=self.data ** number,
+        charges=self._charges,
+        flows=self._flows,
+        order=self._order,
+        check_consistency=False)
+
 
   # pylint: disable=arguments-differ
   def contiguous(self,

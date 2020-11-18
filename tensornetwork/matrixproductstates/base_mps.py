@@ -272,7 +272,7 @@ class BaseMPS:
       L[0] ^ A[0]
       L[1] ^ conj_A[0]
       result = L @ A @ O @ conj_A @ R
-      res.append(result.tensor)
+      res.append(self.backend.item(result.tensor))
     return res
 
   def measure_two_body_correlator(self, op1: Tensor, op2: Tensor, site1: int,
@@ -432,7 +432,7 @@ class BaseMPS:
           L = Node(
               self.apply_transfer_operator(n % N, 'left', L.tensor),
               backend=self.backend)
-    return c
+    return [self.backend.item(o) for o in c]
 
   def apply_two_site_gate(self,
                           gate: Tensor,
@@ -549,10 +549,14 @@ class BaseMPS:
     else:
       n1[2] ^ n2[2]
       n1[1] ^ n2[1]
-    result = n1 @ n2
-    return self.norm(
-        abs(result.tensor - self.backend.eye(
-            N=result.shape[0], M=result.shape[1], dtype=self.dtype)))
+    result = (n1 @ n2).tensor
+    tmp = result - self.backend.eye(
+        N=self.backend.sparse_shape(result)[0],
+        M=self.backend.sparse_shape(result)[1],
+        dtype=self.dtype)
+    return self.backend.sqrt(
+        ncon([tmp, self.backend.conj(tmp)], [[1, 2], [1, 2]],
+             backend=self.backend))
 
   # pylint: disable=inconsistent-return-statements
   def check_canonical(self) -> Any:
@@ -574,7 +578,7 @@ class BaseMPS:
       else:
         continue
       deviations.append(deviation**2)
-    return self.backend.sqrt(sum(deviations))
+    return self.backend.sqrt(sum(deviations[1:], deviations[0]))
 
   def get_tensor(self, site: int) -> Tensor:
     """Returns the `Tensor` object at `site`.

@@ -117,7 +117,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
              optimize: bool = True) -> Tensor:
     raise NotImplementedError("`einsum` currently not implemented")
 
-  def norm(self, tensor: Tensor) -> Tensor:
+  def norm(self, tensor: Tensor) -> float:
     return self.bs.norm(tensor)
 
   def eye(self,

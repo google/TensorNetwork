@@ -36,6 +36,7 @@ def _data_initializer(
 ) -> Tuple[np.ndarray, List[BaseCharge], List[bool], List[List[int]]]:
   """
   Initialize a 1d np.ndarray using `numpy_initializer` function.
+
   Args:
     numpy_initializer: Callable, should return a 1d np.ndarray.
       Function call signature: `numpy_initializer(*args, **kwargs)`.
@@ -43,11 +44,12 @@ def _data_initializer(
       the returned 1d np.ndarray, using  `numel = comp_num_elements(indices)`.
     indices: List if `Index` objects.
     *args, **kwargs: Arguments to `numpy_initializer`.
+
   Returns:
     np.ndarray: An initialized numpy array.
     List[BaseCharge]: A list containing the flattened charges in `indices`
     List[bool]: The flattened flows of `indices`.
-    List[List]: A list of list of int, the order information needed to 
+    List[List]: A list of list of int, the order information needed to
       initialize a BlockSparseTensor.
   """
   charges, flows = get_flat_meta_data(indices)
