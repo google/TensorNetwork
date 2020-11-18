@@ -41,13 +41,16 @@ def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
     Returns:
       jax.ShapedArray: The orthogonalized vector.
     """
+    i1 = list(range(1, len(krylov_vectors.shape)))
+    i2 = list(range(len(vector.shape)))
+
     vec = vector
     overlaps = 0
     for _ in range(iterations):
-      ov = jax.numpy.dot(
-          krylov_vectors.conj(), vec, precision=precision)
-      vec = vec - jax.numpy.dot(
-          ov, krylov_vectors, precision=precision)
+      ov = jax.numpy.tensordot(krylov_vectors.conj(), vec,(i1,i2),
+                               precision=precision)
+      vec = vec - jax.numpy.tensordot(
+          ov, krylov_vectors, ([0],[0]), precision=precision)
       overlaps = overlaps + ov
     return vec, overlaps
   return iterative_classical_gram_schmidt
@@ -120,15 +123,22 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
     shape = init.shape
     dtype = init.dtype
     iterative_classical_gram_schmidt = _iterative_classical_gram_schmidt(jax)
+    mask_slice = (slice(ncv + 2), ) + (None,) * len(shape)
+    def scalar_product(a, b):
+      i1 = list(range(len(a.shape)))
+      i2 = list(range(len(b.shape)))
+      return jax.numpy.tensordot(a.conj(), b, (i1, i2), precision=precision)
+
+    def norm(a):
+      return jax.numpy.sqrt(scalar_product(a, a))
 
     def body_lanczos(vals):
       krylov_vectors, alphas, betas, i = vals
-      previous_vector = krylov_vectors[i, :]
-
+      previous_vector = krylov_vectors[i]
       def body_while(vals):
         pv, kv, _ = vals
         pv = iterative_classical_gram_schmidt(
-            pv, (i > jax.numpy.arange(ncv + 2))[:, None] * kv, precision)[0]
+            pv, (i > jax.numpy.arange(ncv + 2))[mask_slice] * kv, precision)[0]
         return [pv, kv, False]
 
       def cond_while(vals):
@@ -136,12 +146,12 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
       previous_vector, krylov_vectors, _ = jax.lax.while_loop(
           cond_while, body_while,
-          [previous_vector.ravel(), krylov_vectors, reortho])
+          [previous_vector, krylov_vectors, reortho])
 
-      beta = jax.numpy.linalg.norm(previous_vector)
+      beta = norm(previous_vector)
       normalized_vector = previous_vector / beta
-      Av = matvec(jax.lax.reshape(normalized_vector, shape), *arguments)
-      alpha = jax.numpy.vdot(normalized_vector, Av, precision=precision)
+      Av = matvec(normalized_vector, *arguments)
+      alpha = scalar_product(normalized_vector, Av)
       alphas = alphas.at[i - 1].set(alpha)
       betas = betas.at[i].set(beta)
 
@@ -155,13 +165,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
 
       next_vector, _ = jax.lax.while_loop(
           cond_next, while_next,
-          [Av.ravel(), jax.numpy.logical_not(reortho)])
+          [Av, jax.numpy.logical_not(reortho)])
       next_vector = jax.numpy.reshape(next_vector, shape)
 
-      krylov_vectors = krylov_vectors.at[i, :].set(
-          jax.numpy.ravel(normalized_vector))
-      krylov_vectors = krylov_vectors.at[i + 1, :].set(
-          jax.numpy.ravel(next_vector))
+      krylov_vectors = krylov_vectors.at[i].set(normalized_vector)
+      krylov_vectors = krylov_vectors.at[i + 1].set(next_vector)
 
       return [krylov_vectors, alphas, betas, i + 1]
 
@@ -171,12 +179,11 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       return jax.lax.cond(i <= ncv, lambda x: x[0] > x[1], lambda x: False,
                           [norm, landelta])
 
-    numel = np.prod(shape).astype(np.int32)
     # note: ncv + 2 because the first vector is all zeros, and the
     # last is the unnormalized residual.
-    krylov_vecs = jax.numpy.zeros((ncv + 2, numel), dtype=dtype)
+    krylov_vecs = jax.numpy.zeros((ncv + 2,) + shape, dtype=dtype)
     # NOTE (mganahl): initial vector is normalized inside the loop
-    krylov_vecs = krylov_vecs.at[1, :].set(jax.numpy.ravel(init))
+    krylov_vecs = krylov_vecs.at[1].set(init)
 
     # betas are the upper and lower diagonal elements
     # of the projected linear operator
@@ -212,17 +219,16 @@ def _generate_jitted_eigsh_lanczos(jax: types.ModuleType) -> Callable:
       dim = unitary.shape[1]
       n, m = jax.numpy.divmod(i, dim)
       vectors = jax.ops.index_add(vectors, jax.ops.index[n, :],
-                                  krv[m + 1, :] * unitary[m, n])
+                                  krv[m + 1] * unitary[m, n])
       return [krv, unitary, vectors]
 
-    _vectors = jax.numpy.zeros([neig, numel], dtype=dtype)
+    _vectors = jax.numpy.zeros((neig,) + shape, dtype=dtype)
     _, _, vectors = jax.lax.fori_loop(0, neig * (krylov_vecs.shape[0] - 1),
                                       body_vector,
                                       [krylov_vecs, U, _vectors])
 
     return jax.numpy.array(eigvals[0:neig]), [
-        jax.numpy.reshape(vectors[n, :], shape) /
-        jax.numpy.linalg.norm(vectors[n, :]) for n in range(neig)
+        vectors[n] / norm(vectors[n]) for n in range(neig)
     ], numits
 
   return jax_lanczos
