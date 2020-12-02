@@ -823,7 +823,7 @@ def get_ham_params(dtype, N, which):
     if dtype in (np.complex128, np.complex64):
       hop -= 1j * jnp.ones(N - 1, dtype)
   elif which == 'rand':
-    hop = -jnp.array(np.random.rand(N - 1).astype(dtype)-0.5)
+    hop = (-1) * jnp.array(np.random.rand(N - 1).astype(dtype) - 0.5)
     pot = jnp.array(np.random.rand(N).astype(dtype))-0.5
     if dtype in (np.complex128, np.complex64):
       hop -= 1j * jnp.array(np.random.rand(N - 1).astype(dtype)-0.5)
