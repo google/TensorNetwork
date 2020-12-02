@@ -47,12 +47,13 @@ def _iterative_classical_gram_schmidt(jax: types.ModuleType) -> Callable:
     vec = vector
     overlaps = 0
     for _ in range(iterations):
-      ov = jax.numpy.tensordot(krylov_vectors.conj(), vec,(i1,i2),
-                               precision=precision)
+      ov = jax.numpy.tensordot(
+          krylov_vectors.conj(), vec, (i1, i2), precision=precision)
       vec = vec - jax.numpy.tensordot(
-          ov, krylov_vectors, ([0],[0]), precision=precision)
+          ov, krylov_vectors, ([0], [0]), precision=precision)
       overlaps = overlaps + ov
     return vec, overlaps
+
   return iterative_classical_gram_schmidt
 
 
