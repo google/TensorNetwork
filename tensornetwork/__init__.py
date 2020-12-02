@@ -11,7 +11,7 @@ from tensornetwork.tensor import Tensor, NconBuilder
 from tensornetwork.linalg.initialization import (eye, ones, randn,
                                                  random_uniform, zeros)
 
-from tensornetwork.linalg.linalg import norm, qr, svd
+from tensornetwork.linalg.linalg import norm, qr, svd, rq, eigh, expm, inv
 
 #pylint: disable=redefined-builtin
 from tensornetwork.linalg.operations import (tensordot, reshape, transpose,

@@ -5,6 +5,7 @@ import tensorflow as tf
 import torch
 import pytest
 import tensornetwork
+from tensornetwork.block_sparse.charge import charge_equal
 from tensornetwork import backends
 config.update("jax_enable_x64", True)
 
@@ -64,7 +65,7 @@ def np_dtype_to_backend(backend, dtype):
   the present test if the dtype is not supported in the backend.
   """
   backend_obj = backends.backend_factory.get_backend(backend)
-  if backend_obj.name == "numpy":
+  if backend_obj.name in ("numpy", "symmetric"):
     return dtype
   A_np = np.ones([1], dtype=dtype)
 
@@ -98,3 +99,30 @@ def check_contraction_dtype(backend, dtype):
       skip = True
   if skip:
     pytest.skip("backend does not support multiply-add with this dtype.")
+
+
+def assert_allclose(expected, actual, backend, **kwargs):
+  if backend.name == 'symmetric':
+    exp = expected.contiguous()
+    act = actual.contiguous()
+    if exp.shape != act.shape:
+      raise ValueError(f"expected shape = {exp.shape}, "
+                       f"actual shape = {act.shape}")
+    if len(exp.flat_charges) != len(act.flat_charges):
+      raise ValueError("expected charges differ from actual charges")
+
+    if len(exp.flat_flows) != len(act.flat_flows):
+      raise ValueError(f"expected flat flows = {exp.flat_flows}"
+                       f" differ from actual flat flows = {act.flat_flows}")
+
+    for c1, c2 in zip(exp.flat_charges, act.flat_charges):
+      if not charge_equal(c1, c2):
+        raise ValueError("expected charges differ from actual charges")
+
+    if not np.all(np.array(exp.flat_flows) == np.array(act.flat_flows)):
+      raise ValueError(f"expected flat flows = {exp.flat_flows}"
+                       f" differ from actual flat flows = {act.flat_flows}")
+    if not np.all(np.abs(exp.data - act.data) < 1E-10):
+      np.testing.assert_allclose(act.data, exp.data, **kwargs)
+  else:
+    np.testing.assert_allclose(actual, expected, **kwargs)
