@@ -16,7 +16,7 @@ install:
 # command to run tests
 script:
   - pylint ./tensornetwork/
-  - pytest --cov=./
+  - pytest --cov=./ test.py
   - python3 setup.py build
 
 after_success:
