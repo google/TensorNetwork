@@ -974,19 +974,6 @@ def test_eigs_bugfix(dtype):
       num_krylov_vecs=100,
       tol=0.0001)
 
-def test_power(dtype):
-  np.random.seed(10)
-  backend = jax_backend.JaxBackend()
-  tensor = np.random.rand(2, 3, 4)
-  a = backend.convert_to_tensor(tensor)
-  actual = backend.power(a, axis=(1, 2))
-  expected = np.power(a, axis=(1, 2))
-  np.testing.assert_allclose(expected, actual)
-
-  actual = backend.power(a, axis=(1, 2), keepdims=True)
-  expected = np.power(a, axis=(1, 2), keepdims=True)
-  np.testing.assert_allclose(expected, actual)
-
 def test_sum():
   np.random.seed(10)
   backend = jax_backend.JaxBackend()
@@ -1253,5 +1240,17 @@ def test_item(dtype):
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert backend.item(tensor) == tensor.item()
 
-
-
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_power(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  base_tensor = backend.randn(shape, dtype=dtype, seed=10)
+  power_tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.power(base_tensor, power_tensor)
+  expected = tf.math.pow(base_tensor, power_tensor)
+  np.testing.assert_allclose(expected, actual)
+  
+  power = np.random.rand(1)[0]
+  actual = backend.power(base_tensor, power)
+  expected = tf.math.pow(base_tensor, power)
+  np.testing.assert_allclose(expected, actual)
