@@ -887,4 +887,4 @@ class JaxBackend(abstract_backend.AbstractBackend):
       a: The tensor that contains the base.
       b: The tensor that contains the exponent or a single scalar.
     """
-    return jnp.power(a,b)
+    return jnp.power(a, b)
