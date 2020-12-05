@@ -875,7 +875,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
   def item(self, tensor):
     return tensor.item()
 
-  def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
+  def power(self, a: Tensor, b: Union[Tensor, int]) -> Tensor:
     """
     Returns power of tensor a to the value of b.
     In the case b is a tensor, then the power is by element
@@ -887,4 +887,4 @@ class JaxBackend(abstract_backend.AbstractBackend):
       a: The tensor that contains the base.
       b: The tensor that contains the exponent or a single scalar.
     """
-    return jnp.square(a, b)
+    return jnp.power(a, b)
