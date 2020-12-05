@@ -974,6 +974,18 @@ def test_eigs_bugfix(dtype):
       num_krylov_vecs=100,
       tol=0.0001)
 
+def test_power(dtype):
+  np.random.seed(10)
+  backend = jax_backend.JaxBackend()
+  tensor = np.random.rand(2, 3, 4)
+  a = backend.convert_to_tensor(tensor)
+  actual = backend.power(a, axis=(1, 2))
+  expected = np.power(a, axis=(1, 2))
+  np.testing.assert_allclose(expected, actual)
+
+  actual = backend.power(a, axis=(1, 2), keepdims=True)
+  expected = np.power(a, axis=(1, 2), keepdims=True)
+  np.testing.assert_allclose(expected, actual)
 
 def test_sum():
   np.random.seed(10)
@@ -1240,3 +1252,6 @@ def test_item(dtype):
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert backend.item(tensor) == tensor.item()
+
+
+

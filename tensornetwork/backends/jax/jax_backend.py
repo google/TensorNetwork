@@ -874,3 +874,6 @@ class JaxBackend(abstract_backend.AbstractBackend):
 
   def item(self, tensor):
     return tensor.item()
+
+  def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
+    return jnp.power(a,b)
