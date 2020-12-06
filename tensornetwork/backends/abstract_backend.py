@@ -144,6 +144,13 @@ class AbstractBackend:
     raise NotImplementedError("Backend '{}' has not implemented qr.".format(
         self.name))
 
+  def chsky(self, 
+            tensor: Tensor, 
+            pivot_axis: int = -1, 
+            non_negative_diagonal: bool = False) -> Tuple[Tensor, Tensor]:
+    """Computes the Cholskey decomposition of a tensor."""
+    raise NotImplementedError("Backend '{}' has not implemented chsky.".format(self.name))
+
   def rq(self,
          tensor: Tensor,
          pivot_axis: int = -1,
