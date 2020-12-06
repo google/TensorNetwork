@@ -1029,4 +1029,4 @@ class AbstractBackend:
                              non_negative_diagonal: bool = False) -> \
                              Tuple[Tensor, Tensor]:
     raise NotImplementedError(
-        f"Backend {self.name} han not implemented cholesky_decomposition.")
+        f"Backend {self.name} has not implemented cholesky_decomposition.")

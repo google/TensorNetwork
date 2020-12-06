@@ -1239,19 +1239,4 @@ def test_item(dtype):
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert backend.item(tensor) == tensor.item()
-
-@pytest.mark.parametrize("dtype", np_dtypes)
-def test_power(dtype):
-  shape = (4, 3, 2)
-  backend = jax_backend.JaxBackend()
-  base_tensor = backend.randn(shape, dtype=dtype, seed=10)
-  power_tensor = backend.randn(shape, dtype=dtype, seed=10)
-  actual = backend.power(base_tensor, power_tensor)
-  expected = tf.math.pow(base_tensor, power_tensor)
-  np.testing.assert_allclose(expected, actual)
-
-  power = np.random.rand(1)[0]
-  actual = backend.power(base_tensor, power)
-  expected = tf.math.pow(base_tensor, power)
-  np.testing.assert_allclose(expected, actual)
   
