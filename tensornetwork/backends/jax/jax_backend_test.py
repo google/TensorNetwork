@@ -1247,10 +1247,11 @@ def test_power(dtype):
   base_tensor = backend.randn(shape, dtype=dtype, seed=10)
   power_tensor = backend.randn(shape, dtype=dtype, seed=10)
   actual = backend.power(base_tensor, power_tensor)
-  expected = jax.numpy.power(base_tensor, power_tensor)
+  expected = tf.math.pow(base_tensor, power_tensor)
   np.testing.assert_allclose(expected, actual)
 
   power = np.random.rand(1)[0]
   actual = backend.power(base_tensor, power)
-  expected = jax.numpy.power(base_tensor, power)
+  expected = tf.math.pow(base_tensor, power)
   np.testing.assert_allclose(expected, actual)
+  
