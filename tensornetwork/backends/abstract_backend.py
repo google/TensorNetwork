@@ -1022,10 +1022,3 @@ class AbstractBackend:
       The value in tensor.
     """
     raise NotImplementedError("Backend {self.name} has not implemented item")
-
-  def chsky(self, tensor: Tensor, 
-            pivot_axis: int = -1, 
-            non_negative_diagonal: bool = False) -> 
-            Tuple[Tensor, Tensor]:
-    """Computes the Cholskey decomposition of a tensor."""
-    raise NotImplementedError("Backend '{}' has not implemented chsky.".format(self.name))
