@@ -193,12 +193,6 @@ def test_abstract_backend_qr_decompositon_not_implemented():
     backend.qr(np.ones((2, 2)), 0)
 
 
-def test_abstract_backend_chsky_decompositon_not_implemented():
-  backend = AbstractBackend()
-  with pytest.raises(NotImplementedError):
-    backend.chsky(np.ones((2, 2)), 0)
-
-
 def test_abstract_backend_rq_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
