@@ -1254,3 +1254,4 @@ def test_power(dtype):
   actual = backend.power(base_tensor, power)
   expected = jax.numpy.power(base_tensor, power)
   np.testing.assert_allclose(expected, actual)
+  
