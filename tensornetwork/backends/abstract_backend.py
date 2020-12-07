@@ -1023,10 +1023,10 @@ class AbstractBackend:
     """
     raise NotImplementedError("Backend {self.name} has not implemented item")
 
-  def cholesky_decomposition(self, 
-                             tensor: Tensor,
-                             pivot_axis: int = -1,
-                             non_negative_diagonal: bool = False) -> \
-                             Tuple[Tensor, Tensor]:
+  def cholesky(self, 
+               tensor: Tensor,
+               pivot_axis: int = -1,
+               non_negative_diagonal: bool = False) -> \
+               Tuple[Tensor, Tensor]:
     raise NotImplementedError(
         f"Backend {self.name} has not implemented cholesky_decomposition.")

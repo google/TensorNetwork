@@ -196,7 +196,7 @@ def test_abstract_backend_qr_decompositon_not_implemented():
 def test_abstract_backend_cholesky_decompositon_not_implemented():
   backend = AbstractBackend()
   with pytest.raises(NotImplementedError):
-    backend.cholesky_decomposition(np.ones((2, 2)), 0)
+    backend.cholesky(np.ones((2, 2)), 0)
 
 
 def test_abstract_backend_rq_decompositon_not_implemented():
