@@ -165,7 +165,7 @@ def _find_best_partition(dims: Union[List[int], np.ndarray]) -> int:
 
 def get_dtype(itemsize: int) -> Type[np.number]:
   """
-  Return the `numpy.dtype` needed to store an 
+  Return the `numpy.dtype` needed to store an
   element of `itemsize` bytes.
   """
   final_dtype = np.int8
@@ -180,8 +180,8 @@ def get_dtype(itemsize: int) -> Type[np.number]:
 
 def collapse(array: np.ndarray) -> np.ndarray:
   """
-  If possible, collapse a 2d numpy array 
-  `array` along the rows into a 1d array of larger 
+  If possible, collapse a 2d numpy array
+  `array` along the rows into a 1d array of larger
   dtype.
   Args:
     array: np.ndarray

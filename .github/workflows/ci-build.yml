@@ -26,12 +26,12 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements_travis.txt
         pip install pylint pytest-cov codecov
-    - name: pylint
+    - name: Linting with pylint
       run: |
         pylint tensornetwork
     - name: Test with pytest
       run: |
         pytest --cov=./
-    - name: Creating coverage report
+    - name: Uploading coverage report
       run: |
         codecov
