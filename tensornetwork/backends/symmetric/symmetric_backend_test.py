@@ -610,6 +610,19 @@ def test_addition_raises(R, dtype, num_charges):
 
 
 @pytest.mark.parametrize("dtype", np_dtypes)
+@pytest.mark.parametrize("num_charges", [1, 2])
+def test_power(dtype, num_charges):
+  np.random.seed(10)
+  R = 4
+  backend = symmetric_backend.SymmetricBackend()
+  a = get_tensor(R, num_charges, dtype)
+  b = BlockSparseTensor.random(a.sparse_shape)
+  expected = np.power(a.data, b.data)
+  actual = backend.power(a.data, b.data)
+  np.testing.assert_allclose(expected, actual)
+
+
+@pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("R", [2, 3, 4, 5])
 @pytest.mark.parametrize("num_charges", [1, 2])
 def test_subtraction(R, dtype, num_charges):

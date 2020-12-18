@@ -566,6 +566,18 @@ def test_matmul():
   np.testing.assert_allclose(expected, actual)
 
 
+def test_power():
+  np.random.seed(10)
+  backend = pytorch_backend.PyTorchBackend()
+  t1 = np.random.rand(10, 2, 3)
+  t2 = np.random.rand(10, 3, 4)
+  a = backend.convert_to_tensor(t1)
+  b = backend.convert_to_tensor(t2)
+  actual = backend.power(a, b)
+  expected = np.power(t1, t2)
+  np.testing.assert_allclose(expected, actual)
+
+
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
 @pytest.mark.parametrize("offset", range(-2, 2))
 @pytest.mark.parametrize("axis1", [-2, 0])
