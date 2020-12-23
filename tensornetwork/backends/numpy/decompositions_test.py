@@ -52,6 +52,12 @@ class DecompositionsTest(tf.test.TestCase):
       q, r = decompositions.qr(np, random_matrix, 1, non_negative_diagonal)
       self.assertAllClose(q.dot(r), random_matrix)
 
+  def test_cholesky(self):
+    random_matrix = np.random.rand(10, 10)
+    for non_negative_diagonal in [True, False]:
+      L = decompositions.cholesky(np, random_matrix, 1)
+      self.assertAllClose(np.cholesky(random_matrix), L)
+
   def test_max_singular_values(self):
     random_matrix = np.random.rand(10, 10)
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)

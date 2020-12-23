@@ -122,3 +122,22 @@ def rq(
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q
+
+
+def cholesky(
+    np, # TODO: Typing
+    tensor: Tensor,
+    pivot_axis: int
+) -> Tuple[Tensor, Tensor]:
+  """
+  Computes the Cholesky decomposition of a tensor
+
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
+  left_dims = np.shape(tensor)[:pivot_axis]
+  right_dims = np.shape(tensor)[pivot_axis:]
+  tensor = np.reshape(tensor,
+                      [numpy.prod(left_dims),
+                       numpy.prod(right_dims)])
+  L = np.linalg.cholesky(tensor)
+  return L
