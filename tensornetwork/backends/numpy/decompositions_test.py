@@ -53,7 +53,8 @@ class DecompositionsTest(tf.test.TestCase):
       self.assertAllClose(q.dot(r), random_matrix)
 
   def test_cholesky(self):
-    random_matrix = [[1.0, 0], [0, 1.0]] #Assured positive-definite hermitian matrix
+    #Assured positive-definite hermitian matrixs
+    random_matrix = [[1.0, 0], [0, 1.0]]
     for non_negative_diagonal in [True, False]:
       L = decompositions.cholesky(tf, random_matrix, 1, non_negative_diagonal)
       self.assertAllClose(np.linalg.cholesky(random_matrix), L)

@@ -249,5 +249,5 @@ def cholesky(
     phases = tf.math.sign(tf.linalg.diag_part(L))
     L = phases[:, None] * L
   center_dim = tf.shape(L)[1]
-  L = tf.reshape(L,tf.concat([left_dims, [center_dim]], axis=-1))
+  L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
   return L
