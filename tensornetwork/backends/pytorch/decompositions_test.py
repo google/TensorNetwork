@@ -42,6 +42,13 @@ def test_expected_shapes_rq():
     assert r.shape == (2, 3, 6)
     assert q.shape == (6, 4, 5)
 
+def test_cholesky():
+  #Assured positive-definite hermitian matrix
+  random_matrix = np.array([[1.0, 0], [0, 1.0]])
+  random_matrix = torch.from_numpy(random_matrix)
+  for non_negative_diagonal in [True, False]:
+    L = decompositions.cholesky(torch, random_matrix, 1, non_negative_diagonal)
+    np.testing.assert_allclose(torch.cholesky(random_matrix), L)
 
 def test_rq():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)

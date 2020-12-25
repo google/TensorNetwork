@@ -53,9 +53,10 @@ class DecompositionsTest(tf.test.TestCase):
       self.assertAllClose(q.dot(r), random_matrix)
 
   def test_cholesky(self):
-    random_matrix = np.random.rand(10, 10)
-    L = decompositions.cholesky(np, random_matrix, 1)
-    self.assertAllClose(np.cholesky(random_matrix), L)
+    random_matrix = [[1.0, 0], [0, 1.0]] #Assured positive-definite hermitian matrix
+    for non_negative_diagonal in [True, False]:
+      L = decompositions.cholesky(tf, random_matrix, 1, non_negative_diagonal)
+      self.assertAllClose(np.linalg.cholesky(random_matrix), L)
 
   def test_max_singular_values(self):
     random_matrix = np.random.rand(10, 10)
