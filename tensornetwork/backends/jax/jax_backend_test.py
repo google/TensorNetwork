@@ -823,10 +823,10 @@ def get_ham_params(dtype, N, which):
     if dtype in (np.complex128, np.complex64):
       hop -= 1j * jnp.ones(N - 1, dtype)
   elif which == 'rand':
-    hop = (-1) * jnp.array(np.random.rand(N - 1).astype(dtype)-0.5)
-    pot = jnp.array(np.random.rand(N).astype(dtype))-0.5
+    hop = (-1) * jnp.array(np.random.rand(N - 1).astype(dtype) - 0.5)
+    pot = jnp.array(np.random.rand(N).astype(dtype)) - 0.5
     if dtype in (np.complex128, np.complex64):
-      hop -= 1j * jnp.array(np.random.rand(N - 1).astype(dtype)-0.5)
+      hop -= 1j * jnp.array(np.random.rand(N - 1).astype(dtype) - 0.5)
   return pot, hop
 
 
@@ -973,7 +973,6 @@ def test_eigs_bugfix(dtype):
       maxiter=10,
       num_krylov_vecs=100,
       tol=0.0001)
-
 
 def test_sum():
   np.random.seed(10)
@@ -1240,3 +1239,19 @@ def test_item(dtype):
   backend = jax_backend.JaxBackend()
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert backend.item(tensor) == tensor.item()
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_power(dtype):
+  shape = (4, 3, 2)
+  backend = jax_backend.JaxBackend()
+  base_tensor = backend.randn(shape, dtype=dtype, seed=10)
+  power_tensor = backend.randn(shape, dtype=dtype, seed=10)
+  actual = backend.power(base_tensor, power_tensor)
+  expected = jax.numpy.power(base_tensor, power_tensor)
+  np.testing.assert_allclose(expected, actual)
+
+  power = np.random.rand(1)[0]
+  actual = backend.power(base_tensor, power)
+  expected = jax.numpy.power(base_tensor, power)
+  np.testing.assert_allclose(expected, actual)
+  

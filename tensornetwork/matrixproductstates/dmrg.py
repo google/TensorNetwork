@@ -389,12 +389,12 @@ class BaseDMRG:
     def print_msg(site):
       if verbose < 2:
         stdout.write(f"\rSS-DMRG sweep={iteration}/{num_sweeps}, "
-                     f"site={site}/{len(self.mps)}: optimized E={energy}")
+                     f"site={site}/{len(self.mps)}: optimized E={energy}  ")
         stdout.flush()
 
       if verbose >= 2:
         print(f"SS-DMRG sweep={iteration}/{num_sweeps}, "
-              f"site={site}/{len(self.mps)}: optimized E={energy}")
+              f"site={site}/{len(self.mps)}: optimized E={energy}  ")
 
     while not converged:
       if initial_site == 0:
@@ -491,16 +491,23 @@ class BaseDMRG:
 
     # TODO (pedersor): print max truncation errors
     def print_msg(left_site, right_site):
-      if verbose < 2:
+      if verbose == 0:
         stdout.write(f"\rTS-DMRG sweep={iteration}/{num_sweeps}, "
                      f"sites=({left_site},{right_site})/{len(self.mps)}: "
-                     f"optimized E={energy}")
+                     f"optimized E={energy}    ")
+        stdout.flush()
+      if verbose == 1:
+        D = self.mps.bond_dimensions[right_site]
+        stdout.write(f"\rTS-DMRG sweep={iteration}/{num_sweeps}, "
+                     f"sites=({left_site},{right_site})/{len(self.mps)}: "
+                     f"optimized E={energy}, D = {D}     ")
         stdout.flush()
 
       if verbose >= 2:
+        D = self.mps.bond_dimensions[left_site]
         print(f"TS-DMRG sweep={iteration}/{num_sweeps}, "
               f"sites=({left_site},{right_site})/{len(self.mps)}: "
-              f"optimized E={energy}")
+              f"optimized E={energy}, D = {D}     ")
 
     while not converged:
       if initial_site == 0:
