@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import activations, initializers, regularizers
 from tensorflow.keras.layers import Layer
-from tensorflow.python.keras.utils import conv_utils
+from tensorflow.python.keras.utils import conv_utils #pylint: disable=no-name-in-module
 from typing import List, Tuple, Text, Optional, Union
 import numpy as np
 import tensornetwork as tn
