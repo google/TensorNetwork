@@ -124,24 +124,18 @@ def svd(
 def cholesky(
     torch: Any,
     tensor: Tensor,
-    pivot_axis: int,
-    non_negative_diagonal: bool = False
+    pivot_axis: int
 ) -> Tuple[Tensor, Tensor]:
   """
   Computes the Cholesky decomposition of a tensor
 
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = np.shape(tensor)[:pivot_axis]
-  right_dims = np.shape(tensor)[pivot_axis:]
-  
+  left_dims = list(tensor.shape)[:pivot_axis]
+  right_dims = list(tensor.shape)[pivot_axis:]
+
   tensor = torch.reshape(tensor, (np.prod(left_dims), np.prod(right_dims)))
-  L = torch.cholesky(tensor)
-  if non_negative_diagonal:
-    phases = torch.sign(torch.diagonal(L))
-    L = phases[:, None] * L
-  center_dim = L.shape[1]
-  L = torch.reshape(L, list(left_dims) + [center_dim])
+  L = np.linalg.cholesky(tensor)
   return L
 
 def qr(

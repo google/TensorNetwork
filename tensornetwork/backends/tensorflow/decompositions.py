@@ -231,8 +231,7 @@ def rq(
 def cholesky(
     tf: Any,
     tensor: Tensor,
-    pivot_axis: int,
-    non_negative_diagonal: bool
+    pivot_axis: int
 ) -> Tuple[Tensor, Tensor]:
   """ Computes de cholesky decomposition of a tensor.
 
@@ -245,9 +244,5 @@ def cholesky(
                       [tf.reduce_prod(left_dims),
                        tf.reduce_prod(right_dims)])
   L = tf.linalg.cholesky(tensor)
-  if non_negative_diagonal:
-    phases = tf.math.sign(tf.linalg.diag_part(L))
-    L = phases[:, None] * L
-  center_dim = tf.shape(L)[1]
-  L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
   return L
+  
