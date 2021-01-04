@@ -53,7 +53,6 @@ def copy(nodes: Iterable[AbstractNode],
     node_dict[node] = node.copy(conjugate)
   edge_dict = {}
   for edge in get_all_edges(nodes):
-    #if not edge.is_tracce():
     node1 = edge.node1
     axis1 = edge.node1.get_axis_number(edge.axis1)
     # edge dangling or node2 does not need to be copied
