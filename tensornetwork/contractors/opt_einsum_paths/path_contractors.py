@@ -379,7 +379,6 @@ def contract_path(path: Tuple[List[Tuple[int,
       node = nodes.pop(a)
       new_node = contract_trace_edges(node)
       nodes.append(new_node)
-      
 
 
   # if the final node has more than one edge,
