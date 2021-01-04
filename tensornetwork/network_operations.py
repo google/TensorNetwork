@@ -57,7 +57,6 @@ def copy(nodes: Iterable[AbstractNode],
     axis1 = edge.node1.get_axis_number(edge.axis1)
     # edge dangling or node2 does not need to be copied
     if edge.is_dangling() or edge.node2 not in node_dict:
-
       new_edge = Edge(node_dict[node1], axis1, edge.name)
       node_dict[node1].add_edge(new_edge, axis1)
       edge_dict[edge] = new_edge
