@@ -736,12 +736,10 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   Raises:
     ValueError: If `node` has no trace edges.
   """
-  res = node
-  for edge in res.edges:
+  for edge in node.edges:
     if edge.is_trace():
-      res = contract_parallel(edge)
-  return res
-
+      return contract_parallel(edge)
+  raise ValueError('`node` has no trace edges')
 
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
