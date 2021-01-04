@@ -735,7 +735,7 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
     ValueError: If `node` has no trace edges.
   """
   for edge in node.edges:
-    if edge.is_trace():
+    if edge.is_trace() and not edge.is_disabled():
       return contract_parallel(edge)
   raise ValueError('`node` has no trace edges')
 
