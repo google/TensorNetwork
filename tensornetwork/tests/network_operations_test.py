@@ -498,7 +498,6 @@ def test_get_neighbors_no_duplicates(backend):
     assert result == [a, c]
 
 def test_copy(backend):
-  backend='numpy'
   a = tn.Node(np.ones((2, 2, 2, 2)), backend=backend,name='a')
   b = tn.Node(np.ones((2, 2, 2, 2)), backend=backend,name='b')
   c = tn.Node(np.ones((2, 2, 2, 2)), backend=backend,name='c')
