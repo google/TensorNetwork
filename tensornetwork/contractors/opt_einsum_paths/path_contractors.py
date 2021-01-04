@@ -16,13 +16,10 @@
 
 import functools
 import opt_einsum
-from tensornetwork.network_operations import (check_connected, get_all_edges,
-                                              get_subgraph_dangling,
-                                              contract_trace_edges)
-
-from tensornetwork.network_components import (get_all_nondangling,
-                                              contract_parallel,
-                                              contract_between)
+# pylint: disable=line-too-long
+from tensornetwork.network_operations import check_connected, get_all_edges, get_subgraph_dangling
+# pylint: disable=line-too-long
+from tensornetwork.network_components import get_all_nondangling, contract_parallel, contract_between
 from tensornetwork.network_components import Edge, AbstractNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable, Text, Tuple, List
@@ -350,8 +347,8 @@ def path_solver(
   return path
 
 
-def contract_path(path: Tuple[List[Tuple[int,
-                                         int]]], nodes: Iterable[AbstractNode],
+def contract_path(path: Tuple[List[Tuple[int, int]]],
+                  nodes: Iterable[AbstractNode],
                   output_edge_order: Sequence[Edge]) -> AbstractNode:
   """Contract `nodes` using `path`.
 
@@ -367,24 +364,13 @@ def contract_path(path: Tuple[List[Tuple[int,
   if len(path) == 0:
     return nodes
 
-  for p in path:
-    if len(p) > 1:
-      a, b = p
-      new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
-      nodes.append(new_node)
-      nodes = utils.multi_remove(nodes, [a, b])
-
-    elif len(p) == 1:
-      a = p[0]
-      node = nodes.pop(a)
-      new_node = contract_trace_edges(node)
-      nodes.append(new_node)
-
+  for a, b in path:
+    new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
+    nodes.append(new_node)
+    nodes = utils.multi_remove(nodes, [a, b])
 
   # if the final node has more than one edge,
   # output_edge_order has to be specified
   final_node = nodes[0]  # nodes were connected, we checked this
-  #some contractors miss trace edges
-  final_node = contract_trace_edges(final_node)
   final_node.reorder_edges(output_edge_order)
   return final_node

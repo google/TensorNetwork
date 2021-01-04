@@ -432,6 +432,12 @@ def test_get_all_nodes(backend):
   assert tn.get_all_nodes({edge}) == {a, b}
 
 
+def test_contract_trace_edges(backend):
+  a = tn.Node(np.random.rand(3, 3, 3), backend=backend)
+  with pytest.raises(ValueError):
+    tn.contract_trace_edges(a)
+
+    
 def test_switch_backend_raises_error(backend):
   a = tn.Node(np.random.rand(3, 3, 3))
   a.backend = AbstractBackend()
