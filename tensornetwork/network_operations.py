@@ -53,10 +53,12 @@ def copy(nodes: Iterable[AbstractNode],
     node_dict[node] = node.copy(conjugate)
   edge_dict = {}
   for edge in get_all_edges(nodes):
+    #if not edge.is_tracce():
     node1 = edge.node1
     axis1 = edge.node1.get_axis_number(edge.axis1)
     # edge dangling or node2 does not need to be copied
     if edge.is_dangling() or edge.node2 not in node_dict:
+
       new_edge = Edge(node_dict[node1], axis1, edge.name)
       node_dict[node1].add_edge(new_edge, axis1)
       edge_dict[edge] = new_edge
@@ -73,8 +75,10 @@ def copy(nodes: Iterable[AbstractNode],
 
     # both nodes should be copied
     new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2], axis2)
-    node_dict[node2].add_edge(new_edge, axis2)
-    node_dict[node1].add_edge(new_edge, axis1)
+    if not edge.is_trace():
+      node_dict[node2].add_edge(new_edge, axis2)
+      node_dict[node1].add_edge(new_edge, axis1)
+
     edge_dict[edge] = new_edge
 
   return node_dict, edge_dict
@@ -734,10 +738,12 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   Raises:
     ValueError: If `node` has no trace edges.
   """
-  for edge in node.edges:
+  res = node
+  for edge in res.edges:
     if edge.is_trace():
-      return contract_parallel(edge)
-  raise ValueError('`node` has no trace edges')
+      res = contract_parallel(edge)
+  return res
+
 
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
