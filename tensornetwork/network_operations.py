@@ -734,11 +734,11 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   Raises:
     ValueError: If `node` has no trace edges.
   """
-  for edge in node.edges:
-    if edge.is_trace() and not edge.is_disabled():
-      return contract_parallel(edge)
-  raise ValueError('`node` has no trace edges')
-
+  res = node
+  for edge in res.edges:
+    if edge.is_trace() and edge.is_disabled():
+      res = contract_parallel(edge)
+  return res
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   """Constructs the tensor network for a reduced density matrix, if it is pure.
