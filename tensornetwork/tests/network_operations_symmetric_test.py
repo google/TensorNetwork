@@ -284,16 +284,6 @@ def test_switch_backend():
     tn.switch_backend(nodes, 'symmetric')
 
 
-@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
-@pytest.mark.parametrize("num_charges", [1, 2, 3])
-def test_contract_trace_edges(dtype, num_charges):
-  np.random.seed(10)
-  a = tn.Node(
-      get_random((3, 3, 3), num_charges=num_charges, dtype=dtype),
-      backend='symmetric')
-  with pytest.raises(ValueError):
-    tn.contract_trace_edges(a)
-
 
 @pytest.mark.parametrize("num_charges", [1, 2, 3])
 def test_switch_backend_raises_error(num_charges):
