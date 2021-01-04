@@ -736,7 +736,7 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   """
   res = node
   for edge in res.edges:
-    if edge.is_trace() and edge.is_disabled():
+    if edge.is_trace() and edge.is_disabled:
       res = contract_parallel(edge)
   return res
 
