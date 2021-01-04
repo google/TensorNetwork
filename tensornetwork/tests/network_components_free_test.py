@@ -1609,3 +1609,10 @@ def test_tensor_from_edge_order_raises(backend):
   node2 = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   with pytest.raises(ValueError):
     node.tensor_from_edge_order([node[1], node2[1], node[2]])
+
+def test_copy(backend):
+  node = tn.Node(np.random.rand(2,2,2,2), backend=backend)
+  node[3] ^ node[0]
+  # should not raise
+  copy = node.copy()
+  np.testing.assert_allclose(copy.tensor, node.tensor)
