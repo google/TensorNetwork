@@ -736,8 +736,9 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   """
   res = node
   for edge in res.edges:
-    if edge.is_trace() and edge.is_disabled:
+    if edge.is_trace():
       res = contract_parallel(edge)
+      break
   return res
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
