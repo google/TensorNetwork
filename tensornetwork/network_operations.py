@@ -14,14 +14,15 @@
 """Implementation of TensorNetwork structure."""
 
 import collections
-from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Iterable, Type
+from typing import (Any, Dict, List, Optional, Set, Text, Tuple, Union,
+                    Sequence, Iterable, Type)
 import numpy as np
 import json
 
 #pylint: disable=useless-import-alias
-#pylint: disable=line-too-long
-from tensornetwork.network_components import AbstractNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
+from tensornetwork.network_components import (AbstractNode, Node, CopyNode,
+                                              Edge, disconnect,
+                                              outer_product_final_nodes)
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, contract_parallel
@@ -969,3 +970,20 @@ def nodes_from_json(json_str: str) -> Tuple[List[AbstractNode],
       edge_binding[k] = edge_binding.get(k, ()) + (edge_lookup[e_id],)
 
   return nodes, edge_binding
+
+
+def redirect_edge(edge, new_node, old_node):
+  if edge.is_dangling():
+    edge.node1 = new_node
+    axis = edge.axis1
+  else:
+    if edge.node1 is old_node:
+      edge.node1 = new_node
+      axis = edge.axis1
+    elif edge.node2 is old_node:
+      edge.node2 = new_node
+      axis = edge.axis2
+
+  new_node.add_edge(edge, axis, True)
+  new_edge = Edge(old_node, axis)
+  old_node.add_edge(new_edge, axis, True)
