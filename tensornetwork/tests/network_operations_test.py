@@ -496,8 +496,20 @@ def test_redirect(backend):
   n2 = tn.Node(np.random.rand(2,2,2), backend=backend)
   n3 = tn.Node(np.random.rand(2,2,2), backend=backend)
 
+  n4 = tn.Node(np.random.rand(2,2,2), backend=backend)
+  n5 = tn.Node(np.random.rand(2,2,2), backend=backend)
+
   edge = tn.connect(n1[0], n2[1])
+  assert n2.edges[1] is edge
   tn.redirect_edge(edge, n3, n2)
   assert edge.node1 is n1
   assert edge.node2 is n3
   assert n2.edges[1] is not edge
+
+
+  trace_edge = tn.connect(n4[0], n4[1])
+  tn.redirect_edge(trace_edge, n5, n4)
+  assert trace_edge.node1 is n5
+  assert trace_edge.node2 is n5
+  assert n5.edges[0] is trace_edge
+  assert n5.edges[1] is trace_edge
