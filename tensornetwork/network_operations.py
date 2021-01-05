@@ -974,7 +974,8 @@ def nodes_from_json(json_str: str) -> Tuple[List[AbstractNode],
   return nodes, edge_binding
 
 
-def redirect_edge(edge:Edge, new_node:AbstractNode, old_node:AbstractNode)->None:
+def redirect_edge(edge: Edge, new_node: AbstractNode,
+                  old_node: AbstractNode) -> None:
   """
   Redirect `edge` from `old_node` to `new_node`.
   Routine updates `new_node` and `old_node`.
