@@ -18,7 +18,8 @@ import functools
 import opt_einsum
 from tensornetwork.network_operations import (check_connected, get_all_edges,
                                               get_subgraph_dangling,
-                                              contract_trace_edges)
+                                              contract_trace_edges,
+                                              redirect_edge)
 
 from tensornetwork.network_components import (get_all_nondangling,
                                               contract_parallel,
@@ -364,6 +365,18 @@ def contract_path(path: Tuple[List[Tuple[int,
   Returns:
     Final node after full contraction.
   """
+  edges = get_all_edges(nodes)
+  for edge in edges:
+    if not edge.is_disabled:  #if its disabled we already contracted it
+      if edge.is_trace():
+        contract_parallel(edge)
+
+  if len(nodes) == 1:
+    newnode = nodes[0].copy()
+    for edge in nodes[0].edges:
+      redirect_edge(edge, newnode, nodes[0])
+    return newnode.reorder_edges(output_edge_order)
+
   if len(path) == 0:
     return nodes
 
