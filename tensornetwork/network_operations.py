@@ -978,7 +978,7 @@ def redirect_edge(edge:Edge, new_node:AbstractNode, old_node:AbstractNode)->None
   """
   Redirect `edge` from `old_node` to `new_node`.
   Routine updates `new_node` and `old_node`.
-  `edge` is added top `new_node`, `old_node` gets
+  `edge` is added to `new_node`, `old_node` gets
   new Edge instead of `edge`.
 
   Args:
