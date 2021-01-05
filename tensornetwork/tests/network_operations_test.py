@@ -513,3 +513,31 @@ def test_redirect(backend):
   assert trace_edge.node2 is n5
   assert n5.edges[0] is trace_edge
   assert n5.edges[1] is trace_edge
+
+def test_copy(backend):
+  a = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='a')
+  b = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='b')
+  c = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='c')
+
+  a[0] ^ a[1]
+  a[2] ^ b[1]
+  b[3] ^ c[2]
+  c[3] ^ b[0]
+  nodes = [a, b]
+  copied_nodes, copied_edges = tn.copy([a, b])
+  assert len(copied_nodes) == 2
+  assert len(copied_edges) == 6
+
+  for n in nodes:
+    assert n in copied_nodes
+  for e, ce in copied_edges.items():
+    print(e.node1, e.node2)
+    if e.node1 in nodes and e.node2 not in nodes:
+      assert ce.node1 is copied_nodes[e.node1]
+    if e.node2 in nodes and e.node1 not in nodes:
+      assert ce.node1 is copied_nodes[e.node2]
+    if e.node2 in nodes and e.node1 in nodes:
+      assert ce.node1 is copied_nodes[e.node1]
+      assert ce.node2 is copied_nodes[e.node2]
+    if e.node2 not in nodes and e.node1 not in nodes:
+      assert False

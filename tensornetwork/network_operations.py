@@ -74,8 +74,10 @@ def copy(nodes: Iterable[AbstractNode],
 
     # both nodes should be copied
     new_edge = Edge(node_dict[node1], axis1, edge.name, node_dict[node2], axis2)
-    node_dict[node2].add_edge(new_edge, axis2)
-    node_dict[node1].add_edge(new_edge, axis1)
+    if not edge.is_trace():
+      node_dict[node2].add_edge(new_edge, axis2)
+      node_dict[node1].add_edge(new_edge, axis1)
+
     edge_dict[edge] = new_edge
 
   return node_dict, edge_dict
