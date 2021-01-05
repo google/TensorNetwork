@@ -610,7 +610,7 @@ def test_node_add_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 + node2
-  with pytest.raises(AttributeError):    
+  with pytest.raises(AttributeError):
     result = node2 + node1
 
   node1.tensor = 1
@@ -618,7 +618,7 @@ def test_node_add_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 + node2
-  with pytest.raises(TypeError):    
+  with pytest.raises(TypeError):
     result = node1 + copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -643,7 +643,7 @@ def test_node_sub_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 - node2
-  with pytest.raises(TypeError):    
+  with pytest.raises(TypeError):
     result = node1 - copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -668,7 +668,7 @@ def test_node_mul_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 * node2
-  with pytest.raises(TypeError):    
+  with pytest.raises(TypeError):
     result = node1 * copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -687,7 +687,7 @@ def test_node_div_input_error():
   del node1._tensor
   with pytest.raises(AttributeError):
     result = node1 / node2
-  with pytest.raises(AttributeError):    
+  with pytest.raises(AttributeError):
     result = node2 / node1
 
   node1.tensor = 1
@@ -695,7 +695,7 @@ def test_node_div_input_error():
   copynode = tn.CopyNode(rank=4, dimension=3)
   with pytest.raises(TypeError):
     result = node1 / node2
-  with pytest.raises(TypeError):    
+  with pytest.raises(TypeError):
     result = node1 / copynode
 
   node2 = Node(tensor=np.array([[10, 10], [10, 10]]), backend='pytorch')
@@ -1609,3 +1609,11 @@ def test_tensor_from_edge_order_raises(backend):
   node2 = tn.Node(np.random.rand(2, 3, 4), backend=backend)
   with pytest.raises(ValueError):
     node.tensor_from_edge_order([node[1], node2[1], node[2]])
+
+
+def test_copy(backend):
+  node = tn.Node(np.random.rand(2, 2, 2, 2), backend=backend)
+  node[3] ^ node[0]
+  # should not raise
+  copy = node.copy()
+  np.testing.assert_allclose(copy.tensor, node.tensor)

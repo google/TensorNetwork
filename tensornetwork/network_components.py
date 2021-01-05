@@ -648,11 +648,11 @@ class Node(AbstractNode):
       visited_edges.add(edge)
       if edge.node1 == edge.node2:
         new_edge = Edge(new_node,
-                        i,
+                        edge.axis1,
                         name=edge.name,
                         node2=new_node,
                         axis2=edge.axis2)
-        new_node.add_edge(new_edge, i)
+        new_node.add_edge(new_edge, edge.axis1)
         new_node.add_edge(new_edge, edge.axis2)
       else:
         new_node.add_edge(Edge(new_node, i, name=edge.name), i)
