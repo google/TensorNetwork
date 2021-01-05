@@ -974,8 +974,26 @@ def nodes_from_json(json_str: str) -> Tuple[List[AbstractNode],
   return nodes, edge_binding
 
 
-def redirect_edge(edge, new_node, old_node):
+def redirect_edge(edge:Edge, new_node:AbstractNode, old_node:AbstractNode)->None:
+  """
+  Redirect `edge` from `old_node` to `new_node`.
+  Routine updates `new_node` and `old_node`.
+  `edge` is added top `new_node`, `old_node` gets
+  new Edge instead of `edge`.
+
+  Args:
+    edge: An Edge.
+    new_node: The new `Node` object.
+    old_node: The old `Node` object.
+
+  Returns:
+    None
+
+  """
   if edge.is_dangling():
+    if edge.node1 is not old_node:
+      raise ValueError(f"edge {edge} is not pointing "
+                       f"to old_node {old_node}")
     edge.node1 = new_node
     axis = edge.axis1
   else:
@@ -985,6 +1003,9 @@ def redirect_edge(edge, new_node, old_node):
     elif edge.node2 is old_node:
       edge.node2 = new_node
       axis = edge.axis2
+    else:
+      raise ValueError(f"edge {edge} is not pointing "
+                       f"to old_node {old_node}")
 
   new_node.add_edge(edge, axis, True)
   new_edge = Edge(old_node, axis)
