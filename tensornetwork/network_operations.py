@@ -997,16 +997,31 @@ def redirect_edge(edge:Edge, new_node:AbstractNode, old_node:AbstractNode)->None
     edge.node1 = new_node
     axis = edge.axis1
   else:
-    if edge.node1 is old_node:
-      edge.node1 = new_node
-      axis = edge.axis1
-    elif edge.node2 is old_node:
-      edge.node2 = new_node
-      axis = edge.axis2
-    else:
-      raise ValueError(f"edge {edge} is not pointing "
-                       f"to old_node {old_node}")
+    if not edge.is_trace():
+      if edge.node1 is old_node:
+        edge.node1 = new_node
+        axis = edge.axis1
+      elif edge.node2 is old_node:
+        edge.node2 = new_node
+        axis = edge.axis2
+      else:
+        raise ValueError(f"edge {edge} is not pointing "
+                         f"to old_node {old_node}")
 
-  new_node.add_edge(edge, axis, True)
-  new_edge = Edge(old_node, axis)
-  old_node.add_edge(new_edge, axis, True)
+      new_node.add_edge(edge, axis, True)
+      new_edge = Edge(old_node, axis)
+      old_node.add_edge(new_edge, axis, True)
+    else:
+      if edge.node1 is not old_node:
+        raise ValueError(f"edge {edge} is not pointing "
+                         f"to old_node {old_node}")
+
+      edge.node1 = new_node
+      edge.node2 = new_node
+      axis1 = edge.axis1
+      axis2 = edge.axis2
+      new_node.add_edge(edge, axis1, True)
+      new_node.add_edge(edge, axis2, True)
+      new_edge = Edge(old_node, axis1, None, old_node, axis2)
+      old_node.add_edge(new_edge, axis1, True)
+      old_node.add_edge(new_edge, axis2, True)
