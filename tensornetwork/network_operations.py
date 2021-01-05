@@ -837,8 +837,9 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
   return neighbors
 
 
-def _build_serial_binding(edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
-                          edge_id_dict: Dict[Edge, int]) -> Dict[str, Iterable[int]]:
+def _build_serial_binding(
+    edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
+    edge_id_dict: Dict[Edge, int]) -> Dict[str, Iterable[int]]:
   if not edge_binding or not edge_id_dict:
     return {}
   serial_edge_binding = {}
@@ -851,7 +852,8 @@ def _build_serial_binding(edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
     if isinstance(v, Iterable):
       for e in v:
         if not isinstance(e, Edge):
-          raise TypeError('Binding elements must be Edges or iterables of Edges')
+          raise TypeError(
+              'Binding elements must be Edges or iterables of Edges')
         e_id = edge_id_dict.get(e)
         if e_id is not None:
           binding_list.append(e_id)
