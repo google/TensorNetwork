@@ -490,3 +490,14 @@ def test_get_neighbors_no_duplicates(backend):
     b[3] ^ b[4]
     result = tn.get_neighbors(b)
     assert result == [a, c]
+
+def test_redirect(backend):
+  n1 = tn.Node(np.random.rand(2,2,2), backend=backend)
+  n2 = tn.Node(np.random.rand(2,2,2), backend=backend)
+  n3 = tn.Node(np.random.rand(2,2,2), backend=backend)
+
+  edge = tn.connect(n1[0], n2[1])
+  tn.redirect_edge(edge, n3, n2)
+  assert edge.node1 is n1
+  assert edge.node2 is n3
+  assert n2.edges[1] is not edge
