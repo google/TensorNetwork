@@ -993,14 +993,14 @@ def redirect_edge(edge: Edge, new_node: AbstractNode,
   Raises:
     ValueError: if `edge` does not point to `old_node`.
   """
-  if edge.is_dangling():
-    if edge.node1 is not old_node:
-      raise ValueError(f"edge {edge} is not pointing "
-                       f"to old_node {old_node}")
-    edge.node1 = new_node
-    axis = edge.axis1
-  else:
-    if not edge.is_trace():
+  if not edge.is_trace():
+    if edge.is_dangling():
+      if edge.node1 is not old_node:
+        raise ValueError(f"edge {edge} is not pointing "
+                         f"to old_node {old_node}")
+      edge.node1 = new_node
+      axis = edge.axis1
+    else:
       if edge.node1 is old_node:
         edge.node1 = new_node
         axis = edge.axis1
@@ -1009,22 +1009,20 @@ def redirect_edge(edge: Edge, new_node: AbstractNode,
         axis = edge.axis2
       else:
         raise ValueError(f"edge {edge} is not pointing "
-                         f"to old_node {old_node}")
-
-      new_node.add_edge(edge, axis, True)
-      new_edge = Edge(old_node, axis)
-      old_node.add_edge(new_edge, axis, True)
-    else:
-      if edge.node1 is not old_node:
-        raise ValueError(f"edge {edge} is not pointing "
-                         f"to old_node {old_node}")
-
-      edge.node1 = new_node
-      edge.node2 = new_node
-      axis1 = edge.axis1
-      axis2 = edge.axis2
-      new_node.add_edge(edge, axis1, True)
-      new_node.add_edge(edge, axis2, True)
-      new_edge = Edge(old_node, axis1, None, old_node, axis2)
-      old_node.add_edge(new_edge, axis1, True)
-      old_node.add_edge(new_edge, axis2, True)
+                           f"to old_node {old_node}")
+    new_node.add_edge(edge, axis, True)
+    new_edge = Edge(old_node, axis)
+    old_node.add_edge(new_edge, axis, True)
+  else:
+    if edge.node1 is not old_node:
+      raise ValueError(f"edge {edge} is not pointing "
+                       f"to old_node {old_node}")
+    edge.node1 = new_node
+    edge.node2 = new_node
+    axis1 = edge.axis1
+    axis2 = edge.axis2
+    new_node.add_edge(edge, axis1, True)
+    new_node.add_edge(edge, axis2, True)
+    new_edge = Edge(old_node, axis1, None, old_node, axis2)
+    old_node.add_edge(new_edge, axis1, True)
+    old_node.add_edge(new_edge, axis2, True)
