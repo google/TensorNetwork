@@ -514,14 +514,16 @@ def test_redirect(backend):
   assert n5.edges[0] is trace_edge
   assert n5.edges[1] is trace_edge
 
+
 def test_redirect_raises(backend):
   n1 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n2 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n3 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n4 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   edge = tn.connect(n1[0], n2[1])
-  with pytest.raises(ValueError,match = "not pointing"):
+  with pytest.raises(ValueError, match="not pointing"):
     tn.redirect_edge(edge, n3, n4)
+
 
 def test_copy(backend):
   a = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='a')
