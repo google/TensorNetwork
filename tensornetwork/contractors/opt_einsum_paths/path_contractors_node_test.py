@@ -217,8 +217,7 @@ def test_path_solver_optimal(backend):
   assert path == [(1, 3), (1, 2), (0, 1)]
 
 
-@pytest.fixture(
-    name="algorithm", params=["optimal", "branch", "greedy", "auto"])
+@pytest.mark.parametrize("algorithm",["optimal", "branch", "greedy", "auto"])
 def test_contract_path(backend, algorithm):
   np.random.seed(10)
   D, d, M = 100, 4, 10
