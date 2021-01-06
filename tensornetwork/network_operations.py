@@ -734,8 +734,6 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   Returns:
     A new `AbstractNode` obtained from contracting all trace edges.
 
-  Raises:
-    ValueError: If `node` has no trace edges.
   """
   res = node
   for edge in res.edges:
@@ -992,6 +990,8 @@ def redirect_edge(edge: Edge, new_node: AbstractNode,
   Returns:
     None
 
+  Raises:
+    ValueError: if `edge` does not point to `old_node`.
   """
   if edge.is_dangling():
     if edge.node1 is not old_node:
