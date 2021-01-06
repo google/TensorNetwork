@@ -1009,7 +1009,7 @@ def redirect_edge(edge: Edge, new_node: AbstractNode,
         axis = edge.axis2
       else:
         raise ValueError(f"edge {edge} is not pointing "
-                           f"to old_node {old_node}")
+                         f"to old_node {old_node}")
     new_node.add_edge(edge, axis, True)
     new_edge = Edge(old_node, axis)
     old_node.add_edge(new_edge, axis, True)
