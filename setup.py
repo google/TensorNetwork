@@ -35,7 +35,7 @@ setup(
     version=__version__,
     url='http://github.com/google/TensorNetwork',
     author='The TensorNetwork Developers',
-    author_email='chaseriley@google.com',
+    author_email='martin.ganahl@gmail.com',
     python_requires=('>=3.6.0'),
     install_requires=requirements,
     license='Apache 2.0',
