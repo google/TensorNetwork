@@ -529,7 +529,6 @@ def test_redirect(backend):
   assert n5[0] is edge
 
 
-
 def test_redirect_raises(backend):
   n1 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n2 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
@@ -549,6 +548,7 @@ def test_redirect_raises(backend):
   trace_edge = tn.connect(n4[0], n4[1])
   with pytest.raises(ValueError, match="not pointing"):
     tn.redirect_edge(trace_edge, n3, n2)
+
 
 def test_copy(backend):
   a = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='a')
