@@ -523,6 +523,7 @@ def test_redirect(backend):
   assert n5.edges[0] is trace_edge
   assert n5.edges[1] is trace_edge
 
+  n4.fresh_edges()
   edge = n4[0]
   tn.redirect_edge(edge, n5, n4)
   assert n4[0] is not edge
