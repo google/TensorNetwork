@@ -496,7 +496,6 @@ def test_redirect(backend):
   n1 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n2 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n3 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
-
   n4 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
   n5 = tn.Node(np.random.rand(2, 2, 2), backend=backend)
 
@@ -507,12 +506,28 @@ def test_redirect(backend):
   assert edge.node2 is n3
   assert n2.edges[1] is not edge
 
+  n1.fresh_edges()
+  n2.fresh_edges()
+
+  edge = tn.connect(n1[0], n2[1])
+  assert n2.edges[1] is edge
+  tn.redirect_edge(edge, n3, n1)
+  assert edge.node2 is n2
+  assert edge.node1 is n3
+  assert n1.edges[0] is not edge
+
   trace_edge = tn.connect(n4[0], n4[1])
   tn.redirect_edge(trace_edge, n5, n4)
   assert trace_edge.node1 is n5
   assert trace_edge.node2 is n5
   assert n5.edges[0] is trace_edge
   assert n5.edges[1] is trace_edge
+
+  edge = n4[0]
+  tn.redirect_edge(edge, n5, n4)
+  assert n4[0] is not edge
+  assert n5[0] is edge
+
 
 
 def test_redirect_raises(backend):
@@ -524,6 +539,16 @@ def test_redirect_raises(backend):
   with pytest.raises(ValueError, match="not pointing"):
     tn.redirect_edge(edge, n3, n4)
 
+  # test redirection of dangling edge
+  edge = n3[0]
+  with pytest.raises(ValueError, match="not pointing"):
+    tn.redirect_edge(edge, n1, n4)
+
+  # test trace edge
+  n4.fresh_edges()
+  trace_edge = tn.connect(n4[0], n4[1])
+  with pytest.raises(ValueError, match="not pointing"):
+    tn.redirect_edge(trace_edge, n3, n2)
 
 def test_copy(backend):
   a = tn.Node(np.ones((2, 2, 2, 2)), backend=backend, name='a')
