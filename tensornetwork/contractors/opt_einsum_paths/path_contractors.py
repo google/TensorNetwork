@@ -16,10 +16,14 @@
 
 import functools
 import opt_einsum
-# pylint: disable=line-too-long
-from tensornetwork.network_operations import check_connected, get_all_edges, get_subgraph_dangling
-# pylint: disable=line-too-long
-from tensornetwork.network_components import get_all_nondangling, contract_parallel, contract_between
+from tensornetwork.network_operations import (check_connected, get_all_edges,
+                                              get_subgraph_dangling,
+                                              contract_trace_edges,
+                                              redirect_edge)
+
+from tensornetwork.network_components import (get_all_nondangling,
+                                              contract_parallel,
+                                              contract_between)
 from tensornetwork.network_components import Edge, AbstractNode
 from tensornetwork.contractors.opt_einsum_paths import utils
 from typing import Any, Optional, Sequence, Iterable, Text, Tuple, List
@@ -347,8 +351,8 @@ def path_solver(
   return path
 
 
-def contract_path(path: Tuple[List[Tuple[int, int]]],
-                  nodes: Iterable[AbstractNode],
+def contract_path(path: Tuple[List[Tuple[int,
+                                         int]]], nodes: Iterable[AbstractNode],
                   output_edge_order: Sequence[Edge]) -> AbstractNode:
   """Contract `nodes` using `path`.
 
@@ -361,16 +365,39 @@ def contract_path(path: Tuple[List[Tuple[int, int]]],
   Returns:
     Final node after full contraction.
   """
+  edges = get_all_edges(nodes)
+  for edge in edges:
+    if not edge.is_disabled:  #if its disabled we already contracted it
+      if edge.is_trace():
+        contract_parallel(edge)
+
+  if len(nodes) == 1:
+    newnode = nodes[0].copy()
+    for edge in nodes[0].edges:
+      redirect_edge(edge, newnode, nodes[0])
+    return newnode.reorder_edges(output_edge_order)
+
   if len(path) == 0:
     return nodes
 
-  for a, b in path:
-    new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
-    nodes.append(new_node)
-    nodes = utils.multi_remove(nodes, [a, b])
+  for p in path:
+    if len(p) > 1:
+      a, b = p
+      new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
+      nodes.append(new_node)
+      nodes = utils.multi_remove(nodes, [a, b])
+
+    elif len(p) == 1:
+      a = p[0]
+      node = nodes.pop(a)
+      new_node = contract_trace_edges(node)
+      nodes.append(new_node)
+
 
   # if the final node has more than one edge,
   # output_edge_order has to be specified
   final_node = nodes[0]  # nodes were connected, we checked this
+  #some contractors miss trace edges
+  final_node = contract_trace_edges(final_node)
   final_node.reorder_edges(output_edge_order)
   return final_node
