@@ -670,3 +670,8 @@ def test_item(dtype):
   backend = pytorch_backend.PyTorchBackend()
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert backend.item(tensor) == tensor.item()
+
+@pytest.mark.parametrize("dtype", torch_randn_dtypes)
+def test_eps(dtype):
+  backend = pytorch_backend.PyTorchBackend()
+  assert backend.eps(dtype) == torch.finfo(dtype).eps

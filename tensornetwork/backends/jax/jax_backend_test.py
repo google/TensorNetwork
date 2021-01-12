@@ -1254,4 +1254,8 @@ def test_power(dtype):
   actual = backend.power(base_tensor, power)
   expected = jax.numpy.power(base_tensor, power)
   np.testing.assert_allclose(expected, actual)
-  
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_eps(dtype):
+  backend = jax_backend.JaxBackend()
+  assert backend.eps(dtype) == np.finfo(dtype).eps
