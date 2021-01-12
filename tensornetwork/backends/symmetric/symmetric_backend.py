@@ -689,3 +689,15 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     if (tensor1.ndim != 2) or (tensor2.ndim != 2):
       raise ValueError("inputs to `matmul` have to be matrices")
     return tensor1 @ tensor2
+
+  def eps(self, dtype: Type[numpy.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+    return numpy.finfo(dtype).eps

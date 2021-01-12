@@ -472,6 +472,18 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
       tensor: The input tensor.
     """
     return torchlib.sign(tensor)
-  
+
   def item(self, tensor):
     return tensor.item()
+
+  def eps(self, dtype: Type[np.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+    return torchlib.finfo(dtype).eps
