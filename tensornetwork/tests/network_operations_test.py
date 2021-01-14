@@ -294,6 +294,11 @@ def test_reachable_disconnected_2(backend):
   nodes[2][1] ^ nodes[3][0]  # connect third and fourth node
   assert set(tn.reachable([nodes[0], nodes[1]])) == set(nodes)
 
+def test_reachable_raises(backend):
+  nodes = [tn.Node(np.random.rand(2, 2, 2), backend=backend), 5]
+  with pytest.raises(TypeError):
+    tn.reachable(nodes)
+
 
 def test_subgraph_sanity(backend):
   a = tn.Node(np.eye(2), backend=backend)
