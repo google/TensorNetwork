@@ -14,14 +14,15 @@
 """Implementation of TensorNetwork structure."""
 
 import collections
-from typing import Any, Dict, List, Optional, Set, Text, Tuple, Union, \
-    Sequence, Iterable, Type
+from typing import (Any, Dict, List, Optional, Set, Text, Tuple, Union,
+                    Sequence, Iterable, Type)
 import numpy as np
 import json
 
 #pylint: disable=useless-import-alias
-#pylint: disable=line-too-long
-from tensornetwork.network_components import AbstractNode, Node, CopyNode, Edge, disconnect, outer_product_final_nodes
+from tensornetwork.network_components import (AbstractNode, Node, CopyNode,
+                                              Edge, disconnect,
+                                              outer_product_final_nodes)
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.network_components import connect, contract_parallel
@@ -612,20 +613,29 @@ def reachable(
 
   Args:
     inputs: A `AbstractNode`/`Edge` or collection of `AbstractNodes`/`Edges`
+
   Returns:
     A set of `AbstractNode` objects that can be reached from `node`
     via connected edges.
+
   Raises:
-    ValueError: If an unknown value for `strategy` is passed.
+    TypeError: If inputs contains other then `Edge` or `Node`.
   """
 
   if isinstance(inputs, AbstractNode):
     inputs = {inputs}
-  elif isinstance(inputs, Edge):
+  if isinstance(inputs, Edge):
     inputs = {inputs.node1}  # pytype: disable=attribute-error
-  elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
-    inputs = {x.node1 for x in inputs}
-  return _reachable(set(inputs))
+  processed_inputs = set()
+  for inp in inputs:
+    if isinstance(inp, AbstractNode):
+      processed_inputs |= {inp}
+    elif isinstance(inp, Edge):
+      processed_inputs |= {inp.node1}
+    else:
+      raise TypeError(f"input to `reachable` has to be an iterable of "
+                      f"Nodes or Edges, got {type(inp)} instead.")
+  return _reachable(set(processed_inputs))
 
 
 def check_correct(nodes: Iterable[AbstractNode],
@@ -733,14 +743,13 @@ def contract_trace_edges(node: AbstractNode) -> AbstractNode:
   Returns:
     A new `AbstractNode` obtained from contracting all trace edges.
 
-  Raises:
-    ValueError: If `node` has no trace edges.
   """
-  for edge in node.edges:
+  res = node
+  for edge in res.edges:
     if edge.is_trace():
-      return contract_parallel(edge)
-  raise ValueError('`node` has no trace edges')
-
+      res = contract_parallel(edge)
+      break
+  return res
 
 def reduced_density(traced_out_edges: Iterable[Edge]) -> Tuple[dict, dict]:
   """Constructs the tensor network for a reduced density matrix, if it is pure.
@@ -837,8 +846,9 @@ def get_neighbors(node: AbstractNode) -> List[AbstractNode]:
   return neighbors
 
 
-def _build_serial_binding(edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
-                          edge_id_dict: Dict[Edge, int]) -> Dict[str, Iterable[int]]:
+def _build_serial_binding(
+    edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
+    edge_id_dict: Dict[Edge, int]) -> Dict[str, Iterable[int]]:
   if not edge_binding or not edge_id_dict:
     return {}
   serial_edge_binding = {}
@@ -851,7 +861,8 @@ def _build_serial_binding(edge_binding: Dict[str, Union[Edge, Iterable[Edge]]],
     if isinstance(v, Iterable):
       for e in v:
         if not isinstance(e, Edge):
-          raise TypeError('Binding elements must be Edges or iterables of Edges')
+          raise TypeError(
+              'Binding elements must be Edges or iterables of Edges')
         e_id = edge_id_dict.get(e)
         if e_id is not None:
           binding_list.append(e_id)
@@ -970,3 +981,57 @@ def nodes_from_json(json_str: str) -> Tuple[List[AbstractNode],
       edge_binding[k] = edge_binding.get(k, ()) + (edge_lookup[e_id],)
 
   return nodes, edge_binding
+
+
+def redirect_edge(edge: Edge, new_node: AbstractNode,
+                  old_node: AbstractNode) -> None:
+  """
+  Redirect `edge` from `old_node` to `new_node`.
+  Routine updates `new_node` and `old_node`.
+  `edge` is added to `new_node`, `old_node` gets a
+  new Edge instead of `edge`.
+
+  Args:
+    edge: An Edge.
+    new_node: The new `Node` object.
+    old_node: The old `Node` object.
+
+  Returns:
+    None
+
+  Raises:
+    ValueError: if `edge` does not point to `old_node`.
+  """
+  if not edge.is_trace():
+    if edge.is_dangling():
+      if edge.node1 is not old_node:
+        raise ValueError(f"edge {edge} is not pointing "
+                         f"to old_node {old_node}")
+      edge.node1 = new_node
+      axis = edge.axis1
+    else:
+      if edge.node1 is old_node:
+        edge.node1 = new_node
+        axis = edge.axis1
+      elif edge.node2 is old_node:
+        edge.node2 = new_node
+        axis = edge.axis2
+      else:
+        raise ValueError(f"edge {edge} is not pointing "
+                         f"to old_node {old_node}")
+    new_node.add_edge(edge, axis, True)
+    new_edge = Edge(old_node, axis)
+    old_node.add_edge(new_edge, axis, True)
+  else:
+    if edge.node1 is not old_node:
+      raise ValueError(f"edge {edge} is not pointing "
+                       f"to old_node {old_node}")
+    edge.node1 = new_node
+    edge.node2 = new_node
+    axis1 = edge.axis1
+    axis2 = edge.axis2
+    new_node.add_edge(edge, axis1, True)
+    new_node.add_edge(edge, axis2, True)
+    new_edge = Edge(old_node, axis1, None, old_node, axis2)
+    old_node.add_edge(new_edge, axis1, True)
+    old_node.add_edge(new_edge, axis2, True)

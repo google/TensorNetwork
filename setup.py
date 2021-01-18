@@ -19,7 +19,8 @@ from setuptools import find_packages, setup
 with open('tensornetwork/version.py') as f:
   exec(f.read(), globals())
 
-description = ('A high level tensor network API for tensorflow.')
+description = ('A high level tensor network API for '
+               'accelerated tensor network calculations.')
 
 # Reading long Description from README.md file.
 with open("README.md", "r") as fh:
@@ -35,7 +36,7 @@ setup(
     version=__version__,
     url='http://github.com/google/TensorNetwork',
     author='The TensorNetwork Developers',
-    author_email='chaseriley@google.com',
+    author_email='martin.ganahl@gmail.com',
     python_requires=('>=3.6.0'),
     install_requires=requirements,
     license='Apache 2.0',
