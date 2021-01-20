@@ -125,6 +125,7 @@ class InfiniteMPS(BaseMPS):
     """
     D = self.bond_dimensions[0]
 
+
     def mv(vector):
       result = self.unit_cell_transfer_operator(
           direction, self.backend.reshape(vector, (D, D)))
@@ -137,10 +138,20 @@ class InfiniteMPS(BaseMPS):
       initial_state = self.backend.reshape(initial_state,
                                            (self.bond_dimensions[0]**2,))
 
-    #note: for real dtype eta and dens are real.
-    #but scipy.linalg.eigs returns complex dtypes in any case
-    #since we know that for an MPS transfer matrix the largest
-    #eigenvalue and corresponding eigenvector are real
+    if D == 1:
+      # special case of non boundary entanglement
+      Z = self.backend.norm(initial_state)
+      initial_state = initial_state/Z
+      result = mv(initial_state)
+      eigval = self.backend.norm(result)
+      result = self.backend.reshape(
+        result, (self.bond_dimensions[0], self.bond_dimensions[0]))
+      return eigval, result
+
+    # note: for real dtype eta and dens are real.
+    # but scipy.linalg.eigs returns complex dtypes in any case
+    # since we know that for an MPS transfer matrix the largest
+    # eigenvalue and corresponding eigenvector are real
     # we cast them.
     eta, dens = self.backend.eigs(
         A=mv,
@@ -197,6 +208,9 @@ class InfiniteMPS(BaseMPS):
     Returns:
       None
     """
+    if pseudo_inverse_cutoff is None:
+      pseudo_inverse_cutoff = self.backend.eps(self.dtype)
+
     if self.center_position is None:
       self.center_position = 0
 
@@ -220,12 +234,11 @@ class InfiniteMPS(BaseMPS):
     # eigvals_left and u_left are both `Tensor` objects
     eigvals_left, u_left = self.backend.eigh(l)
     eigvals_left /= self.backend.norm(eigvals_left)
-    if pseudo_inverse_cutoff:
-      mask = eigvals_left <= pseudo_inverse_cutoff
+    mask = eigvals_left <= pseudo_inverse_cutoff
+    eigvals_left = self.backend.index_update(eigvals_left, mask, 0.0)
 
     inveigvals_left = 1.0 / eigvals_left
-    if pseudo_inverse_cutoff:
-      inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
+    inveigvals_left = self.backend.index_update(inveigvals_left, mask, 0.0)
 
     sqrtl = ncon(
         [u_left, self.backend.diagflat(self.backend.sqrt(eigvals_left))],
@@ -249,18 +262,15 @@ class InfiniteMPS(BaseMPS):
     # eigvals_right and u_right are both `Tensor` objects
     eigvals_right, u_right = self.backend.eigh(r)
     eigvals_right /= self.backend.norm(eigvals_right)
-    if pseudo_inverse_cutoff:
-      mask = eigvals_right <= pseudo_inverse_cutoff
+    mask = eigvals_right <= pseudo_inverse_cutoff
 
+    eigvals_right = self.backend.index_update(eigvals_right, mask, 0.0)
     inveigvals_right = 1.0 / eigvals_right
-    if pseudo_inverse_cutoff:
-      inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
-
+    inveigvals_right = self.backend.index_update(inveigvals_right, mask, 0.0)
     sqrtr = ncon(
         [u_right, self.backend.diagflat(self.backend.sqrt(eigvals_right))],
         [[-1, 1], [1, -2]],
         backend=self.backend.name)
-
     inv_sqrtr = ncon([
         self.backend.diagflat(self.backend.sqrt(inveigvals_right)),
         self.backend.conj(u_right)
