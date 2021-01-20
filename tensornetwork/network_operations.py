@@ -613,20 +613,29 @@ def reachable(
 
   Args:
     inputs: A `AbstractNode`/`Edge` or collection of `AbstractNodes`/`Edges`
+
   Returns:
     A set of `AbstractNode` objects that can be reached from `node`
     via connected edges.
+
   Raises:
-    ValueError: If an unknown value for `strategy` is passed.
+    TypeError: If inputs contains other then `Edge` or `Node`.
   """
 
   if isinstance(inputs, AbstractNode):
     inputs = {inputs}
-  elif isinstance(inputs, Edge):
+  if isinstance(inputs, Edge):
     inputs = {inputs.node1}  # pytype: disable=attribute-error
-  elif isinstance(inputs, list) and all(isinstance(x, Edge) for x in inputs):
-    inputs = {x.node1 for x in inputs}
-  return _reachable(set(inputs))
+  processed_inputs = set()
+  for inp in inputs:
+    if isinstance(inp, AbstractNode):
+      processed_inputs |= {inp}
+    elif isinstance(inp, Edge):
+      processed_inputs |= {inp.node1}
+    else:
+      raise TypeError(f"input to `reachable` has to be an iterable of "
+                      f"Nodes or Edges, got {type(inp)} instead.")
+  return _reachable(set(processed_inputs))
 
 
 def check_correct(nodes: Iterable[AbstractNode],
