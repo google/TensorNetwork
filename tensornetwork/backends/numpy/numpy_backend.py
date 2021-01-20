@@ -762,24 +762,36 @@ class NumPyBackend(abstract_backend.AbstractBackend):
   
   def power(self, a: Tensor, b: Union[Tensor, float]) -> Tensor:
     """
-    Returns the exponentiation of tensor a raised to b.  
-      If b is a tensor, then the exponentiation is element-wise 
+    Returns the exponentiation of tensor a raised to b.
+      If b is a tensor, then the exponentiation is element-wise
         between the two tensors, with a as the base and b as the power.
-        Note that a and b must be broadcastable to the same shape if 
+        Note that a and b must be broadcastable to the same shape if
         b is a tensor.
       If b is a scalar, then the exponentiation is each value in a
         raised to the power of b.
-    
+
     Args:
       a: The tensor containing the bases.
       b: The tensor containing the powers; or a single scalar as the power.
 
     Returns:
-      The tensor that is each element of a raised to the 
+      The tensor that is each element of a raised to the
         power of b.  Note that the shape of the returned tensor
         is that produced by the broadcast of a and b.
     """
     return np.power(a, b)
-  
+
   def item(self, tensor):
     return tensor.item()
+
+  def eps(self, dtype: Type[np.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+    return np.finfo(dtype).eps

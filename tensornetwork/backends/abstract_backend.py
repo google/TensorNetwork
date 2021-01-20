@@ -1030,3 +1030,17 @@ class AbstractBackend:
                Tuple[Tensor, Tensor]:
     raise NotImplementedError(
         f"Backend {self.name} has not implemented cholesky.")
+
+  def eps(self, dtype: Type[np.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+
+    raise NotImplementedError(
+        f"Backend {self.name} has not implemented eps.")

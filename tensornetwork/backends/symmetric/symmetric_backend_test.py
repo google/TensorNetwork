@@ -1715,3 +1715,8 @@ def test_matmul_raises():
   B = BlockSparseTensor.random(indices=inds2, dtype=dtype)
   with pytest.raises(ValueError, match="inputs to"):
     _ = backend.matmul(A, B)
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_eps(dtype):
+  backend = symmetric_backend.SymmetricBackend()
+  assert backend.eps(dtype) == np.finfo(dtype).eps

@@ -418,3 +418,15 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
         is that produced by the broadcast of a and b.
     """
     return tf.math.pow(a, b)
+
+  def eps(self, dtype: Type[np.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+    return tf.experimental.numpy.finfo(dtype).eps
