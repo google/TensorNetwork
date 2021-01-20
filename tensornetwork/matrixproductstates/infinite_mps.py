@@ -141,11 +141,11 @@ class InfiniteMPS(BaseMPS):
     if D == 1:
       # special case of non boundary entanglement
       Z = self.backend.norm(initial_state)
-      initial_state = initial_state/Z
+      initial_state = initial_state / Z
       result = mv(initial_state)
       eigval = self.backend.norm(result)
       result = self.backend.reshape(
-        result, (self.bond_dimensions[0], self.bond_dimensions[0]))
+          result, (self.bond_dimensions[0], self.bond_dimensions[0]))
       return eigval, result
 
     # note: for real dtype eta and dens are real.
