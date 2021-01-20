@@ -43,7 +43,7 @@ For details about the TensorNetwork API, see the [reference documentation.](http
 
 [Basic API tutorial](https://colab.research.google.com/drive/1Fp9DolkPT-P_Dkg_s9PLbTOKSq64EVSu)
 
-[Tensor Networks inside Neural Networks using Keras](https://colab.research.google.com/drive/1JUh84N5sbfQYk6HWowWCGl0IZ1idQi6z)
+[Tensor Networks inside Neural Networks using Keras](https://colab.research.google.com/github/google/TensorNetwork/blob/master/colabs/Tensor_Networks_in_Neural_Networks.ipynb)
 ## Basic Example
 
 Here, we build a simple 2 node contraction.
