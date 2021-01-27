@@ -888,3 +888,15 @@ class JaxBackend(abstract_backend.AbstractBackend):
       b: The tensor that contains the exponent or a single scalar.
     """
     return jnp.power(a, b)
+
+  def eps(self, dtype: Type[np.number]) -> float:
+    """
+    Return machine epsilon for given `dtype`
+
+    Args:
+      dtype: A dtype.
+
+    Returns:
+      float: Machine epsilon.
+    """
+    return jnp.finfo(dtype).eps

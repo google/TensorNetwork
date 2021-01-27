@@ -624,3 +624,8 @@ def test_power(dtype):
   actual = backend.power(base_tensor, power)
   expected = tf.math.pow(base_tensor, power)
   np.testing.assert_allclose(expected, actual)
+  
+@pytest.mark.parametrize("dtype", tf_dtypes)
+def test_eps(dtype):
+  backend = tensorflow_backend.TensorFlowBackend()
+  assert backend.eps(dtype) == tf.experimental.numpy.finfo(dtype).eps

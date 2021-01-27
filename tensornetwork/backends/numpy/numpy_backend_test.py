@@ -969,3 +969,8 @@ def test_item(dtype):
   backend = numpy_backend.NumPyBackend()
   tensor = backend.randn((1,), dtype=dtype, seed=10)
   assert tensor.item() == backend.item(tensor)
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_eps(dtype):
+  backend = numpy_backend.NumPyBackend()
+  assert backend.eps(dtype) == np.finfo(dtype).eps
