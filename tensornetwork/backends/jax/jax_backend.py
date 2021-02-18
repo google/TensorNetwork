@@ -281,7 +281,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
       A: A (sparse) implementation of a linear operator.
          Call signature of `A` is `res = A(vector, *args)`, where `vector`
          can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
-      arsg: A list of arguments to `A`.  `A` will be called as
+      args: A list of arguments to `A`.  `A` will be called as
         `res = A(initial_state, *args)`.
       initial_state: An initial vector for the algorithm. If `None`,
         a random initial `Tensor` is created using the `backend.randn` method

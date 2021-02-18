@@ -743,10 +743,11 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
-    if num_krylov_vecs <= numeig < dim:
+    if not numeig < num_krylov_vecs <= dim:
       raise ValueError(f"num_krylov_vecs must be between numeig <"
-                       f" num_krylov_vecs <= dim = {dim},"
-                       f" num_krylov_vecs = {num_krylov_vecs}")
+                       f" num_krylov_vecs <= dim, got "
+                       f" numeig = {numeig}, num_krylov_vecs = "
+                       f"{num_krylov_vecs}, dim = {dim}.")
     if numeig > dim:
       raise ValueError(f"number of requested eigenvalues numeig = {numeig} "
                        f"is larger than the dimension of the operator "
