@@ -949,7 +949,8 @@ def test_eigs_eigsh_raises(solver, whichs):
 def test_eigs_dtype_raises():
   solver = jax_backend.JaxBackend().eigs
   with pytest.raises(TypeError, match="dtype"):
-    solver(lambda x: x, shape=(10,), dtype=np.int32)
+    solver(lambda x: x, shape=(10,), dtype=np.int32,
+           num_krylov_vecs=10)
 
 ##################################################################
 #############  This test should just not crash    ################
