@@ -743,8 +743,8 @@ def _implicitly_restarted_arnoldi(jax: types.ModuleType) -> Callable:
 
     dim = np.prod(shape).astype(np.int32)
     num_expand = num_krylov_vecs - numeig
-    if not numeig < num_krylov_vecs <= dim:
-      raise ValueError(f"num_krylov_vecs must be between numeig <"
+    if not numeig <= num_krylov_vecs <= dim:
+      raise ValueError(f"num_krylov_vecs must be between numeig <="
                        f" num_krylov_vecs <= dim, got "
                        f" numeig = {numeig}, num_krylov_vecs = "
                        f"{num_krylov_vecs}, dim = {dim}.")
