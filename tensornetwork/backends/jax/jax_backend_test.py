@@ -748,7 +748,7 @@ def test_eigs_eigsh_few_eigvals_no_init(dtype, solver, matrix_generator,
 def test_eigs_eigsh_large_ncv_with_init(dtype, solver, matrix_generator,
                                         exact_decomp, which):
   backend = jax_backend.JaxBackend()
-  D = 16
+  D = 100
   np.random.seed(10)
   init = backend.randn((D,), dtype=dtype, seed=10)
   H = matrix_generator(backend, dtype, D)
