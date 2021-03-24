@@ -196,7 +196,7 @@ class BaseMPS:
   @property
   def dtype(self) -> Type[np.number]:
     if not all(t.dtype == self.tensors[0].dtype for t in self.tensors):
-     raise TypeError('not all dtype in BaseMPS.tensors are the same')
+      raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
     return self.tensors[0].dtype
 
