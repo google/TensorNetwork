@@ -630,14 +630,6 @@ def test_trace(dtype, offset, axis1, axis2):
     np.testing.assert_allclose(actual, expected, atol=1e-6, rtol=1e-6)
 
 
-def test_trace_raises():
-  shape = tuple([1] * 30)
-  backend = pytorch_backend.PyTorchBackend()
-  array = backend.randn(shape, seed=10)
-  with pytest.raises(ValueError):
-    _ = backend.trace(array)
-
-
 @pytest.mark.parametrize("pivot_axis", [-1, 1, 2])
 @pytest.mark.parametrize("dtype", torch_randn_dtypes)
 def test_pivot(dtype, pivot_axis):
