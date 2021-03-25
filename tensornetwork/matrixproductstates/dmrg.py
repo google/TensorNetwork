@@ -297,8 +297,7 @@ class BaseDMRG:
       energy = energies[0]
       local_ground_state /= self.backend.norm(local_ground_state)
 
-      u, s, vh, _ = self.mps.svd(local_ground_state,
-                                 max_bond_dim)
+      u, s, vh, _ = self.mps.svd(local_ground_state, 2, max_bond_dim, None)
       s = self.backend.diagflat(s)
       self.mps.tensors[site] = u
       if site < len(self.mps.tensors) - 1:
@@ -329,8 +328,7 @@ class BaseDMRG:
       energy = energies[0]
       local_ground_state /= self.backend.norm(local_ground_state)
 
-      u, s, vh, _ = self.mps.svd(local_ground_state,
-                                 max_bond_dim)
+      u, s, vh, _ = self.mps.svd(local_ground_state, 2, max_bond_dim, None)
       s = self.backend.diagflat(s)
       self.mps.tensors[site] = vh
       if site > 0:

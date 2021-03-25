@@ -85,7 +85,7 @@ class BaseMPS:
     # the dtype is deduced from the tensor object.
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
     if not all(
-        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+        (self.tensors[0].dtype == tensor.dtype for tensor in self.tensors)):
       raise TypeError('not all dtypes in BaseMPS.tensors are the same')
 
     self.connector_matrix = connector_matrix
@@ -155,8 +155,8 @@ class BaseMPS:
           "BaseMPS.center_position is `None`, cannot shift `center_position`."
           "Reset `center_position` manually or use `canonicalize`")
     if max_truncation_err is not None and max_truncation_err >= 1.0:
-      raise ValueError("max_truncation_err should be 0 <= max_truncation_er < 1,"
-                       f" found max_truncation_err = {max_truncation_err}")
+      raise ValueError("max_truncation_err should be 0 <= max_truncation_er"
+                       f" < 1, found max_truncation_err = {max_truncation_err}")
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.tensors) or site < 0:
       raise ValueError('site = {} not between values'
@@ -179,11 +179,8 @@ class BaseMPS:
         if not use_svd:
           isometry, rest = self.qr(self.tensors[n])
         else:
-          isometry, S, V, tw = self.svd(
-              self.tensors[n],
-              pivot_axis=2,
-              max_singular_values=D,
-              max_truncation_error=max_truncation_err)
+          isometry, S, V, _ = self.svd(self.tensors[n], 2, D,
+                                       max_truncation_err)
           rest = ncon([self.backend.diagflat(S), V], [[-1, 1], [1, -2]],
                       backend=self.backend)
 
@@ -207,11 +204,8 @@ class BaseMPS:
         if not use_svd:
           rest, isometry = self.rq(self.tensors[n])
         else:
-          U, S, isometry, tw = self.svd(
-              self.tensors[n],
-              pivot_axis=1,
-              max_singular_values=D,
-              max_truncation_error=max_truncation_err)
+          U, S, isometry, _ = self.svd(self.tensors[n], 1, D,
+                                       max_truncation_err)
           rest = ncon([U, self.backend.diagflat(S)], [[-1, 1], [1, -2]],
                       backend=self.backend)
 
@@ -232,7 +226,7 @@ class BaseMPS:
   @property
   def dtype(self) -> Type[np.number]:
     if not all(
-        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+        (self.tensors[0].dtype == tensor.dtype for tensor in self.tensors)):
       raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
     return self.tensors[0].dtype
