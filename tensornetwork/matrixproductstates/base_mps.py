@@ -19,10 +19,11 @@ from tensornetwork.backends import backend_factory
 from functools import partial
 from tensornetwork.backends.decorators import jit
 import warnings
-from tensornetwork.ncon_interface import ncon
 from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
+import tensornetwork.ncon_interface as ncon
+
 Tensor = Any
 
 
@@ -82,10 +83,10 @@ class BaseMPS:
     else:
       self.backend = backend_factory.get_backend(backend)
 
+
     # the dtype is deduced from the tensor object.
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
-    if not all(
-        (self.tensors[0].dtype == tensor.dtype for tensor in self.tensors)):
+    if not all(t.dtype == self.tensors[0].dtype for t in self.tensors):
       raise TypeError('not all dtypes in BaseMPS.tensors are the same')
 
     self.connector_matrix = connector_matrix
@@ -111,11 +112,13 @@ class BaseMPS:
     @partial(jit, backend=self.backend)
     def qr(tensor):
       return self.backend.qr(tensor, 2)
+
     self.qr = qr
 
     @partial(jit, backend=self.backend)
     def rq(tensor):
       return self.backend.rq(tensor, 1)
+
     self.rq = rq
 
     self.norm = self.backend.jit(self.backend.norm)
@@ -124,12 +127,12 @@ class BaseMPS:
     ########################################################################
 
   def left_transfer_operator(self, A, l, Abar):
-    return ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
-                backend=self.backend.name)
+    return ncon.ncon([A, l, Abar], [[1, 2, -1], [1, 3], [3, 2, -2]],
+                     backend=self.backend.name)
 
   def right_transfer_operator(self, B, r, Bbar):
-    return ncon([B, r, Bbar], [[-1, 2, 1], [1, 3], [-2, 2, 3]],
-                backend=self.backend.name)
+    return ncon.ncon([B, r, Bbar], [[-1, 2, 1], [1, 3], [-2, 2, 3]],
+                     backend=self.backend.name)
 
   def __len__(self) -> int:
     return len(self.tensors)
@@ -225,8 +228,7 @@ class BaseMPS:
 
   @property
   def dtype(self) -> Type[np.number]:
-    if not all(
-        (self.tensors[0].dtype == tensor.dtype for tensor in self.tensors)):
+    if not all(t.dtype == self.tensors[0].dtype for t in self.tensors):
       raise TypeError('not all dtype in BaseMPS.tensors are the same')
 
     return self.tensors[0].dtype
@@ -482,7 +484,9 @@ class BaseMPS:
                           site1: int,
                           site2: int,
                           max_singular_values: Optional[int] = None,
-                          max_truncation_err: Optional[float] = None) -> Tensor:
+                          max_truncation_err: Optional[float] = None,
+                          center_position: Optional[int] = None,
+                          relative: bool = False) -> Tensor:
     """Apply a two-site gate to an MPS. This routine will in general destroy
     any canonical form of the state. If a canonical form is needed, the user
     can restore it using `FiniteMPS.position`.
@@ -493,6 +497,15 @@ class BaseMPS:
       site2: The second site where the gate acts.
       max_singular_values: The maximum number of singular values to keep.
       max_truncation_err: The maximum allowed truncation error.
+      center_position: An optional value to choose the MPS tensor at
+        `center_position` to be isometric after the application of the gate.
+        Defaults to `site1`. If the MPS is canonical (i.e.
+        `BaseMPS.center_position != None`), and if the orthogonality center
+        coincides with either `site1` or `site2`,  the orthogonality center will
+        be shifted to `center_position` (`site1` by default). If the
+        orthogonality center does not coincide with `(site1, site2)` then
+        `MPS.center_position` is set to `None`.
+      relative: Multiply `max_truncation_err` with the largest singular value.
 
     Returns:
       `Tensor`: A scalar tensor containing the truncated weight of the
@@ -516,6 +529,10 @@ class BaseMPS:
                        "neighbor gates are currently"
                        "supported".format(site2, site1))
 
+    if center_position is not None and center_position not in (site1, site2):
+      raise ValueError(f"center_position = {center_position} not "
+                       f"in {(site1, site2)} ")
+
     if (max_singular_values or
         max_truncation_err) and self.center_position not in (site1, site2):
       raise ValueError(
@@ -524,28 +541,59 @@ class BaseMPS:
           'is applied at the center position of the MPS'.format(
               self.center_position, site1, site2))
 
-    gate_node = Node(gate, backend=self.backend)
-    node1 = Node(self.tensors[site1], backend=self.backend)
-    node2 = Node(self.tensors[site2], backend=self.backend)
-    node1[2] ^ node2[0]
-    gate_node[2] ^ node1[1]
-    gate_node[3] ^ node2[1]
-    left_edges = [node1[0], gate_node[0]]
-    right_edges = [gate_node[1], node2[2]]
-    result = node1 @ node2 @ gate_node
-    U, S, V, tw = split_node_full_svd(
-        result,
-        left_edges=left_edges,
-        right_edges=right_edges,
-        max_singular_values=max_singular_values,
-        max_truncation_err=max_truncation_err,
-        left_name=node1.name,
-        right_name=node2.name)
-    V.reorder_edges([S[1]] + right_edges)
-    left_edges = left_edges + [S[1]]
-    res = contract_between(U, S, name=U.name).reorder_edges(left_edges)
-    self.tensors[site1] = res.tensor
-    self.tensors[site2] = V.tensor
+    use_svd = (max_truncation_err is not None) or (max_singular_values
+                                                   is not None)
+    gate = self.backend.convert_to_tensor(gate)
+    tensor = ncon.ncon([self.tensors[site1], self.tensors[site2], gate],
+                       [[-1, 1, 2], [2, 3, -4], [-2, -3, 1, 3]],
+                       backend=self.backend)
+
+    def set_center_position(site):
+      if self.center_position is not None:
+        if self.center_position in (site1, site2):
+          assert site in (site1, site2)
+          self.center_position = site
+        else:
+          self.center_position = None
+
+    if center_position is None:
+      center_position = site1
+
+    if use_svd:
+      U, S, V, tw = self.backend.svd(
+          tensor,
+          pivot_axis=2,
+          max_singular_values=max_singular_values,
+          max_truncation_error=max_truncation_err,
+          relative=relative)
+      if center_position == site2:
+        left_tensor = U
+        right_tensor = ncon.ncon([self.backend.diagflat(S), V],
+                                 [[-1, 1], [1, -2, -3]],
+                                 backend=self.backend)
+        set_center_position(site2)
+      else:
+        left_tensor = ncon.ncon([U, self.backend.diagflat(S)],
+                                [[-1, -2, 1], [1, -3]],
+                                backend=self.backend)
+        right_tensor = V
+        set_center_position(site1)
+
+    else:
+      tw = self.backend.zeros(1, dtype=self.dtype)
+      if center_position == site2:
+        R, Q = self.backend.rq(tensor, pivot_axis=2)
+        left_tensor = R
+        right_tensor = Q
+        set_center_position(site2)
+      else:
+        Q, R = self.backend.qr(tensor, pivot_axis=2)
+        left_tensor = Q
+        right_tensor = R
+        set_center_position(site1)
+
+    self.tensors[site1] = left_tensor
+    self.tensors[site2] = right_tensor
     return tw
 
   def apply_one_site_gate(self, gate: Tensor, site: int) -> None:
@@ -562,9 +610,9 @@ class BaseMPS:
     if site < 0 or site >= len(self):
       raise ValueError('site = {} is not between 0 <= site < N={}'.format(
           site, len(self)))
-    self.tensors[site] = ncon([gate, self.tensors[site]],
-                              [[-2, 1], [-1, 1, -3]],
-                              backend=self.backend.name)
+    self.tensors[site] = ncon.ncon([gate, self.tensors[site]],
+                                   [[-2, 1], [-1, 1, -3]],
+                                   backend=self.backend.name)
 
   def check_orthonormality(self, which: Text, site: int) -> Tensor:
     """Check orthonormality of tensor at site `site`.
@@ -598,8 +646,8 @@ class BaseMPS:
         M=self.backend.sparse_shape(result)[1],
         dtype=self.dtype)
     return self.backend.sqrt(
-        ncon([tmp, self.backend.conj(tmp)], [[1, 2], [1, 2]],
-             backend=self.backend))
+        ncon.ncon([tmp, self.backend.conj(tmp)], [[1, 2], [1, 2]],
+                  backend=self.backend))
 
   # pylint: disable=inconsistent-return-statements
   def check_canonical(self) -> Any:
@@ -644,9 +692,9 @@ class BaseMPS:
           'index `site` has to be larger than 0 (found `site`={}).'.format(
               site))
     if (site == len(self) - 1) and (self.connector_matrix is not None):
-      return ncon([self.tensors[site], self.connector_matrix],
-                  [[-1, -2, 1], [1, -3]],
-                  backend=self.backend.name)
+      return ncon.ncon([self.tensors[site], self.connector_matrix],
+                       [[-1, -2, 1], [1, -3]],
+                       backend=self.backend.name)
     return self.tensors[site]
 
   def canonicalize(self, *args, **kwargs) -> np.number:
