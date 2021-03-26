@@ -184,13 +184,13 @@ class BaseMPS:
         else:
           isometry, S, V, _ = self.svd(self.tensors[n], 2, D,
                                        max_truncation_err)
-          rest = ncon([self.backend.diagflat(S), V], [[-1, 1], [1, -2]],
-                      backend=self.backend)
+          rest = ncon.ncon([self.backend.diagflat(S), V], [[-1, 1], [1, -2]],
+                           backend=self.backend)
 
         self.tensors[n] = isometry
-        self.tensors[n + 1] = ncon([rest, self.tensors[n + 1]],
-                                   [[-1, 1], [1, -2, -3]],
-                                   backend=self.backend.name)
+        self.tensors[n + 1] = ncon.ncon([rest, self.tensors[n + 1]],
+                                        [[-1, 1], [1, -2, -3]],
+                                        backend=self.backend.name)
         Z = self.norm(self.tensors[n + 1])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
@@ -209,13 +209,13 @@ class BaseMPS:
         else:
           U, S, isometry, _ = self.svd(self.tensors[n], 1, D,
                                        max_truncation_err)
-          rest = ncon([U, self.backend.diagflat(S)], [[-1, 1], [1, -2]],
-                      backend=self.backend)
+          rest = ncon.ncon([U, self.backend.diagflat(S)], [[-1, 1], [1, -2]],
+                           backend=self.backend)
 
         self.tensors[n] = isometry  #a right-isometric tensor of rank 3
-        self.tensors[n - 1] = ncon([self.tensors[n - 1], rest],
-                                   [[-1, -2, 1], [1, -3]],
-                                   backend=self.backend.name)
+        self.tensors[n - 1] = ncon.ncon([self.tensors[n - 1], rest],
+                                        [[-1, -2, 1], [1, -3]],
+                                        backend=self.backend.name)
         Z = self.norm(self.tensors[n - 1])
         # for an mps with > O(10) sites one needs to normalize to avoid
         # over or underflow errors; this takes care of the normalization
