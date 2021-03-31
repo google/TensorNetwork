@@ -894,7 +894,7 @@ def test_eigsh_free_fermions(N, dtype, param_type):
   init /= jnp.linalg.norm(init)
 
   ncv = 20
-  numeig = 4
+  numeig = 3
   which = 'SA'
   tol = 1E-10
   maxiter = 30
