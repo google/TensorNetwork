@@ -430,3 +430,19 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       float: Machine epsilon.
     """
     return tf.experimental.numpy.finfo(dtype).eps
+
+  def pinv(self, tensor: Tensor, rcond: float = 1E-15, hermitian: bool = False) -> Tensor:
+    """
+    Compute the (Moore-Penrose) pseudo-inverse of a tensor.
+    Returns the pseudo-inverse of tensor.
+    
+    Args:
+     tensor: A tensor.
+     rcond: Cutoff for small singular values.
+     hermitian(optional): If True, matrix provided is assumed to be Hermitian (symmetric if real-valued). Defaults to False.
+
+    Returns:
+     tensor: The pseudo inverse of tensor.
+         """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented pinv".format(self.name))
