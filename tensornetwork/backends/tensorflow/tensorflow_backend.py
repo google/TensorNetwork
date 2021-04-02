@@ -444,5 +444,4 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     Returns:
      tensor: The pseudo inverse of tensor.
          """
-    raise NotImplementedError(
-        "Backend '{}' has not implemented pinv".format(self.name))
+    return np.linalg.pinv(tensor)
