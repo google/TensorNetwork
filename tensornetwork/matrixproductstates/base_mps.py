@@ -95,10 +95,17 @@ class BaseMPS:
     ########################################################################
     ##########       define functions for jitted operations       ##########
     ########################################################################
-    @partial(jit, backend=self.backend, static_argnums=(1,))
-    def svd(tensor, max_singular_values=None):
+    @partial(jit, backend=self.backend, static_argnums=(1, 2, 3))
+    def svd(tensor,
+            pivot_axis=2,
+            max_singular_values=None,
+            max_truncation_error=None):
       return self.backend.svd(
-          tensor=tensor, pivot_axis=2, max_singular_values=max_singular_values)
+          tensor=tensor,
+          pivot_axis=pivot_axis,
+          max_singular_values=max_singular_values,
+          max_truncation_error=max_truncation_error,
+          relative=True)
 
     self.svd = svd
 
@@ -130,12 +137,17 @@ class BaseMPS:
   def __len__(self) -> int:
     return len(self.tensors)
 
-  def position(self, site: int, normalize: Optional[bool] = True) -> np.number:
+  def position(self, site: int, normalize: Optional[bool] = True,
+               D: Optional[int] = None,
+               max_truncation_err: Optional[float] = None) -> np.number:
     """Shift `center_position` to `site`.
 
     Args:
       site: The site to which FiniteMPS.center_position should be shifted
       normalize: If `True`, normalize matrices when shifting.
+      D: If not `None`, truncate the MPS bond dimensions to `D`.
+      max_truncation_err: if not `None`, truncate each bond dimension,
+        but keeping the truncation error below `max_truncation_err`.
     Returns:
       `Tensor`: The norm of the tensor at `FiniteMPS.center_position`
     Raises:
@@ -145,11 +157,15 @@ class BaseMPS:
       raise ValueError(
           "BaseMPS.center_position is `None`, cannot shift `center_position`."
           "Reset `center_position` manually or use `canonicalize`")
-
+    if max_truncation_err is not None and max_truncation_err >= 1.0:
+      raise ValueError("max_truncation_err should be 0 <= max_truncation_er"
+                       f" < 1, found max_truncation_err = {max_truncation_err}")
     #`site` has to be between 0 and len(mps) - 1
     if site >= len(self.tensors) or site < 0:
       raise ValueError('site = {} not between values'
                        ' 0 < site < N = {}'.format(site, len(self)))
+
+
     #nothing to do
     if site == self.center_position:
       Z = self.norm(self.tensors[self.center_position])
@@ -157,13 +173,22 @@ class BaseMPS:
         self.tensors[self.center_position] /= Z
       return Z
 
-    #shift center_position to the right using QR decomposition
+    #shift center_position to the right using QR or SV decomposition
     if site > self.center_position:
       n = self.center_position
       for n in range(self.center_position, site):
-        Q, R = self.qr(self.tensors[n])
-        self.tensors[n] = Q
-        self.tensors[n + 1] = ncon.ncon([R, self.tensors[n + 1]],
+        use_svd = (D is not None and D < self.bond_dimension(n + 1)
+                  ) or max_truncation_err is not None
+        if not use_svd:
+          isometry, rest = self.qr(self.tensors[n])
+        else:
+          isometry, S, V, _ = self.svd(self.tensors[n], 2, D,
+                                       max_truncation_err)
+          rest = ncon.ncon([self.backend.diagflat(S), V], [[-1, 1], [1, -2]],
+                           backend=self.backend)
+
+        self.tensors[n] = isometry
+        self.tensors[n + 1] = ncon.ncon([rest, self.tensors[n + 1]],
                                         [[-1, 1], [1, -2, -3]],
                                         backend=self.backend.name)
         Z = self.norm(self.tensors[n + 1])
@@ -174,18 +199,26 @@ class BaseMPS:
 
       self.center_position = site
 
-    #shift center_position to the left using RQ decomposition
+    #shift center_position to the left using RQ or SV decomposition
     else:
       for n in reversed(range(site + 1, self.center_position + 1)):
+        use_svd = (D is not None and D < self.bond_dimension(n)
+                  ) or max_truncation_err is not None
+        if not use_svd:
+          rest, isometry = self.rq(self.tensors[n])
+        else:
+          U, S, isometry, _ = self.svd(self.tensors[n], 1, D,
+                                       max_truncation_err)
+          rest = ncon.ncon([U, self.backend.diagflat(S)], [[-1, 1], [1, -2]],
+                           backend=self.backend)
 
-        R, Q = self.rq(self.tensors[n])
-        # for an mps with > O(10) sites one needs to normalize to avoid
-        # over or underflow errors; this takes care of the normalization
-        self.tensors[n] = Q  #Q is a right-isometric tensor of rank 3
-        self.tensors[n - 1] = ncon.ncon([self.tensors[n - 1], R],
+        self.tensors[n] = isometry  #a right-isometric tensor of rank 3
+        self.tensors[n - 1] = ncon.ncon([self.tensors[n - 1], rest],
                                         [[-1, -2, 1], [1, -3]],
                                         backend=self.backend.name)
         Z = self.norm(self.tensors[n - 1])
+        # for an mps with > O(10) sites one needs to normalize to avoid
+        # over or underflow errors; this takes care of the normalization
         if normalize:
           self.tensors[n - 1] /= Z
 
@@ -202,6 +235,15 @@ class BaseMPS:
 
   def save(self, path: str):
     raise NotImplementedError()
+
+  def bond_dimension(self, bond) -> List:
+    """The bond dimension of `bond`"""
+    if bond > len(self):
+      raise IndexError(f"bond {bond} out of bounds for"
+                       f" an MPS of length {len(self)}")
+    if bond < len(self):
+      return self.tensors[bond].shape[0]
+    return self.tensors[bond].shape[2]
 
   @property
   def bond_dimensions(self) -> List:

@@ -187,6 +187,12 @@ def test_position_raises_error(backend):
       " `None`, cannot shift `center_position`."
       "Reset `center_position` manually or use `canonicalize`"):
     mps.position(1)
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
+  with pytest.raises(
+      ValueError,
+      match="max_truncation_err"):
+    mps.position(1, max_truncation_err=1.1)
+
 
 
 def test_position_no_normalization(backend):
@@ -232,6 +238,15 @@ def test_position_no_shift_no_normalization(backend):
   mps = BaseMPS(tensors, center_position=int(N / 2), backend=backend)
   Z = mps.position(int(N / 2), normalize=False)
   np.testing.assert_allclose(Z, 5.656854)
+
+def test_position_truncation(backend):
+  D, d, N = 10, 2, 10
+  tensors = [np.ones((1, d, D))] + [np.ones((D, d, D)) for _ in range(N - 2)
+                                   ] + [np.ones((D, d, 1))]
+  mps = BaseMPS(tensors, center_position=0, backend=backend)
+  mps.position(N-1)
+  mps.position(0, D=5)
+  assert np.all(np.array(mps.bond_dimensions) <= 5)
 
 
 def test_different_dtypes_raises_error():
