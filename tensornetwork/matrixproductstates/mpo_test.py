@@ -101,7 +101,8 @@ def test_len(backend):
   mpo = BaseMPO(tensors=tensors, backend=backend)
   assert len(mpo) == 3
 
-@pytest.mark.parametrize("N1, N2, D",[(2,2,4), (2,4,16), (4,4,128)])
+
+@pytest.mark.parametrize("N1, N2, D", [(2, 2, 4), (2, 4, 16), (4, 4, 128)])
 def test_finiteFreeFermions2d(N1, N2, D):
   adj = adjacency(N1, N2)
   tij = np.zeros((N1 * N2, N1 * N2))
