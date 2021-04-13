@@ -48,7 +48,7 @@ class BaseMPO:
     self.tensors = [self.backend.convert_to_tensor(t) for t in tensors]
     if len(self.tensors) > 0:
       if not all(
-          [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+          self.tensors[0].dtype == tensor.dtype for tensor in self.tensors):
         raise TypeError('not all dtypes in BaseMPO.tensors are the same')
 
     self.name = name
@@ -62,7 +62,7 @@ class BaseMPO:
   @property
   def dtype(self) -> Type[np.number]:
     if not all(
-        [self.tensors[0].dtype == tensor.dtype for tensor in self.tensors]):
+        self.tensors[0].dtype == tensor.dtype for tensor in self.tensors):
       raise TypeError('not all dtypes in BaseMPO.tensors are the same')
     return self.tensors[0].dtype
 
@@ -222,7 +222,7 @@ class FiniteXXZ(FiniteMPO):
 
 class FiniteTFI(FiniteMPO):
   """
-  The famous transverse field Ising Hamiltonian. 
+  The famous transverse field Ising Hamiltonian.
   The ground state energy of the infinite system at criticality is -4/pi.
 
   Convention: sigma_z=diag([-1,1])
@@ -285,4 +285,103 @@ class FiniteTFI(FiniteMPO):
     #Bsigma_z
     temp[2, 0, :, :] = self.Bz[-1] * sigma_z
     mpo.append(temp)
+    super().__init__(tensors=mpo, backend=backend, name=name)
+
+
+class FiniteFreeFermion2D(FiniteMPO):
+  """
+  Free fermions on a 2d grid
+  """
+
+  def __init__(self,
+               t1: float,
+               t2: float,
+               v: float,
+               N1: int,
+               N2: int,
+               dtype: Type[np.number],
+               backend: Optional[Union[AbstractBackend, Text]] = None,
+               name: Text = '2DTFI_MPO'):
+    """
+    Returns the MPO of the free fermions on
+    an N1 by N2 grid. The MPO is snaked
+    along the vertical direction.
+
+    Args:
+      t1: The hopping amplitude along vertical direction.
+      t2: The hopping amplitude along horizontal direction.
+      v:  local potential strength.
+      N1: The vertical size of the lattice.
+      N2: The horizontal size of the lattice.
+      dtype: The dtype of the MPO.
+      backend: An optional backend.
+      name: A name for the MPO.
+
+    Returns:
+      FiniteFreeFermion2D: The mpo of the TFI model on an N1 x N2 grid.
+    """
+
+    self.t1 = t1
+    self.t2 = t2
+    self.N1 = N1
+    self.N2 = N2
+    self.v = v
+
+    eye = np.eye(2).astype(dtype)
+    c = np.array([[0, 1], [0, 0]]).astype(dtype)
+    particle_number = np.diag([0, 1]).astype(dtype)
+    sigma_z = np.diag([1, -1]).astype(dtype)
+    cdag = c.T.conj()
+
+    mpo_dim = 2 * N1 + 2
+    mpo_matrix = np.zeros((1, mpo_dim, 2, 2), dtype=dtype)
+    mpo_matrix[0, 0, :, :] = v * particle_number
+
+    mpo_matrix[0, 1, :, :] = t1 * cdag
+    mpo_matrix[0, N1, :, :] = t2 * cdag
+    mpo_matrix[0, N1 + 1, :, :] = t1 * c # c @ sigma_z == -c
+    mpo_matrix[0, 2 * N1, :, :] = t2 * c # c @ sigma_z == -c
+
+    mpo_matrix[0, 2 * N1 + 1, :, :] = eye
+    mpo = [mpo_matrix]
+
+    n2 = 0
+    for n in range(1, N1 * N2 - 1):
+      if (n + 1) % N1 == 0:
+        _t1 = 0
+      else:
+        _t1 = t1
+
+      if n < N1 * (N2 - 1):
+        _t2 = t2
+      else:
+        _t2 = 0
+      if n % N1 == 0:
+        n2 += 1
+      mpo_matrix = np.zeros((mpo_dim, mpo_dim, 2, 2), dtype=dtype)
+      mpo_matrix[0, 0, :, :] = eye
+      mpo_matrix[1, 0, :, :] = c
+      for n1 in range(2, N1 + 1):
+        mpo_matrix[n1, n1 - 1, :, :] = sigma_z
+
+      mpo_matrix[N1 + 1, 0, :, :] = cdag
+      for n1 in range(N1 + 2, 2 * N1 + 1):
+        mpo_matrix[n1, n1 - 1, :, :] = sigma_z
+
+      mpo_matrix[2 * N1 + 1, 0, :, :] = v * particle_number
+
+      mpo_matrix[2 * N1 + 1, 1, :, :] = _t1 * cdag # cdag @ sigma_z == cdag
+      mpo_matrix[2 * N1 + 1, N1, :, :] = _t2 * cdag
+      mpo_matrix[2 * N1 + 1, N1+1, :, :] = _t1 * c # c @ sigma_z == -c
+      mpo_matrix[2 * N1 + 1, 2*N1, :, :] = _t2 * c # c @ sigma_z == -c
+
+      mpo_matrix[2 * N1 + 1, 2 * N1 + 1, :, :] = eye
+      mpo.append(mpo_matrix)
+
+    mpo_matrix = np.zeros((mpo_dim, 1, 2, 2), dtype=dtype)
+    mpo_matrix[0, 0, :, :] = eye
+    mpo_matrix[1, 0, :, :] = c
+    mpo_matrix[N1 + 1, 0, :, :] = cdag
+    mpo_matrix[2 * N1 + 1, 0, :, :] = v * particle_number
+    mpo.append(mpo_matrix)
     super().__init__(tensors=mpo, backend=backend, name=name)
