@@ -290,7 +290,7 @@ class FiniteTFI(FiniteMPO):
 
 class FiniteFreeFermion2D(FiniteMPO):
   """
-  Free fermsions on a 2d grid
+  Free fermions on a 2d grid
   """
 
   def __init__(self,
@@ -376,12 +376,12 @@ class FiniteFreeFermion2D(FiniteMPO):
       mpo_matrix[2 * N1 + 1, 2*N1, :, :] = _t2 * c # c @ sigma_z == -c
 
       mpo_matrix[2 * N1 + 1, 2 * N1 + 1, :, :] = eye
-      mpo.append(mpo_matrix.copy())
+      mpo.append(mpo_matrix)
 
     mpo_matrix = np.zeros((mpo_dim, 1, 2, 2), dtype=dtype)
     mpo_matrix[0, 0, :, :] = eye
     mpo_matrix[1, 0, :, :] = c
     mpo_matrix[N1 + 1, 0, :, :] = cdag
     mpo_matrix[2 * N1 + 1, 0, :, :] = v * particle_number
-    mpo.append(mpo_matrix.copy())
+    mpo.append(mpo_matrix)
     super().__init__(tensors=mpo, backend=backend, name=name)
