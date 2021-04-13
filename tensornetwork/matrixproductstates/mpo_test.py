@@ -13,18 +13,6 @@ from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
 
 
-def adjacency(N1, N2):
-  neighbors = {}
-  mat = np.arange(N1 * N2).reshape(N1, N2)
-  for n in range(N1 * N2):
-    x, y = np.divmod(n, N2)
-    if n not in neighbors:
-      neighbors[n] = []
-    if y < N2 - 1:
-      neighbors[n].append(mat[x, y + 1])
-    if x > 0:
-      neighbors[n].append(mat[x - 1, y])
-  return neighbors
 
 
 @pytest.fixture(
@@ -104,6 +92,19 @@ def test_len(backend):
 
 @pytest.mark.parametrize("N1, N2, D", [(2, 2, 4), (2, 4, 16), (4, 4, 128)])
 def test_finiteFreeFermions2d(N1, N2, D):
+  def adjacency(N1, N2):
+    neighbors = {}
+    mat = np.arange(N1 * N2).reshape(N1, N2)
+    for n in range(N1 * N2):
+      x, y = np.divmod(n, N2)
+      if n not in neighbors:
+        neighbors[n] = []
+      if y < N2 - 1:
+        neighbors[n].append(mat[x, y + 1])
+      if x > 0:
+        neighbors[n].append(mat[x - 1, y])
+    return neighbors
+
   adj = adjacency(N1, N2)
   tij = np.zeros((N1 * N2, N1 * N2))
   t = -1
