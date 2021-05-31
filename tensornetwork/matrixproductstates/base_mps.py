@@ -560,11 +560,11 @@ class BaseMPS:
 
     if use_svd:
       U, S, V, tw = self.backend.svd(
-        tensor,
-        pivot_axis=2,
-        max_singular_values=max_singular_values,
-        max_truncation_error=max_truncation_err,
-        relative=relative)
+          tensor,
+          pivot_axis=2,
+          max_singular_values=max_singular_values,
+          max_truncation_error=max_truncation_err,
+          relative=relative)
       if center_position == site2:
         left_tensor = U
         right_tensor = ncon.ncon([self.backend.diagflat(S), V],
