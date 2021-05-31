@@ -1391,7 +1391,7 @@ def flatten_edges(edges: List[Edge],
       edge.node2.backend for edge in edges if edge.node2 is not None
   ]
 
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
   if len(edges) == 1:
@@ -1570,7 +1570,7 @@ def split_edge(edge: Edge,
     return _split_trace_edge(edge, shape, new_edge_names)
 
   backends = [node.backend for node in edge.get_nodes() if node is not None]
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
 
@@ -1658,7 +1658,7 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
                      "dimension {}".format(length, start_index, edge.dimension))
 
   backends = [node.backend for node in edge.get_nodes() if node is not None]
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
 

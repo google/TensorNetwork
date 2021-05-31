@@ -23,7 +23,7 @@ from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 import tensornetwork.ncon_interface as ncon
-
+import os
 Tensor = Any
 
 
@@ -561,11 +561,11 @@ class BaseMPS:
 
     if use_svd:
       U, S, V, tw = self.backend.svd(
-          tensor,
-          pivot_axis=2,
-          max_singular_values=max_singular_values,
-          max_truncation_error=max_truncation_err,
-          relative=relative)
+        tensor,
+        pivot_axis=2,
+        max_singular_values=max_singular_values,
+        max_truncation_error=max_truncation_err,
+        relative=relative)
       if center_position == site2:
         left_tensor = U
         right_tensor = ncon.ncon([self.backend.diagflat(S), V],

@@ -177,6 +177,7 @@ class BaseDMRG:
     rb = self.right_envs[len(self.mps) - 1]
     self.right_envs = {len(self.mps) - 1: rb}
     for n in reversed(range(self.mps.center_position + 1, len(self.mps))):
+      print(f'adding right layer at site {n}')
       self.right_envs[n - 1] = self.add_right_layer(self.right_envs[n],
                                                     self.mps.tensors[n],
                                                     self.mpo.tensors[n])

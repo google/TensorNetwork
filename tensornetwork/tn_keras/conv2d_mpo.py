@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import activations, initializers, regularizers
@@ -196,7 +197,7 @@ class Conv2DMPO(Layer):
     else:
       self.use_bias = None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: #pylint: disable=arguments-differ
 
     tn_nodes = [tn.Node(n, backend='tensorflow') for n in self.nodes]
     for i in range(len(tn_nodes) - 1):
