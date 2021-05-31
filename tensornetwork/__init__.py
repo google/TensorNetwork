@@ -38,7 +38,8 @@ from tensornetwork.matrixproductstates.infinite_mps import InfiniteMPS
 from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
 from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
 from tensornetwork.matrixproductstates.mpo import (FiniteMPO, FiniteTFI,
-                                                   FiniteXXZ)
+                                                   FiniteXXZ,
+                                                   FiniteFreeFermion2D)
 from tensornetwork.backend_contextmanager import DefaultBackend
 from tensornetwork.backend_contextmanager import set_default_backend
 from tensornetwork import block_sparse
