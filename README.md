@@ -151,3 +151,18 @@ If you want to run your contractions on a GPU, we highly recommend using JAX, as
 This library is in *alpha* and will be going through a lot of breaking changes. While releases will be stable enough for research, we do not recommend using this in any production environment yet.
 
 TensorNetwork is not an official Google product. Copyright 2019 The TensorNetwork Developers.
+
+## Citation
+If you are using TensorNetwork for your research please cite this work using the following bibtex entry:
+
+```
+@misc{roberts2019tensornetwork,
+      title={TensorNetwork: A Library for Physics and Machine Learning}, 
+      author={Chase Roberts and Ashley Milsted and Martin Ganahl and Adam Zalcman and Bruce Fontaine and Yijian Zou and Jack Hidary and Guifre Vidal and Stefan Leichenauer},
+      year={2019},
+      eprint={1905.01330},
+      archivePrefix={arXiv},
+      primaryClass={physics.comp-ph}
+}
+```
+

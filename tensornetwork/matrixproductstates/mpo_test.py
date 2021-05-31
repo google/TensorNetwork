@@ -5,7 +5,14 @@ import jax
 import torch
 from tensornetwork.backends import backend_factory
 #pylint: disable=line-too-long
-from tensornetwork.matrixproductstates.mpo import FiniteMPO, BaseMPO, InfiniteMPO
+from tensornetwork.matrixproductstates.mpo import (FiniteMPO,
+                                                   BaseMPO,
+                                                   InfiniteMPO,
+                                                   FiniteFreeFermion2D)
+from tensornetwork.matrixproductstates.finite_mps import FiniteMPS
+from tensornetwork.matrixproductstates.dmrg import FiniteDMRG
+
+
 
 
 @pytest.fixture(
@@ -81,3 +88,41 @@ def test_len(backend):
   ]
   mpo = BaseMPO(tensors=tensors, backend=backend)
   assert len(mpo) == 3
+
+
+@pytest.mark.parametrize("N1, N2, D", [(2, 2, 4), (2, 4, 16), (4, 4, 128)])
+def test_finiteFreeFermions2d(N1, N2, D):
+  def adjacency(N1, N2):
+    neighbors = {}
+    mat = np.arange(N1 * N2).reshape(N1, N2)
+    for n in range(N1 * N2):
+      x, y = np.divmod(n, N2)
+      if n not in neighbors:
+        neighbors[n] = []
+      if y < N2 - 1:
+        neighbors[n].append(mat[x, y + 1])
+      if x > 0:
+        neighbors[n].append(mat[x - 1, y])
+    return neighbors
+
+  adj = adjacency(N1, N2)
+  tij = np.zeros((N1 * N2, N1 * N2))
+  t = -1
+  v = -1
+  for n, d in adj.items():
+    for ind in d:
+      tij[n, ind] += t
+      tij[ind, n] += t
+  tij += np.diag(np.ones(N1 * N2) * v)
+
+  eta, _ = np.linalg.eigh(tij)
+  expected = min(np.cumsum(eta))
+
+  t1 = t
+  t2 = t
+  dtype = np.float64
+  mpo = FiniteFreeFermion2D(t1, t2, v, N1, N2, dtype)
+  mps = FiniteMPS.random([2] * N1 * N2, [D] * (N1 * N2 - 1), dtype=np.float64)
+  dmrg = FiniteDMRG(mps, mpo)
+  actual = dmrg.run_one_site()
+  np.testing.assert_allclose(actual, expected)

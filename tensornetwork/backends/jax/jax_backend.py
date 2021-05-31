@@ -133,7 +133,8 @@ class JaxBackend(abstract_backend.AbstractBackend):
              expression: str,
              *tensors: Tensor,
              optimize: bool = True) -> Tensor:
-    return jnp.einsum(expression, *tensors, optimize=optimize)
+    return jnp.einsum(expression, *tensors, optimize=optimize,
+                      precision=self.jax_precision)
 
   def norm(self, tensor: Tensor) -> Tensor:
     return jnp.linalg.norm(tensor)
