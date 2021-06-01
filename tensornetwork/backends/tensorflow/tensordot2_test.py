@@ -36,7 +36,7 @@ import pytest
 _MAXDIM = 5
 
 
-class TensordotTest(tf.compat.v1.test.TestCase):
+class TensordotTest(tf.test.TestCase):
 
   def test_invalid_shape(self):
     a = [[1, 2], [3, 4]]
@@ -50,8 +50,7 @@ class TensordotTest(tf.compat.v1.test.TestCase):
     # pylint: disable=not-context-manager
     with tf.compat.v1.Graph().as_default():
       with self.cached_session() as sess:
-        with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                     "Matrix size-incompatible"):
+        with self.assertRaises(tf.errors.InvalidArgumentError):
           a_ph = tf.compat.v1.placeholder(tf.float32)
           b_ph = tf.compat.v1.placeholder(tf.float32)
           axes_ph = tf.compat.v1.placeholder(tf.int32)
