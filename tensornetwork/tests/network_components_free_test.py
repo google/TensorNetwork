@@ -1,3 +1,4 @@
+#pylint: disable=no-member
 import numpy as np
 import tensorflow as tf
 import torch
@@ -15,7 +16,7 @@ from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Dict
 
 string_type = network_components.string_type
-ENCODING =  network_components.STRING_ENCODING
+ENCODING = network_components.STRING_ENCODING
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
@@ -721,7 +722,7 @@ def test_node_save_data(tmp_path, single_node_edge):
   with h5py.File(tmp_path / 'nodes', 'w') as node_file:
     node_group = node_file.create_group('test_node')
     node._save_node(node_group)
-    np.testing.assert_allclose(node_file['test_node/tensor'][()], node.tensor)
+    np.testing.assert_allclose(node_group['tensor'][()], node.tensor)
     assert node_file['test_node/backend'].asstr(ENCODING)[(
     )] == node.backend.name
     assert node_file['test_node/type'].asstr(ENCODING)[(
