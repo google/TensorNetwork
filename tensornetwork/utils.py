@@ -22,7 +22,7 @@ from tensornetwork.network_operations import reachable, get_all_edges
 from typing import List, Union, BinaryIO
 
 STRING_ENCODING = network_components.STRING_ENCODING
-string_type =  network_components.string_type
+string_type = network_components.string_type
 
 
 def save_nodes(nodes: List[AbstractNode], path: Union[str, BinaryIO]) -> None:
@@ -100,13 +100,13 @@ def load_nodes(path: str) -> List[AbstractNode]:
   with h5py.File(path, 'r') as net_file:
     nodes = list(net_file["nodes"].keys())
     node_names = {
-        'node{}'.format(n): v
-        for n, v in enumerate(net_file["node_names"]['names'].asstr(STRING_ENCODING)[()])
+        'node{}'.format(n): v for n, v in enumerate(
+            net_file["node_names"]['names'].asstr(STRING_ENCODING)[()])
     }
 
     edge_names = {
-        'edge{}'.format(n): v
-        for n, v in enumerate(net_file["edge_names"]['names'].asstr(STRING_ENCODING)[()])
+        'edge{}'.format(n): v for n, v in enumerate(
+            net_file["edge_names"]['names'].asstr(STRING_ENCODING)[()])
     }
     edges = list(net_file["edges"].keys())
     for node_name in nodes:
@@ -156,5 +156,4 @@ def from_topology(topology, tensors, backend=None):
       else:
         edge_dict[c] = new_node[c]
     nodes.append(new_node)
-  return nodes     
-      
+  return nodes
