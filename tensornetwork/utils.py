@@ -101,12 +101,11 @@ def load_nodes(path: str) -> List[AbstractNode]:
     nodes = list(net_file["nodes"].keys())
     node_names = {
         'node{}'.format(n): v for n, v in enumerate(
-            net_file["node_names"]['names'].asstr(STRING_ENCODING)[()])
+            net_file["node_names"]['names'].asstr(STRING_ENCODING)[()])#pylint: disable=no-member
     }
-
     edge_names = {
         'edge{}'.format(n): v for n, v in enumerate(
-            net_file["edge_names"]['names'].asstr(STRING_ENCODING)[()])
+            net_file["edge_names"]['names'].asstr(STRING_ENCODING)[()])#pylint: disable=no-member
     }
     edges = list(net_file["edges"].keys())
     for node_name in nodes:
