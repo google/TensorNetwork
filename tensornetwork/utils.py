@@ -13,12 +13,16 @@
 # limitations under the License.
 
 import h5py
+import numpy as np
+
 from tensornetwork.component_factory import get_component
+import tensornetwork.network_components as network_components
 from tensornetwork.network_components import Edge, AbstractNode, Node
 from tensornetwork.network_operations import reachable, get_all_edges
 from typing import List, Union, BinaryIO
-import numpy as np
-string_type = h5py.special_dtype(vlen=str)
+
+STRING_ENCODING = network_components.STRING_ENCODING
+string_type =  network_components.string_type
 
 
 def save_nodes(nodes: List[AbstractNode], path: Union[str, BinaryIO]) -> None:
@@ -97,17 +101,17 @@ def load_nodes(path: str) -> List[AbstractNode]:
     nodes = list(net_file["nodes"].keys())
     node_names = {
         'node{}'.format(n): v
-        for n, v in enumerate(net_file["node_names"]['names'][()])
+        for n, v in enumerate(net_file["node_names"]['names'].asstr(STRING_ENCODING)[()])
     }
 
     edge_names = {
         'edge{}'.format(n): v
-        for n, v in enumerate(net_file["edge_names"]['names'][()])
+        for n, v in enumerate(net_file["edge_names"]['names'].asstr(STRING_ENCODING)[()])
     }
     edges = list(net_file["edges"].keys())
     for node_name in nodes:
       node_data = net_file["nodes/" + node_name]
-      node_type = get_component(node_data['type'][()])
+      node_type = get_component(node_data['type'].asstr()[()])
       nodes_list.append(node_type._load_node(node_data=node_data))
     nodes_dict = {node.name: node for node in nodes_list}
     for edge in edges:
