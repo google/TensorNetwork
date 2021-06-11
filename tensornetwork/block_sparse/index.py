@@ -32,7 +32,7 @@ class Index:
     self._charges = charges
     if np.isscalar(flow):
       flow = [flow]
-    if not all([isinstance(f, (np.bool_, np.bool, bool)) for f in flow]):
+    if not all(isinstance(f, (np.bool_, np.bool, bool)) for f in flow):
       raise TypeError("flows have to be boolean. Found flow = {}".format(flow))
     self.flow = flow
 

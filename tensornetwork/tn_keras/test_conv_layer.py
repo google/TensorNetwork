@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import pytest
 import math
 import os

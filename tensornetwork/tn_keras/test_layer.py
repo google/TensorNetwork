@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import pytest
 import numpy as np
 import math
@@ -18,8 +19,8 @@ from tensorflow.keras.layers import Dense  # type: ignore
 def dummy_data(request):
   np.random.seed(42)
   # Generate dummy data for use in tests
-  data = np.random.randint(10, size=(1000, request.param))
-  labels = np.concatenate((np.ones((500, 1)), np.zeros((500, 1))), axis=0)
+  data = np.random.randint(10, size=(400, request.param))
+  labels = np.concatenate((np.ones((200, 1)), np.zeros((200, 1))), axis=0)
   return data, labels
 
 
@@ -113,7 +114,7 @@ def test_train(dummy_data, make_model):
                 metrics=['accuracy'])
 
   # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=10, batch_size=32)
+  history = model.fit(data, labels, epochs=50, batch_size=64)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]

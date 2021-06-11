@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import tensorflow as tf
 from tensorflow.keras.layers import Layer  # type: ignore
 from tensorflow.keras import activations
@@ -136,7 +137,7 @@ class DenseMPO(Layer):
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:  # pylint: disable=unused-argument, arguments-differ
 
     def f(x: tf.Tensor, nodes: List[Node], num_nodes: int, in_leg_dim: int,
           output_dim: int, use_bias: bool, bias_var: tf.Tensor) -> tf.Tensor:

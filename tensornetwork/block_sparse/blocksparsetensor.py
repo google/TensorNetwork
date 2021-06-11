@@ -129,7 +129,7 @@ class ChargeArray:
       Tuple: A tuple of `int`.
     """
     return tuple(
-        [reduce(mul, [self._charges[n].dim for n in s]) for s in self._order])
+        reduce(mul, [self._charges[n].dim for n in s]) for s in self._order)
 
   @property
   def size(self) -> int:
@@ -166,11 +166,11 @@ class ChargeArray:
 
   @property
   def flat_charges(self) -> List[BaseCharge]:
-    return list([self._charges[o] for o in self.flat_order])
+    return list(self._charges[o] for o in self.flat_order)
 
   @property
   def flat_flows(self) -> List:
-    return list([self._flows[o] for o in self.flat_order])
+    return list(self._flows[o] for o in self.flat_order)
 
   @property
   def flat_order(self) -> np.ndarray:
@@ -279,7 +279,7 @@ class ChargeArray:
             "The shape {} is incompatible with the "
             "elementary shape {} of the tensor.".format(
                 tuple(new_shape),
-                tuple([self._charges[n].dim for o in self._order for n in o])))
+                tuple(self._charges[n].dim for o in self._order for n in o)))
 
       partitions.append(tmp[0] + 1)
       flat_dims = flat_dims[partitions[-1]:]
@@ -289,7 +289,7 @@ class ChargeArray:
             "The shape {} is incompatible with the "
             "elementary shape {} of the tensor.".format(
                 tuple(new_shape),
-                tuple([self._charges[n].dim for o in self._order for n in o])))
+                tuple(self._charges[n].dim for o in self._order for n in o)))
       partitions[-1] += 1
 
     partitions = np.cumsum(partitions)
@@ -456,11 +456,11 @@ def compare_shapes(tensor1: ChargeArray, tensor2: ChargeArray) -> bool:
     return False
   if len(tensor1._charges) != len(tensor2._charges):
     return False
-  if not all([
-      charge_equal(c1, c2) for c1, c2 in zip(tensor1._charges, tensor2._charges)
-  ]):
+  if not all(
+      charge_equal(c1, c2)
+      for c1, c2 in zip(tensor1._charges, tensor2._charges)):
     return False
-  if not all([f1 == f2 for f1, f2 in zip(tensor1._flows, tensor2._flows)]):
+  if not all(f1 == f2 for f1, f2 in zip(tensor1._flows, tensor2._flows)):
     return False
   return True
 
@@ -785,7 +785,7 @@ class BlockSparseTensor(ChargeArray):
         flows=self._flows,
         order=self._order,
         check_consistency=False)
-  
+
   def __pow__(self, number: np.number) -> "BlockSparseTensor":
     if not np.isscalar(number):
       raise TypeError(

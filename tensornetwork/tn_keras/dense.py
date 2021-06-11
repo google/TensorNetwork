@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import tensorflow as tf
 from tensorflow.keras.layers import Layer  # type: ignore
 from tensorflow.keras import activations
@@ -101,7 +102,7 @@ class DenseDecomp(Layer):
         trainable=True,
         initializer=self.bias_initializer) if self.use_bias else None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument
+  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: # pylint: disable=unused-argument, arguments-differ
 
 
     def f(x: tf.Tensor, a_var: tf.Tensor, b_var: tf.Tensor, use_bias: bool,
