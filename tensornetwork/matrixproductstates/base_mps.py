@@ -23,7 +23,6 @@ from tensornetwork.backend_contextmanager import get_default_backend
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Any, List, Optional, Text, Type, Union, Dict, Sequence
 import tensornetwork.ncon_interface as ncon
-
 Tensor = Any
 
 

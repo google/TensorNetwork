@@ -148,9 +148,9 @@ if __name__ == '__main__':
   #        are ramped up during the simulation close to the boundaries.
   #
   #        The symmetric backend is for small bond dimensions typicall slower
-  #        Than other backends, due to inherent book-keeping overhead.
+  #        than other backends, due to inherent book-keeping overhead.
   #        In comparison with numpy, the two backends typically are of the same
-  #        speed for a bond dimension of D ~ 100. For value of D >~ 400, their
+  #        speed for a bond dimension of D ~ 100. For value of D >~ 400, the
   #        symmetric backend is typically substantially faster than numpy,
   #        pytorch or jax on CPU.
 

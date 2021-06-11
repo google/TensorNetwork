@@ -463,7 +463,7 @@ def test_eig_prod(dtype, Ds, num_charges):
   A = A.reshape([dims, dims])
   E, V = eig(A)
   A_ = V @ diag(E) @ inv(V)
-  np.testing.assert_allclose(A.contiguous(inplace=True).data, A_.data)
+  np.testing.assert_allclose(A.contiguous(inplace=True).data, A_.data) #pylint: disable=unexpected-keyword-arg
 
 
 def test_eig_raises():

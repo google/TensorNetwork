@@ -1,3 +1,4 @@
+# pylint: disable=no-name-in-module
 import itertools
 from tensornetwork.tn_keras.layers import DenseMPO
 import tensorflow as tf

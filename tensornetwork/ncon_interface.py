@@ -485,8 +485,8 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
           backend_obj.tensordot(
               t1,
               t2,
-              axes=(tuple([t1_cont[i] for i in ind_sort]),
-                    tuple([t2_cont[i] for i in ind_sort]))))
+              axes=(tuple(t1_cont[i] for i in ind_sort),
+                    tuple(t2_cont[i] for i in ind_sort))))
       new_labels = [l for l in labels_t1 if l not in common_labels
                    ] + [l for l in labels_t2 if l not in common_labels]
       network_structure.append(new_labels)
@@ -515,7 +515,7 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
   # if necessary do a final permutation
   if len(network_structure[0]) > 1:
     labels = network_structure[0]
-    final_order = tuple([labels.index(l) for l in out_order])
+    final_order = tuple(labels.index(l) for l in out_order)
     return backend_obj.transpose(tensors[0], final_order)
   return tensors[0]
 
@@ -619,7 +619,7 @@ def ncon(
 
   are_tensors = [isinstance(t, tn_tensor.Tensor) for t in tensors]
   tensors_set = {t for t in tensors if isinstance(t, tn_tensor.Tensor)}
-  if not all([n.backend.name == backend_obj.name for n in tensors_set]):
+  if not all(n.backend.name == backend_obj.name for n in tensors_set):
     raise ValueError("Some tensors have backends different from '{}'".format(
         backend_obj.name))
 
@@ -654,7 +654,7 @@ def ncon(
   if backend not in _CACHED_JITTED_NCONS:
     _CACHED_JITTED_NCONS[backend] = backend_obj.jit(
         _jittable_ncon, static_argnums=(1, 2, 3, 4, 5))
-  sizes = tuple([len(l) for l in network_structure])
+  sizes = tuple(len(l) for l in network_structure)
   res_tensor = _CACHED_JITTED_NCONS[backend](_tensors, tuple(flat_labels),
                                              sizes, tuple(con_order),
                                              tuple(out_order), backend_obj)

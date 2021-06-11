@@ -25,8 +25,8 @@ from tensornetwork import ops
 from tensornetwork.backends import backend_factory
 from tensornetwork.backends.abstract_backend import AbstractBackend
 from tensornetwork.backend_contextmanager import get_default_backend
-
-string_type = h5py.special_dtype(vlen=str)
+STRING_ENCODING = 'utf-8'
+string_type = h5py.string_dtype(encoding=STRING_ENCODING)
 Tensor = Any
 
 # This is required because of the circular dependency between
@@ -459,10 +459,10 @@ class AbstractNode(ABC):
     Returns:
       the node's name, shape, axis_names
     """
-    name = node_data['name'][()]
-    backend = node_data['backend'][()]
+    name = node_data['name'].asstr(STRING_ENCODING)[()]
+    backend = node_data['backend'].asstr(STRING_ENCODING)[()]
     shape = node_data['shape'][()]
-    axis_names = node_data['axis_names'][()]
+    axis_names = node_data['axis_names'].asstr(STRING_ENCODING)[()]
     return name, shape, axis_names, backend
 
   @abstractmethod
@@ -473,9 +473,11 @@ class AbstractNode(ABC):
     Args:
       node_group: h5py group where data is saved
     """
-    node_group.create_dataset('type', data=type(self).__name__)
-    node_group.create_dataset('backend', data=self.backend.name)
-    node_group.create_dataset('name', data=self.name)
+    node_group.create_dataset(
+        'type', dtype=string_type, data=type(self).__name__)
+    node_group.create_dataset(
+        'backend', dtype=string_type, data=self.backend.name)
+    node_group.create_dataset('name', data=self.name, dtype=string_type)
     node_group.create_dataset('shape', data=self.shape)
     if self.axis_names:
       node_group.create_dataset('axis_names',
@@ -492,7 +494,7 @@ class AbstractNode(ABC):
   @abstractmethod
   def to_serial_dict(self) -> Dict:
     """Return a serializable dict representing the node.
-    
+
     Returns: A dict object.
     """
     node_dict = {
@@ -913,7 +915,7 @@ class CopyNode(AbstractNode):
       node_group: h5py group where data is saved
     """
     super()._save_node(node_group)
-    node_group.create_dataset(name='copy_node_dtype',
+    node_group.create_dataset(name='copy_node_dtype', dtype=string_type,
                               data=np.dtype(self.copy_node_dtype).name)
 
   @classmethod
@@ -927,7 +929,8 @@ class CopyNode(AbstractNode):
       The loaded node.
     """
     name, shape, axis_names, backend = cls._load_node_data(node_data)
-    copy_node_dtype = np.dtype(node_data['copy_node_dtype'][()])
+    copy_node_dtype = np.dtype(
+        node_data['copy_node_dtype'].asstr(STRING_ENCODING)[()])
     # pylint: disable=unnecessary-comprehension
     node = CopyNode(rank=len(shape),
                     dimension=shape[0],
@@ -1177,12 +1180,13 @@ class Edge:
     Args:
       edge_group: h5py group where data is saved
     """
-    edge_group.create_dataset('node1', data=self.node1.name)
+    edge_group.create_dataset('node1', dtype=string_type, data=self.node1.name)
     edge_group.create_dataset('axis1', data=self.axis1)
     if self.node2 is not None:
-      edge_group.create_dataset('node2', data=self.node2.name)
+      edge_group.create_dataset(
+          'node2', dtype=string_type, data=self.node2.name)
       edge_group.create_dataset('axis2', data=self.axis2)
-    edge_group.create_dataset('name', data=self.name)
+    edge_group.create_dataset('name', dtype=string_type, data=self.name)
 
   @classmethod
   def _load_edge(cls, edge_data: h5py.Group, nodes_dict: Dict[Text,
@@ -1196,15 +1200,15 @@ class Edge:
     Returns:
       The added edge.
     """
-    node1 = nodes_dict[edge_data["node1"][()]]
+    node1 = nodes_dict[edge_data["node1"].asstr(STRING_ENCODING)[()]]
     axis1 = int(edge_data["axis1"][()])
     if "node2" in list(edge_data.keys()):
-      node2 = nodes_dict[edge_data["node2"][()]]
+      node2 = nodes_dict[edge_data["node2"].asstr(STRING_ENCODING)[()]]
       axis2 = int(edge_data["axis2"][()])
     else:
       node2 = None
       axis2 = None
-    name = edge_data["name"][()]
+    name = edge_data["name"].asstr(STRING_ENCODING)[()]
     edge = cls(node1=node1, axis1=axis1, node2=node2, axis2=axis2, name=name)
     node1.add_edge(edge, axis1)
     if node2 is not None:
@@ -1391,7 +1395,7 @@ def flatten_edges(edges: List[Edge],
       edge.node2.backend for edge in edges if edge.node2 is not None
   ]
 
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
   if len(edges) == 1:
@@ -1570,7 +1574,7 @@ def split_edge(edge: Edge,
     return _split_trace_edge(edge, shape, new_edge_names)
 
   backends = [node.backend for node in edge.get_nodes() if node is not None]
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
 
@@ -1658,7 +1662,7 @@ def slice_edge(edge: Edge, start_index: int, length: int) -> Edge:
                      "dimension {}".format(length, start_index, edge.dimension))
 
   backends = [node.backend for node in edge.get_nodes() if node is not None]
-  if not all([b.name == backends[0].name for b in backends]):
+  if not all(b.name == backends[0].name for b in backends):
     raise ValueError("Not all backends are the same.")
   backend = backends[0]
 
