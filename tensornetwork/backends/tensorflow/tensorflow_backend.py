@@ -431,7 +431,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     """
     return tf.experimental.numpy.finfo(dtype).eps
 
-  def pinv(self, tensor: Tensor, rcond: float = 1E-15, hermitian: bool = False) -> Tensor:
+  def pinv(self, tensor: Tensor, hermitian: bool = False) -> Tensor:
     """    
     Args:
      tensor: A tensor.
