@@ -430,3 +430,14 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       float: Machine epsilon.
     """
     return tf.experimental.numpy.finfo(dtype).eps
+
+  def pinv(self, tensor: Tensor, rcond: float = 1E-15, hermitian: bool = False) -> Tensor:
+    """    
+    Args:
+     tensor: A tensor.
+     rcond: Cutoff for small singular values.
+     hermitian(optional): If True, matrix provided is assumed to be Hermitian (symmetric if real-valued). Defaults to False.
+    Returns:
+     tensor: The pseudo inverse of tensor.
+    """
+    return np.linalg.pinv(tensor)
