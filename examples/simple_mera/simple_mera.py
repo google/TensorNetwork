@@ -111,7 +111,7 @@ def binary_mera_energy(hamiltonian, state, isometry, disentangler):
         contractors.branch(tensornetwork.reachable(rho),
                            nbranch=2).get_tensor())
 
-  return 0.5 * sum(out)
+  return(0.5 * sum(out))
 
 
 descend = jax.jit(jax.grad(binary_mera_energy, argnums=0, holomorphic=True))
