@@ -488,7 +488,7 @@ class SymmetricBackend(abstract_backend.AbstractBackend):
     Reshaping to and from a matrix problem is handled internally.
 
     The numpy backend version of GMRES is simply an interface to
-    `scipy.sparse.linalg.gmres`, itself an interace to ARPACK.
+    `scipy.sparse.linalg.gmres`, itself an interface to ARPACK.
     SciPy 1.1.0 or newer (May 05 2018) is required.
 
     Args:

@@ -232,7 +232,7 @@ notable difference to numpy arrays. For example, while reshaping of
 `a1` into a shape `(19,2,10,21)` would be possible if `a1` was a
 dense `numpy.ndarray`, it is no longer possible for
 `BlockSparseTensor` because we don't have the neccessary information
-to split up `i1` into two seperate legs. If you try anyway, we'll
+to split up `i1` into two separate legs. If you try anyway, we'll
 raise a `ValueError`:
 
 .. code-block:: python3

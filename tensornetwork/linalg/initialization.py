@@ -111,7 +111,7 @@ def ones_like(tensor: Union[Any],
               backend: Optional[Union[Text, AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of ones the same shape as input
   Args:
-    tensor : Object to recieve shape from
+    tensor : Object to receive shape from
      dtype (optional) : dtype of object
      backend(optional): The backend or its name."""
   if backend is None:
@@ -139,7 +139,7 @@ def zeros_like(tensor: Union[Any],
                                        AbstractBackend]] = None) -> Tensor:
   """Return a Tensor shape full of zeros the same shape as input
   Args:
-    tensor : Object to recieve shape from
+    tensor : Object to receive shape from
      dtype (optional) : dtype of object
      backend(optional): The backend or its name."""
   if backend is None:
