@@ -254,13 +254,18 @@ def rq(bt, tensor: BlockSparseTensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
   return r, q
 
 
-def cholesky(np: Any, tensor: Tensor, pivot_axis: int) -> Tuple[Tensor, Tensor]:
-  """ Computes the Cholesky decomposition of a tensor
+def cholesky(
+    np: Any,
+    tensor: Tensor,
+    pivot_axis: int
+) -> Tuple[Tensor, Tensor]:
+  """
+  Computes the Cholesky decomposition of a tensor
   
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-  left_dims = tensor.shape[:pivot_axis]
-  right_dims = tensor.shape[pivot_axis:]
+  left_dims = np.shape(tensor)[:pivot_axis]
+  right_dims = np.shape(tensor)[pivot_axis:]
   tensor = np.reshape(tensor,
                       [np.prod(left_dims),
                        np.prod(right_dims)])

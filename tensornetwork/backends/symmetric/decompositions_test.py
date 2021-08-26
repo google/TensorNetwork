@@ -175,3 +175,10 @@ def test_qr(dtype, R, R1):
   q_dense, r_dense = np_decompositions.qr(np, A.todense(), R1, False)
   res2 = np.tensordot(q_dense, r_dense, 1)
   np.testing.assert_almost_equal(res.todense(), res2)
+
+
+def test_cholesky(self):
+    #Assured positive-definite hermitian matrixs
+    random_matrix = np.random.rand(10, 10)
+    random_matrix = random_matrix @ random_matrix.np.conjugate()
+    L = decompositions.cholesky(np, random_matrix, 1)
