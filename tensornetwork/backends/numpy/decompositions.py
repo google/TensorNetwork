@@ -122,3 +122,28 @@ def rq(
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q
+
+def cholesky(
+    np,   # TODO: Typing
+    tensor: Tensor,
+    pivot_axis: int,
+) -> Tuple[Tensor, Tensor]:
+
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  n = tensor.shape[0]
+  m = tensor.shape[1]
+  if (n != m):
+    print("The input must be a square matrix")
+  elif (np.allclose(tensor, tensor.T) == False):
+    print("The input must be a Symmetric Matrix")
+  elif (np.all(np.linalg.eigvals(tensor) > 0) == False):
+    print("The input must be a Positive Definite Matrix")
+  else:
+    L = np.linalg.cholesky(tensor)
+    L_trans = np.matrix.getH(L)
+    center_dim = L.shape[1]
+    L = np.reshape(L, list(left_dims) + [center_dim])
+    L_trans = np.reshape(L_trans, list(left_dims) + [center_dim])
+    return L, L_trans
