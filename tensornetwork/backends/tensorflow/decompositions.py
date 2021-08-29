@@ -253,5 +253,5 @@ def cholesky(
     L_trans = tf.transpose(L, perm=None, conjugate=True)
     center_dim = tf.shape(L)[1]
     L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
-    L_trans = tf.reshape(L_trans, tf.concat([left_dims, [center_dim]], axis=-1))
+    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims], axis=-1))
     return L, L_trans
