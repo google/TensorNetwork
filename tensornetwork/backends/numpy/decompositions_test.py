@@ -111,8 +111,8 @@ class DecompositionsTest(tf.test.TestCase):
     self.assertEqual(L.shape, (3, 1, 3))
 
   def test_cholesky(self):
-    random_matrix = np.random.rand(10, 10)
-    L, L_trans = cholesky(np, random_matrix, -1)
+    random_matrix = np.array([[[25,	15,	-5]], [[15,	18,	0	]], [[-5,	0,	11]]])
+    L, L_trans = decompositions.cholesky(np, random_matrix, -1)
     self.assertAllClose(L.dot(L_trans), random_matrix)
 
 
