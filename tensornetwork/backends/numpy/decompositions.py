@@ -134,10 +134,10 @@ def cholesky(
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
   n = tensor.shape[0]
   m = tensor.shape[1]
-  if (n != m):
+  if n != m:
     print("The input must be a square matrix")
-  elif (np.allclose(tensor, tensor.T) == False):
-    print("The input must be a Symmetric Matrix")
+  elif (np.allclose(tensor, np.matrix.getH(tensor)) == False):
+    print("The input must be a Hermitian Matrix")
   elif (np.all(np.linalg.eigvals(tensor) > 0) == False):
     print("The input must be a Positive Definite Matrix")
   else:

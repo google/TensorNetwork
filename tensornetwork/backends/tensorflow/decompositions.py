@@ -236,22 +236,24 @@ def cholesky(
 
   left_dims = tf.shape(tensor)[:pivot_axis]
   right_dims = tf.shape(tensor)[pivot_axis:]
-  tensor = tf.reshape(tensor,[tf.reduce_prod(left_dims), tf.reduce_prod(right_dims)])
+  tensor = tf.reshape(tensor,[tf.reduce_prod(left_dims), 
+            tf.reduce_prod(right_dims)])
   n = tensor.shape[0]
   m = tensor.shape[1]
-  temp = tensor
-  temp.numpy()
-  if (n != m):
+  tensor = tf.cast(tensor, dtype = tf.complex128, name=None)
+  if n != m:
     print("The input must be a square matrix")
-  elif (tf.experimental.numpy.allclose(tensor, tf.transpose(tensor)) == False):
-    print("The input must be a Symmetric Matrix")
-  elif (np.all(np.linalg.eigvals(temp) > 0) == False):
+  elif (tf.experimental.numpy.allclose(tensor, tf.linalg.adjoint(tensor)) 
+        == False):
+    print("The input must be a Hermitian Matrix")
+  elif (tf.experimental.numpy.all(tf.math.real(tf.linalg.eigvals(tensor)) > 0) 
+        == False):
     print("The input must be a Positive Definite Matrix")
   else:
-    tensor = tf.cast(tensor, dtype = tf.complex128, name=None)
     L =tf.linalg.cholesky(tensor, name=None)
     L_trans = tf.transpose(L, perm=None, conjugate=True)
     center_dim = tf.shape(L)[1]
     L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
-    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims], axis=-1))
+    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims], 
+              axis=-1))
     return L, L_trans
