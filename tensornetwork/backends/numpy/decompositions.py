@@ -145,5 +145,5 @@ def cholesky(
     L_trans = np.matrix.getH(L)
     center_dim = L.shape[1]
     L = np.reshape(L, list(left_dims) + [center_dim])
-    L_trans = np.reshape(L_trans, list(left_dims) + [center_dim])
+    L_trans = np.reshape(L_trans, [center_dim] + list(right_dims))
     return L, L_trans
