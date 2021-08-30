@@ -58,7 +58,7 @@ class DecompositionsTest(tf.test.TestCase):
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, trun = decompositions.svd(
-      np, val, 1, max_singular_values=7)
+        np, val, 1, max_singular_values=7)
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
@@ -71,7 +71,7 @@ class DecompositionsTest(tf.test.TestCase):
     singular_values = np.array(range(6))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
     u, s, vh, _ = decompositions.svd(
-      np, val, 1, max_singular_values=30)
+        np, val, 1, max_singular_values=30)
     self.assertEqual(u.shape, (10, 6))
     self.assertEqual(s.shape, (6,))
     self.assertEqual(vh.shape, (6, 6))
