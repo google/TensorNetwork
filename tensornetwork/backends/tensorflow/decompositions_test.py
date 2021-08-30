@@ -73,8 +73,7 @@ class DecompositionsTest(tf.test.TestCase):
     unitary1, _, unitary2 = np.linalg.svd(random_matrix)
     singular_values = np.array(range(10))
     val = unitary1.dot(np.diag(singular_values).dot(unitary2.T))
-    u, s, vh, trun = decompositions.svd(
-        tf, val, 1, max_singular_values=7)
+    u, s, vh, trun = decompositions.svd(tf, val, 1, max_singular_values=7)
     self.assertEqual(u.shape, (10, 7))
     self.assertEqual(s.shape, (7,))
     self.assertAllClose(s, np.arange(9, 2, -1))
@@ -122,14 +121,13 @@ class DecompositionsTest(tf.test.TestCase):
     np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
     np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
 
-
   def test_expected_shapes_cholesky(self):
-    val = tf.constant([[[25,	15,	-5]], [[15,	18,	0	]], [[-5,	0,	11]]])
+    val = tf.constant([[[25, 15, -5]], [[15, 18, 0]], [[-5, 0, 11]]])
     L, L_trans = decompositions.cholesky(tf, val, -1)
     self.assertEqual(L.shape, (3, 1, 3))
 
   def test_cholesky(self):
-    random_matrix = tf.constant([[[25,	15,	-5]], [[15,	18,	0	]], [[-5,	0,	11]]])
+    random_matrix = tf.constant([[[25, 15, -5]], [[15, 18, 0]], [[-5, 0, 11]]])
     L, L_trans = decompositions.cholesky(tf, random_matrix, -1)
     self.assertAllClose(tf.tensordot(L, L_trans, ([2], [0])), random_matrix)
 

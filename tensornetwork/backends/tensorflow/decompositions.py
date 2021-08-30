@@ -126,12 +126,8 @@ def svd(
   return u, s, vh, s_rest
 
 
-def qr(
-    tf: Any,
-    tensor: Tensor,
-    pivot_axis: int,
-    non_negative_diagonal: bool
-) -> Tuple[Tensor, Tensor]:
+def qr(tf: Any, tensor: Tensor, pivot_axis: int,
+       non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
@@ -176,12 +172,8 @@ def qr(
   return q, r
 
 
-def rq(
-    tf: Any,
-    tensor: Tensor,
-    pivot_axis: int,
-    non_negative_diagonal: bool
-) -> Tuple[Tensor, Tensor]:
+def rq(tf: Any, tensor: Tensor, pivot_axis: int,
+       non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
@@ -229,31 +221,32 @@ def rq(
 
 
 def cholesky(
-    tf :Any,
+    tf: Any,
     tensor: Tensor,
     pivot_axis: int,
 ) -> Tuple[Tensor, Tensor]:
 
   left_dims = tf.shape(tensor)[:pivot_axis]
   right_dims = tf.shape(tensor)[pivot_axis:]
-  tensor = tf.reshape(tensor,[tf.reduce_prod(left_dims), 
-            tf.reduce_prod(right_dims)])
+  tensor = tf.reshape(tensor,
+                      [tf.reduce_prod(left_dims),
+                       tf.reduce_prod(right_dims)])
   n = tensor.shape[0]
   m = tensor.shape[1]
-  tensor = tf.cast(tensor, dtype = tf.complex128, name=None)
+  tensor = tf.cast(tensor, dtype=tf.complex128, name=None)
   if n != m:
     print("The input must be a square matrix")
-  elif (tf.experimental.numpy.allclose(tensor, tf.linalg.adjoint(tensor)) 
-        == False):
+  elif (tf.experimental.numpy.allclose(tensor,
+                                       tf.linalg.adjoint(tensor)) == False):
     print("The input must be a Hermitian Matrix")
-  elif (tf.experimental.numpy.all(tf.math.real(tf.linalg.eigvals(tensor)) > 0) 
-        == False):
+  elif (tf.experimental.numpy.all(
+      tf.math.real(tf.linalg.eigvals(tensor)) > 0) == False):
     print("The input must be a Positive Definite Matrix")
   else:
-    L =tf.linalg.cholesky(tensor, name=None)
+    L = tf.linalg.cholesky(tensor, name=None)
     L_trans = tf.transpose(L, perm=None, conjugate=True)
     center_dim = tf.shape(L)[1]
     L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
-    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims], 
-              axis=-1))
+    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims],
+                                            axis=-1))
     return L, L_trans
