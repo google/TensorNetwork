@@ -79,7 +79,8 @@ def qr(
     np,  # TODO: Typing
     tensor: Tensor,
     pivot_axis: int,
-    non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
+    non_negative_diagonal: bool
+) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
@@ -102,7 +103,8 @@ def rq(
     np,  # TODO: Typing
     tensor: Tensor,
     pivot_axis: int,
-    non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
+    non_negative_diagonal: bool
+) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
 
   See tensornetwork.backends.tensorflow.decompositions for details.
