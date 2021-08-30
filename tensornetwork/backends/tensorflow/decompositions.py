@@ -126,8 +126,12 @@ def svd(
   return u, s, vh, s_rest
 
 
-def qr(tf: Any, tensor: Tensor, pivot_axis: int,
-       non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
+def qr(
+    tf: Any, 
+    tensor: Tensor, 
+    pivot_axis: int,
+    non_negative_diagonal: bool
+) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
@@ -172,8 +176,12 @@ def qr(tf: Any, tensor: Tensor, pivot_axis: int,
   return q, r
 
 
-def rq(tf: Any, tensor: Tensor, pivot_axis: int,
-       non_negative_diagonal: bool) -> Tuple[Tensor, Tensor]:
+def rq(
+    tf: Any, 
+    tensor: Tensor, 
+    pivot_axis: int,
+    non_negative_diagonal: bool
+) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
 
   The QR decomposition is performed by treating the tensor as a matrix,
