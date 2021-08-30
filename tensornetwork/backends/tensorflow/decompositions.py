@@ -225,7 +225,33 @@ def cholesky(
     tensor: Tensor,
     pivot_axis: int,
 ) -> Tuple[Tensor, Tensor]:
+  """Computes the Cholesky decomposition of a tensor.
 
+  The Cholesky decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the axes
+  `tensor.shape[:pivot_axis]` and an effective right (column) index
+  resulting from combining the axes `tensor.shape[pivot_axis:]`.
+
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
+  then `r` would have shape (2, 3, 6), and `q` would
+  have shape (6, 4, 5).
+
+  The output consists of two tensors `L, L_trans` such that:
+  ```python
+      L [i1,...,iN, j] * L_trans[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
+  ```
+  Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
+
+  Args:
+    tf: The tensorflow module.
+    tensor: A tensor to be decomposed.
+    pivot_axis: Where to split the tensor's axes before flattening into a
+      matrix.
+
+  Returns:
+    L: Lower Triangular Matrix.
+    L_trans: Conjugate Transpose of L.
+  """
   left_dims = tf.shape(tensor)[:pivot_axis]
   right_dims = tf.shape(tensor)[pivot_axis:]
   tensor = tf.reshape(tensor,

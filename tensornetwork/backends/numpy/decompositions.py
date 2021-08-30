@@ -128,7 +128,10 @@ def cholesky(
     tensor: Tensor,
     pivot_axis: int,
 ) -> Tuple[Tensor, Tensor]:
+  """Computes the cholesky decomposition of a tensor.
 
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
   left_dims = tensor.shape[:pivot_axis]
   right_dims = tensor.shape[pivot_axis:]
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
