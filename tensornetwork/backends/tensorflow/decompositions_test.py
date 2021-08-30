@@ -131,7 +131,7 @@ class DecompositionsTest(tf.test.TestCase):
   def test_cholesky(self):
     random_matrix = tf.constant([[[25,	15,	-5]], [[15,	18,	0	]], [[-5,	0,	11]]])
     L, L_trans = decompositions.cholesky(tf, random_matrix, -1)
-    self.assertAllClose(tf.tensordot(L, L_trans, ([1], [0])), random_matrix)
+    self.assertAllClose(tf.tensordot(L, L_trans, ([2], [0])), random_matrix)
 
 
 if __name__ == '__main__':
