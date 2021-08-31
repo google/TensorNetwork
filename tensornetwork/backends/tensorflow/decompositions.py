@@ -26,37 +26,30 @@ def svd(
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
-
   The SVD is performed by treating the tensor as a matrix, with an effective
   left (row) index resulting from combining the axes `tensor.shape[:pivot_axis]`
   and an effective right (column) index resulting from combining the axes
   `tensor.shape[pivot_axis:]`.
-
   For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2, then
   `u` would have shape (2, 3, 6), `s` would have shape (6), and `vh` would
   have shape (6, 4, 5).
-
   If `max_singular_values` is set to an integer, the SVD is truncated to keep
   at most this many singular values.
-
   If `max_truncation_error > 0`, as many singular values will be truncated as
   possible, so that the truncation error (the norm of discarded singular
   values) is at most `max_truncation_error`.
   If `relative` is set `True` then `max_truncation_err` is understood
   relative to the largest singular value.
-
   If both `max_singular_values` snd `max_truncation_error` are specified, the
   number of retained singular values will be
   `min(max_singular_values, nsv_auto_trunc)`, where `nsv_auto_trunc` is the
   number of singular values that must be kept to maintain a truncation error
   smaller than `max_truncation_error`.
-
   The output consists of three tensors `u, s, vh` such that:
   ```python
     u[i1,...,iN, j] * s[j] * vh[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
   ```
   Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
-
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
@@ -67,7 +60,6 @@ def svd(
     max_truncation_error: The maximum allowed truncation error or `None` to not
       do any truncation.
     relative: Multiply `max_truncation_err` with the largest singular value.
-
   Returns:
     u: Left tensor factor.
     s: Vector of ordered singular values from largest to smallest.
@@ -127,34 +119,29 @@ def svd(
 
 
 def qr(
-    tf: Any,
-    tensor: Tensor,
+    tf: Any, 
+    tensor: Tensor, 
     pivot_axis: int,
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
-
   The QR decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the
   axes `tensor.shape[:pivot_axis]` and an effective right (column)
   index resulting from combining the axes `tensor.shape[pivot_axis:]`.
-
   For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `q` would have shape (2, 3, 6), and `r` would
   have shape (6, 4, 5).
-
   The output consists of two tensors `Q, R` such that:
   ```python
     Q[i1,...,iN, j] * R[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
   ```
   Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
-
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
     pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
-
   Returns:
     Q: Left tensor factor.
     R: Right tensor factor.
@@ -177,34 +164,29 @@ def qr(
 
 
 def rq(
-    tf: Any,
-    tensor: Tensor,
+    tf: Any, 
+    tensor: Tensor, 
     pivot_axis: int,
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ decomposition of a tensor.
-
   The QR decomposition is performed by treating the tensor as a matrix,
   with an effective left (row) index resulting from combining the axes
   `tensor.shape[:pivot_axis]` and an effective right (column) index
   resulting from combining the axes `tensor.shape[pivot_axis:]`.
-
   For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
   then `r` would have shape (2, 3, 6), and `q` would
   have shape (6, 4, 5).
-
   The output consists of two tensors `Q, R` such that:
   ```python
     Q[i1,...,iN, j] * R[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
   ```
   Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
-
   Args:
     tf: The tensorflow module.
     tensor: A tensor to be decomposed.
     pivot_axis: Where to split the tensor's axes before flattening into a
       matrix.
-
   Returns:
     Q: Left tensor factor.
     R: Right tensor factor.
@@ -226,3 +208,56 @@ def rq(
   r = tf.reshape(r, tf.concat([left_dims, [center_dim]], axis=-1))
   q = tf.reshape(q, tf.concat([[center_dim], right_dims], axis=-1))
   return r, q
+
+
+def cholesky(
+    tf: Any,
+    tensor: Tensor,
+    pivot_axis: int,
+) -> Tuple[Tensor, Tensor]:
+  """Computes the Cholesky decomposition of a tensor.
+  The Cholesky decomposition is performed by treating the tensor as a matrix,
+  with an effective left (row) index resulting from combining the axes
+  `tensor.shape[:pivot_axis]` and an effective right (column) index
+  resulting from combining the axes `tensor.shape[pivot_axis:]`.
+  For example, if `tensor` had a shape (2, 3, 4, 5) and `pivot_axis` was 2,
+  then `r` would have shape (2, 3, 6), and `q` would
+  have shape (6, 4, 5).
+  The output consists of two tensors `L, L_trans` such that:
+  ```python
+      L [i1,...,iN, j] * L_trans[j, k1,...,kM] == tensor[i1,...,iN, k1,...,kM]
+  ```
+  Note that the output ordering matches numpy.linalg.svd rather than tf.svd.
+  Args:
+    tf: The tensorflow module.
+    tensor: A tensor to be decomposed.
+    pivot_axis: Where to split the tensor's axes before flattening into a
+      matrix.
+  Returns:
+    L: Lower Triangular Matrix.
+    L_trans: Conjugate Transpose of L.
+  """
+  left_dims = tf.shape(tensor)[:pivot_axis]
+  right_dims = tf.shape(tensor)[pivot_axis:]
+  tensor = tf.reshape(tensor,
+                      [tf.reduce_prod(left_dims),
+                       tf.reduce_prod(right_dims)])
+  n = tensor.shape[0]
+  m = tensor.shape[1]
+  tensor = tf.cast(tensor, dtype=tf.complex128, name=None)
+  if n != m:
+    print("The input must be a square matrix")
+  elif (tf.experimental.numpy.allclose(tensor,
+                                       tf.linalg.adjoint(tensor)) == False):
+    print("The input must be a Hermitian Matrix")
+  elif (tf.experimental.numpy.all(
+      tf.math.real(tf.linalg.eigvals(tensor)) > 0) == False):
+    print("The input must be a Positive Definite Matrix")
+  else:
+    L = tf.linalg.cholesky(tensor, name=None)
+    L_trans = tf.transpose(L, perm=None, conjugate=True)
+    center_dim = tf.shape(L)[1]
+    L = tf.reshape(L, tf.concat([left_dims, [center_dim]], axis=-1))
+    L_trans = tf.reshape(L_trans, tf.concat([[center_dim], right_dims],
+                                            axis=-1))
+    return L, L_trans
