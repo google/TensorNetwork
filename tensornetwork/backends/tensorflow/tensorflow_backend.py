@@ -430,3 +430,26 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
       float: Machine epsilon.
     """
     return tf.experimental.numpy.finfo(dtype).eps
+
+  def pinv(self, tensor: Tensor, rcond: float = 1E-15, hermitian: bool = False) -> Tensor:
+    """
+    Compute the Moore-Penrose/Pseudo inverse of a tensor.
+
+    Args:
+      tensor: A tensor.
+      rcond: Cutoff for small singular values
+      hermitian: If True, matrix provided in function argument is assumed to be
+                  Hermitian (symmetric if real-valued)
+                  This argument is not supported in the TensorFlow
+                  backend and an error will be raised if it is
+                  specified.
+
+    Returns:
+      tensor: The pseudo inverse of `tensor`
+    """
+    if hermitian != False:
+      errstr = (f"hermitian = {hermitian} must be False (the default)"
+                f"with TensorFlow backend.")
+      raise NotImplementedError(errstr)
+
+    return tf.linalg.pinv(tensor, rcond=rcond)
