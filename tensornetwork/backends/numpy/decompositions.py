@@ -27,6 +27,7 @@ def svd(
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
@@ -81,6 +82,7 @@ def qr(
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
@@ -104,6 +106,7 @@ def rq(
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
