@@ -629,3 +629,15 @@ def test_power(dtype):
 def test_eps(dtype):
   backend = tensorflow_backend.TensorFlowBackend()
   assert backend.eps(dtype) == tf.experimental.numpy.finfo(dtype).eps
+
+def test_pinv():
+  backend = tensorflow_backend.TensorFlowBackend()
+  np.random.seed(10)
+  tensor = np.random.rand(2, 3, 4)
+  rcond = np.random.rand(1)[0] * 1E-14
+  expected = tf.linalg.pinv(tensor, rcond)
+  actual = backend.pinv(tensor, rcond)
+  np.testing.assert_allclose(expected, actual)
+  expected = tf.linalg.pinv(tensor)
+  actual = backend.pinv(tensor)
+  np.testing.assert_allclose(expected, actual)
