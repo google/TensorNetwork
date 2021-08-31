@@ -131,6 +131,7 @@ def cholesky(
     pivot_axis: int,
 ) -> Tuple[Tensor, Tensor]:
   """Computes the cholesky decomposition of a tensor.
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
