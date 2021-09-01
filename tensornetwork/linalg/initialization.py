@@ -21,7 +21,7 @@ from tensornetwork.backends import abstract_backend
 from tensornetwork import backend_contextmanager
 from tensornetwork import backends
 from tensornetwork.tensor import Tensor
-import tensornetwork.linalg.linalg
+from tensornetwork.linalg import linalg
 
 AbstractBackend = abstract_backend.AbstractBackend
 
@@ -203,5 +203,5 @@ def random_uniform(shape: Sequence[int],
   return the_tensor
 def initialize_orthogonal_tensor_wrt_pivot(shape=Sequence[int],dtype:Optional[Type[np.number]]=None,pivot_axis:int=-1,seed=Optional[int]=None,backend: Optional[Union[Text, AbstractBackend]] = None) ->Tensor:
     the_tensor=initialize_tensor("randn",shape,backend=backend,seed=seed,dtype=dtype)
-    q,r=tensornetwork.linalg.linalg.qr(the_tensor,pivot_axis,non_negative_diagonal=False)
+    q,r=linalg.qr(the_tensor,pivot_axis,non_negative_diagonal=False)
     return q
