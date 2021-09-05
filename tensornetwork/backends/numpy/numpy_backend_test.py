@@ -974,3 +974,15 @@ def test_item(dtype):
 def test_eps(dtype):
   backend = numpy_backend.NumPyBackend()
   assert backend.eps(dtype) == np.finfo(dtype).eps
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_initialize_orthogonal_tensor_wrt_pivot_dtype(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.initialize_orthogonal_tensor_wrt_pivot((4,4), dtype=dtype,pivot_axis=-1,seed=10,non_negative_diagonal=False)
+  assert a.dtype == dtype
+
+@pytest.mark.parametrize("dtype", np_dtypes)
+def test_initialize_orthogonal_tensor_wrt_pivot_shape(dtype):
+  backend = numpy_backend.NumPyBackend()
+  a = backend.initialize_orthogonal_tensor_wrt_pivot((4,4), dtype=dtype,pivot_axis=-1,seed=10,non_negative_diagonal=False)
+  assert a.shape[0] == 4

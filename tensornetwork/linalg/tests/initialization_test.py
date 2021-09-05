@@ -177,7 +177,8 @@ def test_zeros_like(backend, shape, n):
         numpyCheck = backend_obj.zeros(n.shape, dtype=dtype)
         np.testing.assert_allclose(tensor.array, tensorCheck)
         np.testing.assert_allclose(numpyT.array, numpyCheck)
-def test_initialize_orthogonal(backend):
+
+def test_initialize_orthogonal_tensor_wrt_pivot(backend):
   shape=(5, 10, 3, 2)
   pivot_axis=1
   seed = int(time.time())
@@ -188,6 +189,6 @@ def test_initialize_orthogonal(backend):
         shape,
         dtype=dtype,pivot_axis,
         seed=seed,
-        backend=backend)
-    npI = backend_obj.randn(shape, dtype=dtype, pivot_axis, seed=seed)
+        backend=backend,non_negative_diagonal)
+    npI = backend_obj.initialize_orthogonal_tensor_wrt_pivot(shape, dtype=dtype, pivot_axis, seed=seed,non_negative_diagonal)
     np.testing.assert_allclose(tnI.array, npI)

@@ -201,7 +201,7 @@ def random_uniform(shape: Sequence[int],
   the_tensor = initialize_tensor("random_uniform", shape, backend=backend,
                                  seed=seed, boundaries=boundaries, dtype=dtype)
   return the_tensor
-def initialize_orthogonal_tensor_wrt_pivot(shape=Sequence[int],dtype:Optional[Type[np.number]]=None,pivot_axis:int=-1,seed=Optional[int]=None,backend: Optional[Union[Text, AbstractBackend]] = None) ->Tensor:
+def initialize_orthogonal_tensor_wrt_pivot(shape=Sequence[int],dtype:Optional[Type[np.number]]=None,pivot_axis:int=-1,seed=Optional[int]=None,backend: Optional[Union[Text, AbstractBackend]] = None,non_negative_diagonal:bool=False) ->Tensor:
     the_tensor=initialize_tensor("randn",shape,backend=backend,seed=seed,dtype=dtype)
-    q,r=linalg.qr(the_tensor,pivot_axis,non_negative_diagonal=False)
+    q,r=linalg.qr(the_tensor,pivot_axis,non_negative_diagonal)
     return q
