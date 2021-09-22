@@ -119,8 +119,9 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return jnp.sqrt(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, jnp.ndarray) and not jnp.isscalar(tensor)):
-      raise TypeError("Expected a `jnp.array` or scalar. Got {}".format(
+    if (not isinstance(tensor, (np.ndarray, jnp.ndarray))
+        and not jnp.isscalar(tensor)):
+      raise TypeError("Expected a `jnp.array`, `np.array` or scalar. Got {}".format(
           type(tensor)))
     result = jnp.asarray(tensor)
     return result
