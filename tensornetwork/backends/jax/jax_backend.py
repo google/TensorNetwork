@@ -122,7 +122,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
     if (not isinstance(tensor, (np.ndarray, jnp.ndarray))
         and not jnp.isscalar(tensor)):
       raise TypeError(("Expected a `jnp.array`, `np.array` or scalar. "
-        f"Got {type(tensor)}"))
+                       f"Got {type(tensor)}"))
     result = jnp.asarray(tensor)
     return result
 
