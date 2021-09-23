@@ -481,9 +481,6 @@ def _jittable_ncon(tensors: List[Tensor], flat_labels: Tuple[int],
     else:
       # for len(t1_cont)~<20 this is faster than np.argsort
       ind_sort = [t1_cont.index(l) for l in sorted(t1_cont)]
-      axes = (tuple(t1_cont[i] for i in ind_sort),
-              tuple(t2_cont[i] for i in ind_sort))
-      print(axes)
       tensors.append(
           backend_obj.tensordot(
               t1,
