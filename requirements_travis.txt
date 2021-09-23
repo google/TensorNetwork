@@ -1,6 +1,6 @@
 tensorflow>=2.0.0
 pytest
-torch==1.8.1
+torch==1.8.1 # TODO (mganahl): remove restriction once torch.tensordot bug is fixed (https://github.com/pytorch/pytorch/issues/65524)
 jax>=0.1.68
 jaxlib>=0.1.59
 pylint==2.5.3
