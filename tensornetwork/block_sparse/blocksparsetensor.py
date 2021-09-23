@@ -122,7 +122,7 @@ class ChargeArray:
     return self.data.dtype
 
   @property
-  def shape(self) -> Tuple[int]:
+  def shape(self) -> Tuple:
     """
     The dense shape of the tensor.
     Returns:
