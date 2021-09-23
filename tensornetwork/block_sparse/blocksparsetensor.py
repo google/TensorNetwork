@@ -169,7 +169,7 @@ class ChargeArray:
     return list(self._charges[o] for o in self.flat_order)
 
   @property
-  def flat_flows(self) -> List[int]:
+  def flat_flows(self) -> List:
     return list(self._flows[o] for o in self.flat_order)
 
   @property
