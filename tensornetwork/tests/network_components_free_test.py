@@ -16,7 +16,7 @@ from tensornetwork.backends.abstract_backend import AbstractBackend
 from typing import Dict
 
 string_type = network_components.string_type
-ENCODING = network_components.STRING_ENCODING
+STRING_ENCODING = network_components.STRING_ENCODING
 SingleNodeEdgeTensor = namedtuple('SingleNodeEdgeTensor', 'node edge tensor')
 DoubleNodeEdgeTensor = namedtuple('DoubleNodeEdgeTensor',
                                   'node1 node2 edge1 edge12 tensor')
@@ -723,15 +723,16 @@ def test_node_save_data(tmp_path, single_node_edge):
     node_group = node_file.create_group('test_node')
     node._save_node(node_group)
     np.testing.assert_allclose(node_group['tensor'][()], node.tensor)
-    assert node_file['test_node/backend'].asstr(ENCODING)[(
+    assert node_file['test_node/backend'].asstr(STRING_ENCODING)[(
     )] == node.backend.name
-    assert node_file['test_node/type'].asstr(ENCODING)[(
+    assert node_file['test_node/type'].asstr(STRING_ENCODING)[(
     )] == type(node).__name__
-    assert node_file['test_node/name'].asstr(ENCODING)[()] == node.name
+    assert node_file['test_node/name'].asstr(STRING_ENCODING)[()] == node.name
     assert set(node_file['test_node/shape'][()]) == set(node.shape)
-    assert set(node_file['test_node/axis_names'].asstr(ENCODING)[()]) == set(
-        node.axis_names)
-    assert (set(node_file['test_node/edges'].asstr(ENCODING)[()]) == set(
+    assert set(
+        node_file['test_node/axis_names'].asstr(STRING_ENCODING)[()]) == set(
+            node.axis_names)
+    assert (set(node_file['test_node/edges'].asstr(STRING_ENCODING)[()]) == set(
         edge.name for edge in node.edges))
 
 
@@ -831,15 +832,18 @@ def test_copy_node_save_data(tmp_path, backend):
   with h5py.File(tmp_path / 'nodes', 'w') as node_file:
     node_group = node_file.create_group('copier')
     node._save_node(node_group)
-    assert node_file['copier/backend'].asstr(ENCODING)[()] == node.backend.name
-    assert node_file['copier/type'].asstr(ENCODING)[()] == type(node).__name__
-    assert node_file['copier/name'].asstr(ENCODING)[()] == node.name
-    assert node_file['copier/copy_node_dtype'].asstr(ENCODING)[()] == np.dtype(
-        node.copy_node_dtype).name
+    assert node_file['copier/backend'].asstr(STRING_ENCODING)[(
+    )] == node.backend.name
+    assert node_file['copier/type'].asstr(STRING_ENCODING)[(
+    )] == type(node).__name__
+    assert node_file['copier/name'].asstr(STRING_ENCODING)[()] == node.name
+    assert node_file['copier/copy_node_dtype'].asstr(STRING_ENCODING)[(
+    )] == np.dtype(node.copy_node_dtype).name
     assert set(node_file['copier/shape'][()]) == set(node.shape)
-    assert set(node_file['copier/axis_names'].asstr(ENCODING)[()]) == set(
-        node.axis_names)
-    assert (set(node_file['copier/edges'].asstr(ENCODING)[()]) == set(
+    assert set(
+        node_file['copier/axis_names'].asstr(STRING_ENCODING)[()]) == set(
+            node.axis_names)
+    assert (set(node_file['copier/edges'].asstr(STRING_ENCODING)[()]) == set(
         edge.name for edge in node.edges))
 
 
@@ -1044,9 +1048,9 @@ def test_edge_node_save_data(tmp_path, double_node_edge):
   with h5py.File(tmp_path / 'edges', 'w') as edge_file:
     edge_group = edge_file.create_group('edge')
     edge._save_edge(edge_group)
-    assert edge_file['edge/name'].asstr(ENCODING)[()] == edge.name
-    assert edge_file['edge/node1'].asstr(ENCODING)[()] == edge.node1.name
-    assert edge_file['edge/node2'].asstr(ENCODING)[()] == edge.node2.name
+    assert edge_file['edge/name'].asstr(STRING_ENCODING)[()] == edge.name
+    assert edge_file['edge/node1'].asstr(STRING_ENCODING)[()] == edge.node1.name
+    assert edge_file['edge/node2'].asstr(STRING_ENCODING)[()] == edge.node2.name
     assert edge_file['edge/axis1'][()] == edge.axis1
     assert edge_file['edge/axis2'][()] == edge.axis2
 

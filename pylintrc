@@ -138,7 +138,7 @@ max-module-lines=1000
 # String used as indentation unit. This is usually " " (4 spaces) or "\t" (1
 # tab).
 # CHANGED:
-indent-string='  '
+indent-string='    '
 [BASIC]
 # List of builtins function names that should not be used, separated by a comma
 bad-functions=map,filter,apply,input
