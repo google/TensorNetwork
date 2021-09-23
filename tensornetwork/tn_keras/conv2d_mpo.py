@@ -10,7 +10,7 @@ import tensornetwork as tn
 import math
 
 # pytype: disable=module-attr
-@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')# pylint: disable=no-member
 # pytype: enable=module-attr
 class Conv2DMPO(Layer):
   """2D Convolutional Matrix Product Operator (MPO) TN layer.
@@ -197,7 +197,7 @@ class Conv2DMPO(Layer):
     else:
       self.use_bias = None
 
-  def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor: #pylint: disable=arguments-differ
+  def call(self, inputs: tf.Tensor) -> tf.Tensor: #pylint: disable=arguments-differ
 
     tn_nodes = [tn.Node(n, backend='tensorflow') for n in self.nodes]
     for i in range(len(tn_nodes) - 1):
