@@ -11,7 +11,7 @@ import math
 
 
 # pytype: disable=module-attr
-@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')# pylint: disable=no-member
 # pytype: enable=module-attr
 class DenseEntangler(Layer):
   """Entangler TN layer. Allows for very large hidden layers.

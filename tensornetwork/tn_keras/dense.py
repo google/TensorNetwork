@@ -9,7 +9,7 @@ import numpy as np
 
 
 # pytype: disable=module-attr
-@tf.keras.utils.register_keras_serializable(package='tensornetwork')
+@tf.keras.utils.register_keras_serializable(package='tensornetwork')# pylint: disable=no-member
 # pytype: enable=module-attr
 class DenseDecomp(Layer):
   """TN layer comparable to Dense that carries out matrix multiplication
