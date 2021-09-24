@@ -16,7 +16,6 @@ from typing import Optional, Any, Sequence, Tuple, Type, Callable, List
 from typing import Union
 from tensornetwork.backends import abstract_backend
 from tensornetwork.backends.tensorflow import decompositions
-from tensornetwork.backends.tensorflow import tensordot2
 import functools as fct
 import operator as op
 
@@ -108,7 +107,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
     return result
 
   def outer_product(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
-    return tensordot2.tensordot(tf, tensor1, tensor2, 0)
+    return tf.tensordot(tensor1, tensor2, 0)
 
   #pylint: disable=unused-argument
   def einsum(self,
