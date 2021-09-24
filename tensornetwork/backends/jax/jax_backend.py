@@ -321,7 +321,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
@@ -436,7 +436,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
@@ -556,7 +556,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
     if A not in _CACHED_MATVECS:
