@@ -46,7 +46,7 @@ class TensorFlowBackend(abstract_backend.AbstractBackend):
 
   def tensordot(self, a: Tensor, b: Tensor,
                 axes: Union[int, Sequence[Sequence[int]]]) -> Tensor:
-    return tensordot2.tensordot(tf, a, b, axes)
+    return tf.tensordot(a, b, axes)
 
   def reshape(self, tensor: Tensor, shape: Tensor) -> Tensor:
     return tf.reshape(tensor, shape)
