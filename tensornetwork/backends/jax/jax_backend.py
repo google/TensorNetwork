@@ -119,9 +119,10 @@ class JaxBackend(abstract_backend.AbstractBackend):
     return jnp.sqrt(tensor)
 
   def convert_to_tensor(self, tensor: Tensor) -> Tensor:
-    if (not isinstance(tensor, jnp.ndarray) and not jnp.isscalar(tensor)):
-      raise TypeError("Expected a `jnp.array` or scalar. Got {}".format(
-          type(tensor)))
+    if (not isinstance(tensor, (np.ndarray, jnp.ndarray))
+        and not jnp.isscalar(tensor)):
+      raise TypeError(("Expected a `jnp.array`, `np.array` or scalar. "
+                       f"Got {type(tensor)}"))
     result = jnp.asarray(tensor)
     return result
 
@@ -320,7 +321,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
@@ -435,7 +436,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
 
@@ -555,7 +556,7 @@ class JaxBackend(abstract_backend.AbstractBackend):
                          "`dtype` have to be provided")
       initial_state = self.randn(shape, dtype)
 
-    if not isinstance(initial_state, jnp.ndarray):
+    if not isinstance(initial_state, (jnp.ndarray, np.ndarray)):
       raise TypeError("Expected a `jax.array`. Got {}".format(
           type(initial_state)))
     if A not in _CACHED_MATVECS:

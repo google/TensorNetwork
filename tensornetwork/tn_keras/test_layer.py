@@ -113,8 +113,8 @@ def test_train(dummy_data, make_model):
                 loss='binary_crossentropy',
                 metrics=['accuracy'])
 
-  # Train the model for 10 epochs
-  history = model.fit(data, labels, epochs=50, batch_size=64)
+  # Train the model for 40 epochs
+  history = model.fit(data, labels, epochs=40, batch_size=64)
 
   # Check that loss decreases and accuracy increases
   assert history.history['loss'][0] > history.history['loss'][-1]
