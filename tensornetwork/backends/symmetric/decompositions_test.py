@@ -87,8 +87,9 @@ def test_max_singular_values(dtype, R, R1, num_charges):
 
 @pytest.mark.parametrize("dtype", np_dtypes)
 @pytest.mark.parametrize("num_charges", [1, 2, 3])
-def test_max_truncation_error(dtype, num_charges):
-  np.random.seed(10)
+@pytest.mark.parametrize("seed", np.arange(20))
+def test_max_truncation_error(dtype, num_charges, seed):
+  np.random.seed(seed)
   R = 2
   D = 30
   charges = [
