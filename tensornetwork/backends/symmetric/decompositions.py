@@ -84,10 +84,6 @@ def svd(
     #sort singular values
     inds = np.argsort(extended_flat_singvals, kind='stable')
     discarded_inds = np.zeros(0, dtype=SIZE_T)
-    if inds.shape[0] > 0:
-      maxind = inds[-1]
-    else:
-      maxind = 0
     if max_truncation_error is not None:
       if relative and (len(singvals) > 0):
         max_truncation_error = max_truncation_error * np.max(
