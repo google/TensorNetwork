@@ -35,7 +35,6 @@ def svd(
   Computes the singular value decomposition (SVD) of a tensor.
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
-
   left_dims = tensor.shape[:pivot_axis]
   right_dims = tensor.shape[pivot_axis:]
 
@@ -92,7 +91,6 @@ def svd(
       if relative and (len(singvals) > 0):
         max_truncation_error = max_truncation_error * np.max(
             [s[0] for s in singvals])
-
       kept_inds_mask = np.sqrt(
           np.cumsum(np.square(
               extended_flat_singvals[inds]))) > max_truncation_error
@@ -114,9 +112,7 @@ def svd(
 
     if len(inds) == 0:
       #special case of truncation to 0 dimension;
-      warnings.warn("svd_decomposition truncated to 0 dimensions. "
-                    "Adjusting to `max_singular_values = 1`")
-      inds = np.asarray([maxind])
+      warnings.warn("svd_decomposition truncated to 0 dimensions.")
 
     if extended_singvals.shape[1] > 0:
       #pylint: disable=no-member
