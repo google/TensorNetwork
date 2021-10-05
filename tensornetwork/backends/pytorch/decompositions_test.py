@@ -16,7 +16,9 @@ import math
 import numpy as np
 import torch
 from tensornetwork.backends.pytorch import decompositions
+import pytest
 
+np_dtypes = [np.float64, np.complex128]
 
 def test_expected_shapes():
   val = torch.zeros((2, 3, 4, 5))
@@ -42,6 +44,14 @@ def test_expected_shapes_rq():
     assert r.shape == (2, 3, 6)
     assert q.shape == (6, 4, 5)
 
+# @pytest.mark.parametrize("dtype", np_dtypes)
+def test_cholesky():
+  #Assured positive-definite hermitian matrix
+  random_matrix = np.random.rand(10, 10)
+  random_matrix = random_matrix @ random_matrix.T.conj()
+  random_matrix = torch.from_numpy(random_matrix)
+  L = decompositions.cholesky(torch, random_matrix, 1)
+  np.testing.assert_allclose(torch.cholesky(random_matrix), L)
 
 def test_rq():
   random_matrix = torch.rand([10, 10], dtype=torch.float64)

@@ -16,7 +16,9 @@ import math
 import numpy as np
 import tensorflow as tf
 from tensornetwork.backends.numpy import decompositions
+import pytest
 
+np_dtypes = [np.float64, np.complex128]
 
 class DecompositionsTest(tf.test.TestCase):
 
@@ -51,6 +53,13 @@ class DecompositionsTest(tf.test.TestCase):
     for non_negative_diagonal in [True, False]:
       q, r = decompositions.qr(np, random_matrix, 1, non_negative_diagonal)
       self.assertAllClose(q.dot(r), random_matrix)
+
+  def test_cholesky(self):
+    #Assured positive-definite hermitian matrixs
+    random_matrix = np.random.rand(10, 10)
+    random_matrix = random_matrix @ random_matrix.T.conj()
+    L = decompositions.cholesky(tf, random_matrix, 1)
+    self.assertAllClose(np.linalg.cholesky(random_matrix), L)
 
   def test_max_singular_values(self):
     random_matrix = np.random.rand(10, 10)
