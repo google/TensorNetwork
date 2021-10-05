@@ -43,5 +43,6 @@ setup(
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
+    package_data={"tensornetwork": ["py.typed"]},
     packages=find_packages(),
 )
