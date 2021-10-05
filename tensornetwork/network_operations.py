@@ -800,7 +800,7 @@ def switch_backend(nodes: Iterable[AbstractNode], new_backend: Text) -> None:
     nodes: iterable of nodes
     new_backend (str): The new backend.
     dtype (datatype): The dtype of the backend. If `None`,
-      a defautl dtype according to config.py will be chosen.
+      a default dtype according to config.py will be chosen.
 
   Returns:
     None

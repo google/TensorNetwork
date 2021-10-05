@@ -65,7 +65,7 @@ class DenseMPO(Layer):
                **kwargs) -> None:
 
     # Allow specification of input_dim instead of input_shape,
-    # for compatability with Keras layers that support this
+    # for compatibility with Keras layers that support this
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 

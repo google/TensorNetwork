@@ -320,7 +320,7 @@ def qr(matrix: BlockSparseTensor, mode: Text = 'reduced') -> Any:
   if mode not in ('reduced', 'complete', 'raw', 'r'):
     raise ValueError('unknown value {} for input `mode`'.format(mode))
   if mode == 'raw':
-    raise NotImplementedError('mode `raw` currenntly not supported')
+    raise NotImplementedError('mode `raw` currently not supported')
 
   flat_charges = matrix._charges
   flat_flows = matrix._flows
