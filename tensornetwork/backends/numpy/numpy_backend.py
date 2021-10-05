@@ -795,3 +795,13 @@ class NumPyBackend(abstract_backend.AbstractBackend):
       float: Machine epsilon.
     """
     return np.finfo(dtype).eps
+  def initialize_orthogonal_tensor_wrt_pivot(self,shape=Sequence[int],dtype:Optional[Type[np.number]]=None,pivot_axis:int=-1,seed=Optional[int]=None,backend: Optional[Union[Text, AbstractBackend]] = None,non_negative_diagonal: bool = False):->Tensor
+    if seed:
+      np.random.seed(seed)
+    dtype = dtype if dtype is not None else np.float64
+    if ((np.dtype(dtype) is np.dtype(np.complex128)) or
+        (np.dtype(dtype) is np.dtype(np.complex64))):
+      q,r= decompositions.qr(np,np.random.randn(
+          *shape).astype(dtype) + 1j * np.random.randn(*shape).astype(dtype),pivot_axis,non_negative_diagonal)
+    q,r= decompositions.qr(np,np.random.randn(*shape).astype(dtype),pivot_axis,non_negative_diagonal)
+    return q

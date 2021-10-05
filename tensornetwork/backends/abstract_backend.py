@@ -1044,3 +1044,6 @@ class AbstractBackend:
 
     raise NotImplementedError(
         f"Backend {self.name} has not implemented eps.")
+
+  def initialize_orthogonal_tensor_wrt_pivot(self,shape=Sequence[int],dtype:Optional[Type[np.number]]=None,pivot_axis:int=-1,seed=Optional[int]=None,backend: Optional[Union[Text, AbstractBackend]] = None,non_negative_diagonal: bool = False):->Tensor
+    raise NotImplementedError("Backend '{}' has not implemented initialize_orthogonal_tensor_wrt_pivot.".format(self.name))
