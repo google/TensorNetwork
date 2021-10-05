@@ -84,10 +84,6 @@ def svd(
     #sort singular values
     inds = np.argsort(extended_flat_singvals, kind='stable')
     discarded_inds = np.zeros(0, dtype=SIZE_T)
-    if inds.shape[0] > 0:
-      maxind = inds[-1]
-    else:
-      maxind = 0
     if max_truncation_error is not None:
       if relative and (len(singvals) > 0):
         max_truncation_error = max_truncation_error * np.max(
@@ -114,9 +110,7 @@ def svd(
 
     if len(inds) == 0:
       #special case of truncation to 0 dimension;
-      warnings.warn("svd_decomposition truncated to 0 dimensions. "
-                    "Adjusting to `max_singular_values = 1`")
-      inds = np.asarray([maxind])
+      warnings.warn("svd_decomposition truncated to 0 dimensions.")
 
     if extended_singvals.shape[1] > 0:
       #pylint: disable=no-member
