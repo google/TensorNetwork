@@ -410,45 +410,16 @@ class PyTorchBackend(abstract_backend.AbstractBackend):
     axis1 and axis2 are used to determine the 2-D sub-array whose diagonal is
     summed.
 
-    In the PyTorch backend the trace is always over the main diagonal of the
-    last two entries.
-
     Args:
       tensor: A tensor.
       offset: Offset of the diagonal from the main diagonal.
-              This argument is not supported  by the PyTorch
-              backend and an error will be raised if they are
-              specified.
       axis1, axis2: Axis to be used as the first/second axis of the 2D
                     sub-arrays from which the diagonals should be taken.
-                    Defaults to first/second axis.
-                    These arguments are not supported by the PyTorch
-                    backend and an error will be raised if they are
-                    specified.
+                    Defaults to second-last/last axis.
     Returns:
       array_of_diagonals: The batched summed diagonals.
     """
-    if offset != 0:
-      errstr = (f"offset = {offset} must be 0 (the default)"
-                f"with PyTorch backend.")
-      raise NotImplementedError(errstr)
-    if axis1 == axis2:
-      raise ValueError(f"axis1 = {axis1} cannot equal axis2 = {axis2}")
-    N = len(tensor.shape)
-    if N > 25:
-      raise ValueError(f"Currently only tensors with ndim <= 25 can be traced"
-                       f"in the PyTorch backend (yours was {N})")
-
-    if axis1 < 0:
-      axis1 = N+axis1
-    if axis2 < 0:
-      axis2 = N+axis2
-
-    inds = list(map(chr, range(98, 98+N)))
-    indsout = [i for n, i in enumerate(inds) if n not in (axis1, axis2)]
-    inds[axis1] = 'a'
-    inds[axis2] = 'a'
-    return torchlib.einsum(''.join(inds) + '->' +''.join(indsout), tensor)
+    return torchlib.sum(torchlib.diagonal(tensor, offset=offset, dim1=axis1, dim2=axis2), dim=-1)
 
   def abs(self, tensor: Tensor) -> Tensor:
     """
