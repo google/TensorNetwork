@@ -104,6 +104,16 @@ class DecompositionsTest(tf.test.TestCase):
     np.testing.assert_almost_equal(trunc_sv_absolute, [0.1])
     np.testing.assert_almost_equal(trunc_sv_relative, [0.2, 0.1])
 
+  def test_expected_shapes_cholesky(self):
+    val = np.array([[[25, 15, -5]], [[15, 18, 0]], [[-5, 0, 11]]])
+    L, L_trans = decompositions.cholesky(np, val, -1)
+    self.assertEqual(L.shape, (3, 1, 3))
+
+  def test_cholesky(self):
+    random_matrix = np.array([[[25, 15, -5]], [[15, 18, 0]], [[-5, 0, 11]]])
+    L, L_trans = decompositions.cholesky(np, random_matrix, -1)
+    self.assertAllClose(L.dot(L_trans), random_matrix)
+
 
 if __name__ == '__main__':
   tf.test.main()

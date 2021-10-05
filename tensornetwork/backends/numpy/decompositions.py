@@ -15,6 +15,7 @@
 
 from typing import Optional, Any, Tuple
 import numpy
+
 Tensor = Any
 
 
@@ -26,7 +27,7 @@ def svd(
     max_truncation_error: Optional[float] = None,
     relative: Optional[bool] = False) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
   """Computes the singular value decomposition (SVD) of a tensor.
-
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
@@ -81,7 +82,7 @@ def qr(
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the QR decomposition of a tensor.
-
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
@@ -105,7 +106,7 @@ def rq(
     non_negative_diagonal: bool
 ) -> Tuple[Tensor, Tensor]:
   """Computes the RQ (reversed QR) decomposition of a tensor.
-
+  
   See tensornetwork.backends.tensorflow.decompositions for details.
   """
   left_dims = tensor.shape[:pivot_axis]
@@ -122,3 +123,32 @@ def rq(
   r = np.reshape(r, list(left_dims) + [center_dim])
   q = np.reshape(q, [center_dim] + list(right_dims))
   return r, q
+
+
+def cholesky(
+    np,  # TODO: Typing
+    tensor: Tensor,
+    pivot_axis: int,
+) -> Tuple[Tensor, Tensor]:
+  """Computes the cholesky decomposition of a tensor.
+  
+  See tensornetwork.backends.tensorflow.decompositions for details.
+  """
+  left_dims = tensor.shape[:pivot_axis]
+  right_dims = tensor.shape[pivot_axis:]
+  tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
+  n = tensor.shape[0]
+  m = tensor.shape[1]
+  if n != m:
+    print("The input must be a square matrix")
+  elif (np.allclose(tensor, np.matrix.getH(tensor)) == False):
+    print("The input must be a Hermitian Matrix")
+  elif (np.all(np.linalg.eigvals(tensor) > 0) == False):
+    print("The input must be a Positive Definite Matrix")
+  else:
+    L = np.linalg.cholesky(tensor)
+    L_trans = np.matrix.getH(L)
+    center_dim = L.shape[1]
+    L = np.reshape(L, list(left_dims) + [center_dim])
+    L_trans = np.reshape(L_trans, [center_dim] + list(right_dims))
+    return L, L_trans
