@@ -30,6 +30,8 @@ from tensornetwork.network_operations import get_subgraph_dangling, remove_node
 from tensornetwork.contractors import greedy
 Tensor = Any
 
+__all__ = ['quantum_constructor', 'identity', 'check_spaces', 'QuOperator',
+           'QuVector', 'QuAdjointVector', 'QuScalar', 'eliminate_identities']
 
 def quantum_constructor(
     out_edges: Sequence[Edge],
