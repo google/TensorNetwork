@@ -15,7 +15,7 @@
 import pytest
 import numpy as np
 import tensornetwork as tn
-import quantum as qu
+import tensornetwork.quantum as qu
 
 
 def test_constructor(backend):
