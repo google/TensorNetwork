@@ -491,6 +491,62 @@ class QuOperator():
           len(nodes)))
     return list(nodes)[0].tensor
 
+class X(QuOperator):
+  """Represents the X operator"""
+
+  def __init__(self):
+    x_node = tn.Node(np.array([[0,1],[1,0]]))
+    super().__init__(x_node[0], x_node[1], [], [])
+
+class Y(QuOperator):
+  """Represents the Y operator"""
+
+  def __init__(self):
+    y_node = tn.Node(np.array([[0,-j],[j,0]]))
+    super().__init__(y_node[0], y_node[1], [], [])
+
+class Z(QuOperator):
+  """Represents the Z operator"""
+
+  def __init__(self):
+    z_node = tn.Node(np.array([[1, 0],[0, -1]]))
+    super().__init__(z_node[0], z_node[1], [], [])
+
+class Sx(QuOperator):
+  """Represents the Spin x operator"""
+
+  def __init__(self):
+    sx_node = tn.Node(np.array([[0,1/2],[1/2,0]]))
+    super().__init__(sx_node[0], sx_node[1], [], [])
+
+class Sy(QuOperator):
+  """Represents the Spin y operator"""
+
+  def __init__(self):
+    sy_node = tn.Node(np.array([[0,1/(2j)],[-1/(2j),0]]))
+    super().__init__(sy_node[0], sy_node[1], [], [])
+
+class Sz(QuOperator):
+  """Represents the Spin z operator"""
+
+  def __init__(self):
+    sz_node = tn.Node(np.array([[1/2, 0],[0, -1/2]]))
+    super().__init__(sz_node[0], sz_node[1], [], [])
+
+class T(QuOperator):
+  """Represents the T operator"""
+
+  def __init__(self):
+    t_node = tn.Node(np.array([[1, 0],[0, (1+j)/np.sqrt(2)]]))
+    super().__init__(t_node[0], t_node[1], [], [])
+
+class H(QuOperator):
+  """Represents the H operator"""
+
+  def __init__(self):
+    h_node = tn.Node(np.array([[1, 1],[1, -1]])*(1/np.sqrt(2)))
+    super().__init__(h_node[0], h_node[1], [], [])
+
 
 class QuVector(QuOperator):
   """Represents a (column) vector via a tensor network."""
