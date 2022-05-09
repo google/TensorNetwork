@@ -14,7 +14,11 @@
 """Tensor Decomposition Numpy Implementation."""
 
 from typing import Optional, Any, Tuple
+import warnings
+
 import numpy
+import scipy
+
 Tensor = Any
 
 
@@ -33,7 +37,14 @@ def svd(
   right_dims = tensor.shape[pivot_axis:]
 
   tensor = np.reshape(tensor, [numpy.prod(left_dims), numpy.prod(right_dims)])
-  u, s, vh = np.linalg.svd(tensor, full_matrices=False)
+  try:
+    u, s, vh = np.linalg.svd(tensor, full_matrices=False)
+  except np.linalg.LinAlgError:
+    warnings.warn("NumPy SVD with the fast 'gesdd' LAPACK routine failed. " \
+      + "Matrix might be badly conditioned. Employing the SciPy SVD " \
+      + "with more stable 'gesvd' LAPACK routine instead.")
+    u, s, vh = scipy.linalg.svd(
+        tensor, full_matrices=False, lapack_driver='gesvd')
 
   if max_singular_values is None:
     max_singular_values = np.size(s)
