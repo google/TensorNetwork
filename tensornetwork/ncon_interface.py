@@ -25,6 +25,11 @@ Tensor = Any
 _CACHED_JITTED_NCONS = {}
 
 
+def a_random_function(a: int) -> int:
+  print(a)
+  return a
+
+
 def _get_cont_out_labels(
     network_structure: Sequence[Sequence[Union[int, str]]]) -> Any:
   """
