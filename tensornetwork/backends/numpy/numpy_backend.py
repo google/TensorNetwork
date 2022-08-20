@@ -604,7 +604,9 @@ class NumPyBackend(abstract_backend.AbstractBackend):
           tensor: Tensor,
           axis: Optional[Sequence[int]] = None,
           keepdims: bool = False) -> Tensor:
-    return np.sum(tensor, axis=tuple(axis), keepdims=keepdims)
+          if axis is not None and type(axis) == list:
+            return np.sum(tensor, axis=tuple(axis), keepdims=keepdims)
+          return np.sum(tensor, axis=axis, keepdims=keepdims)
 
   def matmul(self, tensor1: Tensor, tensor2: Tensor) -> Tensor:
     if (tensor1.ndim <= 1) or (tensor2.ndim <= 1):
