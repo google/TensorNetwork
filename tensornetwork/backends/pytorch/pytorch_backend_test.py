@@ -387,7 +387,71 @@ def test_eigsh_lanczos_raises():
   with pytest.raises(
       TypeError, match="Expected a `torch.Tensor`. Got <class 'list'>"):
     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
+def test_expm_small_number_krylov_vectors():
+  backend = pytorch_backend.PyTorchBackend()
+  init = backend.convert_to_tensor(np.array([1, 1], dtype=np.float64).reshape(-1,1))
+  H = backend.convert_to_tensor(np.array([[1, 2], [3, 4]], dtype=np.float64))
 
+  def mv(x, mat):
+    return backend.matmul(mat, x)
+
+  state= backend.expm_lanczos(mv, init,[H], num_krylov_vecs=1)
+  a0=torch.transpose(init,1,0)@H@init
+  res=np.exp(a0)*init
+  np.testing.assert_allclose(state, res)
+
+
+
+def test_expm_lanczos_1():
+  dtype = torch.float64
+  backend = pytorch_backend.PyTorchBackend()
+  D = 24
+  init = backend.randn((D,1), dtype=dtype)
+  tmp = backend.randn((D, D), dtype=dtype)
+  H = tmp + backend.transpose(torch.conj(tmp), (1, 0))
+  def mv(x, mat):
+    return backend.matmul(mat, x)
+  state=backend.expm_lanczos(mv, init, [H])
+
+  w,v =torch.linalg.eigh(H)
+  res=v@torch.diag(torch.exp(w))@torch.conj(backend.transpose(v))@init
+
+  np.testing.assert_allclose(state, res)
+
+
+@pytest.mark.parametrize("dt", [0.1j, -0.1j])
+def test_eigsh_lanczos_reorthogonalize_different_dt( dt):
+  dtype = torch.complex128
+  backend = pytorch_backend.PyTorchBackend()
+  D = 24
+  np.random.seed(10)
+  init = backend.randn((D,1), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+
+  H = tmp + backend.transpose(torch.conj(tmp), (1, 0))
+
+  def mv(x, mat):
+    return backend.matmul(mat, x)
+  state= backend.expm_lanczos(
+      mv,init,
+      [H],
+      dtype=dtype,
+      num_krylov_vecs=D,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=10**(-12),
+      delta=10**(-12), dt=dt)
+
+  w,v =torch.linalg.eigh(H)
+
+  res=v@torch.diag(torch.exp(dt*w))@torch.conj(backend.transpose(v))@init
+
+  np.testing.assert_allclose(state, res)
+def test_expm_lanczos_raises():
+  backend = pytorch_backend.PyTorchBackend()
+  with pytest.raises(
+      TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
+    backend.expm_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
 @pytest.mark.parametrize("a, b, expected", [
     pytest.param(1, 1, 2),

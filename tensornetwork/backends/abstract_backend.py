@@ -474,7 +474,47 @@ class AbstractBackend:
     """
     raise NotImplementedError(
         "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
-
+  def expm_lanczos(self,
+                    A: Callable,
+                    initial_state: Tensor,
+                    args: Optional[List[Tensor]] = None,
+                    dtype: Optional[Type[np.number]] = None,# pylint: disable=no-member
+                    num_krylov_vecs: int = 20,
+                    tol: float = 1E-8,
+                    delta: float = 1E-8,
+                    ndiag: int = 20,
+                    reorthogonalize: bool = False,dt: Optional[np.number] =1) -> Tuple[Tensor, List]:
+    """
+    Lanczos method for computing the exponential of dt*`A` and applying it
+    to initial_state.
+    Args:
+      A: A (sparse) implementation of a linear operator.
+         Call signature of `A` is `res = A(vector, *args)`, where `vector`
+         can be an arbitrary `Tensor`, and `res.shape` has to be `vector.shape`.
+      initial_state: An initial vector for the Lanczos algorithm. 
+      arsg: A list of arguments to `A`.  `A` will be called as
+        `res = A(initial_state, *args)`.
+      dtype: The dtype of the input `A`. If both no `initial_state` is provided,
+        a random initial state with shape `shape` and dtype `dtype` is created.
+      num_krylov_vecs: The number of iterations (number of krylov vectors).
+      tol: The desired precision of the normalized vector
+        u@np.diag(np.exp(dt*eigvals))@np.conj(u.transpose())@np.array([1,0,0,0..]),
+      where eigvals are then eigenvalues of the tridiagonal matrix and u the eigen vectors
+      delta: Stopping criterion for Lanczos iteration.
+        If a Krylov vector :math: `x_n` has an L2 norm
+        :math:`\\lVert x_n\\rVert < delta`, the iteration
+        is stopped. It means that an (approximate) invariant subspace has
+        been found.
+      ndiag: The tridiagonal Operator is diagonalized every `ndiag` iterations
+        to check convergence.
+      reorthogonalize: If `True`, Krylov vectors are kept orthogonal by
+        explicit orthogonalization (more costly than `reorthogonalize=False`)
+      dt: Prefactor of 'A' in the exponential, can be real or complex
+    Returns:
+      final_state=exp(dt*A)initial_state
+    """
+    raise NotImplementedError(
+        "Backend '{}' has not implemented eighs_lanczos.".format(self.name))
   def gmres(self,
             A_mv: Callable,
             b: Tensor,
