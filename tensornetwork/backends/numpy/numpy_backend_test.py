@@ -419,6 +419,80 @@ def test_eigsh_lanczos_raises():
       TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
     backend.eigsh_lanczos(lambda x: x, initial_state=[1, 2, 3])
 
+def test_expm_small_number_krylov_vectors():
+  backend = numpy_backend.NumPyBackend()
+  dt=0.1
+  init = np.array([1, 1], dtype=np.float64)
+  H = np.array([[1, 2], [3, 4]], dtype=np.float64)
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+
+  state= backend.expm_lanczos(mv, init,[H], num_krylov_vecs=1)
+  a0=init.transpose()@H@init
+  res=np.exp(a0)*init
+  np.testing.assert_allclose(state, res)
+  
+
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128])
+def test_expm_lanczos_1(dtype):
+  backend = numpy_backend.NumPyBackend()
+  D = 16
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+  def mv(x, mat):
+    return np.dot(mat, x)
+  state=backend.expm_lanczos(mv, init, [H])
+
+  w,v = np.linalg.eigh(H)
+  res=v@np.diag(np.exp(w))@np.conj(v).transpose()@init
+
+
+  np.testing.assert_allclose(state, res)
+
+
+
+
+
+
+@pytest.mark.parametrize("dtype", [ np.complex128])
+@pytest.mark.parametrize("dt", [0.1j, -0.1j])
+def test_eigsh_lanczos_reorthogonalize_different_dt(dtype, dt):
+  backend = numpy_backend.NumPyBackend()
+  D = 24
+  np.random.seed(10)
+  init = backend.randn((D,), dtype=dtype, seed=10)
+  tmp = backend.randn((D, D), dtype=dtype, seed=10)
+  H = tmp + backend.transpose(backend.conj(tmp), (1, 0))
+
+  def mv(x, mat):
+    return np.dot(mat, x)
+  state= backend.expm_lanczos(
+      mv,init,
+      [H],
+      dtype=dtype,
+      num_krylov_vecs=D,
+      reorthogonalize=True,
+      ndiag=1,
+      tol=10**(-12),
+      delta=10**(-12), dt=dt)
+  w,v = np.linalg.eigh(H)
+  res=v@np.diag(np.exp(dt*w))@np.conj(v).transpose()@init
+  np.testing.assert_allclose(state, res)
+test_eigsh_lanczos_reorthogonalize_different_dt(np.complex128, -0.1)
+def test_expm_lanczos_raises():
+  backend = numpy_backend.NumPyBackend()
+
+  with pytest.raises(
+      TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
+    backend.expm_lanczos(lambda x: x, initial_state=[1, 2, 3])
+  # to do, implement test on dtypes of dt, initial state and matrix
+  #with pytest.raises(
+   #   TypeError, match="Expected a `np.ndarray`. Got <class 'list'>"):
+   # backend.expm_lanczos(lambda x: x, initial_state=[1, 2, 3])
+
 
 def test_gmres_raises():
   backend = numpy_backend.NumPyBackend()
