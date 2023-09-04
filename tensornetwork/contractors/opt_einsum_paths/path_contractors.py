@@ -84,10 +84,16 @@ def base(nodes: Iterable[AbstractNode],
 
   # Then apply `opt_einsum`'s algorithm
   path, nodes = utils.get_path(nodes_set, algorithm)
-  for a, b in path:
-    new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
+  for p in path:
+    if len(p) == 2:
+      a, b = p
+      new_node = contract_between(nodes[a], nodes[b], allow_outer_product=True)
+    elif len(p) == 1:
+      new_node = nodes[p[0]]
+    else:
+      raise NotImplementedError('Hypergraph contraction not supported.')
     nodes.append(new_node)
-    nodes = utils.multi_remove(nodes, [a, b])
+    nodes = utils.multi_remove(nodes, p)
 
   # if the final node has more than one edge,
   # output_edge_order has to be specified
